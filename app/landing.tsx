@@ -36,6 +36,17 @@ export default function LandingPage() {
                 <Link href="/auth/login">Sign In</Link>
               </Button>
             </nav>
+            {/* Mobile Sign In button */}
+            <div className="md:hidden">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-primary/30 text-foreground hover:bg-primary/10 bg-transparent"
+              >
+                <Link href="/auth/login">Sign In</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </header>

@@ -146,7 +146,7 @@ export default function LoginPage() {
               {/* Google OAuth */}
               <Button
                 type="button"
-                className="w-full bg-white text-black hover:bg-white/90"
+                className="w-full bg-white text-black hover:bg-white/90 border border-primary/20"
                 onClick={handleGoogle}
                 disabled={isGoogleLoading}
               >
@@ -156,7 +156,13 @@ export default function LoginPage() {
                     Connecting Google...
                   </>
                 ) : (
-                  "Continue with Google"
+                  <>
+                    {/* Google "G" icon */}
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.66 4.1-5.5 4.1-3.31 0-6-2.73-6-6.1s2.69-6.1 6-6.1c1.89 0 3.16.8 3.89 1.49l2.64-2.55C16.91 3.4 14.69 2.5 12 2.5 6.99 2.5 2.9 6.59 2.9 11.6S6.99 20.7 12 20.7c6.36 0 8.1-4.45 8.1-6.65 0-.45-.05-.74-.11-1.06H12z"/>
+                    </svg>
+                    Continue with Google
+                  </>
                 )}
               </Button>
 
@@ -234,7 +240,11 @@ export default function LoginPage() {
               </div>
 
               {/* Divider */}
-              <div className="text-center text-xs text-muted-foreground">or sign in with email & password</div>
+              <div className="flex items-center gap-4">
+                <div className="h-px bg-primary/20 flex-1" />
+                <span className="text-xs text-muted-foreground">or sign in with email</span>
+                <div className="h-px bg-primary/20 flex-1" />
+              </div>
 
               {/* Email & Password */}
               <form onSubmit={handleLogin} className="space-y-4">
