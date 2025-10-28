@@ -2,29 +2,26 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Origin": "https://www.nnh.ae",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+} as const;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: corsHeaders });
   }
 
   try {
-    const url = new URL(req.url);
-    // Prefer Authorization header if present (works with verify_jwt)
+    // Require Authorization header (no token in URL)
     const authHeader = req.headers.get("Authorization");
-    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    // Fallback to token query param for browser-based redirects
-    const token = bearer || url.searchParams.get("token");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
     if (!token) {
-      throw new Error("Missing access token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -94,21 +91,15 @@ Deno.serve(async (req: Request) => {
     // Return JSON for invoke() flow; frontend will redirect
     return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error creating auth URL:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Failed to create auth URL";
-    return new Response(JSON.stringify({ message: errorMessage, error: errorMessage }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 401,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

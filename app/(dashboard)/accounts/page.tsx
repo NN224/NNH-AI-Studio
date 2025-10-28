@@ -26,6 +26,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [connecting, setConnecting] = useState(false)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -77,6 +78,7 @@ export default function AccountsPage() {
   }, [])
 
   const handleConnect = async () => {
+    setConnecting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
@@ -113,6 +115,8 @@ export default function AccountsPage() {
         description: 'Failed to connect Google account',
         variant: 'destructive'
       })
+    } finally {
+      setConnecting(false)
     }
   }
 
@@ -220,9 +224,18 @@ export default function AccountsPage() {
             Manage your connected Google My Business accounts
           </p>
         </div>
-        <Button onClick={handleConnect}>
-          <Plus className="w-4 h-4 mr-2" />
-          Connect Account
+        <Button onClick={handleConnect} disabled={connecting}>
+          {connecting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Connect Account
+            </>
+          )}
         </Button>
       </div>
 
@@ -234,9 +247,18 @@ export default function AccountsPage() {
             <p className="text-muted-foreground mb-6 text-center max-w-md">
               Connect your Google My Business account to start managing your locations
             </p>
-            <Button onClick={handleConnect}>
-              <Plus className="w-4 h-4 mr-2" />
-              Connect First Account
+            <Button onClick={handleConnect} disabled={connecting}>
+              {connecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Connect First Account
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
