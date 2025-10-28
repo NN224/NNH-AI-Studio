@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import LandingPage from './landing'
 
 export default async function RootPage() {
   const supabase = await createClient()
@@ -12,6 +13,6 @@ export default async function RootPage() {
     redirect('/home')
   }
 
-  // If not logged in, redirect to login
-  redirect('/auth/login')
+  // If not logged in, show landing page
+  return <LandingPage />
 }
