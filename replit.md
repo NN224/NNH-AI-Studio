@@ -8,6 +8,12 @@ GMB Platform is a Next.js-based Google My Business (GMB) management application 
 
 ## Recent Changes
 
+### October 29, 2025 - Production Deployment Preparation
+- **Created Comprehensive Deployment Documentation:** Added 4 detailed guides (54KB total) in Arabic for Google Console, Supabase, and Replit Secrets configuration.
+- **Backup Creation:** Complete backup of all GMB and Auth files (34 files) in `beso/` folder for safekeeping.
+- **Environment Variables Documentation:** Created `SECRETS_CHECKLIST.txt` with all 7 required environment variables for deployment on `nnh.ae` domain.
+- **OAuth Configuration:** Documented exact redirect URI setup: `https://nnh.ae/api/gmb/oauth-callback` for Google OAuth integration.
+
 ### October 29, 2025 - Critical Bug Fixes & Production Readiness
 - **Fixed OAuth Callback Routing:** Reordered condition checks in `app/auth/callback/route.ts` to prioritize `state` parameter before `code`, ensuring Google OAuth callbacks are properly routed to `/api/gmb/oauth-callback` instead of being incorrectly handled by Supabase auth flow.
 - **Enhanced Error Handling:** Added comprehensive try-catch blocks to `app/(dashboard)/locations/page.tsx` and `app/(dashboard)/reviews/page.tsx` to prevent silent failures and ensure proper error logging for Supabase queries.
