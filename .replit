@@ -37,3 +37,8 @@ externalPort = 80
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 deploymentTarget = "autoscale"
+[env]
+NODE_ENV = "development"
+NEXT_RUNTIME_LOG = "1"
+NEXT_TELEMETRY_DISABLED = "1"
+NEXT_DISABLE_SWC_WATCH = "1"
