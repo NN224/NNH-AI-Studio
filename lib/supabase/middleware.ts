@@ -25,6 +25,10 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
+  const publicRoutes = ["/", "/privacy", "/terms", "/about", "/contact", "/pricing"]
+  const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname === route)
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth")
+  
   let user = null
   
   try {
@@ -34,31 +38,36 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
     
     if (error) {
-      console.error("Auth error in middleware:", error)
+      // Only log errors for protected routes (not public or auth routes)
+      if (!isPublicRoute && !isAuthRoute) {
+        console.error("Auth error in middleware:", error)
+      }
       
-      // If session expired or invalid, clear cookies and redirect to login
+      // If session expired or invalid, clear cookies and redirect to login (only for protected routes)
       if (error.message?.includes("session") || error.message?.includes("expired") || error.message?.includes("Invalid")) {
-        const url = request.nextUrl.clone()
-        url.pathname = "/auth/login"
-        const response = NextResponse.redirect(url)
-        
-        // Clear auth cookies
-        response.cookies.delete("sb-access-token")
-        response.cookies.delete("sb-refresh-token")
-        
-        return response
+        if (!isPublicRoute && !isAuthRoute) {
+          const url = request.nextUrl.clone()
+          url.pathname = "/auth/login"
+          const response = NextResponse.redirect(url)
+          
+          // Clear auth cookies
+          response.cookies.delete("sb-access-token")
+          response.cookies.delete("sb-refresh-token")
+          
+          return response
+        }
       }
     }
     
     user = authUser
   } catch (error) {
-    console.error("Middleware authentication error:", error)
+    // Only log critical errors for protected routes
+    if (!isPublicRoute && !isAuthRoute) {
+      console.error("Middleware authentication error:", error)
+    }
     // On any auth error, treat as unauthenticated
     user = null
   }
-
-  const publicRoutes = ["/", "/privacy", "/terms", "/about", "/contact", "/pricing"]
-  const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname === route)
 
   // Redirect to login if not authenticated and trying to access protected routes
   if (!user && !request.nextUrl.pathname.startsWith("/auth") && !isPublicRoute) {

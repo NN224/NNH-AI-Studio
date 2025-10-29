@@ -264,16 +264,39 @@ Preferred communication style: Simple, everyday language.
 - ⚠️ Build command updated to unset NODE_ENV (Replit environment issue)
 
 **Recent Fixes (Oct 29, 2025):**
+
+*Database Schema & Security (Critical - Latest):*
+- **Database user_id columns**: Added missing user_id foreign keys to gmb_locations and gmb_reviews
+  - SQL migrations created in `supabase/migrations/`
+  - Migration 1: Adds user_id UUID columns with foreign key to auth.users
+  - Migration 2: Enables Row Level Security (RLS) with user-scoped policies
+  - Server actions (locations.ts, reviews.ts) write user_id on all inserts
+  - GMB Sync edge function updated to propagate user_id from account owner
+  - **Requires**: Manual execution of SQL migrations in Supabase Dashboard (see QUICK_FIX_AR.md)
+  
+*Session Management:*
+- **Middleware session handling**: Enhanced error handling for expired/invalid sessions
+  - Try/catch blocks for auth errors with graceful degradation
+  - Automatic redirect to login on session expiration
+  - Cookie cleanup on invalid sessions
+  - Reduced logging noise for public and auth routes
+  
+*Environment & Build:*
+- **NODE_ENV warning fix**: Added `unset NODE_ENV &&` to both build and start scripts
+  - Resolves Replit environment non-standard NODE_ENV value
+  - Eliminates production warnings
+
+*OAuth & Authentication:*
 - **OAuth Redirect Fix**: Resolved `0.0.0.0:5000` redirect issue
   - Added `getOriginFromRequest()` helper in auth/callback/route.ts
   - Uses request headers (x-forwarded-host, x-forwarded-proto) for reverse proxy support
   - Works in development (localhost, 127.0.0.1), Replit preview, and production (nnh.ae)
   - Client-side components use `getBaseUrlClient()` utility
   - Supports environment override via `NEXT_PUBLIC_BASE_URL`
+  
+*Framework & Infrastructure:*
 - Downgraded from Next.js 16.0.0 to 14.2.24 (stable)
   - Reason: Next.js 16 had global-error prerendering bug causing build failures
-- Updated build script to `unset NODE_ENV && next build`
-  - Reason: Replit environment sets non-standard NODE_ENV value
 - Reverted proxy.ts back to middleware.ts
   - Reason: middleware.ts is standard in Next.js 14
 
