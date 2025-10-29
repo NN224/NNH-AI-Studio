@@ -19,7 +19,7 @@ export function useOAuthCallbackHandler({ fetchAccounts, handleSync }: OAuthCall
       return;
     }
     // Filter for active accounts again, just in case fetch included inactive ones somehow
-    const activeAccounts = accountsToSync.filter(a => a.is_active === true || a.status === 'active');
+    const activeAccounts = accountsToSync.filter(a => a.is_active === true);
     if (activeAccounts.length === 0) {
       console.log('[useOAuthCallback] No active accounts found for auto-sync.');
       return;
