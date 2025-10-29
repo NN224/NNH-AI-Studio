@@ -2,17 +2,96 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useEffect, useState } from "react"
+import { getMonthlyStats } from "@/server/actions/dashboard"
+import { AlertCircle } from "lucide-react"
 
-const data = [
-  { month: "Jan", rating: 4.2, reviews: 45 },
-  { month: "Feb", rating: 4.3, reviews: 52 },
-  { month: "Mar", rating: 4.4, reviews: 61 },
-  { month: "Apr", rating: 4.5, reviews: 58 },
-  { month: "May", rating: 4.6, reviews: 67 },
-  { month: "Jun", rating: 4.7, reviews: 73 },
-]
+interface MonthlyData {
+  month: string
+  rating: number
+  reviews: number
+}
 
 export function PerformanceChart() {
+  const [data, setData] = useState<MonthlyData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const result = await getMonthlyStats()
+        
+        if (result.error) {
+          setError(result.error)
+        } else {
+          setData(result.data)
+        }
+      } catch (err) {
+        setError("Failed to load chart data")
+        console.error("Chart data error:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <Card className="bg-card border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-foreground">Rating Trends</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="w-full h-[300px]" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-card border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-foreground">Rating Trends</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
+          <div className="text-center text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-2 text-red-500" />
+            <p className="text-sm">{error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <Card className="bg-card border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-foreground">Rating Trends</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
+          <div className="text-center text-muted-foreground">
+            <p>No review data available yet</p>
+            <p className="text-sm mt-2">Chart will appear once you receive reviews</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Calculate dynamic domain based on actual data
+  const minRating = Math.min(...data.map(d => d.rating))
+  const maxRating = Math.max(...data.map(d => d.rating))
+  const domain = [
+    Math.max(0, Math.floor(minRating) - 0.5),
+    Math.min(5, Math.ceil(maxRating) + 0.5)
+  ]
+
   return (
     <Card className="bg-card border-primary/30">
       <CardHeader>
@@ -23,7 +102,7 @@ export function PerformanceChart() {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 107, 53, 0.1)" />
             <XAxis dataKey="month" stroke="#999999" style={{ fontSize: "12px" }} />
-            <YAxis stroke="#999999" style={{ fontSize: "12px" }} domain={[4.0, 5.0]} />
+            <YAxis stroke="#999999" style={{ fontSize: "12px" }} domain={domain} />
             <Tooltip
               contentStyle={{
                 backgroundColor: "#0a0a0a",

@@ -23,27 +23,39 @@ export function ActivityFeed() {
 
   useEffect(() => {
     const fetchActivities = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) {
+          setLoading(false)
+          return
+        }
 
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10)
+        const { data, error } = await supabase
+          .from("activity_logs")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10)
 
-      if (!error && data) {
-        setActivities(data)
+        if (error) {
+          console.error("Failed to fetch activities:", error)
+          setActivities([])
+        } else if (data) {
+          setActivities(data)
+        }
+      } catch (err) {
+        console.error("Activity feed error:", err)
+        setActivities([])
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchActivities()
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates with error handling
     const channel = supabase
       .channel("activity_logs")
       .on(
@@ -62,7 +74,7 @@ export function ActivityFeed() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [])
 
   const getActivityIcon = (type: string) => {
     const IconComponent = activityIcons[type as keyof typeof activityIcons] || MessageSquare
