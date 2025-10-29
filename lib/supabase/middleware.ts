@@ -44,15 +44,20 @@ export async function updateSession(request: NextRequest) {
       }
       
       // If session expired or invalid, clear cookies and redirect to login (only for protected routes)
-      if (error.message?.includes("session") || error.message?.includes("expired") || error.message?.includes("Invalid")) {
+      if (error.message?.includes("session") || 
+          error.message?.includes("expired") || 
+          error.message?.includes("Invalid") ||
+          error.message?.includes("refresh_token_not_found") ||
+          error.message?.includes("Refresh Token")) {
         if (!isPublicRoute && !isAuthRoute) {
           const url = request.nextUrl.clone()
           url.pathname = "/auth/login"
           const response = NextResponse.redirect(url)
           
-          // Clear auth cookies
+          // Clear all auth cookies
           response.cookies.delete("sb-access-token")
-          response.cookies.delete("sb-refresh-token")
+          response.cookies.delete("sb-refresh-token") 
+          response.cookies.delete("sb-auth-token")
           
           return response
         }
