@@ -38,8 +38,8 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
     
     if (error) {
-      // Only log errors for protected routes (not public or auth routes)
-      if (!isPublicRoute && !isAuthRoute) {
+      // Only log actual errors, not missing sessions (which are expected)
+      if (!isPublicRoute && !isAuthRoute && error.name !== 'AuthSessionMissingError') {
         console.error("Auth error in middleware:", error)
       }
       
@@ -48,7 +48,8 @@ export async function updateSession(request: NextRequest) {
           error.message?.includes("expired") || 
           error.message?.includes("Invalid") ||
           error.message?.includes("refresh_token_not_found") ||
-          error.message?.includes("Refresh Token")) {
+          error.message?.includes("Refresh Token") ||
+          error.name === 'AuthSessionMissingError') {
         if (!isPublicRoute && !isAuthRoute) {
           const url = request.nextUrl.clone()
           url.pathname = "/auth/login"
