@@ -1,15 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "https://www.nnh.ae",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Internal-Run",
-  "Access-Control-Max-Age": "86400",
-  "X-Content-Type-Options": "nosniff",
-  "Content-Security-Policy": "default-src 'none'",
-} as const;
+const getCorsHeaders = () => {
+  const origin = Deno.env.get("FRONTEND_URL") || Deno.env.get("NEXT_PUBLIC_BASE_URL") || "*";
+  return {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Internal-Run",
+    "Access-Control-Max-Age": "86400",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'",
+  } as const;
+};
+
+const corsHeaders = getCorsHeaders();
 
 // helpers
 const ok = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: corsHeaders });

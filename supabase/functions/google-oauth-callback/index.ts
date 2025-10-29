@@ -1,11 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://www.nnh.ae",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-} as const;
+const getCorsHeaders = () => {
+  const origin = Deno.env.get("FRONTEND_URL") || Deno.env.get("NEXT_PUBLIC_BASE_URL") || "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  } as const;
+};
+
+const corsHeaders = getCorsHeaders();
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -276,7 +281,11 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const successUrl = Deno.env.get("FRONTEND_REDIRECT_SUCCESS") || "https://www.nnh.ae/accounts";
+    const baseUrl = Deno.env.get("FRONTEND_URL") || Deno.env.get("NEXT_PUBLIC_BASE_URL");
+    if (!baseUrl) {
+      throw new Error("Missing FRONTEND_URL or NEXT_PUBLIC_BASE_URL environment variable");
+    }
+    const successUrl = Deno.env.get("FRONTEND_REDIRECT_SUCCESS") || `${baseUrl}/accounts`;
 
     return new Response(null, {
       status: 302,
@@ -288,7 +297,8 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("OAuth callback error:", error);
 
-    const errorUrl = Deno.env.get("FRONTEND_REDIRECT_ERROR") || "https://www.nnh.ae/accounts";
+    const baseUrl = Deno.env.get("FRONTEND_URL") || Deno.env.get("NEXT_PUBLIC_BASE_URL");
+    const errorUrl = Deno.env.get("FRONTEND_REDIRECT_ERROR") || (baseUrl ? `${baseUrl}/accounts` : "/accounts");
     const errorMessage = error instanceof Error ? error.message : "OAuth callback failed";
 
     return new Response(null, {
