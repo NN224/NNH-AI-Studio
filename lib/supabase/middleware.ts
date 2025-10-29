@@ -25,9 +25,37 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  
+  try {
+    const {
+      data: { user: authUser },
+      error,
+    } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error("Auth error in middleware:", error)
+      
+      // If session expired or invalid, clear cookies and redirect to login
+      if (error.message?.includes("session") || error.message?.includes("expired") || error.message?.includes("Invalid")) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/auth/login"
+        const response = NextResponse.redirect(url)
+        
+        // Clear auth cookies
+        response.cookies.delete("sb-access-token")
+        response.cookies.delete("sb-refresh-token")
+        
+        return response
+      }
+    }
+    
+    user = authUser
+  } catch (error) {
+    console.error("Middleware authentication error:", error)
+    // On any auth error, treat as unauthenticated
+    user = null
+  }
 
   const publicRoutes = ["/", "/privacy", "/terms", "/about", "/contact", "/pricing"]
   const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname === route)

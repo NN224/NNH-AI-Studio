@@ -172,7 +172,7 @@ async function fetchMedia(tok: string, locRes: string, page?: string) {
 }
 
 // Upserts
-async function upsertLocations(db: SupabaseClient, accountId: string, list: Listing[]) {
+async function upsertLocations(db: SupabaseClient, accountId: string, userId: string, list: Listing[]) {
   const rows = list.map(l => {
     const addr: any = (l as any).storefrontAddress;
     const addressStr = addr
@@ -182,6 +182,7 @@ async function upsertLocations(db: SupabaseClient, accountId: string, list: List
     const category = (l as any)?.categories?.primaryCategory?.displayName || null;
     return {
       gmb_account_id: accountId,
+      user_id: userId,
       location_id: l.name,
       location_name: l.title ?? l.name,
       address: addressStr,
@@ -200,9 +201,10 @@ async function upsertLocations(db: SupabaseClient, accountId: string, list: List
     if (error) throw error;
   }
 }
-async function upsertReviews(db: SupabaseClient, accountId: string, locationId: string, list: Review[]) {
+async function upsertReviews(db: SupabaseClient, accountId: string, userId: string, locationId: string, list: Review[]) {
   const rows = list.map(r => ({
     gmb_account_id: accountId,
+    user_id: userId,
     location_id: locationId,
     external_review_id: r.name,
     reviewer_name: (r as any)?.reviewer?.displayName || null,
@@ -326,7 +328,7 @@ Deno.serve(async (req: Request) => {
     do {
       const { items, next: n } = await fetchListings(token, accountRes, next);
       if (items.length) {
-        await upsertLocations(db, accountId, items);
+        await upsertLocations(db, accountId, userId, items);
         counts.locations += items.length;
       }
       next = n; if (syncType === "incremental") break;
@@ -340,7 +342,7 @@ Deno.serve(async (req: Request) => {
         do {
           const { items, next } = await fetchReviews(token, loc.id, revNext);
           if (items.length) {
-            await upsertReviews(db, accountId, loc.id, items);
+            await upsertReviews(db, accountId, userId, loc.id, items);
             counts.reviews += items.length;
           }
           revNext = next;
