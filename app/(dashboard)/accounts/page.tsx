@@ -165,39 +165,36 @@ export default function AccountsPage() {
   const handleConnect = async () => {
     setConnecting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        toast({
-          title: 'Error',
-          description: 'Please sign in first',
-          variant: 'destructive'
-        })
-        return
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-auth-url`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          }
+      console.log('[Accounts Page] Starting Google OAuth connection...')
+      
+      // Use new Next.js API route instead of Supabase Edge Function
+      const response = await fetch('/api/gmb/create-auth-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         }
-      )
+      })
 
-      if (!response.ok) throw new Error('Failed to create auth URL')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('[Accounts Page] Failed to create auth URL:', errorData)
+        throw new Error(errorData.error || 'Failed to create auth URL')
+      }
 
       const data = await response.json()
       const authUrl = data.authUrl || data.url
+      
+      console.log('[Accounts Page] Redirecting to Google OAuth...')
       if (authUrl) {
         window.location.href = authUrl
+      } else {
+        throw new Error('No auth URL returned')
       }
-    } catch (error) {
-      console.error('Error connecting:', error)
+    } catch (error: any) {
+      console.error('[Accounts Page] Error connecting:', error)
       toast({
-        title: 'Error',
-        description: 'Failed to connect Google account',
+        title: 'Connection Error',
+        description: error.message || 'Failed to connect Google account',
         variant: 'destructive'
       })
     } finally {
@@ -208,31 +205,39 @@ export default function AccountsPage() {
   const handleSync = async (accountId: string, isAutoSync = false) => {
     setSyncing(accountId)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No session')
+      console.log(`[Accounts Page] ${isAutoSync ? 'Auto-syncing' : 'Manually syncing'} account ${accountId}`)
 
-      console.log(`${isAutoSync ? 'Auto-syncing' : 'Manually syncing'} account ${accountId}`)
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/gmb-sync`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ accountId, syncType: 'full' })
-        }
-      )
+      // Use new Next.js API route instead of Supabase Edge Function
+      const response = await fetch('/api/gmb/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accountId, syncType: 'full' })
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('Sync API error:', errorData)
-        throw new Error(errorData.error || 'Sync failed')
+        console.error('[Accounts Page] Sync API error:', errorData)
+        
+        // Handle specific error cases
+        if (errorData.error === 'invalid_grant') {
+          toast({
+            title: 'Authorization Expired',
+            description: 'Your Google authorization has expired. Please reconnect your account.',
+            variant: 'destructive'
+          })
+          
+          // Update account status to show it needs reconnection
+          await fetchAccounts()
+          return
+        }
+        
+        throw new Error(errorData.error || errorData.message || 'Sync failed')
       }
 
       const data = await response.json()
-      console.log('Sync successful:', data)
+      console.log('[Accounts Page] Sync successful:', data)
       
       toast({
         title: isAutoSync ? 'Auto-Sync Complete!' : 'Sync Successful!',
@@ -241,7 +246,7 @@ export default function AccountsPage() {
 
       await fetchAccounts()
     } catch (error: any) {
-      console.error('Sync error:', error)
+      console.error('[Accounts Page] Sync error:', error)
       toast({
         title: 'Sync Failed',
         description: error.message || 'Failed to sync account',
