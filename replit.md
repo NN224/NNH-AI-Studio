@@ -186,5 +186,74 @@ Preferred communication style: Simple, everyday language.
 **Deployment Settings**:
 - Build command: `npm run build`
 - Dev command: `npm run dev` (port 5000)
+- Start command: `npm run start` (port 5000)
 - Install command: `npm install --legacy-peer-deps`
+- Deployment type: Autoscale
 - Region: iad1 (US East)
+
+## Production Readiness (Updated: Oct 29, 2025)
+
+### Recent Changes for Production
+
+**Build Configuration**:
+- Removed `ignoreBuildErrors` from next.config.mjs for production safety
+- Excluded `supabase/` folder from tsconfig.json (Edge Functions are Deno-based)
+- Fixed TypeScript errors in analytics components
+- Build process completes successfully with zero errors
+
+**Environment Variables**:
+All required secrets configured in Replit Secrets:
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase public anonymous key
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `GROQ_API_KEY` - Groq AI API key
+- `DEEPSEEK_API_KEY` - DeepSeek AI API key
+- `TOGETHER_API_KEY` - Together AI API key
+
+**Deployment Configuration**:
+- Configured for Autoscale deployment on Replit
+- Build: `npm run build`
+- Run: `npm run start`
+- Port binding: 0.0.0.0:5000 (required for Replit)
+
+### Pre-Deployment Checklist
+
+Before deploying to production, complete the following in Supabase:
+
+1. **Enable Row Level Security (RLS)**:
+   - Must be enabled on all tables: `profiles`, `gmb_accounts`, `gmb_locations`, `gmb_reviews`, `activity_logs`
+   - Apply security policies as documented in `PRODUCTION_CHECKLIST.md`
+
+2. **Deploy Supabase Edge Functions**:
+   - 6 Edge Functions must be deployed: `ai-generate`, `account-disconnect`, `create-auth-url`, `gmb-sync`, `google-oauth-callback`, `review-reply`
+   - Add required environment variables to Supabase Edge Functions secrets
+
+3. **Run Database Setup Scripts**:
+   - Execute `scripts/001_create_gmb_schema.sql`
+   - Execute `scripts/002_create_profile_trigger.sql`
+
+4. **Configure Google OAuth**:
+   - Add production domain to Google Cloud Console Authorized redirect URIs
+   - Update Authorized JavaScript origins
+
+### Code Quality
+
+**Type Safety**:
+- Full TypeScript coverage with strict mode enabled
+- All components properly typed
+- Database types defined in `lib/types/database.ts`
+
+**Security Best Practices**:
+- No secrets in code
+- Environment variables properly managed
+- Client/server separation maintained
+- Supabase RLS ready for production (requires manual enablement)
+
+**Performance**:
+- Next.js 16 with Turbopack for fast builds
+- React 18.3.1 for optimal rendering
+- Static page generation where applicable
+- Dynamic rendering for authenticated routes
+
+For complete production deployment guide, see `PRODUCTION_CHECKLIST.md`

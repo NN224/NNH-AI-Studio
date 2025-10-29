@@ -19,7 +19,7 @@ export function LocationPerformance() {
         const { data } = await supabase
           .from("gmb_locations")
           .select("*")
-          .order("average_rating", { ascending: false })
+          .order("rating", { ascending: false })
           .limit(4)
 
         if (data) {
@@ -77,15 +77,15 @@ export function LocationPerformance() {
               className="flex items-center justify-between p-4 rounded-lg bg-secondary border border-primary/20 hover:border-primary/40 transition-all duration-200"
             >
               <div className="flex-1">
-                <p className="font-semibold text-foreground">{location.name}</p>
+                <p className="font-semibold text-foreground">{location.location_name}</p>
                 <div className="flex items-center gap-3 mt-1">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-primary text-primary" />
                     <span className="text-sm text-muted-foreground">
-                      {location.average_rating?.toFixed(1) || "N/A"}
+                      {location.rating?.toFixed(1) || "N/A"}
                     </span>
                   </div>
-                  <span className="text-sm text-muted-foreground">{location.total_reviews || 0} reviews</span>
+                  <span className="text-sm text-muted-foreground">{location.review_count || 0} reviews</span>
                 </div>
               </div>
               <Badge className="bg-green-500/20 text-green-500 border-green-500/30 flex items-center gap-1">
