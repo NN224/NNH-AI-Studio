@@ -1,3 +1,5 @@
+"use client"
+
 import { MetricsOverview } from "@/components/analytics/metrics-overview"
 import { ReviewSentimentChart } from "@/components/analytics/review-sentiment-chart"
 import { LocationPerformance } from "@/components/analytics/location-performance"
