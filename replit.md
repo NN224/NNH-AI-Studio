@@ -184,23 +184,33 @@ Preferred communication style: Simple, everyday language.
 - Additional OAuth credentials for Google integration (server-side)
 
 **Deployment Settings**:
-- Build command: `npm run build`
+- Build command: `npm run build` (includes `unset NODE_ENV` to avoid Next.js warnings)
 - Dev command: `npm run dev` (port 5000)
 - Start command: `npm run start` (port 5000)
 - Install command: `npm install --legacy-peer-deps`
 - Deployment type: Autoscale
 - Region: iad1 (US East)
+- Next.js version: 14.2.24 (stable, downgraded from 16.0.0 due to build issues)
 
 ## Production Status (✅ DEPLOYED - Oct 29, 2025)
 
 ### Latest Update (Oct 29, 2025)
 
 **Build & Deployment Health:**
-- ✅ Next.js 16 build succeeds without errors
+- ✅ Next.js 14.2.24 build succeeds without errors
 - ✅ TypeScript compilation clean
-- ✅ All 24 routes generated successfully
+- ✅ All 25 routes generated successfully
 - ✅ Production runtime stable
-- ⚠️ Middleware deprecation warning (Next.js 16 - non-critical)
+- ✅ Middleware (middleware.ts) working correctly
+- ⚠️ Build command updated to unset NODE_ENV (Replit environment issue)
+
+**Recent Fixes (Oct 29, 2025):**
+- Downgraded from Next.js 16.0.0 to 14.2.24 (stable)
+  - Reason: Next.js 16 had global-error prerendering bug causing build failures
+- Updated build script to `unset NODE_ENV && next build`
+  - Reason: Replit environment sets non-standard NODE_ENV value
+- Reverted proxy.ts back to middleware.ts
+  - Reason: middleware.ts is standard in Next.js 14
 
 ### Recent Changes for Production
 
