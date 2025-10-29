@@ -1,0 +1,188 @@
+[
+  {
+    "schema_name": "public",
+    "table_name": "activity_logs",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "ai_autopilot_logs",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "ai_autopilot_settings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "ai_requests",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "ai_settings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "autopilot_logs",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "autopilot_settings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "citation_listings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "citation_sources",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "competitor_tracking",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_accounts",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_citations",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_insights",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_locations",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_media",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_posts",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_rankings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "gmb_reviews",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "jobs_log",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "keyword_rankings",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "oauth_events",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "oauth_states",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "oauth_tokens",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "profiles",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "room_members",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "secret_keys",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "sync_results",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "sync_runs",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "team_members",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "users",
+    "rls_enabled": true,
+    "rls_forced": false
+  },
+  {
+    "schema_name": "public",
+    "table_name": "users",
+    "rls_enabled": true,
+    "rls_forced": false
+  }
+]

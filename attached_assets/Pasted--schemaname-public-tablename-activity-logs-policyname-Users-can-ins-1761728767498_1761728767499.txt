@@ -1,0 +1,902 @@
+[
+  {
+    "schemaname": "public",
+    "tablename": "activity_logs",
+    "policyname": "Users can insert own activity",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "activity_logs",
+    "policyname": "Users can view own activity",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_autopilot_logs",
+    "policyname": "Users can insert autopilot logs for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_logs.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_autopilot_logs",
+    "policyname": "Users can read autopilot logs for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_logs.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_autopilot_settings",
+    "policyname": "Users can insert autopilot settings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_settings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_autopilot_settings",
+    "policyname": "Users can read autopilot settings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_settings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_autopilot_settings",
+    "policyname": "Users can update autopilot settings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_settings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = ai_autopilot_settings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_requests",
+    "policyname": "Users can insert own AI requests",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_requests",
+    "policyname": "Users can read own AI requests",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_settings",
+    "policyname": "ai_settings_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_settings",
+    "policyname": "ai_settings_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_settings",
+    "policyname": "ai_settings_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "ai_settings",
+    "policyname": "ai_settings_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_logs",
+    "policyname": "Users can insert autopilot logs for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = autopilot_logs.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_logs",
+    "policyname": "Users can read autopilot logs for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = autopilot_logs.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_settings",
+    "policyname": "autopilot_settings_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_settings",
+    "policyname": "autopilot_settings_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_settings",
+    "policyname": "autopilot_settings_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "autopilot_settings",
+    "policyname": "autopilot_settings_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "citation_listings",
+    "policyname": "Users can delete citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = citation_listings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "citation_listings",
+    "policyname": "Users can insert citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = citation_listings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "citation_listings",
+    "policyname": "Users can read citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = citation_listings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "citation_listings",
+    "policyname": "Users can update citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = citation_listings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = citation_listings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "citation_sources",
+    "policyname": "Citation sources are readable by all authenticated users",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "competitor_tracking",
+    "policyname": "Users can delete competitors for own locations",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = competitor_tracking.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "competitor_tracking",
+    "policyname": "Users can insert competitors for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = competitor_tracking.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "competitor_tracking",
+    "policyname": "Users can read competitors for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = competitor_tracking.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "competitor_tracking",
+    "policyname": "Users can update competitors for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = competitor_tracking.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = competitor_tracking.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "Users can delete their own accounts",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "Users can insert their own accounts",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "Users can update their own accounts",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "Users can view their own accounts",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_delete",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_insert",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_select",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_update",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_accounts_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_insert_self",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_modify_own",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_accounts",
+    "policyname": "gmb_select_own",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_citations",
+    "policyname": "Users can delete citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_citations.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_citations",
+    "policyname": "Users can insert citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_citations.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_citations",
+    "policyname": "Users can read citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_citations.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_citations",
+    "policyname": "Users can update citations for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_citations.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_citations.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_insights",
+    "policyname": "Users can insert insights for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_insights.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_insights",
+    "policyname": "Users can read insights for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_insights.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_insights",
+    "policyname": "Users can update insights for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_insights.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_insights.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "Users can delete their own locations",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "Users can insert their own locations",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "Users can update their own locations",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "Users can view their own locations",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_delete",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (gmb_accounts.user_id = ( SELECT auth.uid() AS uid))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (( SELECT auth.uid() AS uid) = gmb_accounts.user_id)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_insert",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (gmb_accounts.user_id = ( SELECT auth.uid() AS uid))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (( SELECT auth.uid() AS uid) = gmb_accounts.user_id)))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_select",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (gmb_accounts.user_id = ( SELECT auth.uid() AS uid))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (( SELECT auth.uid() AS uid) = gmb_accounts.user_id)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_update",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (gmb_accounts.user_id = ( SELECT auth.uid() AS uid))))",
+    "with_check": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (gmb_accounts.user_id = ( SELECT auth.uid() AS uid))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_locations",
+    "policyname": "gmb_locations_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (( SELECT auth.uid() AS uid) = gmb_accounts.user_id)))",
+    "with_check": "(gmb_account_id IN ( SELECT gmb_accounts.id\n   FROM gmb_accounts\n  WHERE (( SELECT auth.uid() AS uid) = gmb_accounts.user_id)))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_media",
+    "policyname": "Users can delete media for own locations",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_media.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_media",
+    "policyname": "Users can insert media for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_media.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_media",
+    "policyname": "Users can read media for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_media.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_media",
+    "policyname": "Users can update media for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_media.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_media.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_posts",
+    "policyname": "gmb_posts_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_posts",
+    "policyname": "gmb_posts_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_posts",
+    "policyname": "gmb_posts_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_posts",
+    "policyname": "gmb_posts_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_rankings",
+    "policyname": "Users can delete rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_rankings",
+    "policyname": "Users can insert rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_rankings",
+    "policyname": "Users can read rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_rankings",
+    "policyname": "Users can update rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = gmb_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "Users can delete their own reviews",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "Users can insert their own reviews",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "Users can update their own reviews",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "Users can view their own reviews",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "gmb_reviews_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations l\n     JOIN gmb_accounts a ON ((l.gmb_account_id = a.id)))\n  WHERE ((l.id = gmb_reviews.location_id) AND (( SELECT auth.uid() AS uid) = a.user_id))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "gmb_reviews_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations l\n     JOIN gmb_accounts a ON ((l.gmb_account_id = a.id)))\n  WHERE ((l.id = gmb_reviews.location_id) AND (( SELECT auth.uid() AS uid) = a.user_id))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "gmb_reviews",
+    "policyname": "gmb_reviews_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations l\n     JOIN gmb_accounts a ON ((l.gmb_account_id = a.id)))\n  WHERE ((l.id = gmb_reviews.location_id) AND (( SELECT auth.uid() AS uid) = a.user_id))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations l\n     JOIN gmb_accounts a ON ((l.gmb_account_id = a.id)))\n  WHERE ((l.id = gmb_reviews.location_id) AND (( SELECT auth.uid() AS uid) = a.user_id))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "jobs_log",
+    "policyname": "logs_read_only",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "keyword_rankings",
+    "policyname": "Users can insert rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = keyword_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "keyword_rankings",
+    "policyname": "Users can read rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = keyword_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "keyword_rankings",
+    "policyname": "Users can update rankings for own locations",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = keyword_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM (gmb_locations\n     JOIN gmb_accounts ON ((gmb_locations.gmb_account_id = gmb_accounts.id)))\n  WHERE ((gmb_locations.id = keyword_rankings.location_id) AND (gmb_accounts.user_id = auth.uid()))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_events",
+    "policyname": "Own rows read",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_events",
+    "policyname": "Own rows write",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_states",
+    "policyname": "Allow users to create OAuth states",
+    "roles": "{anon,authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_delete_owner",
+    "roles": "{authenticated}",
+    "cmd": "DELETE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_insert_owner",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_no_access",
+    "roles": "{authenticated}",
+    "cmd": "ALL",
+    "qual": "false",
+    "with_check": "false"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_select_owner",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_select_public",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "false",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "oauth_tokens_update_owner",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "user_can_insert_own_tokens",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "user_can_read_own_tokens",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "user_can_select_own_tokens",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "user_can_update_own_tokens",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(( SELECT auth.uid() AS uid) = user_id)",
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "oauth_tokens",
+    "policyname": "user_can_upsert_own_tokens",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "profiles",
+    "policyname": "User can insert own profile",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(( SELECT auth.uid() AS uid) = user_id)"
+  }
+]
