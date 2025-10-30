@@ -16,56 +16,39 @@ export function TrafficChart() {
         const { data: reviews } = await supabase
           .from("gmb_reviews")
           .select("created_at")
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .order("created_at", { ascending: true })
 
         if (reviews && reviews.length > 0) {
-          const dailyCounts: Record<string, number> = {}
-          
-          const last7Days = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date()
-            date.setDate(date.getDate() - (6 - i))
-            const dayKey = date.toLocaleDateString("en-US", { weekday: "short" })
-            dailyCounts[dayKey] = 0
-            return { day: dayKey, dateObj: date }
-          })
+          // Group reviews by month (all time)
+          const monthlyCounts: Record<string, number> = {}
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
           reviews.forEach(review => {
             const reviewDate = new Date(review.created_at)
-            const dayKey = reviewDate.toLocaleDateString("en-US", { weekday: "short" })
-            if (dailyCounts[dayKey] !== undefined) {
-              dailyCounts[dayKey]++
-            }
+            const monthKey = `${months[reviewDate.getMonth()]} ${reviewDate.getFullYear()}`
+            monthlyCounts[monthKey] = (monthlyCounts[monthKey] || 0) + 1
           })
 
-          const chartData = last7Days.map(({ day }) => ({
-            day,
-            views: dailyCounts[day] || 0
-          }))
+          // Convert to chart format, sorted by date
+          const chartData = Object.entries(monthlyCounts)
+            .map(([monthYear, count]) => {
+              const [month, year] = monthYear.split(' ')
+              return {
+                month: monthYear, // e.g., "Jan 2024"
+                views: count,
+                sortKey: new Date(`${month} 1, ${year}`).getTime()
+              }
+            })
+            .sort((a, b) => a.sortKey - b.sortKey)
+            .map(({ month, views }) => ({ month, views }))
 
           setData(chartData)
         } else {
-          const emptyData = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date()
-            date.setDate(date.getDate() - (6 - i))
-            return {
-              day: date.toLocaleDateString("en-US", { weekday: "short" }),
-              views: 0
-            }
-          })
-          setData(emptyData)
+          setData([])
         }
       } catch (error) {
         console.error("Error fetching traffic data:", error)
-        const emptyData = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date()
-          date.setDate(date.getDate() - (6 - i))
-          return {
-            day: date.toLocaleDateString("en-US", { weekday: "short" }),
-            views: 0
-          }
-        })
-        setData(emptyData)
+        setData([])
       } finally {
         setIsLoading(false)
       }
@@ -92,14 +75,14 @@ export function TrafficChart() {
   return (
     <Card className="bg-card border-primary/30">
       <CardHeader>
-        <CardTitle className="text-foreground">Engagement Trends (Last 7 Days)</CardTitle>
+        <CardTitle className="text-foreground">Engagement Trends (All time)</CardTitle>
       </CardHeader>
       <CardContent>
         {hasData ? (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 107, 53, 0.1)" />
-              <XAxis dataKey="day" stroke="#999999" style={{ fontSize: "12px" }} />
+              <XAxis dataKey="month" stroke="#999999" style={{ fontSize: "12px" }} />
               <YAxis stroke="#999999" style={{ fontSize: "12px" }} />
               <Tooltip
                 contentStyle={{

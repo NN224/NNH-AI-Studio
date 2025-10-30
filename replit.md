@@ -8,6 +8,13 @@ GMB Platform is a Next.js-based Google My Business (GMB) management application 
 
 ## Recent Changes
 
+### October 30, 2025 - All-Time Analytics Implementation
+- **Removed Time Constraints:** Eliminated all time-based filters (6 months, 30 days, 7 days) from analytics queries to show complete historical data across entire platform lifetime.
+- **Server Actions Update:** Modified `getMonthlyStats()` in `server/actions/dashboard.ts` to fetch all reviews without date restrictions, removed `.slice(-6)` limitation, and updated error messages to reflect all-time scope.
+- **Traffic Chart Enhancement:** Converted `TrafficChart` from daily (last 7 days) to monthly view (all time), automatically grouping reviews by month with proper chronological sorting.
+- **UI Updates:** Changed all time-range labels from "Last 30 Days"/"Last 7 Days" to "All time" across Analytics page and component headers.
+- **User Preference Alignment:** Implementation follows user's explicit preference for lifetime cumulative statistics instead of time-boxed metrics.
+
 ### October 30, 2025 - Google API JSON Response Enforcement
 - **Fixed "Unexpected token '<'" Errors:** Added explicit JSON request/response handling to ALL Google API calls by including `Accept: application/json` headers and `alt=json` query parameters, preventing HTML error pages from being returned instead of JSON.
 - **Comprehensive API Coverage:** Updated all Google API fetch calls in `sync/route.ts` (fetchLocations, fetchReviews, fetchMedia, account discovery) and `oauth-callback/route.ts` (userinfo, GMB accounts, locations) with JSON safeguards.

@@ -81,15 +81,11 @@ export async function getMonthlyStats() {
     return { data: [], error: "Not authenticated" }
   }
 
-  // Get reviews from last 6 months
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-
+  // Get all reviews (all time)
   const { data: reviews, error } = await supabase
     .from("gmb_reviews")
     .select("rating, created_at")
     .eq("user_id", user.id)
-    .gte("created_at", sixMonthsAgo.toISOString())
     .order("created_at", { ascending: true })
 
   if (error) {
@@ -113,21 +109,26 @@ export async function getMonthlyStats() {
     monthlyData[monthKey].sum += review.rating || 0
   })
 
-  // Convert to chart format
+  // Convert to chart format with proper sorting
   const chartData = Object.entries(monthlyData)
-    .map(([month, data]) => ({
-      month: month.split(' ')[0], // Get just the month name
-      rating: data.count > 0 ? Number((data.sum / data.count).toFixed(1)) : 0,
-      reviews: data.count
-    }))
-    .slice(-6) // Last 6 months only
+    .map(([monthYear, data]) => {
+      const [month, year] = monthYear.split(' ')
+      return {
+        month: monthYear, // Keep full "Jan 2024" format for accuracy
+        rating: data.count > 0 ? Number((data.sum / data.count).toFixed(1)) : 0,
+        reviews: data.count,
+        sortKey: new Date(`${month} 1, ${year}`).getTime()
+      }
+    })
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ month, rating, reviews }) => ({ month, rating, reviews }))
 
   // If no data, return empty array instead of mock data
   if (chartData.length === 0) {
     return { 
       data: [], 
       error: null,
-      message: "No reviews found in the last 6 months"
+      message: "No reviews found"
     }
   }
 

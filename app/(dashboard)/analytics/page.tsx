@@ -20,7 +20,7 @@ export default function AnalyticsPage() {
         <div className="flex gap-2">
           <Button variant="outline" className="border-primary/30 text-foreground hover:bg-primary/20 bg-transparent">
             <Calendar className="h-4 w-4 mr-2" />
-            Last 30 Days
+            All time
           </Button>
           <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white">
             <Download className="h-4 w-4 mr-2" />
