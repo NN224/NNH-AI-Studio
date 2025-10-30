@@ -87,16 +87,20 @@ export default async function HomePage() {
     .eq('user_id', user.id)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-      {/* Premium Static Background */}
+    <div className="min-h-screen bg-background">
+      {/* Premium Animated Background with Orange Glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/10 rounded-full blur-3xl animate-blob" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-accent/20 to-primary/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl animate-blob animation-delay-4000" />
+        
+        {/* Mesh gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,107,53,0.05),transparent_50%)]" />
       </div>
 
       {/* Header */}
-      <header className="relative border-b border-white/10 bg-black/50 backdrop-blur-xl">
+      <header className="relative border-b border-primary/10 glass-strong">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -107,7 +111,7 @@ export default async function HomePage() {
                 height={48}
               />
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold gradient-text">
                   NNH - AI Studio
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -119,7 +123,7 @@ export default async function HomePage() {
               <Button 
                 variant="ghost" 
                 type="submit"
-                className="gap-2 hover:bg-white/10 transition-colors"
+                className="gap-2 hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all"
               >
                 <LogOut className="w-4 h-4" />
                 Sign Out
@@ -140,11 +144,10 @@ export default async function HomePage() {
             </div>
             
             <h2 className="text-5xl md:text-6xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent">
+              <span className="block mb-2 text-foreground">
                 Manage Your Business
               </span>
-              <br />
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="gradient-text">
                 Smarter, Faster, Better
               </span>
             </h2>
@@ -157,7 +160,7 @@ export default async function HomePage() {
               <Link href="/accounts">
                 <Button 
                   size="lg" 
-                  className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 hover:scale-105"
+                  className="gap-2 gradient-orange hover:opacity-90 transition-all duration-300 hover:scale-105 shadow-lg shadow-primary/20 hover:shadow-primary/40"
                 >
                   Get Started
                   <ArrowRight className="w-5 h-5" />
@@ -167,7 +170,7 @@ export default async function HomePage() {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="gap-2 border-primary/20 hover:bg-primary/10"
+                  className="gap-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
                 >
                   <BarChart3 className="w-5 h-5" />
                   View Analytics
@@ -216,18 +219,21 @@ export default async function HomePage() {
             ].map((stat, index) => (
               <Card 
                 key={index}
-                className="border border-white/10 bg-card/50 backdrop-blur-xl hover:bg-card/70 transition-all duration-300 hover:scale-105"
+                className="border border-primary/20 glass hover-lift group cursor-pointer relative overflow-hidden"
               >
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-accent/0 group-hover:from-primary/10 group-hover:to-accent/5 transition-all duration-300" />
+                
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                  <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {stat.label}
                   </CardTitle>
-                  <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                  <div className={`p-2.5 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
+                <CardContent className="relative z-10">
+                  <div className="text-3xl font-bold group-hover:scale-105 transition-transform">
                     {stat.value}
                     <span className="text-lg text-muted-foreground ml-1">{stat.suffix}</span>
                   </div>
@@ -240,7 +246,9 @@ export default async function HomePage() {
         {/* Features Showcase */}
         <section className="container mx-auto px-6 py-12">
           <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold mb-4">Powerful Features at Your Fingertips</h3>
+            <h3 className="text-3xl font-bold mb-4">
+              <span className="gradient-text">Powerful Features</span> at Your Fingertips
+            </h3>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Everything you need to manage and grow your Google My Business presence
             </p>
@@ -287,15 +295,18 @@ export default async function HomePage() {
             ].map((feature, index) => (
               <Card 
                 key={index}
-                className="border border-white/10 bg-card/50 backdrop-blur-xl hover:bg-card/70 transition-all duration-300 hover:scale-105 group cursor-pointer"
+                className="border border-primary/20 glass hover-lift group cursor-pointer relative overflow-hidden"
               >
-                <CardHeader className="space-y-4">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                {/* Animated gradient background */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                
+                <CardHeader className="space-y-4 relative z-10">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
                     <feature.icon className="w-7 h-7 text-primary group-hover:text-accent transition-colors" />
                   </div>
                   <div className="space-y-2">
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                    <CardDescription className="text-sm leading-relaxed">
+                    <CardTitle className="text-lg group-hover:gradient-text transition-all">{feature.title}</CardTitle>
+                    <CardDescription className="text-sm leading-relaxed group-hover:text-muted-foreground/90">
                       {feature.description}
                     </CardDescription>
                   </div>
@@ -307,20 +318,23 @@ export default async function HomePage() {
 
         {/* AI Assistant Preview */}
         <section className="container mx-auto px-6 py-12">
-          <Card className="border border-primary/20 bg-gradient-to-br from-primary/10 via-card/50 to-accent/10 backdrop-blur-xl">
-            <CardHeader className="text-center pb-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mx-auto mb-4">
+          <Card className="border border-primary/30 glass-strong relative overflow-hidden">
+            {/* Animated background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 opacity-50" />
+            
+            <CardHeader className="text-center pb-8 relative z-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mx-auto mb-4 hover:bg-primary/30 transition-colors">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-primary">AI-Powered Assistant</span>
               </div>
               <CardTitle className="text-3xl font-bold mb-4">
-                Your Intelligent Business Assistant
+                Your <span className="gradient-text">Intelligent Business</span> Assistant
               </CardTitle>
               <CardDescription className="text-base max-w-2xl mx-auto">
                 Let AI handle the heavy lifting while you focus on growing your business
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="grid md:grid-cols-2 gap-6">
                 {[
                   {
@@ -344,12 +358,12 @@ export default async function HomePage() {
                     description: 'Get AI-powered recommendations to boost your local SEO and visibility'
                   }
                 ].map((item, index) => (
-                  <div key={index} className="flex gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <item.icon className="w-6 h-6 text-primary" />
+                  <div key={index} className="flex gap-4 group cursor-pointer">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 group-hover:scale-110 transition-all">
+                      <item.icon className="w-6 h-6 text-primary group-hover:text-accent transition-colors" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">{item.title}</h4>
+                      <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">{item.title}</h4>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
                   </div>
@@ -359,7 +373,7 @@ export default async function HomePage() {
                 <Link href="/ai-studio">
                   <Button 
                     size="lg"
-                    className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                    className="gap-2 gradient-orange hover:opacity-90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
                   >
                     Try AI Studio
                     <Sparkles className="w-5 h-5" />
@@ -373,7 +387,9 @@ export default async function HomePage() {
         {/* Why Choose NNH */}
         <section className="container mx-auto px-6 py-12">
           <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold mb-4">Why Choose NNH - AI Studio?</h3>
+            <h3 className="text-3xl font-bold mb-4">
+              Why Choose <span className="gradient-text">NNH - AI Studio</span>?
+            </h3>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               The most comprehensive Google My Business management platform
             </p>
@@ -414,13 +430,13 @@ export default async function HomePage() {
             ].map((item, index) => (
               <Card 
                 key={index}
-                className="border border-white/10 bg-card/50 backdrop-blur-xl hover:bg-card/70 transition-all duration-300 hover:scale-105"
+                className="border border-primary/20 glass hover-lift group cursor-pointer"
               >
                 <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <item.icon className="w-6 h-6 text-primary" />
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
+                    <item.icon className="w-6 h-6 text-primary group-hover:text-accent transition-colors" />
                   </div>
-                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
+                  <CardTitle className="text-lg mb-2 group-hover:gradient-text transition-all">{item.title}</CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
                     {item.description}
                   </CardDescription>
@@ -432,9 +448,11 @@ export default async function HomePage() {
 
         {/* Quick Actions */}
         <section className="container mx-auto px-6 py-12">
-          <Card className="border border-white/10 bg-card/50 backdrop-blur-xl">
+          <Card className="border border-primary/30 glass-strong">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Quick Actions</CardTitle>
+              <CardTitle className="text-2xl">
+                <span className="gradient-text">Quick Actions</span>
+              </CardTitle>
               <CardDescription>Jump to the most common tasks</CardDescription>
             </CardHeader>
             <CardContent>
@@ -448,10 +466,10 @@ export default async function HomePage() {
                   <Link key={index} href={action.href}>
                     <Button 
                       variant="outline"
-                      className="w-full h-auto py-6 flex-col gap-2 border-white/10 hover:bg-primary/10 hover:border-primary/20"
+                      className="w-full h-auto py-6 flex-col gap-3 border-primary/20 hover:bg-primary/10 hover:border-primary/40 hover:scale-105 transition-all group"
                     >
-                      <action.icon className="w-6 h-6 text-primary" />
-                      <span className="text-sm">{action.label}</span>
+                      <action.icon className="w-7 h-7 text-primary group-hover:text-accent transition-colors" />
+                      <span className="text-sm font-medium">{action.label}</span>
                     </Button>
                   </Link>
                 ))}
@@ -461,7 +479,7 @@ export default async function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 bg-black/50 backdrop-blur-xl mt-12">
+        <footer className="border-t border-primary/10 glass-strong mt-12">
           <div className="container mx-auto px-6 py-12">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
@@ -473,7 +491,7 @@ export default async function HomePage() {
                     height={40}
                   />
                   <div>
-                    <h4 className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <h4 className="font-bold text-lg gradient-text">
                       NNH - AI Studio
                     </h4>
                   </div>
@@ -514,8 +532,8 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm text-muted-foreground">
-              <p>&copy; {new Date().getFullYear()} NNH - AI Studio. All rights reserved.</p>
+            <div className="border-t border-primary/10 mt-8 pt-8 text-center text-sm text-muted-foreground">
+              <p>&copy; {new Date().getFullYear()} <span className="text-primary font-medium">NNH - AI Studio</span>. All rights reserved.</p>
             </div>
           </div>
         </footer>
