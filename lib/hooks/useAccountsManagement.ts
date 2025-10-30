@@ -98,8 +98,25 @@ export function useAccountsManagement() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[useAccountsManagement] Sync API error:', errorData);
+        // Get response as text first to handle HTML error pages
+        const text = await response.text();
+        console.error('[useAccountsManagement] Sync API error:', {
+          status: response.status,
+          url: response.url,
+          text: text.substring(0, 500), // Log first 500 chars
+        });
+        
+        // Try to parse as JSON
+        let errorData: any = {};
+        try {
+          errorData = JSON.parse(text);
+        } catch {
+          // Not JSON, probably HTML error page
+          // Trim message to avoid very long error toasts
+          const shortMessage = text.length > 200 ? text.substring(0, 200) + '...' : text;
+          errorData = { error: `Server error (${response.status})`, message: shortMessage };
+        }
+        
         if (errorData.error === 'invalid_grant') {
           toast({
             title: 'Authorization Expired',
@@ -110,7 +127,7 @@ export function useAccountsManagement() {
            await fetchAccounts();
           return;
         }
-        throw new Error(errorData.error || errorData.message || 'Sync failed');
+        throw new Error(errorData.error || errorData.message || `Sync failed with status ${response.status}`);
       }
 
       const data = await response.json();
