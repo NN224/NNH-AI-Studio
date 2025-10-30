@@ -6,10 +6,10 @@ import { Star, TrendingUp } from "lucide-react"
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { GMBLocation } from "@/lib/types/database"
+import type { GMBLocationWithRating } from "@/lib/types/database"
 
 export function LocationPerformance() {
-  const [locations, setLocations] = useState<GMBLocation[]>([])
+  const [locations, setLocations] = useState<GMBLocationWithRating[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
@@ -17,7 +17,7 @@ export function LocationPerformance() {
     async function fetchLocations() {
       try {
         const { data } = await supabase
-          .from("gmb_locations")
+          .from("gmb_locations_with_rating")
           .select("*")
           .order("rating", { ascending: false })
           .limit(4)
@@ -37,6 +37,7 @@ export function LocationPerformance() {
     const channel = supabase
       .channel("location-performance")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_locations" }, fetchLocations)
+      .on("postgres_changes", { event: "*", schema: "public", table: "gmb_reviews" }, fetchLocations)
       .subscribe()
 
     return () => {
@@ -85,7 +86,7 @@ export function LocationPerformance() {
                       {location.rating?.toFixed(1) || "N/A"}
                     </span>
                   </div>
-                  <span className="text-sm text-muted-foreground">{location.review_count || 0} reviews</span>
+                  <span className="text-sm text-muted-foreground">{location.reviews_count || 0} reviews</span>
                 </div>
               </div>
               <Badge className="bg-green-500/20 text-green-500 border-green-500/30 flex items-center gap-1">

@@ -8,6 +8,12 @@ GMB Platform is a Next.js-based Google My Business (GMB) management application 
 
 ## Recent Changes
 
+### October 30, 2025 - Database View for Location Ratings
+- **Created gmb_locations_with_rating View:** Added database view that aggregates rating, reviews_count, and last_review_date from gmb_reviews table, eliminating need for manual joins and ensuring consistent rating calculations across the application.
+- **Real-time Rating Updates:** Updated LocationPerformance component to subscribe to both gmb_locations and gmb_reviews tables, ensuring UI automatically reflects new reviews and rating changes.
+- **Type Safety for Views:** Created GMBLocationWithRating TypeScript interface in lib/types/database.ts for type-safe view queries.
+- **Migration File:** Added supabase/migrations/20251030000013_create_locations_with_rating_view.sql for production deployment.
+
 ### October 29, 2025 - Production Deployment Preparation
 - **Created Comprehensive Deployment Documentation:** Added 4 detailed guides (54KB total) in Arabic for Google Console, Supabase, and Replit Secrets configuration.
 - **Backup Creation:** Complete backup of all GMB and Auth files (34 files) in `beso/` folder for safekeeping.

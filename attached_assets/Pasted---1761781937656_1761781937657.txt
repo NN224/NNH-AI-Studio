@@ -1,0 +1,71 @@
+أريد تطبيق هذه التغييرات لدعم عرض أفضل المواقع بمتوسط التقييمات دون تعديل بنية الجداول:
+
+قاعدة البيانات: أنشئ View لحساب متوسط تقييمات المواقع
+ملف SQL للمهاجرة/التنفيذ:
+create or replace view public.gmb_locations_with_rating as
+select
+  l.id,
+  l.gmb_account_id,
+  l.location_name,
+  l.location_id,
+  l.address,
+  l.phone,
+  l.category,
+  l.website,
+  l.is_active,
+  l.metadata,
+  l.created_at,
+  l.updated_at,
+  l.business_hours,
+  l.user_id,
+  coalesce(avg(r.rating)::numeric, 0)::numeric as rating,
+  count(r.id) as reviews_count,
+  max(r.review_date) as last_review_date
+from public.gmb_locations l
+left join public.gmb_reviews r on r.location_id = l.id
+group by
+  l.id, l.gmb_account_id, l.location_name, l.location_id, l.address,
+  l.phone, l.category, l.website, l.is_active, l.metadata,
+  l.created_at, l.updated_at, l.business_hours, l.user_id;
+تعديلات على الواجهة/العميل:
+استبدال أي استخدام للجدول gmb_locations في الاستعلامات التي تحتاج rating بالـ View الجديد:
+REST:
+قبل: GET /rest/v1/gmb_locations?select=*&order=rating.desc&limit=4
+بعد: GET /rest/v1/gmb_locations_with_rating?select=*&order=rating.desc&limit=4
+supabase-js:
+const
+ { data, error } = 
+await
+ supabase
+  .from(
+'gmb_locations_with_rating'
+)
+  .select(
+'*'
+)
+  .order(
+'rating'
+, { 
+ascending
+: 
+false
+ })
+  .limit(
+4
+)
+
+أماكن متوقعة للتعديل في الكود:
+أي مكون يعرض “أفضل المواقع” أو “Top Locations” كان يعتمد order=rating.desc على gmb_locations:
+غيّر المصدر إلى from('gmb_locations_with_rating') أو endpoint REST المقابل.
+إن وُجد كود يطلب الحقول sentiment من gmb_reviews، أزيلوه أو عوّضوه بحقول موجودة مثل rating, review_date, created_at.
+ملاحظات مهمة:
+لا حاجة لتعديل RLS أو إضافة سياسات جديدة، لأن الـ View يعتمد على الجداول التي عليها سياسات بالفعل.
+إذا أردتم تحسين الأداء لاحقًا مع بيانات كبيرة، يمكن إنشاء فهارس على:
+gmb_reviews(location_id, rating)
+gmb_reviews(location_id, review_date)
+إن كنتم تستخدمون TypeScript بأنواع تلقائية، أضيفوا تعريف نوع واجهة gmb_locations_with_rating بما يتوافق مع الحقول أعلاه.
+اختبارات بعد التعديل:
+نداء REST: /rest/v1/gmb_locations_with_rating?select=*&order=rating.desc&limit=4
+توقّع 200 وعودة صفوف مع rating و reviews_count و last_review_date.
+نداء supabase-js كما في المثال أعلاه
+تأكد من أن data ليست null وأن error = null.*
