@@ -56,11 +56,11 @@ Add these to Replit Secrets:
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
-NEXT_PUBLIC_BASE_URL=https://www.nnh.ae
-NEXT_PUBLIC_SITE_URL=https://www.nnh.ae
+NEXT_PUBLIC_BASE_URL=https://nnh.ae
+NEXT_PUBLIC_SITE_URL=https://nnh.ae
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_REDIRECT_URI=https://www.nnh.ae/api/gmb/oauth-callback
+GOOGLE_REDIRECT_URI=https://nnh.ae/api/gmb/oauth-callback
 
 # Optional but Recommended
 YT_CLIENT_ID=xxx.apps.googleusercontent.com
@@ -76,9 +76,9 @@ GROQ_API_KEY=gsk_xxx
 - ⚠️ **YouTube Data API v3** (CRITICAL - enable this!)
 
 **Add Redirect URIs:**
-- `https://www.nnh.ae/api/gmb/oauth-callback`
-- `https://www.nnh.ae/api/youtube/oauth-callback`
-- `https://www.nnh.ae/auth/callback`
+- `https://nnh.ae/api/gmb/oauth-callback`
+- `https://nnh.ae/api/youtube/oauth-callback`
+- `https://nnh.ae/auth/callback`
 
 ### 3. Supabase Setup
 Run `SQL_SETUP_COMPLETE.sql` in Supabase SQL Editor:

@@ -11,15 +11,15 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### Domain & URLs
 ```bash
-NEXT_PUBLIC_BASE_URL=https://www.nnh.ae
-NEXT_PUBLIC_SITE_URL=https://www.nnh.ae
+NEXT_PUBLIC_BASE_URL=https://nnh.ae
+NEXT_PUBLIC_SITE_URL=https://nnh.ae
 ```
 
 ### Google OAuth (GMB)
 ```bash
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
-GOOGLE_REDIRECT_URI=https://www.nnh.ae/api/gmb/oauth-callback
+GOOGLE_REDIRECT_URI=https://nnh.ae/api/gmb/oauth-callback
 ```
 
 ---
@@ -30,7 +30,7 @@ GOOGLE_REDIRECT_URI=https://www.nnh.ae/api/gmb/oauth-callback
 ```bash
 YT_CLIENT_ID=your-youtube-client-id.apps.googleusercontent.com
 YT_CLIENT_SECRET=GOCSPX-your-youtube-client-secret
-YT_REDIRECT_URI=https://www.nnh.ae/api/youtube/oauth-callback
+YT_REDIRECT_URI=https://nnh.ae/api/youtube/oauth-callback
 ```
 
 ### AI Providers (For Composer - need at least ONE)

@@ -39,7 +39,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 # Google OAuth (you already have these)
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_REDIRECT_URI=https://www.nnh.ae/api/gmb/oauth-callback
+GOOGLE_REDIRECT_URI=https://nnh.ae/api/gmb/oauth-callback
 
 # YouTube (ADD THESE if different from GOOGLE_*)
 YT_CLIENT_ID=xxx.apps.googleusercontent.com
@@ -51,8 +51,8 @@ TOGETHER_API_KEY=xxx
 DEEPSEEK_API_KEY=xxx
 
 # Domain
-NEXT_PUBLIC_BASE_URL=https://www.nnh.ae
-NEXT_PUBLIC_SITE_URL=https://www.nnh.ae
+NEXT_PUBLIC_BASE_URL=https://nnh.ae
+NEXT_PUBLIC_SITE_URL=https://nnh.ae
 ```
 
 3. **Restart** deployment
@@ -80,9 +80,9 @@ NEXT_PUBLIC_SITE_URL=https://www.nnh.ae
 2. Edit your **OAuth 2.0 Client**
 3. Under **Authorized redirect URIs**, add:
    ```
-   https://www.nnh.ae/api/gmb/oauth-callback
-   https://www.nnh.ae/api/youtube/oauth-callback
-   https://www.nnh.ae/auth/callback
+   https://nnh.ae/api/gmb/oauth-callback
+   https://nnh.ae/api/youtube/oauth-callback
+   https://nnh.ae/auth/callback
    ```
 4. Click **Save**
 

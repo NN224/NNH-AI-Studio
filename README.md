@@ -146,7 +146,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 # Google OAuth (GMB)
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_REDIRECT_URI=https://www.nnh.ae/api/gmb/oauth-callback
+GOOGLE_REDIRECT_URI=https://nnh.ae/api/gmb/oauth-callback
 
 # YouTube OAuth
 YT_CLIENT_ID=xxx.apps.googleusercontent.com
@@ -158,8 +158,8 @@ TOGETHER_API_KEY=xxx
 DEEPSEEK_API_KEY=xxx
 
 # Base URL
-NEXT_PUBLIC_BASE_URL=https://www.nnh.ae
-NEXT_PUBLIC_SITE_URL=https://www.nnh.ae
+NEXT_PUBLIC_BASE_URL=https://nnh.ae
+NEXT_PUBLIC_SITE_URL=https://nnh.ae
 ```
 
 See [ENV_VARIABLES.md](./ENV_VARIABLES.md) for complete details.
@@ -311,7 +311,7 @@ Proprietary - NNH AI Studio © 2025
 
 ## 📞 Contact
 
-- **Website**: [nnh.ae](https://www.nnh.ae)
+- **Website**: [nnh.ae](https://nnh.ae)
 - **Email**: info@nnh.ae
 - **Phone**: +971 543 6655 48
 - **WhatsApp**: +971 58 883 9119
