@@ -20,7 +20,29 @@ The project uses Supabase PostgreSQL with direct SQL migrations in `/supabase/mi
 
 ### Frontend Architecture
 
-Built with Next.js 14+ (App Router, React Server Components, TypeScript), the frontend uses Tailwind CSS with a custom OKLCH color system and dark mode by default. UI components are built with Radix UI primitives and shadcn/ui (New York style), with Framer Motion for animations. State management uses React hooks for local state and Supabase real-time subscriptions for live data. Routing includes public, authentication, and protected dashboard routes with middleware-based protection.
+Built with Next.js 14+ (App Router, React Server Components, TypeScript), the frontend uses Tailwind CSS with a custom GMB Dashboard color system featuring Pure Black Theme (#000000) with Electric Orange (#FF6B00) and Deep Orange (#FF8C00) accents. The design includes glassmorphism effects, gradient meshes, and professional glow effects. UI components are built with Radix UI primitives and shadcn/ui (New York style), with Framer Motion for animations. State management uses React hooks for local state and Supabase real-time subscriptions for live data. Routing includes public, authentication, and protected dashboard routes with middleware-based protection.
+
+### Design System
+
+**Color Palette (GMB Dashboard Style):**
+- **Primary:** #FF6B00 (Electric Orange)
+- **Accent:** #FF8C00 (Deep Orange)
+- **Background:** #000000 (True Black)
+- **Card:** #111111 (Dark Surface)
+- **Extended Colors:** Neon Pink (#FF2E97), Gold (#FFD700), Cyan (#00E5FF), Vetra Blue (#3B82F6)
+- **Status Colors:** Success (#10B981), Error (#EF4444), Warning (#F59E0B), Info (#3B82F6)
+
+**Visual Effects:**
+- Glassmorphism with 24px blur and subtle white borders (rgba(255, 255, 255, 0.12))
+- Gradient meshes combining orange and blue radial gradients
+- Glow effects for interactive elements (0 0 20px rgba(255, 107, 0, 0.5))
+- Professional shadows ranging from subtle (2px) to dramatic (64px)
+- Border radius utilities from 8px to 24px
+
+**Typography:**
+- Headlines: Montserrat (bold, gradient text effects)
+- Body: Inter (clean, readable)
+- Arabic: Cairo (right-to-left support)
 
 ### Backend Architecture
 

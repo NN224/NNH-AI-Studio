@@ -4,85 +4,112 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ===================================
-   NNH AI Studio - Premium Color System
-   Orange & Dark Theme with High Contrast
+   NNH AI Studio - GMB Dashboard Color System
+   Pure Black Theme with Electric Orange
+   Based on Professional GMB Dashboard Design
    =================================== */
 
 :root {
-  /* Background Colors - Rich Dark */
-  --background: 10 10 12;           /* #0A0A0C - Deep Black */
+  /* Background Colors - Pure Black Theme */
+  --background: 0 0 0;              /* #000000 - True Black */
   --foreground: 255 255 255;        /* #FFFFFF - Pure White */
   
-  /* Card Colors - Elevated Surfaces */
-  --card: 20 20 24;                 /* #141418 - Dark Card */
+  /* Card Colors - Dark Surfaces */
+  --card: 17 17 17;                 /* #111111 - Card Background */
   --card-foreground: 255 255 255;   /* #FFFFFF */
   
   /* Popover Colors */
-  --popover: 20 20 24;
+  --popover: 17 17 17;
   --popover-foreground: 255 255 255;
   
-  /* Primary Orange - Vibrant & Bold */
-  --primary: 255 107 53;            /* #FF6B35 - NNH Orange */
+  /* Primary Orange - Electric Orange */
+  --primary: 255 107 0;             /* #FF6B00 - Electric Orange */
   --primary-foreground: 255 255 255;
   
-  /* Secondary - Subtle Gray */
-  --secondary: 40 40 48;            /* #282830 */
-  --secondary-foreground: 255 255 255;
+  /* Secondary - Space Dark */
+  --secondary: 10 10 10;            /* #0A0A0A - Space */
+  --secondary-foreground: 226 232 240;  /* #E2E8F0 */
   
-  /* Muted - Low Emphasis */
-  --muted: 35 35 40;                /* #232328 */
-  --muted-foreground: 160 160 170;  /* #A0A0AA */
+  /* Muted - Subtle Gray */
+  --muted: 13 13 13;                /* #0D0D0D - Navy */
+  --muted-foreground: 148 163 184;  /* #94A3B8 */
   
-  /* Accent Orange - Lighter Variant */
-  --accent: 255 140 66;             /* #FF8C42 */
+  /* Accent Orange - Deep Orange */
+  --accent: 255 140 0;              /* #FF8C00 - Deep Orange */
   --accent-foreground: 255 255 255;
   
   /* Destructive - Red */
-  --destructive: 239 68 68;         /* #EF4444 */
+  --destructive: 239 68 68;         /* #EF4444 - Error */
   --destructive-foreground: 255 255 255;
   
-  /* Border & Input */
-  --border: 50 50 60;               /* #32323C */
-  --input: 30 30 36;                /* #1E1E24 */
-  --ring: 255 107 53;               /* #FF6B35 */
+  /* Success - Green */
+  --success: 16 185 129;            /* #10B981 */
+  --success-foreground: 255 255 255;
+  
+  /* Warning - Orange Yellow */
+  --warning: 245 158 11;            /* #F59E0B */
+  --warning-foreground: 255 255 255;
+  
+  /* Info - Blue */
+  --info: 59 130 246;               /* #3B82F6 - Vetra Blue */
+  --info-foreground: 255 255 255;
+  
+  /* Border & Input - Subtle */
+  --border: 255 255 255;            /* White with opacity in usage */
+  --border-opacity: 0.08;
+  --input: 17 17 17;                /* #111111 */
+  --ring: 255 107 0;                /* #FF6B00 */
+  
+  /* Extended Colors - Neon Accents */
+  --neon-pink: 255 46 151;          /* #FF2E97 */
+  --gold: 255 215 0;                /* #FFD700 */
+  --cyan: 0 229 255;                /* #00E5FF */
+  --blue-light: 96 165 250;         /* #60A5FA */
   
   /* Chart Colors - Vibrant Palette */
-  --chart-1: 255 107 53;            /* Orange */
-  --chart-2: 59 130 246;            /* Blue */
-  --chart-3: 34 197 94;             /* Green */
-  --chart-4: 251 191 36;            /* Yellow */
-  --chart-5: 168 85 247;            /* Purple */
+  --chart-1: 255 107 0;             /* Electric Orange */
+  --chart-2: 59 130 246;            /* Vetra Blue */
+  --chart-3: 168 85 247;            /* Purple */
+  --chart-4: 16 185 129;            /* Green */
+  --chart-5: 255 215 0;             /* Gold */
   
   /* Radius */
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Same as root for now - we're defaulting to dark */
-  --background: 10 10 12;
+  /* Pure Black Theme - Same as root */
+  --background: 0 0 0;
   --foreground: 255 255 255;
-  --card: 20 20 24;
+  --card: 17 17 17;
   --card-foreground: 255 255 255;
-  --popover: 20 20 24;
+  --popover: 17 17 17;
   --popover-foreground: 255 255 255;
-  --primary: 255 107 53;
+  --primary: 255 107 0;
   --primary-foreground: 255 255 255;
-  --secondary: 40 40 48;
-  --secondary-foreground: 255 255 255;
-  --muted: 35 35 40;
-  --muted-foreground: 160 160 170;
-  --accent: 255 140 66;
+  --secondary: 10 10 10;
+  --secondary-foreground: 226 232 240;
+  --muted: 13 13 13;
+  --muted-foreground: 148 163 184;
+  --accent: 255 140 0;
   --accent-foreground: 255 255 255;
   --destructive: 239 68 68;
   --destructive-foreground: 255 255 255;
-  --border: 50 50 60;
-  --input: 30 30 36;
-  --ring: 255 107 53;
-  --chart-1: 255 107 53;
+  --success: 16 185 129;
+  --success-foreground: 255 255 255;
+  --warning: 245 158 11;
+  --warning-foreground: 255 255 255;
+  --info: 59 130 246;
+  --info-foreground: 255 255 255;
+  --border: 255 255 255;
+  --border-opacity: 0.08;
+  --input: 17 17 17;
+  --ring: 255 107 0;
+  --chart-1: 255 107 0;
   --chart-2: 59 130 246;
-  --chart-3: 34 197 94;
-  --chart-4: 251 191 36;
-  --chart-5: 168 85 247;
+  --chart-3: 168 85 247;
+  --chart-4: 16 185 129;
+  --chart-5: 255 215 0;
 }
 
 @theme inline {
@@ -161,39 +188,62 @@ body {
 }
 
 /* ===================================
-   Glass Morphism Effects - Premium
+   Glass Morphism Effects - GMB Style
+   Based on Professional Dashboard Design
    =================================== */
 .glass {
-  background: rgba(20, 20, 24, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 107, 53, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(255, 107, 53, 0.08);
+  background: rgba(21, 27, 40, 0.08);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
 }
 
 .glass-strong {
-  background: rgba(20, 20, 24, 0.9);
+  background: rgba(17, 17, 17, 0.9);
   backdrop-filter: blur(24px) saturate(200%);
-  border: 1px solid rgba(255, 107, 53, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.glass-header {
+  background: rgba(17, 17, 17, 0.85);
+  backdrop-filter: blur(24px);
+  border-bottom: 2px solid #FF6B00;
+  box-shadow: 0 4px 24px rgba(255, 107, 0, 0.1);
 }
 
 /* ===================================
-   Gradient Effects - Orange Themed
+   Gradient Effects - GMB Orange Theme
    =================================== */
 .gradient-orange {
-  background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
 }
 
 .gradient-orange-vertical {
-  background: linear-gradient(180deg, #FF6B35 0%, #FF8C42 100%);
+  background: linear-gradient(180deg, #FF6B00 0%, #FF8C00 100%);
 }
 
 .gradient-orange-radial {
-  background: radial-gradient(circle at center, #FF6B35 0%, #FF8C42 100%);
+  background: radial-gradient(circle at center, #FF6B00 0%, #FF8C00 100%);
+}
+
+.gradient-gold {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA000 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFB84D 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-orange {
+  background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 50%, #FFD700 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -203,7 +253,14 @@ body {
   position: relative;
   border: 2px solid transparent;
   background: linear-gradient(rgb(var(--card)), rgb(var(--card))) padding-box,
-              linear-gradient(135deg, #FF6B35, #FF8C42) border-box;
+              linear-gradient(135deg, #FF6B00, #FF8C00) border-box;
+}
+
+/* Background Mesh Gradient */
+.gradient-mesh {
+  background: 
+    radial-gradient(at 0% 0%, rgba(255, 107, 0, 0.15) 0%, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
 
 /* ===================================
@@ -225,7 +282,7 @@ body {
   background: linear-gradient(
     to right,
     transparent 0%,
-    rgba(255, 107, 53, 0.2) 50%,
+    rgba(255, 107, 0, 0.2) 50%,
     transparent 100%
   );
   background-size: 1000px 100%;
@@ -278,10 +335,10 @@ body {
 /* Pulse glow animation */
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 40px rgba(255, 107, 53, 0.6);
+    box-shadow: 0 0 40px rgba(255, 107, 0, 0.8);
   }
 }
 
@@ -290,7 +347,53 @@ body {
 }
 
 /* ===================================
-   Utility Classes
+   Glow Effects - GMB Dashboard Style
+   =================================== */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
+}
+
+.glow-orange-strong {
+  box-shadow: 0 0 40px rgba(255, 107, 0, 0.8);
+}
+
+.glow-pink {
+  box-shadow: 0 0 20px rgba(255, 46, 151, 0.5);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+/* ===================================
+   Shadows - Professional Depth
+   =================================== */
+.shadow-sm {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-lg {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.shadow-xl {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+}
+
+.shadow-2xl {
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+/* ===================================
+   Utility Classes - GMB Style
    =================================== */
 
 /* Hover lift effect */
@@ -300,7 +403,7 @@ body {
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.15);
+  box-shadow: 0 12px 40px rgba(255, 107, 0, 0.2);
 }
 
 /* Glow on hover */
@@ -309,7 +412,7 @@ body {
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
+  box-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
 }
 
 /* Orange text accent */
@@ -319,4 +422,55 @@ body {
 
 .text-orange-light {
   color: rgb(var(--accent));
+}
+
+/* Extended color text utilities */
+.text-neon-pink {
+  color: rgb(var(--neon-pink));
+}
+
+.text-gold {
+  color: rgb(var(--gold));
+}
+
+.text-cyan {
+  color: rgb(var(--cyan));
+}
+
+.text-blue-light {
+  color: rgb(var(--blue-light));
+}
+
+/* Success, Warning, Error text */
+.text-success {
+  color: rgb(var(--success));
+}
+
+.text-warning {
+  color: rgb(var(--warning));
+}
+
+.text-error {
+  color: rgb(var(--destructive));
+}
+
+/* Border Radius Utilities */
+.radius-sm {
+  border-radius: 8px;
+}
+
+.radius-md {
+  border-radius: 12px;
+}
+
+.radius-lg {
+  border-radius: 16px;
+}
+
+.radius-xl {
+  border-radius: 20px;
+}
+
+.radius-2xl {
+  border-radius: 24px;
 }
