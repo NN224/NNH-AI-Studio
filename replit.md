@@ -8,6 +8,12 @@ GMB Platform is a Next.js-based Google My Business (GMB) management application 
 
 ## Recent Changes
 
+### October 30, 2025 - OAuth Callback UPSERT Simplification
+- **Simplified OAuth Account Persistence:** Replaced manual IF/ELSE logic (check → INSERT or UPDATE) with single UPSERT operation on `account_id` conflict key, reducing code from ~80 lines to ~50 lines while maintaining identical functionality.
+- **Enhanced Security:** Moved cross-user takeover check before UPSERT to prevent accounts from being transferred between users, maintaining security guard that validates `account_id` ownership.
+- **Refresh Token Preservation:** Properly handles Google OAuth refresh token preservation using fallback logic (`tokenData.refresh_token || existingAccount?.refresh_token || null`) to prevent token loss when Google omits new refresh token.
+- **Code Maintainability:** Simplified OAuth callback flow in `app/api/gmb/oauth-callback/route.ts` with cleaner, more maintainable UPSERT pattern.
+
 ### October 30, 2025 - Database View for Location Ratings
 - **Created gmb_locations_with_rating View:** Added database view that aggregates rating, reviews_count, and last_review_date from gmb_reviews table, eliminating need for manual joins and ensuring consistent rating calculations across the application.
 - **Real-time Rating Updates:** Updated LocationPerformance component to subscribe to both gmb_locations and gmb_reviews tables, ensuring UI automatically reflects new reviews and rating changes.
