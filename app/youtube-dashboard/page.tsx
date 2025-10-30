@@ -98,7 +98,7 @@ export default function YoutubeDashboard() {
   // Data loaders
   const fetchFromDB = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("يرجى تسجيل الدخول أولاً");
+    if (!user) throw new Error("Please login first");
     const { data, error: qErr } = await supabase
       .from("oauth_tokens")
       .select("provider, account_id, metadata")
@@ -230,13 +230,13 @@ export default function YoutubeDashboard() {
       await Promise.all([fetchFromDB(), fetchVideos(), fetchComments(), fetchAnalytics(), fetchDrafts()]);
       if (activeTab === "analytics") await drawCharts();
     } catch (e: any) {
-      setError(e.message || "فشل تحديث البيانات");
+      setError(e.message || "Failed to update data");
     } finally {
       setRefreshing(false);
     }
   };
   const handleDisconnect = async () => {
-    if (!confirm("هل تريد فصل YouTube من الحساب؟")) return;
+    if (!confirm("Are you sure you want to disconnect YouTube?")) return;
     try {
       setDisconnecting(true);
       await safePost("/api/youtube/disconnect");
@@ -253,7 +253,7 @@ export default function YoutubeDashboard() {
         videosChartObj.current.destroy();
       }
     } catch (e: any) {
-      setError(e.message || "فشل فصل YouTube");
+      setError(e.message || "Failed to disconnect YouTube");
     } finally {
       setDisconnecting(false);
     }
@@ -268,7 +268,7 @@ export default function YoutubeDashboard() {
       setDescription(res.description || "");
       setHashtags(res.hashtags || "");
     } catch (e: any) {
-      setError(e.message || "فشل التوليد");
+      setError(e.message || "Failed to generate content");
     } finally {
       setGenLoading(false);
     }
@@ -283,7 +283,7 @@ export default function YoutubeDashboard() {
         setDrafts(d => [res.item, ...d]);
       }
     } catch (e: any) {
-      setError(e.message || "فشل حفظ المسودة");
+      setError(e.message || "Failed to save draft");
     } finally {
       setSaving(false);
     }
@@ -294,7 +294,7 @@ export default function YoutubeDashboard() {
       await safeDelete(`/api/youtube/composer/drafts?id=${encodeURIComponent(id)}`);
       setDrafts(d => d.filter(x => x.id !== id));
     } catch (e: any) {
-      setError(e.message || "فشل حذف المسودة");
+      setError(e.message || "Failed to delete draft");
     }
   };
 
@@ -310,7 +310,7 @@ export default function YoutubeDashboard() {
           await Promise.all([fetchVideos(), fetchComments(), fetchAnalytics(), fetchDrafts()]);
         }
       } catch (e: any) {
-        setError(e.message || "فشل تحميل بيانات القناة");
+        setError(e.message || "Failed to load channel data");
       } finally {
         setLoading(false);
       }
@@ -402,7 +402,7 @@ export default function YoutubeDashboard() {
                 {refreshing ? "Updating..." : "Refresh"}
               </Button>
               <Button className="bg-neon-orange hover:bg-orange-700 text-white font-bold" onClick={handleConnectYoutube} disabled={connecting}>
-                {connecting ? "جاري التحويل..." : "ربط YouTube"}
+                {connecting ? "Connecting..." : "Connect YouTube"}
               </Button>
             </div>
           </div>
@@ -424,10 +424,10 @@ export default function YoutubeDashboard() {
               <div className="mb-6">
                 {channelTitle ? (
                   <div className="text-lg text-white/80">
-                    القناة: <span className="font-semibold text-white">{channelTitle}</span>
+                    Channel: <span className="font-semibold text-white">{channelTitle}</span>
                   </div>
                 ) : (
-                  <div className="text-sm text-white/60">لم يتم ربط قناة بعد — اضغط "ربط YouTube".</div>
+                  <div className="text-sm text-white/60">No channel connected — click "Connect YouTube".</div>
                 )}
               </div>
 
@@ -453,7 +453,7 @@ export default function YoutubeDashboard() {
                     <input
                       value={vSearch}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVSearch(e.target.value)}
-                      placeholder="ابحث في عناوين الفيديو..."
+                      placeholder="Search video titles..."
                       className="bg-white/5 border border-white/10 rounded px-3 py-2 outline-none"
                     />
                     <input
@@ -479,7 +479,7 @@ export default function YoutubeDashboard() {
                       <div className="text-sm text-white/50">{filteredVideos.length} items</div>
                     </div>
                     {filteredVideos.length === 0 ? (
-                      <div className="text-white/60 text-sm">لا توجد فيديوهات مطابقة للفلترة.</div>
+                      <div className="text-white/60 text-sm">No videos match the filters.</div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {filteredVideos.map((v: YTVideo) => (
@@ -516,7 +516,7 @@ export default function YoutubeDashboard() {
                     </div>
                     <canvas ref={viewsChartRef} className="w-full h-48" />
                     {!window?.Chart && (
-                      <div className="text-white/60 text-sm mt-2">Chart.js لم يُحمّل؛ عرض بديل سيتم عند التحديث.</div>
+                      <div className="text-white/60 text-sm mt-2">Chart.js failed to load; alternative display will show on refresh.</div>
                     )}
                   </div>
                   <div className="rounded-2xl p-6 glass glass-border">
@@ -525,7 +525,7 @@ export default function YoutubeDashboard() {
                     </div>
                     <canvas ref={videosChartRef} className="w-full h-48" />
                     {!window?.Chart && (
-                      <div className="text-white/60 text-sm mt-2">Chart.js لم يُحمّل؛ عرض بديل سيتم عند التحديث.</div>
+                      <div className="text-white/60 text-sm mt-2">Chart.js failed to load; alternative display will show on refresh.</div>
                     )}
                   </div>
                 </div>
@@ -540,11 +540,11 @@ export default function YoutubeDashboard() {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         rows={4}
-                        placeholder="اكتب فكرة الفيديو أو نقاط رئيسية..."
+                        placeholder="Write video idea or key points..."
                         className="w-full rounded-lg bg-white/5 border border-white/10 p-3 outline-none"
                       />
                       <div className="flex items-center gap-2 text-sm">
-                        <span>النمط:</span>
+                        <span>Tone:</span>
                         {(["neutral", "friendly", "professional", "energetic"] as const).map((t) => (
                           <button
                             key={t}
@@ -603,7 +603,7 @@ export default function YoutubeDashboard() {
                   <div className="rounded-2xl p-6 glass glass-border">
                     <h3 className="text-lg font-bold mb-3">Drafts</h3>
                     {drafts.length === 0 ? (
-                      <div className="text-sm text-white/60">لا توجد مسودات محفوظة.</div>
+                      <div className="text-sm text-white/60">No saved drafts.</div>
                     ) : (
                       <div className="space-y-3">
                         {drafts.map((d: Draft) => (
@@ -643,7 +643,7 @@ export default function YoutubeDashboard() {
                     <input
                       value={cSearch}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCSearch(e.target.value)}
-                      placeholder="ابحث في التعليقات/الأسماء..."
+                      placeholder="Search comments/names..."
                       className="bg-white/5 border border-white/10 rounded px-3 py-2 outline-none"
                     />
                     <input
@@ -664,7 +664,7 @@ export default function YoutubeDashboard() {
                   </div>
 
                   {filteredComments.length === 0 ? (
-                    <div className="text-white/60 text-sm">لا توجد تعليقات مطابقة للفلترة.</div>
+                    <div className="text-white/60 text-sm">No comments match the filters.</div>
                   ) : (
                     <div className="space-y-4">
                       {filteredComments.map((c: YTComment) => (

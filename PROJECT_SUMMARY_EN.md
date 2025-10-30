@@ -1,12 +1,12 @@
 # 📊 GMB Manager Platform - Project Summary
 
-## 🎯 نظرة عامة
+## 🎯 Overview
 
-هذا مشروع **Google My Business Management Platform** مبني بـ **Next.js 14** و **Supabase**. المشروع يوفر إدارة كاملة لـ GMB locations، reviews، analytics، وAI-powered content generation.
+This is a **Google My Business Management Platform** built with **Next.js 14** and **Supabase**. The project provides complete management for GMB locations, reviews, analytics, and AI-powered content generation.
 
 ---
 
-## 🏗️ البنية التقنية
+## 🏗️ Technical Architecture
 
 ### Frontend Stack
 - **Next.js 14** (App Router)
@@ -29,7 +29,7 @@
 
 ---
 
-## 📁 بنية المشروع
+## 📁 Project Structure
 
 ```
 app/
@@ -160,36 +160,36 @@ gmb_reviews (1:N)
 
 ---
 
-## 🌟 الميزات الرئيسية
+## 🌟 Key Features
 
 ### 1. Multi-Account Management
-- ربط عدة حسابات GMB
-- نظرة عامة لجميع المواقع
-- سينك تلقائي
+- Connect multiple GMB accounts
+- Overview of all locations
+- Automatic sync
 
 ### 2. Review Management
-- عرض جميع المراجعات
-- تحليل المشاعر (Sentiment Analysis)
-- رد تلقائي بـ AI
-- تتبع معدل الرد
+- View all reviews
+- Sentiment Analysis
+- AI auto-reply
+- Response rate tracking
 
 ### 3. Analytics Dashboard
-- إحصائيات الموقع
-- رسوم بيانية
-- مقاييس الأداء
-- تقارير PDF
+- Location statistics
+- Charts and graphs
+- Performance metrics
+- PDF reports
 
 ### 4. AI Studio
-- توليد محتوى
-- اقتراحات إجابات المراجعات
-- تحسين الوصف
-- إنشاء منشورات
+- Content generation
+- Review reply suggestions
+- Description optimization
+- Post creation
 
 ### 5. Locations Management
-- إدارة عدة مواقع
-- تحديث المعلومات
-- إدارة الصور
-- إحصائيات كل موقع
+- Manage multiple locations
+- Update information
+- Media management
+- Individual location stats
 
 ---
 
@@ -423,5 +423,6 @@ Proprietary - All rights reserved
 
 ---
 
-**تاريخ الإنشاء**: 29 أكتوبر 2025  
-**آخر تحديث**: 30 أكتوبر 2025
+**Created**: October 29, 2025  
+**Last Updated**: October 30, 2025
+
