@@ -1,0 +1,212 @@
+═══════════════════════════════════════════════════════════
+🚀 ملخص نهائي - إعداد المفاتيح للنشر
+═══════════════════════════════════════════════════════════
+
+📅 التاريخ: 29 أكتوبر 2025
+🌐 الدومين: https://nnh.ae
+📦 المشروع: GMB Platform
+
+═══════════════════════════════════════════════════════════
+📂 الملفات المنشأة للتوثيق
+═══════════════════════════════════════════════════════════
+
+✅ DEPLOYMENT_GUIDE.md (11 KB)
+   → دليل شامل للنشر باللغة العربية
+   → يشمل جميع الخطوات من البداية للنهاية
+
+✅ SECRETS_CHECKLIST.txt (8.4 KB)
+   → قائمة جميع المفاتيح المطلوبة
+   → نموذج لنسخ المفاتيح
+
+✅ GOOGLE_CONSOLE_GUIDE_AR.txt (17 KB)
+   → دليل خطوة بخطوة لإعداد Google Cloud Console
+   → 52 خطوة مفصلة بالعربي
+
+✅ SUPABASE_GUIDE_AR.txt (18 KB)
+   → دليل خطوة بخطوة لإعداد Supabase
+   → 35 خطوة مفصلة بالعربي
+
+═══════════════════════════════════════════════════════════
+🔑 المفاتيح المطلوبة (7 مفاتيح)
+═══════════════════════════════════════════════════════════
+
+┌────────────────────────────────────────────────────────┐
+│ 1. مفاتيح Google OAuth (3 مفاتيح)                    │
+└────────────────────────────────────────────────────────┘
+
+✓ GOOGLE_CLIENT_ID
+  المصدر: Google Cloud Console → Credentials
+  القيمة: xxxxxx.apps.googleusercontent.com
+  الحالة: موجود في Replit Secrets ✅
+
+✓ GOOGLE_CLIENT_SECRET
+  المصدر: Google Cloud Console → Credentials
+  القيمة: GOCSPX-xxxxxxxxxxxxx
+  الحالة: موجود في Replit Secrets ✅
+
+✓ GOOGLE_REDIRECT_URI
+  القيمة الصحيحة: https://nnh.ae/api/gmb/oauth-callback
+  الحالة: موجود في Replit Secrets ✅
+  
+  ⚠️ يجب أن تضيف نفس URI في Google Console:
+     → APIs & Services → Credentials
+     → OAuth 2.0 Client IDs
+     → Authorized redirect URIs
+     → أضف: https://nnh.ae/api/gmb/oauth-callback
+
+┌────────────────────────────────────────────────────────┐
+│ 2. مفاتيح Supabase (3 مفاتيح)                        │
+└────────────────────────────────────────────────────────┘
+
+✓ NEXT_PUBLIC_SUPABASE_URL
+  المصدر: Supabase → Settings → API → Project URL
+  القيمة: https://xxxxxxxx.supabase.co
+  الحالة: موجود في Replit Secrets ✅
+
+✓ NEXT_PUBLIC_SUPABASE_ANON_KEY
+  المصدر: Supabase → Settings → API → anon/public
+  القيمة: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  الحالة: موجود في Replit Secrets ✅
+
+✓ SUPABASE_SERVICE_ROLE_KEY
+  المصدر: Supabase → Settings → API → service_role
+  القيمة: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  الحالة: موجود في Replit Secrets ✅
+  ⚠️ سري للغاية - لا تشاركه!
+
+┌────────────────────────────────────────────────────────┐
+│ 3. مفاتيح الدومين (2 مفتاح - اختياري)                │
+└────────────────────────────────────────────────────────┘
+
+✓ NEXT_PUBLIC_BASE_URL
+  القيمة: https://nnh.ae
+  الحالة: موجود في Replit Secrets ✅
+
+✓ NEXT_PUBLIC_SITE_URL (اختياري)
+  القيمة: https://nnh.ae
+  ملاحظة: سيستخدم https://nnh.ae افتراضياً
+
+═══════════════════════════════════════════════════════════
+✅ الخطوات التي يجب عليك القيام بها
+═══════════════════════════════════════════════════════════
+
+┌────────────────────────────────────────────────────────┐
+│ الخطوة 1: إعداد Google Cloud Console                 │
+└────────────────────────────────────────────────────────┘
+
+□ افتح: https://console.cloud.google.com
+□ أنشئ مشروع جديد (أو استخدم موجود)
+□ فعّل Google Business Profile APIs
+□ أعد OAuth Consent Screen
+□ أنشئ OAuth 2.0 Client ID (Web application)
+□ أضف Redirect URI: https://nnh.ae/api/gmb/oauth-callback
+□ انسخ Client ID و Client Secret
+
+📖 راجع: GOOGLE_CONSOLE_GUIDE_AR.txt للتفاصيل
+
+┌────────────────────────────────────────────────────────┐
+│ الخطوة 2: إعداد Supabase                              │
+└────────────────────────────────────────────────────────┘
+
+□ افتح: https://supabase.com/dashboard
+□ أنشئ Project جديد
+□ انسخ المفاتيح الثلاثة (URL, ANON_KEY, SERVICE_ROLE_KEY)
+□ أعد Site URL: https://nnh.ae
+□ فعّل Google OAuth Provider (استخدم نفس Client ID/Secret)
+
+📖 راجع: SUPABASE_GUIDE_AR.txt للتفاصيل
+
+┌────────────────────────────────────────────────────────┐
+│ الخطوة 3: تحديث Replit Secrets                        │
+└────────────────────────────────────────────────────────┘
+
+□ افتح: Replit → Tools → Secrets
+□ راجع المفاتيح السبعة
+□ تأكد من القيم الصحيحة:
+  - GOOGLE_REDIRECT_URI = https://nnh.ae/api/gmb/oauth-callback
+  - NEXT_PUBLIC_BASE_URL = https://nnh.ae
+
+📖 راجع: SECRETS_CHECKLIST.txt للتفاصيل
+
+┌────────────────────────────────────────────────────────┐
+│ الخطوة 4: تطبيق Database Migrations                   │
+└────────────────────────────────────────────────────────┘
+
+في Terminal:
+```bash
+npm run db:push
+```
+
+إذا ظهر تحذير:
+```bash
+npm run db:push --force
+```
+
+┌────────────────────────────────────────────────────────┐
+│ الخطوة 5: اختبار التكوين                              │
+└────────────────────────────────────────────────────────┘
+
+1. سجل دخول في الموقع
+2. اذهب لصفحة Accounts
+3. اضغط "Connect Google Account"
+4. يجب أن تفتح صفحة Google للموافقة
+5. بعد الموافقة، يجب أن يعود للموقع ويظهر الحساب
+
+═══════════════════════════════════════════════════════════
+📋 Checklist نهائي قبل النشر
+═══════════════════════════════════════════════════════════
+
+Google Cloud Console:
+□ تم تفعيل Google Business Profile API
+□ تم إعداد OAuth Consent Screen بالكامل
+□ تم إضافة Scopes: business.manage, userinfo.email, userinfo.profile
+□ تم إنشاء OAuth Client ID (Web application)
+□ تم إضافة Redirect URI: https://nnh.ae/api/gmb/oauth-callback
+□ تم نسخ Client ID و Client Secret
+
+Supabase:
+□ تم إنشاء Project
+□ تم نسخ المفاتيح الثلاثة
+□ تم تعيين Site URL: https://nnh.ae
+□ تم إعداد Google OAuth Provider
+□ تم تطبيق Database Migrations
+
+Replit:
+□ جميع المفاتيح السبعة موجودة في Secrets
+□ GOOGLE_REDIRECT_URI = https://nnh.ae/api/gmb/oauth-callback
+□ NEXT_PUBLIC_BASE_URL = https://nnh.ae
+□ تم تطبيق npm run db:push
+
+الدومين:
+□ nnh.ae موجه للـ Replit deployment
+□ SSL Certificate جاهز (https)
+
+═══════════════════════════════════════════════════════════
+🎯 جاهز للنشر؟
+═══════════════════════════════════════════════════════════
+
+بعد إكمال جميع الخطوات أعلاه:
+
+1. اضغط "Deploy" في Replit
+2. اختر autoscale deployment
+3. أضف Custom Domain: nnh.ae
+4. انتظر حتى يكتمل النشر
+5. افتح https://nnh.ae واختبر!
+
+═══════════════════════════════════════════════════════════
+📞 إذا واجهتك مشكلة
+═══════════════════════════════════════════════════════════
+
+مشكلة: redirect_uri_mismatch
+الحل: تأكد أن URI في Google Console مطابق بالضبط
+
+مشكلة: Failed to fetch GMB accounts
+الحل: تأكد من تفعيل APIs وأنك سجلت دخول بحساب له GMB
+
+مشكلة: Database connection failed
+الحل: راجع مفاتيح Supabase وتأكد من تطبيق migrations
+
+═══════════════════════════════════════════════════════════
+تاريخ الإنشاء: 29 أكتوبر 2025
+الحالة: جاهز للنشر على nnh.ae ✅
+═══════════════════════════════════════════════════════════
