@@ -126,7 +126,7 @@ export function MetricsOverview() {
       />
       <MetricCard
         title="Avg. Rating"
-        value={metrics.avgRating.toFixed(1)}
+        value={(Number(metrics.avgRating ?? 0)).toFixed(1)}
         change={2.2}
         period="last month"
         isLoading={isLoading}

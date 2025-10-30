@@ -15,7 +15,7 @@ export function ReviewSentimentChart() {
       try {
         const { data: reviews } = await supabase
           .from("gmb_reviews")
-          .select("sentiment, created_at")
+          .select("ai_sentiment, created_at")
           .order("created_at", { ascending: true })
 
         if (reviews) {
@@ -30,9 +30,9 @@ export function ReviewSentimentChart() {
               monthlyData[monthKey] = { positive: 0, neutral: 0, negative: 0 }
             }
 
-            if (review.sentiment === "positive") monthlyData[monthKey].positive++
-            else if (review.sentiment === "neutral") monthlyData[monthKey].neutral++
-            else if (review.sentiment === "negative") monthlyData[monthKey].negative++
+            if (review.ai_sentiment === "positive") monthlyData[monthKey].positive++
+            else if (review.ai_sentiment === "neutral") monthlyData[monthKey].neutral++
+            else if (review.ai_sentiment === "negative") monthlyData[monthKey].negative++
           })
 
           const chartData = Object.entries(monthlyData).map(([month, counts]) => ({

@@ -36,6 +36,27 @@ export interface GMBLocation {
   updated_at: string
 }
 
+export interface GMBLocationWithRating {
+  id: string
+  gmb_account_id: string
+  user_id: string
+  location_id: string
+  location_name: string
+  address?: string
+  phone?: string
+  website?: string
+  category?: string
+  is_active: boolean
+  is_syncing: boolean
+  metadata: Record<string, any>
+  ai_insights?: string
+  created_at: string
+  updated_at: string
+  rating: number
+  reviews_count: number
+  last_review_date?: string
+}
+
 export interface GMBReview {
   id: string
   location_id: string

@@ -86,7 +86,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
           {/* Metrics grid */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center p-3 rounded-lg bg-secondary border border-primary/20">
-              <div className="text-2xl font-bold text-primary">{location.rating.toFixed(1)}</div>
+              <div className="text-2xl font-bold text-primary">{(location.rating ?? 0).toFixed(1)}</div>
               <div className="text-xs text-muted-foreground">Rating</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-secondary border border-primary/20">
@@ -94,7 +94,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
               <div className="text-xs text-muted-foreground">Reviews</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-secondary border border-primary/20">
-              <div className="text-2xl font-bold text-primary">{location.response_rate.toFixed(0)}%</div>
+              <div className="text-2xl font-bold text-primary">{(location.response_rate ?? 0).toFixed(0)}%</div>
               <div className="text-xs text-muted-foreground">Response</div>
             </div>
           </div>

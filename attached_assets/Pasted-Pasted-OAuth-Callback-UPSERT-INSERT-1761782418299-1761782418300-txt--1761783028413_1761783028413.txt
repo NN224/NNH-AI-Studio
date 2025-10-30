@@ -1,0 +1,162 @@
+Pasted--OAuth-Callback-UPSERT-INSERT--1761782418299_1761782418300.txt
+انسخه والصقه في بيئة التطوير لديك ليعدّل مسار OAuth Callback لاستخدام UPSERT بدل INSERT فقط.
+
+عنوان: تعديل OAuth Callback لاستخدام UPSERT على gmb_accounts
+
+المطلوب:
+
+استبدال أي INSERT مباشر في حفظ حساب Google إلى UPSERT على قيد الفريد (google_account_id).
+عدم تغيير user_id عند التحديث لتجنّب نقل ملكية الحساب.
+تحديث الحقول: google_account_email, access_token, refresh_token, token_expires_at, metadata, updated_at.
+التنفيذ يتم في السيرفر/Edge Function باستخدام service_role أو تحت جلسة المستخدم الصحيح.
+SQL المطلوب داخل السيرفر:
+
+insert into public.gmb_accounts (
+  user_id,
+  google_account_id,
+  google_account_email,
+  access_token,
+  refresh_token,
+  token_expires_at,
+  metadata,
+  created_at,
+  updated_at
+) values (
+  :user_id,
+  :google_account_id,
+  :google_account_email,
+  :access_token,
+  :refresh_token,
+  :token_expires_at,
+  :metadata::jsonb,
+  now(),
+  now()
+)
+on conflict (google_account_id) do update
+set
+  -- لا تغيّر المالك لتجنّب نقل الملكية
+  -- user_id = gmb_accounts.user_id,
+  google_account_email = excluded.google_account_email,
+  access_token = excluded.access_token,
+  refresh_token = excluded.refresh_token,
+  token_expires_at = excluded.token_expires_at,
+  metadata = coalesce(excluded.metadata, gmb_accounts.metadata),
+  updated_at = now()
+returning *;
+TypeScript مثال مختصر لمسار الـ Callback باستخدام supabase-js بمفتاح الخدمة:
+
+import
+ { createClient } 
+from
+ "npm:@supabase/supabase-js@2.45.4";
+const supabase = createClient(
+  Deno.env.
+get
+("SUPABASE_URL")!,
+  Deno.env.
+get
+("SUPABASE_SERVICE_ROLE_KEY")! // مفتاح الخدمة فقط على السيرفر
+);
+export async 
+function
+ upsertGoogleAccount({
+  user_id,
+  google_account_id,
+  google_account_email,
+  access_token,
+  refresh_token,
+  token_expires_at,
+  metadata
+}: {
+  user_id: string;
+  google_account_id: string;
+  google_account_email: string;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string; // ISO
+  metadata?: 
+Record
+<string, 
+unknown
+>;
+}) {
+  const 
+sql
+ = `
+    
+insert
+ 
+into
+ 
+public
+.gmb_accounts (
+      user_id, google_account_id, google_account_email,
+      access_token, refresh_token, token_expires_at,
+      metadata, created_at, updated_at
+    ) 
+values
+ (
+      :user_id, :google_account_id, :google_account_email,
+      :access_token, :refresh_token, :token_expires_at,
+      :metadata::
+jsonb
+, now(), now()
+    )
+    
+on
+ 
+conflict
+ (google_account_id) 
+do
+ 
+update
+ 
+set
+
+      google_account_email = excluded.google_account_email,
+      access_token = excluded.access_token,
+      refresh_token = excluded.refresh_token,
+      token_expires_at = excluded.token_expires_at,
+      metadata = coalesce(excluded.metadata, gmb_accounts.metadata),
+      updated_at = now()
+    
+returning
+ *;
+  `;
+  const { data, error } = await supabase.rpc("exec_sql", { // إذا لا يوجد rpc، نفذ عبر pg client في السيرفر
+    
+sql
+,
+    params: {
+      user_id,
+      google_account_id,
+      google_account_email,
+      access_token,
+      refresh_token,
+      token_expires_at,
+      metadata: metadata ? 
+JSON
+.stringify(metadata) : 
+null
+
+    }
+  });
+  
+if
+ (error) {
+    console.error("Upsert gmb_accounts error:", error);
+    throw error;
+  }
+  
+return
+ data;
+}
+
+ملاحظات تشغيلية سريعة:
+
+نفّذ الكود على السيرفر فقط، ليس في المتصفح.
+تأكد أن جدول gmb_accounts يحتوي قيد فريد على google_account_id (موجود حسب رسالة الخطأ).
+اختبارات بعد النشر:
+جرّب الربط مرتين بنفس حساب Google: لا يظهر الخطأ 23505.
+تحقق من تحديث access_token/refresh_token في المحاولة الثانية.
+تأكد أن RLS لا تمنع القراءة/التحديث للمستخدم الصحيح.

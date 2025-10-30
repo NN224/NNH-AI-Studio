@@ -3,11 +3,13 @@
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { PerformanceChart } from "@/components/dashboard/performance-chart"
-import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle } from "lucide-react"
+import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
+import Link from "next/link"
 
 interface DashboardStats {
   totalLocations: number
@@ -158,6 +160,31 @@ export default function DashboardPage() {
             index={3}
           />
         </div>
+      )}
+
+      {/* Empty State - No GMB Account Connected */}
+      {!loading && stats?.totalLocations === 0 && (
+        <Card className="bg-card border-primary/30">
+          <CardContent className="p-12">
+            <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-foreground">No Google My Business Account Connected</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Connect your Google My Business account to start managing your locations, reviews, and content.
+                </p>
+              </div>
+              <Button size="lg" className="mt-4" asChild>
+                <Link href="/accounts">
+                  <Users className="mr-2 h-5 w-5" />
+                  Connect Account
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Charts and Activity */}

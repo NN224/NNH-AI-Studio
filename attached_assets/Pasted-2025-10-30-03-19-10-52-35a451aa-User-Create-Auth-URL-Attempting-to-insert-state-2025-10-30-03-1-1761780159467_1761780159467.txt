@@ -1,0 +1,144 @@
+2025-10-30 03:19:10.52
+35a451aa
+User
+[Create Auth URL] Attempting to insert state: {
+2025-10-30 03:19:10.52
+35a451aa
+User
+state: '20019a99-0cb5-40dd-af25-cd7dceec87e1',
+2025-10-30 03:19:10.52
+35a451aa
+User
+user_id: '9ad81b99-a835-435a-ac4e-3170df5b0455',
+2025-10-30 03:19:10.52
+35a451aa
+User
+expires_at: '2025-10-29T23:49:10.525Z',
+2025-10-30 03:19:10.52
+35a451aa
+User
+used: false
+2025-10-30 03:19:10.52
+35a451aa
+User
+}
+2025-10-30 03:19:10.85
+35a451aa
+User
+[Create Auth URL] State saved successfully: [
+2025-10-30 03:19:10.85
+35a451aa
+User
+{
+2025-10-30 03:19:10.85
+35a451aa
+User
+id: 'e95ce19b-d5fc-4aa2-b14a-01e11ef88bcd',
+2025-10-30 03:19:10.85
+35a451aa
+User
+state: '20019a99-0cb5-40dd-af25-cd7dceec87e1',
+2025-10-30 03:19:10.85
+35a451aa
+User
+user_id: '9ad81b99-a835-435a-ac4e-3170df5b0455',
+2025-10-30 03:19:10.85
+35a451aa
+User
+expires_at: '2025-10-29T23:49:10.525+00:00',
+2025-10-30 03:19:10.85
+35a451aa
+User
+used: false,
+2025-10-30 03:19:10.85
+35a451aa
+User
+created_at: '2025-10-29T23:19:10.682801+00:00'
+2025-10-30 03:19:10.85
+35a451aa
+User
+}
+2025-10-30 03:19:10.85
+35a451aa
+User
+]
+2025-10-30 03:19:10.85
+35a451aa
+User
+[Create Auth URL] Auth URL created successfully
+2025-10-30 03:19:10.85
+35a451aa
+User
+[Create Auth URL] Redirect URI: https://nnh.ae/api/gmb/oauth-callback
+2025-10-30 03:19:18.28
+35a451aa
+User
+[OAuth Callback] Processing OAuth callback...
+2025-10-30 03:19:18.28
+35a451aa
+User
+[OAuth Callback] State: 20019a99-0cb5-40dd-af25-cd7dceec87e1
+2025-10-30 03:19:18.93
+35a451aa
+User
+[OAuth Callback] User ID from state: 9ad81b99-a835-435a-ac4e-3170df5b0455
+2025-10-30 03:19:18.93
+35a451aa
+User
+[OAuth Callback] Exchanging code for tokens...
+2025-10-30 03:19:19.03
+35a451aa
+User
+[OAuth Callback] Tokens received successfully
+2025-10-30 03:19:19.03
+35a451aa
+User
+[OAuth Callback] Fetching user info...
+2025-10-30 03:19:19.07
+35a451aa
+User
+[OAuth Callback] User info: { email: 'info@nightlifedxb.com', id: '101323766532690204511' }
+2025-10-30 03:19:19.07
+35a451aa
+User
+[OAuth Callback] Fetching GMB accounts...
+2025-10-30 03:19:19.16
+35a451aa
+User
+[OAuth Callback] Found 1 GMB accounts
+2025-10-30 03:19:19.16
+35a451aa
+User
+[OAuth Callback] Processing GMB account: Xo Club Dubai Talal اكس او كلوب دبي (accounts/101323766532690204511)
+2025-10-30 03:19:19.45
+35a451aa
+User
+[OAuth Callback] Creating new account for user 9ad81b99-a835-435a-ac4e-3170df5b0455
+2025-10-30 03:19:19.83
+35a451aa
+User
+[OAuth Callback] Error inserting account: {
+2025-10-30 03:19:19.83
+35a451aa
+User
+code: '23505',
+2025-10-30 03:19:19.83
+35a451aa
+User
+details: null,
+2025-10-30 03:19:19.83
+35a451aa
+User
+hint: null,
+2025-10-30 03:19:19.83
+35a451aa
+User
+message: 'duplicate key value violates unique constraint "gmb_accounts_google_account_id_key"'
+2025-10-30 03:19:19.83
+35a451aa
+User
+}
+2025-10-30 03:19:19.83
+35a451aa
+User
+[OAuth Callback] Redirecting to: https://nnh.ae/accounts#success=true

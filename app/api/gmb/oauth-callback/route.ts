@@ -119,9 +119,13 @@ export async function GET(request: NextRequest) {
     
     // Get user info from Google
     console.log('[OAuth Callback] Fetching user info...');
-    const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
+    const userInfoUrl = new URL(GOOGLE_USERINFO_URL);
+    userInfoUrl.searchParams.set('alt', 'json');
+    
+    const userInfoResponse = await fetch(userInfoUrl.toString(), {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: 'application/json',
       },
     });
     
@@ -142,9 +146,13 @@ export async function GET(request: NextRequest) {
     
     // Fetch GMB accounts
     console.log('[OAuth Callback] Fetching GMB accounts...');
-    const gmbAccountsResponse = await fetch(GMB_ACCOUNTS_URL, {
+    const gmbAccountsUrl = new URL(GMB_ACCOUNTS_URL);
+    gmbAccountsUrl.searchParams.set('alt', 'json');
+    
+    const gmbAccountsResponse = await fetch(gmbAccountsUrl.toString(), {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: 'application/json',
       },
     });
     
@@ -178,84 +186,72 @@ export async function GET(request: NextRequest) {
       
       console.log(`[OAuth Callback] Processing GMB account: ${accountName} (${accountId})`);
       
-      // Check if account already exists
+      // Check if this account is already linked to another user
       const { data: existingAccount } = await supabase
         .from('gmb_accounts')
-        .select('id, refresh_token')
-        .eq('user_id', userId)
+        .select('user_id, refresh_token')
         .eq('account_id', accountId)
         .maybeSingle();
-        
-      if (existingAccount) {
-        console.log(`[OAuth Callback] Updating existing account ${existingAccount.id}`);
-        
-        const updateData = {
-          user_id: userId,
-          account_name: accountName,
-          account_id: accountId,
-          email: userInfo.email,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token || existingAccount.refresh_token,
-          token_expires_at: tokenExpiresAt.toISOString(),
-          is_active: true,
-          last_sync: new Date().toISOString(),
-        };
-        
-        const { error: updateError } = await supabase
-          .from('gmb_accounts')
-          .update(updateData)
-          .eq('id', existingAccount.id);
-          
-        if (updateError) {
-          console.error('[OAuth Callback] Error updating account:', updateError);
-          continue;
-        }
-        
-        savedAccountId = existingAccount.id;
-        console.log(`[OAuth Callback] Successfully updated account ${existingAccount.id}`);
-      } else {
-        console.log(`[OAuth Callback] Creating new account for user ${userId}`);
-        
-        const insertData = {
-          user_id: userId,
-          account_name: accountName,
-          account_id: accountId,
-          email: userInfo.email,
-          google_account_id: userInfo.id,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          token_expires_at: tokenExpiresAt.toISOString(),
-          is_active: true,
-          last_sync: null,
-          created_at: new Date().toISOString(),
-        };
-        
-        const { data: insertedAccount, error: insertError } = await supabase
-          .from('gmb_accounts')
-          .insert(insertData)
-          .select('id')
-          .single();
-          
-        if (insertError || !insertedAccount) {
-          console.error('[OAuth Callback] Error inserting account:', insertError);
-          continue;
-        }
-        
-        savedAccountId = insertedAccount.id;
-        console.log(`[OAuth Callback] Successfully created account ${insertedAccount.id}`);
+      
+      if (existingAccount && existingAccount.user_id !== userId) {
+        console.error('[OAuth Callback] Security violation: GMB account already linked to different user');
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        return NextResponse.redirect(
+          `${baseUrl}/accounts#error=${encodeURIComponent('This Google My Business account is already linked to another user')}`
+        );
       }
+      
+      // Use UPSERT to insert or update the account
+      console.log(`[OAuth Callback] Upserting GMB account ${accountId}`);
+      
+      const upsertData = {
+        user_id: userId,
+        account_id: accountId,
+        account_name: accountName,
+        email: userInfo.email,
+        google_account_id: userInfo.id,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token || existingAccount?.refresh_token || null,
+        token_expires_at: tokenExpiresAt.toISOString(),
+        is_active: true,
+        last_sync: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      const { data: upsertedAccount, error: upsertError } = await supabase
+        .from('gmb_accounts')
+        .upsert(upsertData, {
+          onConflict: 'user_id,account_id',
+          ignoreDuplicates: false,
+        })
+        .select('id')
+        .single();
+        
+      if (upsertError || !upsertedAccount) {
+        console.error('[OAuth Callback] Error upserting account:', upsertError);
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        return NextResponse.redirect(
+          `${baseUrl}/accounts#error=${encodeURIComponent(
+            `Failed to save account: ${upsertError?.message || 'Unknown error'}`
+          )}`
+        );
+      }
+      
+      savedAccountId = upsertedAccount.id;
+      console.log(`[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`);
       
       // Fetch initial locations for this account
       console.log(`[OAuth Callback] Fetching initial locations for account ${accountId}`);
-      const locationsUrl = `${GMB_LOCATIONS_URL}/${accountId}/locations`;
-      const locationsResponse = await fetch(
-        `${locationsUrl}?readMask=name,title,storefrontAddress,phoneNumbers,websiteUri,categories`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenData.access_token}`,
-          },
-        }
-      );
+      const locationsUrl = new URL(`${GMB_LOCATIONS_URL}/${accountId}/locations`);
+      locationsUrl.searchParams.set('readMask', 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories');
+      locationsUrl.searchParams.set('alt', 'json');
+      
+      const locationsResponse = await fetch(locationsUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          Accept: 'application/json',
+        },
+      });
       
       if (locationsResponse.ok) {
         const locationsData = await locationsResponse.json();
@@ -307,12 +303,17 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Redirect to accounts page with success
+    // Redirect to accounts page with success or error
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const redirectUrl = savedAccountId
-      ? `${baseUrl}/accounts#success=true&autosync=${savedAccountId}`
-      : `${baseUrl}/accounts#success=true`;
-      
+    
+    if (!savedAccountId) {
+      console.error('[OAuth Callback] No account was saved');
+      return NextResponse.redirect(
+        `${baseUrl}/accounts#error=${encodeURIComponent('Failed to save any account')}`
+      );
+    }
+    
+    const redirectUrl = `${baseUrl}/accounts#success=true&autosync=${savedAccountId}`;
     console.log('[OAuth Callback] Redirecting to:', redirectUrl);
     return NextResponse.redirect(redirectUrl);
     

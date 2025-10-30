@@ -1,0 +1,2572 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMB Studio - NNH Local</title>
+  <meta name="description" content="GMB Studio - Complete Google My Business management with AI-powered 30-day autopilot">
+  <link rel="icon" type="image/png" href="/favicon.png?v=2">
+  <link rel="stylesheet" href="/dist/tailwind.css">
+  <script src="/js/logo.js"></script>
+  <script src="/js/i18n.js?v=2"></script>
+  
+  <!-- Chart.js for performance charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="/js/alpine-gmb-store.js"></script>
+  <script src="/js/toast.js"></script>
+  
+  <style>
+    /* Glassmorphism Utilities */
+    .glass {
+      background: transparent;
+      backdrop-filter: blur(48px);
+      -webkit-backdrop-filter: blur(48px);
+    }
+    
+    .glass-border {
+      border: 2px solid #FF6B00;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+    
+    /* Sidebar Overlay for Mobile */
+    .sidebar-overlay {
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 99;
+      backdrop-filter: blur(4px);
+    }
+    
+    /* Sidebar Responsive Styles */
+    .gmb-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 220px;
+      padding-top: 64px;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+    
+    @media (max-width: 1024px) {
+      .gmb-sidebar {
+        transform: translateX(-100%);
+      }
+      
+      .gmb-sidebar.open {
+        transform: translateX(0);
+      }
+    }
+    
+    /* Main Content Margin */
+    .gmb-main {
+      margin-left: 220px;
+      margin-top: 64px;
+      padding: 2rem 1rem;
+    }
+    
+    @media (max-width: 1024px) {
+      .gmb-main {
+        margin-left: 0;
+      }
+    }
+    
+    /* Tab Content Visibility */
+    .tab-content-section {
+      display: none;
+    }
+    
+    .tab-content-section.active {
+      display: block;
+    }
+    
+    /* Stat Card Animations */
+    .stat-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid rgba(255, 107, 0, 0.3);
+      border-top-color: #FF6B00;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen" x-data="$store.gmbStore" x-init="init()">
+  <!-- Dashboard Header -->
+  <header class="dashboard-header glass glass-border">
+    <!-- Logo (Left) -->
+    <a href="/" class="flex items-center">
+      <img src="/assets/images/nnh-logo.png" alt="NNH Logo" class="w-16 h-16 lg:w-20 lg:h-20 hover:scale-110 transition-transform duration-200">
+    </a>
+
+    <!-- Center-Right: Language Toggle and Back to Website -->
+    <div class="flex items-center gap-4">
+      <button class="px-4 py-2 text-sm text-neon-orange hover:bg-neon-orange/10 rounded-lg transition-all" onclick="toggleLanguage()">
+        <span x-text="t('gmb.language')">عربي</span>
+      </button>
+      <a href="/" class="px-4 py-2 text-sm bg-transparent border-2 border-neon-orange text-neon-orange hover:bg-neon-orange/10 rounded-lg transition-all">
+        <span x-text="t('gmb.backToWebsite')">← Back to Website</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Sidebar Toggle Button -->
+  <button @click="toggleSidebar()" class="fixed top-[72px] left-4 z-50 p-2 bg-transparent border-2 border-neon-orange rounded-lg lg:hidden">
+    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" class="text-neon-orange">
+      <path d="M0 3h16v2H0zM0 7h16v2H0zM0 11h16v2H0z"/>
+    </svg>
+  </button>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div x-show="sidebarOpen" @click="sidebarOpen = false" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="sidebar-overlay lg:hidden"></div>
+
+  <!-- GMB Layout -->
+  <div class="flex min-h-screen">
+    <!-- Sidebar Navigation -->
+    <aside :class="{ 'open': sidebarOpen }" class="gmb-sidebar glass glass-border flex flex-col overflow-y-auto">
+      <!-- Main Navigation Section -->
+      <div class="p-4 border-b border-neon-orange/20">
+        <div class="text-xs uppercase tracking-wide text-white/50 mb-3 px-2">Navigation</div>
+        
+        <button @click="switchTab('dashboard')" :class="currentTab === 'dashboard' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.dashboard')">Dashboard</span>
+        </button>
+
+        <button @click="switchTab('posts')" :class="currentTab === 'posts' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.posts')">Posts</span>
+        </button>
+
+        <button @click="switchTab('reviews')" :class="currentTab === 'reviews' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.reviews')">Reviews</span>
+        </button>
+
+        <button @click="switchTab('citations')" :class="currentTab === 'citations' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.citations')">Citations</span>
+        </button>
+
+        <button @click="switchTab('rankings')" :class="currentTab === 'rankings' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18M7 16l4-4 4 4 5-8"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.rankings')">Rankings</span>
+        </button>
+
+        <button @click="switchTab('media')" :class="currentTab === 'media' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 21l4-4 4 4 5-5 5 5M14 8.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.media')">Media</span>
+        </button>
+
+        <button @click="switchTab('autopilot')" :class="currentTab === 'autopilot' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="8" y="2" width="8" height="4" rx="1"/>
+            <path d="M12 6v2"/>
+            <path d="M9 12v9"/>
+            <path d="M15 12v9"/>
+            <path d="M5 16l4-4"/>
+            <path d="M15 8l4 4"/>
+            <circle cx="9" cy="18" r="2"/>
+            <circle cx="15" cy="18" r="2"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.autopilot.title')">AI Autopilot</span>
+        </button>
+
+        <button @click="switchTab('reports')" :class="currentTab === 'reports' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.reports')">Reports</span>
+        </button>
+
+        <a href="/youtube-studio" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 hover:bg-neon-orange/10 text-neon-orange/70 hover:text-neon-orange border-2 border-neon-orange/30 hover:border-neon-orange">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+          <span class="text-sm font-medium">YouTube Studio</span>
+        </a>
+
+        <button @click="switchTab('settings')" :class="currentTab === 'settings' ? 'bg-transparent border-2 border-neon-orange text-neon-orange' : 'bg-transparent border-2 border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'" class="flex items-center gap-3 w-full p-3 rounded-xl transition-all mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+          </svg>
+          <span class="text-sm font-medium" x-text="t('gmb.settings')">Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="gmb-main flex-1 max-w-7xl mx-auto w-full">
+      <!-- Dashboard Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'dashboard' }">
+        <!-- Location Selector -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.selectLocation')">Select Location</label>
+          <div class="relative">
+            <select @change="selectLocation(parseInt($event.target.value))" class="w-full max-w-md px-4 py-3 bg-transparent border-2 border-neon-orange rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-neon-orange/50">
+              <template x-for="loc in locations" :key="loc.id">
+                <option :value="loc.id" x-text="`${loc.name} ${loc.verified ? ' (Verified)' : ''}`"></option>
+              </template>
+            </select>
+          </div>
+          
+          <template x-if="selectedLocation">
+            <div class="mt-2 flex items-center gap-4 text-sm">
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span x-text="`${selectedLocation.rating} (${selectedLocation.reviewCount} reviews)`"></span>
+              </span>
+              <span x-show="selectedLocation.verified" class="px-2 py-1 bg-green-500/20 text-green-400 rounded-lg text-xs" x-text="t('gmb.locationVerified')">Verified</span>
+            </div>
+          </template>
+        </div>
+
+        <!-- Loading State -->
+        <div x-show="loading" class="flex items-center justify-center py-20">
+          <div class="spinner"></div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div x-show="!loading && stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Total Views -->
+          <div class="stat-card glass glass-border rounded-2xl p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div class="p-3 bg-neon-orange/10 rounded-xl">
+                <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-lg" :class="stats?.viewsGrowth >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                <span x-text="`${stats?.viewsGrowth >= 0 ? '+' : ''}${stats?.viewsGrowth || 0}%`"></span>
+              </span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-1" x-text="formatNumber(stats?.totalViews || 0)">0</h3>
+            <p class="text-sm text-white/60" x-text="t('gmb.totalViews')">Total Views</p>
+          </div>
+
+          <!-- Phone Calls -->
+          <div class="stat-card glass glass-border rounded-2xl p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div class="p-3 bg-blue-500/10 rounded-xl">
+                <svg class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-lg" :class="stats?.callsGrowth >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                <span x-text="`${stats?.callsGrowth >= 0 ? '+' : ''}${stats?.callsGrowth || 0}%`"></span>
+              </span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-1" x-text="formatNumber(stats?.phoneCalls || 0)">0</h3>
+            <p class="text-sm text-white/60" x-text="t('gmb.phoneCalls')">Phone Calls</p>
+          </div>
+
+          <!-- Direction Requests -->
+          <div class="stat-card glass glass-border rounded-2xl p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div class="p-3 bg-purple-500/10 rounded-xl">
+                <svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-lg" :class="stats?.directionsGrowth >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                <span x-text="`${stats?.directionsGrowth >= 0 ? '+' : ''}${stats?.directionsGrowth || 0}%`"></span>
+              </span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-1" x-text="formatNumber(stats?.directions || 0)">0</h3>
+            <p class="text-sm text-white/60" x-text="t('gmb.directionRequests')">Direction Requests</p>
+          </div>
+
+          <!-- Website Clicks -->
+          <div class="stat-card glass glass-border rounded-2xl p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div class="p-3 bg-green-500/10 rounded-xl">
+                <svg class="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-lg" :class="stats?.websiteGrowth >= 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                <span x-text="`${stats?.websiteGrowth >= 0 ? '+' : ''}${stats?.websiteGrowth || 0}%`"></span>
+              </span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-1" x-text="formatNumber(stats?.websiteClicks || 0)">0</h3>
+            <p class="text-sm text-white/60" x-text="t('gmb.websiteClicks')">Website Clicks</p>
+          </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div x-show="!loading && chartData.length > 0" class="glass glass-border rounded-2xl p-6 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4" x-text="t('gmb.chartTitle')">Last 30 Days Performance</h3>
+          <div class="relative h-64">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div x-show="!loading" class="glass glass-border rounded-2xl p-6">
+          <h3 class="text-xl font-bold text-white mb-4" x-text="t('gmb.actionsTitle')">Quick Actions</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button class="flex items-center gap-3 p-4 bg-neon-orange/10 hover:bg-neon-orange/20 border-2 border-neon-orange/30 hover:border-neon-orange rounded-xl transition-all">
+              <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span class="text-sm font-medium" x-text="t('gmb.viewInsights')">View Insights</span>
+            </button>
+
+            <button class="flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/20 border-2 border-blue-500/30 hover:border-blue-500 rounded-xl transition-all">
+              <svg class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span class="text-sm font-medium" x-text="t('gmb.manageReviews')">Manage Reviews</span>
+            </button>
+
+            <button class="flex items-center gap-3 p-4 bg-purple-500/10 hover:bg-purple-500/20 border-2 border-purple-500/30 hover:border-purple-500 rounded-xl transition-all">
+              <svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span class="text-sm font-medium" x-text="t('gmb.createPost')">Create Post</span>
+            </button>
+
+            <button class="flex items-center gap-3 p-4 bg-green-500/10 hover:bg-green-500/20 border-2 border-green-500/30 hover:border-green-500 rounded-xl transition-all">
+              <svg class="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+              </svg>
+              <span class="text-sm font-medium" x-text="t('gmb.updateInfo')">Update Info</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Posts Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'posts' }">
+        <!-- Posts Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2" x-text="t('gmb.postsManager')">Posts Manager</h2>
+            <p class="text-white/60" x-text="t('gmb.postsSubtitle')">Create and manage Google My Business posts</p>
+          </div>
+          <button @click="openPostModal()" class="px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white font-medium rounded-xl transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span x-text="t('gmb.createNewPost')">+ Create Post</span>
+          </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-6">
+          <select x-model="selectedPostType" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            <option value="all" x-text="t('gmb.allPosts')">All Posts</option>
+            <option value="whatsNew" x-text="t('gmb.whatsNew')">What's New</option>
+            <option value="event" x-text="t('gmb.event')">Event</option>
+            <option value="offer" x-text="t('gmb.offer')">Offer</option>
+          </select>
+          
+          <select x-model="selectedPostStatus" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            <option value="all" x-text="t('gmb.allStatuses')">All Statuses</option>
+            <option value="published" x-text="t('gmb.published')">Published</option>
+            <option value="scheduled" x-text="t('gmb.scheduled')">Scheduled</option>
+            <option value="draft" x-text="t('gmb.draft')">Draft</option>
+          </select>
+        </div>
+
+        <!-- Posts Grid -->
+        <div x-show="getFilteredPosts().length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <template x-for="post in getFilteredPosts()" :key="post.id">
+            <div class="glass glass-border rounded-2xl overflow-hidden">
+              <!-- Post Image -->
+              <div class="h-48 bg-cover bg-center" :style="`background-image: url('${post.mediaUrl}')`"></div>
+              
+              <!-- Post Content -->
+              <div class="p-6">
+                <!-- Post Type & Status -->
+                <div class="flex items-center justify-between mb-3">
+                  <span class="px-3 py-1 rounded-lg text-xs font-medium" 
+                    :class="{
+                      'bg-blue-500/20 text-blue-400': post.type === 'STANDARD',
+                      'bg-purple-500/20 text-purple-400': post.type === 'EVENT',
+                      'bg-green-500/20 text-green-400': post.type === 'OFFER'
+                    }"
+                    x-text="post.type === 'STANDARD' ? t('gmb.whatsNew') : post.type === 'EVENT' ? t('gmb.event') : t('gmb.offer')">
+                  </span>
+                  
+                  <span class="px-3 py-1 rounded-lg text-xs font-medium"
+                    :class="{
+                      'bg-green-500/20 text-green-400': post.status === 'published',
+                      'bg-yellow-500/20 text-yellow-400': post.status === 'scheduled',
+                      'bg-gray-500/20 text-gray-400': post.status === 'draft'
+                    }"
+                    x-text="post.status === 'published' ? t('gmb.published') : post.status === 'scheduled' ? t('gmb.scheduled') : t('gmb.draft')">
+                  </span>
+                </div>
+
+                <!-- Event Title (if EVENT) -->
+                <h3 x-show="post.type === 'EVENT' && post.eventTitle" class="text-lg font-bold text-white mb-2" x-text="post.eventTitle"></h3>
+
+                <!-- Summary -->
+                <p class="text-white/70 text-sm mb-4 line-clamp-3" x-text="post.summary"></p>
+
+                <!-- Publish Date -->
+                <p class="text-white/50 text-xs mb-4" x-show="post.publishedAt">
+                  <span x-text="post.status === 'scheduled' ? t('gmb.scheduledFor') + ': ' : ''"></span>
+                  <span x-text="post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ''"></span>
+                </p>
+
+                <!-- AI Badge -->
+                <span x-show="post.generatedByAi" class="inline-flex items-center gap-1 px-2 py-1 bg-neon-orange/20 text-neon-orange rounded-lg text-xs mb-4">
+                  ✨ <span x-text="t('gmb.generatedByAI')">Generated by AI</span>
+                </span>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2 pt-4 border-t border-white/10">
+                  <button @click="openPostModal(post)" class="flex-1 px-4 py-2 bg-transparent border border-neon-orange/30 hover:bg-neon-orange/10 text-neon-orange rounded-lg text-sm transition-all">
+                    <span x-text="t('gmb.edit')">Edit</span>
+                  </button>
+                  <button @click="deletePost(post.id)" class="flex-1 px-4 py-2 bg-transparent border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-lg text-sm transition-all">
+                    <span x-text="t('gmb.delete')">Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="getFilteredPosts().length === 0" class="glass glass-border rounded-2xl p-12 text-center">
+          <svg class="w-16 h-16 text-white/30 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <h3 class="text-xl font-bold text-white mb-2" x-text="t('gmb.noPosts')">No posts found</h3>
+          <p class="text-white/60 mb-6" x-text="t('gmb.createFirstPost')">Create your first post to engage with customers</p>
+          <button @click="openPostModal()" class="px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white font-medium rounded-xl transition-all">
+            <span x-text="t('gmb.createNewPost')">+ Create Post</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Create/Edit Post Modal -->
+      <div x-show="showPostModal" x-transition class="fixed inset-0 z-200 flex items-center justify-center p-4" style="display: none;">
+        <!-- Overlay -->
+        <div @click="closePostModal()" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+        
+        <!-- Modal Content -->
+        <div x-show="currentPost" class="relative glass glass-border rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white" x-text="currentPost?.id ? t('gmb.edit') + ' ' + t('gmb.posts') : t('gmb.createPost')">Create Post</h2>
+            <button @click="closePostModal()" class="p-2 hover:bg-white/10 rounded-lg transition-all">
+              <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Post Type Selector -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.postType')">Post Type</label>
+            <div class="flex gap-2">
+              <button @click="currentPost.type = 'STANDARD'" 
+                :class="currentPost?.type === 'STANDARD' ? 'bg-blue-500/20 text-blue-400 border-blue-500' : 'bg-transparent text-white/60 border-white/20'" 
+                class="flex-1 px-4 py-3 border-2 rounded-xl transition-all">
+                <span x-text="t('gmb.whatsNew')">What's New</span>
+              </button>
+              <button @click="currentPost.type = 'EVENT'" 
+                :class="currentPost?.type === 'EVENT' ? 'bg-purple-500/20 text-purple-400 border-purple-500' : 'bg-transparent text-white/60 border-white/20'" 
+                class="flex-1 px-4 py-3 border-2 rounded-xl transition-all">
+                <span x-text="t('gmb.event')">Event</span>
+              </button>
+              <button @click="currentPost.type = 'OFFER'" 
+                :class="currentPost?.type === 'OFFER' ? 'bg-green-500/20 text-green-400 border-green-500' : 'bg-transparent text-white/60 border-white/20'" 
+                class="flex-1 px-4 py-3 border-2 rounded-xl transition-all">
+                <span x-text="t('gmb.offer')">Offer</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <label class="block text-sm font-medium text-white/70" x-text="t('gmb.summary')">Summary</label>
+              <button @click="generateAIContent(currentPost?.type, selectedLocation?.name)" 
+                :disabled="aiGenerating"
+                class="px-3 py-1 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange text-xs rounded-lg transition-all disabled:opacity-50">
+                <span x-text="aiGenerating ? t('gmb.aiGenerating') : t('gmb.generateWithAI')">✨ Generate with AI</span>
+              </button>
+            </div>
+            <textarea x-model="currentPost.summary" 
+              :placeholder="t('gmb.summaryPlaceholder')"
+              maxlength="1500"
+              class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange resize-none" 
+              rows="4"></textarea>
+            <p class="text-xs text-white/50 mt-1">
+              <span x-text="1500 - (currentPost?.summary?.length || 0)"></span> <span x-text="t('gmb.summaryHelper')">characters remaining</span>
+            </p>
+          </div>
+
+          <!-- Media URL -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.uploadImage')">Media URL</label>
+            <input type="url" x-model="currentPost.mediaUrl" 
+              placeholder="https://example.com/image.jpg"
+              class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+          </div>
+
+          <!-- Event Fields (conditional) -->
+          <div x-show="currentPost?.type === 'EVENT'" class="space-y-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.eventTitle')">Event Title</label>
+              <input type="text" x-model="currentPost.eventTitle" 
+                :placeholder="t('gmb.eventTitlePlaceholder')"
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.startDateTime')">Start Date & Time</label>
+                <input type="datetime-local" x-model="currentPost.eventStartDate" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.endDateTime')">End Date & Time</label>
+                <input type="datetime-local" x-model="currentPost.eventEndDate" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              </div>
+            </div>
+          </div>
+
+          <!-- Offer Fields (conditional) -->
+          <div x-show="currentPost?.type === 'OFFER'" class="space-y-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.couponCode')">Coupon Code</label>
+              <input type="text" x-model="currentPost.offerCouponCode" 
+                :placeholder="t('gmb.couponPlaceholder')"
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.redeemUrl')">Redeem Online URL</label>
+              <input type="url" x-model="currentPost.offerRedeemUrl" 
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.termsConditions')">Terms & Conditions</label>
+              <textarea x-model="currentPost.offerTerms" 
+                :placeholder="t('gmb.termsPlaceholder')"
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange resize-none" 
+                rows="3"></textarea>
+            </div>
+          </div>
+
+          <!-- Call to Action -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.callToAction')">Call to Action</label>
+              <select x-model="currentPost.callToAction" 
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                <option value="BOOK" x-text="t('gmb.ctaBook')">Book</option>
+                <option value="ORDER" x-text="t('gmb.ctaOrder')">Order</option>
+                <option value="SHOP" x-text="t('gmb.ctaShop')">Shop</option>
+                <option value="LEARN_MORE" x-text="t('gmb.ctaLearnMore')">Learn More</option>
+                <option value="SIGN_UP" x-text="t('gmb.ctaSignUp')">Sign Up</option>
+                <option value="CALL" x-text="t('gmb.ctaCall')">Call</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-white/70 mb-3" x-text="t('gmb.actionUrl')">Action URL</label>
+              <input type="url" x-model="currentPost.actionUrl" 
+                :placeholder="t('gmb.actionUrlPlaceholder')"
+                class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-3">
+            <button @click="currentPost?.id ? updatePost(currentPost.id, {...currentPost, status: 'published'}) : createPost({...currentPost, status: 'published'})" 
+              class="flex-1 px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white font-medium rounded-xl transition-all">
+              <span x-text="t('gmb.publishNow')">Publish Now</span>
+            </button>
+            <button @click="currentPost?.id ? updatePost(currentPost.id, {...currentPost, status: 'draft'}) : createPost({...currentPost, status: 'draft'})" 
+              class="flex-1 px-6 py-3 bg-transparent border-2 border-neon-orange text-neon-orange hover:bg-neon-orange/10 font-medium rounded-xl transition-all">
+              <span x-text="t('gmb.saveAsDraft')">Save as Draft</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviews Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'reviews' }">
+        <!-- Reviews Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2" x-text="t('gmb.reviewsManager')">Reviews Manager</h2>
+            <p class="text-white/60" x-text="t('gmb.reviewsSubtitle')">Manage and respond to customer reviews with AI</p>
+          </div>
+        </div>
+
+        <!-- Rating Summary -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Overall Rating -->
+            <div>
+              <h3 class="text-sm font-medium text-white/70 mb-3" x-text="t('gmb.overallRating')">Overall Rating</h3>
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-4xl font-bold text-neon-orange" x-text="getAverageRating()">0.0</span>
+                <span class="text-2xl text-yellow-400" x-text="getStarRating(Math.round(parseFloat(getAverageRating())))">★★★★★</span>
+              </div>
+              <p class="text-sm text-white/50" x-text="t('gmb.basedOnReviews').replace('{count}', reviews.length)">based on 0 reviews</p>
+            </div>
+            
+            <!-- Rating Distribution -->
+            <div>
+              <h3 class="text-sm font-medium text-white/70 mb-3" x-text="t('gmb.ratingDistribution')">Rating Distribution</h3>
+              <div class="space-y-2">
+                <template x-for="rating in [5, 4, 3, 2, 1]" :key="rating">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-white/70 w-16" x-text="rating + ' ★'">5 ★</span>
+                    <div class="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div class="h-full bg-neon-orange rounded-full" :style="`width: ${getRatingDistribution()[rating] || 0}%`"></div>
+                    </div>
+                    <span class="text-sm text-white/50 w-12 text-right" x-text="(getRatingDistribution()[rating] || 0) + '%'">0%</span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-6">
+          <select x-model="selectedRating" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            <option value="all" x-text="t('gmb.allReviews')">All Reviews</option>
+            <option value="5" x-text="t('gmb.fiveStars')">5 Stars</option>
+            <option value="4" x-text="t('gmb.fourStars')">4 Stars</option>
+            <option value="3" x-text="t('gmb.threeStars')">3 Stars</option>
+            <option value="2" x-text="t('gmb.twoStars')">2 Stars</option>
+            <option value="1" x-text="t('gmb.oneStar')">1 Star</option>
+          </select>
+          
+          <select x-model="selectedReplyStatus" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+            <option value="all" x-text="t('gmb.allStatuses')">All</option>
+            <option value="replied" x-text="t('gmb.replied')">Replied</option>
+            <option value="notReplied" x-text="t('gmb.notReplied')">Not Replied</option>
+          </select>
+        </div>
+
+        <!-- Reviews List -->
+        <div x-show="getFilteredReviews().length > 0" class="space-y-4">
+          <template x-for="review in getFilteredReviews()" :key="review.id">
+            <div class="glass glass-border rounded-2xl p-6">
+              <!-- Reviewer Info -->
+              <div class="flex items-start gap-4 mb-4">
+                <img :src="review.reviewerPhotoUrl" :alt="review.reviewerName" class="w-12 h-12 rounded-full object-cover">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between mb-1">
+                    <h4 class="font-semibold text-white" x-text="review.reviewerName">Reviewer Name</h4>
+                    <span class="text-sm text-white/50" x-text="getRelativeTime(review.reviewCreatedAt)">2 days ago</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-yellow-400" x-text="getStarRating(review.rating)">★★★★★</span>
+                    <span class="text-sm text-white/50" x-text="`(${review.rating}/5)`">(5/5)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Review Comment -->
+              <p class="text-white/70 mb-4" x-text="review.comment">Review comment text here...</p>
+
+              <!-- Business Reply (if exists) -->
+              <div x-show="review.businessReply" class="ml-8 p-4 bg-neon-orange/10 border-l-4 border-neon-orange rounded-lg mb-4">
+                <p class="text-sm font-medium text-neon-orange mb-2" x-text="t('gmb.businessReply')">Business replied:</p>
+                <p class="text-white/70 text-sm" x-text="review.businessReply">Business reply text here...</p>
+                <p class="text-xs text-white/50 mt-2" x-text="getRelativeTime(review.businessRepliedAt)">1 day ago</p>
+              </div>
+
+              <!-- AI Generated Reply (if exists and editing) -->
+              <div x-show="review.aiGeneratedReply && editingReply === review.id" class="ml-8 p-4 bg-purple-500/10 border-l-4 border-purple-500 rounded-lg mb-4">
+                <p class="text-sm font-medium text-purple-400 mb-2" x-text="t('gmb.aiSuggested')">AI Suggested:</p>
+                <textarea x-model="review.aiGeneratedReply" rows="3" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-purple-500/30 rounded-xl text-white focus:outline-none focus:border-purple-500 mb-3"
+                  :placeholder="t('gmb.replyPlaceholder')"></textarea>
+                <div class="flex gap-2">
+                  <button @click="postReply(review.id, review.aiGeneratedReply)" 
+                    class="px-4 py-2 bg-neon-orange hover:bg-neon-orange/90 text-white font-medium rounded-lg transition-all">
+                    <span x-text="t('gmb.postReply')">Post Reply</span>
+                  </button>
+                  <button @click="editingReply = null; review.aiGeneratedReply = null" 
+                    class="px-4 py-2 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-lg transition-all">
+                    <span x-text="t('gmb.cancel')">Cancel</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div x-show="!review.businessReply" class="flex items-center gap-2">
+                <button @click="generateAIReply(review.id)" 
+                  :disabled="generatingReply && currentReview === review.id"
+                  class="px-4 py-2 bg-neon-orange hover:bg-neon-orange/90 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  <svg x-show="generatingReply && currentReview === review.id" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span x-text="generatingReply && currentReview === review.id ? t('gmb.generatingReply') : t('gmb.generateAIReply')">Generate AI Reply</span>
+                </button>
+                <button x-show="review.aiGeneratedReply && editingReply !== review.id" @click="editingReply = review.id" 
+                  class="px-4 py-2 bg-transparent border border-neon-orange text-neon-orange hover:bg-neon-orange/10 font-medium rounded-lg transition-all">
+                  <span x-text="t('gmb.editReply')">Edit Reply</span>
+                </button>
+              </div>
+
+              <div x-show="review.businessReply" class="flex items-center gap-2">
+                <button class="px-4 py-2 bg-transparent border border-neon-orange/30 text-neon-orange/70 font-medium rounded-lg cursor-not-allowed">
+                  <span x-text="t('gmb.replied')">Replied</span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="getFilteredReviews().length === 0" class="glass glass-border rounded-2xl p-12 text-center">
+          <svg class="w-16 h-16 text-white/30 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <h3 class="text-xl font-bold text-white mb-2" x-text="t('gmb.noReviews')">No reviews found</h3>
+          <p class="text-white/60" x-text="t('gmb.reviewsFrom')">Reviews from Google My Business</p>
+        </div>
+      </div>
+
+      <!-- Citations Tab Content -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'citations' }">
+        <!-- Header -->
+        <div class="mb-6">
+          <h2 class="text-3xl font-bold text-white mb-2" x-text="t('gmb.citationsTitle')">Business Listings & Citations</h2>
+          <p class="text-white/60" x-text="t('gmb.citationsSubtitle')">Track and manage your business across 30+ directories</p>
+        </div>
+
+        <!-- NAP Consistency Card -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-white" x-text="t('gmb.napConsistency')">NAP Consistency</h3>
+            <button @click="fetchNAPConsistency(selectedLocation.id)" class="px-4 py-2 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-lg transition-all">
+              <span x-text="t('gmb.checkConsistency')">Check Consistency</span>
+            </button>
+          </div>
+
+          <div x-show="napConsistency" class="space-y-4">
+            <!-- Consistency Score -->
+            <div class="flex items-center gap-4">
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-white/70" x-text="t('gmb.consistencyScore')">Consistency Score</span>
+                  <span class="text-2xl font-bold" :class="napConsistency?.score >= 80 ? 'text-green-400' : napConsistency?.score >= 60 ? 'text-yellow-400' : 'text-red-400'" x-text="napConsistency?.score + '%'">0%</span>
+                </div>
+                <div class="h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full transition-all duration-500" 
+                    :class="napConsistency?.score >= 80 ? 'bg-green-400' : napConsistency?.score >= 60 ? 'bg-yellow-400' : 'bg-red-400'"
+                    :style="`width: ${napConsistency?.score || 0}%`"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Citations Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="bg-white/5 rounded-lg p-3">
+                <p class="text-white/50 text-sm mb-1" x-text="t('gmb.totalCitations')">Total</p>
+                <p class="text-xl font-bold text-white" x-text="napConsistency?.totalCitations || 0">0</p>
+              </div>
+              <div class="bg-green-500/10 rounded-lg p-3">
+                <p class="text-green-400/70 text-sm mb-1" x-text="t('gmb.liveCitations')">Live</p>
+                <p class="text-xl font-bold text-green-400" x-text="napConsistency?.liveCitations || 0">0</p>
+              </div>
+              <div class="bg-yellow-500/10 rounded-lg p-3">
+                <p class="text-yellow-400/70 text-sm mb-1" x-text="t('gmb.pendingCitations')">Pending</p>
+                <p class="text-xl font-bold text-yellow-400" x-text="napConsistency?.pendingCitations || 0">0</p>
+              </div>
+              <div class="bg-white/5 rounded-lg p-3">
+                <p class="text-white/50 text-sm mb-1" x-text="t('gmb.notListedCitations')">Not Listed</p>
+                <p class="text-xl font-bold text-white/70" x-text="napConsistency?.notListedCitations || 0">0</p>
+              </div>
+            </div>
+
+            <!-- Current NAP Info -->
+            <div class="bg-white/5 rounded-xl p-4">
+              <h4 class="text-sm font-semibold text-white/70 mb-3" x-text="t('gmb.currentNAP')">Current NAP Information</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-start gap-2">
+                  <span class="text-white/50 w-20" x-text="t('gmb.name')">Name:</span>
+                  <span class="text-white flex-1" x-text="napConsistency?.currentNAP?.name">-</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-white/50 w-20" x-text="t('gmb.address')">Address:</span>
+                  <span class="text-white flex-1" x-text="napConsistency?.currentNAP?.address">-</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-white/50 w-20" x-text="t('gmb.phone')">Phone:</span>
+                  <span class="text-white flex-1" x-text="napConsistency?.currentNAP?.phone">-</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-white/50 w-20" x-text="t('gmb.website')">Website:</span>
+                  <span class="text-white flex-1" x-text="napConsistency?.currentNAP?.website">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inconsistency Warning -->
+            <div x-show="napConsistency?.inconsistencies?.total > 0" class="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+              <div class="flex items-start gap-3">
+                <svg class="w-6 h-6 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div class="flex-1">
+                  <h4 class="text-red-400 font-semibold mb-1" x-text="t('gmb.inconsistenciesDetected')">Inconsistencies Detected</h4>
+                  <p class="text-red-400/70 text-sm" x-text="t('gmb.inconsistenciesText').replace('{count}', napConsistency?.inconsistencies?.total)">Found inconsistencies</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass glass-border rounded-2xl p-4 mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <select x-model="selectedRegion" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              <option value="all" x-text="t('gmb.allRegions')">All Regions</option>
+              <option value="Global" x-text="t('gmb.global')">Global</option>
+              <option value="UAE" x-text="t('gmb.uae')">UAE</option>
+              <option value="KSA" x-text="t('gmb.ksa')">KSA</option>
+              <option value="Qatar" x-text="t('gmb.qatar')">Qatar</option>
+              <option value="Kuwait" x-text="t('gmb.kuwait')">Kuwait</option>
+            </select>
+
+            <select x-model="selectedCategory" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              <option value="all" x-text="t('gmb.allCategories')">All Categories</option>
+              <option value="general" x-text="t('gmb.general')">General</option>
+              <option value="food" x-text="t('gmb.food')">Food & Dining</option>
+              <option value="realestate" x-text="t('gmb.realEstate')">Real Estate</option>
+              <option value="entertainment" x-text="t('gmb.entertainment')">Entertainment</option>
+              <option value="services" x-text="t('gmb.services')">Services</option>
+            </select>
+
+            <select x-model="selectedCitationStatus" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              <option value="all" x-text="t('gmb.allStatuses')">All Statuses</option>
+              <option value="live" x-text="t('gmb.live')">Live</option>
+              <option value="pending" x-text="t('gmb.pending')">Pending</option>
+              <option value="not_listed" x-text="t('gmb.notListed')">Not Listed</option>
+            </select>
+
+            <select x-model="selectedImportance" class="px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+              <option value="all" x-text="t('gmb.allImportance')">All Importance</option>
+              <option value="high" x-text="t('gmb.high')">High</option>
+              <option value="medium" x-text="t('gmb.medium')">Medium</option>
+              <option value="low" x-text="t('gmb.low')">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Citations Grid -->
+        <div x-show="getFilteredCitations().length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <template x-for="citation in getFilteredCitations()" :key="citation.id">
+            <div class="glass glass-border rounded-2xl p-4 hover:border-neon-orange/50 transition-all">
+              <!-- Directory Name & Region -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <h4 class="font-semibold text-white mb-1" x-text="citation.directory.name">Directory Name</h4>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs px-2 py-1 rounded-full bg-neon-orange/20 text-neon-orange" x-text="citation.directory.region">Region</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-white/10 text-white/70" x-text="citation.directory.category">Category</span>
+                  </div>
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full" 
+                  :class="citation.directory.importance === 'high' ? 'bg-red-500/20 text-red-400' : citation.directory.importance === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'" 
+                  x-text="citation.directory.importance">-</span>
+              </div>
+
+              <!-- Status Badge -->
+              <div class="mb-3">
+                <span class="text-sm px-3 py-1 rounded-lg inline-block" 
+                  :class="citation.status === 'live' ? 'bg-green-500/20 text-green-400' : citation.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'"
+                  x-text="citation.status === 'live' ? t('gmb.live') : citation.status === 'pending' ? t('gmb.pending') : t('gmb.notListed')">Status</span>
+              </div>
+
+              <!-- Last Checked -->
+              <p class="text-xs text-white/50 mb-4" x-show="citation.lastCheckedAt">
+                <span x-text="t('gmb.lastChecked')">Last checked:</span>
+                <span x-text="getRelativeTime(citation.lastCheckedAt)">-</span>
+              </p>
+
+              <!-- Actions -->
+              <div class="flex gap-2">
+                <button x-show="citation.status === 'live' && citation.listingUrl" @click="window.open(citation.listingUrl, '_blank')"
+                  class="flex-1 px-4 py-2 bg-transparent border border-neon-orange text-neon-orange hover:bg-neon-orange/10 rounded-lg transition-all text-sm font-medium">
+                  <span x-text="t('gmb.viewListing')">View Listing</span>
+                </button>
+                <button x-show="citation.status === 'not_listed'" @click="openCitationModal(citation.directory)"
+                  class="flex-1 px-4 py-2 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-lg transition-all text-sm font-medium">
+                  <span x-text="t('gmb.submitListing')">Submit Listing</span>
+                </button>
+                <button x-show="citation.status === 'pending'"
+                  class="flex-1 px-4 py-2 bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 rounded-lg cursor-not-allowed text-sm font-medium">
+                  <span x-text="t('gmb.pending')">Pending</span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="getFilteredCitations().length === 0" class="glass glass-border rounded-2xl p-12 text-center">
+          <svg class="w-16 h-16 text-white/30 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          </svg>
+          <h3 class="text-xl font-bold text-white mb-2" x-text="t('gmb.noCitations')">No citations found</h3>
+          <p class="text-white/60" x-text="t('gmb.citationsFiltered')">Try adjusting your filters</p>
+        </div>
+
+        <!-- Citation Submission Modal -->
+        <div x-show="showCitationModal" 
+          x-transition:enter="transition ease-out duration-300" 
+          x-transition:enter-start="opacity-0" 
+          x-transition:enter-end="opacity-100" 
+          x-transition:leave="transition ease-in duration-200" 
+          x-transition:leave-start="opacity-100" 
+          x-transition:leave-end="opacity-0"
+          class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          @click.self="closeCitationModal()">
+          
+          <div x-show="showCitationModal"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="glass glass-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            
+            <!-- Modal Header -->
+            <div class="sticky top-0 glass glass-border p-6 border-b border-neon-orange/20">
+              <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-bold text-white" x-text="t('gmb.submitToDirectory')">Submit to Directory</h3>
+                <button @click="closeCitationModal()" class="text-white/70 hover:text-white transition-colors">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="text-white/60 mt-2" x-text="currentCitation?.directory?.name">Directory Name</p>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+              <!-- Business Name -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.businessName')">Business Name</label>
+                <input type="text" x-model="currentCitation.businessName" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.businessNamePlaceholder')">
+              </div>
+
+              <!-- Business Address -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.businessAddress')">Business Address</label>
+                <textarea x-model="currentCitation.businessAddress" rows="2"
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.businessAddressPlaceholder')"></textarea>
+              </div>
+
+              <!-- Business Phone -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.businessPhone')">Business Phone</label>
+                <input type="tel" x-model="currentCitation.businessPhone" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.businessPhonePlaceholder')">
+              </div>
+
+              <!-- Business Website -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.businessWebsite')">Business Website</label>
+                <input type="url" x-model="currentCitation.businessWebsite" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.businessWebsitePlaceholder')">
+              </div>
+
+              <!-- Business Category -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.businessCategory')">Business Category</label>
+                <input type="text" x-model="currentCitation.businessCategory" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.businessCategoryPlaceholder')">
+              </div>
+
+              <!-- Info Note -->
+              <div class="bg-neon-orange/10 border border-neon-orange/30 rounded-xl p-4">
+                <p class="text-sm text-white/70" x-text="t('gmb.citationNote')">
+                  This is a mock submission. The listing will be marked as "Pending" for demonstration purposes.
+                </p>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 glass glass-border p-6 border-t border-neon-orange/20 flex gap-3">
+              <button @click="closeCitationModal()" 
+                class="flex-1 px-6 py-3 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-xl transition-all font-medium">
+                <span x-text="t('gmb.cancel')">Cancel</span>
+              </button>
+              <button @click="submitCitation()" 
+                class="flex-1 px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-medium">
+                <span x-text="t('gmb.submit')">Submit Listing</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'rankings' }">
+        <!-- Rankings Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2" x-text="t('gmb.rankingsTitle')">Local Keyword Rankings</h2>
+            <p class="text-white/60" x-text="t('gmb.rankingsSubtitle')">Track your keyword positions and monitor competition</p>
+          </div>
+          <button @click="openAddKeywordModal()" class="px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-medium">
+            <span x-text="t('gmb.addKeyword')">+ Add Keyword</span>
+          </button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div x-data="{ summary: getRankingsSummary() }" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Total Tracked Keywords -->
+          <div class="glass glass-border rounded-2xl p-6 stat-card">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-white/60" x-text="t('gmb.totalTrackedKeywords')">Total Tracked Keywords</p>
+              <svg class="w-5 h-5 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18M7 16l4-4 4 4 5-8"/>
+              </svg>
+            </div>
+            <p class="text-3xl font-bold text-white" x-text="summary.totalKeywords">0</p>
+          </div>
+
+          <!-- Average Position -->
+          <div class="glass glass-border rounded-2xl p-6 stat-card">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-white/60" x-text="t('gmb.averagePosition')">Average Position</p>
+              <svg class="w-5 h-5 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <p class="text-3xl font-bold text-white">#<span x-text="summary.avgPosition">0</span></p>
+          </div>
+
+          <!-- Top 3 Rankings -->
+          <div class="glass glass-border rounded-2xl p-6 stat-card">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-white/60" x-text="t('gmb.top3Rankings')">Top 3 Rankings</p>
+              <svg class="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <p class="text-3xl font-bold text-green-400" x-text="summary.top3Count">0</p>
+          </div>
+
+          <!-- Improved This Week -->
+          <div class="glass glass-border rounded-2xl p-6 stat-card">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-white/60" x-text="t('gmb.improvedThisWeek')">Improved This Week</p>
+              <svg class="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 19V5M5 12l7-7 7 7"/>
+              </svg>
+            </div>
+            <p class="text-3xl font-bold text-green-400">
+              <span x-text="summary.improvedCount">0</span>
+              <span class="text-lg ml-1">↑</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass glass-border rounded-2xl p-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Search Engine Filter -->
+            <div>
+              <label class="block text-sm text-white/60 mb-2" x-text="t('gmb.searchEngine')">Search Engine</label>
+              <select x-model="selectedEngine" class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                <option value="all" x-text="t('gmb.allEngines')">All Engines</option>
+                <option value="google.ae" x-text="t('gmb.googleAE')">Google.ae</option>
+                <option value="google.sa" x-text="t('gmb.googleSA')">Google.sa</option>
+                <option value="bing" x-text="t('gmb.bing')">Bing</option>
+              </select>
+            </div>
+
+            <!-- Device Filter -->
+            <div>
+              <label class="block text-sm text-white/60 mb-2" x-text="t('gmb.deviceType')">Device</label>
+              <select x-model="selectedDevice" class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                <option value="all" x-text="t('gmb.allDevices')">All Devices</option>
+                <option value="desktop" x-text="t('gmb.desktop')">Desktop</option>
+                <option value="mobile" x-text="t('gmb.mobile')">Mobile</option>
+              </select>
+            </div>
+
+            <!-- Language Filter -->
+            <div>
+              <label class="block text-sm text-white/60 mb-2" x-text="t('gmb.language')">Language</label>
+              <select x-model="selectedLanguage" class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                <option value="all" x-text="t('gmb.allLanguages')">All Languages</option>
+                <option value="en" x-text="t('gmb.english')">English</option>
+                <option value="ar" x-text="t('gmb.arabic')">Arabic</option>
+              </select>
+            </div>
+
+            <!-- Position Range Filter -->
+            <div>
+              <label class="block text-sm text-white/60 mb-2" x-text="t('gmb.positionRange')">Position Range</label>
+              <select x-model="selectedPositionRange" class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                <option value="all" x-text="t('gmb.allPositions')">All Positions</option>
+                <option value="top3" x-text="t('gmb.top3')">Top 3</option>
+                <option value="top10" x-text="t('gmb.top10')">Top 10</option>
+                <option value="top20" x-text="t('gmb.top20')">Top 20</option>
+                <option value="below20" x-text="t('gmb.below20')">Below 20</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rankings Table -->
+        <div class="glass glass-border rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-neon-orange/20">
+                  <th class="text-left p-4 text-sm font-medium text-white/60" x-text="t('gmb.keyword')">Keyword</th>
+                  <th class="text-left p-4 text-sm font-medium text-white/60" x-text="t('gmb.searchEngine')">Search Engine</th>
+                  <th class="text-center p-4 text-sm font-medium text-white/60" x-text="t('gmb.position')">Position</th>
+                  <th class="text-center p-4 text-sm font-medium text-white/60" x-text="t('gmb.previousPosition')">Previous</th>
+                  <th class="text-center p-4 text-sm font-medium text-white/60" x-text="t('gmb.positionChange')">Change</th>
+                  <th class="text-center p-4 text-sm font-medium text-white/60" x-text="t('gmb.bestPosition')">Best</th>
+                  <th class="text-left p-4 text-sm font-medium text-white/60" x-text="t('gmb.lastChecked')">Last Checked</th>
+                  <th class="text-center p-4 text-sm font-medium text-white/60" x-text="t('gmb.actions')">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="getFilteredRankings().length === 0">
+                  <tr>
+                    <td colspan="8" class="text-center p-12">
+                      <div class="text-white/40">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 3v18h18M7 16l4-4 4 4 5-8"/>
+                        </svg>
+                        <p class="text-lg mb-2" x-text="t('gmb.noRankings')">No keywords tracked yet</p>
+                        <p class="text-sm" x-text="t('gmb.startTracking')">Start tracking your first keyword</p>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                
+                <template x-for="ranking in getFilteredRankings()" :key="ranking.id">
+                  <tr class="border-b border-neon-orange/10 hover:bg-neon-orange/5 transition-colors">
+                    <!-- Keyword -->
+                    <td class="p-4">
+                      <div class="font-medium text-white" x-text="ranking.keyword"></div>
+                      <div class="text-sm text-white/60" x-text="ranking.searchLocation"></div>
+                    </td>
+
+                    <!-- Search Engine -->
+                    <td class="p-4">
+                      <div class="text-white" x-text="ranking.searchEngine + ' - ' + ranking.deviceType"></div>
+                      <div class="text-sm text-white/60" x-text="ranking.searchLanguage === 'en' ? t('gmb.english') : t('gmb.arabic')"></div>
+                    </td>
+
+                    <!-- Current Position -->
+                    <td class="p-4 text-center">
+                      <span class="inline-flex items-center px-3 py-1 rounded-lg border text-sm font-medium"
+                        :class="getPositionBadgeColor(ranking.position)">
+                        #<span x-text="ranking.position"></span>
+                      </span>
+                    </td>
+
+                    <!-- Previous Position -->
+                    <td class="p-4 text-center">
+                      <span class="text-white/60">#<span x-text="ranking.previousPosition"></span></span>
+                    </td>
+
+                    <!-- Position Change -->
+                    <td class="p-4 text-center">
+                      <span :class="getTrendColor(ranking.position, ranking.previousPosition)" class="font-medium">
+                        <span x-text="getTrendIcon(ranking.position, ranking.previousPosition)"></span>
+                        <span x-text="Math.abs(getPositionChange(ranking.position, ranking.previousPosition))"></span>
+                      </span>
+                    </td>
+
+                    <!-- Best Position -->
+                    <td class="p-4 text-center">
+                      <span class="text-green-400 font-medium">#<span x-text="ranking.bestPosition"></span></span>
+                    </td>
+
+                    <!-- Last Checked -->
+                    <td class="p-4">
+                      <span class="text-white/60 text-sm" x-text="new Date(ranking.checkDate).toLocaleDateString()"></span>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="p-4 text-center">
+                      <div class="flex gap-2 justify-center">
+                        <button @click="openDetailsModal(ranking)" class="px-3 py-1 text-sm bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-lg transition-all">
+                          <span x-text="t('gmb.viewDetails')">Details</span>
+                        </button>
+                        <button @click="deleteKeyword(ranking.id)" class="px-3 py-1 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all">
+                          <span x-text="t('gmb.delete')">Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add Keyword Modal -->
+        <div x-show="showAddKeywordModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @click.self="closeAddKeywordModal()">
+          <div class="glass glass-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="sticky top-0 glass glass-border p-6 border-b border-neon-orange/20 flex items-center justify-between">
+              <h3 class="text-xl font-bold text-white" x-text="t('gmb.trackKeyword')">Track Keyword</h3>
+              <button @click="closeAddKeywordModal()" class="text-white/60 hover:text-white transition-colors">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+              <!-- Keyword Input -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.keyword')">Keyword</label>
+                <input type="text" x-model="newKeyword.keyword" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.keywordPlaceholder')">
+              </div>
+
+              <!-- Search Engine -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.searchEngine')">Search Engine</label>
+                <select x-model="newKeyword.searchEngine" class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                  <option value="google.ae" x-text="t('gmb.googleAE')">Google.ae</option>
+                  <option value="google.sa" x-text="t('gmb.googleSA')">Google.sa</option>
+                  <option value="bing" x-text="t('gmb.bing')">Bing</option>
+                </select>
+              </div>
+
+              <!-- Search Location -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.searchLocation')">Search Location</label>
+                <input type="text" x-model="newKeyword.searchLocation" 
+                  class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange"
+                  :placeholder="t('gmb.searchLocationPlaceholder')">
+              </div>
+
+              <!-- Device Type -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.deviceType')">Device Type</label>
+                <select x-model="newKeyword.deviceType" class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                  <option value="desktop" x-text="t('gmb.desktop')">Desktop</option>
+                  <option value="mobile" x-text="t('gmb.mobile')">Mobile</option>
+                </select>
+              </div>
+
+              <!-- Language -->
+              <div>
+                <label class="block text-sm font-medium text-white mb-2" x-text="t('gmb.language')">Language</label>
+                <select x-model="newKeyword.searchLanguage" class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                  <option value="en" x-text="t('gmb.english')">English</option>
+                  <option value="ar" x-text="t('gmb.arabic')">Arabic</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 glass glass-border p-6 border-t border-neon-orange/20 flex gap-3">
+              <button @click="closeAddKeywordModal()" 
+                class="flex-1 px-6 py-3 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-xl transition-all font-medium">
+                <span x-text="t('gmb.cancel')">Cancel</span>
+              </button>
+              <button @click="addKeyword()" 
+                class="flex-1 px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-medium">
+                <span x-text="t('gmb.trackKeyword')">Track Keyword</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Keyword Details Modal -->
+        <div x-show="showDetailsModal" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @click.self="closeDetailsModal()">
+          <div class="glass glass-border rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="sticky top-0 glass glass-border p-6 border-b border-neon-orange/20">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-xl font-bold text-white" x-text="currentRanking?.keyword">Keyword Details</h3>
+                  <p class="text-sm text-white/60 mt-1">
+                    <span x-text="currentRanking?.searchEngine"></span> - 
+                    <span x-text="currentRanking?.searchLocation"></span> - 
+                    <span x-text="currentRanking?.deviceType"></span>
+                  </p>
+                </div>
+                <button @click="closeDetailsModal()" class="text-white/60 hover:text-white transition-colors">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+              <!-- Position History Chart -->
+              <div>
+                <h4 class="text-lg font-semibold text-white mb-4" x-text="t('gmb.positionHistory')">Position History</h4>
+                <div class="glass glass-border rounded-xl p-4" style="height: 300px;">
+                  <canvas id="rankingChart"></canvas>
+                </div>
+              </div>
+
+              <!-- Top Competitors -->
+              <div>
+                <h4 class="text-lg font-semibold text-white mb-4" x-text="t('gmb.topCompetitors')">Top 3 Competitors</h4>
+                <div class="space-y-3">
+                  <template x-for="(comp, index) in currentRanking?.topCompetitors || []" :key="index">
+                    <div class="glass glass-border rounded-xl p-4 flex items-center justify-between">
+                      <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-lg bg-neon-orange/20 flex items-center justify-center">
+                          <span class="text-neon-orange font-bold">#<span x-text="comp.position"></span></span>
+                        </div>
+                        <div>
+                          <p class="font-medium text-white" x-text="comp.name"></p>
+                          <p class="text-sm text-white/60" x-text="comp.url"></p>
+                        </div>
+                      </div>
+                      <button class="px-4 py-2 text-sm bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-lg transition-all">
+                        <span x-text="t('gmb.analyzeCompetitor')">Analyze</span>
+                      </button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- SERP Features -->
+              <div>
+                <h4 class="text-lg font-semibold text-white mb-4" x-text="t('gmb.serpFeatures')">SERP Features</h4>
+                <div class="flex flex-wrap gap-2">
+                  <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm border border-blue-500/30" x-text="t('gmb.localPack')">Local Pack</span>
+                  <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg text-sm border border-purple-500/30" x-text="t('gmb.knowledgePanel')">Knowledge Panel</span>
+                  <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-sm border border-green-500/30" x-text="t('gmb.mapPack')">Map Pack</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 glass glass-border p-6 border-t border-neon-orange/20">
+              <button @click="closeDetailsModal()" 
+                class="w-full px-6 py-3 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-xl transition-all font-medium">
+                <span x-text="t('gmb.cancel')">Close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Gallery Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'media' }">
+        <!-- Media Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-white mb-2" x-text="t('gmb.mediaGallery')">Media Gallery</h2>
+            <p class="text-white/60" x-text="t('gmb.mediaSubtitle')">Manage photos and videos for your Google My Business profile</p>
+          </div>
+          <label class="px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-medium cursor-pointer">
+            <input type="file" multiple accept="image/jpeg,image/jpg,image/png,video/mp4,video/quicktime" @change="uploadMedia($event.target.files)" class="hidden">
+            <span x-text="t('gmb.uploadMediaBtn')">+ Upload Media</span>
+          </label>
+        </div>
+
+        <!-- Upload Area (Drag & Drop) -->
+        <div @drop.prevent="handleDragDrop($event)" 
+             @dragover.prevent 
+             @dragenter.prevent="$event.currentTarget.classList.add('border-neon-orange', 'bg-neon-orange/5')"
+             @dragleave.prevent="$event.currentTarget.classList.remove('border-neon-orange', 'bg-neon-orange/5')"
+             class="glass glass-border rounded-2xl p-12 mb-6 border-2 border-dashed border-neon-orange/30 hover:border-neon-orange/60 transition-all text-center">
+          <svg class="w-16 h-16 mx-auto mb-4 text-neon-orange/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 21l4-4 4 4 5-5 5 5M14 8.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+          </svg>
+          <p class="text-lg font-semibold text-white mb-2" x-text="t('gmb.dragDropText')">Drag & drop files here or click to browse</p>
+          <p class="text-sm text-white/60 mb-2" x-text="t('gmb.supportedFormats')">Supported: JPG, PNG, MP4, MOV (max 50MB)</p>
+          <p class="text-xs text-white/40" x-text="t('gmb.multipleFiles')">Multiple files supported</p>
+        </div>
+
+        <!-- Filters & Search -->
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+          <!-- Filter Tabs -->
+          <div class="flex gap-2">
+            <button @click="mediaFilter = 'all'" 
+                    :class="mediaFilter === 'all' ? 'bg-neon-orange text-white' : 'bg-transparent border border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'"
+                    class="px-4 py-2 rounded-lg transition-all">
+              <span x-text="t('gmb.all')">All</span>
+            </button>
+            <button @click="mediaFilter = 'photos'" 
+                    :class="mediaFilter === 'photos' ? 'bg-neon-orange text-white' : 'bg-transparent border border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'"
+                    class="px-4 py-2 rounded-lg transition-all">
+              <span x-text="t('gmb.photos')">Photos</span>
+            </button>
+            <button @click="mediaFilter = 'videos'" 
+                    :class="mediaFilter === 'videos' ? 'bg-neon-orange text-white' : 'bg-transparent border border-neon-orange/30 text-neon-orange/70 hover:bg-neon-orange/10'"
+                    class="px-4 py-2 rounded-lg transition-all">
+              <span x-text="t('gmb.videos')">Videos</span>
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="flex-1">
+            <input type="text" 
+                   x-model="mediaSearchQuery" 
+                   :placeholder="t('gmb.searchMedia')"
+                   class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-neon-orange">
+          </div>
+        </div>
+
+        <!-- Media Grid -->
+        <div x-show="getFilteredMedia().length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+          <template x-for="media in getFilteredMedia()" :key="media.id">
+            <div class="glass glass-border rounded-xl overflow-hidden group cursor-pointer hover:border-neon-orange/50 transition-all"
+                 @click="openMediaModal(media)">
+              <!-- Media Preview -->
+              <div class="relative aspect-video bg-black/30">
+                <template x-if="media.type === 'photo'">
+                  <img :src="media.thumbnail" :alt="media.altText" class="w-full h-full object-cover">
+                </template>
+                <template x-if="media.type === 'video'">
+                  <div class="relative w-full h-full">
+                    <img :src="media.thumbnail" :alt="media.altText" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Cover Photo Badge -->
+                <div x-show="media.isCover" class="absolute top-2 right-2 px-2 py-1 bg-neon-orange text-white text-xs font-medium rounded">
+                  <span x-text="t('gmb.coverPhoto')">Cover</span>
+                </div>
+
+                <!-- Type Badge -->
+                <div class="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium"
+                     :class="media.type === 'photo' ? 'bg-blue-500/80 text-white' : 'bg-purple-500/80 text-white'">
+                  <span x-text="media.type === 'photo' ? t('gmb.photo') : t('gmb.video')"></span>
+                </div>
+
+                <!-- Hover Overlay -->
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button @click.stop="setCoverPhoto(media.id)" 
+                          class="p-2 bg-neon-orange hover:bg-neon-orange/80 rounded-lg transition-all"
+                          :title="t('gmb.setCover')">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </button>
+                  <button @click.stop="deleteMedia(media.id)" 
+                          class="p-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all"
+                          :title="t('gmb.deleteMedia')">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Media Info -->
+              <div class="p-3">
+                <p class="text-sm font-medium text-white truncate mb-1" x-text="media.filename"></p>
+                <div class="flex items-center justify-between text-xs text-white/60">
+                  <span x-text="media.size"></span>
+                  <span x-text="formatMediaDate(media.uploadDate)"></span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="getFilteredMedia().length === 0" class="glass glass-border rounded-2xl p-12 text-center">
+          <svg class="w-16 h-16 mx-auto mb-4 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 21l4-4 4 4 5-5 5 5M14 8.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+          </svg>
+          <p class="text-lg text-white/60 mb-2" x-text="t('gmb.noMedia')">No media files yet</p>
+          <p class="text-sm text-white/40" x-text="t('gmb.uploadFirstMedia')">Upload your first photo or video to get started</p>
+        </div>
+
+        <!-- Media Details Modal -->
+        <div x-show="showMediaModal" 
+             x-cloak 
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+             @click.self="closeMediaModal()">
+          <div class="glass glass-border rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+            <!-- Modal Header -->
+            <div class="sticky top-0 glass glass-border p-6 border-b border-neon-orange/20 flex items-center justify-between">
+              <h3 class="text-xl font-bold text-white" x-text="t('gmb.mediaDetails')">Media Details</h3>
+              <button @click="closeMediaModal()" class="p-2 hover:bg-white/10 rounded-lg transition-all">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div x-show="selectedMedia" class="p-6">
+              <!-- Media Preview -->
+              <div class="mb-6 rounded-xl overflow-hidden bg-black/30">
+                <template x-if="selectedMedia?.type === 'photo'">
+                  <img :src="selectedMedia.url" :alt="selectedMedia.altText" class="w-full h-auto">
+                </template>
+                <template x-if="selectedMedia?.type === 'video'">
+                  <video :src="selectedMedia.url" controls class="w-full h-auto"></video>
+                </template>
+              </div>
+
+              <!-- Metadata Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.filename')">Filename</label>
+                  <p class="text-white" x-text="selectedMedia?.filename"></p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.fileSize')">Size</label>
+                  <p class="text-white" x-text="selectedMedia?.size"></p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.uploadDate')">Upload Date</label>
+                  <p class="text-white" x-text="formatMediaDate(selectedMedia?.uploadDate)"></p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.dimensions')">Dimensions</label>
+                  <p class="text-white" x-text="selectedMedia?.dimensions"></p>
+                </div>
+              </div>
+
+              <!-- Edit Fields -->
+              <div class="space-y-4 mb-6">
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.caption')">Caption</label>
+                  <input type="text" 
+                         x-model="selectedMedia.caption" 
+                         :placeholder="t('gmb.captionPlaceholder')"
+                         class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-neon-orange">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.altText')">Alt Text</label>
+                  <input type="text" 
+                         x-model="selectedMedia.altText" 
+                         :placeholder="t('gmb.altTextPlaceholder')"
+                         class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-neon-orange">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.category')">Category</label>
+                  <select x-model="selectedMedia.category" 
+                          class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                    <option value="" x-text="t('gmb.selectCategory')">Select category</option>
+                    <option value="interior" x-text="t('gmb.interior')">Interior</option>
+                    <option value="exterior" x-text="t('gmb.exterior')">Exterior</option>
+                    <option value="team" x-text="t('gmb.team')">Team</option>
+                    <option value="products" x-text="t('gmb.products')">Products</option>
+                    <option value="events" x-text="t('gmb.events')">Events</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Modal Actions -->
+              <div class="flex gap-4">
+                <button @click="updateMedia(selectedMedia.id, { caption: selectedMedia.caption, altText: selectedMedia.altText, category: selectedMedia.category })" 
+                        class="flex-1 px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-medium">
+                  <span x-text="t('gmb.saveChanges')">Save Changes</span>
+                </button>
+                <button @click="deleteMedia(selectedMedia.id)" 
+                        class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all font-medium">
+                  <span x-text="t('gmb.delete')">Delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Autopilot Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'autopilot' }" x-data="{ selectedLocation: $store.gmbStore.selectedLocation }">
+        <!-- Autopilot Header -->
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-white mb-2" x-text="t('gmb.autopilot.title')">AI Autopilot</h1>
+          <p class="text-white/60" x-text="t('gmb.autopilot.subtitle')">Automate your Google My Business management with AI</p>
+        </div>
+
+        <!-- Automation Cards -->
+        <div class="grid gap-6 mb-8" x-show="$store.gmbStore.autopilotSettings">
+          
+          <!-- Auto-Reply to Reviews Card -->
+          <div class="glass glass-border rounded-2xl overflow-hidden">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-neon-orange/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-white" x-text="t('gmb.autopilot.autoReply')">Auto-Reply to Reviews</h3>
+                    <p class="text-sm text-white/60" x-show="$store.gmbStore.autopilotSettings?.autoReply?.enabled" 
+                       :class="$store.gmbStore.autopilotSettings?.autoReply?.enabled ? 'text-green-400' : 'text-white/40'">
+                      <span x-text="$store.gmbStore.autopilotSettings?.autoReply?.enabled ? t('gmb.autopilot.active') : t('gmb.autopilot.inactive')">Active</span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           :checked="$store.gmbStore.autopilotSettings?.autoReply?.enabled"
+                           @change="$store.gmbStore.toggleAutomation('autoReply')"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+                  </label>
+                  <button @click="$store.gmbStore.toggleAutomationCard('autoReply')" class="text-white/60 hover:text-white">
+                    <svg class="w-5 h-5 transition-transform" :class="{ 'rotate-180': $store.gmbStore.expandedAutomation === 'autoReply' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="text-sm text-white/60 mb-4">
+                <span x-text="$store.gmbStore.autopilotSettings?.autoReply?.stats?.repliesSent + ' ' + t('gmb.autopilot.autoRepliesSent')">142 auto-replies sent this month</span>
+              </div>
+
+              <!-- Settings (Expandable) -->
+              <div x-show="$store.gmbStore.expandedAutomation === 'autoReply'" x-collapse class="pt-4 border-t border-white/10 space-y-4">
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.responseTone')">Response Tone</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.autoReply.tone" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="professional" x-text="t('gmb.autopilot.professional')">Professional</option>
+                      <option value="friendly" x-text="t('gmb.autopilot.friendly')">Friendly</option>
+                      <option value="casual" x-text="t('gmb.autopilot.casual')">Casual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.responseTime')">Response Time</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.autoReply.responseTime" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="immediate" x-text="t('gmb.autopilot.immediate')">Immediate</option>
+                      <option value="1hour" x-text="t('gmb.autopilot.oneHour')">1 hour</option>
+                      <option value="4hours" x-text="t('gmb.autopilot.fourHours')">4 hours</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.minRating')">Minimum Rating to Reply</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.autoReply.minRating" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="1">1+ stars</option>
+                      <option value="2">2+ stars</option>
+                      <option value="3">3+ stars</option>
+                      <option value="4">4+ stars</option>
+                      <option value="5">5 stars only</option>
+                    </select>
+                  </div>
+                  <div>
+                    <button @click="$store.gmbStore.testAutomation('autoReply')" 
+                            class="w-full px-4 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-xl transition-all font-medium mt-6">
+                      <span x-text="t('gmb.autopilot.testNow')">Test Now</span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.customInstructions')">Custom Instructions</label>
+                  <textarea x-model="$store.gmbStore.autopilotSettings.autoReply.customInstructions" 
+                            @blur="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            rows="3" 
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange resize-none"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Smart Post Scheduling Card -->
+          <div class="glass glass-border rounded-2xl overflow-hidden">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-neon-orange/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <path d="M16 2v4M8 2v4M3 10h18"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-white" x-text="t('gmb.autopilot.smartPosting')">Smart Post Scheduling</h3>
+                    <p class="text-sm text-white/60" 
+                       :class="$store.gmbStore.autopilotSettings?.smartPosting?.enabled ? 'text-green-400' : 'text-white/40'">
+                      <span x-text="$store.gmbStore.autopilotSettings?.smartPosting?.enabled ? t('gmb.autopilot.active') : t('gmb.autopilot.inactive')">Active</span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           :checked="$store.gmbStore.autopilotSettings?.smartPosting?.enabled"
+                           @change="$store.gmbStore.toggleAutomation('smartPosting')"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+                  </label>
+                  <button @click="$store.gmbStore.toggleAutomationCard('smartPosting')" class="text-white/60 hover:text-white">
+                    <svg class="w-5 h-5 transition-transform" :class="{ 'rotate-180': $store.gmbStore.expandedAutomation === 'smartPosting' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="text-sm text-white/60 mb-4">
+                <span x-text="$store.gmbStore.autopilotSettings?.smartPosting?.stats?.postsScheduled + ' ' + t('gmb.autopilot.postsScheduled')">24 posts scheduled this month</span>
+              </div>
+
+              <!-- Settings (Expandable) -->
+              <div x-show="$store.gmbStore.expandedAutomation === 'smartPosting'" x-collapse class="pt-4 border-t border-white/10 space-y-4">
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.frequency')">Frequency</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.smartPosting.frequency" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="daily" x-text="t('gmb.autopilot.daily')">Daily</option>
+                      <option value="3xweek" x-text="t('gmb.autopilot.threeTimesWeek')">3x per week</option>
+                      <option value="weekly" x-text="t('gmb.autopilot.weekly')">Weekly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.postingTimes')">Best Posting Times</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.smartPosting.postingTimes" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="auto" x-text="t('gmb.autopilot.autoDetect')">Auto-detect</option>
+                      <option value="manual" x-text="t('gmb.autopilot.manual')">Manual</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.aiContentGeneration')">AI Content Generation</label>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           x-model="$store.gmbStore.autopilotSettings.smartPosting.aiGeneration"
+                           @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+                    <span class="ms-3 text-sm text-white/70" x-text="$store.gmbStore.autopilotSettings.smartPosting.aiGeneration ? t('gmb.autopilot.enabled') : t('gmb.autopilot.disabled')">Enabled</span>
+                  </label>
+                </div>
+                <div>
+                  <button @click="$store.gmbStore.testAutomation('smartPosting')" 
+                          class="px-6 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-xl transition-all font-medium">
+                    <span x-text="t('gmb.autopilot.testNow')">Test Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Insights Report Card -->
+          <div class="glass glass-border rounded-2xl overflow-hidden">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-neon-orange/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 3v18h18M7 16l4-4 4 4 5-8"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-white" x-text="t('gmb.autopilot.insightsReport')">Performance Insights Report</h3>
+                    <p class="text-sm text-white/60" 
+                       :class="$store.gmbStore.autopilotSettings?.insightsReport?.enabled ? 'text-green-400' : 'text-white/40'">
+                      <span x-text="$store.gmbStore.autopilotSettings?.insightsReport?.enabled ? t('gmb.autopilot.active') : t('gmb.autopilot.inactive')">Inactive</span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           :checked="$store.gmbStore.autopilotSettings?.insightsReport?.enabled"
+                           @change="$store.gmbStore.toggleAutomation('insightsReport')"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+                  </label>
+                  <button @click="$store.gmbStore.toggleAutomationCard('insightsReport')" class="text-white/60 hover:text-white">
+                    <svg class="w-5 h-5 transition-transform" :class="{ 'rotate-180': $store.gmbStore.expandedAutomation === 'insightsReport' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="text-sm text-white/60 mb-4">
+                <span x-text="$store.gmbStore.autopilotSettings?.insightsReport?.stats?.reportsSent + ' ' + t('gmb.autopilot.reportsSent')">4 reports sent this month</span>
+              </div>
+
+              <!-- Settings (Expandable) -->
+              <div x-show="$store.gmbStore.expandedAutomation === 'insightsReport'" x-collapse class="pt-4 border-t border-white/10 space-y-4">
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.reportFrequency')">Report Frequency</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.insightsReport.frequency" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="daily" x-text="t('gmb.autopilot.daily')">Daily</option>
+                      <option value="weekly" x-text="t('gmb.autopilot.weekly')">Weekly</option>
+                      <option value="monthly" x-text="t('gmb.autopilot.monthly')">Monthly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.deliveryMethod')">Delivery Method</label>
+                    <select x-model="$store.gmbStore.autopilotSettings.insightsReport.delivery" 
+                            @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                            class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                      <option value="email" x-text="t('gmb.autopilot.email')">Email</option>
+                      <option value="dashboard" x-text="t('gmb.autopilot.dashboard')">Dashboard notification</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <button @click="$store.gmbStore.testAutomation('insightsReport')" 
+                          class="px-6 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-xl transition-all font-medium">
+                    <span x-text="t('gmb.autopilot.testNow')">Test Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Competitor Monitoring Card -->
+          <div class="glass glass-border rounded-2xl overflow-hidden">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-neon-orange/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-white" x-text="t('gmb.autopilot.competitorMonitoring')">Competitor Monitoring</h3>
+                    <p class="text-sm text-white/60" 
+                       :class="$store.gmbStore.autopilotSettings?.competitorMonitoring?.enabled ? 'text-green-400' : 'text-white/40'">
+                      <span x-text="$store.gmbStore.autopilotSettings?.competitorMonitoring?.enabled ? t('gmb.autopilot.active') : t('gmb.autopilot.inactive')">Inactive</span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           :checked="$store.gmbStore.autopilotSettings?.competitorMonitoring?.enabled"
+                           @change="$store.gmbStore.toggleAutomation('competitorMonitoring')"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+                  </label>
+                  <button @click="$store.gmbStore.toggleAutomationCard('competitorMonitoring')" class="text-white/60 hover:text-white">
+                    <svg class="w-5 h-5 transition-transform" :class="{ 'rotate-180': $store.gmbStore.expandedAutomation === 'competitorMonitoring' }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="text-sm text-white/60 mb-4">
+                <span x-text="t('gmb.autopilot.tracking') + ' ' + $store.gmbStore.autopilotSettings?.competitorMonitoring?.stats?.competitorsTracked + ' ' + t('gmb.autopilot.competitors')">Tracking 3 competitors</span>
+              </div>
+
+              <!-- Settings (Expandable) -->
+              <div x-show="$store.gmbStore.expandedAutomation === 'competitorMonitoring'" x-collapse class="pt-4 border-t border-white/10 space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.competitorsToTrack')">Competitors to Track</label>
+                  <div class="flex flex-wrap gap-2 mb-2">
+                    <template x-for="competitor in $store.gmbStore.autopilotSettings?.competitorMonitoring?.competitors" :key="competitor">
+                      <span class="px-3 py-1 bg-neon-orange/20 text-neon-orange rounded-full text-sm" x-text="competitor"></span>
+                    </template>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('gmb.autopilot.alertThreshold')">Alert Threshold</label>
+                  <select x-model="$store.gmbStore.autopilotSettings.competitorMonitoring.alertThreshold" 
+                          @change="$store.gmbStore.updateAutopilotSettings($store.gmbStore.selectedLocation.id, $store.gmbStore.autopilotSettings)"
+                          class="w-full px-4 py-2 bg-transparent border-2 border-neon-orange/30 rounded-xl text-white focus:outline-none focus:border-neon-orange">
+                    <option value="1">Position changes > 1</option>
+                    <option value="3">Position changes > 3</option>
+                    <option value="5">Position changes > 5</option>
+                    <option value="10">Position changes > 10</option>
+                  </select>
+                </div>
+                <div>
+                  <button @click="$store.gmbStore.testAutomation('competitorMonitoring')" 
+                          class="px-6 py-2 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-xl transition-all font-medium">
+                    <span x-text="t('gmb.autopilot.testNow')">Test Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="glass glass-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-white" x-text="t('gmb.autopilot.activityLog')">Activity Log</h2>
+            <div class="flex gap-2">
+              <button @click="$store.gmbStore.activityFilter = 'all'" 
+                      :class="$store.gmbStore.activityFilter === 'all' ? 'bg-neon-orange text-white' : 'bg-neon-orange/20 text-neon-orange'"
+                      class="px-3 py-1 rounded-lg text-sm font-medium transition-all">
+                <span x-text="t('gmb.autopilot.all')">All</span>
+              </button>
+              <button @click="$store.gmbStore.activityFilter = 'auto_reply'" 
+                      :class="$store.gmbStore.activityFilter === 'auto_reply' ? 'bg-neon-orange text-white' : 'bg-neon-orange/20 text-neon-orange'"
+                      class="px-3 py-1 rounded-lg text-sm font-medium transition-all">
+                <span x-text="t('gmb.autopilot.autoReplies')">Auto-replies</span>
+              </button>
+              <button @click="$store.gmbStore.activityFilter = 'posts'" 
+                      :class="$store.gmbStore.activityFilter === 'posts' ? 'bg-neon-orange text-white' : 'bg-neon-orange/20 text-neon-orange'"
+                      class="px-3 py-1 rounded-lg text-sm font-medium transition-all">
+                <span x-text="t('gmb.autopilot.posts')">Posts</span>
+              </button>
+              <button @click="$store.gmbStore.activityFilter = 'reports'" 
+                      :class="$store.gmbStore.activityFilter === 'reports' ? 'bg-neon-orange text-white' : 'bg-neon-orange/20 text-neon-orange'"
+                      class="px-3 py-1 rounded-lg text-sm font-medium transition-all">
+                <span x-text="t('gmb.autopilot.reports')">Reports</span>
+              </button>
+              <button @click="$store.gmbStore.activityFilter = 'alerts'" 
+                      :class="$store.gmbStore.activityFilter === 'alerts' ? 'bg-neon-orange text-white' : 'bg-neon-orange/20 text-neon-orange'"
+                      class="px-3 py-1 rounded-lg text-sm font-medium transition-all">
+                <span x-text="t('gmb.autopilot.alerts')">Alerts</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Activity Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-white/10">
+                  <th class="text-left py-3 px-4 text-sm font-medium text-white/70" x-text="t('gmb.autopilot.timestamp')">Timestamp</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-white/70" x-text="t('gmb.autopilot.type')">Type</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-white/70" x-text="t('gmb.autopilot.action')">Action</th>
+                  <th class="text-left py-3 px-4 text-sm font-medium text-white/70" x-text="t('gmb.autopilot.status')">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="activity in $store.gmbStore.getFilteredActivity()" :key="activity.id">
+                  <tr class="border-b border-white/10 hover:bg-white/5">
+                    <td class="py-3 px-4 text-sm text-white/60" x-text="$store.gmbStore.formatActivityTime(activity.timestamp)">2 hours ago</td>
+                    <td class="py-3 px-4">
+                      <span class="px-2 py-1 rounded-full text-xs font-medium"
+                            :class="{
+                              'bg-blue-500/20 text-blue-400': activity.type === 'auto_reply',
+                              'bg-purple-500/20 text-purple-400': activity.type === 'post',
+                              'bg-green-500/20 text-green-400': activity.type === 'report',
+                              'bg-yellow-500/20 text-yellow-400': activity.type === 'alert'
+                            }"
+                            x-text="activity.type.replace('_', ' ')">
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-white" x-text="activity.action">Action description</td>
+                    <td class="py-3 px-4">
+                      <span class="px-2 py-1 rounded-full text-xs font-medium"
+                            :class="{
+                              'bg-green-500/20 text-green-400': activity.status === 'success',
+                              'bg-red-500/20 text-red-400': activity.status === 'failed',
+                              'bg-yellow-500/20 text-yellow-400': activity.status === 'pending'
+                            }"
+                            x-text="activity.status">
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'reports' }">
+        <div class="glass glass-border rounded-2xl p-12 text-center">
+          <h2 class="text-2xl font-bold text-white mb-4">Reports</h2>
+          <p class="text-white/60">Coming soon - Generate comprehensive performance reports</p>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div class="tab-content-section" :class="{ 'active': currentTab === 'settings' }">
+        <!-- Settings Header -->
+        <div class="mb-8">
+          <h2 class="text-3xl font-bold text-white mb-2" x-text="t('settings.title')">Settings</h2>
+          <p class="text-white/60" x-text="t('settings.subtitle')">Configure your Local SEO platform</p>
+        </div>
+
+        <!-- Account Connection Section -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-6">
+            <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <path d="M20 8v6M23 11h-6"/>
+            </svg>
+            <h3 class="text-xl font-bold text-white" x-text="t('settings.accountConnection')">Account Connection</h3>
+          </div>
+
+          <!-- Google OAuth Card -->
+          <div class="glass glass-border rounded-xl p-6">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-4">
+                <!-- Google Logo -->
+                <svg class="w-12 h-12" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                  <path fill="none" d="M0 0h48v48H0z"/>
+                </svg>
+                
+                <div>
+                  <h4 class="text-lg font-semibold text-white mb-1">Google My Business</h4>
+                  <template x-if="$store.gmbStore.settings?.googleConnected">
+                    <div class="flex items-center gap-2">
+                      <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium" x-text="t('settings.connected')">Connected</span>
+                      <span class="text-white/60 text-sm" x-text="$store.gmbStore.settings?.googleAccount?.email || 'business@gmail.com'">business@gmail.com</span>
+                    </div>
+                  </template>
+                  <template x-if="!$store.gmbStore.settings?.googleConnected">
+                    <span class="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm font-medium" x-text="t('settings.notConnected')">Not Connected</span>
+                  </template>
+                </div>
+              </div>
+              
+              <template x-if="$store.gmbStore.settings?.googleConnected">
+                <button @click="$store.gmbStore.disconnectGoogle()" class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all font-medium">
+                  <span x-text="t('settings.disconnect')">Disconnect</span>
+                </button>
+              </template>
+              <template x-if="!$store.gmbStore.settings?.googleConnected">
+                <a href="/api/oauth/google/authorize?redirect=/local-seo.html" class="px-6 py-3 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-lg transition-all font-medium">
+                  <span x-text="t('settings.connectNow')">Connect Now</span>
+                </a>
+              </template>
+            </div>
+            <p class="text-white/60 text-sm" x-text="t('settings.googleOAuthDesc')">Connect your Google My Business account to sync locations, reviews, and insights automatically</p>
+          </div>
+        </div>
+
+        <!-- Location Settings Section -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6" x-show="$store.gmbStore.selectedLocation">
+          <div class="flex items-center gap-3 mb-6">
+            <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <h3 class="text-xl font-bold text-white" x-text="t('settings.locationSettings')">Location Settings</h3>
+          </div>
+
+          <!-- Business Hours -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-white mb-4" x-text="t('settings.businessHours')">Business Hours</h4>
+            <div class="space-y-3">
+              <template x-for="(day, index) in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']" :key="day">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-white/5 rounded-lg">
+                  <div class="w-32">
+                    <span class="text-white font-medium capitalize" x-text="t('settings.' + day)">Monday</span>
+                  </div>
+                  <div class="flex items-center gap-3 flex-1">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" 
+                             :checked="!$store.gmbStore.settings?.businessHours?.[day]?.closed"
+                             @change="$store.gmbStore.toggleDayClosed(day)"
+                             class="w-4 h-4 text-neon-orange bg-transparent border-neon-orange rounded focus:ring-neon-orange">
+                      <span class="text-white/60 text-sm" x-text="t('settings.open')">Open</span>
+                    </label>
+                    <template x-if="!$store.gmbStore.settings?.businessHours?.[day]?.closed">
+                      <div class="flex items-center gap-2 flex-1">
+                        <input type="time" 
+                               :value="$store.gmbStore.settings?.businessHours?.[day]?.open || '09:00'"
+                               @change="$store.gmbStore.updateBusinessHours(day, 'open', $event.target.value)"
+                               class="px-3 py-2 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+                        <span class="text-white/60">-</span>
+                        <input type="time" 
+                               :value="$store.gmbStore.settings?.businessHours?.[day]?.close || '17:00'"
+                               @change="$store.gmbStore.updateBusinessHours(day, 'close', $event.target.value)"
+                               class="px-3 py-2 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+                      </div>
+                    </template>
+                    <template x-if="$store.gmbStore.settings?.businessHours?.[day]?.closed">
+                      <span class="text-white/40 italic" x-text="t('settings.closed')">Closed</span>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-white mb-4" x-text="t('settings.contactInformation')">Contact Information</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('settings.phone')">Phone</label>
+                <input type="tel" 
+                       :value="$store.gmbStore.settings?.contact?.phone || ''"
+                       @change="$store.gmbStore.updateContactInfo('phone', $event.target.value)"
+                       placeholder="+971 4 XXX XXXX"
+                       class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('settings.website')">Website</label>
+                <input type="url" 
+                       :value="$store.gmbStore.settings?.contact?.website || ''"
+                       @change="$store.gmbStore.updateContactInfo('website', $event.target.value)"
+                       placeholder="https://example.com"
+                       class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-white/70 mb-2" x-text="t('settings.email')">Email</label>
+                <input type="email" 
+                       :value="$store.gmbStore.settings?.contact?.email || ''"
+                       @change="$store.gmbStore.updateContactInfo('email', $event.target.value)"
+                       placeholder="info@example.com"
+                       class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Preferences Section -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-6">
+            <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <h3 class="text-xl font-bold text-white" x-text="t('settings.notificationPreferences')">Notification Preferences</h3>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Email Notifications Toggle -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.emailNotifications')">Email Notifications</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.emailNotificationsDesc')">Receive email updates about your business</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.notifications?.emailEnabled"
+                       @change="$store.gmbStore.updateNotificationSetting('emailEnabled', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+
+            <!-- New Review Alerts -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.newReviewAlerts')">New Review Alerts</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.newReviewAlertsDesc')">Get notified when you receive new reviews</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.notifications?.newReviewAlerts"
+                       @change="$store.gmbStore.updateNotificationSetting('newReviewAlerts', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+
+            <!-- Performance Reports -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.performanceReports')">Performance Reports</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.performanceReportsDesc')">Receive insights about your business performance</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.notifications?.performanceReports"
+                       @change="$store.gmbStore.updateNotificationSetting('performanceReports', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+
+            <!-- Weekly Summary -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.weeklySummary')">Weekly Summary</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.weeklySummaryDesc')">Get weekly performance summaries</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.notifications?.weeklySummary"
+                       @change="$store.gmbStore.updateNotificationSetting('weeklySummary', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+
+            <!-- Notification Frequency -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <label class="block text-white font-medium mb-3" x-text="t('settings.notificationFrequency')">Notification Frequency</label>
+              <select :value="$store.gmbStore.settings?.notifications?.frequency || 'instant'"
+                      @change="$store.gmbStore.updateNotificationSetting('frequency', $event.target.value)"
+                      class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+                <option value="instant" x-text="t('settings.instant')">Instant</option>
+                <option value="daily" x-text="t('settings.dailyDigest')">Daily Digest</option>
+                <option value="weekly" x-text="t('settings.weeklyDigest')">Weekly Digest</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data & Privacy Section -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-6">
+            <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <h3 class="text-xl font-bold text-white" x-text="t('settings.dataPrivacy')">Data & Privacy</h3>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Data Sync Frequency -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <label class="block text-white font-medium mb-3" x-text="t('settings.dataSyncFrequency')">Data Sync Frequency</label>
+              <select :value="$store.gmbStore.settings?.data?.syncFrequency || 'hourly'"
+                      @change="$store.gmbStore.updateDataSetting('syncFrequency', $event.target.value)"
+                      class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+                <option value="realtime" x-text="t('settings.realtime')">Real-time</option>
+                <option value="hourly" x-text="t('settings.hourly')">Hourly</option>
+                <option value="daily" x-text="t('settings.daily')">Daily</option>
+              </select>
+            </div>
+
+            <!-- Auto Backup -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.autoBackup')">Auto Backup</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.autoBackupDesc')">Automatically backup your data</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.data?.autoBackup"
+                       @change="$store.gmbStore.updateDataSetting('autoBackup', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+
+            <!-- Export Data -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <h4 class="text-white font-medium mb-3" x-text="t('settings.exportData')">Export Data</h4>
+              <p class="text-white/60 text-sm mb-4" x-text="t('settings.exportDataDesc')">Download your location data in CSV or JSON format</p>
+              <div class="flex gap-3">
+                <button @click="$store.gmbStore.exportData('csv')" class="px-6 py-3 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-lg transition-all font-medium">
+                  <span x-text="t('settings.exportCSV')">Export CSV</span>
+                </button>
+                <button @click="$store.gmbStore.exportData('json')" class="px-6 py-3 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-lg transition-all font-medium">
+                  <span x-text="t('settings.exportJSON')">Export JSON</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Clear Cache -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <h4 class="text-white font-medium mb-3" x-text="t('settings.clearCache')">Clear Cache</h4>
+              <p class="text-white/60 text-sm mb-4" x-text="t('settings.clearCacheDesc')">Clear cached data and refresh all information</p>
+              <button @click="$store.gmbStore.clearCache()" class="px-6 py-3 bg-gray-600/20 hover:bg-gray-600/30 text-white rounded-lg transition-all font-medium">
+                <span x-text="t('settings.clearCacheBtn')">Clear Cache</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced Settings Section -->
+        <div class="glass glass-border rounded-2xl p-6 mb-6">
+          <div class="flex items-center gap-3 mb-6">
+            <svg class="w-6 h-6 text-neon-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <h3 class="text-xl font-bold text-white" x-text="t('settings.advancedSettings')">Advanced Settings</h3>
+          </div>
+
+          <div class="space-y-4">
+            <!-- API Access -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <h4 class="text-white font-medium mb-3" x-text="t('settings.apiAccess')">API Access</h4>
+              <p class="text-white/60 text-sm mb-4" x-text="t('settings.apiAccessDesc')">Use this key to integrate with external applications</p>
+              <div class="flex gap-2">
+                <input type="text" 
+                       :value="$store.gmbStore.settings?.advanced?.apiKey || 'gmb_xxxxxxxxxxxx'"
+                       readonly
+                       class="flex-1 px-4 py-3 bg-black/30 border-2 border-neon-orange/30 rounded-lg text-white font-mono">
+                <button @click="navigator.clipboard.writeText($store.gmbStore.settings?.advanced?.apiKey || '')" 
+                        class="px-6 py-3 bg-neon-orange/20 hover:bg-neon-orange/30 text-neon-orange rounded-lg transition-all font-medium">
+                  <span x-text="t('settings.copy')">Copy</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Webhook URL -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <label class="block text-white font-medium mb-3" x-text="t('settings.webhookUrl')">Webhook URL</label>
+              <p class="text-white/60 text-sm mb-4" x-text="t('settings.webhookUrlDesc')">Receive real-time updates via webhook</p>
+              <input type="url" 
+                     :value="$store.gmbStore.settings?.advanced?.webhookUrl || ''"
+                     @change="$store.gmbStore.updateAdvancedSetting('webhookUrl', $event.target.value)"
+                     placeholder="https://your-domain.com/webhook"
+                     class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+            </div>
+
+            <!-- Custom Domain -->
+            <div class="p-4 bg-white/5 rounded-lg">
+              <label class="block text-white font-medium mb-3" x-text="t('settings.customDomain')">Custom Domain for Posts</label>
+              <p class="text-white/60 text-sm mb-4" x-text="t('settings.customDomainDesc')">Use a custom domain for GMB post links</p>
+              <input type="text" 
+                     :value="$store.gmbStore.settings?.advanced?.customDomain || ''"
+                     @change="$store.gmbStore.updateAdvancedSetting('customDomain', $event.target.value)"
+                     placeholder="posts.yourdomain.com"
+                     class="w-full px-4 py-3 bg-transparent border-2 border-neon-orange/30 rounded-lg text-white focus:outline-none focus:border-neon-orange">
+            </div>
+
+            <!-- White Label Branding -->
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div>
+                <h4 class="text-white font-medium mb-1" x-text="t('settings.whiteLabelBranding')">White-label Branding</h4>
+                <p class="text-white/60 text-sm" x-text="t('settings.whiteLabelBrandingDesc')">Remove NNH branding (Owner only)</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       :checked="$store.gmbStore.settings?.advanced?.whiteLabelBranding"
+                       @change="$store.gmbStore.updateAdvancedSetting('whiteLabelBranding', $event.target.checked)"
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-neon-orange/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-orange"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save Changes Button -->
+        <div class="flex justify-end">
+          <button @click="$store.gmbStore.saveSettings()" 
+                  class="px-8 py-4 bg-neon-orange hover:bg-neon-orange/90 text-white rounded-xl transition-all font-semibold text-lg">
+            <span x-text="t('settings.saveChanges')">Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let performanceChart = null;
+
+    // Watch for chart data changes and update chart
+    document.addEventListener('alpine:init', () => {
+      Alpine.effect(() => {
+        const chartData = Alpine.store('gmbStore').chartData;
+        const currentTab = Alpine.store('gmbStore').currentTab;
+        
+        if (chartData && chartData.length > 0 && currentTab === 'dashboard') {
+          setTimeout(() => updateChart(chartData), 100);
+        }
+      });
+    });
+
+    function updateChart(data) {
+      const ctx = document.getElementById('performanceChart');
+      if (!ctx) return;
+
+      const labels = data.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      
+      if (performanceChart) {
+        performanceChart.destroy();
+      }
+
+      performanceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Views',
+              data: data.map(d => d.views),
+              borderColor: '#FF6B00',
+              backgroundColor: 'rgba(255, 107, 0, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Calls',
+              data: data.map(d => d.calls),
+              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Directions',
+              data: data.map(d => d.directions),
+              borderColor: '#A855F7',
+              backgroundColor: 'rgba(168, 85, 247, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Website',
+              data: data.map(d => d.websiteClicks),
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#fff'
+              }
+            }
+          },
+          scales: {
+            y: {
+              ticks: { color: '#fff' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#fff' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+  </script>
+  
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.has('connected')) {
+      const platform = params.get('connected');
+      const platformName = platform === 'google-business' ? 'Google Business' : 
+                          platform === 'youtube' ? 'YouTube' : platform;
+      
+      showToast(`${platformName} connected successfully!`, 'success');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.reload();
+    }
+    
+    if (params.has('error')) {
+      const error = params.get('error');
+      const message = params.get('message');
+      
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      if (error === 'missing_code') {
+        errorMessage = 'Missing authorization code. Please try connecting again.';
+      } else if (error === 'invalid_state') {
+        errorMessage = 'Invalid state token. Please try connecting again.';
+      } else if (error === 'state_expired') {
+        errorMessage = 'Authorization expired. Please try connecting again.';
+      } else if (error === 'csrf_protection') {
+        errorMessage = 'Security check failed. Please log in and try again.';
+      } else if (error === 'org_mismatch') {
+        errorMessage = 'Organization mismatch. Please try again.';
+      } else if (error === 'auth_failed' && message) {
+        errorMessage = `Authentication failed: ${decodeURIComponent(message)}`;
+      }
+      
+      showToast(errorMessage, 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Building2 } from "lucide-react"
+import Image from "next/image"
 
 export function PublicFooter() {
   return (
@@ -7,12 +7,16 @@ export function PublicFooter() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-2">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
+            <div className="flex items-center gap-3">
+              <Image 
+                src="/nnh-logo.png" 
+                alt="NNH Logo" 
+                width={48} 
+                height={48}
+                className="object-contain"
+              />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                GMB Platform
+                NNH - AI Studio
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -70,7 +74,7 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-primary/20 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} GMB Platform. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} NNH - AI Studio. All rights reserved.</p>
         </div>
       </div>
     </footer>
