@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { LayoutDashboard, MapPin, MessageSquare, Users, Sparkles, BarChart3, Settings, LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -31,9 +32,16 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-card border-r border-primary/30">
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-primary/30 px-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          GMB Manager
+      <div className="flex h-16 items-center gap-3 border-b border-primary/30 px-4">
+        <Image 
+          src="/nnh-logo.png" 
+          alt="NNH Logo" 
+          width={40} 
+          height={40}
+          className="object-contain"
+        />
+        <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          NNH - AI Studio
         </h1>
       </div>
 
