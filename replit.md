@@ -8,6 +8,13 @@ GMB Platform is a Next.js-based Google My Business (GMB) management application 
 
 ## Recent Changes
 
+### October 30, 2025 - API Error Handling & Schema Column Fixes
+- **Improved Sync Error Handling:** Fixed "Unexpected token '<'" errors in `useAccountsManagement.ts` by using `.text()` first before attempting `.json()` parsing, preventing crashes when API returns HTML error pages (500, 404, etc.).
+- **Enhanced Error Logging:** Added comprehensive error context logging (status, url, text) for debugging sync failures, with automatic JSON/HTML response detection.
+- **Schema Column Fix:** Corrected `review-sentiment-chart.tsx` to use `ai_sentiment` instead of non-existent `sentiment` column, eliminating 400 errors from Supabase queries.
+- **User-Friendly Error Messages:** Trimmed error messages to 200 characters to prevent overwhelming toast notifications with full HTML error pages.
+- **Production Readiness:** Architect-verified fixes ensure graceful degradation and clear error reporting for all sync failure scenarios.
+
 ### October 30, 2025 - OAuth Callback Composite Key UPSERT
 - **Database Schema Enhancement:** Changed from single UNIQUE constraint on `account_id` to composite UNIQUE constraint on `(user_id, account_id)`, enabling proper multi-account support per user while preventing cross-user takeover at database level.
 - **Simplified Account Persistence:** Replaced manual security check + conditional INSERT/UPDATE with streamlined UPSERT on composite key `(user_id, account_id)`, reducing code complexity while maintaining robust security.
