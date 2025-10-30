@@ -178,14 +178,13 @@ export async function GET(request: NextRequest) {
       
       console.log(`[OAuth Callback] Processing GMB account: ${accountName} (${accountId})`);
       
-      // Security check: prevent cross-user takeover
-      // Check if this account_id exists and belongs to a different user
+      // Check if this account is already linked to another user
       const { data: existingAccount } = await supabase
         .from('gmb_accounts')
         .select('user_id, refresh_token')
         .eq('account_id', accountId)
         .maybeSingle();
-        
+      
       if (existingAccount && existingAccount.user_id !== userId) {
         console.error('[OAuth Callback] Security violation: GMB account already linked to different user');
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -214,7 +213,7 @@ export async function GET(request: NextRequest) {
       const { data: upsertedAccount, error: upsertError } = await supabase
         .from('gmb_accounts')
         .upsert(upsertData, {
-          onConflict: 'account_id',
+          onConflict: 'user_id,account_id',
           ignoreDuplicates: false,
         })
         .select('id')
@@ -222,7 +221,12 @@ export async function GET(request: NextRequest) {
         
       if (upsertError || !upsertedAccount) {
         console.error('[OAuth Callback] Error upserting account:', upsertError);
-        continue;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        return NextResponse.redirect(
+          `${baseUrl}/accounts#error=${encodeURIComponent(
+            `Failed to save account: ${upsertError?.message || 'Unknown error'}`
+          )}`
+        );
       }
       
       savedAccountId = upsertedAccount.id;
@@ -290,12 +294,17 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Redirect to accounts page with success
+    // Redirect to accounts page with success or error
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const redirectUrl = savedAccountId
-      ? `${baseUrl}/accounts#success=true&autosync=${savedAccountId}`
-      : `${baseUrl}/accounts#success=true`;
-      
+    
+    if (!savedAccountId) {
+      console.error('[OAuth Callback] No account was saved');
+      return NextResponse.redirect(
+        `${baseUrl}/accounts#error=${encodeURIComponent('Failed to save any account')}`
+      );
+    }
+    
+    const redirectUrl = `${baseUrl}/accounts#success=true&autosync=${savedAccountId}`;
     console.log('[OAuth Callback] Redirecting to:', redirectUrl);
     return NextResponse.redirect(redirectUrl);
     
