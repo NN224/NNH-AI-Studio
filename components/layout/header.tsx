@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useSupabase } from "@/lib/hooks/use-supabase"
+import Image from "next/image"
 
 export function Header() {
   const { user } = useSupabase()
@@ -16,8 +17,22 @@ export function Header() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-primary/30 bg-card px-6">
+      {/* Logo */}
+      <div className="flex items-center gap-3">
+        <Image 
+          src="/nnh-logo.png" 
+          alt="NNH Logo" 
+          width={40} 
+          height={40}
+          className="object-contain"
+        />
+        <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          NNH - AI Studio
+        </span>
+      </div>
+
       {/* Search */}
-      <div className="flex items-center gap-4 flex-1 max-w-xl">
+      <div className="flex items-center gap-4 flex-1 max-w-xl ml-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
