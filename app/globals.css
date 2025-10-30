@@ -12,15 +12,15 @@
 :root {
   /* Background Colors - Pure Black Theme */
   --background: 0 0 0;              /* #000000 - True Black */
-  --foreground: 255 255 255;        /* #FFFFFF - Pure White */
+  --foreground: 255 107 0;          /* #FF6B00 - Electric Orange */
   
   /* Card Colors - Dark Surfaces */
   --card: 17 17 17;                 /* #111111 - Card Background */
-  --card-foreground: 255 255 255;   /* #FFFFFF */
+  --card-foreground: 255 107 0;     /* #FF6B00 - Electric Orange */
   
   /* Popover Colors */
   --popover: 17 17 17;
-  --popover-foreground: 255 255 255;
+  --popover-foreground: 255 107 0;
   
   /* Primary Orange - Electric Orange */
   --primary: 255 107 0;             /* #FF6B00 - Electric Orange */
@@ -80,11 +80,11 @@
 .dark {
   /* Pure Black Theme - Same as root */
   --background: 0 0 0;
-  --foreground: 255 255 255;
+  --foreground: 255 107 0;
   --card: 17 17 17;
-  --card-foreground: 255 255 255;
+  --card-foreground: 255 107 0;
   --popover: 17 17 17;
-  --popover-foreground: 255 255 255;
+  --popover-foreground: 255 107 0;
   --primary: 255 107 0;
   --primary-foreground: 255 255 255;
   --secondary: 10 10 10;
