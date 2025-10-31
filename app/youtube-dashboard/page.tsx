@@ -653,6 +653,34 @@ export default function YoutubeDashboardPage() {
     })()
   }, [])
   
+  // Filtered comments
+  const filteredComments = useMemo(() => {
+    let filtered = [...comments]
+    
+    // Filter by video
+    if (selectedVideoForComments) {
+      filtered = filtered.filter(c => c.videoUrl === selectedVideoForComments)
+    }
+    
+    // Filter by search
+    if (commentSearch) {
+      const searchLower = commentSearch.toLowerCase()
+      filtered = filtered.filter(c =>
+        c.author.toLowerCase().includes(searchLower) ||
+        c.text.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    // Filter by type
+    if (commentFilter === 'recent') {
+      filtered.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    } else if (commentFilter === 'mostLiked') {
+      filtered.sort((a, b) => b.likes - a.likes)
+    }
+    
+    return filtered
+  }, [comments, selectedVideoForComments, commentSearch, commentFilter])
+
   // Filtered videos for manager
   const filteredVideos = useMemo(() => {
     return videos.filter(v => {
