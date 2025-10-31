@@ -1058,10 +1058,12 @@ export default function YoutubeDashboardPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
+                </div>
+              )}
 
-                {/* AI Composer Tab (Video Upload) */}
-                <TabsContent value="composer" className="space-y-6">
+              {/* AI Composer */}
+              {activeTab === "composer" && (
+                <div className="space-y-6">
                   <Card className="glass-strong border-primary/30 shadow-xl">
                     <CardHeader className="border-b border-primary/20">
                       <CardTitle className="flex items-center gap-2 text-2xl">
@@ -1436,10 +1438,8 @@ export default function YoutubeDashboardPage() {
                       )}
                     </CardContent>
                   </Card>
-                </TabsContent>
-
-                {/* Content Calendar Tab */}
-                <TabsContent value="calendar" className="space-y-6">
+                </div>
+              )}
                   <div className="grid gap-6 lg:grid-cols-3">
                     {/* Calendar */}
                     <Card className="lg:col-span-2 glass-strong border-primary/30 shadow-xl">
@@ -2166,10 +2166,8 @@ export default function YoutubeDashboardPage() {
                       </Card>
                     </div>
                   </div>
-                </TabsContent>
-
-                {/* Content Ideas Tab */}
-                <TabsContent value="content-ideas" className="space-y-6">
+                </div>
+              )}
                   <div className="grid gap-6">
                     {/* Generate Ideas Section */}
                     <Card className="glass-strong border-primary/30 shadow-xl">
