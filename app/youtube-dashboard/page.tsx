@@ -2148,6 +2148,327 @@ export default function YoutubeDashboardPage() {
                     </div>
                   </div>
                 </TabsContent>
+
+                {/* Content Ideas Tab */}
+                <TabsContent value="content-ideas" className="space-y-6">
+                  <div className="grid gap-6">
+                    {/* Generate Ideas Section */}
+                    <Card className="glass-strong border-primary/30 shadow-xl">
+                      <CardHeader className="border-b border-primary/20">
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="w-5 h-5 text-primary" />
+                          Generate Content Ideas
+                        </CardTitle>
+                        <CardDescription>
+                          Get AI-powered content ideas based on your niche, trending topics, or specific keywords
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-6">
+                          {/* Input Section */}
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-sm font-medium text-primary mb-2 block">
+                                What kind of content are you looking for?
+                              </label>
+                              <Textarea
+                                value={contentIdeasPrompt}
+                                onChange={(e) => setContentIdeasPrompt(e.target.value)}
+                                placeholder="E.g., Tech tutorials, cooking tips, fitness routines, gaming content..."
+                                rows={4}
+                                className="resize-none border-primary/30 focus:border-primary glass"
+                              />
+                            </div>
+                            
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="text-sm font-medium text-primary mb-2 block">
+                                  Category
+                                </label>
+                                <Select value={contentIdeasCategory} onValueChange={setContentIdeasCategory}>
+                                  <SelectTrigger className="border-primary/30 glass">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    <SelectItem value="tutorial">Tutorial</SelectItem>
+                                    <SelectItem value="review">Review</SelectItem>
+                                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                                    <SelectItem value="educational">Educational</SelectItem>
+                                    <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                                    <SelectItem value="tech">Technology</SelectItem>
+                                    <SelectItem value="gaming">Gaming</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="flex items-end">
+                                <Button
+                                  onClick={async () => {
+                                    if (!contentIdeasPrompt.trim()) {
+                                      toast.error("Please enter a topic or description")
+                                      return
+                                    }
+                                    setContentIdeasLoading(true)
+                                    try {
+                                      const res = await safePost("/api/youtube/composer/generate", {
+                                        prompt: `Generate 10 creative YouTube video content ideas for: ${contentIdeasPrompt}. Category: ${contentIdeasCategory}. Return only a numbered list of ideas, one per line, no extra text.`,
+                                        tone: "creative"
+                                      })
+                                      const ideasText = res.description || res.title || ""
+                                      const ideas = ideasText
+                                        .split(/\n|\d+\./)
+                                        .map((line: string) => line.trim().replace(/^\d+\.?\s*/, ''))
+                                        .filter((line: string) => line.length > 10)
+                                        .slice(0, 10)
+                                      setGeneratedIdeas(ideas.length > 0 ? ideas : ["No ideas generated. Try a different prompt."])
+                                      toast.success("Content ideas generated!")
+                                    } catch (e: any) {
+                                      toast.error(e.message || "Failed to generate ideas")
+                                    } finally {
+                                      setContentIdeasLoading(false)
+                                    }
+                                  }}
+                                  disabled={contentIdeasLoading || !contentIdeasPrompt.trim()}
+                                  className="w-full bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
+                                >
+                                  {contentIdeasLoading ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Generating...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="w-4 h-4 mr-2" />
+                                      Generate Ideas
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Generated Ideas */}
+                          {generatedIdeas.length > 0 && (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">Generated Ideas ({generatedIdeas.length})</h3>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setGeneratedIdeas([])
+                                    setContentIdeasPrompt("")
+                                  }}
+                                  className="hover:bg-primary hover:text-white"
+                                >
+                                  <X className="w-4 h-4 mr-2" />
+                                  Clear
+                                </Button>
+                              </div>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {generatedIdeas.map((idea, idx) => (
+                                  <Card key={idx} className="glass border-primary/20 hover:border-primary/40 transition-colors">
+                                    <CardContent className="p-4">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium leading-relaxed">{idea}</p>
+                                        </div>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 hover:bg-primary hover:text-white"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(idea)
+                                              toast.success("Idea copied!")
+                                            }}
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 hover:bg-green-500 hover:text-white"
+                                            onClick={async () => {
+                                              try {
+                                                await safePost("/api/youtube/composer/drafts", {
+                                                  title: idea,
+                                                  description: `Content idea: ${idea}`,
+                                                  hashtags: ""
+                                                })
+                                                toast.success("Idea saved to drafts!")
+                                                // Refresh saved ideas
+                                                try {
+                                                  const res = await safeGet("/api/youtube/composer/drafts")
+                                                  const drafts = res.items || []
+                                                  const ideas = drafts
+                                                    .filter((d: any) => d.description?.includes("Content idea:"))
+                                                    .map((d: any) => ({
+                                                      id: d.id,
+                                                      idea: d.title || d.description?.replace("Content idea: ", "") || "",
+                                                      category: "all",
+                                                      created_at: d.created_at
+                                                    }))
+                                                  setSavedIdeas(ideas)
+                                                } catch (e) {}
+                                              } catch (e: any) {
+                                                toast.error("Failed to save idea")
+                                              }
+                                            }}
+                                          >
+                                            <Save className="w-3.5 h-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Trending Topics Section */}
+                    <Card className="glass-strong border-primary/30 shadow-xl">
+                      <CardHeader className="border-b border-primary/20">
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUpIcon className="w-5 h-5 text-primary" />
+                          Trending Topics Suggestions
+                        </CardTitle>
+                        <CardDescription>
+                          Quick suggestions based on popular categories
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {[
+                            "Tech product reviews",
+                            "How-to tutorials",
+                            "Latest news updates",
+                            "Behind the scenes",
+                            "Day in my life vlogs",
+                            "Product comparisons",
+                            "Q&A sessions",
+                            "Challenge videos",
+                            "Reaction videos",
+                            "Unboxing videos",
+                            "Top 10 lists",
+                            "Myth busting"
+                          ].map((topic, idx) => (
+                            <Button
+                              key={idx}
+                              variant="outline"
+                              className="justify-start text-left h-auto p-3 hover:bg-primary hover:text-white transition-all"
+                              onClick={() => {
+                                setContentIdeasPrompt(topic)
+                                toast.info("Topic added! Click 'Generate Ideas' to get suggestions.")
+                              }}
+                            >
+                              <Lightbulb className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <span className="text-sm">{topic}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Saved Ideas Section */}
+                    <Card className="glass-strong border-primary/30 shadow-xl">
+                      <CardHeader className="border-b border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="flex items-center gap-2">
+                            <Save className="w-5 h-5 text-primary" />
+                            Saved Ideas {savedIdeas.length > 0 && `(${savedIdeas.length})`}
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const res = await safeGet("/api/youtube/composer/drafts")
+                                const drafts = res.items || []
+                                const ideas = drafts
+                                  .filter((d: any) => d.description?.includes("Content idea:"))
+                                  .map((d: any) => ({
+                                    id: d.id,
+                                    idea: d.title || d.description?.replace("Content idea: ", "") || "",
+                                    category: "all",
+                                    created_at: d.created_at
+                                  }))
+                                setSavedIdeas(ideas)
+                                toast.success("Saved ideas refreshed!")
+                              } catch (e) {
+                                toast.error("Failed to load saved ideas")
+                              }
+                            }}
+                            className="hover:bg-primary hover:text-white"
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Refresh
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {savedIdeas.length > 0 ? (
+                          <div className="grid gap-3">
+                            {savedIdeas.map((item) => (
+                              <Card key={item.id} className="glass border-primary/20">
+                                <CardContent className="p-4">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium">{item.idea}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Saved {new Date(item.created_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 hover:bg-primary hover:text-white"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(item.idea)
+                                          toast.success("Idea copied!")
+                                        }}
+                                      >
+                                        <Copy className="w-3.5 h-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 hover:bg-destructive hover:text-white"
+                                        onClick={async () => {
+                                          try {
+                                            await safeDelete(`/api/youtube/composer/drafts?id=${item.id}`)
+                                            setSavedIdeas(savedIdeas.filter(i => i.id !== item.id))
+                                            toast.success("Idea deleted")
+                                          } catch (e) {
+                                            toast.error("Failed to delete idea")
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Lightbulb className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p className="text-sm">No saved ideas yet</p>
+                            <p className="text-xs mt-1">Generate ideas and save them to drafts to see them here</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
               </Tabs>
             </>
           )}
