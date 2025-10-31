@@ -16,7 +16,17 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      // Handle missing column error specifically
+      if (error.message.includes('column') && error.message.includes('does not exist')) {
+        console.error('[GMB Posts API] Database schema error:', error.message)
+        return NextResponse.json({ 
+          error: 'Database schema mismatch. Please run the migration: 20250131_add_missing_columns.sql',
+          details: error.message 
+        }, { status: 500 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ items: data || [] })
   } catch (e:any) {
     return NextResponse.json({ error: e.message || 'Failed to list posts' }, { status: 500 })
