@@ -29,6 +29,16 @@ export async function GET() {
       headers: { Authorization: `Bearer ${tokenRow.access_token}`, Accept: "application/json" },
     });
     const chJson = await chRes.json().catch(() => ({}));
+    if (!chRes.ok) {
+      if (chJson?.error?.message?.includes("insufficient") || chJson?.error?.message?.includes("scope")) {
+        return NextResponse.json({ 
+          error: "Insufficient authentication scopes. Please reconnect your YouTube account.",
+          code: "INSUFFICIENT_SCOPES",
+          requiresReconnect: true
+        }, { status: 403 });
+      }
+      return NextResponse.json({ items: [] });
+    }
     const uploads = chJson?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
     if (!uploads) return NextResponse.json({ items: [] });
 
@@ -38,6 +48,16 @@ export async function GET() {
       { headers: { Authorization: `Bearer ${tokenRow.access_token}`, Accept: "application/json" } }
     );
     const plJson = await plRes.json().catch(() => ({}));
+    if (!plRes.ok) {
+      if (plJson?.error?.message?.includes("insufficient") || plJson?.error?.message?.includes("scope")) {
+        return NextResponse.json({ 
+          error: "Insufficient authentication scopes. Please reconnect your YouTube account.",
+          code: "INSUFFICIENT_SCOPES",
+          requiresReconnect: true
+        }, { status: 403 });
+      }
+      return NextResponse.json({ items: [] });
+    }
     const videoIds = (plJson?.items || [])
       .map((it: any) => it?.contentDetails?.videoId)
       .filter(Boolean)
@@ -51,6 +71,16 @@ export async function GET() {
       { headers: { Authorization: `Bearer ${tokenRow.access_token}`, Accept: "application/json" } }
     );
     const vidsJson = await vidsRes.json().catch(() => ({}));
+    if (!vidsRes.ok) {
+      if (vidsJson?.error?.message?.includes("insufficient") || vidsJson?.error?.message?.includes("scope")) {
+        return NextResponse.json({ 
+          error: "Insufficient authentication scopes. Please reconnect your YouTube account.",
+          code: "INSUFFICIENT_SCOPES",
+          requiresReconnect: true
+        }, { status: 403 });
+      }
+      return NextResponse.json({ items: [] });
+    }
     const items =
       (vidsJson?.items || []).map((v: any) => ({
         id: v?.id,

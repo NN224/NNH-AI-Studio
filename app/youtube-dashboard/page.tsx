@@ -326,13 +326,36 @@ export default function YoutubeDashboardPage() {
   }
   
   const fetchComments = async () => {
-    const j = await safeGet("/api/youtube/comments")
-    setComments(j.items || [])
+    try {
+      const j = await safeGet("/api/youtube/comments")
+      if (j.error && j.code === "INSUFFICIENT_SCOPES") {
+        toast.error("Please reconnect your YouTube account to access comments. The current connection doesn't have the required permissions.")
+        // Optionally disconnect to force reconnection
+        return
+      }
+      setComments(j.items || [])
+    } catch (e: any) {
+      if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
+        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+      }
+      setComments([])
+    }
   }
   
   const fetchAnalytics = async () => {
-    const j = await safeGet("/api/youtube/analytics")
-    setAnalytics(j as YTAnalytics)
+    try {
+      const j = await safeGet("/api/youtube/analytics")
+      if (j.error && j.code === "INSUFFICIENT_SCOPES") {
+        toast.error("Please reconnect your YouTube account to access analytics.")
+        return
+      }
+      setAnalytics(j as YTAnalytics)
+    } catch (e: any) {
+      if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
+        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+      }
+      setAnalytics(null)
+    }
   }
   
   const fetchDrafts = async () => {

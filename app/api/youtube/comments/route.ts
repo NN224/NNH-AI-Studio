@@ -42,6 +42,14 @@ export async function GET() {
     });
     const js = await res.json().catch(() => ({}));
     if (!res.ok) {
+      // Check if it's an insufficient scopes error
+      if (js?.error?.message?.includes("insufficient") || js?.error?.message?.includes("scope")) {
+        return NextResponse.json({ 
+          error: "Insufficient authentication scopes. Please reconnect your YouTube account with the required permissions.",
+          code: "INSUFFICIENT_SCOPES",
+          requiresReconnect: true
+        }, { status: 403 });
+      }
       return NextResponse.json({ error: js?.error?.message || "YouTube comments fetch failed" }, { status: 400 });
     }
 
