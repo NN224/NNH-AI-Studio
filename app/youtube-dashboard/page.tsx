@@ -312,10 +312,18 @@ export default function YoutubeDashboardPage() {
   }
   
   const fetchVideos = async () => {
-    const j = await safeGet("/api/youtube/videos")
-    setVideos(j.items || [])
-    // Generate calendar events from videos
-    const events = (j.items || []).map((v: YTVideo) => ({
+    try {
+      const j = await safeGet("/api/youtube/videos")
+      if (j.error && j.code === "INSUFFICIENT_SCOPES") {
+        toast.error("Please reconnect your YouTube account. The current connection doesn't have the required permissions.")
+        setVideos([])
+        setCalendarEvents([])
+        return
+      }
+      const items = j.items || []
+      setVideos(items)
+      // Generate calendar events from videos
+      const events = items.map((v: YTVideo) => ({
       id: v.id,
       title: v.title,
       date: new Date(v.publishedAt),
@@ -323,6 +331,13 @@ export default function YoutubeDashboardPage() {
       thumbnail: v.thumbnail
     }))
     setCalendarEvents(events)
+    } catch (e: any) {
+      if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
+        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+      }
+      setVideos([])
+      setCalendarEvents([])
+    }
   }
   
   const fetchComments = async () => {
