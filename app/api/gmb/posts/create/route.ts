@@ -11,6 +11,17 @@ type CreatePostBody = {
   callToAction?: string
   callToActionUrl?: string
   scheduledAt?: string | null
+  postType?: 'whats_new' | 'event' | 'offer'
+  aiGenerated?: boolean
+  // Event fields
+  eventTitle?: string
+  eventStartDate?: string
+  eventEndDate?: string
+  // Offer fields
+  offerTitle?: string
+  couponCode?: string
+  redeemUrl?: string
+  terms?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -38,6 +49,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
 
+    // Build metadata for Event/Offer posts
+    const metadata: any = {}
+    if (body.postType === 'event') {
+      metadata.eventTitle = body.eventTitle
+      metadata.eventStartDate = body.eventStartDate
+      metadata.eventEndDate = body.eventEndDate
+    } else if (body.postType === 'offer') {
+      metadata.offerTitle = body.offerTitle
+      metadata.couponCode = body.couponCode
+      metadata.redeemUrl = body.redeemUrl
+      metadata.terms = body.terms
+    }
+    if (body.aiGenerated) {
+      metadata.aiGenerated = true
+    }
+
     const { data, error } = await supabase
       .from('gmb_posts')
       .insert({
@@ -50,6 +77,8 @@ export async function POST(request: NextRequest) {
         call_to_action_url: body.callToActionUrl ?? null,
         status: body.scheduledAt ? 'queued' : 'draft',
         scheduled_at: body.scheduledAt ?? null,
+        post_type: body.postType || 'whats_new',
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
         updated_at: new Date().toISOString(),
       })
       .select('*')

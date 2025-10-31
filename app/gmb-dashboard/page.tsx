@@ -73,6 +73,7 @@ function GMBPostsSection() {
   const [postTypeFilter, setPostTypeFilter] = useState<'all' | 'whats_new' | 'event' | 'offer'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all')
   const [isDragging, setIsDragging] = useState(false)
+  const [editingPost, setEditingPost] = useState<any>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -96,14 +97,28 @@ function GMBPostsSection() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP).')
+      return
     }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      toast.error('File size too large. Please upload an image smaller than 10MB.')
+      return
+    }
+
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -244,6 +259,12 @@ function GMBPostsSection() {
       return
     }
     
+    // Validate: Event and Offer posts cannot be published
+    if (postType === 'event' || postType === 'offer') {
+      toast.error("Event and Offer posts cannot be published to Google. Google Business Profile API only supports 'What's New' posts. You can save them as drafts.")
+      return
+    }
+    
     // Save first then publish
     const postId = await handleSave()
     if (!postId) return
@@ -255,7 +276,17 @@ function GMBPostsSection() {
         body: JSON.stringify({ postId })
       })
       const j = await res.json()
-      if (!res.ok) throw new Error(j.error || 'Failed to publish')
+      if (!res.ok) {
+        if (j.code === 'INSUFFICIENT_SCOPES') {
+          toast.error('Your Google Business Profile connection needs to be updated. Please disconnect and reconnect your account.')
+          return
+        }
+        if (j.code === 'UNSUPPORTED_POST_TYPE') {
+          toast.error(j.error || 'This post type cannot be published to Google.')
+          return
+        }
+        throw new Error(j.error || 'Failed to publish')
+      }
       toast.success('Published to Google successfully')
       // Clear form after publish
       setTitle("")
@@ -315,20 +346,34 @@ function GMBPostsSection() {
     const files = e.dataTransfer.files
     if (files && files[0]) {
       const file = files[0]
-      if (file.type.startsWith('image/')) {
-        setImageFile(file)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setImagePreview(reader.result as string)
-        }
-        reader.readAsDataURL(file)
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!file.type.startsWith('image/') || !validTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP).')
+        return
       }
+
+      // Validate file size (10MB limit)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        toast.error('File size too large. Please upload an image smaller than 10MB.')
+        return
+      }
+
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
   
   // Filter posts
   const filteredPosts = posts.filter(post => {
-    if (postTypeFilter !== 'all' && post.postType !== postTypeFilter) return false
+    const postType = post.post_type || post.postType
+    if (postTypeFilter !== 'all' && postType !== postTypeFilter) return false
     if (statusFilter !== 'all' && post.status !== statusFilter) return false
     return true
   })
@@ -361,6 +406,23 @@ function GMBPostsSection() {
               <CardDescription>Create and publish posts to your Business Profile locations</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
+              {/* Warning Alert for Event/Offer Posts */}
+              {(postType === 'event' || postType === 'offer') && (
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                        Limited Publishing Support
+                      </h4>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                        Event and Offer posts can only be saved as drafts. Google Business Profile API currently only supports "What's New" posts for publishing.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Post Type Selector */}
               <div className="grid gap-3">
                 <label className="text-sm font-medium text-primary">Post Type</label>
@@ -719,8 +781,9 @@ function GMBPostsSection() {
                 </Button>
                 <Button
                   onClick={handlePublish}
-                  disabled={selectedLocations.length === 0 || !content.trim() || saving}
-                  className="flex-1 gap-2 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
+                  disabled={selectedLocations.length === 0 || !content.trim() || saving || postType === 'event' || postType === 'offer'}
+                  className="flex-1 gap-2 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={postType === 'event' || postType === 'offer' ? "Event and Offer posts cannot be published to Google" : ""}
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Publish Now
@@ -790,7 +853,7 @@ function GMBPostsSection() {
                           {post.title && (
                             <h4 className="font-semibold text-lg flex items-center gap-2">
                               {post.title}
-                              {post.aiGenerated && (
+                              {(post.metadata?.aiGenerated || post.aiGenerated) && (
                                 <Badge variant="outline" className="text-xs border-primary text-primary">
                                   <Sparkles className="w-3 h-3 mr-1" />
                                   Generated by AI
@@ -817,11 +880,16 @@ function GMBPostsSection() {
                               <Calendar className="w-3 h-3" />
                               {new Date(post.created_at).toLocaleDateString()}
                             </span>
-                            {post.postType && (
+                            {(post.post_type || post.postType) && (
                               <Badge variant="outline" className="border-primary/50 text-primary">
-                                {post.postType === 'whats_new' && "What's New"}
-                                {post.postType === 'event' && "Event"}
-                                {post.postType === 'offer' && "Offer"}
+                                {(post.post_type || post.postType) === 'whats_new' && "What's New"}
+                                {(post.post_type || post.postType) === 'event' && "Event"}
+                                {(post.post_type || post.postType) === 'offer' && "Offer"}
+                              </Badge>
+                            )}
+                            {(post.post_type === 'event' || post.post_type === 'offer') && (
+                              <Badge variant="outline" className="border-yellow-500 text-yellow-600 text-xs">
+                                Draft Only
                               </Badge>
                             )}
                           </div>
@@ -830,6 +898,45 @@ function GMBPostsSection() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => {
+                              // Load post data into form
+                              setEditingPost(post)
+                              setPostType(post.post_type || post.postType || 'whats_new')
+                              setTitle(post.title || '')
+                              setContent(post.content || '')
+                              setMediaUrl(post.media_url || '')
+                              setCta(post.call_to_action || '')
+                              setCtaUrl(post.call_to_action_url || '')
+                              setSchedule(post.scheduled_at ? new Date(post.scheduled_at).toISOString().slice(0, 16) : '')
+                              setAiGenerated(post.metadata?.aiGenerated || false)
+                              
+                              // Load Event fields
+                              if ((post.post_type || post.postType) === 'event' && post.metadata) {
+                                setEventTitle(post.metadata.eventTitle || '')
+                                setEventStartDate(post.metadata.eventStartDate || '')
+                                setEventEndDate(post.metadata.eventEndDate || '')
+                              }
+                              
+                              // Load Offer fields
+                              if ((post.post_type || post.postType) === 'offer' && post.metadata) {
+                                setOfferTitle(post.metadata.offerTitle || '')
+                                setCouponCode(post.metadata.couponCode || '')
+                                setRedeemUrl(post.metadata.redeemUrl || '')
+                                setTerms(post.metadata.terms || '')
+                              }
+                              
+                              // Load location
+                              setSelectedLocations([post.location_id])
+                              
+                              // Switch to create tab
+                              const createTab = document.querySelector('[value="create"]') as HTMLElement
+                              if (createTab) createTab.click()
+                              
+                              // Scroll to top
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                              
+                              toast.success('Post loaded for editing')
+                            }}
                             className="hover:bg-primary hover:text-white transition-colors"
                           >
                             <Edit className="w-4 h-4" />
@@ -876,8 +983,15 @@ function GMBPostsSection() {
                       <Button
                         variant="outline"
                         onClick={() => {
+                          // Apply full template structure
                           setContent(template.content)
-                          toast.success("Template applied")
+                          setPostType('whats_new') // Templates are for What's New posts
+                          setTitle('') // Clear title to use content as summary
+                          setCta('')
+                          setCtaUrl('')
+                          setSchedule('')
+                          setSelectedLocations([])
+                          toast.success("Template applied! Don't forget to select a location and customize the content.")
                         }}
                         className="hover:bg-primary hover:text-white transition-colors"
                       >

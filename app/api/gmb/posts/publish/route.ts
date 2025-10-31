@@ -35,11 +35,19 @@ export async function POST(request: NextRequest) {
     // Load post + location + account
     const { data: post, error: postErr } = await supabase
       .from('gmb_posts')
-      .select('id, user_id, location_id, title, content, media_url, call_to_action, call_to_action_url, scheduled_at')
+      .select('id, user_id, location_id, title, content, media_url, call_to_action, call_to_action_url, scheduled_at, post_type')
       .eq('id', postId)
       .eq('user_id', user.id)
       .maybeSingle()
     if (postErr || !post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+
+    // Validate: Event and Offer posts cannot be published
+    if (post.post_type === 'event' || post.post_type === 'offer') {
+      return NextResponse.json({ 
+        error: 'Event and Offer posts cannot be published to Google. Google Business Profile API only supports "What\'s New" posts.',
+        code: 'UNSUPPORTED_POST_TYPE'
+      }, { status: 400 })
+    }
 
     const { data: location } = await supabase
       .from('gmb_locations')
@@ -103,6 +111,27 @@ export async function POST(request: NextRequest) {
 
     const text = await resp.text()
     if (!resp.ok) {
+      let errorData: any = {}
+      try {
+        errorData = JSON.parse(text)
+      } catch {}
+
+      // Check for insufficient scopes error
+      if (errorData?.error?.message?.includes('insufficient') || 
+          errorData?.error?.message?.includes('scope') ||
+          resp.status === 403) {
+        await supabase
+          .from('gmb_posts')
+          .update({ status: 'failed', error_message: 'Insufficient authentication scopes. Please reconnect your GMB account.', updated_at: new Date().toISOString() })
+          .eq('id', post.id)
+          .eq('user_id', user.id)
+        return NextResponse.json({ 
+          error: 'Insufficient authentication scopes. Please reconnect your Google Business Profile account with the required permissions.',
+          code: 'INSUFFICIENT_SCOPES',
+          requiresReconnect: true
+        }, { status: 403 })
+      }
+
       await supabase
         .from('gmb_posts')
         .update({ status: 'failed', error_message: text, updated_at: new Date().toISOString() })

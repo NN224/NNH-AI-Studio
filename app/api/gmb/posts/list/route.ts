@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('gmb_posts')
-      .select('id, location_id, title, content, status, scheduled_at, published_at, created_at')
+      .select('id, location_id, title, content, status, scheduled_at, published_at, created_at, post_type, metadata')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50)
