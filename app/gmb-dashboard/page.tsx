@@ -7,7 +7,7 @@ import { LocationsList } from "@/components/locations/locations-list"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
 import { GMBSettings } from "@/components/settings/gmb-settings"
-import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users, Home, LogOut, BarChart3, Settings, Menu, Sparkles } from "lucide-react"
+import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users, Home, LogOut, BarChart3, Settings, Menu, Sparkles, Bell, Check, CheckCheck, Trash2, Info, CheckCircle, AlertTriangle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -45,6 +47,12 @@ export default function GMBDashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("dashboard")
   
+  // Notifications state
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notificationsLoading, setNotificationsLoading] = useState(true)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  
   const supabase = createClient()
   const router = useRouter()
 
@@ -56,6 +64,75 @@ export default function GMBDashboardPage() {
   const getInitials = (email?: string) => {
     if (!email) return "U"
     return email.charAt(0).toUpperCase()
+  }
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications?limit=10')
+      const data = await res.json()
+      if (res.ok) {
+        setNotifications(data.notifications || [])
+        setUnreadCount(data.unreadCount || 0)
+      }
+    } catch (e) {
+      console.error('Failed to fetch notifications:', e)
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications()
+      const interval = setInterval(fetchNotifications, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: id })
+      })
+      fetchNotifications()
+    } catch (e) {
+      console.error('Failed to mark as read:', e)
+    }
+  }
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true })
+      })
+      fetchNotifications()
+    } catch (e) {
+      console.error('Failed to mark all as read:', e)
+    }
+  }
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' })
+      fetchNotifications()
+    } catch (e) {
+      console.error('Failed to delete notification:', e)
+    }
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'review': return <AlertCircle className="w-4 h-4 text-blue-500" />
+      case 'success': return <CheckCircle className="w-4 h-4 text-green-500" />
+      case 'error': return <AlertTriangle className="w-4 h-4 text-red-500" />
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />
+      default: return <Info className="w-4 h-4 text-primary" />
+    }
   }
 
   useEffect(() => {
@@ -320,6 +397,91 @@ export default function GMBDashboardPage() {
 
             {/* Right side - User Menu */}
             <div className="flex items-center gap-3">
+              <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 md:w-96 p-0" align="end">
+                  <div className="border-b border-primary/20 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={markAllNotificationsAsRead} className="text-xs">
+                        <CheckCheck className="w-3 h-3 mr-1" />
+                        Mark all read
+                      </Button>
+                    )}
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    {notificationsLoading ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Bell className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                        <p className="text-sm text-muted-foreground">No notifications yet</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-primary/10">
+                        {notifications.map((notif: any) => (
+                          <div
+                            key={notif.id}
+                            className={cn(
+                              "p-4 hover:bg-primary/5 transition-colors",
+                              !notif.read && "bg-primary/5"
+                            )}
+                          >
+                            <div className="flex gap-3">
+                              <div className="mt-1">{getNotificationIcon(notif.type)}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{notif.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                      {new Date(notif.created_at).toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {!notif.read && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => markNotificationAsRead(notif.id)}
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => deleteNotification(notif.id)}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                {notif.link && (
+                                  <Link href={notif.link} className="text-xs text-primary hover:underline mt-1 inline-block">
+                                    View details →
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
               <Link href="/home" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
                   <Home className="h-4 w-4" />
