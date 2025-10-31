@@ -535,7 +535,7 @@ export default function YoutubeDashboardPage() {
         tone: "neutral"
       })
       const tagsStr = res.hashtags || ""
-      const tagsArray = tagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean)
+      const tagsArray = tagsStr.split(',').map((t: string) => t.trim().replace(/^#/, '')).filter(Boolean)
       setGeneratedTags(tagsArray.length > 0 ? tagsArray : ['youtube', 'video', 'content'])
       toast.success("Tags generated!")
     } catch (e: any) {
@@ -554,7 +554,7 @@ export default function YoutubeDashboardPage() {
         tone: "energetic"
       })
       const hashtagsStr = res.hashtags || ""
-      const hashtagsArray = hashtagsStr.split(',').map(h => h.trim().startsWith('#') ? h.trim() : `#${h.trim()}`).filter(Boolean)
+      const hashtagsArray = hashtagsStr.split(',').map((h: string) => h.trim().startsWith('#') ? h.trim() : `#${h.trim()}`).filter(Boolean)
       setGeneratedHashtags(hashtagsArray.length > 0 ? hashtagsArray : ['#YouTube', '#Content'])
       toast.success("Hashtags generated!")
     } catch (e: any) {
