@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Loader2, Mail } from "lucide-react"
+import { Loader2, Mail, ArrowLeft } from "lucide-react"
 import { getBaseUrlClient } from "@/lib/utils/get-base-url-client"
 
 export default function ResetPasswordPage() {
@@ -37,11 +37,11 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-6">
-      {/* Animated Background Gradients */}
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-4">
+      {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl"
+          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 90, 0],
@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
           }}
         />
         <motion.div
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-accent/20 to-transparent rounded-full blur-3xl"
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-accent/10 to-transparent rounded-full blur-3xl"
           animate={{
             scale: [1.2, 1, 1.2],
             rotate: [90, 0, 90],
@@ -73,94 +73,103 @@ export default function ResetPasswordPage() {
         className="relative z-10 w-full max-w-md"
       >
         {/* Logo Header */}
-        <motion.div 
-          className="mb-8 text-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <motion.img 
-              src="/nnh-logo.png" 
-              alt="NNH Logo" 
-              className="w-16 h-16 object-contain"
-              animate={{
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              NNH - AI Studio
-            </h1>
-          </div>
+        <div className="mb-8 text-center">
+          <Link href="/" className="inline-block">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img 
+                src="/nnh-logo.png" 
+                alt="NNH AI Studio" 
+                className="w-14 h-14 object-contain"
+              />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                NNH AI Studio
+              </h1>
+            </div>
+          </Link>
           <p className="text-muted-foreground text-sm">
-            Empowering Your Business with AI
+            Reset your password
           </p>
-        </motion.div>
+        </div>
 
-        <Card className="relative bg-card/80 backdrop-blur-xl border-primary/30 shadow-2xl shadow-primary/20">
-          {/* Decorative gradient border */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg blur-sm -z-10" />
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Reset Password</CardTitle>
-            <CardDescription className="text-center text-muted-foreground">
-              Enter your email to receive a password reset link
+        <Card className="bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl font-bold text-center">
+              Reset Password
+            </CardTitle>
+            <CardDescription className="text-center">
+              {sent ? "Check your email" : "Enter your email to receive a reset link"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
               <div className="space-y-4 text-center">
-                <p className="text-sm text-muted-foreground">We sent a reset link to {email}. Please check your inbox.</p>
-                <Link href="/auth/login" className="underline text-primary hover:text-accent">Back to Sign In</Link>
+                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-sm text-green-500">
+                    We sent a password reset link to <strong>{email}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Please check your inbox and spam folder
+                  </p>
+                </div>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/auth/login">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Sign In
+                  </Link>
+                </Button>
               </div>
             ) : (
               <form onSubmit={handleReset} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-primary" />
-                    Email
-                  </Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="you@example.com" 
+                      placeholder="name@example.com" 
                       value={email} 
                       onChange={(e) => setEmail(e.target.value)} 
+                      className="pl-10"
                       required 
                       disabled={isLoading}
-                      className="bg-secondary/50 border-primary/30 text-foreground placeholder:text-muted-foreground focus:border-primary pl-10"
                     />
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
+                
                 {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+                  >
                     <p className="text-sm text-destructive">{error}</p>
                   </motion.div>
                 )}
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold shadow-lg shadow-primary/50" 
-                    disabled={isLoading || !email}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending link...
-                      </>
-                    ) : (
-                      "Send reset link"
-                    )}
-                  </Button>
-                </motion.div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90" 
+                  disabled={isLoading || !email}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending link...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Reset Link
+                    </>
+                  )}
+                </Button>
+
                 <div className="text-center text-sm text-muted-foreground">
-                  Remembered your password? <Link href="/auth/login" className="text-primary underline">Sign in</Link>
+                  Remember your password?{" "}
+                  <Link href="/auth/login" className="text-primary hover:underline font-medium">
+                    Sign in
+                  </Link>
                 </div>
               </form>
             )}

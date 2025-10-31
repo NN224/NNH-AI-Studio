@@ -41,9 +41,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
+                <img 
+                  src="/nnh-logo.png" 
+                  alt="NNH AI Studio Logo" 
+                  className="w-10 h-10 rounded-lg object-contain"
+                />
                 <span className="text-xl font-bold">NNH AI Studio</span>
               </div>
             <nav className="hidden md:flex items-center gap-8">
@@ -93,7 +95,7 @@ export default function LandingPage() {
             {/* Trust Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
               <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="w-4 h-4 text-primary fill-primary" />
                 ))}
               </div>
@@ -324,7 +326,7 @@ export default function LandingPage() {
             {/* Testimonial 1 */}
             <div className="p-8 rounded-2xl bg-gradient-to-br from-card to-secondary border border-primary/30">
               <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-primary fill-primary" />
                 ))}
               </div>
@@ -354,7 +356,7 @@ export default function LandingPage() {
             {/* Testimonial 2 */}
             <div className="p-8 rounded-2xl bg-gradient-to-br from-card to-secondary border border-primary/30">
               <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-primary fill-primary" />
                 ))}
               </div>
@@ -812,9 +814,11 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-5 gap-8 mb-8">
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
+                <img 
+                  src="/nnh-logo.png" 
+                  alt="NNH AI Studio Logo" 
+                  className="w-10 h-10 rounded-lg object-contain"
+                />
                 <span className="text-xl font-bold">NNH AI Studio</span>
               </div>
               <p className="text-sm text-muted-foreground max-w-md">
