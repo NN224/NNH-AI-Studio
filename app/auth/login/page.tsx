@@ -15,6 +15,8 @@ import { createBrowserClient } from "@supabase/ssr"
 import { Loader2, Mail, Lock } from "lucide-react"
 import { getBaseUrlClient } from "@/lib/utils/get-base-url-client"
 import { toast } from "sonner"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -97,7 +99,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-6">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <PublicHeader />
+      <main className="flex-1 relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-6">
       {/* Animated Background Gradients */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -348,6 +352,8 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </motion.div>
+      </main>
+      <PublicFooter />
     </div>
   )
 }

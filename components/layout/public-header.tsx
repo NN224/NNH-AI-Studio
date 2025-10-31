@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Building2 } from "lucide-react"
 import { motion } from "framer-motion"
 
 export function PublicHeader() {
@@ -13,12 +13,16 @@ export function PublicHeader() {
       className="sticky top-0 z-50 w-full border-b border-primary/20 bg-black/80 backdrop-blur-xl"
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-2 group-hover:scale-110 transition-transform">
-            <Building2 className="h-5 w-5 text-white" />
-          </div>
+        <Link href="/" className="flex items-center gap-3 group">
+          <Image 
+            src="/nnh-logo.png" 
+            alt="NNH Logo" 
+            width={40} 
+            height={40}
+            className="object-contain group-hover:scale-110 transition-transform"
+          />
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            GMB Platform
+            NNH - AI Studio
           </span>
         </Link>
 

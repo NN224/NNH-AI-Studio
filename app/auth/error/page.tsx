@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { AlertCircle } from "lucide-react"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
 
 export default async function AuthErrorPage({
   searchParams,
@@ -11,7 +13,9 @@ export default async function AuthErrorPage({
   const params = await searchParams
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-4">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <PublicHeader />
+      <main className="flex-1 relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-4">
       {/* Simple background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent" />
       
@@ -72,6 +76,8 @@ export default async function AuthErrorPage({
           </CardContent>
         </Card>
       </div>
+      </main>
+      <PublicFooter />
     </div>
   )
 }

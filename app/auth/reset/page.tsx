@@ -10,6 +10,8 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { Loader2, Mail, ArrowLeft } from "lucide-react"
 import { getBaseUrlClient } from "@/lib/utils/get-base-url-client"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("")
@@ -37,7 +39,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-4">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <PublicHeader />
+      <main className="flex-1 relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-4">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -176,6 +180,8 @@ export default function ResetPasswordPage() {
           </CardContent>
         </Card>
       </motion.div>
+      </main>
+      <PublicFooter />
     </div>
   )
 }
