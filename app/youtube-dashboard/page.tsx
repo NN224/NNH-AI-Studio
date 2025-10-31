@@ -212,6 +212,10 @@ export default function YoutubeDashboardPage() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   
+  // Video Analytics state
+  const [selectedVideoForAnalytics, setSelectedVideoForAnalytics] = useState<string | null>(null)
+  const [videoAnalyticsFilter, setVideoAnalyticsFilter] = useState<'all' | 'top' | 'recent'>('all')
+  
   // Video Manager state
   const [videoSearch, setVideoSearch] = useState("")
   const [videoFilter, setVideoFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all')
@@ -2475,6 +2479,311 @@ export default function YoutubeDashboardPage() {
                         )}
                       </CardContent>
                     </Card>
+                  </div>
+                </TabsContent>
+
+                {/* Video Analytics Tab */}
+                <TabsContent value="video-analytics" className="space-y-6">
+                  <div className="grid gap-6">
+                    {/* Filter and Stats */}
+                    <Card className="glass-strong border-primary/30 shadow-xl">
+                      <CardHeader className="border-b border-primary/20">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <CardTitle className="flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-primary" />
+                            Video Performance Analytics
+                          </CardTitle>
+                          <Select value={videoAnalyticsFilter} onValueChange={(value: any) => setVideoAnalyticsFilter(value)}>
+                            <SelectTrigger className="w-full sm:w-48 border-primary/30 glass">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Videos</SelectItem>
+                              <SelectItem value="top">Top Performers</SelectItem>
+                              <SelectItem value="recent">Recent Videos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {/* Overall Stats */}
+                        <div className="grid gap-4 md:grid-cols-4 mb-6">
+                          <div className="p-4 rounded-lg glass border border-primary/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Eye className="w-4 h-4 text-primary" />
+                              <span className="text-sm text-muted-foreground">Total Views</span>
+                            </div>
+                            <p className="text-2xl font-bold">
+                              {videos.reduce((sum, v) => sum + v.views, 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-lg glass border border-primary/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <ThumbsUp className="w-4 h-4 text-primary" />
+                              <span className="text-sm text-muted-foreground">Avg Views/Video</span>
+                            </div>
+                            <p className="text-2xl font-bold">
+                              {videos.length > 0
+                                ? Math.round(videos.reduce((sum, v) => sum + v.views, 0) / videos.length).toLocaleString()
+                                : '0'}
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-lg glass border border-primary/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Video className="w-4 h-4 text-primary" />
+                              <span className="text-sm text-muted-foreground">Total Videos</span>
+                            </div>
+                            <p className="text-2xl font-bold">{videos.length}</p>
+                          </div>
+                          <div className="p-4 rounded-lg glass border border-primary/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageSquare className="w-4 h-4 text-primary" />
+                              <span className="text-sm text-muted-foreground">Total Comments</span>
+                            </div>
+                            <p className="text-2xl font-bold">{comments.length}</p>
+                          </div>
+                        </div>
+
+                        {/* Filtered Videos */}
+                        <div className="space-y-3">
+                          <h3 className="text-lg font-semibold mb-4">
+                            {videoAnalyticsFilter === 'top' ? 'Top Performing Videos' :
+                             videoAnalyticsFilter === 'recent' ? 'Recent Videos' :
+                             'All Videos'} ({videos.length})
+                          </h3>
+                          <ScrollArea className="h-[500px]">
+                            {(() => {
+                              let filteredVids = [...videos]
+                              if (videoAnalyticsFilter === 'top') {
+                                filteredVids.sort((a, b) => b.views - a.views)
+                                filteredVids = filteredVids.slice(0, 10)
+                              } else if (videoAnalyticsFilter === 'recent') {
+                                filteredVids.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+                                filteredVids = filteredVids.slice(0, 10)
+                              }
+                              return filteredVids.map((video) => {
+                                const videoComments = comments.filter(c => c.videoUrl === video.url)
+                                const engagementRate = video.views > 0 
+                                  ? ((videoComments.length / video.views) * 100).toFixed(2)
+                                  : '0.00'
+                                const daysSincePublished = Math.floor((new Date().getTime() - new Date(video.publishedAt).getTime()) / (1000 * 60 * 60 * 24))
+                                const viewsPerDay = daysSincePublished > 0 
+                                  ? Math.round(video.views / daysSincePublished)
+                                  : video.views
+
+                                return (
+                                  <Card
+                                    key={video.id}
+                                    className={cn(
+                                      "glass border-primary/20 hover:border-primary/40 transition-all cursor-pointer mb-3",
+                                      selectedVideoForAnalytics === video.id && "border-primary bg-primary/5"
+                                    )}
+                                    onClick={() => setSelectedVideoForAnalytics(selectedVideoForAnalytics === video.id ? null : video.id)}
+                                  >
+                                    <CardContent className="p-4">
+                                      <div className="flex gap-4">
+                                        <img
+                                          src={video.thumbnail}
+                                          alt={video.title}
+                                          className="w-32 h-20 object-cover rounded"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1">
+                                              <h4 className="font-medium line-clamp-1 mb-2">{video.title}</h4>
+                                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                <div>
+                                                  <p className="text-muted-foreground">Views</p>
+                                                  <p className="font-semibold text-primary">{video.views.toLocaleString()}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-muted-foreground">Comments</p>
+                                                  <p className="font-semibold">{videoComments.length}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-muted-foreground">Engagement</p>
+                                                  <p className="font-semibold">{engagementRate}%</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-muted-foreground">Views/Day</p>
+                                                  <p className="font-semibold">{viewsPerDay.toLocaleString()}</p>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                                <span className="flex items-center gap-1">
+                                                  <Calendar className="w-3 h-3" />
+                                                  {new Date(video.publishedAt).toLocaleDateString()}
+                                                </span>
+                                                <span>{daysSincePublished} days ago</span>
+                                              </div>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 hover:bg-primary hover:text-white"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                window.open(video.url, '_blank')
+                                              }}
+                                            >
+                                              <ExternalLink className="w-4 h-4" />
+                                            </Button>
+                                          </div>
+
+                                          {/* Expanded Analytics */}
+                                          {selectedVideoForAnalytics === video.id && (
+                                            <div className="mt-4 pt-4 border-t border-primary/20">
+                                              <div className="grid gap-4 md:grid-cols-2">
+                                                <div className="space-y-2">
+                                                  <p className="text-sm font-medium">Performance Metrics</p>
+                                                  <div className="space-y-1 text-sm">
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Total Views:</span>
+                                                      <span className="font-medium">{video.views.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Comments:</span>
+                                                      <span className="font-medium">{videoComments.length}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Engagement Rate:</span>
+                                                      <span className="font-medium">{engagementRate}%</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Avg Views/Day:</span>
+                                                      <span className="font-medium">{viewsPerDay.toLocaleString()}</span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                  <p className="text-sm font-medium">Video Information</p>
+                                                  <div className="space-y-1 text-sm">
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Published:</span>
+                                                      <span className="font-medium">
+                                                        {new Date(video.publishedAt).toLocaleDateString('en-US', {
+                                                          year: 'numeric',
+                                                          month: 'short',
+                                                          day: 'numeric'
+                                                        })}
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                      <span className="text-muted-foreground">Days Active:</span>
+                                                      <span className="font-medium">{daysSincePublished}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                      <span className="text-muted-foreground">Status:</span>
+                                                      <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                          video.status === 'published' && "border-green-500 text-green-500",
+                                                          video.status === 'scheduled' && "border-yellow-500 text-yellow-500",
+                                                          video.status === 'draft' && "border-gray-500 text-gray-500"
+                                                        )}
+                                                      >
+                                                        {video.status || 'published'}
+                                                      </Badge>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                )
+                              })
+                            })()}
+                          </ScrollArea>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Performance Charts */}
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      {/* Top Videos Chart */}
+                      <Card className="glass-strong border-primary/30 shadow-xl">
+                        <CardHeader className="border-b border-primary/20">
+                          <CardTitle className="flex items-center gap-2">
+                            <Award className="w-5 h-5 text-primary" />
+                            Top 5 Videos by Views
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="h-[300px]">
+                            {videos.length > 0 ? (
+                              <Bar data={{
+                                labels: [...videos]
+                                  .sort((a, b) => b.views - a.views)
+                                  .slice(0, 5)
+                                  .map(v => v.title.length > 20 ? v.title.slice(0, 20) + '...' : v.title),
+                                datasets: [{
+                                  label: 'Views',
+                                  data: [...videos]
+                                    .sort((a, b) => b.views - a.views)
+                                    .slice(0, 5)
+                                    .map(v => v.views),
+                                  backgroundColor: 'rgba(255,107,0,0.7)',
+                                  borderColor: '#FF6B00',
+                                  borderWidth: 2,
+                                }]
+                              }} options={chartOptions} />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-muted-foreground">
+                                <p>No video data available</p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Engagement Chart */}
+                      <Card className="glass-strong border-primary/30 shadow-xl">
+                        <CardHeader className="border-b border-primary/20">
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-primary" />
+                            Engagement Comparison
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="h-[300px]">
+                            {videos.length > 0 ? (
+                              <Bar data={{
+                                labels: [...videos]
+                                  .slice(0, 5)
+                                  .map(v => v.title.length > 15 ? v.title.slice(0, 15) + '...' : v.title),
+                                datasets: [
+                                  {
+                                    label: 'Views',
+                                    data: [...videos].slice(0, 5).map(v => v.views),
+                                    backgroundColor: 'rgba(255,107,0,0.5)',
+                                    borderColor: '#FF6B00',
+                                    borderWidth: 2,
+                                  },
+                                  {
+                                    label: 'Comments',
+                                    data: [...videos].slice(0, 5).map(v => {
+                                      const vComments = comments.filter(c => c.videoUrl === v.url)
+                                      return vComments.length * 100 // Scale for visibility
+                                    }),
+                                    backgroundColor: 'rgba(0,150,255,0.5)',
+                                    borderColor: '#0096FF',
+                                    borderWidth: 2,
+                                  }
+                                ]
+                              }} options={chartOptions} />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-muted-foreground">
+                                <p>No video data available</p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
