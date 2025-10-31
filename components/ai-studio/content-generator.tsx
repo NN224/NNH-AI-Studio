@@ -61,10 +61,27 @@ export function ContentGenerator({ contentType }: ContentGeneratorProps) {
       }),
     }).then(async (res) => {
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || "Failed to generate content")
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }))
+        
+        if (res.status === 401) {
+          window.location.href = "/auth/login"
+          throw new Error("Please log in to continue")
+        }
+        
+        if (res.status === 400) {
+          throw new Error(errorData.error || "Invalid request")
+        }
+        
+        if (res.status === 500) {
+          throw new Error(errorData.error || "Server error occurred")
+        }
+        
+        throw new Error(errorData.error || "Failed to generate content")
       }
       return res.json()
+    }).catch((err) => {
+      if (err.message) throw err
+      throw new Error("Connection failed. Please check your internet connection.")
     })
 
     toast.promise(generatePromise, {

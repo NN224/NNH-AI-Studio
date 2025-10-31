@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    const validContentTypes = ['posts', 'responses', 'descriptions', 'faqs']
+    if (!validContentTypes.includes(contentType)) {
+      return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
+    }
+
     let generatedContent = ""
     let usedProvider = ""
     let error = null
@@ -50,14 +55,14 @@ export async function POST(request: NextRequest) {
         }
       } catch (err) {
         error = err
-        console.error(`Failed to generate with ${provider.name}:`, err)
+        console.log(`Failed with provider: ${provider.name}`)
         continue
       }
     }
 
     if (!generatedContent) {
       return NextResponse.json(
-        { error: "Failed to generate content with all providers" },
+        { error: "All AI providers are unavailable" },
         { status: 500 }
       )
     }
@@ -80,7 +85,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError) {
-      console.error("Failed to save to database:", dbError)
+      console.error("Database error:", dbError.message)
+      return NextResponse.json(
+        { 
+          error: "Failed to save content" 
+        }, 
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
@@ -89,7 +100,7 @@ export async function POST(request: NextRequest) {
       id: savedContent?.id,
     })
   } catch (error) {
-    console.error("Error in generate API:", error)
+    console.error("Error in generate API")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -143,7 +154,6 @@ async function generateWithGroq(apiKey: string, systemPrompt: string, userPrompt
     const data = await response.json()
     return data.choices?.[0]?.message?.content || null
   } catch (error) {
-    console.error("Groq generation error:", error)
     return null
   }
 }
@@ -174,7 +184,6 @@ async function generateWithDeepSeek(apiKey: string, systemPrompt: string, userPr
     const data = await response.json()
     return data.choices?.[0]?.message?.content || null
   } catch (error) {
-    console.error("DeepSeek generation error:", error)
     return null
   }
 }
@@ -205,7 +214,6 @@ async function generateWithTogether(apiKey: string, systemPrompt: string, userPr
     const data = await response.json()
     return data.choices?.[0]?.message?.content || null
   } catch (error) {
-    console.error("Together generation error:", error)
     return null
   }
 }
@@ -236,7 +244,6 @@ async function generateWithOpenAI(apiKey: string, systemPrompt: string, userProm
     const data = await response.json()
     return data.choices?.[0]?.message?.content || null
   } catch (error) {
-    console.error("OpenAI generation error:", error)
     return null
   }
 }

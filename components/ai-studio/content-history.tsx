@@ -30,14 +30,18 @@ export function ContentHistory() {
           table: "content_generations",
         },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            setHistory((prev) => [payload.new as ContentGeneration, ...prev])
-          } else if (payload.eventType === "DELETE") {
-            setHistory((prev) => prev.filter((item) => item.id !== payload.old.id))
-          } else if (payload.eventType === "UPDATE") {
-            setHistory((prev) =>
-              prev.map((item) => (item.id === payload.new.id ? (payload.new as ContentGeneration) : item))
-            )
+          try {
+            if (payload.eventType === "INSERT") {
+              setHistory((prev) => [payload.new as ContentGeneration, ...prev])
+            } else if (payload.eventType === "DELETE") {
+              setHistory((prev) => prev.filter((item) => item.id !== payload.old.id))
+            } else if (payload.eventType === "UPDATE") {
+              setHistory((prev) =>
+                prev.map((item) => (item.id === payload.new.id ? (payload.new as ContentGeneration) : item))
+              )
+            }
+          } catch (error) {
+            console.error("Error handling realtime update:", error)
           }
         }
       )
