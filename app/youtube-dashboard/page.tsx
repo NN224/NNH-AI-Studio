@@ -80,7 +80,6 @@ import {
   ExternalLink,
   Mic,
   Camera,
-  Lightbulb,
   TrendingUp as TrendingUpIcon,
 } from "lucide-react"
 import {
@@ -610,6 +609,22 @@ export default function YoutubeDashboardPage() {
         const has = await fetchFromDB()
         if (has) {
           await Promise.all([fetchVideos(), fetchComments(), fetchAnalytics(), fetchDrafts()])
+          // Load saved ideas
+          try {
+            const res = await safeGet("/api/youtube/composer/drafts")
+            const drafts = res.items || []
+            const ideas = drafts
+              .filter((d: any) => d.description?.includes("Content idea:"))
+              .map((d: any) => ({
+                id: d.id,
+                idea: d.title || d.description?.replace("Content idea: ", "") || "",
+                category: "all",
+                created_at: d.created_at
+              }))
+            setSavedIdeas(ideas)
+          } catch (e) {
+            // Silent fail for saved ideas
+          }
         }
       } catch (e: any) {
         toast.error(e.message || "Failed to load channel data")
