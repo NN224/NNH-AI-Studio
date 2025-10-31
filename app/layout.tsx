@@ -7,6 +7,7 @@ import { Toaster } from "sonner"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://nnh-ai-studio.com'),
   title: "NNH AI Studio - Google My Business & YouTube Management Platform",
   description: "Manage your Google My Business locations, YouTube channel, reviews, and content with AI-powered tools",
   icons: {
