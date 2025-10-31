@@ -3,6 +3,10 @@
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { PerformanceChart } from "@/components/dashboard/performance-chart"
+import { LocationsList } from "@/components/locations/locations-list"
+import { ReviewsList } from "@/components/reviews/reviews-list"
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
+import { GMBSettings } from "@/components/settings/gmb-settings"
 import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users, Home, LogOut, BarChart3, Settings, Menu } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,11 +29,11 @@ interface DashboardStats {
 }
 
 const navItems = [
-  { name: "Dashboard", href: "/gmb-dashboard", icon: BarChart3 },
-  { name: "Locations", href: "/locations", icon: MapPin },
-  { name: "Reviews", href: "/reviews", icon: MessageSquare },
-  { name: "Analytics", href: "/analytics", icon: TrendingUp },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", id: "dashboard", icon: BarChart3 },
+  { name: "Locations", id: "locations", icon: MapPin },
+  { name: "Reviews", id: "reviews", icon: MessageSquare },
+  { name: "Analytics", id: "analytics", icon: TrendingUp },
+  { name: "Settings", id: "settings", icon: Settings },
 ]
 
 export default function GMBDashboardPage() {
@@ -230,18 +234,21 @@ export default function GMBDashboardPage() {
             </Button>
           </Link>
           {navItems.map((item) => (
-            <Link key={item.name} href={item.href} onClick={() => setMobileMenuOpen(false)}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3",
-                  item.href === "/gmb-dashboard" ? "bg-primary/20 text-primary" : "hover:bg-primary/10"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </Button>
-            </Link>
+            <Button
+              key={item.name}
+              variant="ghost"
+              onClick={() => {
+                setActiveTab(item.id)
+                setMobileMenuOpen(false)
+              }}
+              className={cn(
+                "w-full justify-start gap-3",
+                activeTab === item.id ? "bg-primary/20 text-primary" : "hover:bg-primary/10"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.name}
+            </Button>
           ))}
           <Link href="/youtube-dashboard" onClick={() => setMobileMenuOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-primary/10">
@@ -293,20 +300,20 @@ export default function GMBDashboardPage() {
             {/* Center - Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-2">
               {navItems.map((item) => (
-                <Link key={item.name} href={item.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "gap-2",
-                      item.href === "/gmb-dashboard"
-                        ? "bg-primary/20 text-primary border border-primary/30"
-                        : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.name}
-                  </Button>
-                </Link>
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  onClick={() => setActiveTab(item.id)}
+                  className={cn(
+                    "gap-2",
+                    activeTab === item.id
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Button>
               ))}
             </nav>
 
@@ -348,15 +355,27 @@ export default function GMBDashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back! Here's your GMB overview.</p>
-        </div>
+      <main className="container mx-auto px-4 sm:px-6 py-6">
+        {/* Render content based on active tab */}
+        {activeTab === "dashboard" && (
+          <div className="space-y-6">
+            {/* Page Header */}
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">Welcome back! Here's your GMB overview.</p>
+            </div>
+            {/* Dashboard Content */}
+            {renderDashboardContent()}
+          </div>
+        )}
 
-        {/* Dashboard Content */}
-        {renderDashboardContent()}
+        {activeTab === "locations" && <LocationsList />}
+        
+        {activeTab === "reviews" && <ReviewsList />}
+        
+        {activeTab === "analytics" && <AnalyticsDashboard />}
+        
+        {activeTab === "settings" && <GMBSettings />}
       </main>
     </div>
   )

@@ -20,9 +20,16 @@ import { Plus, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
-export function AddLocationDialog() {
-  const [open, setOpen] = useState(false)
+interface AddLocationDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocationDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const open = externalOpen !== undefined ? externalOpen : internalOpen
+  const setOpen = onOpenChange || setInternalOpen
   const [formData, setFormData] = useState({
     location_name: "",
     address: "",

@@ -22,9 +22,10 @@ interface ReplyDialogProps {
   review: GMBReview | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onReply?: (reply: string) => Promise<void>
 }
 
-export function ReplyDialog({ review, open, onOpenChange }: ReplyDialogProps) {
+export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialogProps) {
   const [reply, setReply] = useState("")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -62,33 +63,40 @@ export function ReplyDialog({ review, open, onOpenChange }: ReplyDialogProps) {
     setLoading(true)
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
+      if (onReply) {
+        // Use the provided onReply callback
+        await onReply(reply)
+        setReply("")
+      } else {
+        // Fallback to internal handling
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) throw new Error("Not authenticated")
 
-      const { error } = await supabase
-        .from("gmb_reviews")
-        .update({
-          review_reply: reply,
-          replied_at: new Date().toISOString(),
-          status: "responded",
+        const { error } = await supabase
+          .from("gmb_reviews")
+          .update({
+            review_reply: reply,
+            replied_at: new Date().toISOString(),
+            status: "responded",
+          })
+          .eq("id", review.id)
+
+        if (error) throw error
+
+        // Log activity
+        await supabase.from("activity_logs").insert({
+          user_id: user.id,
+          activity_type: "review",
+          activity_message: `Replied to review from ${review.reviewer_name}`,
+          actionable: false,
         })
-        .eq("id", review.id)
 
-      if (error) throw error
-
-      // Log activity
-      await supabase.from("activity_logs").insert({
-        user_id: user.id,
-        activity_type: "review",
-        activity_message: `Replied to review from ${review.reviewer_name}`,
-        actionable: false,
-      })
-
-      onOpenChange(false)
-      setReply("")
-      router.refresh()
+        onOpenChange(false)
+        setReply("")
+        router.refresh()
+      }
     } catch (error) {
       console.error("Error submitting reply:", error)
     } finally {
