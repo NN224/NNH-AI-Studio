@@ -23,7 +23,13 @@ import {
   ChevronRight,
   Home,
   MapPin,
-  Sparkles
+  Sparkles,
+  Upload,
+  CalendarDays,
+  ListVideo,
+  BarChart3,
+  Activity,
+  Wand2
 } from "lucide-react"
 
 interface SidebarProps {
@@ -33,13 +39,15 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: "overview", label: "Dashboard", icon: LayoutGrid },
-  { id: "analytics", label: "Channel Analytics", icon: TrendingUp },
-  { id: "videos", label: "Video Analytics", icon: FileVideo },
+  { id: "overview", label: "Overview", icon: LayoutGrid },
+  { id: "composer", label: "AI Composer", icon: Upload },
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "manager", label: "Manager", icon: ListVideo },
+  { id: "ai-tools", label: "AI Tools", icon: Wand2 },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "content-ideas", label: "Content Ideas", icon: Sparkles },
+  { id: "video-analytics", label: "Video Analytics", icon: Activity },
   { id: "comments", label: "Comments", icon: MessageCircle },
-  { id: "posts", label: "Content Ideas", icon: Sparkles },
-  { id: "composer", label: "AI Composer", icon: Lightbulb },
-  { id: "settings", label: "Settings", icon: Settings },
 ]
 
 export function YoutubeDashboardSidebar({ activeTab, setActiveTab, user }: SidebarProps) {

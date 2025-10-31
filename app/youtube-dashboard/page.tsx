@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -903,49 +902,10 @@ export default function YoutubeDashboardPage() {
             </Card>
           ) : (
             <>
-              {/* Tab Navigation */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-9 glass-strong border-primary/30">
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <LayoutGrid className="w-4 h-4 mr-2" />
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="composer" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <Upload className="w-4 h-4 mr-2" />
-                    AI Composer
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <CalendarDays className="w-4 h-4 mr-2" />
-                    Calendar
-                  </TabsTrigger>
-                  <TabsTrigger value="manager" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <ListVideo className="w-4 h-4 mr-2" />
-                    Manager
-                  </TabsTrigger>
-                  <TabsTrigger value="ai-tools" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Tools
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="content-ideas" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <Lightbulb className="w-4 h-4 mr-2" />
-                    Ideas
-                  </TabsTrigger>
-                  <TabsTrigger value="video-analytics" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <Activity className="w-4 h-4 mr-2" />
-                    Video Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="comments" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Comments
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Overview Tab */}
-                <TabsContent value="overview" className="space-y-6">
+              {/* Content based on activeTab from Sidebar */}
+              {/* Overview */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
                   {/* Stats Cards */}
                   <div className="grid gap-6 md:grid-cols-4">
                     <StatCard
@@ -1627,10 +1587,12 @@ export default function YoutubeDashboardPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
+                </div>
+              )}
 
-                {/* Video Manager Tab */}
-                <TabsContent value="manager" className="space-y-6">
+              {/* Manager */}
+              {activeTab === "manager" && (
+                <div className="space-y-6">
                   <Card className="glass-strong border-primary/30 shadow-xl">
                     <CardHeader className="border-b border-primary/20">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1770,10 +1732,12 @@ export default function YoutubeDashboardPage() {
                       )}
                     </CardContent>
                   </Card>
-                </TabsContent>
+                </div>
+              )}
 
-                {/* AI Content Tools Tab */}
-                <TabsContent value="ai-tools" className="space-y-6">
+              {/* AI Tools */}
+              {activeTab === "ai-tools" && (
+                <div className="space-y-6">
                   <div className="grid gap-6">
                     {/* Video Script Generator */}
                     <Card className="glass-strong border-primary/30 shadow-xl">
@@ -2523,10 +2487,12 @@ export default function YoutubeDashboardPage() {
                       </CardContent>
                     </Card>
                   </div>
-                </TabsContent>
+                </div>
+              )}
 
-                {/* Video Analytics Tab */}
-                <TabsContent value="video-analytics" className="space-y-6">
+              {/* Video Analytics */}
+              {activeTab === "video-analytics" && (
+                <div className="space-y-6">
                   <div className="grid gap-6">
                     {/* Filter and Stats */}
                     <Card className="glass-strong border-primary/30 shadow-xl">
@@ -2846,10 +2812,12 @@ export default function YoutubeDashboardPage() {
                       </Card>
                     </div>
                   </div>
-                </TabsContent>
+                </div>
+              )}
 
-                {/* Comments Tab */}
-                <TabsContent value="comments" className="space-y-6">
+              {/* Comments */}
+              {activeTab === "comments" && (
+                <div className="space-y-6">
                   <div className="grid gap-6">
                     {/* Stats and Filters */}
                     <Card className="glass-strong border-primary/30 shadow-xl">
@@ -3072,8 +3040,8 @@ export default function YoutubeDashboardPage() {
                       </CardContent>
                     </Card>
                   </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              )}
             </>
           )}
         </main>
