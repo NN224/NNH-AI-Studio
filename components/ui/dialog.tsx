@@ -90,18 +90,32 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Helper function to check if a component type matches
+  const isComponentType = (child: React.ReactNode, Component: any): boolean => {
+    if (!React.isValidElement(child)) return false
+    return child.type === Component
+  }
+
   // Check if children contains DialogTitle
   const hasTitle = React.Children.toArray(children).some((child) => {
-    if (React.isValidElement(child)) {
-      // Check if it's DialogTitle or DialogHeader (which might contain DialogTitle)
-      if (child.type === DialogTitle) return true
-      if (child.type === DialogHeader) {
-        // Check if DialogHeader contains DialogTitle
-        return React.Children.toArray(child.props.children).some(
-          (headerChild) =>
-            React.isValidElement(headerChild) && headerChild.type === DialogTitle
-        )
-      }
+    if (isComponentType(child, DialogTitle)) return true
+    if (isComponentType(child, DialogHeader)) {
+      // Check if DialogHeader contains DialogTitle
+      return React.Children.toArray(
+        React.isValidElement(child) ? child.props.children : []
+      ).some((headerChild) => isComponentType(headerChild, DialogTitle))
+    }
+    return false
+  })
+
+  // Check if children contains DialogDescription
+  const hasDescription = React.Children.toArray(children).some((child) => {
+    if (isComponentType(child, DialogDescription)) return true
+    if (isComponentType(child, DialogHeader)) {
+      // Check if DialogHeader contains DialogDescription
+      return React.Children.toArray(
+        React.isValidElement(child) ? child.props.children : []
+      ).some((headerChild) => isComponentType(headerChild, DialogDescription))
     }
     return false
   })
@@ -121,6 +135,11 @@ function DialogContent({
           <DialogPrimitive.Title asChild>
             <VisuallyHidden>Dialog</VisuallyHidden>
           </DialogPrimitive.Title>
+        )}
+        {!hasDescription && (
+          <DialogPrimitive.Description asChild>
+            <VisuallyHidden>Dialog description</VisuallyHidden>
+          </DialogPrimitive.Description>
         )}
         {children}
         {showCloseButton && (
