@@ -7,7 +7,7 @@ import { LocationsList } from "@/components/locations/locations-list"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
 import { GMBSettings } from "@/components/settings/gmb-settings"
-import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users, Home, LogOut, BarChart3, Settings, Menu } from "lucide-react"
+import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Users, Home, LogOut, BarChart3, Settings, Menu, Sparkles } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ const navItems = [
   { name: "Dashboard", id: "dashboard", icon: BarChart3 },
   { name: "Locations", id: "locations", icon: MapPin },
   { name: "Reviews", id: "reviews", icon: MessageSquare },
+  { name: "Posts", id: "posts", icon: Sparkles },
   { name: "Analytics", id: "analytics", icon: TrendingUp },
   { name: "Settings", id: "settings", icon: Settings },
 ]
@@ -372,6 +373,30 @@ export default function GMBDashboardPage() {
         {activeTab === "locations" && <LocationsList />}
         
         {activeTab === "reviews" && <ReviewsList />}
+        
+        {activeTab === "posts" && (
+          <Card className="bg-card border-primary/30 glass">
+            <CardContent className="p-12">
+              <div className="flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-foreground">GMB Posts</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Create and publish posts to your Google Business Profile locations with AI assistance.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="mt-4 gradient-orange">
+                  <Link href="/gmb-posts">
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Go to Posts Page
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {activeTab === "analytics" && <AnalyticsDashboard />}
         

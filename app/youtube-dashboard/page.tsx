@@ -79,6 +79,7 @@ type Draft = { id: string; title: string; description: string; hashtags: string;
 const tabItems = [
   { id: "overview", label: "Overview", icon: LayoutGrid },
   { id: "videos", label: "Videos", icon: FileVideo },
+  { id: "posts", label: "Posts", icon: Sparkles },
   { id: "comments", label: "Comments", icon: MessageCircle },
   { id: "composer", label: "Composer", icon: Wand2 },
   { id: "settings", label: "Settings", icon: SettingsIcon },
@@ -750,6 +751,30 @@ export default function YoutubeDashboardPage() {
                   </CardHeader>
                 </Card>
               </>
+            )}
+
+            {activeTab === "posts" && (
+              <Card className="bg-card border-primary/30 glass">
+                <CardContent className="p-12">
+                  <div className="flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Sparkles className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold text-foreground">YouTube Posts</h3>
+                      <p className="text-muted-foreground max-w-md">
+                        Create and manage your YouTube video posts with AI-powered content generation.
+                      </p>
+                    </div>
+                    <Button asChild size="lg" className="mt-4 gradient-orange">
+                      <Link href="/youtube-posts">
+                        <Sparkles className="mr-2 h-5 w-5" />
+                        Go to Posts Page
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {activeTab === "videos" && (
