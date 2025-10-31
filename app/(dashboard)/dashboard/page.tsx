@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import Link from "next/link"
 
 interface DashboardStats {
@@ -113,17 +113,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       {loading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="bg-card border-primary/30">
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <LoadingSkeleton type="stat" count={4} />
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

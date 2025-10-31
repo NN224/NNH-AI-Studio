@@ -6,7 +6,7 @@ import { LocationFilters } from "@/components/locations/location-filters"
 import { AddLocationDialog } from "@/components/locations/add-location-dialog"
 import { createClient } from "@/lib/supabase/client"
 import type { GMBLocation } from "@/lib/types/database"
-import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { MapPin } from "lucide-react"
 
 export default function LocationsPage() {
@@ -124,9 +124,7 @@ export default function LocationsPage() {
       {/* Locations Grid/List */}
       {loading ? (
         <div className={viewMode === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-4"}>
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-[400px] rounded-2xl" />
-          ))}
+          <LoadingSkeleton type="card" count={6} />
         </div>
       ) : filteredLocations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
 import type { GMBReview, GMBLocation } from "@/lib/types/database"
-import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { MessageSquare, RefreshCw } from "lucide-react"
 
 export default function ReviewsPage() {
@@ -149,9 +149,10 @@ export default function ReviewsPage() {
         <div className="grid gap-6 md:grid-cols-3 flex-1">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
+              <div className="bg-card border border-primary/30 rounded-lg p-4">
+                <div className="h-6 w-24 bg-primary/20 rounded shimmer mb-4" />
+                <LoadingSkeleton type="review" count={2} />
+              </div>
             </div>
           ))}
         </div>
