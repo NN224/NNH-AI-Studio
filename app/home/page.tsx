@@ -196,6 +196,37 @@ export default async function HomePage() {
 
         {/* Quick Stats Dashboard */}
         <section className="container mx-auto px-6 py-12">
+          {/* Show empty state if no accounts connected */}
+          {accountsCount === 0 && !hasYouTube && (
+            <Card className="border border-primary/30 glass-strong mb-6">
+              <CardContent className="p-8 text-center">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center">
+                    <Building2 className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground">Get Started with NNH AI Studio</h3>
+                  <p className="text-muted-foreground">
+                    Connect your Google My Business account or YouTube channel to start managing your online presence.
+                  </p>
+                  <div className="flex gap-3 justify-center pt-4">
+                    <Link href="/gmb-dashboard">
+                      <Button className="gap-2 gradient-orange hover:opacity-90">
+                        <Building2 className="w-4 h-4" />
+                        Connect GMB
+                      </Button>
+                    </Link>
+                    <Link href="/youtube-dashboard">
+                      <Button variant="outline" className="gap-2 border-primary/30 hover:bg-primary/10">
+                        <Play className="w-4 h-4" />
+                        Connect YouTube
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {[
               {
@@ -486,11 +517,12 @@ export default async function HomePage() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
-                  { icon: Building2, label: 'Connect Account', href: '/accounts' },
-                  { icon: BarChart3, label: 'View Analytics', href: '/analytics' },
-                  { icon: MessageSquare, label: 'Manage Reviews', href: '/reviews' },
+                  { icon: Building2, label: 'GMB Dashboard', href: '/gmb-dashboard' },
+                  { icon: BarChart3, label: 'View Analytics', href: '/gmb-dashboard' },
+                  { icon: MessageSquare, label: 'Manage Reviews', href: '/gmb-dashboard' },
                   { icon: Play, label: 'YouTube Dashboard', href: '/youtube-dashboard' },
-                  { icon: Sparkles, label: 'AI Studio', href: '/ai-studio' }
+                  { icon: Sparkles, label: 'GMB Posts', href: '/gmb-posts' },
+                  { icon: Sparkles, label: 'YouTube Posts', href: '/youtube-posts' }
                 ].map((action, index) => (
                   <Link key={index} href={action.href}>
                     <Button 
@@ -535,9 +567,8 @@ export default async function HomePage() {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li><Link href="/features" className="hover:text-primary transition-colors">Features</Link></li>
                   <li><Link href="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
-                  <li><Link href="/analytics" className="hover:text-primary transition-colors">Analytics</Link></li>
+                  <li><Link href="/gmb-dashboard" className="hover:text-primary transition-colors">Analytics</Link></li>
                   <li><Link href="/youtube-dashboard" className="hover:text-primary transition-colors">YouTube Dashboard</Link></li>
-                  <li><Link href="/ai-studio" className="hover:text-primary transition-colors">AI Studio</Link></li>
                 </ul>
               </div>
 
@@ -555,7 +586,6 @@ export default async function HomePage() {
                 <h5 className="font-semibold mb-4">Support</h5>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li><Link href="/gmb-dashboard" className="hover:text-primary transition-colors">GMB Dashboard</Link></li>
-                  <li><Link href="/accounts" className="hover:text-primary transition-colors">My Accounts</Link></li>
                   <li><Link href="/settings" className="hover:text-primary transition-colors">Settings</Link></li>
                   <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Support</Link></li>
                 </ul>

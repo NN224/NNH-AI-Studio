@@ -26,14 +26,42 @@ export function ResponseTimeChart() {
           .eq("user_id", user.id)
           .not("reply_text", "is", null)
 
-        if (reviews) {
-          // Calculate average response time per week
-          const weeklyData = Array.from({ length: 6 }, (_, i) => ({
-            week: `Week ${i + 1}`,
-            hours: Math.floor(Math.random() * 24) + 2, // Simulated response time in hours
-          }))
-
-          setData(weeklyData)
+        if (reviews && reviews.length > 0) {
+          // Calculate actual response time from reviews with replies
+          const reviewsWithReplies = reviews.filter((r: any) => r.reply_text && r.updated_at && r.created_at)
+          
+          if (reviewsWithReplies.length > 0) {
+            // Group by week and calculate average response time
+            const now = new Date()
+            const weeklyData = Array.from({ length: 6 }, (_, i) => {
+              const weekStart = new Date(now)
+              weekStart.setDate(weekStart.getDate() - (6 - i) * 7)
+              
+              const weekReviews = reviewsWithReplies.filter((r: any) => {
+                const reviewDate = new Date(r.created_at)
+                return reviewDate >= weekStart && reviewDate < new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
+              })
+              
+              if (weekReviews.length === 0) {
+                return { week: `Week ${i + 1}`, hours: 0 }
+              }
+              
+              const avgHours = weekReviews.reduce((sum: number, r: any) => {
+                const created = new Date(r.created_at).getTime()
+                const replied = new Date(r.updated_at).getTime()
+                const diffHours = (replied - created) / (1000 * 60 * 60)
+                return sum + diffHours
+              }, 0) / weekReviews.length
+              
+              return { week: `Week ${i + 1}`, hours: Math.round(avgHours * 10) / 10 }
+            })
+            
+            setData(weeklyData)
+          } else {
+            setData([])
+          }
+        } else {
+          setData([])
         }
       } catch (error) {
         console.error("Error fetching response data:", error)

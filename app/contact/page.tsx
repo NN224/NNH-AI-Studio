@@ -18,6 +18,7 @@ export default function ContactPage() {
     // Simulate form submission
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setIsSubmitting(false)
+    // TODO: Implement contact form submission to backend/database
     alert("Thank you for your message! We'll get back to you soon.")
   }
 

@@ -8,6 +8,7 @@ const SCOPES = [
   'https://www.googleapis.com/auth/business.manage',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
+  'openid', // Added for ID token and better security
 ];
 
 export async function POST(request: NextRequest) {

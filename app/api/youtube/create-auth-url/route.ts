@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const SCOPES = [
-  "https://www.googleapis.com/auth/youtube.readonly",
+  "https://www.googleapis.com/auth/youtube", // Full Access - includes readonly + write (verified in Google Cloud)
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
   "openid",
