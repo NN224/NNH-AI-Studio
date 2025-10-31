@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="supported-color-schemes" content="dark">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-  <title>تغيير البريد الإلكتروني - NNH AI Studio</title>
+  <title>Change Email - NNH AI Studio</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { color-scheme: dark; supported-color-schemes: dark; }
     body {
-      font-family: 'Cairo', 'Montserrat', Arial, sans-serif;
+      font-family: 'Montserrat', 'Cairo', Arial, sans-serif;
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
       color: #ffffff;
       line-height: 1.6;
@@ -138,7 +138,7 @@
       padding: 20px;
       background: rgba(59, 130, 246, 0.1);
       border-radius: 8px;
-      border-right: 3px solid #3b82f6;
+      border-left: 3px solid #3b82f6;
     }
     @media only screen and (max-width: 600px) {
       .container { margin: 10px; border-radius: 12px; }
@@ -153,51 +153,50 @@
   <div class="container">
     <div class="header">
       <div class="logo">NNH AI Studio</div>
-      <div class="header-text">تغيير البريد الإلكتروني</div>
+      <div class="header-text">Change Email Address</div>
     </div>
     
     <div class="content">
       <div class="icon">✉️</div>
-      <div class="greeting">مرحباً {{ .Email }}!</div>
+      <div class="greeting">Hello {{ .Email }}!</div>
       
       <div class="message">
-        طلبت تغيير البريد الإلكتروني لحسابك في NNH AI Studio.<br>
-        اضغط على الزر أدناه لتأكيد تغيير البريد الإلكتروني.<br><br>
-        إذا لم تطلب هذا التغيير، يمكنك تجاهل هذا البريد بأمان.
+        You requested to change your email address for your NNH AI Studio account.<br>
+        Click the button below to confirm your new email address.<br><br>
+        If you didn't request this change, you can safely ignore this email.
       </div>
       
       <div class="button-container">
         <a href="{{ .ConfirmationURL }}" class="button">
-          تأكيد البريد الإلكتروني الجديد
+          Confirm New Email
         </a>
       </div>
       
       <div class="alternative-link">
-        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">أو انسخ والصق هذا الرابط في المتصفح:</div>
+        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Or copy and paste this link in your browser:</div>
         <div class="alternative-link-text">{{ .ConfirmationURL }}</div>
       </div>
       
       <div class="info-box">
         <div style="font-size: 14px; color: #b0b0b0; line-height: 1.8;">
-          <strong style="color: #3b82f6;">معلومات:</strong><br>
-          هذا الرابط صالح لمدة 24 ساعة فقط. بعد التأكيد، سيتم ربط حسابك بالبريد الإلكتروني الجديد {{ .NewEmail }}. لن يتم تغيير البريد الإلكتروني إذا تجاهلت هذا البريد.
+          <strong style="color: #3b82f6;">Information:</strong><br>
+          This link is valid for 24 hours only. After confirmation, your account will be linked to the new email address {{ .NewEmail }}. Your email will not be changed if you ignore this email.
         </div>
       </div>
     </div>
     
     <div class="footer">
       <div class="footer-text">
-        إذا لم تطلب تغيير البريد الإلكتروني، حسابك آمن ولا حاجة لأي إجراء.
+        If you didn't request to change your email, your account is secure and no action is needed.
       </div>
       <div class="footer-text">
-        © 2025 NNH AI Studio. جميع الحقوق محفوظة.
+        © 2025 NNH AI Studio. All rights reserved.
       </div>
       <div style="margin-top: 15px;">
-        <a href="https://nnh.ae" class="footer-link">زيارة الموقع</a> | 
-        <a href="https://nnh.ae/support" class="footer-link">الدعم الفني</a>
+        <a href="https://nnh.ae" class="footer-link">Visit Website</a> | 
+        <a href="https://nnh.ae/support" class="footer-link">Support</a>
       </div>
     </div>
   </div>
 </body>
 </html>
-

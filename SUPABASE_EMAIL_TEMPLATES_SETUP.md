@@ -20,10 +20,10 @@
 - 📱 متوافق مع جميع الأجهزة
 
 ### المحتوى:
-- 🇸🇦 محتوى بالعربية (RTL)
-- 🔤 خطوط Google Fonts (Cairo + Montserrat)
-- 🎯 رسائل واضحة ومهنية
-- 🔒 تحذيرات أمنية مناسبة
+- 🇬🇧 Content in English (LTR)
+- 🔤 Google Fonts (Montserrat + Cairo)
+- 🎯 Clear and professional messages
+- 🔒 Appropriate security warnings
 
 ### البرمجة:
 - ✅ متغيرات Supabase جاهزة: `{{ .Email }}`, `{{ .ConfirmationURL }}`
@@ -46,32 +46,32 @@
 
 #### Confirm sign up:
 ```
-تأكيد التسجيل في NNH AI Studio
+Confirm Your Signup - NNH AI Studio
 ```
 
 #### Magic link:
 ```
-رابط تسجيل الدخول السحري - NNH AI Studio
+Magic Login Link - NNH AI Studio
 ```
 
 #### Reset password:
 ```
-إعادة تعيين كلمة المرور - NNH AI Studio
+Reset Password - NNH AI Studio
 ```
 
 #### Change email:
 ```
-تغيير البريد الإلكتروني - NNH AI Studio
+Change Email Address - NNH AI Studio
 ```
 
 #### Invite user:
 ```
-دعوة للانضمام إلى NNH AI Studio
+You're Invited to NNH AI Studio
 ```
 
 #### Reauthentication:
 ```
-إعادة المصادقة المطلوبة - NNH AI Studio
+Reauthentication Required - NNH AI Studio
 ```
 
 ## 🎨 الألوان المستخدمة:

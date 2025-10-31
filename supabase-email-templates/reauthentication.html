@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="supported-color-schemes" content="dark">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-  <title>إعادة المصادقة - NNH AI Studio</title>
+  <title>Reauthentication Required - NNH AI Studio</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { color-scheme: dark; supported-color-schemes: dark; }
     body {
-      font-family: 'Cairo', 'Montserrat', Arial, sans-serif;
+      font-family: 'Montserrat', 'Cairo', Arial, sans-serif;
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
       color: #ffffff;
       line-height: 1.6;
@@ -138,7 +138,7 @@
       padding: 20px;
       background: rgba(168, 85, 247, 0.1);
       border-radius: 8px;
-      border-right: 3px solid #a855f7;
+      border-left: 3px solid #a855f7;
     }
     @media only screen and (max-width: 600px) {
       .container { margin: 10px; border-radius: 12px; }
@@ -153,51 +153,50 @@
   <div class="container">
     <div class="header">
       <div class="logo">NNH AI Studio</div>
-      <div class="header-text">إعادة المصادقة المطلوبة</div>
+      <div class="header-text">Reauthentication Required</div>
     </div>
     
     <div class="content">
       <div class="icon">🛡️</div>
-      <div class="greeting">مرحباً {{ .Email }}!</div>
+      <div class="greeting">Hello {{ .Email }}!</div>
       
       <div class="message">
-        طُلب منك إعادة المصادقة لتأكيد هويتك قبل إجراء تغييرات حساسة على حسابك.<br>
-        هذه خطوة أمنية إضافية لحماية حسابك.<br><br>
-        اضغط على الزر أدناه لإعادة المصادقة.
+        You're required to re-authenticate to confirm your identity before making sensitive changes to your account.<br>
+        This is an additional security step to protect your account.<br><br>
+        Click the button below to re-authenticate.
       </div>
       
       <div class="button-container">
         <a href="{{ .ConfirmationURL }}" class="button">
-          إعادة المصادقة الآن
+          Re-authenticate Now
         </a>
       </div>
       
       <div class="alternative-link">
-        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">أو انسخ والصق هذا الرابط في المتصفح:</div>
+        <div style="font-size: 12px; color: #888; margin-bottom: 8px;">Or copy and paste this link in your browser:</div>
         <div class="alternative-link-text">{{ .ConfirmationURL }}</div>
       </div>
       
       <div class="security-box">
         <div style="font-size: 14px; color: #b0b0b0; line-height: 1.8;">
-          <strong style="color: #a855f7;">حول إعادة المصادقة:</strong><br>
-          إعادة المصادقة مطلوبة عند محاولة تغيير معلومات حساسة مثل كلمة المرور أو البريد الإلكتروني. هذا الرابط صالح لمرة واحدة فقط وسينتهي بعد ساعة واحدة.
+          <strong style="color: #a855f7;">About Reauthentication:</strong><br>
+          Reauthentication is required when attempting to change sensitive information such as your password or email address. This link is valid for one time only and will expire after 1 hour.
         </div>
       </div>
     </div>
     
     <div class="footer">
       <div class="footer-text">
-        إذا لم تطلب إعادة المصادقة، يمكنك تجاهل هذا البريد بأمان.
+        If you didn't request reauthentication, you can safely ignore this email.
       </div>
       <div class="footer-text">
-        © 2025 NNH AI Studio. جميع الحقوق محفوظة.
+        © 2025 NNH AI Studio. All rights reserved.
       </div>
       <div style="margin-top: 15px;">
-        <a href="https://nnh.ae" class="footer-link">زيارة الموقع</a> | 
-        <a href="https://nnh.ae/support" class="footer-link">الدعم الفني</a>
+        <a href="https://nnh.ae" class="footer-link">Visit Website</a> | 
+        <a href="https://nnh.ae/support" class="footer-link">Support</a>
       </div>
     </div>
   </div>
 </body>
 </html>
-
