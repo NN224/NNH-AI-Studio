@@ -1,7 +1,6 @@
 "use client"
 
 import { ReviewCard } from "./review-card"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import type { GMBReview } from "@/lib/types/database"
 
@@ -36,7 +35,7 @@ export function ReviewColumn({ title, status, reviews, onGenerateResponse, onRep
       </div>
 
       {/* Reviews List */}
-      <ScrollArea className="flex-1 -mx-4 px-4">
+      <div className="flex-1 -mx-4 px-4 overflow-y-auto">
         <div className="space-y-4">
           {reviews.map((review, index) => (
             <ReviewCard
@@ -53,7 +52,7 @@ export function ReviewColumn({ title, status, reviews, onGenerateResponse, onRep
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
