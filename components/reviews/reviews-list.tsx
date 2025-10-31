@@ -45,11 +45,43 @@ export function ReviewsList() {
         return
       }
 
-      const { data, error: fetchError } = await supabase
-        .from("gmb_reviews")
-        .select("*")
+      // First get active GMB account IDs and their locations
+      const { data: activeAccounts } = await supabase
+        .from("gmb_accounts")
+        .select("id")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .eq("is_active", true)
+
+      const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+      let activeLocationIds: string[] = []
+      if (activeAccountIds.length > 0) {
+        const { data: activeLocations } = await supabase
+          .from("gmb_locations")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("gmb_account_id", activeAccountIds)
+        
+        activeLocationIds = activeLocations?.map(loc => loc.id) || []
+      }
+
+      // Only fetch reviews from active locations
+      let data = null
+      let fetchError = null
+      
+      if (activeLocationIds.length > 0) {
+        const result = await supabase
+          .from("gmb_reviews")
+          .select("*")
+          .eq("user_id", user.id)
+          .in("location_id", activeLocationIds)
+          .order("created_at", { ascending: false })
+        data = result.data
+        fetchError = result.error
+      } else {
+        // No active locations, return empty array
+        data = []
+      }
 
       if (fetchError) {
         throw fetchError

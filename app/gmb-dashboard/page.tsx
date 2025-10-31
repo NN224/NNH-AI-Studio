@@ -101,17 +101,42 @@ export default function GMBDashboard() {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Handle URL parameters for tab navigation
+  // Handle URL parameters for tab navigation and messages
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const tabParam = params.get('tab')
+      const errorParam = params.get('error')
+      const connectedParam = params.get('connected')
+      
       if (tabParam && ['dashboard', 'locations', 'reviews', 'posts', 'analytics', 'settings'].includes(tabParam)) {
         setActiveTab(tabParam)
-        // Remove the tab param from URL without reloading
+      }
+      
+      // Show error message if present
+      if (errorParam) {
+        toast.error(decodeURIComponent(errorParam))
+        // Clean up URL
         const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('error')
         newUrl.searchParams.delete('tab')
         window.history.replaceState({}, '', newUrl.toString())
+      }
+      
+      // Show success message if connected
+      if (connectedParam === 'true') {
+        toast.success('تم الاتصال بـ Google My Business بنجاح!')
+        // Clean up URL
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('connected')
+        if (tabParam) {
+          // Keep tab if specified
+        } else {
+          newUrl.searchParams.delete('tab')
+        }
+        window.history.replaceState({}, '', newUrl.toString())
+        // Refresh dashboard data
+        window.location.reload()
       }
     }
   }, [])
@@ -138,17 +163,45 @@ export default function GMBDashboard() {
         setUser(authUser)
         
         // Fetch dashboard stats with proper error handling
+        // Only show data from active GMB accounts
         try {
+          // First, get active GMB account IDs
+          const { data: activeAccounts } = await supabase
+            .from("gmb_accounts")
+            .select("id")
+            .eq("user_id", authUser.id)
+            .eq("is_active", true)
+
+          const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+          // If no active accounts, show zeros
+          if (activeAccountIds.length === 0) {
+            setStats({
+              totalLocations: 0,
+              totalReviews: 0,
+              averageRating: "0.0",
+              responseRate: 0,
+            })
+            return
+          }
+
           const [locationsRes, reviewsRes] = await Promise.allSettled([
             supabase
               .from("gmb_locations")
               .select("id")
-              .eq("user_id", authUser.id),
+              .eq("user_id", authUser.id)
+              .in("gmb_account_id", activeAccountIds),
             supabase
               .from("gmb_reviews")
-              .select("rating, reply_text")
+              .select("rating, reply_text, location_id")
               .eq("user_id", authUser.id),
           ])
+
+          // Filter reviews by active locations
+          let activeLocationIds: string[] = []
+          if (locationsRes.status === 'fulfilled' && !locationsRes.value.error) {
+            activeLocationIds = (locationsRes.value.data || []).map(loc => loc.id)
+          }
           
           let locations: any[] = []
           let reviews: any[] = []
@@ -160,7 +213,10 @@ export default function GMBDashboard() {
           }
           
           if (reviewsRes.status === 'fulfilled' && !reviewsRes.value.error) {
-            reviews = reviewsRes.value.data || []
+            // Filter reviews to only include those from active locations
+            reviews = (reviewsRes.value.data || []).filter(r => 
+              r.location_id && activeLocationIds.includes(r.location_id)
+            )
           } else if (reviewsRes.status === 'rejected') {
             console.error("Failed to fetch reviews:", reviewsRes.reason)
           }

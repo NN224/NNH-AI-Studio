@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] OAuth error:', error);
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent(`OAuth error: ${error}`)}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent(`OAuth error: ${error}`)}`
       );
     }
     
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Missing code or state');
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Missing authorization code or state')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Missing authorization code or state')}`
       );
     }
     
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Invalid state:', stateError);
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Invalid or expired authorization state')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Invalid or expired authorization state')}`
       );
     }
     
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] State has expired');
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Authorization state has expired')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Authorization state has expired')}`
       );
     }
     
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Missing Google OAuth configuration');
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Server configuration error')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Server configuration error')}`
       );
     }
     
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Token exchange failed:', tokenData);
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent(
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent(
           `Token exchange failed: ${tokenData.error_description || tokenData.error}`
         )}`
       );
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Failed to fetch user info');
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Failed to fetch user information')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Failed to fetch user information')}`
       );
     }
     
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       console.error('[OAuth Callback] Failed to fetch GMB accounts:', await gmbAccountsResponse.text());
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Failed to fetch Google My Business accounts')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Failed to fetch Google My Business accounts')}`
       );
     }
     
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
       console.warn('[OAuth Callback] No GMB accounts found for user');
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('No Google My Business accounts found')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('No Google My Business accounts found')}`
       );
     }
     
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
         console.error('[OAuth Callback] Security violation: GMB account already linked to different user');
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         return NextResponse.redirect(
-          `${baseUrl}/accounts#error=${encodeURIComponent('This Google My Business account is already linked to another user')}`
+          `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('This Google My Business account is already linked to another user')}`
         );
       }
       
@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
         console.error('[OAuth Callback] Error upserting account:', upsertError);
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         return NextResponse.redirect(
-          `${baseUrl}/accounts#error=${encodeURIComponent(
+          `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent(
             `Failed to save account: ${upsertError?.message || 'Unknown error'}`
           )}`
         );
@@ -303,17 +303,18 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Redirect to accounts page with success or error
+    // Redirect to GMB dashboard with success or error
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     
     if (!savedAccountId) {
       console.error('[OAuth Callback] No account was saved');
       return NextResponse.redirect(
-        `${baseUrl}/accounts#error=${encodeURIComponent('Failed to save any account')}`
+        `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Failed to save any account')}`
       );
     }
     
-    const redirectUrl = `${baseUrl}/accounts#success=true&autosync=${savedAccountId}`;
+    // Redirect to GMB dashboard with success message
+    const redirectUrl = `${baseUrl}/gmb-dashboard?tab=settings&connected=true`;
     console.log('[OAuth Callback] Redirecting to:', redirectUrl);
     return NextResponse.redirect(redirectUrl);
     
@@ -321,7 +322,7 @@ export async function GET(request: NextRequest) {
     console.error('[OAuth Callback] Unexpected error:', error);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     return NextResponse.redirect(
-      `${baseUrl}/accounts#error=${encodeURIComponent(
+      `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent(
         error.message || 'An unexpected error occurred'
       )}`
     );

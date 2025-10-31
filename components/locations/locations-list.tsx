@@ -39,11 +39,32 @@ export function LocationsList() {
           return
         }
 
-        const { data, error: fetchError } = await supabase
-          .from("gmb_locations")
-          .select("*")
+        // First get active GMB account IDs
+        const { data: activeAccounts } = await supabase
+          .from("gmb_accounts")
+          .select("id")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
+          .eq("is_active", true)
+
+        const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+        // Only fetch locations from active accounts
+        let data = null
+        let fetchError = null
+        
+        if (activeAccountIds.length > 0) {
+          const result = await supabase
+            .from("gmb_locations")
+            .select("*")
+            .eq("user_id", user.id)
+            .in("gmb_account_id", activeAccountIds)
+            .order("created_at", { ascending: false })
+          data = result.data
+          fetchError = result.error
+        } else {
+          // No active accounts, return empty array
+          data = []
+        }
 
         if (fetchError) {
           throw fetchError
