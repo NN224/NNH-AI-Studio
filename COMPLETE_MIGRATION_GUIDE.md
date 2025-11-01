@@ -17,7 +17,7 @@ Your GMB Dashboard is not working because the database schema is missing or inco
 
 ## Migration 1: Create gmb_posts Table (CRITICAL)
 
-**File**: `supabase/migrations/20250131_create_gmb_posts_table.sql`
+**File**: `supabase/migrations/20251031_gmb_posts.sql`
 
 **Copy and run this ENTIRE script:**
 
