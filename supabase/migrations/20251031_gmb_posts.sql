@@ -1,37 +1,40 @@
 -- GMB Posts table for composing and scheduling Business Profile posts
-create table if not exists public.gmb_posts (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  location_id uuid not null references public.gmb_locations(id) on delete cascade,
-  title text,
-  content text not null,
-  media_url text,
-  call_to_action text,
-  call_to_action_url text,
-  status text not null default 'draft' check (status in ('draft','queued','published','failed')),
-  scheduled_at timestamptz,
-  published_at timestamptz,
-  provider_post_id text,
-  error_message text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+-- NOTE: This migration uses lowercase commands to match existing pattern
+CREATE TABLE IF NOT EXISTS public.gmb_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  location_id UUID NOT NULL REFERENCES public.gmb_locations(id) ON DELETE CASCADE,
+  title TEXT,
+  content TEXT NOT NULL,
+  media_url TEXT,
+  call_to_action TEXT,
+  call_to_action_url TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','queued','published','failed')),
+  scheduled_at TIMESTAMPTZ,
+  published_at TIMESTAMPTZ,
+  provider_post_id TEXT,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- RLS
-alter table public.gmb_posts enable row level security;
+ALTER TABLE public.gmb_posts ENABLE ROW LEVEL SECURITY;
 
-do $$ begin
-  create policy "gmb_posts_select_own" on public.gmb_posts
-    for select using (auth.uid() = user_id);
-  create policy "gmb_posts_insert_own" on public.gmb_posts
-    for insert with check (auth.uid() = user_id);
-  create policy "gmb_posts_update_own" on public.gmb_posts
-    for update using (auth.uid() = user_id);
-  create policy "gmb_posts_delete_own" on public.gmb_posts
-    for delete using (auth.uid() = user_id);
-exception when duplicate_object then null; end $$;
+DO $$ BEGIN
+  CREATE POLICY "gmb_posts_select_own" ON public.gmb_posts
+    FOR SELECT USING (auth.uid() = user_id);
+  CREATE POLICY "gmb_posts_insert_own" ON public.gmb_posts
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+  CREATE POLICY "gmb_posts_update_own" ON public.gmb_posts
+    FOR UPDATE USING (auth.uid() = user_id);
+  CREATE POLICY "gmb_posts_delete_own" ON public.gmb_posts
+    FOR DELETE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- helpful index
-create index if not exists gmb_posts_user_loc_idx on public.gmb_posts(user_id, location_id, status);
+-- Helpful index
+CREATE INDEX IF NOT EXISTS gmb_posts_user_loc_idx ON public.gmb_posts(user_id, location_id, status);
+
+COMMENT ON TABLE public.gmb_posts IS 'Stores GMB posts for composing and scheduling Business Profile posts';
 
 
