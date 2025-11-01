@@ -478,7 +478,7 @@ export async function POST(request: NextRequest) {
     console.log('[GMB Sync API] Starting reviews and media sync...');
     const { data: dbLocations } = await supabase
       .from('gmb_locations')
-      .select('location_id')
+      .select('id, location_id')
       .eq('gmb_account_id', accountId);
       
     if (dbLocations && Array.isArray(dbLocations)) {
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
             const reviewRows = reviews.map((review) => ({
               gmb_account_id: accountId,
               user_id: user.id,
-              location_id: location.location_id,
+              location_id: location.id,  // Use UUID id, not location_id (resource name)
               external_review_id: review.name,
               reviewer_name: review.reviewer?.displayName || null,
               rating: review.starRating || null,
@@ -537,7 +537,7 @@ export async function POST(request: NextRequest) {
           if (media.length > 0) {
             const mediaRows = media.map((item) => ({
               gmb_account_id: accountId,
-              location_id: location.location_id,
+              location_id: location.id,  // Use UUID id, not location_id (resource name)
               external_media_id: item.name,
               type: item.mediaFormat || null,
               url: item.googleUrl || null,
@@ -545,16 +545,17 @@ export async function POST(request: NextRequest) {
               updated_at: item.updateTime || null,
             }));
             
-            // Upsert media in chunks
-            for (const chunk of chunks(mediaRows)) {
-              const { error } = await supabase
-                .from('gmb_media')
-                .upsert(chunk, { onConflict: 'external_media_id' });
-                
-              if (error) {
-                console.error('[GMB Sync API] Error upserting media:', error);
-              }
-            }
+            // TODO: Upsert media in chunks (gmb_media table not yet created)
+            // for (const chunk of chunks(mediaRows)) {
+            //   const { error } = await supabase
+            //     .from('gmb_media')
+            //     .upsert(chunk, { onConflict: 'external_media_id' });
+            //     
+            //   if (error) {
+            //     console.error('[GMB Sync API] Error upserting media:', error);
+            //   }
+            // }
+            console.log(`[GMB Sync API] ${media.length} media items fetched but not stored (table not implemented)`);
             
             counts.media += media.length;
           }

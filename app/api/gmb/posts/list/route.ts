@@ -37,7 +37,7 @@ export async function GET() {
         if (fallbackError) {
           console.error('[GMB Posts API] Database error:', fallbackError)
           return NextResponse.json({ 
-            error: 'Database schema mismatch. Please run the migration: 20250131_add_missing_columns.sql',
+            error: 'Database schema mismatch. Please run the migration: 20251031_gmb_posts.sql',
             details: fallbackError.message 
           }, { status: 500 })
         }
