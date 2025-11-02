@@ -85,12 +85,23 @@ export function PerformanceChart() {
   }
 
   // Calculate dynamic domain based on actual data
-  const minRating = Math.min(...data.map(d => d.rating))
-  const maxRating = Math.max(...data.map(d => d.rating))
-  const domain = [
-    Math.max(0, Math.floor(minRating) - 0.5),
-    Math.min(5, Math.ceil(maxRating) + 0.5)
-  ]
+  // Filter out invalid ratings first
+  const validRatings = data
+    .map(d => d.rating)
+    .filter(rating => typeof rating === 'number' && !isNaN(rating) && rating >= 0 && rating <= 5)
+  
+  let domain: [number, number]
+  if (validRatings.length === 0) {
+    // Fallback to default domain if no valid ratings
+    domain = [0, 5]
+  } else {
+    const minRating = Math.min(...validRatings)
+    const maxRating = Math.max(...validRatings)
+    domain = [
+      Math.max(0, Math.floor(minRating) - 0.5),
+      Math.min(5, Math.ceil(maxRating) + 0.5)
+    ]
+  }
 
   return (
     <Card className="bg-card border-primary/30">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { errorResponse, getErrorCode } from '@/lib/utils/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,8 +100,9 @@ async function getValidAccessToken(
   const now = new Date();
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
 
-  // Check if token is still valid (with 5 minute buffer)
-  if (account.access_token && expiresAt && expiresAt > new Date(now.getTime() + 5 * 60000)) {
+  // Check if token is still valid (with 10 minute buffer)
+  const BUFFER_MINUTES = 10;
+  if (account.access_token && expiresAt && expiresAt > new Date(now.getTime() + BUFFER_MINUTES * 60000)) {
     console.log('[GMB Sync] Using existing valid access token');
     return account.access_token;
   }
@@ -235,7 +237,7 @@ async function fetchReviews(
         : `accounts/${accountResource}`;
       
       fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
-      console.log('[GMB Sync API] Built location resource:', locationResource, '→', fullLocationResource);
+      console.log('[GMB Sync API] Built location resource:', locationResource, '?', fullLocationResource);
     } else {
       console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
       return { reviews: [], nextPageToken: undefined };
@@ -364,7 +366,7 @@ async function fetchMedia(
         : `accounts/${accountResource}`;
       
       fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
-      console.log('[GMB Sync] Built media location resource:', locationResource, '→', fullLocationResource);
+      console.log('[GMB Sync] Built media location resource:', locationResource, '?', fullLocationResource);
     } else {
       console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
       return { media: [], nextPageToken: undefined };
@@ -743,10 +745,7 @@ export async function POST(request: NextRequest) {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       if (authError || !authUser) {
         console.error('[GMB Sync API] Authentication failed:', authError);
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
+        return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
       }
       user = authUser;
       console.log('[GMB Sync API] User authenticated:', user.id);
@@ -759,10 +758,7 @@ export async function POST(request: NextRequest) {
     const { accountId, syncType = 'full' } = body;
 
     if (!accountId) {
-      return NextResponse.json(
-        { error: 'Missing accountId' },
-        { status: 400 }
-      );
+      return errorResponse('MISSING_FIELDS', 'accountId is required', 400);
     }
 
     console.log(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
@@ -782,18 +778,19 @@ export async function POST(request: NextRequest) {
 
     if (accountError || !account) {
       console.error('[GMB Sync API] Account not found:', accountError);
-      return NextResponse.json(
-        { error: 'Account not found' },
-        { status: 404 }
-      );
+      return errorResponse('ACCOUNT_NOT_FOUND', 'Account not found', 404);
     }
 
     if (!account.is_active) {
       console.error('[GMB Sync API] Account is inactive');
-      return NextResponse.json(
-        { error: 'Account is inactive' },
-        { status: 400 }
-      );
+      return errorResponse('ACCOUNT_INACTIVE', 'Account is inactive', 400);
+    }
+
+    // Get user_id from account for cron requests (where user might be null)
+    const userId = user?.id || account.user_id;
+    if (!userId) {
+      console.error('[GMB Sync API] Cannot determine user_id');
+      return errorResponse('MISSING_FIELDS', 'Cannot determine user_id', 400);
     }
 
     // Get Google account resource name if not stored
@@ -830,10 +827,7 @@ export async function POST(request: NextRequest) {
 
       if (!accountResource) {
         console.error('[GMB Sync API] Could not find Google account resource');
-        return NextResponse.json(
-          { error: 'Could not find Google account' },
-          { status: 400 }
-        );
+        return errorResponse('ACCOUNT_NOT_FOUND', 'Could not find Google account', 400);
       }
     }
 
@@ -904,7 +898,7 @@ export async function POST(request: NextRequest) {
 
           return {
             gmb_account_id: accountId,
-            user_id: user.id,
+            user_id: userId,
             location_id: location.name,
             location_name: location.title || 'Unnamed Location',
             address: addressStr,
@@ -964,7 +958,7 @@ export async function POST(request: NextRequest) {
             // Assume it's just the ID number
             fullLocationName = `${account.account_id}/locations/${fullLocationName}`;
           }
-          console.log(`[GMB Sync API] Built location resource: ${location.location_id} → ${fullLocationName}`);
+          console.log(`[GMB Sync API] Built location resource: ${location.location_id} ? ${fullLocationName}`);
         } else {
           console.log(`[GMB Sync API] Using full location resource: ${fullLocationName}`);
         }
@@ -988,7 +982,7 @@ export async function POST(request: NextRequest) {
           if (reviews.length > 0) {
             const reviewRows = reviews.map((review) => ({
               gmb_account_id: accountId,
-              user_id: user.id,
+              user_id: userId,
               location_id: location.id,  // Use UUID id, not location_id (resource name)
               external_review_id: review.name,
               reviewer_name: review.reviewer?.displayName || null,
@@ -1032,7 +1026,7 @@ export async function POST(request: NextRequest) {
             const mediaRows = media.map((item) => ({
               gmb_account_id: accountId,
               location_id: location.id,  // Use UUID id, not location_id (resource name)
-              user_id: user.id,
+              user_id: userId,
               external_media_id: item.name || item.mediaId || null,
               type: item.mediaFormat || item.type || null,
               url: item.googleUrl || item.sourceUrl || null,
@@ -1110,7 +1104,7 @@ export async function POST(request: NextRequest) {
             const metricRows = metrics.map((metric) => ({
               gmb_account_id: accountId,
               location_id: location.id, // Use UUID id, not location_id
-              user_id: user.id,
+              user_id: userId,
               metric_type: metric.metric_type,
               metric_date: metric.metric_date,
               metric_value: metric.metric_value,
@@ -1158,7 +1152,7 @@ export async function POST(request: NextRequest) {
               const keywordRows = keywords.map((keyword) => ({
                 gmb_account_id: accountId,
                 location_id: location.id, // Use UUID id
-                user_id: user.id,
+                user_id: userId,
                 search_keyword: keyword.search_keyword,
                 month_year: keyword.month_year,
                 impressions_count: keyword.impressions_count,
@@ -1216,26 +1210,7 @@ export async function POST(request: NextRequest) {
     const took = Date.now() - started;
     console.error('[GMB Sync API] Sync failed:', error);
 
-    // Handle specific error cases
-    if (error.message === 'invalid_grant') {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: 'invalid_grant',
-          message: 'Google authorization expired. Please reconnect your account.',
-          took_ms: took,
-        },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.message || 'Sync failed',
-        took_ms: took,
-      },
-      { status: 500 }
-    );
+    const errorCode = getErrorCode(error);
+    return errorResponse(errorCode, 'Sync failed', 500);
   }
 }

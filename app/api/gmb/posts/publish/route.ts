@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { errorResponse, getErrorCode } from '@/lib/utils/api-response'
+import { publishPostSchema } from '@/lib/validations/gmb-post'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,11 +28,18 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
     }
 
-    const { postId } = await request.json()
-    if (!postId) return NextResponse.json({ error: 'Missing postId' }, { status: 400 })
+    const body = await request.json()
+    
+    // Validate input with Zod
+    const validationResult = publishPostSchema.safeParse(body)
+    if (!validationResult.success) {
+      return errorResponse('VALIDATION_ERROR', 'Invalid input data', 400, validationResult.error.errors)
+    }
+    
+    const { postId } = validationResult.data
 
     // Load post + location + account
     const { data: post, error: postErr } = await supabase
@@ -39,14 +48,11 @@ export async function POST(request: NextRequest) {
       .eq('id', postId)
       .eq('user_id', user.id)
       .maybeSingle()
-    if (postErr || !post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    if (postErr || !post) return errorResponse('NOT_FOUND', 'Post not found', 404)
 
     // Validate: Event and Offer posts cannot be published
     if (post.post_type === 'event' || post.post_type === 'offer') {
-      return NextResponse.json({ 
-        error: 'Event and Offer posts cannot be published to Google. Google Business Profile API only supports "What\'s New" posts.',
-        code: 'UNSUPPORTED_POST_TYPE'
-      }, { status: 400 })
+      return errorResponse('UNSUPPORTED_POST_TYPE', 'Event and Offer posts cannot be published to Google', 400)
     }
 
     const { data: location } = await supabase
@@ -55,7 +61,7 @@ export async function POST(request: NextRequest) {
       .eq('id', post.location_id)
       .eq('user_id', user.id)
       .maybeSingle()
-    if (!location) return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+    if (!location) return errorResponse('LOCATION_NOT_FOUND', 'Location not found', 404)
 
     const { data: account } = await supabase
       .from('gmb_accounts')
@@ -63,26 +69,34 @@ export async function POST(request: NextRequest) {
       .eq('id', location.gmb_account_id)
       .eq('user_id', user.id)
       .maybeSingle()
-    if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+    if (!account) return errorResponse('ACCOUNT_NOT_FOUND', 'Account not found', 404)
 
     let accessToken = account.access_token as string | null
     // Refresh token if expired
     const isExpired = account.token_expires_at ? new Date(account.token_expires_at) < new Date() : false
     if ((!accessToken || isExpired) && account.refresh_token) {
-      const refreshed = await refreshGoogleToken(account.refresh_token)
-      if (refreshed?.access_token) {
-        accessToken = refreshed.access_token
-        const expiresAt = new Date()
-        if (refreshed.expires_in) expiresAt.setSeconds(expiresAt.getSeconds() + refreshed.expires_in)
-        await supabase
-          .from('gmb_accounts')
-          .update({ access_token: accessToken, token_expires_at: expiresAt.toISOString() })
-          .eq('id', account.id)
-          .eq('user_id', user.id)
+      try {
+        const refreshed = await refreshGoogleToken(account.refresh_token)
+        if (refreshed?.access_token) {
+          accessToken = refreshed.access_token
+          const expiresAt = new Date()
+          if (refreshed.expires_in) expiresAt.setSeconds(expiresAt.getSeconds() + refreshed.expires_in)
+          await supabase
+            .from('gmb_accounts')
+            .update({ access_token: accessToken, token_expires_at: expiresAt.toISOString() })
+            .eq('id', account.id)
+            .eq('user_id', user.id)
+        } else {
+          console.error('[GMB Publish] Token refresh failed - no access token returned')
+          return errorResponse('TOKEN_REFRESH_FAILED', 'Token refresh failed', 401)
+        }
+      } catch (refreshError: any) {
+        console.error('[GMB Publish] Token refresh error:', refreshError)
+        return errorResponse('TOKEN_REFRESH_ERROR', 'Token refresh failed', 401)
       }
     }
 
-    if (!accessToken) return NextResponse.json({ error: 'Missing Google access token' }, { status: 400 })
+    if (!accessToken) return errorResponse('MISSING_FIELDS', 'Access token not available', 400)
 
     // Build location resource and post payload (Business Information API v1)
     // location.location_id is expected like "locations/1234567890"
@@ -122,22 +136,18 @@ export async function POST(request: NextRequest) {
           resp.status === 403) {
         await supabase
           .from('gmb_posts')
-          .update({ status: 'failed', error_message: 'Insufficient authentication scopes. Please reconnect your GMB account.', updated_at: new Date().toISOString() })
+          .update({ status: 'failed', error_message: 'Insufficient authentication scopes', updated_at: new Date().toISOString() })
           .eq('id', post.id)
           .eq('user_id', user.id)
-        return NextResponse.json({ 
-          error: 'Insufficient authentication scopes. Please reconnect your Google Business Profile account with the required permissions.',
-          code: 'INSUFFICIENT_SCOPES',
-          requiresReconnect: true
-        }, { status: 403 })
+        return errorResponse('INSUFFICIENT_SCOPES', 'Insufficient permissions', 403)
       }
 
       await supabase
         .from('gmb_posts')
-        .update({ status: 'failed', error_message: text, updated_at: new Date().toISOString() })
+        .update({ status: 'failed', error_message: 'Publish failed', updated_at: new Date().toISOString() })
         .eq('id', post.id)
         .eq('user_id', user.id)
-      return NextResponse.json({ error: 'Google publish failed', details: text }, { status: 502 })
+      return errorResponse('SYNC_FAILED', 'Failed to publish to Google', 502)
     }
     let data: any
     try { data = JSON.parse(text) } catch { data = { name: 'post' } }
@@ -150,7 +160,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, google: data })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Failed to publish' }, { status: 500 })
+    const errorCode = getErrorCode(e)
+    console.error('[GMB Publish] Error:', e)
+    return errorResponse(errorCode, 'Failed to publish', 500)
   }
 }
 
