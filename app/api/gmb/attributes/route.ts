@@ -130,6 +130,7 @@ export async function GET(request: NextRequest) {
       // When using parent, languageCode cannot be set
       // Only set regionCode if provided
       if (regionCode) url.searchParams.set('regionCode', regionCode);
+      console.log('[Attributes API] Using parent method with resource:', parent);
     } else {
       // For categoryName or showAll, we can use languageCode
       if (categoryName) url.searchParams.set('categoryName', categoryName);
@@ -140,6 +141,7 @@ export async function GET(request: NextRequest) {
     if (pageToken) url.searchParams.set('pageToken', pageToken);
     if (showAll) url.searchParams.set('showAll', 'true');
 
+    console.log('[Attributes API] Request URL:', url.toString());
     const response = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -149,7 +151,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('[Attributes API] Failed to fetch:', errorData);
+      console.error('[Attributes API] Failed to fetch:', JSON.stringify(errorData, null, 2));
       return errorResponse(
         'API_ERROR',
         'Failed to fetch attributes from Google',
