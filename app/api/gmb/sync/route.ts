@@ -148,7 +148,8 @@ async function fetchLocations(
   console.log('[GMB Sync] Fetching locations for account:', accountResource);
 
   const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
-  url.searchParams.set('readMask', 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories');
+  // Expanded readMask to include all available location information
+  url.searchParams.set('readMask', 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels');
   url.searchParams.set('pageSize', '100');
   url.searchParams.set('alt', 'json');
   if (pageToken) {
@@ -852,6 +853,38 @@ export async function POST(request: NextRequest) {
               }`
             : null;
 
+          // Extract metadata for quick access
+          const metadata = location.metadata || {};
+          const latlng = location.latlng || {};
+          const profile = location.profile || {};
+          const openInfo = location.openInfo || {};
+          
+          // Store enhanced metadata with all additional fields
+          const enhancedMetadata = {
+            ...location,
+            // Quick access fields in metadata
+            profile: profile,
+            regularHours: location.regularHours,
+            specialHours: location.specialHours,
+            moreHours: location.moreHours,
+            serviceItems: location.serviceItems,
+            openInfo: openInfo,
+            latlng: latlng,
+            labels: location.labels || [],
+            // Extract useful metadata fields
+            placeId: metadata.placeId,
+            mapsUri: metadata.mapsUri,
+            newReviewUri: metadata.newReviewUri,
+            canHaveFoodMenus: metadata.canHaveFoodMenus,
+            canHaveBusinessCalls: metadata.canHaveBusinessCalls,
+            hasVoiceOfMerchant: metadata.hasVoiceOfMerchant,
+            hasPendingEdits: metadata.hasPendingEdits,
+            canDelete: metadata.canDelete,
+            canOperateHealthData: metadata.canOperateHealthData,
+            canOperateLodgingData: metadata.canOperateLodgingData,
+            canModifyServiceList: metadata.canModifyServiceList,
+          };
+
           return {
             gmb_account_id: accountId,
             user_id: user.id,
@@ -862,7 +895,7 @@ export async function POST(request: NextRequest) {
             category: location.categories?.primaryCategory?.displayName || null,
             website: location.websiteUri || null,
             is_active: true,
-            metadata: location,
+            metadata: enhancedMetadata,
             updated_at: new Date().toISOString(),
           };
         });

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
-import { Eye, MessageSquare, MapPin, Phone, Globe, Sparkles, Maximize2, ExternalLink } from "lucide-react"
+import { Eye, MessageSquare, MapPin, Phone, Globe, Sparkles, Maximize2, ExternalLink, Clock, Info, AlertCircle, CheckCircle2, Utensils, MessageCircle } from "lucide-react"
 import type { GMBLocation } from "@/lib/types/database"
 import Link from "next/link"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -17,16 +17,61 @@ interface LocationCardProps {
 
 export function LocationCard({ location, index }: LocationCardProps) {
   const [mapOpen, setMapOpen] = useState(false)
+  
+  // Extract metadata
+  const metadata = (location.metadata as any) || {}
+  const profile = metadata.profile || {}
+  const regularHours = metadata.regularHours || {}
+  const openInfo = metadata.openInfo || {}
+  const serviceItems = metadata.serviceItems || []
+  const latlng = metadata.latlng || {}
+  
+  // Extract useful metadata fields
+  const mapsUri = metadata.mapsUri
+  const newReviewUri = metadata.newReviewUri
+  const placeId = metadata.placeId
+  const hasPendingEdits = metadata.hasPendingEdits
+  const hasVoiceOfMerchant = metadata.hasVoiceOfMerchant
+  const canHaveFoodMenus = metadata.canHaveFoodMenus
+  const isOpen = openInfo.status === 'OPEN'
+  
+  // Format business hours
+  const formatHours = (hours: any) => {
+    if (!hours?.periods || hours.periods.length === 0) return null
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayAbbr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    
+    return hours.periods.map((period: any) => {
+      const openDay = dayAbbr[period.openDay === 'SUNDAY' ? 0 : 
+        period.openDay === 'MONDAY' ? 1 :
+        period.openDay === 'TUESDAY' ? 2 :
+        period.openDay === 'WEDNESDAY' ? 3 :
+        period.openDay === 'THURSDAY' ? 4 :
+        period.openDay === 'FRIDAY' ? 5 : 6]
+      const openTime = period.openTime ? `${period.openTime.hours || 0}:${String(period.openTime.minutes || 0).padStart(2, '0')}` : ''
+      const closeTime = period.closeTime ? `${period.closeTime.hours || 0}:${String(period.closeTime.minutes || 0).padStart(2, '0')}` : ''
+      return `${openDay} ${openTime}-${closeTime}`
+    }).join(', ')
+  }
+  
+  const businessHours = formatHours(regularHours)
 
-  // Generate Google Maps embed URL
+  // Generate Google Maps embed URL - use latlng if available, otherwise address
   const getMapUrl = () => {
+    if (latlng.latitude && latlng.longitude) {
+      return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${latlng.latitude},${latlng.longitude}&zoom=15`
+    }
     if (!location.address) return null
     const encodedAddress = encodeURIComponent(location.address)
     return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodedAddress}&zoom=15`
   }
 
-  // Generate Google Maps search URL for external link
+  // Generate Google Maps search URL for external link - prefer mapsUri if available
   const getMapSearchUrl = () => {
+    if (mapsUri) return mapsUri
+    if (latlng.latitude && latlng.longitude) {
+      return `https://www.google.com/maps/search/?api=1&query=${latlng.latitude},${latlng.longitude}`
+    }
     if (!location.address) return null
     const encodedAddress = encodeURIComponent(location.address)
     return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`
@@ -66,13 +111,69 @@ export function LocationCard({ location, index }: LocationCardProps) {
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl font-bold text-foreground truncate">{location.location_name}</h3>
-                  {location.category && (
-                    <Badge variant="secondary" className="mt-2 bg-secondary text-muted-foreground">
-                      {location.category}
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    {location.category && (
+                      <Badge variant="secondary" className="bg-secondary text-muted-foreground">
+                        {location.category}
+                      </Badge>
+                    )}
+                    {isOpen && (
+                      <Badge variant="default" className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Open
+                      </Badge>
+                    )}
+                    {hasPendingEdits && (
+                      <Badge variant="outline" className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Pending Edits
+                      </Badge>
+                    )}
+                    {hasVoiceOfMerchant && (
+                      <Badge variant="outline" className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                        <MessageCircle className="w-3 h-3 mr-1" />
+                        Voice of Merchant
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Profile Description */}
+              {profile.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                  {profile.description}
+                </p>
+              )}
+              
+              {/* Business Hours */}
+              {businessHours && (
+                <div className="flex items-start gap-2 text-xs text-muted-foreground mt-2">
+                  <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span className="line-clamp-1">{businessHours}</span>
+                </div>
+              )}
+              
+              {/* Service Items Preview */}
+              {serviceItems.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {serviceItems.slice(0, 3).map((item: any, idx: number) => {
+                    const displayName = item.structuredServiceItem?.description || 
+                                      item.freeFormServiceItem?.label?.displayName || 
+                                      'Service'
+                    return (
+                      <Badge key={idx} variant="outline" className="text-xs bg-secondary/50">
+                        {displayName}
+                      </Badge>
+                    )
+                  })}
+                  {serviceItems.length > 3 && (
+                    <Badge variant="outline" className="text-xs bg-secondary/50">
+                      +{serviceItems.length - 3} more
                     </Badge>
                   )}
                 </div>
-              </div>
+              )}
 
               {/* Contact info */}
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -171,6 +272,44 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 <div className="text-xs text-muted-foreground">Response</div>
               </div>
             </div>
+
+            {/* Quick Links from Metadata */}
+            {(mapsUri || newReviewUri || canHaveFoodMenus) && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {mapsUri && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="text-xs bg-secondary/50 hover:bg-secondary border-primary/30"
+                  >
+                    <a href={mapsUri} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      View on Maps
+                    </a>
+                  </Button>
+                )}
+                {newReviewUri && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="text-xs bg-secondary/50 hover:bg-secondary border-primary/30"
+                  >
+                    <a href={newReviewUri} target="_blank" rel="noopener noreferrer">
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      Leave Review
+                    </a>
+                  </Button>
+                )}
+                {canHaveFoodMenus && (
+                  <Badge variant="outline" className="text-xs bg-secondary/50 border-primary/30">
+                    <Utensils className="w-3 h-3 mr-1" />
+                    Food Menu Available
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* AI Insights */}
             {location.ai_insights && (
