@@ -114,12 +114,13 @@ export function MetricsOverview() {
           : { data: [] }
 
         // Calculate review metrics
-        const totalReviews = reviews?.length || 0
-        const repliedReviews = reviews?.filter((r) => r.reply_text).length || 0
+        const reviewsArray = reviews || []
+        const totalReviews = reviewsArray.length
+        const repliedReviews = reviewsArray.filter((r) => r.reply_text).length
         const responseRate = totalReviews > 0 ? (repliedReviews / totalReviews) * 100 : 0
         const avgRating =
           totalReviews > 0
-            ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews
+            ? reviewsArray.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews
             : 0
 
         // Get performance metrics from Performance API data (last 30 days)
