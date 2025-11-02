@@ -77,16 +77,21 @@ export async function GET(request: NextRequest) {
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Ensure consistent redirect_uri - must match create-auth-url exactly
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/gmb/oauth-callback`;
+      `${baseUrl}/api/gmb/oauth-callback`;
     
     if (!clientId || !clientSecret) {
       console.error('[OAuth Callback] Missing Google OAuth configuration');
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       return NextResponse.redirect(
         `${baseUrl}/gmb-dashboard?tab=settings&error=${encodeURIComponent('Server configuration error')}`
       );
     }
+    
+    // Ensure redirect_uri doesn't have trailing slash (must match create-auth-url)
+    const cleanRedirectUri = redirectUri.replace(/\/$/, '');
+    console.log('[OAuth Callback] Using redirect URI:', cleanRedirectUri);
     
     console.log('[OAuth Callback] Exchanging code for tokens...');
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
@@ -98,7 +103,7 @@ export async function GET(request: NextRequest) {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: redirectUri,
+        redirect_uri: cleanRedirectUri,
         grant_type: 'authorization_code',
       }),
     });
@@ -304,8 +309,6 @@ export async function GET(request: NextRequest) {
     }
     
     // Redirect to GMB dashboard with success or error
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    
     if (!savedAccountId) {
       console.error('[OAuth Callback] No account was saved');
       return NextResponse.redirect(

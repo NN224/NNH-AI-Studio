@@ -29,10 +29,25 @@ export async function POST(request: NextRequest) {
     
     console.log('[Create Auth URL] User authenticated:', user.id);
     
+    // Ensure user has a profile (optional check - profiles table may not be required)
+    // This is just a safety check, but since we use auth.users FK, it's not critical
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    if (profileError && profileError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, which is OK
+      console.warn('[Create Auth URL] Profile check warning:', profileError.message);
+    }
+    
     // Get OAuth configuration
     const clientId = process.env.GOOGLE_CLIENT_ID;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Ensure consistent redirect_uri between create-auth-url and oauth-callback
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/gmb/oauth-callback`;
+      `${baseUrl}/api/gmb/oauth-callback`;
     
     if (!clientId) {
       console.error('[Create Auth URL] Missing Google OAuth configuration');
@@ -41,6 +56,10 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+    
+    // Ensure redirect_uri doesn't have trailing slash
+    const cleanRedirectUri = redirectUri.replace(/\/$/, '');
+    console.log('[Create Auth URL] Using redirect URI:', cleanRedirectUri);
     
     // Generate random state for security
     const state = crypto.randomUUID();
@@ -95,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Build OAuth URL
     const authUrl = new URL(GOOGLE_AUTH_URL);
     authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('redirect_uri', cleanRedirectUri);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', SCOPES.join(' '));
     authUrl.searchParams.set('access_type', 'offline');
@@ -105,7 +124,7 @@ export async function POST(request: NextRequest) {
     
     const authUrlString = authUrl.toString();
     console.log('[Create Auth URL] Auth URL created successfully');
-    console.log('[Create Auth URL] Redirect URI:', redirectUri);
+    console.log('[Create Auth URL] Redirect URI:', cleanRedirectUri);
     
     return NextResponse.json({
       authUrl: authUrlString,
