@@ -672,6 +672,34 @@ export default function GMBDashboard() {
                 </ErrorBoundary>
               </TabsContent>
               
+              {/* Questions & Answers Tab */}
+              <TabsContent value="questions" className="space-y-6 animate-in fade-in-50">
+                <ErrorBoundary
+                  fallback={
+                    <div className="p-8 text-center text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p>Failed to load questions</p>
+                    </div>
+                  }
+                >
+                  <QuestionsList />
+                </ErrorBoundary>
+              </TabsContent>
+              
+              {/* Attributes Tab */}
+              <TabsContent value="attributes" className="space-y-6 animate-in fade-in-50">
+                <ErrorBoundary
+                  fallback={
+                    <div className="p-8 text-center text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p>Failed to load attributes</p>
+                    </div>
+                  }
+                >
+                  <AttributesManager />
+                </ErrorBoundary>
+              </TabsContent>
+              
               {/* Posts Tab */}
               <TabsContent value="posts" className="space-y-6 animate-in fade-in-50">
                 <ErrorBoundary
