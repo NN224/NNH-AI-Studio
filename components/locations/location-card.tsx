@@ -387,6 +387,17 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 Edit
               </Button>
             </div>
+            
+            {/* Attributes button */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full mt-2 bg-secondary/50 hover:bg-secondary border-primary/30"
+              onClick={() => setAttributesOpen(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Manage Attributes
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
