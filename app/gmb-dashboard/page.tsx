@@ -97,9 +97,9 @@ export default function GMBDashboard() {
     totalReviews: 0,
     averageRating: "0.0",
     responseRate: 0,
-    locationsChange: 0,
-    reviewsChange: 0,
-    ratingChange: 0,
+    locationsChange: undefined,
+    reviewsChange: undefined,
+    ratingChange: undefined,
   })
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
@@ -155,7 +155,7 @@ export default function GMBDashboard() {
         }
         window.history.replaceState({}, '', newUrl.toString())
         // Refresh dashboard data
-        window.location.reload()
+        router.refresh()
       }
     }
   }, [])
@@ -224,9 +224,9 @@ export default function GMBDashboard() {
               totalReviews: 0,
               averageRating: "0.0",
               responseRate: 0,
-              locationsChange: 0,
-              reviewsChange: 0,
-              ratingChange: 0,
+              locationsChange: undefined,
+              reviewsChange: undefined,
+              ratingChange: undefined,
             })
             return
           }
@@ -302,16 +302,7 @@ export default function GMBDashboard() {
           const responseRate = totalReviews > 0
             ? Math.round((repliedReviews / totalReviews) * 100)
             : 0
-          
-          // Calculate changes
-          const locationsChange = locations.length > 0 ? "+" + locations.length : "0"
-          const reviewsChange = previousTotalReviews > 0 
-            ? ((totalReviews - previousTotalReviews) / previousTotalReviews * 100).toFixed(0)
-            : totalReviews > 0 ? "+100" : "0"
-          const ratingChange = previousAvgRating > 0
-            ? ((parseFloat(avgRating) - previousAvgRating) * 100).toFixed(1)
-            : "0"
-          
+
           // Get previous locations count (from 30 days ago)
           const { data: previousLocations } = await supabase
             .from("gmb_locations")
@@ -319,20 +310,32 @@ export default function GMBDashboard() {
             .eq("user_id", authUser.id)
             .in("gmb_account_id", activeAccountIds)
             .lt("created_at", thirtyDaysAgo.toISOString())
-          
+
           const previousLocationsCount = previousLocations?.length || 0
-          const locationsChangePercent = previousLocationsCount > 0
-            ? ((locations.length - previousLocationsCount) / previousLocationsCount * 100).toFixed(0)
-            : locations.length > 0 ? "+100" : "0"
-          
+
+          let locationsChangePercent: number | undefined
+          if (previousLocationsCount > 0) {
+            locationsChangePercent = parseFloat(((locations.length - previousLocationsCount) / previousLocationsCount * 100).toFixed(0))
+          }
+
+          let reviewsChangePercent: number | undefined
+          if (previousTotalReviews > 0) {
+            reviewsChangePercent = parseFloat(((totalReviews - previousTotalReviews) / previousTotalReviews * 100).toFixed(0))
+          }
+
+          let ratingChangePercent: number | undefined
+          if (previousAvgRating > 0) {
+            ratingChangePercent = parseFloat(((parseFloat(avgRating) - previousAvgRating) * 100).toFixed(1))
+          }
+
           setStats({
             totalLocations: locations.length,
             totalReviews,
             averageRating: avgRating,
             responseRate,
-            locationsChange: parseFloat(locationsChangePercent),
-            reviewsChange: parseFloat(reviewsChange),
-            ratingChange: parseFloat(ratingChange),
+            locationsChange: locationsChangePercent,
+            reviewsChange: reviewsChangePercent,
+            ratingChange: ratingChangePercent,
           })
         } catch (error) {
           console.error("Error fetching dashboard stats:", error)
@@ -614,9 +617,9 @@ export default function GMBDashboard() {
                   <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">Google My Business غير متصل</h3>
+                      <h3 className="font-semibold text-foreground mb-1">Google My Business not connected</h3>
                       <p className="text-sm text-muted-foreground mb-3">
-                        قم بالاتصال بحساب Google My Business الخاص بك لمزامنة المواقع والمراجعات تلقائياً.
+                        Connect your Google My Business account to keep locations, reviews, and insights in sync automatically.
                       </p>
                       <Button
                         size="sm"
@@ -635,15 +638,17 @@ export default function GMBDashboard() {
                   <StatCard
                     title="Total Locations"
                     value={stats.totalLocations.toString()}
-                    change={stats.locationsChange !== undefined && stats.locationsChange !== 0 
+                    change={typeof stats.locationsChange === 'number'
                       ? `${stats.locationsChange > 0 ? '+' : ''}${stats.locationsChange}% vs last month`
-                      : undefined
+                      : stats.totalLocations > 0 ? 'New this month' : undefined
                     }
-                    changeType={stats.locationsChange !== undefined && stats.locationsChange > 0 
-                      ? "positive" 
-                      : stats.locationsChange !== undefined && stats.locationsChange < 0 
-                      ? "negative" 
-                      : "neutral"
+                    changeType={typeof stats.locationsChange === 'number'
+                      ? stats.locationsChange > 0
+                        ? "positive"
+                        : stats.locationsChange < 0
+                        ? "negative"
+                        : "neutral"
+                      : stats.totalLocations > 0 ? "positive" : "neutral"
                     }
                     index={0}
                     icon={MapPin}
@@ -651,15 +656,17 @@ export default function GMBDashboard() {
                   <StatCard
                     title="Total Reviews"
                     value={stats.totalReviews.toString()}
-                    change={stats.reviewsChange !== undefined && stats.reviewsChange !== 0
+                    change={typeof stats.reviewsChange === 'number'
                       ? `${stats.reviewsChange > 0 ? '+' : ''}${stats.reviewsChange}% vs last month`
-                      : undefined
+                      : stats.totalReviews > 0 ? 'New this month' : undefined
                     }
-                    changeType={stats.reviewsChange !== undefined && stats.reviewsChange > 0
-                      ? "positive"
-                      : stats.reviewsChange !== undefined && stats.reviewsChange < 0
-                      ? "negative"
-                      : "neutral"
+                    changeType={typeof stats.reviewsChange === 'number'
+                      ? stats.reviewsChange > 0
+                        ? "positive"
+                        : stats.reviewsChange < 0
+                        ? "negative"
+                        : "neutral"
+                      : stats.totalReviews > 0 ? "positive" : "neutral"
                     }
                     index={1}
                     icon={MessageSquare}
@@ -667,14 +674,16 @@ export default function GMBDashboard() {
                   <StatCard
                     title="Average Rating"
                     value={stats.averageRating}
-                    change={stats.ratingChange !== undefined && stats.ratingChange !== 0
+                    change={typeof stats.ratingChange === 'number'
                       ? `${stats.ratingChange > 0 ? '+' : ''}${stats.ratingChange}% vs last month`
                       : undefined
                     }
-                    changeType={stats.ratingChange !== undefined && stats.ratingChange > 0
-                      ? "positive"
-                      : stats.ratingChange !== undefined && stats.ratingChange < 0
-                      ? "negative"
+                    changeType={typeof stats.ratingChange === 'number'
+                      ? stats.ratingChange > 0
+                        ? "positive"
+                        : stats.ratingChange < 0
+                        ? "negative"
+                        : "neutral"
                       : "neutral"
                     }
                     index={2}
