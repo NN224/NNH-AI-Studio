@@ -30,6 +30,10 @@ export function LocationCard({ location, index }: LocationCardProps) {
   const openInfo = metadata.openInfo || {}
   const serviceItems = metadata.serviceItems || []
   const latlng = metadata.latlng || {}
+  const relationshipData = metadata.relationshipData || {}
+  const parentLocation = relationshipData.parentLocation
+  const parentChain = relationshipData.parentChain
+  const childrenLocations = relationshipData.childrenLocations || []
   
   // Extract useful metadata fields
   const mapsUri = metadata.mapsUri
