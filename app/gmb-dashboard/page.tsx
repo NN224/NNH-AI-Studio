@@ -33,6 +33,9 @@ interface DashboardStats {
   totalReviews: number
   averageRating: string
   responseRate: number
+  locationsChange?: number
+  reviewsChange?: number
+  ratingChange?: number
 }
 
 interface User {
@@ -94,6 +97,9 @@ export default function GMBDashboard() {
     totalReviews: 0,
     averageRating: "0.0",
     responseRate: 0,
+    locationsChange: 0,
+    reviewsChange: 0,
+    ratingChange: 0,
   })
   const [error, setError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
@@ -218,6 +224,9 @@ export default function GMBDashboard() {
               totalReviews: 0,
               averageRating: "0.0",
               responseRate: 0,
+              locationsChange: 0,
+              reviewsChange: 0,
+              ratingChange: 0,
             })
             return
           }
@@ -231,19 +240,35 @@ export default function GMBDashboard() {
 
           const activeLocationIds = activeLocationsData?.map(loc => loc.id) || []
 
-          const [locationsRes, reviewsRes] = await Promise.allSettled([
+          // Get previous period data for comparison (30 days ago)
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+          const sixtyDaysAgo = new Date()
+          sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+
+          const [locationsRes, reviewsRes, previousReviewsRes] = await Promise.allSettled([
             Promise.resolve({ data: activeLocationsData || [], error: null }),
             activeLocationIds.length > 0
               ? supabase
                   .from("gmb_reviews")
-                  .select("rating, reply_text, location_id")
+                  .select("rating, review_reply, location_id, created_at")
                   .eq("user_id", authUser.id)
                   .in("location_id", activeLocationIds)
+              : Promise.resolve({ data: [], error: null }),
+            activeLocationIds.length > 0
+              ? supabase
+                  .from("gmb_reviews")
+                  .select("rating, review_reply, location_id, created_at")
+                  .eq("user_id", authUser.id)
+                  .in("location_id", activeLocationIds)
+                  .gte("created_at", sixtyDaysAgo.toISOString())
+                  .lt("created_at", thirtyDaysAgo.toISOString())
               : Promise.resolve({ data: [], error: null }),
           ])
           
           let locations: any[] = []
           let reviews: any[] = []
+          let previousReviews: any[] = []
           
           if (locationsRes.status === 'fulfilled' && !locationsRes.value.error) {
             locations = locationsRes.value.data || []
@@ -259,22 +284,55 @@ export default function GMBDashboard() {
           } else if (reviewsRes.status === 'rejected') {
             console.error("Failed to fetch reviews:", reviewsRes.reason)
           }
+
+          if (previousReviewsRes.status === 'fulfilled' && !previousReviewsRes.value.error) {
+            previousReviews = previousReviewsRes.value.data || []
+          }
           
           // Calculate statistics safely
           const totalReviews = reviews.length
-          const repliedReviews = reviews.filter(r => r.reply_text).length
+          const previousTotalReviews = previousReviews.length
+          const repliedReviews = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0).length
           const avgRating = totalReviews > 0
             ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews).toFixed(1)
             : "0.0"
+          const previousAvgRating = previousReviews.length > 0
+            ? previousReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / previousReviews.length
+            : 0
           const responseRate = totalReviews > 0
             ? Math.round((repliedReviews / totalReviews) * 100)
             : 0
+          
+          // Calculate changes
+          const locationsChange = locations.length > 0 ? "+" + locations.length : "0"
+          const reviewsChange = previousTotalReviews > 0 
+            ? ((totalReviews - previousTotalReviews) / previousTotalReviews * 100).toFixed(0)
+            : totalReviews > 0 ? "+100" : "0"
+          const ratingChange = previousAvgRating > 0
+            ? ((parseFloat(avgRating) - previousAvgRating) * 100).toFixed(1)
+            : "0"
+          
+          // Get previous locations count (from 30 days ago)
+          const { data: previousLocations } = await supabase
+            .from("gmb_locations")
+            .select("id")
+            .eq("user_id", authUser.id)
+            .in("gmb_account_id", activeAccountIds)
+            .lt("created_at", thirtyDaysAgo.toISOString())
+          
+          const previousLocationsCount = previousLocations?.length || 0
+          const locationsChangePercent = previousLocationsCount > 0
+            ? ((locations.length - previousLocationsCount) / previousLocationsCount * 100).toFixed(0)
+            : locations.length > 0 ? "+100" : "0"
           
           setStats({
             totalLocations: locations.length,
             totalReviews,
             averageRating: avgRating,
             responseRate,
+            locationsChange: parseFloat(locationsChangePercent),
+            reviewsChange: parseFloat(reviewsChange),
+            ratingChange: parseFloat(ratingChange),
           })
         } catch (error) {
           console.error("Error fetching dashboard stats:", error)
@@ -577,32 +635,56 @@ export default function GMBDashboard() {
                   <StatCard
                     title="Total Locations"
                     value={stats.totalLocations.toString()}
-                    change="+2 this month"
-                    changeType="positive"
+                    change={stats.locationsChange !== undefined && stats.locationsChange !== 0 
+                      ? `${stats.locationsChange > 0 ? '+' : ''}${stats.locationsChange}% vs last month`
+                      : undefined
+                    }
+                    changeType={stats.locationsChange !== undefined && stats.locationsChange > 0 
+                      ? "positive" 
+                      : stats.locationsChange !== undefined && stats.locationsChange < 0 
+                      ? "negative" 
+                      : "neutral"
+                    }
                     index={0}
                     icon={MapPin}
                   />
                   <StatCard
                     title="Total Reviews"
                     value={stats.totalReviews.toString()}
-                    change="+15 this week"
-                    changeType="positive"
+                    change={stats.reviewsChange !== undefined && stats.reviewsChange !== 0
+                      ? `${stats.reviewsChange > 0 ? '+' : ''}${stats.reviewsChange}% vs last month`
+                      : undefined
+                    }
+                    changeType={stats.reviewsChange !== undefined && stats.reviewsChange > 0
+                      ? "positive"
+                      : stats.reviewsChange !== undefined && stats.reviewsChange < 0
+                      ? "negative"
+                      : "neutral"
+                    }
                     index={1}
                     icon={MessageSquare}
                   />
                   <StatCard
                     title="Average Rating"
                     value={stats.averageRating}
-                    change="+0.2 from last month"
-                    changeType="positive"
+                    change={stats.ratingChange !== undefined && stats.ratingChange !== 0
+                      ? `${stats.ratingChange > 0 ? '+' : ''}${stats.ratingChange}% vs last month`
+                      : undefined
+                    }
+                    changeType={stats.ratingChange !== undefined && stats.ratingChange > 0
+                      ? "positive"
+                      : stats.ratingChange !== undefined && stats.ratingChange < 0
+                      ? "negative"
+                      : "neutral"
+                    }
                     index={2}
                     icon={Star}
                   />
                   <StatCard
                     title="Response Rate"
                     value={`${stats.responseRate}%`}
-                    change="+5% this month"
-                    changeType="positive"
+                    change={stats.responseRate > 0 ? `${stats.responseRate}% responded` : undefined}
+                    changeType={stats.responseRate >= 80 ? "positive" : stats.responseRate >= 50 ? "neutral" : "negative"}
                     index={3}
                     icon={TrendingUp}
                   />

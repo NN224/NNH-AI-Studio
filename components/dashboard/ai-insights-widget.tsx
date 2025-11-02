@@ -190,7 +190,7 @@ export function AIInsightsWidget() {
               <CardDescription className="text-xs">Personalized recommendations for your business</CardDescription>
             </div>
           </div>
-          <Link href="/gmb-dashboard?tab=insights">
+          <Link href="/gmb-dashboard?tab=analytics">
             <Button variant="ghost" size="sm" className="text-xs">
               View All
               <ChevronRight className="h-3 w-3 ml-1" />
