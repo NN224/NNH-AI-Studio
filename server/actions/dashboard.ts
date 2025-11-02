@@ -81,11 +81,39 @@ export async function getMonthlyStats() {
     return { data: [], error: "Not authenticated" }
   }
 
-  // Get all reviews (all time)
+  // First get active GMB account IDs
+  const { data: activeAccounts } = await supabase
+    .from("gmb_accounts")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+
+  const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+  if (activeAccountIds.length === 0) {
+    return { data: [], error: null, message: "No active GMB accounts" }
+  }
+
+  // Get active location IDs
+  const { data: activeLocations } = await supabase
+    .from("gmb_locations")
+    .select("id")
+    .eq("user_id", user.id)
+    .in("gmb_account_id", activeAccountIds)
+
+  const activeLocationIds = activeLocations?.map(loc => loc.id) || []
+
+  if (activeLocationIds.length === 0) {
+    return { data: [], error: null, message: "No locations found" }
+  }
+
+  // Get all reviews from active locations (prefer review_date over created_at)
   const { data: reviews, error } = await supabase
     .from("gmb_reviews")
-    .select("rating, created_at")
+    .select("rating, review_date, created_at")
     .eq("user_id", user.id)
+    .in("location_id", activeLocationIds)
+    .order("review_date", { ascending: true, nullsLast: true })
     .order("created_at", { ascending: true })
 
   if (error) {
@@ -98,7 +126,13 @@ export async function getMonthlyStats() {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   
   reviews?.forEach((review) => {
-    const date = new Date(review.created_at)
+    // Use review_date if available (actual review date), otherwise use created_at (when synced)
+    const dateStr = review.review_date || review.created_at
+    if (!dateStr) return // Skip reviews without any date
+    
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return // Skip invalid dates
+    
     const monthKey = `${months[date.getMonth()]} ${date.getFullYear()}`
     
     if (!monthlyData[monthKey]) {
