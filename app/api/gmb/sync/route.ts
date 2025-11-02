@@ -981,20 +981,30 @@ export async function POST(request: NextRequest) {
           );
 
           if (reviews.length > 0) {
-            const reviewRows = reviews.map((review) => ({
-              gmb_account_id: accountId,
-              user_id: userId,
-              location_id: location.id,  // Use UUID id, not location_id (resource name)
-              external_review_id: review.name,
-              reviewer_name: review.reviewer?.displayName || null,
-              rating: review.starRating || null,
-              review_text: review.comment || null,
-              review_date: review.createTime || null,
-              reply_text: review.reviewReply?.comment || null,
-              reply_date: review.reviewReply?.updateTime || null,
-              has_reply: !!review.reviewReply?.comment,
-              updated_at: new Date().toISOString(),
-            }));
+            const reviewRows = reviews.map((review) => {
+              // Ensure required fields have valid values
+              // rating is required and must be 1-5, so default to 0 or skip if invalid
+              const rating = review.starRating || 0;
+              if (rating < 1 || rating > 5) {
+                console.warn('[GMB Sync API] Invalid rating:', rating, 'for review:', review.name);
+                return null; // Skip invalid reviews
+              }
+              
+              return {
+                gmb_account_id: accountId,
+                user_id: userId,
+                location_id: location.id,  // Use UUID id, not location_id (resource name)
+                external_review_id: review.name,
+                reviewer_name: review.reviewer?.displayName || 'Anonymous',
+                rating: rating,
+                review_text: review.comment || null,
+                review_date: review.createTime || new Date().toISOString(),
+                reply_text: review.reviewReply?.comment || null,
+                reply_date: review.reviewReply?.updateTime || null,
+                has_reply: !!review.reviewReply?.comment,
+                updated_at: new Date().toISOString(),
+              };
+            }).filter(Boolean); // Remove null entries (invalid reviews)
 
             // Upsert reviews in chunks
             for (const chunk of chunks(reviewRows)) {
