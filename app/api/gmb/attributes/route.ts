@@ -98,18 +98,17 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const parent = searchParams.get('parent') || undefined;
     const categoryName = searchParams.get('categoryName') || undefined;
-    const regionCode = searchParams.get('regionCode') || undefined;
+    const country = searchParams.get('country') || undefined;
     const languageCode = searchParams.get('languageCode') || 'en';
     const pageSize = parseInt(searchParams.get('pageSize') || '200');
     const pageToken = searchParams.get('pageToken') || undefined;
-    const showAll = searchParams.get('showAll') === 'true';
 
-    if (!parent && !categoryName && !showAll) {
+    // Either categoryName or country must be provided for /v1/attributes
+    if (!categoryName && !country) {
       return errorResponse(
         'MISSING_FIELDS',
-        'Either parent, categoryName, or showAll=true is required',
+        'Either categoryName or country is required',
         400
       );
     }
@@ -125,21 +124,11 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(`${GBP_LOC_BASE}/attributes`);
-    if (parent) {
-      url.searchParams.set('parent', parent);
-      // When using parent, languageCode cannot be set
-      // Only set regionCode if provided
-      if (regionCode) url.searchParams.set('regionCode', regionCode);
-      console.log('[Attributes API] Using parent method with resource:', parent);
-    } else {
-      // For categoryName or showAll, we can use languageCode
-      if (categoryName) url.searchParams.set('categoryName', categoryName);
-      if (regionCode) url.searchParams.set('regionCode', regionCode);
-      url.searchParams.set('languageCode', languageCode);
-    }
+    if (categoryName) url.searchParams.set('categoryName', categoryName);
+    if (country) url.searchParams.set('country', country);
+    url.searchParams.set('languageCode', languageCode);
     url.searchParams.set('pageSize', pageSize.toString());
     if (pageToken) url.searchParams.set('pageToken', pageToken);
-    if (showAll) url.searchParams.set('showAll', 'true');
 
     console.log('[Attributes API] Request URL:', url.toString());
     const response = await fetch(url.toString(), {

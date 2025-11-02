@@ -51,90 +51,13 @@ export function LocationAttributesDialog({
     }
   }, [location, open])
 
-  // Helper function to build full location resource name
-  const buildLocationResource = async (): Promise<string | null> => {
-    if (!location) return null
-
-    let locationResource = location.location_id
-    console.log('[Attributes] Initial location_id:', locationResource)
-    
-    // If already in full format (accounts/.../locations/...), return it
-    if (locationResource.startsWith('accounts/')) {
-      console.log('[Attributes] Already in full format, returning:', locationResource)
-      return locationResource
-    }
-
-    // Try to extract from metadata
-    const metadata = (location.metadata as any) || {}
-    if (metadata.name && metadata.name.startsWith('accounts/')) {
-      return metadata.name
-    }
-
-    // Need to fetch account_id to build full resource
-    try {
-      // Fetch account directly using gmb_account_id from location
-      const supabase = createClient()
-      
-      const { data: account } = await supabase
-        .from('gmb_accounts')
-        .select('account_id')
-        .eq('id', location.gmb_account_id)
-        .single()
-      
-      if (account?.account_id) {
-        console.log('[Attributes] Fetched account.account_id:', account.account_id)
-        // Extract location number from location_id
-        const locationMatch = locationResource.match(/locations\/(.+)$/)
-        const locationNumber = locationMatch ? locationMatch[1] : locationResource.replace(/^(locations\/|accounts\/.*\/locations\/)/, '')
-        // account.account_id might already include 'accounts/' prefix
-        const accountId = account.account_id.startsWith('accounts/') 
-          ? account.account_id 
-          : `accounts/${account.account_id}`
-        const finalResource = `${accountId}/locations/${locationNumber}`
-        console.log('[Attributes] Built final resource:', finalResource)
-        return finalResource
-      }
-    } catch (err) {
-      console.error('Error building location resource:', err)
-    }
-
-    return null
-  }
 
   const fetchAvailableAttributes = async () => {
     if (!location) return
 
     setLoadingAttributes(true)
     try {
-      // Try to build full location resource
-      let locationResource = await buildLocationResource()
-      
-      // Strategy 1: Try with parent (location resource)
-      if (locationResource) {
-        try {
-          const response = await fetch(`/api/gmb/attributes?parent=${encodeURIComponent(locationResource)}`)
-          
-          if (response.ok) {
-            const data = await response.json()
-            // Handle both direct response and wrapped response
-            const attributes = data.data?.attributeMetadata || data.attributeMetadata || []
-            setAvailableAttributes(attributes)
-            return
-          }
-          
-          // If parent fails, log but continue to fallbacks
-          const errorData = await response.json().catch(() => ({}))
-          console.warn('[Attributes] Parent method failed:', {
-            status: response.status,
-            error: errorData,
-            locationResource
-          })
-        } catch (err) {
-          console.warn('[Attributes] Parent method error:', err)
-        }
-      }
-
-      // Strategy 2: Fallback to categoryName (more reliable)
+      // Strategy 1: Try with categoryName
       if (location.category) {
         console.log('[Attributes] Trying categoryName method:', location.category)
         const categoryResponse = await fetch(`/api/gmb/attributes?categoryName=${encodeURIComponent(location.category)}`)
@@ -143,30 +66,34 @@ export function LocationAttributesDialog({
           const categoryData = await categoryResponse.json()
           // Handle both direct response and wrapped response
           const attributes = categoryData.data?.attributeMetadata || categoryData.attributeMetadata || []
+          if (attributes.length > 0) {
+            setAvailableAttributes(attributes)
+            return
+          }
+        }
+        
+        console.warn('[Attributes] CategoryName method failed or returned no attributes')
+      }
+
+      // Strategy 2: Fallback to country (US default)
+      console.log('[Attributes] Trying country method with US')
+      const countryResponse = await fetch(`/api/gmb/attributes?country=US`)
+      
+      if (countryResponse.ok) {
+        const countryData = await countryResponse.json()
+        // Handle both direct response and wrapped response
+        const attributes = countryData.data?.attributeMetadata || countryData.attributeMetadata || []
+        if (attributes.length > 0) {
           setAvailableAttributes(attributes)
           return
         }
-        
-        console.warn('[Attributes] CategoryName method failed')
-      }
-
-      // Strategy 3: Last resort - use showAll with default regionCode
-      console.log('[Attributes] Trying showAll method')
-      const showAllResponse = await fetch(`/api/gmb/attributes?showAll=true&regionCode=US`)
-      
-      if (showAllResponse.ok) {
-        const showAllData = await showAllResponse.json()
-        // Handle both direct response and wrapped response
-        const attributes = showAllData.data?.attributeMetadata || showAllData.attributeMetadata || []
-        setAvailableAttributes(attributes)
-        return
       }
 
       // All methods failed
-      const errorData = await showAllResponse.json().catch(() => ({}))
+      const errorData = await countryResponse.json().catch(() => ({}))
       throw new Error(
         errorData.error || 
-        `Failed to fetch attributes. Location format may be invalid. Please try syncing again.`
+        `Failed to fetch attributes. Please try syncing your location again.`
       )
     } catch (error: any) {
       console.error('Error fetching available attributes:', error)
