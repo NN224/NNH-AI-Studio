@@ -40,7 +40,7 @@ async function refreshAccessToken(refreshToken: string): Promise<{
 }
 
 // Get valid access token from any account (for public categories)
-async function getValidAccessToken(supabase: any): Promise<string> {
+async function getValidAccessToken(supabase: any): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Unauthorized');
