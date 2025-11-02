@@ -84,10 +84,10 @@ export async function POST(request: NextRequest) {
 
     if (!accessToken) return NextResponse.json({ error: 'Missing Google access token' }, { status: 400 })
 
-    // Build location resource and post payload (legacy localPosts API)
+    // Build location resource and post payload (Business Information API v1)
     // location.location_id is expected like "locations/1234567890"
     const locationResource = location.location_id
-    const url = `https://mybusiness.googleapis.com/v4/${locationResource}/localPosts`
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${locationResource}/localPosts`
 
     const payload: any = {
       languageCode: 'en',
