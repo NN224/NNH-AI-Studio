@@ -144,11 +144,28 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[Attributes API] Failed to fetch:', JSON.stringify(errorData, null, 2));
+      const errorText = await response.text().catch(() => '');
+      let errorData: any = {};
+      
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        // If not JSON, use text as error message
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      // Log more details for debugging
+      console.error('[Attributes API] Failed to fetch:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        url: url,
+        body: body
+      });
+      
       return errorResponse(
         'API_ERROR',
-        'Failed to fetch attributes from Google',
+        errorData.error?.message || errorData.message || 'Failed to fetch attributes from Google',
         response.status,
         errorData
       );
@@ -157,7 +174,15 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return successResponse(data);
   } catch (error: any) {
-    console.error('[Attributes API] Error:', error);
-    return errorResponse('INTERNAL_ERROR', 'Failed to fetch attributes', 500);
+    console.error('[Attributes API] Error:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      error: error
+    });
+    return errorResponse(
+      'INTERNAL_ERROR', 
+      error?.message || 'Failed to fetch attributes', 
+      500
+    );
   }
 }
