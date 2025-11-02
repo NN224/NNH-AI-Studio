@@ -120,7 +120,7 @@ export function GMBSettings() {
   }
 
   const handleDisconnectGMB = async () => {
-    if (!confirm('هل أنت متأكد أنك تريد قطع الاتصال بـ Google My Business؟ ستتوقف المزامنة ولكن لن يتم حذف البيانات الحالية.')) {
+    if (!confirm('Are you sure you want to disconnect Google My Business? Sync will stop but current data will not be deleted.')) {
       return
     }
 
@@ -137,17 +137,18 @@ export function GMBSettings() {
         throw new Error(data.error || 'Failed to disconnect')
       }
 
-      toast.success('تم قطع الاتصال بـ Google My Business بنجاح')
+      toast.success('Google My Business disconnected successfully')
       setGmbConnected(false)
       // Refresh accounts list
+      const { data: { user } } = await supabase.auth.getUser()
       const { data: accounts } = await supabase
         .from('gmb_accounts')
         .select('id, account_name, is_active, last_sync')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user?.id)
       setGmbAccounts(accounts || [])
     } catch (error: any) {
       console.error('Error disconnecting GMB:', error)
-      toast.error(error.message || 'حدث خطأ أثناء قطع الاتصال')
+      toast.error(error.message || 'Failed to disconnect')
     } finally {
       setDisconnecting(false)
     }
@@ -170,7 +171,7 @@ export function GMBSettings() {
       window.location.href = data.authUrl || data.url
     } catch (error: any) {
       console.error('Error connecting GMB:', error)
-      toast.error(error.message || 'حدث خطأ أثناء الاتصال')
+      toast.error(error.message || 'Failed to connect')
     }
   }
 
@@ -221,13 +222,12 @@ export function GMBSettings() {
                   <Input 
                     id="business-name" 
                     placeholder="Your Business Name" 
-                    defaultValue="NNH Digital Solutions"
                     className="bg-secondary border-primary/30"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="primary-category">Primary Category</Label>
-                  <Select defaultValue="digital-marketing">
+                  <Select>
                     <SelectTrigger className="bg-secondary border-primary/30">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -245,7 +245,6 @@ export function GMBSettings() {
                 <Textarea 
                   id="default-reply"
                   placeholder="Thank you for your review..."
-                  defaultValue="Thank you for taking the time to share your feedback. We appreciate your business and look forward to serving you again!"
                   className="bg-secondary border-primary/30 min-h-[100px]"
                 />
               </div>
@@ -494,21 +493,24 @@ export function GMBSettings() {
                 </div>
               )}
 
+              {/* API Usage tracking disabled for production */}
+              {/* Uncomment when implementing proper usage tracking
               <div className="space-y-2">
                 <Label>API Usage</Label>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">API Calls (This Month)</span>
-                    <span className="font-medium">2,847 / 10,000</span>
+                    <span className="font-medium">Loading...</span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-primary to-accent"
-                      style={{ width: "28.47%" }}
+                      style={{ width: "0%" }}
                     />
                   </div>
                 </div>
               </div>
+              */}
 
               <div className="pt-4 space-y-3 border-t border-primary/20">
                 {gmbConnected ? (
@@ -569,37 +571,11 @@ export function GMBSettings() {
               <CardTitle>Team Management</CardTitle>
               <CardDescription>Manage team members and their permissions</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-primary">JD</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">John Doe</p>
-                      <p className="text-sm text-muted-foreground">john@example.com</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-primary/20 text-primary border-primary/30">Owner</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-accent">SM</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">Sarah Miller</p>
-                      <p className="text-sm text-muted-foreground">sarah@example.com</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary">Editor</Badge>
-                </div>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">Team management coming soon</p>
               </div>
-              <Button variant="outline" className="w-full sm:w-auto">
-                <Users className="h-4 w-4 mr-2" />
-                Invite Team Member
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
