@@ -144,17 +144,6 @@ export function LocationsList() {
           return score
         }
 
-        // Debug: Log all fetched locations
-        console.log('[LocationsList] Fetched locations count:', (data || []).length)
-        if (data && data.length > 0) {
-          console.log('[LocationsList] Location IDs:', data.map(l => ({ 
-            id: l.id, 
-            location_id: l.location_id, 
-            name: l.location_name,
-            account_id: l.gmb_account_id
-          })))
-        }
-
         // Remove duplicates based on location_id (normalized - extract location number only)
         // This handles cases where same location has different formats:
         // - "locations/11247391224469965786"
@@ -175,14 +164,9 @@ export function LocationsList() {
             const existingScore = getMetadataCompleteness(existing)
             const currentScore = getMetadataCompleteness(location)
             
-            console.log(`[LocationsList] Duplicate found for location_id: ${location.location_id} (normalized: ${locationIdNumber})`)
-            console.log(`[LocationsList] Existing location_id: ${existing.location_id}`)
-            console.log(`[LocationsList] Existing score: ${existingScore}, Current score: ${currentScore}`)
-            
             // If scores are equal, prefer the one with latest updated_at
             if (currentScore > existingScore) {
               // Current location has more complete metadata
-              console.log(`[LocationsList] Replacing with current (better score)`)
               acc[existingIndex] = location
             } else if (currentScore === existingScore) {
               // Same completeness, prefer the one with latest updated_at
@@ -190,22 +174,14 @@ export function LocationsList() {
               const currentUpdated = location.updated_at ? new Date(location.updated_at).getTime() : 0
               
               if (currentUpdated > existingUpdated) {
-                console.log(`[LocationsList] Replacing with current (newer updated_at)`)
                 acc[existingIndex] = location
-              } else {
-                console.log(`[LocationsList] Keeping existing (same score, newer)`)
               }
-            } else {
-              console.log(`[LocationsList] Keeping existing (better score)`)
             }
             // If existing has better score, keep it (no change)
           }
           
           return acc
         }, [])
-
-        console.log('[LocationsList] Unique locations after deduplication:', uniqueLocations.length)
-        console.log('[LocationsList] Unique location IDs:', uniqueLocations.map((l: GMBLocation) => l.location_id))
 
         setLocations(uniqueLocations)
       } catch (err) {
@@ -222,52 +198,85 @@ export function LocationsList() {
   // Fetch overview stats
   useEffect(() => {
     async function fetchOverviewStats() {
-      if (locations.length === 0) return
+      if (locations.length === 0) {
+        setOverviewStats({
+          totalImpressions: 0,
+          totalClicks: 0,
+          avgRating: 0,
+          totalReviews: 0,
+        })
+        return
+      }
 
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) {
+          console.error("Authentication error in overview stats:", authError)
+          return
+        }
 
         const thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
         // Get location IDs
         const locationIds = locations.map(loc => loc.id)
+        
+        if (locationIds.length === 0) {
+          setOverviewStats({
+            totalImpressions: 0,
+            totalClicks: 0,
+            avgRating: 0,
+            totalReviews: 0,
+          })
+          return
+        }
 
-        // Get performance metrics
-        const { data: metrics } = await supabase
+        // Get performance metrics with error handling
+        const { data: metrics, error: metricsError } = await supabase
           .from("gmb_performance_metrics")
           .select("metric_type, metric_value, location_id")
           .eq("user_id", user.id)
           .in("location_id", locationIds)
           .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
 
-        // Calculate totals
-        const totalImpressions = metrics
-          ?.filter(m => m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')
-          .reduce((sum, m) => sum + (m.metric_value || 0), 0) || 0
+        if (metricsError) {
+          console.error("Error fetching metrics for overview:", metricsError)
+          // Continue with calculations using empty metrics array
+        }
 
-        const totalClicks = metrics
-          ?.filter(m => m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS')
-          .reduce((sum, m) => sum + (m.metric_value || 0), 0) || 0
+        // Calculate totals safely
+        const totalImpressions = (metrics || [])
+          .filter(m => m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')
+          .reduce((sum, m) => sum + (Number(m.metric_value) || 0), 0)
 
-        // Calculate average rating
-        const ratings = locations.map(loc => loc.rating || 0).filter(r => r > 0)
+        const totalClicks = (metrics || [])
+          .filter(m => m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS')
+          .reduce((sum, m) => sum + (Number(m.metric_value) || 0), 0)
+
+        // Calculate average rating with division by zero protection
+        const ratings = locations.map(loc => Number(loc.rating) || 0).filter(r => r > 0)
         const avgRating = ratings.length > 0 
           ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length 
           : 0
 
         // Total reviews
-        const totalReviews = locations.reduce((sum, loc) => sum + (loc.review_count || 0), 0)
+        const totalReviews = locations.reduce((sum, loc) => sum + (Number(loc.review_count) || 0), 0)
 
         setOverviewStats({
           totalImpressions,
           totalClicks,
-          avgRating,
+          avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
           totalReviews,
         })
       } catch (error) {
         console.error("Error fetching overview stats:", error)
+        // Set default stats on error
+        setOverviewStats({
+          totalImpressions: 0,
+          totalClicks: 0,
+          avgRating: 0,
+          totalReviews: 0,
+        })
       }
     }
 
@@ -287,8 +296,9 @@ export function LocationsList() {
       (filterRating === "3" && location.rating && location.rating < 4)
 
     const matchesStatus = filterStatus === "all" ||
-      (filterStatus === "active" && location.is_syncing) ||
-      (filterStatus === "inactive" && !location.is_syncing)
+      (filterStatus === "active" && location.is_active) ||
+      (filterStatus === "inactive" && !location.is_active) ||
+      (filterStatus === "syncing" && location.is_syncing)
 
     return matchesSearch && matchesRating && matchesStatus
   })

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,7 @@ interface LocationCardProps {
 }
 
 export function LocationCard({ location, index }: LocationCardProps) {
+  const router = useRouter()
   const [mapOpen, setMapOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [attributesOpen, setAttributesOpen] = useState(false)
@@ -68,12 +70,15 @@ export function LocationCard({ location, index }: LocationCardProps) {
 
   // Generate Google Maps embed URL - use latlng if available, otherwise address
   const getMapUrl = () => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) return null // Don't show map if API key is not configured
+    
     if (latlng.latitude && latlng.longitude) {
-      return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${latlng.latitude},${latlng.longitude}&zoom=15`
+      return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${latlng.latitude},${latlng.longitude}&zoom=15`
     }
     if (!location.address) return null
     const encodedAddress = encodeURIComponent(location.address)
-    return `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodedAddress}&zoom=15`
+    return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedAddress}&zoom=15`
   }
 
   // Generate Google Maps search URL for external link - prefer mapsUri if available
@@ -475,8 +480,8 @@ export function LocationCard({ location, index }: LocationCardProps) {
         open={editOpen}
         onOpenChange={setEditOpen}
         onSuccess={() => {
-          // Refresh the page or update location data
-          window.location.reload()
+          // Refresh location data
+          router.refresh()
         }}
       />
 
@@ -486,7 +491,8 @@ export function LocationCard({ location, index }: LocationCardProps) {
         open={attributesOpen}
         onOpenChange={setAttributesOpen}
         onSuccess={() => {
-          window.location.reload()
+          // Refresh location data
+          router.refresh()
         }}
       />
     </>

@@ -30,10 +30,16 @@ export function LocationsMapView({ locations, selectedLocation, onLocationSelect
 
     if (locationsWithCoords.length === 0) {
       // Fallback: use first location's address
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      if (!apiKey) {
+        setMapUrl(null)
+        return
+      }
+      
       const firstLocation = locations[0]
       if (firstLocation.address) {
         const encodedAddress = encodeURIComponent(firstLocation.address)
-        setMapUrl(`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodedAddress}&zoom=12`)
+        setMapUrl(`https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedAddress}&zoom=12`)
       }
       return
     }
@@ -54,8 +60,14 @@ export function LocationsMapView({ locations, selectedLocation, onLocationSelect
 
     // Create map with markers (using Google Maps Embed API)
     // Note: For multiple markers, we'd need to use Google Maps JavaScript API instead
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      setMapUrl(null)
+      return
+    }
+    
     const encodedCenter = `${centerLat},${centerLng}`
-    setMapUrl(`https://www.google.com/maps/embed/v1/view?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&center=${encodedCenter}&zoom=11`)
+    setMapUrl(`https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${encodedCenter}&zoom=11`)
 
   }, [locations])
 

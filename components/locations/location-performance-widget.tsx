@@ -40,7 +40,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
         sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
         // Current period metrics
-        const { data: currentMetrics } = await supabase
+        const { data: currentMetrics, error: currentError } = await supabase
           .from("gmb_performance_metrics")
           .select("metric_type, metric_value")
           .eq("location_id", locationId)
@@ -48,7 +48,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
           .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
 
         // Previous period metrics (for comparison)
-        const { data: previousMetrics } = await supabase
+        const { data: previousMetrics, error: previousError } = await supabase
           .from("gmb_performance_metrics")
           .select("metric_type, metric_value")
           .eq("location_id", locationId)
@@ -56,7 +56,22 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
           .gte("metric_date", sixtyDaysAgo.toISOString().split('T')[0])
           .lt("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
 
-        if (!currentMetrics || !previousMetrics) {
+        if (currentError || previousError) {
+          console.error("Error fetching performance metrics:", currentError || previousError)
+          // Set empty metrics instead of throwing
+          setMetrics({
+            impressions: 0,
+            clicks: 0,
+            bookings: 0,
+            foodOrders: 0,
+            impressionsChange: 0,
+            clicksChange: 0,
+          })
+          return
+        }
+
+        // If no metrics found, set empty values
+        if (!currentMetrics || currentMetrics.length === 0) {
           setMetrics({
             impressions: 0,
             clicks: 0,
@@ -93,12 +108,17 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
           .filter(m => m.metric_type === 'BUSINESS_FOOD_ORDERS')
           .reduce((sum, m) => sum + (m.metric_value || 0), 0)
 
+        // Calculate change percentages only if we have previous data
         const impressionsChange = previousImpressions > 0
-          ? ((currentImpressions - previousImpressions) / previousImpressions) * 100
+          ? Math.round(((currentImpressions - previousImpressions) / previousImpressions) * 100 * 10) / 10
+          : previousMetrics && previousMetrics.length > 0 && currentImpressions > 0
+          ? 100 // New data this period
           : 0
 
         const clicksChange = previousClicks > 0
-          ? ((currentClicks - previousClicks) / previousClicks) * 100
+          ? Math.round(((currentClicks - previousClicks) / previousClicks) * 100 * 10) / 10
+          : previousMetrics && previousMetrics.length > 0 && currentClicks > 0
+          ? 100 // New data this period
           : 0
 
         setMetrics({
@@ -141,7 +161,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
         {metrics.impressionsChange !== 0 && (
           <div className={`flex items-center gap-1 ${metrics.impressionsChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
             <TrendingUp className={`h-3 w-3 ${metrics.impressionsChange < 0 ? 'rotate-180' : ''}`} />
-            <span>{Math.abs(metrics.impressionsChange).toFixed(0)}%</span>
+            <span>{metrics.impressionsChange > 0 ? '+' : ''}{metrics.impressionsChange.toFixed(0)}%</span>
           </div>
         )}
       </div>
