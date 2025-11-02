@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const GBP_ACCOUNT_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
+const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4'; // v4 API for reviews and media
 
 // Helper function for chunking arrays
 const chunks = <T>(array: T[], size = 100): T[][] => {
@@ -203,9 +204,8 @@ async function fetchLocations(
   };
 }
 
-// Fetch reviews for a location using Business Information API
-// Note: v1 APIs don't have a dedicated /reviews endpoint yet
-// We need to fetch location with readMask='reviews' to get reviews data
+// Fetch reviews for a location using Google My Business v4 API
+// v4 has a direct /reviews endpoint that should work for new projects
 async function fetchReviews(
   accessToken: string,
   locationResource: string,
@@ -240,15 +240,14 @@ async function fetchReviews(
     }
   }
   
-  // Use Business Information API with readMask='reviews' to get reviews
-  // Since v1 doesn't have /reviews endpoint, we fetch location with reviews field
-  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}`);
-  url.searchParams.set('readMask', 'reviews');
+  // Use Google My Business v4 API with direct /reviews endpoint
+  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/reviews`);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
+  url.searchParams.set('pageSize', '50');
   
-  console.log('[GMB Sync] Reviews URL (Business Info API with readMask):', url.toString());
+  console.log('[GMB Sync] Reviews URL (v4 API):', url.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -266,7 +265,7 @@ async function fetchReviews(
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
-        console.error('[GMB Sync] Business Info API error for reviews:', JSON.stringify(errorData));
+        console.error('[GMB Sync] v4 API error for reviews:', JSON.stringify(errorData));
       } catch (e) {
         console.error('[GMB Sync] Failed to parse error response as JSON');
       }
@@ -317,26 +316,25 @@ async function fetchReviews(
 
   const data = await response.json();
   
-  // Extract reviews from location response
-  // Business Information API returns reviews inside the location object when using readMask='reviews'
+  // Extract reviews from v4 API response
+  // v4 API returns reviews directly in the response
   const reviews = data.reviews || [];
   
-  console.log('[GMB Sync] Business Info API reviews response:', reviews.length, 'reviews');
+  console.log('[GMB Sync] v4 API reviews response:', reviews.length, 'reviews');
   if (reviews.length > 0) {
     console.log('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
   } else {
-    console.log('[GMB Sync] Location data structure:', JSON.stringify(Object.keys(data), null, 2));
+    console.log('[GMB Sync] v4 API response structure:', JSON.stringify(Object.keys(data), null, 2));
   }
   
   return {
     reviews: reviews || [],
-    nextPageToken: data.nextPageToken, // Business Info API supports pagination
+    nextPageToken: data.nextPageToken, // v4 API supports pagination
   };
 }
 
-// Fetch media for a location using Business Information API
-// Note: v1 APIs don't have a dedicated /media endpoint yet
-// We need to fetch location with readMask='media' to get media data
+// Fetch media for a location using Google My Business v4 API
+// v4 has a direct /media endpoint that should work for new projects
 async function fetchMedia(
   accessToken: string,
   locationResource: string,
@@ -371,15 +369,14 @@ async function fetchMedia(
     }
   }
   
-  // Use Business Information API with readMask to get media
-  // Since v1 doesn't have /media endpoint, we fetch location with media field
-  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}`);
-  url.searchParams.set('readMask', 'media');
+  // Use Google My Business v4 API with direct /media endpoint
+  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/media`);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
+  url.searchParams.set('pageSize', '100');
 
-  console.log('[GMB Sync] Media URL (Business Info API with readMask):', url.toString());
+  console.log('[GMB Sync] Media URL (v4 API):', url.toString());
   console.log('[GMB Sync] Media location resource:', fullLocationResource);
 
   const response = await fetch(url.toString(), {
@@ -447,15 +444,15 @@ async function fetchMedia(
 
   const data = await response.json();
   
-  // Extract media from location response
-  // Business Information API returns media inside the location object when using readMask='media'
-  const media = data.media || data.mediaItems || [];
+  // Extract media from v4 API response
+  // v4 API returns mediaItems directly in the response
+  const media = data.mediaItems || [];
   
-  console.log('[GMB Sync] Business Info API media response:', media.length, 'items');
+  console.log('[GMB Sync] v4 API media response:', media.length, 'items');
   if (media.length > 0) {
     console.log('[GMB Sync] Sample media structure:', JSON.stringify(media[0], null, 2).substring(0, 200));
   } else {
-    console.log('[GMB Sync] Location data structure (for media):', JSON.stringify(Object.keys(data), null, 2));
+    console.log('[GMB Sync] v4 API media response structure:', JSON.stringify(Object.keys(data), null, 2));
   }
   
   return {
