@@ -239,14 +239,14 @@ async function fetchReviews(
     }
   }
   
-  // Use Business Information API to fetch location with reviews
-  // Note: Reviews are accessed through the location resource with readMask
-  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}`);
-  url.searchParams.set('readMask', 'name,title,reviews');
-  url.searchParams.set('alt', 'json');
+  // Use Business Information API to fetch reviews for location
+  // Endpoint: {base}/{locationResource}/reviews
+  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/reviews`);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
+  // Optional: set pageSize if needed
+  url.searchParams.set('pageSize', '50');
   
   console.log('[GMB Sync] Reviews URL (Business Info API):', url.toString());
 
@@ -275,6 +275,11 @@ async function fetchReviews(
         const errorText = await response.text();
         console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+        console.error('[GMB Sync] Full URL that failed:', url.toString());
+        // Try to extract more error info from HTML response
+        if (errorText.includes('error')) {
+          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
+        }
       } catch (e) {
         console.error('[GMB Sync] Failed to read error text:', e);
       }
@@ -284,6 +289,10 @@ async function fetchReviews(
     if (response.status === 404) {
       // Location not found or has no reviews - this is normal for new locations
       console.warn('[GMB Sync] Location not found or has no reviews:', locationResource);
+      console.warn('[GMB Sync] Attempted URL:', url.toString());
+      if (errorData.error) {
+        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error));
+      }
       return { reviews: [], nextPageToken: undefined };
     }
     
@@ -308,15 +317,18 @@ async function fetchReviews(
 
   const data = await response.json();
   
-  // Extract reviews from location data
-  // The API returns reviews in different formats, check both
-  const reviews = data.reviews || data.reviewList?.reviews || [];
+  // Extract reviews from API response
+  // Business Information API /reviews endpoint returns reviews directly
+  const reviews = data.reviews || [];
   
   console.log('[GMB Sync] Business Info API reviews response:', reviews.length, 'reviews');
+  if (reviews.length > 0) {
+    console.log('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
+  }
   
   return {
     reviews: reviews || [],
-    nextPageToken: data.nextPageToken, // Business Info API may support pagination
+    nextPageToken: data.nextPageToken, // Business Info API supports pagination
   };
 }
 
@@ -355,7 +367,8 @@ async function fetchMedia(
     }
   }
   
-  // Use Business Information API to fetch location with media
+  // Use Business Information API to fetch media for location
+  // Endpoint: {base}/{locationResource}/media
   const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/media`);
   url.searchParams.set('pageSize', '100');
   if (pageToken) {
@@ -363,6 +376,7 @@ async function fetchMedia(
   }
 
   console.log('[GMB Sync] Media URL:', url.toString());
+  console.log('[GMB Sync] Media location resource:', fullLocationResource);
 
   const response = await fetch(url.toString(), {
     headers: { 
@@ -388,6 +402,11 @@ async function fetchMedia(
         const errorText = await response.text();
         console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+        console.error('[GMB Sync] Full URL that failed:', url.toString());
+        // Try to extract more error info from HTML response
+        if (errorText.includes('error')) {
+          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
+        }
       } catch (e) {
         console.error('[GMB Sync] Failed to read error text:', e);
       }
@@ -397,6 +416,10 @@ async function fetchMedia(
     if (response.status === 404) {
       // Location not found or has no media - this is normal
       console.warn('[GMB Sync] Location not found or has no media:', locationResource);
+      console.warn('[GMB Sync] Attempted URL:', url.toString());
+      if (errorData.error) {
+        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error));
+      }
       return { media: [], nextPageToken: undefined };
     }
     
