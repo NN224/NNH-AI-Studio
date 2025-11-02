@@ -70,6 +70,74 @@ export function LocationsList() {
           throw fetchError
         }
 
+        // Helper function to calculate metadata completeness score
+        const getMetadataCompleteness = (location: GMBLocation): number => {
+          const metadata = (location.metadata as any) || {}
+          let score = 0
+          
+          // Profile description: +10 points
+          if (metadata.profile?.description) score += 10
+          
+          // Regular hours: +10 points
+          if (metadata.regularHours?.periods?.length > 0) score += 10
+          
+          // Service items: +5 points per item (max 20)
+          if (metadata.serviceItems?.length > 0) {
+            score += Math.min(metadata.serviceItems.length * 5, 20)
+          }
+          
+          // Special hours: +5 points
+          if (metadata.specialHours?.length > 0) score += 5
+          
+          // More hours: +5 points
+          if (metadata.moreHours?.length > 0) score += 5
+          
+          // Open info: +5 points
+          if (metadata.openInfo?.status) score += 5
+          
+          // Lat/Lng: +5 points
+          if (metadata.latlng?.latitude && metadata.latlng?.longitude) score += 5
+          
+          // Labels: +2 points per label (max 10)
+          if (metadata.labels?.length > 0) {
+            score += Math.min(metadata.labels.length * 2, 10)
+          }
+          
+          // Voice of Merchant: +10 points
+          if (metadata.hasVoiceOfMerchant) score += 10
+          
+          // Place ID: +5 points
+          if (metadata.placeId) score += 5
+          
+          // Maps URI: +5 points
+          if (metadata.mapsUri) score += 5
+          
+          // Category: +3 points
+          if (location.category) score += 3
+          
+          // Phone: +3 points
+          if (location.phone) score += 3
+          
+          // Website: +3 points
+          if (location.website) score += 3
+          
+          // Address: +3 points
+          if (location.address) score += 3
+          
+          return score
+        }
+
+        // Debug: Log all fetched locations
+        console.log('[LocationsList] Fetched locations count:', (data || []).length)
+        if (data && data.length > 0) {
+          console.log('[LocationsList] Location IDs:', data.map(l => ({ 
+            id: l.id, 
+            location_id: l.location_id, 
+            name: l.location_name,
+            account_id: l.gmb_account_id
+          })))
+        }
+
         // Remove duplicates based on location_id (in case of multiple accounts with same location)
         const uniqueLocations = (data || []).reduce((acc: GMBLocation[], location: GMBLocation) => {
           // Check if we already have a location with the same location_id
@@ -79,19 +147,41 @@ export function LocationsList() {
             // New unique location
             acc.push(location)
           } else {
-            // Duplicate found - keep the one with the latest updated_at
+            // Duplicate found - prefer the one with more complete metadata
             const existing = acc[existingIndex]
-            const existingUpdated = existing.updated_at ? new Date(existing.updated_at).getTime() : 0
-            const currentUpdated = location.updated_at ? new Date(location.updated_at).getTime() : 0
+            const existingScore = getMetadataCompleteness(existing)
+            const currentScore = getMetadataCompleteness(location)
             
-            if (currentUpdated > existingUpdated) {
-              // Replace with newer location
+            console.log(`[LocationsList] Duplicate found for location_id: ${location.location_id}`)
+            console.log(`[LocationsList] Existing score: ${existingScore}, Current score: ${currentScore}`)
+            
+            // If scores are equal, prefer the one with latest updated_at
+            if (currentScore > existingScore) {
+              // Current location has more complete metadata
+              console.log(`[LocationsList] Replacing with current (better score)`)
               acc[existingIndex] = location
+            } else if (currentScore === existingScore) {
+              // Same completeness, prefer the one with latest updated_at
+              const existingUpdated = existing.updated_at ? new Date(existing.updated_at).getTime() : 0
+              const currentUpdated = location.updated_at ? new Date(location.updated_at).getTime() : 0
+              
+              if (currentUpdated > existingUpdated) {
+                console.log(`[LocationsList] Replacing with current (newer updated_at)`)
+                acc[existingIndex] = location
+              } else {
+                console.log(`[LocationsList] Keeping existing (same score, newer)`)
+              }
+            } else {
+              console.log(`[LocationsList] Keeping existing (better score)`)
             }
+            // If existing has better score, keep it (no change)
           }
           
           return acc
         }, [])
+
+        console.log('[LocationsList] Unique locations after deduplication:', uniqueLocations.length)
+        console.log('[LocationsList] Unique location IDs:', uniqueLocations.map(l => l.location_id))
 
         setLocations(uniqueLocations)
       } catch (err) {
