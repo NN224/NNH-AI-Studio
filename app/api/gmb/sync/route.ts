@@ -835,6 +835,7 @@ export async function POST(request: NextRequest) {
     const accessToken = await getValidAccessToken(supabase, accountId);
 
     const counts = { locations: 0, reviews: 0, media: 0, performance_metrics: 0, search_keywords: 0 };
+    // Note: media count will remain 0 as Media API is deprecated
 
     // Fetch and upsert locations
     console.log('[GMB Sync API] Starting location sync...');
@@ -1012,55 +1013,18 @@ export async function POST(request: NextRequest) {
           reviewsNextPageToken = nextPageToken;
         } while (reviewsNextPageToken && syncType === 'full');
 
-        // Fetch media
-        let mediaNextPageToken: string | undefined = undefined;
-        do {
-          const { media, nextPageToken } = await fetchMedia(
-            accessToken,
-            fullLocationName,
-            account.account_id, // Pass account_id to help build resource if needed
-            mediaNextPageToken
-          );
-
-          if (media.length > 0) {
-            const mediaRows = media.map((item) => ({
-              gmb_account_id: accountId,
-              location_id: location.id,  // Use UUID id, not location_id (resource name)
-              user_id: userId,
-              external_media_id: item.name || item.mediaId || null,
-              type: item.mediaFormat || item.type || null,
-              url: item.googleUrl || item.sourceUrl || null,
-              thumbnail_url: item.thumbnailUrl || null,
-              created_at: item.createTime || null,
-              updated_at: item.updateTime || null,
-              metadata: item, // Store full media object
-            }));
-            
-            // Upsert media in chunks
-            for (const chunk of chunks(mediaRows)) {
-              const { error } = await supabase
-                .from('gmb_media')
-                .upsert(chunk, { 
-                  onConflict: 'external_media_id',
-                  ignoreDuplicates: false 
-                });
-                
-              if (error) {
-                console.error('[GMB Sync API] Error upserting media:', error);
-              } else {
-                console.log(`[GMB Sync API] Upserted ${chunk.length} media items`);
-              }
-            }
-            
-            counts.media += media.length;
-          }
-
-          mediaNextPageToken = nextPageToken;
-        } while (mediaNextPageToken && syncType === 'full');
+        // NOTE: Google My Business v4 Media API has been deprecated/discontinued by Google
+        // Media fetching is no longer available through the v4 API endpoint
+        // Alternative: Media can be fetched from Posts using Business Information API
+        // Use: GET /api/gmb/media?locationId=xxx to fetch media from posts
+        console.log('[GMB Sync API] Media sync skipped - Google My Business v4 Media API is deprecated');
+        console.log('[GMB Sync API] Use GET /api/gmb/media to fetch media from Posts via Business Information API');
       }
     }
 
-    console.log(`[GMB Sync API] Synced ${counts.reviews} reviews and ${counts.media} media items`);
+    console.log(`[GMB Sync API] Synced ${counts.reviews} reviews`);
+    // Note: Media sync removed - Google My Business v4 Media API is deprecated
+    // Media is available through posts created via Business Information API
 
     // Fetch performance metrics and search keywords for each location
     console.log('[GMB Sync API] Starting performance metrics sync...');

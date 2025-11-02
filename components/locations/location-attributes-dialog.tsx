@@ -57,7 +57,23 @@ export function LocationAttributesDialog({
 
     setLoadingAttributes(true)
     try {
-      // Strategy 1: Try with categoryName
+      // Strategy 1: Use locationId (preferred - gets attributes directly from the location)
+      if (location.id) {
+        const locationResponse = await fetch(`/api/gmb/attributes?locationId=${location.id}`)
+        
+        if (locationResponse.ok) {
+          const locationData = await locationResponse.json()
+          // Handle both direct response and wrapped response
+          const attributes = locationData.data?.attributeMetadata || locationData.attributeMetadata || []
+          if (attributes.length > 0) {
+            setAvailableAttributes(attributes)
+            setLoadingAttributes(false)
+            return
+          }
+        }
+      }
+
+      // Strategy 2: Try with categoryName (fallback - uses any location as reference)
       if (location.category) {
         const categoryResponse = await fetch(`/api/gmb/attributes?categoryName=${encodeURIComponent(location.category)}`)
         
@@ -73,7 +89,7 @@ export function LocationAttributesDialog({
         }
       }
 
-      // Strategy 2: Fallback to country (US default)
+      // Strategy 3: Fallback to country (US default)
       const countryResponse = await fetch(`/api/gmb/attributes?country=US`)
       
       if (countryResponse.ok) {

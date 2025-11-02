@@ -56,7 +56,7 @@ async function getValidAccessToken(supabase: any): Promise<string | null> {
 
   if (error || !accounts || accounts.length === 0) {
     console.warn('[Attributes API] No active GMB account found for user:', user.id);
-    return null; // Will be handled by the caller
+    return null;
   }
   
   const account = accounts[0];
@@ -100,22 +100,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const categoryName = searchParams.get('categoryName') || undefined;
     const regionCode = searchParams.get('country') || undefined;
-    const languageCode = searchParams.get('languageCode') || 'en';
-    const pageSize = parseInt(searchParams.get('pageSize') || '200');
-    const pageToken = searchParams.get('pageToken') || undefined;
-
-    // regionCode is used instead of country in body
-    if (!categoryName && !regionCode) {
-      return errorResponse(
-        'MISSING_FIELDS',
-        'Either categoryName or country is required',
-        400
-      );
-    }
+    const locationId = searchParams.get('locationId') || undefined;
 
     const accessToken = await getValidAccessToken(supabase);
     
-    // If no access token (no GMB account), return empty attributes
     if (!accessToken) {
       return successResponse({ 
         attributeMetadata: [],
@@ -123,44 +111,95 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const url = `${GBP_LOC_BASE}/attributes:batchGet`;
+    // Strategy 1: If we have a locationId, use it to get attributes from that location
+    if (locationId) {
+      const { data: location, error: locationError } = await supabase
+        .from('gmb_locations')
+        .select('location_id')
+        .eq('id', locationId)
+        .eq('user_id', user.id)
+        .single();
 
-    const body: any = {
-      languageCode,
-      pageSize,
-    };
-    if (categoryName) body.categoryName = categoryName;
-    if (regionCode) body.regionCode = regionCode;
-    if (pageToken) body.pageToken = pageToken;
+      if (locationError || !location) {
+        return errorResponse('NOT_FOUND', 'Location not found', 404);
+      }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+      const url = new URL(`${GBP_LOC_BASE}/${location.location_id}/attributes`);
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
+      });
 
-    if (!response.ok) {
+      if (response.ok) {
+        const data = await response.json();
+        // Extract attribute metadata from location attributes
+        // The response contains attributes array, we need to convert it to attributeMetadata format
+        const attributes = data.attributes || [];
+        return successResponse({
+          attributeMetadata: attributes.map((attr: any) => ({
+            name: attr.name,
+            valueType: attr.valueType,
+            displayName: attr.displayName,
+            // Include other metadata fields as needed
+          })),
+        });
+      }
+    }
+
+    // Strategy 2: Try to find any location and use it as reference to get available attributes
+    // Note: Google API doesn't have a general endpoint for attribute metadata,
+    // so we use an actual location as reference
+    const { data: locations } = await supabase
+      .from('gmb_locations')
+      .select('location_id, category')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (locations && locations.length > 0) {
+      const sampleLocation = locations[0];
+      const url = new URL(`${GBP_LOC_BASE}/${sampleLocation.location_id}/attributes`);
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const attributes = data.attributes || [];
+        return successResponse({
+          attributeMetadata: attributes.map((attr: any) => ({
+            name: attr.name,
+            valueType: attr.valueType,
+            displayName: attr.displayName,
+            groupName: attr.groupName,
+            // Include other metadata as available
+          })),
+        });
+      }
+
+      // If fetch failed, log the error
       const errorText = await response.text().catch(() => '');
       let errorData: any = {};
       
       try {
         errorData = JSON.parse(errorText);
       } catch {
-        // If not JSON, use text as error message
         errorData = { message: errorText || 'Unknown error' };
       }
       
-      // Log more details for debugging
-      console.error('[Attributes API] Failed to fetch:', {
+      console.error('[Attributes API] Failed to fetch attributes from location:', {
         status: response.status,
         statusText: response.statusText,
         error: errorData,
-        url: url,
-        body: body
+        url: url.toString()
       });
       
       return errorResponse(
@@ -171,8 +210,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
-    return successResponse(data);
+    // If no locations found, return empty attributes
+    return successResponse({ 
+      attributeMetadata: [],
+      message: 'Unable to fetch attributes. Please ensure you have connected locations.' 
+    });
   } catch (error: any) {
     console.error('[Attributes API] Error:', {
       message: error?.message || 'Unknown error',
