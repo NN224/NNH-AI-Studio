@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const GBP_ACCOUNT_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 
 // Helper function for chunking arrays
 const chunks = <T>(array: T[], size = 100): T[][] => {
@@ -202,9 +203,8 @@ async function fetchLocations(
   };
 }
 
-// Fetch reviews for a location using Business Information API
-// Note: Business Information API doesn't have a direct reviews endpoint,
-// but we can get reviews through the location's reviews field
+// Fetch reviews for a location using Account Management API
+// Account Management API has the reviews endpoint
 async function fetchReviews(
   accessToken: string,
   locationResource: string,
@@ -232,23 +232,23 @@ async function fetchReviews(
         : `accounts/${accountResource}`;
       
       fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
-      console.log('[GMB Sync] Built location resource:', locationResource, '→', fullLocationResource);
+      console.log('[GMB Sync API] Built location resource:', locationResource, '→', fullLocationResource);
     } else {
       console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
       return { reviews: [], nextPageToken: undefined };
     }
   }
   
-  // Use Business Information API to fetch reviews for location
+  // Use Account Management API to fetch reviews for location
   // Endpoint: {base}/{locationResource}/reviews
-  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/reviews`);
+  const url = new URL(`${GBP_ACCOUNT_MGMT_BASE}/${fullLocationResource}/reviews`);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
   // Optional: set pageSize if needed
   url.searchParams.set('pageSize', '50');
   
-  console.log('[GMB Sync] Reviews URL (Business Info API):', url.toString());
+  console.log('[GMB Sync] Reviews URL (Account Management API):', url.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -318,21 +318,21 @@ async function fetchReviews(
   const data = await response.json();
   
   // Extract reviews from API response
-  // Business Information API /reviews endpoint returns reviews directly
+  // Account Management API /reviews endpoint returns reviews directly
   const reviews = data.reviews || [];
   
-  console.log('[GMB Sync] Business Info API reviews response:', reviews.length, 'reviews');
+  console.log('[GMB Sync] Account Management API reviews response:', reviews.length, 'reviews');
   if (reviews.length > 0) {
     console.log('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
   }
   
   return {
     reviews: reviews || [],
-    nextPageToken: data.nextPageToken, // Business Info API supports pagination
+    nextPageToken: data.nextPageToken, // Account Management API supports pagination
   };
 }
 
-// Fetch media for a location using Business Information API
+// Fetch media for a location using Account Management API
 async function fetchMedia(
   accessToken: string,
   locationResource: string,
@@ -367,15 +367,15 @@ async function fetchMedia(
     }
   }
   
-  // Use Business Information API to fetch media for location
+  // Use Account Management API to fetch media for location
   // Endpoint: {base}/{locationResource}/media
-  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/media`);
+  const url = new URL(`${GBP_ACCOUNT_MGMT_BASE}/${fullLocationResource}/media`);
   url.searchParams.set('pageSize', '100');
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
 
-  console.log('[GMB Sync] Media URL:', url.toString());
+  console.log('[GMB Sync] Media URL (Account Management API):', url.toString());
   console.log('[GMB Sync] Media location resource:', fullLocationResource);
 
   const response = await fetch(url.toString(), {
