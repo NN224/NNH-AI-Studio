@@ -265,10 +265,11 @@ export async function GET(request: NextRequest) {
         console.log(`[OAuth Callback] Found ${locations.length} locations`);
         
         for (const location of locations) {
+          // Use location_id (which is unique globally) to find existing location
+          // This prevents duplicates when reconnecting the same Google account
           const { data: existingLocation } = await supabase
             .from('gmb_locations')
-            .select('id')
-            .eq('gmb_account_id', savedAccountId)
+            .select('id, gmb_account_id, user_id')
             .eq('location_id', location.name)
             .maybeSingle();
             
@@ -293,14 +294,38 @@ export async function GET(request: NextRequest) {
           };
           
           if (existingLocation) {
-            await supabase
+            // Update existing location - also update gmb_account_id in case account changed
+            console.log(`[OAuth Callback] Updating existing location ${location.name} (was account ${existingLocation.gmb_account_id}, now ${savedAccountId})`);
+            const { error: updateError } = await supabase
               .from('gmb_locations')
               .update(locationData)
               .eq('id', existingLocation.id);
+              
+            if (updateError) {
+              console.error(`[OAuth Callback] Error updating location ${location.name}:`, updateError);
+            }
           } else {
-            await supabase
+            // Insert new location
+            console.log(`[OAuth Callback] Inserting new location ${location.name}`);
+            const { error: insertError } = await supabase
               .from('gmb_locations')
               .insert(locationData);
+              
+            if (insertError) {
+              console.error(`[OAuth Callback] Error inserting location ${location.name}:`, insertError);
+              // If insert fails due to unique constraint, try update instead
+              if (insertError.code === '23505') { // Unique violation
+                console.log(`[OAuth Callback] Location already exists (unique constraint), updating instead`);
+                const { error: updateError } = await supabase
+                  .from('gmb_locations')
+                  .update(locationData)
+                  .eq('location_id', location.name);
+                  
+                if (updateError) {
+                  console.error(`[OAuth Callback] Error updating location after insert conflict:`, updateError);
+                }
+              }
+            }
           }
         }
       } else {
