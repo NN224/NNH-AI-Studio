@@ -29,7 +29,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
   project_ref TEXT := 'rrarhekwhgpgkakqrlyn';
-  cron_secret TEXT := 'YOUR_CRON_SECRET';  -- ⚠️ استبدل هنا
+  cron_secret TEXT := 'my-super-secret-76001066';  -- ⚠️ استبدل هنا
   edge_function_url TEXT;
 BEGIN
   edge_function_url := 'https://' || project_ref || '.supabase.co/functions/v1/scheduled-sync';
@@ -131,7 +131,34 @@ curl -X GET https://your-domain.com/api/gmb/scheduled-sync \
 
 ---
 
-### 7. ✅ مراقبة Logs
+### 7. ✅ اختبار Cron Jobs من SQL Editor
+
+**الخطوات السريعة:**
+1. افتح **Supabase Dashboard** → **SQL Editor**
+2. نفذ ملف `sql/quick_cron_test.sql` أو:
+
+```sql
+-- 1. عرض Cron Jobs
+SELECT jobname, schedule, 
+  CASE WHEN active THEN '✅ نشط' ELSE '❌ متوقف' END AS status
+FROM cron.job WHERE jobname LIKE 'gmb-sync%';
+
+-- 2. اختبار Function يدوياً
+SELECT trigger_gmb_sync();
+
+-- 3. عرض آخر تنفيذات
+SELECT jobname, start_time, status, return_message
+FROM cron.job_run_details rd
+JOIN cron.job j ON rd.jobid = j.jobid
+WHERE j.jobname LIKE 'gmb-sync%'
+ORDER BY start_time DESC LIMIT 5;
+```
+
+**للمزيد من Queries:** راجع `sql/test_cron_jobs.sql`
+
+---
+
+### 8. ✅ مراقبة Logs
 
 **Supabase Logs:**
 - **Dashboard** → **Edge Functions** → **Logs**
