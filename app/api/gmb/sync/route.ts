@@ -7,6 +7,7 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const GBP_ACCOUNT_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4'; // v4 API for reviews and media
+const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1'; // Performance API for metrics
 
 // Helper function for chunking arrays
 const chunks = <T>(array: T[], size = 100): T[][] => {
@@ -461,6 +462,263 @@ async function fetchMedia(
   };
 }
 
+// Fetch daily metrics for a location using Business Profile Performance API
+// Performance API uses location_id format: locations/{location_id} (without accounts/ prefix)
+async function fetchDailyMetrics(
+  accessToken: string,
+  locationId: string, // Should be just the location ID number (e.g., "11247391224469965786")
+  startDate: Date,
+  endDate: Date,
+  metrics: string[] = [
+    'BUSINESS_IMPRESSIONS_DESKTOP_MAPS',
+    'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
+    'BUSINESS_IMPRESSIONS_MOBILE_MAPS',
+    'BUSINESS_IMPRESSIONS_MOBILE_SEARCH',
+    'BUSINESS_CONVERSATIONS',
+    'BUSINESS_DIRECTION_REQUESTS',
+    'CALL_CLICKS',
+    'WEBSITE_CLICKS',
+  ]
+): Promise<{ metrics: any[] }> {
+  console.log('[GMB Sync] Fetching daily metrics for location:', locationId);
+  
+  // Performance API uses format: locations/{location_id} (just the ID, not full resource)
+  // Extract just the location ID if it has prefixes
+  let cleanLocationId = locationId;
+  if (locationId.includes('/locations/')) {
+    cleanLocationId = locationId.split('/locations/')[1];
+  } else if (locationId.startsWith('locations/')) {
+    cleanLocationId = locationId.replace(/^locations\//, '');
+  } else if (locationId.includes('accounts/')) {
+    // Extract location ID from accounts/.../locations/... format
+    const match = locationId.match(/locations\/([^\/]+)/);
+    if (match) {
+      cleanLocationId = match[1];
+    }
+  }
+  
+  const locationResource = `locations/${cleanLocationId}`;
+  
+  // Build URL for fetchMultiDailyMetricsTimeSeries
+  const url = new URL(`${PERFORMANCE_API_BASE}/${locationResource}:fetchMultiDailyMetricsTimeSeries`);
+  
+  // Add date range
+  url.searchParams.set('daily_range.start_date.year', startDate.getFullYear().toString());
+  url.searchParams.set('daily_range.start_date.month', (startDate.getMonth() + 1).toString());
+  url.searchParams.set('daily_range.start_date.day', startDate.getDate().toString());
+  url.searchParams.set('daily_range.end_date.year', endDate.getFullYear().toString());
+  url.searchParams.set('daily_range.end_date.month', (endDate.getMonth() + 1).toString());
+  url.searchParams.set('daily_range.end_date.day', endDate.getDate().toString());
+  
+  // Add metrics
+  metrics.forEach(metric => {
+    url.searchParams.append('dailyMetrics', metric);
+  });
+  
+  console.log('[GMB Sync] Performance API URL:', url.toString());
+  
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type')?.toLowerCase();
+    let errorData: any = {};
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        errorData = await response.json();
+        console.error('[GMB Sync] Performance API error:', JSON.stringify(errorData));
+      } catch (e) {
+        console.error('[GMB Sync] Failed to parse error response as JSON');
+      }
+    } else {
+      try {
+        const errorText = await response.text();
+        console.error('[GMB Sync] Performance API error response. Status:', response.status);
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+      } catch (e) {
+        console.error('[GMB Sync] Failed to read error text:', e);
+      }
+    }
+    
+    if (response.status === 404) {
+      console.warn('[GMB Sync] Performance metrics not available for location:', locationId);
+      return { metrics: [] };
+    }
+    
+    if (response.status === 403) {
+      console.error('[GMB Sync] Permission denied for Performance API. Check if API is enabled.');
+      console.error('[GMB Sync] Error details:', errorData);
+      return { metrics: [] };
+    }
+    
+    console.warn('[GMB Sync] Failed to fetch performance metrics:', response.status, errorData);
+    return { metrics: [] };
+  }
+  
+  const contentType = response.headers.get('content-type')?.toLowerCase();
+  if (!contentType || !contentType.includes('application/json')) {
+    console.error('[GMB Sync] Unexpected content type for performance metrics:', contentType);
+    return { metrics: [] };
+  }
+  
+  const data = await response.json();
+  
+  // Extract metrics from response
+  // Response structure: { multiDailyMetricTimeSeries: [{ dailyMetricTimeSeries: [...] }] }
+  const allMetrics: any[] = [];
+  
+  if (data.multiDailyMetricTimeSeries) {
+    for (const multiSeries of data.multiDailyMetricTimeSeries) {
+      if (multiSeries.dailyMetricTimeSeries) {
+        for (const metricSeries of multiSeries.dailyMetricTimeSeries) {
+          const metricType = metricSeries.dailyMetric;
+          const timeSeries = metricSeries.timeSeries;
+          
+          if (timeSeries && timeSeries.datedValues) {
+            for (const datedValue of timeSeries.datedValues) {
+              if (datedValue.date && datedValue.value !== undefined) {
+                allMetrics.push({
+                  metric_type: metricType,
+                  metric_date: `${datedValue.date.year}-${String(datedValue.date.month || 1).padStart(2, '0')}-${String(datedValue.date.day || 1).padStart(2, '0')}`,
+                  metric_value: parseInt(datedValue.value) || 0,
+                  sub_entity_type: metricSeries.dailySubEntityType || {},
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  console.log('[GMB Sync] Performance API returned', allMetrics.length, 'metric data points');
+  
+  return { metrics: allMetrics };
+}
+
+// Fetch search keywords impressions for a location using Business Profile Performance API
+async function fetchSearchKeywords(
+  accessToken: string,
+  locationId: string, // Should be just the location ID number
+  startMonth: Date,
+  endMonth: Date,
+  pageToken?: string
+): Promise<{ keywords: any[]; nextPageToken?: string }> {
+  console.log('[GMB Sync] Fetching search keywords for location:', locationId);
+  
+  // Extract just the location ID if it has prefixes
+  let cleanLocationId = locationId;
+  if (locationId.includes('/locations/')) {
+    cleanLocationId = locationId.split('/locations/')[1];
+  } else if (locationId.startsWith('locations/')) {
+    cleanLocationId = locationId.replace(/^locations\//, '');
+  } else if (locationId.includes('accounts/')) {
+    const match = locationId.match(/locations\/([^\/]+)/);
+    if (match) {
+      cleanLocationId = match[1];
+    }
+  }
+  
+  const locationResource = `locations/${cleanLocationId}`;
+  
+  // Build URL for search keywords
+  const url = new URL(`${PERFORMANCE_API_BASE}/${locationResource}/searchkeywords/impressions/monthly`);
+  
+  // Add date range
+  url.searchParams.set('monthly_range.start_month.year', startMonth.getFullYear().toString());
+  url.searchParams.set('monthly_range.start_month.month', (startMonth.getMonth() + 1).toString());
+  url.searchParams.set('monthly_range.end_month.year', endMonth.getFullYear().toString());
+  url.searchParams.set('monthly_range.end_month.month', (endMonth.getMonth() + 1).toString());
+  
+  if (pageToken) {
+    url.searchParams.set('pageToken', pageToken);
+  }
+  
+  url.searchParams.set('pageSize', '100');
+  
+  console.log('[GMB Sync] Search Keywords URL:', url.toString());
+  
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type')?.toLowerCase();
+    let errorData: any = {};
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        errorData = await response.json();
+        console.error('[GMB Sync] Search Keywords API error:', JSON.stringify(errorData));
+      } catch (e) {
+        console.error('[GMB Sync] Failed to parse error response as JSON');
+      }
+    }
+    
+    if (response.status === 404) {
+      console.warn('[GMB Sync] Search keywords not available for location:', locationId);
+      return { keywords: [] };
+    }
+    
+    if (response.status === 403) {
+      console.error('[GMB Sync] Permission denied for Search Keywords API.');
+      return { keywords: [] };
+    }
+    
+    console.warn('[GMB Sync] Failed to fetch search keywords:', response.status, errorData);
+    return { keywords: [] };
+  }
+  
+  const contentType = response.headers.get('content-type')?.toLowerCase();
+  if (!contentType || !contentType.includes('application/json')) {
+    console.error('[GMB Sync] Unexpected content type for search keywords:', contentType);
+    return { keywords: [] };
+  }
+  
+  const data = await response.json();
+  
+  // Extract keywords from response
+  // Response structure: { searchKeywordsCounts: [{ searchKeyword: "...", insightsValue: {...} }] }
+  const keywords: any[] = [];
+  
+  if (data.searchKeywordsCounts) {
+    for (const keywordCount of data.searchKeywordsCounts) {
+      const keyword = keywordCount.searchKeyword;
+      const insightsValue = keywordCount.insightsValue;
+      
+      // insightsValue can be either { value: "..." } or { threshold: "..." }
+      const impressions = insightsValue?.value 
+        ? parseInt(insightsValue.value) 
+        : (insightsValue?.threshold ? parseInt(insightsValue.threshold) : 0);
+      
+      // We'll store data for the end month (most recent)
+      keywords.push({
+        search_keyword: keyword,
+        impressions_count: impressions,
+        threshold_value: insightsValue?.threshold ? parseInt(insightsValue.threshold) : null,
+        month_year: `${endMonth.getFullYear()}-${String(endMonth.getMonth() + 1).padStart(2, '0')}-01`,
+      });
+    }
+  }
+  
+  console.log('[GMB Sync] Search Keywords API returned', keywords.length, 'keywords');
+  
+  return {
+    keywords: keywords || [],
+    nextPageToken: data.nextPageToken,
+  };
+}
+
 export async function POST(request: NextRequest) {
   console.log('[GMB Sync API] Sync request received');
   const started = Date.now();
@@ -561,7 +819,7 @@ export async function POST(request: NextRequest) {
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, accountId);
 
-    const counts = { locations: 0, reviews: 0, media: 0 };
+    const counts = { locations: 0, reviews: 0, media: 0, performance_metrics: 0, search_keywords: 0 };
 
     // Fetch and upsert locations
     console.log('[GMB Sync API] Starting location sync...');
@@ -756,6 +1014,133 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[GMB Sync API] Synced ${counts.reviews} reviews and ${counts.media} media items`);
+
+    // Fetch performance metrics and search keywords for each location
+    console.log('[GMB Sync API] Starting performance metrics sync...');
+    if (dbLocations && Array.isArray(dbLocations)) {
+      console.log(`[GMB Sync API] Processing ${dbLocations.length} locations for performance metrics sync`);
+
+      // Calculate date range: last 30 days for daily metrics, last 3 months for search keywords
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30); // Last 30 days
+
+      const endMonth = new Date();
+      const startMonth = new Date();
+      startMonth.setMonth(startMonth.getMonth() - 3); // Last 3 months
+
+      for (const location of dbLocations) {
+        // Extract location ID for Performance API (just the ID, not full resource)
+        let locationIdForPerformance = location.location_id;
+        if (locationIdForPerformance.includes('/locations/')) {
+          locationIdForPerformance = locationIdForPerformance.split('/locations/')[1];
+        } else if (locationIdForPerformance.startsWith('locations/')) {
+          locationIdForPerformance = locationIdForPerformance.replace(/^locations\//, '');
+        } else if (locationIdForPerformance.includes('accounts/')) {
+          const match = locationIdForPerformance.match(/locations\/([^\/]+)/);
+          if (match) {
+            locationIdForPerformance = match[1];
+          }
+        }
+
+        // Fetch daily metrics
+        try {
+          console.log(`[GMB Sync API] Fetching performance metrics for location: ${locationIdForPerformance}`);
+          const { metrics } = await fetchDailyMetrics(
+            accessToken,
+            locationIdForPerformance,
+            startDate,
+            endDate
+          );
+
+          if (metrics.length > 0) {
+            const metricRows = metrics.map((metric) => ({
+              gmb_account_id: accountId,
+              location_id: location.id, // Use UUID id, not location_id
+              user_id: user.id,
+              metric_type: metric.metric_type,
+              metric_date: metric.metric_date,
+              metric_value: metric.metric_value,
+              sub_entity_type: metric.sub_entity_type || {},
+              metadata: {},
+            }));
+
+            // Upsert metrics in chunks
+            for (const chunk of chunks(metricRows)) {
+              const { error } = await supabase
+                .from('gmb_performance_metrics')
+                .upsert(chunk, { 
+                  onConflict: 'location_id,metric_date,metric_type',
+                  ignoreDuplicates: false 
+                });
+
+              if (error) {
+                console.error('[GMB Sync API] Error upserting performance metrics:', error);
+              } else {
+                console.log(`[GMB Sync API] Upserted ${chunk.length} performance metrics`);
+              }
+            }
+
+            counts.performance_metrics += metrics.length;
+          }
+        } catch (error) {
+          console.error(`[GMB Sync API] Error fetching performance metrics for location ${location.id}:`, error);
+        }
+
+        // Fetch search keywords
+        try {
+          console.log(`[GMB Sync API] Fetching search keywords for location: ${locationIdForPerformance}`);
+          let keywordsNextPageToken: string | undefined = undefined;
+          
+          do {
+            const { keywords, nextPageToken } = await fetchSearchKeywords(
+              accessToken,
+              locationIdForPerformance,
+              startMonth,
+              endMonth,
+              keywordsNextPageToken
+            );
+
+            if (keywords.length > 0) {
+              const keywordRows = keywords.map((keyword) => ({
+                gmb_account_id: accountId,
+                location_id: location.id, // Use UUID id
+                user_id: user.id,
+                search_keyword: keyword.search_keyword,
+                month_year: keyword.month_year,
+                impressions_count: keyword.impressions_count,
+                threshold_value: keyword.threshold_value,
+                metadata: {},
+              }));
+
+              // Upsert keywords in chunks
+              for (const chunk of chunks(keywordRows)) {
+                const { error } = await supabase
+                  .from('gmb_search_keywords')
+                  .upsert(chunk, { 
+                    onConflict: 'location_id,search_keyword,month_year',
+                    ignoreDuplicates: false 
+                  });
+
+                if (error) {
+                  console.error('[GMB Sync API] Error upserting search keywords:', error);
+                } else {
+                  console.log(`[GMB Sync API] Upserted ${chunk.length} search keywords`);
+                }
+              }
+
+              counts.search_keywords += keywords.length;
+            }
+
+            keywordsNextPageToken = nextPageToken;
+          } while (keywordsNextPageToken && syncType === 'full');
+        } catch (error) {
+          console.error(`[GMB Sync API] Error fetching search keywords for location ${location.id}:`, error);
+        }
+      }
+    }
+
+    console.log(`[GMB Sync API] Synced ${counts.performance_metrics} performance metrics and ${counts.search_keywords} search keywords`);
 
     // Update last sync timestamp
     await supabase
