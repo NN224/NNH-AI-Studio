@@ -202,13 +202,9 @@ async function fetchLocations(
   };
 }
 
-<<<<<<< HEAD
 // Fetch reviews for a location using Business Information API
 // Note: Business Information API doesn't have a direct reviews endpoint,
 // but we can get reviews through the location's reviews field
-=======
-// Fetch reviews for a location using Google Places API (New)
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
 async function fetchReviews(
   accessToken: string,
   locationResource: string,
@@ -216,7 +212,6 @@ async function fetchReviews(
   pageToken?: string
 ): Promise<{ reviews: any[]; nextPageToken?: string }> {
   console.log('[GMB Sync] Fetching reviews for location:', locationResource);
-<<<<<<< HEAD
   
   // Build full location resource if needed
   let fullLocationResource = locationResource;
@@ -254,31 +249,11 @@ async function fetchReviews(
   }
   
   console.log('[GMB Sync] Reviews URL (Business Info API):', url.toString());
-=======
-
-  // Extract place ID from location resource
-  // Format: accounts/{accountId}/locations/{locationId} or locations/{locationId}
-  let placeId = locationResource;
-  if (locationResource.includes('/')) {
-    const parts = locationResource.split('/');
-    placeId = parts[parts.length - 1];
-  }
-
-  // Use Google Places API (New) to fetch reviews
-  // Note: This requires the place to be claimed and linked to Google My Business
-  const url = new URL(`${PLACES_API_BASE}/places/${placeId}`);
-
-  console.log('[GMB Sync] Reviews URL (Places API):', url.toString());
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
 
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: { 
       'Authorization': `Bearer ${accessToken}`,
-<<<<<<< HEAD
-=======
-      'X-Goog-FieldMask': 'reviews',
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
       'Content-Type': 'application/json',
     },
   });
@@ -291,11 +266,7 @@ async function fetchReviews(
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
-<<<<<<< HEAD
         console.error('[GMB Sync] Business Info API error for reviews:', JSON.stringify(errorData));
-=======
-        console.error('[GMB Sync] Places API error:', JSON.stringify(errorData));
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
       } catch (e) {
         console.error('[GMB Sync] Failed to parse error response as JSON');
       }
@@ -308,7 +279,6 @@ async function fetchReviews(
         console.error('[GMB Sync] Failed to read error text:', e);
       }
     }
-<<<<<<< HEAD
     
     // Handle specific error cases
     if (response.status === 404) {
@@ -327,11 +297,6 @@ async function fetchReviews(
     // For other errors, log but don't fail the entire sync
     console.warn('[GMB Sync] Failed to fetch reviews for location:', locationResource);
     console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
-=======
-
-    console.warn('[GMB Sync] Reviews not available via Places API for:', locationResource);
-    console.warn('[GMB Sync] This is expected if the location is not yet indexed in Places API');
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
     return { reviews: [], nextPageToken: undefined };
   }
 
@@ -342,7 +307,6 @@ async function fetchReviews(
   }
 
   const data = await response.json();
-<<<<<<< HEAD
   
   // Extract reviews from location data
   // The API returns reviews in different formats, check both
@@ -353,13 +317,6 @@ async function fetchReviews(
   return {
     reviews: reviews || [],
     nextPageToken: data.nextPageToken, // Business Info API may support pagination
-=======
-  console.log('[GMB Sync] Places API reviews response:', data.reviews?.length || 0, 'reviews');
-
-  return {
-    reviews: data.reviews || [],
-    nextPageToken: undefined, // Places API doesn't support pagination for reviews
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
   };
 }
 
@@ -371,7 +328,6 @@ async function fetchMedia(
   pageToken?: string
 ): Promise<{ media: any[]; nextPageToken?: string }> {
   console.log('[GMB Sync] Fetching media for location:', locationResource);
-<<<<<<< HEAD
   
   // Build full location resource if needed
   let fullLocationResource = locationResource;
@@ -399,16 +355,6 @@ async function fetchMedia(
     }
   }
   
-=======
-
-  // Build full location resource if needed
-  let fullLocationResource = locationResource;
-  if (!locationResource.startsWith('accounts/')) {
-    console.warn('[GMB Sync] Location resource missing accounts/ prefix:', locationResource);
-    return { media: [], nextPageToken: undefined };
-  }
-
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
   // Use Business Information API to fetch location with media
   const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/media`);
   url.searchParams.set('pageSize', '100');
@@ -446,7 +392,6 @@ async function fetchMedia(
         console.error('[GMB Sync] Failed to read error text:', e);
       }
     }
-<<<<<<< HEAD
     
     // Handle specific error cases for media
     if (response.status === 404) {
@@ -464,10 +409,6 @@ async function fetchMedia(
     
     console.warn('[GMB Sync] Media not available for:', locationResource);
     console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
-=======
-
-    console.warn('[GMB Sync] Media not available for:', locationResource);
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
     return { media: [], nextPageToken: undefined };
   }
 
@@ -479,11 +420,7 @@ async function fetchMedia(
 
   const data = await response.json();
   console.log('[GMB Sync] Media items fetched:', data.mediaItems?.length || 0);
-<<<<<<< HEAD
   
-=======
-
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
   return {
     media: data.mediaItems || [],
     nextPageToken: data.nextPageToken,
@@ -686,7 +623,6 @@ export async function POST(request: NextRequest) {
         } else {
           console.log(`[GMB Sync API] Using full location resource: ${fullLocationName}`);
         }
-<<<<<<< HEAD
         
         // Validate that we have a proper resource name
         if (!fullLocationName.includes('/locations/')) {
@@ -694,9 +630,6 @@ export async function POST(request: NextRequest) {
           continue;
         }
         
-=======
-
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
         // Fetch reviews
         let reviewsNextPageToken: string | undefined = undefined;
         do {
@@ -763,7 +696,6 @@ export async function POST(request: NextRequest) {
               updated_at: item.updateTime || null,
               metadata: item, // Store full media object
             }));
-<<<<<<< HEAD
             
             // Upsert media in chunks
             for (const chunk of chunks(mediaRows)) {
@@ -781,21 +713,6 @@ export async function POST(request: NextRequest) {
               }
             }
             
-=======
-
-            // TODO: Upsert media in chunks (gmb_media table not yet created)
-            // for (const chunk of chunks(mediaRows)) {
-            //   const { error } = await supabase
-            //     .from('gmb_media')
-            //     .upsert(chunk, { onConflict: 'external_media_id' });
-            //     
-            //   if (error) {
-            //     console.error('[GMB Sync API] Error upserting media:', error);
-            //   }
-            // }
-            console.log(`[GMB Sync API] ${media.length} media items fetched but not stored (table not implemented)`);
-
->>>>>>> 3c18619859707bb05848903cdefcf6584df98c15
             counts.media += media.length;
           }
 
