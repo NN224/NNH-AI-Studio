@@ -30,21 +30,46 @@ export function AttributesManager() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) {
         setError("Unauthorized")
+        setLoading(false)
         return
       }
 
+      // First get active GMB account IDs
+      const { data: activeAccounts, error: accountsError } = await supabase
+        .from("gmb_accounts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+
+      if (accountsError) {
+        console.error("Error fetching active accounts:", accountsError)
+        throw accountsError
+      }
+
+      const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+      if (activeAccountIds.length === 0) {
+        setLocations([])
+        setLoading(false)
+        return
+      }
+
+      // Only fetch locations from active accounts
       const { data, error: locationsError } = await supabase
         .from("gmb_locations")
         .select("*")
         .eq("user_id", user.id)
+        .in("gmb_account_id", activeAccountIds)
         .order("location_name", { ascending: true })
 
       if (locationsError) throw locationsError
       setLocations(data || [])
     } catch (err: any) {
       console.error("Error fetching locations:", err)
-      setError(err.message || "Failed to fetch locations")
-      toast.error("Failed to load locations")
+      const errorMessage = err.message || "Failed to fetch locations"
+      setError(errorMessage)
+      setLocations([]) // Set empty array on error
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

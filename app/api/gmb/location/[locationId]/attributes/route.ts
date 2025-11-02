@@ -99,13 +99,19 @@ export async function GET(
     
     const { data: location, error: locationError } = await supabase
       .from('gmb_locations')
-      .select('*, gmb_accounts(id)')
+      .select('*, gmb_accounts(id, is_active)')
       .eq('id', locationId)
       .eq('user_id', user.id)
       .single();
 
     if (locationError || !location) {
       return errorResponse('NOT_FOUND', 'Location not found', 404);
+    }
+
+    // Check if the location belongs to an active account
+    const account = location.gmb_accounts as any;
+    if (!account?.is_active) {
+      return errorResponse('FORBIDDEN', 'Cannot access attributes for inactive accounts', 403);
     }
 
     const accountId = location.gmb_account_id;
@@ -124,20 +130,19 @@ export async function GET(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: 'Failed to fetch attributes', details: errorData },
-        { status: response.status }
+      return errorResponse(
+        'API_ERROR',
+        errorData.error?.message || 'Failed to fetch attributes from Google',
+        response.status,
+        errorData
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return successResponse(data);
   } catch (error: any) {
     console.error('[Attributes API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
-    );
+    return errorResponse('INTERNAL_ERROR', error.message || 'Failed to fetch attributes', 500);
   }
 }
 
@@ -159,21 +164,24 @@ export async function PATCH(
     const { attributeMask, attributes } = body;
 
     if (!attributeMask || !attributes) {
-      return NextResponse.json(
-        { error: 'attributeMask and attributes are required' },
-        { status: 400 }
-      );
+      return errorResponse('MISSING_FIELDS', 'attributeMask and attributes are required', 400);
     }
 
     const { data: location, error: locationError } = await supabase
       .from('gmb_locations')
-      .select('*, gmb_accounts(id)')
+      .select('*, gmb_accounts(id, is_active)')
       .eq('id', locationId)
       .eq('user_id', user.id)
       .single();
 
     if (locationError || !location) {
       return errorResponse('NOT_FOUND', 'Location not found', 404);
+    }
+
+    // Check if the location belongs to an active account
+    const account = location.gmb_accounts as any;
+    if (!account?.is_active) {
+      return errorResponse('FORBIDDEN', 'Cannot update attributes for inactive accounts', 403);
     }
 
     const accountId = location.gmb_account_id;
@@ -198,20 +206,19 @@ export async function PATCH(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: 'Failed to update attributes', details: errorData },
-        { status: response.status }
+      return errorResponse(
+        'API_ERROR',
+        errorData.error?.message || 'Failed to update attributes on Google',
+        response.status,
+        errorData
       );
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, attributes: data });
+    return successResponse({ attributes: data });
   } catch (error: any) {
     console.error('[Attributes Update API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
-    );
+    return errorResponse('INTERNAL_ERROR', error.message || 'Failed to update attributes', 500);
   }
 }
 

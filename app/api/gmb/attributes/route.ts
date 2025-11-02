@@ -133,7 +133,6 @@ export async function GET(request: NextRequest) {
     if (regionCode) body.regionCode = regionCode;
     if (pageToken) body.pageToken = pageToken;
 
-    console.log('[Attributes API] Request body:', JSON.stringify(body, null, 2));
     const response = await fetch(url, {
       method: 'POST',
       headers: {

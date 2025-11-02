@@ -59,7 +59,6 @@ export function LocationAttributesDialog({
     try {
       // Strategy 1: Try with categoryName
       if (location.category) {
-        console.log('[Attributes] Trying categoryName method:', location.category)
         const categoryResponse = await fetch(`/api/gmb/attributes?categoryName=${encodeURIComponent(location.category)}`)
         
         if (categoryResponse.ok) {
@@ -68,15 +67,13 @@ export function LocationAttributesDialog({
           const attributes = categoryData.data?.attributeMetadata || categoryData.attributeMetadata || []
           if (attributes.length > 0) {
             setAvailableAttributes(attributes)
+            setLoadingAttributes(false)
             return
           }
         }
-        
-        console.warn('[Attributes] CategoryName method failed or returned no attributes')
       }
 
       // Strategy 2: Fallback to country (US default)
-      console.log('[Attributes] Trying country method with US')
       const countryResponse = await fetch(`/api/gmb/attributes?country=US`)
       
       if (countryResponse.ok) {
@@ -85,6 +82,7 @@ export function LocationAttributesDialog({
         const attributes = countryData.data?.attributeMetadata || countryData.attributeMetadata || []
         if (attributes.length > 0) {
           setAvailableAttributes(attributes)
+          setLoadingAttributes(false)
           return
         }
       }
@@ -92,7 +90,7 @@ export function LocationAttributesDialog({
       // All methods failed
       const errorData = await countryResponse.json().catch(() => ({}))
       throw new Error(
-        errorData.error || 
+        errorData.error?.message || errorData.error || 
         `Failed to fetch attributes. Please try syncing your location again.`
       )
     } catch (error: any) {
@@ -115,7 +113,8 @@ export function LocationAttributesDialog({
           setCurrentAttributes([])
           return
         }
-        throw new Error('Failed to fetch current attributes')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to fetch current attributes')
       }
 
       const data = await response.json()
@@ -131,6 +130,10 @@ export function LocationAttributesDialog({
       setAttributeValues(values)
     } catch (error: any) {
       console.error('Error fetching current attributes:', error)
+      // Don't show toast for 404 errors as they're expected when no attributes are set
+      if (error.message && !error.message.includes('404')) {
+        toast.error(error.message || 'Failed to load current attributes')
+      }
     }
   }
 
@@ -226,7 +229,7 @@ export function LocationAttributesDialog({
             Location Attributes
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Configure attributes for {location.location_name}
+            Configure attributes for {location?.location_name || 'this location'}
           </DialogDescription>
         </DialogHeader>
 
