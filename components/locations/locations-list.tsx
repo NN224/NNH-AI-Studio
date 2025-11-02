@@ -70,7 +70,30 @@ export function LocationsList() {
           throw fetchError
         }
 
-        setLocations(data || [])
+        // Remove duplicates based on location_id (in case of multiple accounts with same location)
+        const uniqueLocations = (data || []).reduce((acc: GMBLocation[], location: GMBLocation) => {
+          // Check if we already have a location with the same location_id
+          const existingIndex = acc.findIndex(l => l.location_id === location.location_id)
+          
+          if (existingIndex === -1) {
+            // New unique location
+            acc.push(location)
+          } else {
+            // Duplicate found - keep the one with the latest updated_at
+            const existing = acc[existingIndex]
+            const existingUpdated = existing.updated_at ? new Date(existing.updated_at).getTime() : 0
+            const currentUpdated = location.updated_at ? new Date(location.updated_at).getTime() : 0
+            
+            if (currentUpdated > existingUpdated) {
+              // Replace with newer location
+              acc[existingIndex] = location
+            }
+          }
+          
+          return acc
+        }, [])
+
+        setLocations(uniqueLocations)
       } catch (err) {
         console.error("Error fetching locations:", err)
         setError(err instanceof Error ? err.message : "Failed to load locations")
