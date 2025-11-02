@@ -8,7 +8,16 @@ import { Lightbulb, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, Target,
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
-import { calculateEngagementRate, calculateCTR, getDateRange, comparePeriods } from "@/lib/utils/performance-calculations"
+import { 
+  calculateEngagementRate, 
+  calculateCTR, 
+  getDateRange, 
+  comparePeriods,
+  getImpressionsBreakdown,
+  getDeviceSplit,
+  getSourceSplit,
+  calculateBookingsRate
+} from "@/lib/utils/performance-calculations"
 
 interface Insight {
   id: string
@@ -318,6 +327,117 @@ export function BusinessInsights() {
               description: `Your impressions increased by ${impressionsComparison.changePercent.toFixed(1)}% this month! Your visibility is improving.`,
               impact: "medium",
             })
+          }
+
+          // Device split insight
+          const deviceSplit = getDeviceSplit(currentMetrics, start, end)
+          if (deviceSplit.mobilePercent > 70) {
+            generatedInsights.push({
+              id: "mobile-dominant",
+              type: "positive",
+              category: "Performance",
+              title: "Mobile-First Audience",
+              description: `${deviceSplit.mobilePercent.toFixed(1)}% of your impressions come from mobile devices. Ensure your business profile and website are mobile-optimized.`,
+              impact: "medium",
+            })
+          } else if (deviceSplit.desktopPercent > 70) {
+            generatedInsights.push({
+              id: "desktop-dominant",
+              type: "opportunity",
+              category: "Performance",
+              title: "Desktop-Dominant Traffic",
+              description: `${deviceSplit.desktopPercent.toFixed(1)}% of your impressions come from desktop. Consider mobile optimization to reach more customers.`,
+              impact: "medium",
+            })
+          }
+
+          // Source split insight (Maps vs Search)
+          const sourceSplit = getSourceSplit(currentMetrics, start, end)
+          if (sourceSplit.mapsPercent > 60) {
+            generatedInsights.push({
+              id: "maps-dominant",
+              type: "positive",
+              category: "Visibility",
+              title: "Strong Maps Presence",
+              description: `${sourceSplit.mapsPercent.toFixed(1)}% of impressions come from Google Maps. Customers are actively searching for your location.`,
+              impact: "medium",
+            })
+          } else if (sourceSplit.searchPercent > 60) {
+            generatedInsights.push({
+              id: "search-dominant",
+              type: "opportunity",
+              category: "Visibility",
+              title: "Search-Heavy Traffic",
+              description: `${sourceSplit.searchPercent.toFixed(1)}% of impressions come from Search. Consider improving your Maps presence with photos and accurate location details.`,
+              impact: "medium",
+            })
+          }
+
+          // Bookings insight
+          const bookingsComparison = comparePeriods(
+            currentMetrics,
+            previousMetrics,
+            'BUSINESS_BOOKINGS'
+          )
+          
+          if (bookingsComparison.current > 0) {
+            if (bookingsComparison.changePercent > 20) {
+              generatedInsights.push({
+                id: "bookings-growing",
+                type: "positive",
+                category: "Performance",
+                title: "Bookings Growing",
+                description: `Your bookings increased by ${bookingsComparison.changePercent.toFixed(1)}% this month. Great job with your booking strategy!`,
+                impact: "high",
+              })
+            } else if (bookingsComparison.changePercent < -10) {
+              generatedInsights.push({
+                id: "bookings-declining",
+                type: "warning",
+                category: "Performance",
+                title: "Bookings Declining",
+                description: `Your bookings decreased by ${Math.abs(bookingsComparison.changePercent).toFixed(1)}%. Review your booking process and availability.`,
+                impact: "high",
+              })
+            }
+
+            // Bookings rate insight
+            const bookingsRate = calculateBookingsRate(currentMetrics, start, end)
+            if (bookingsRate > 0 && bookingsRate < 1) {
+              generatedInsights.push({
+                id: "bookings-rate-low",
+                type: "opportunity",
+                category: "Performance",
+                title: "Improve Bookings Conversion",
+                description: `Your booking rate is ${bookingsRate.toFixed(2)}%. Optimize your booking process and make it more prominent in your profile.`,
+                impact: "high",
+                metrics: {
+                  current: bookingsRate,
+                  target: 2,
+                  unit: "%",
+                },
+              })
+            }
+          }
+
+          // Food orders insight
+          const foodOrdersComparison = comparePeriods(
+            currentMetrics,
+            previousMetrics,
+            'BUSINESS_FOOD_ORDERS'
+          )
+          
+          if (foodOrdersComparison.current > 0) {
+            if (foodOrdersComparison.changePercent > 15) {
+              generatedInsights.push({
+                id: "food-orders-growing",
+                type: "positive",
+                category: "Performance",
+                title: "Food Orders Growing",
+                description: `Your food orders increased by ${foodOrdersComparison.changePercent.toFixed(1)}% this month. Keep promoting your menu!`,
+                impact: "medium",
+              })
+            }
           }
         }
       }

@@ -16,6 +16,8 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
   const [isLoading, setIsLoading] = useState(true)
   const [totalImpressions, setTotalImpressions] = useState(0)
   const [totalClicks, setTotalClicks] = useState(0)
+  const [hasBookings, setHasBookings] = useState(false)
+  const [hasFoodOrders, setHasFoodOrders] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -89,13 +91,34 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
           'BUSINESS_CONVERSATIONS',
         ]
 
+        const bookingTypes = [
+          'BUSINESS_BOOKINGS',
+        ]
+
+        const foodTypes = [
+          'BUSINESS_FOOD_ORDERS',
+          'BUSINESS_FOOD_MENU_CLICKS',
+        ]
+
         // Aggregate by date
-        const aggregatedByDate: Record<string, { impressions: number; clicks: number; conversations: number }> = {}
+        const aggregatedByDate: Record<string, { 
+          impressions: number; 
+          clicks: number; 
+          conversations: number;
+          bookings: number;
+          foodOrders: number;
+        }> = {}
 
         metrics.forEach((metric) => {
           const date = metric.metric_date
           if (!aggregatedByDate[date]) {
-            aggregatedByDate[date] = { impressions: 0, clicks: 0, conversations: 0 }
+            aggregatedByDate[date] = { 
+              impressions: 0, 
+              clicks: 0, 
+              conversations: 0,
+              bookings: 0,
+              foodOrders: 0,
+            }
           }
 
           const value = typeof metric.metric_value === 'string' 
@@ -108,6 +131,10 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
             aggregatedByDate[date].clicks += value
           } else if (conversationTypes.includes(metric.metric_type)) {
             aggregatedByDate[date].conversations += value
+          } else if (bookingTypes.includes(metric.metric_type)) {
+            aggregatedByDate[date].bookings += value
+          } else if (foodTypes.includes(metric.metric_type)) {
+            aggregatedByDate[date].foodOrders += value
           }
         })
 
@@ -123,22 +150,33 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
               impressions: values.impressions,
               clicks: values.clicks,
               conversations: values.conversations,
+              bookings: values.bookings || 0,
+              foodOrders: values.foodOrders || 0,
             }
           })
           .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime())
 
-        // Calculate totals
+        // Calculate totals and check if we have optional metrics
         const totals = chartData.reduce(
           (acc, item) => ({
             impressions: acc.impressions + item.impressions,
             clicks: acc.clicks + item.clicks,
             conversations: acc.conversations + item.conversations,
+            bookings: acc.bookings + item.bookings,
+            foodOrders: acc.foodOrders + item.foodOrders,
           }),
-          { impressions: 0, clicks: 0, conversations: 0 }
+          { impressions: 0, clicks: 0, conversations: 0, bookings: 0, foodOrders: 0 }
         )
+
+        // Check which optional metrics are available
+        const hasBookings = totals.bookings > 0
+        const hasFoodOrders = totals.foodOrders > 0
 
         setTotalImpressions(totals.impressions)
         setTotalClicks(totals.clicks)
+        setHasBookings(totals.bookings > 0)
+        setHasFoodOrders(totals.foodOrders > 0)
+        
         setData(chartData)
       } catch (error) {
         console.error("Error fetching performance data:", error)
@@ -198,7 +236,13 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
 
   // Find max value for Y-axis scaling
   const maxValue = Math.max(
-    ...data.map(d => Math.max(d.impressions, d.clicks, d.conversations))
+    ...data.map(d => Math.max(
+      d.impressions, 
+      d.clicks, 
+      d.conversations,
+      d.bookings || 0,
+      d.foodOrders || 0
+    ))
   )
 
   return (
@@ -261,6 +305,28 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
               dot={{ fill: "#f59e0b", r: 3 }}
               name="Conversations"
             />
+            {hasBookings && (
+              <Line 
+                type="monotone" 
+                dataKey="bookings" 
+                stroke="#a855f7" 
+                strokeWidth={2} 
+                dot={{ fill: "#a855f7", r: 3 }}
+                name="Bookings"
+                strokeDasharray="5 5"
+              />
+            )}
+            {hasFoodOrders && (
+              <Line 
+                type="monotone" 
+                dataKey="foodOrders" 
+                stroke="#ec4899" 
+                strokeWidth={2} 
+                dot={{ fill: "#ec4899", r: 3 }}
+                name="Food Orders"
+                strokeDasharray="5 5"
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

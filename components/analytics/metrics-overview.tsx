@@ -70,10 +70,14 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
     totalConversations: 0,
     totalClicks: 0,
     totalDirectionRequests: 0,
+    totalBookings: 0,
+    totalFoodOrders: 0,
     impressionsChange: 0,
     clicksChange: 0,
     conversationsChange: 0,
     directionsChange: 0,
+    bookingsChange: 0,
+    foodOrdersChange: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
@@ -172,6 +176,10 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
           (currentAggregated['WEBSITE_CLICKS'] || 0) +
           (currentAggregated['CALL_CLICKS'] || 0)
         const totalDirectionRequests = currentAggregated['BUSINESS_DIRECTION_REQUESTS'] || 0
+        const totalBookings = currentAggregated['BUSINESS_BOOKINGS'] || 0
+        const totalFoodOrders = 
+          (currentAggregated['BUSINESS_FOOD_ORDERS'] || 0) +
+          (currentAggregated['BUSINESS_FOOD_MENU_CLICKS'] || 0)
 
         // Calculate previous period totals
         const prevImpressions = 
@@ -185,6 +193,10 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
           (previousAggregated['WEBSITE_CLICKS'] || 0) +
           (previousAggregated['CALL_CLICKS'] || 0)
         const prevDirections = previousAggregated['BUSINESS_DIRECTION_REQUESTS'] || 0
+        const prevBookings = previousAggregated['BUSINESS_BOOKINGS'] || 0
+        const prevFoodOrders = 
+          (previousAggregated['BUSINESS_FOOD_ORDERS'] || 0) +
+          (previousAggregated['BUSINESS_FOOD_MENU_CLICKS'] || 0)
 
         // Calculate percentage changes
         const calculateChange = (current: number, previous: number): number => {
@@ -197,10 +209,14 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
           totalConversations,
           totalClicks,
           totalDirectionRequests,
+          totalBookings,
+          totalFoodOrders,
           impressionsChange: calculateChange(totalImpressions, prevImpressions),
           clicksChange: calculateChange(totalClicks, prevClicks),
           conversationsChange: calculateChange(totalConversations, prevConversations),
           directionsChange: calculateChange(totalDirectionRequests, prevDirections),
+          bookingsChange: calculateChange(totalBookings, prevBookings),
+          foodOrdersChange: calculateChange(totalFoodOrders, prevFoodOrders),
         })
       } catch (error) {
         console.error("Error fetching metrics:", error)

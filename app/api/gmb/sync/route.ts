@@ -478,6 +478,9 @@ async function fetchDailyMetrics(
     'BUSINESS_DIRECTION_REQUESTS',
     'CALL_CLICKS',
     'WEBSITE_CLICKS',
+    'BUSINESS_BOOKINGS',
+    'BUSINESS_FOOD_ORDERS',
+    'BUSINESS_FOOD_MENU_CLICKS',
   ]
 ): Promise<{ metrics: any[] }> {
   console.log('[GMB Sync] Fetching daily metrics for location:', locationId);

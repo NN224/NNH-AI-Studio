@@ -268,3 +268,173 @@ export function calculateCTR(
   if (totalImpressions === 0) return 0
   return (totalClicks / totalImpressions) * 100
 }
+
+/**
+ * Get Impressions Breakdown by source (Desktop/Mobile, Maps/Search)
+ */
+export interface ImpressionsBreakdown {
+  desktopMaps: number
+  desktopSearch: number
+  mobileMaps: number
+  mobileSearch: number
+  total: number
+  mapsTotal: number
+  searchTotal: number
+  desktopTotal: number
+  mobileTotal: number
+}
+
+export function getImpressionsBreakdown(
+  metrics: PerformanceMetric[],
+  startDate?: Date,
+  endDate?: Date
+): ImpressionsBreakdown {
+  const filteredMetrics = metrics.filter((m) => {
+    if (!startDate || !endDate) return true
+    const metricDate = new Date(m.metric_date)
+    return metricDate >= startDate && metricDate <= endDate
+  })
+
+  let desktopMaps = 0
+  let desktopSearch = 0
+  let mobileMaps = 0
+  let mobileSearch = 0
+
+  filteredMetrics.forEach((metric) => {
+    const value = typeof metric.metric_value === 'string' 
+      ? parseInt(metric.metric_value) || 0 
+      : metric.metric_value
+
+    switch (metric.metric_type) {
+      case 'BUSINESS_IMPRESSIONS_DESKTOP_MAPS':
+        desktopMaps += value
+        break
+      case 'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH':
+        desktopSearch += value
+        break
+      case 'BUSINESS_IMPRESSIONS_MOBILE_MAPS':
+        mobileMaps += value
+        break
+      case 'BUSINESS_IMPRESSIONS_MOBILE_SEARCH':
+        mobileSearch += value
+        break
+    }
+  })
+
+  const total = desktopMaps + desktopSearch + mobileMaps + mobileSearch
+  const mapsTotal = desktopMaps + mobileMaps
+  const searchTotal = desktopSearch + mobileSearch
+  const desktopTotal = desktopMaps + desktopSearch
+  const mobileTotal = mobileMaps + mobileSearch
+
+  return {
+    desktopMaps,
+    desktopSearch,
+    mobileMaps,
+    mobileSearch,
+    total,
+    mapsTotal,
+    searchTotal,
+    desktopTotal,
+    mobileTotal,
+  }
+}
+
+/**
+ * Get Device Split (Desktop vs Mobile percentage)
+ */
+export interface DeviceSplit {
+  desktop: number
+  mobile: number
+  desktopPercent: number
+  mobilePercent: number
+}
+
+export function getDeviceSplit(
+  metrics: PerformanceMetric[],
+  startDate?: Date,
+  endDate?: Date
+): DeviceSplit {
+  const breakdown = getImpressionsBreakdown(metrics, startDate, endDate)
+  
+  const total = breakdown.total
+  if (total === 0) {
+    return { desktop: 0, mobile: 0, desktopPercent: 0, mobilePercent: 0 }
+  }
+
+  return {
+    desktop: breakdown.desktopTotal,
+    mobile: breakdown.mobileTotal,
+    desktopPercent: (breakdown.desktopTotal / total) * 100,
+    mobilePercent: (breakdown.mobileTotal / total) * 100,
+  }
+}
+
+/**
+ * Get Source Split (Maps vs Search percentage)
+ */
+export interface SourceSplit {
+  maps: number
+  search: number
+  mapsPercent: number
+  searchPercent: number
+}
+
+export function getSourceSplit(
+  metrics: PerformanceMetric[],
+  startDate?: Date,
+  endDate?: Date
+): SourceSplit {
+  const breakdown = getImpressionsBreakdown(metrics, startDate, endDate)
+  
+  const total = breakdown.total
+  if (total === 0) {
+    return { maps: 0, search: 0, mapsPercent: 0, searchPercent: 0 }
+  }
+
+  return {
+    maps: breakdown.mapsTotal,
+    search: breakdown.searchTotal,
+    mapsPercent: (breakdown.mapsTotal / total) * 100,
+    searchPercent: (breakdown.searchTotal / total) * 100,
+  }
+}
+
+/**
+ * Calculate Bookings Rate
+ * Bookings Rate = Bookings / Impressions * 100
+ */
+export function calculateBookingsRate(
+  metrics: PerformanceMetric[],
+  startDate: Date,
+  endDate: Date
+): number {
+  if (!metrics || metrics.length === 0) return 0
+
+  const dateRangeMetrics = metrics.filter((m) => {
+    const metricDate = new Date(m.metric_date)
+    return metricDate >= startDate && metricDate <= endDate
+  })
+
+  let totalImpressions = 0
+  let totalBookings = 0
+
+  dateRangeMetrics.forEach((metric) => {
+    const value = typeof metric.metric_value === 'string' 
+      ? parseInt(metric.metric_value) || 0 
+      : metric.metric_value
+
+    // Sum all impression types
+    if (metric.metric_type.includes('IMPRESSIONS')) {
+      totalImpressions += value
+    }
+
+    // Sum bookings
+    if (metric.metric_type === 'BUSINESS_BOOKINGS') {
+      totalBookings += value
+    }
+  })
+
+  if (totalImpressions === 0) return 0
+  return (totalBookings / totalImpressions) * 100
+}

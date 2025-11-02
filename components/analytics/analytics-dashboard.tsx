@@ -7,6 +7,7 @@ import { TrafficChart } from "./traffic-chart"
 import { ResponseTimeChart } from "./response-time-chart"
 import { SearchKeywords } from "./search-keywords"
 import { PerformanceMetricsChart } from "./performance-metrics-chart"
+import { ImpressionsBreakdownChart } from "./impressions-breakdown-chart"
 import { BusinessInsights } from "@/components/insights/business-insights"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -46,9 +47,12 @@ export function AnalyticsDashboard() {
         {/* Top Performing Locations */}
         <LocationPerformance />
         
-        {/* Performance Metrics Chart */}
-        <PerformanceMetricsChart dateRange={dateRange} />
+        {/* Impressions Breakdown */}
+        <ImpressionsBreakdownChart dateRange={dateRange} />
       </div>
+
+      {/* Performance Metrics Chart */}
+      <PerformanceMetricsChart dateRange={dateRange} />
 
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
