@@ -107,7 +107,9 @@ export function LocationAttributesDialog({
           
           if (response.ok) {
             const data = await response.json()
-            setAvailableAttributes(data.attributeMetadata || [])
+            // Handle both direct response and wrapped response
+            const attributes = data.data?.attributeMetadata || data.attributeMetadata || []
+            setAvailableAttributes(attributes)
             return
           }
           
@@ -130,7 +132,9 @@ export function LocationAttributesDialog({
         
         if (categoryResponse.ok) {
           const categoryData = await categoryResponse.json()
-          setAvailableAttributes(categoryData.attributeMetadata || [])
+          // Handle both direct response and wrapped response
+          const attributes = categoryData.data?.attributeMetadata || categoryData.attributeMetadata || []
+          setAvailableAttributes(attributes)
           return
         }
         
@@ -143,7 +147,9 @@ export function LocationAttributesDialog({
       
       if (showAllResponse.ok) {
         const showAllData = await showAllResponse.json()
-        setAvailableAttributes(showAllData.attributeMetadata || [])
+        // Handle both direct response and wrapped response
+        const attributes = showAllData.data?.attributeMetadata || showAllData.attributeMetadata || []
+        setAvailableAttributes(attributes)
         return
       }
 
@@ -177,7 +183,8 @@ export function LocationAttributesDialog({
       }
 
       const data = await response.json()
-      const attrs = data.attributes || []
+      // Handle both direct response and wrapped response
+      const attrs = data.data?.attributes || data.attributes || []
       setCurrentAttributes(attrs)
 
       // Initialize attribute values from current attributes

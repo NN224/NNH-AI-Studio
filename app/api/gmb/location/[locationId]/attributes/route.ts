@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { errorResponse, successResponse } from '@/lib/utils/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export async function GET(
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
 
     const { locationId } = params;
@@ -104,7 +105,7 @@ export async function GET(
       .single();
 
     if (locationError || !location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return errorResponse('NOT_FOUND', 'Location not found', 404);
     }
 
     const accountId = location.gmb_account_id;
@@ -150,7 +151,7 @@ export async function PATCH(
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
 
     const { locationId } = params;
@@ -172,7 +173,7 @@ export async function PATCH(
       .single();
 
     if (locationError || !location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return errorResponse('NOT_FOUND', 'Location not found', 404);
     }
 
     const accountId = location.gmb_account_id;

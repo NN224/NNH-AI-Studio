@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { errorResponse, successResponse } from '@/lib/utils/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -104,9 +105,10 @@ export async function GET(request: NextRequest) {
     const showAll = searchParams.get('showAll') === 'true';
 
     if (!parent && !categoryName && !showAll) {
-      return NextResponse.json(
-        { error: 'Either parent, categoryName, or showAll=true is required' },
-        { status: 400 }
+      return errorResponse(
+        'MISSING_FIELDS',
+        'Either parent, categoryName, or showAll=true is required',
+        400
       );
     }
 
@@ -137,20 +139,20 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: 'Failed to fetch attributes', details: errorData },
-        { status: response.status }
+      console.error('[Attributes API] Failed to fetch:', errorData);
+      return errorResponse(
+        'API_ERROR',
+        'Failed to fetch attributes from Google',
+        response.status,
+        errorData
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return successResponse(data);
   } catch (error: any) {
-    console.error('[Attributes Metadata API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
-    );
+    console.error('[Attributes API] Error:', error);
+    return errorResponse('INTERNAL_ERROR', 'Failed to fetch attributes', 500);
   }
 }
 
