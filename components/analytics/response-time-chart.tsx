@@ -20,15 +20,52 @@ export function ResponseTimeChart() {
           return
         }
 
-        const { data: reviews } = await supabase
-          .from("gmb_reviews")
-          .select("created_at, reply_text, updated_at")
+        // Get active GMB account IDs first
+        const { data: accounts } = await supabase
+          .from("gmb_accounts")
+          .select("id")
           .eq("user_id", user.id)
-          .not("reply_text", "is", null)
+          .eq("is_active", true)
 
-        if (reviews && reviews.length > 0) {
+        const accountIds = accounts?.map(acc => acc.id) || []
+        if (accountIds.length === 0) {
+          setIsLoading(false)
+          return
+        }
+
+        // Get active location IDs
+        const { data: locations } = await supabase
+          .from("gmb_locations")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("gmb_account_id", accountIds)
+
+        const locationIds = locations?.map(loc => loc.id).filter(Boolean) || []
+
+        const { data: reviews, error: reviewsError } = locationIds.length > 0
+          ? await supabase
+              .from("gmb_reviews")
+              .select("created_at, reply_text, review_reply, reply_date, updated_at")
+              .eq("user_id", user.id)
+              .in("location_id", locationIds)
+              .or("reply_text.is.not.null,review_reply.is.not.null")
+          : { data: [], error: null }
+
+        if (reviewsError) {
+          console.error("Error fetching reviews:", reviewsError)
+          setIsLoading(false)
+          return
+        }
+
+        if (reviews && Array.isArray(reviews) && reviews.length > 0) {
           // Calculate actual response time from reviews with replies
-          const reviewsWithReplies = reviews.filter((r: any) => r.reply_text && r.updated_at && r.created_at)
+          // Use reply_date if available, otherwise updated_at
+          const reviewsWithReplies = reviews.filter((r: any) => {
+            const hasReply = !!(r.reply_text || r.review_reply)
+            const hasCreatedAt = r.created_at
+            const hasReplyDate = r.reply_date || r.updated_at
+            return hasReply && hasCreatedAt && hasReplyDate
+          })
           
           if (reviewsWithReplies.length > 0) {
             // Group by week and calculate average response time
@@ -48,9 +85,12 @@ export function ResponseTimeChart() {
               
               const avgHours = weekReviews.reduce((sum: number, r: any) => {
                 const created = new Date(r.created_at).getTime()
-                const replied = new Date(r.updated_at).getTime()
+                // Use reply_date if available, otherwise updated_at
+                const replyDate = r.reply_date || r.updated_at
+                const replied = new Date(replyDate).getTime()
+                if (isNaN(created) || isNaN(replied)) return sum
                 const diffHours = (replied - created) / (1000 * 60 * 60)
-                return sum + diffHours
+                return sum + (diffHours > 0 ? diffHours : 0)
               }, 0) / weekReviews.length
               
               return { week: `Week ${i + 1}`, hours: Math.round(avgHours * 10) / 10 }

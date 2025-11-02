@@ -31,11 +31,17 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
         }
 
         // Get active account IDs
-        const { data: accounts } = await supabase
+        const { data: accounts, error: accountsError } = await supabase
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
           .eq("is_active", true)
+
+        if (accountsError) {
+          console.error("Error fetching active accounts:", accountsError)
+          setIsLoading(false)
+          return
+        }
 
         const accountIds = accounts?.map(acc => acc.id) || []
         if (accountIds.length === 0) {
@@ -44,11 +50,17 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
         }
 
         // Get locations
-        const { data: locations } = await supabase
+        const { data: locations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", accountIds)
+
+        if (locationsError) {
+          console.error("Error fetching locations:", locationsError)
+          setIsLoading(false)
+          return
+        }
 
         const locationIds = locations?.map(loc => loc.id) || []
 
@@ -57,7 +69,7 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
         const { start, end } = getDateRange(periodDays)
 
         // Get performance metrics
-        const { data: metrics } = locationIds.length > 0
+        const { data: metrics, error: metricsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
@@ -66,7 +78,14 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
               .gte("metric_date", start.toISOString().split('T')[0])
               .lte("metric_date", end.toISOString().split('T')[0])
               .order("metric_date", { ascending: true })
-          : { data: [] }
+          : { data: [], error: null }
+
+        if (metricsError) {
+          console.error("Error fetching performance metrics:", metricsError)
+          setData([])
+          setIsLoading(false)
+          return
+        }
 
         if (!metrics || metrics.length === 0) {
           setData([])
@@ -109,7 +128,8 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
           foodOrders: number;
         }> = {}
 
-        metrics.forEach((metric) => {
+        metrics.forEach((metric: any) => {
+          if (!metric || !metric.metric_date || !metric.metric_type) return
           const date = metric.metric_date
           if (!aggregatedByDate[date]) {
             aggregatedByDate[date] = { 
@@ -123,17 +143,18 @@ export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetrics
 
           const value = typeof metric.metric_value === 'string' 
             ? parseInt(metric.metric_value) || 0 
-            : metric.metric_value
+            : (Number(metric.metric_value) || 0)
 
-          if (impressionTypes.includes(metric.metric_type)) {
+          const metricType = metric.metric_type
+          if (impressionTypes.includes(metricType)) {
             aggregatedByDate[date].impressions += value
-          } else if (clickTypes.includes(metric.metric_type)) {
+          } else if (clickTypes.includes(metricType)) {
             aggregatedByDate[date].clicks += value
-          } else if (conversationTypes.includes(metric.metric_type)) {
+          } else if (conversationTypes.includes(metricType)) {
             aggregatedByDate[date].conversations += value
-          } else if (bookingTypes.includes(metric.metric_type)) {
+          } else if (bookingTypes.includes(metricType)) {
             aggregatedByDate[date].bookings += value
-          } else if (foodTypes.includes(metric.metric_type)) {
+          } else if (foodTypes.includes(metricType)) {
             aggregatedByDate[date].foodOrders += value
           }
         })

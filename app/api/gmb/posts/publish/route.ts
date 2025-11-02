@@ -57,19 +57,16 @@ export async function POST(request: NextRequest) {
 
     const { data: location } = await supabase
       .from('gmb_locations')
-      .select('id, location_id, gmb_account_id')
+      .select('id, location_id, gmb_account_id, gmb_accounts!inner(id, account_id, access_token, refresh_token, token_expires_at, is_active)')
       .eq('id', post.location_id)
       .eq('user_id', user.id)
       .maybeSingle()
     if (!location) return errorResponse('LOCATION_NOT_FOUND', 'Location not found', 404)
 
-    const { data: account } = await supabase
-      .from('gmb_accounts')
-      .select('id, account_id, access_token, refresh_token, token_expires_at')
-      .eq('id', location.gmb_account_id)
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Check if the location belongs to an active account
+    const account = (location as any).gmb_accounts
     if (!account) return errorResponse('ACCOUNT_NOT_FOUND', 'Account not found', 404)
+    if (!account.is_active) return errorResponse('FORBIDDEN', 'Cannot publish posts for inactive accounts', 403)
 
     let accessToken = account.access_token as string | null
     // Refresh token if expired

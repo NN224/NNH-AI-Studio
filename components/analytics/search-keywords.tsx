@@ -29,11 +29,17 @@ export function SearchKeywords() {
         }
 
         // Get active account IDs
-        const { data: accounts } = await supabase
+        const { data: accounts, error: accountsError } = await supabase
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
           .eq("is_active", true)
+
+        if (accountsError) {
+          console.error("Error fetching active accounts:", accountsError)
+          setIsLoading(false)
+          return
+        }
 
         const accountIds = accounts?.map(acc => acc.id) || []
         if (accountIds.length === 0) {
@@ -42,11 +48,17 @@ export function SearchKeywords() {
         }
 
         // Get locations
-        const { data: locations } = await supabase
+        const { data: locations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", accountIds)
+
+        if (locationsError) {
+          console.error("Error fetching locations:", locationsError)
+          setIsLoading(false)
+          return
+        }
 
         const locationIds = locations?.map(loc => loc.id) || []
 
@@ -54,7 +66,7 @@ export function SearchKeywords() {
         const threeMonthsAgo = new Date()
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
-        const { data: searchKeywords } = locationIds.length > 0
+        const { data: searchKeywords, error: keywordsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_search_keywords")
               .select("search_keyword, impressions_count, month_year")
@@ -63,14 +75,21 @@ export function SearchKeywords() {
               .gte("month_year", threeMonthsAgo.toISOString().split('T')[0])
               .order("impressions_count", { ascending: false })
               .limit(20)
-          : { data: [] }
+          : { data: [], error: null }
+
+        if (keywordsError) {
+          console.error("Error fetching search keywords:", keywordsError)
+        }
 
         // Aggregate keywords by summing impressions across months
         const keywordMap = new Map<string, number>()
-        if (searchKeywords) {
+        if (searchKeywords && Array.isArray(searchKeywords)) {
           searchKeywords.forEach((kw) => {
-            const current = keywordMap.get(kw.search_keyword) || 0
-            keywordMap.set(kw.search_keyword, current + (parseInt(kw.impressions_count) || 0))
+            if (!kw || !kw.search_keyword) return
+            const keyword = kw.search_keyword
+            const current = keywordMap.get(keyword) || 0
+            const impressions = Number(kw.impressions_count) || 0
+            keywordMap.set(keyword, current + impressions)
           })
         }
 

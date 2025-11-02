@@ -12,6 +12,34 @@ export async function GET() {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
     }
 
+    // First get active GMB account IDs to filter locations
+    const { data: activeAccounts } = await supabase
+      .from('gmb_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+
+    const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+    if (activeAccountIds.length === 0) {
+      // No active accounts, return empty list
+      return successResponse({ items: [] })
+    }
+
+    // Get active location IDs
+    const { data: activeLocations } = await supabase
+      .from('gmb_locations')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('gmb_account_id', activeAccountIds)
+
+    const activeLocationIds = activeLocations?.map(loc => loc.id) || []
+
+    if (activeLocationIds.length === 0) {
+      // No active locations, return empty list
+      return successResponse({ items: [] })
+    }
+
     // Try to select all columns, but handle missing columns gracefully
     let selectColumns = 'id, location_id, title, content, status, scheduled_at, published_at, created_at'
     
@@ -21,19 +49,21 @@ export async function GET() {
       .from('gmb_posts')
       .select(selectColumns + ', post_type, metadata')
       .eq('user_id', user.id)
+      .in('location_id', activeLocationIds)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (error) {
       // If post_type or metadata don't exist, try without them
       if (error.message.includes('column') && error.message.includes('does not exist')) {
-        console.warn('[GMB Posts API] Some columns missing, falling back to basic columns:', error.message)
+        console.error('[GMB Posts API] Some columns missing, falling back to basic columns:', error.message)
         
         // Retry with basic columns only
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('gmb_posts')
           .select(selectColumns)
           .eq('user_id', user.id)
+          .in('location_id', activeLocationIds)
           .order('created_at', { ascending: false })
           .limit(50)
         

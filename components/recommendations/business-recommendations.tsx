@@ -53,32 +53,47 @@ export function BusinessRecommendations() {
       const accountIds = accounts.map((a) => a.id)
 
       // Get locations data
-      const { data: locations } = await supabase
+      const { data: locations, error: locationsError } = await supabase
         .from("gmb_locations")
-        .select("category, rating, review_count, location_name")
+        .select("id, category, rating, review_count, location_name")
         .eq("user_id", user.id)
         .in("gmb_account_id", accountIds)
+      
+      if (locationsError) {
+        console.error("Error fetching locations:", locationsError)
+        setRecommendations([])
+        setLoading(false)
+        return
+      }
 
       // Get posts data
-      const locationIds = locations?.map((l: any) => l.id) || []
-      const { data: posts } =
+      const locationIds = locations?.map((l: any) => l.id).filter(Boolean) || []
+      const { data: posts, error: postsError } =
         locationIds.length > 0
           ? await supabase
               .from("gmb_posts")
               .select("created_at, post_type")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
-          : { data: null }
+          : { data: null, error: null }
+      
+      if (postsError) {
+        console.error("Error fetching posts:", postsError)
+      }
 
       // Get reviews data
-      const { data: reviews } =
+      const { data: reviews, error: reviewsError } =
         locationIds.length > 0
           ? await supabase
               .from("gmb_reviews")
-              .select("rating, reply_text, created_at")
+              .select("rating, reply_text, review_reply, created_at")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
-          : { data: null }
+          : { data: null, error: null }
+      
+      if (reviewsError) {
+        console.error("Error fetching reviews:", reviewsError)
+      }
 
       // Get performance metrics (last 30 days vs previous 30 days)
       const thirtyDaysAgo = new Date()
@@ -86,16 +101,16 @@ export function BusinessRecommendations() {
       const sixtyDaysAgo = new Date()
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-      const { data: currentMetrics } = locationIds.length > 0
+      const { data: currentMetrics, error: currentMetricsError } = locationIds.length > 0
         ? await supabase
             .from("gmb_performance_metrics")
             .select("metric_type, metric_value, location_id")
             .eq("user_id", user.id)
             .in("location_id", locationIds)
             .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
-        : { data: null }
+        : { data: null, error: null }
 
-      const { data: previousMetrics } = locationIds.length > 0
+      const { data: previousMetrics, error: previousMetricsError } = locationIds.length > 0
         ? await supabase
             .from("gmb_performance_metrics")
             .select("metric_type, metric_value, location_id")
@@ -103,10 +118,17 @@ export function BusinessRecommendations() {
             .in("location_id", locationIds)
             .gte("metric_date", sixtyDaysAgo.toISOString().split('T')[0])
             .lt("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
-        : { data: null }
+        : { data: null, error: null }
+      
+      if (currentMetricsError) {
+        console.error("Error fetching current metrics:", currentMetricsError)
+      }
+      if (previousMetricsError) {
+        console.error("Error fetching previous metrics:", previousMetricsError)
+      }
 
       // Get search keywords
-      const { data: searchKeywords } = locationIds.length > 0
+      const { data: searchKeywords, error: keywordsError } = locationIds.length > 0
         ? await supabase
             .from("gmb_search_keywords")
             .select("search_keyword, impressions_count")
@@ -114,14 +136,20 @@ export function BusinessRecommendations() {
             .in("location_id", locationIds)
             .order("impressions_count", { ascending: false })
             .limit(20)
-        : { data: null }
+        : { data: null, error: null }
+      
+      if (keywordsError) {
+        console.error("Error fetching search keywords:", keywordsError)
+      }
 
       const generatedRecommendations: Recommendation[] = []
 
       // Post recommendations
-      if (posts) {
+      if (posts && Array.isArray(posts)) {
         const recentPosts = posts.filter((p: any) => {
+          if (!p || !p.created_at) return false
           const postDate = new Date(p.created_at)
+          if (isNaN(postDate.getTime())) return false
           const daysDiff = (Date.now() - postDate.getTime()) / (1000 * 60 * 60 * 24)
           return daysDiff <= 30
         }).length
@@ -152,8 +180,12 @@ export function BusinessRecommendations() {
       }
 
       // Review response recommendations
-      if (reviews && reviews.length > 0) {
-        const unrespondedReviews = reviews.filter((r: any) => !r.reply_text).length
+      if (reviews && Array.isArray(reviews) && reviews.length > 0) {
+        // Check for unresponded reviews using both reply_text and review_reply for compatibility
+        const unrespondedReviews = reviews.filter((r: any) => {
+          return !(r.reply_text || r.review_reply)
+        }).length
+        
         if (unrespondedReviews > 0) {
           generatedRecommendations.push({
             id: "respond-reviews",
@@ -168,7 +200,10 @@ export function BusinessRecommendations() {
         }
 
         // Negative review responses
-        const negativeUnresponded = reviews.filter((r: any) => r.rating <= 2 && !r.reply_text).length
+        const negativeUnresponded = reviews.filter((r: any) => {
+          const rating = r.rating || 0
+          return rating <= 2 && !(r.reply_text || r.review_reply)
+        }).length
         if (negativeUnresponded > 0) {
           generatedRecommendations.push({
             id: "respond-negative",
@@ -184,8 +219,8 @@ export function BusinessRecommendations() {
       }
 
       // Profile optimization
-      if (locations && locations.length > 0) {
-        const categories = new Set(locations.map((l: any) => l.category).filter(Boolean))
+      if (locations && Array.isArray(locations) && locations.length > 0) {
+        const categories = new Set(locations.map((l: any) => l?.category).filter(Boolean))
         const hasMultipleCategories = categories.size > 1
 
         if (hasMultipleCategories) {
@@ -202,7 +237,9 @@ export function BusinessRecommendations() {
         }
 
         // Check for locations with low review counts
-        const lowReviewLocations = locations.filter((l: any) => (l.review_count || 0) < 5).length
+        const lowReviewLocations = locations.filter((l: any) => {
+          return (l.review_count || 0) < 5
+        }).length
         if (lowReviewLocations > 0) {
           generatedRecommendations.push({
             id: "encourage-reviews",
@@ -217,15 +254,15 @@ export function BusinessRecommendations() {
       }
 
       // Performance metrics recommendations
-      if (currentMetrics && previousMetrics) {
+      if (currentMetrics && Array.isArray(currentMetrics) && previousMetrics && Array.isArray(previousMetrics)) {
         // Calculate total impressions
         const currentImpressions = currentMetrics
-          .filter((m: any) => m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
         
         const previousImpressions = previousMetrics
-          .filter((m: any) => m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
 
         if (previousImpressions > 0 && currentImpressions < previousImpressions * 0.8) {
           const declinePercent = ((1 - currentImpressions / previousImpressions) * 100).toFixed(0)
@@ -243,12 +280,12 @@ export function BusinessRecommendations() {
 
         // Calculate clicks
         const currentClicks = currentMetrics
-          .filter((m: any) => m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
         
         const previousClicks = previousMetrics
-          .filter((m: any) => m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
 
         if (previousClicks > 0 && currentClicks < previousClicks * 0.7) {
           generatedRecommendations.push({
@@ -282,21 +319,31 @@ export function BusinessRecommendations() {
       }
 
       // Search keywords recommendations
-      if (searchKeywords && searchKeywords.length > 0) {
+      if (searchKeywords && Array.isArray(searchKeywords) && searchKeywords.length > 0) {
         const topKeywords = searchKeywords.slice(0, 5)
-        const hasLowImpressions = topKeywords.some((k: any) => k.impressions_count < 10)
+        const hasLowImpressions = topKeywords.some((k: any) => {
+          return k && (Number(k.impressions_count) || 0) < 10
+        })
         
         if (hasLowImpressions) {
-          generatedRecommendations.push({
-            id: "optimize-seo",
-            type: "profile",
-            priority: "medium",
-            title: "Optimize for Search Keywords",
-            description: `Your top search keywords have low impressions. Consider optimizing your business profile with relevant keywords and creating content around these terms: ${topKeywords.slice(0, 3).map((k: any) => k.search_keyword).join(", ")}.`,
-            action: "View Keywords",
-            actionLink: "/gmb-dashboard?tab=analytics",
-            category: "SEO",
-          })
+          const keywordNames = topKeywords
+            .filter((k: any) => k && k.search_keyword)
+            .slice(0, 3)
+            .map((k: any) => k.search_keyword)
+            .join(", ")
+          
+          if (keywordNames) {
+            generatedRecommendations.push({
+              id: "optimize-seo",
+              type: "profile",
+              priority: "medium",
+              title: "Optimize for Search Keywords",
+              description: `Your top search keywords have low impressions. Consider optimizing your business profile with relevant keywords and creating content around these terms: ${keywordNames}.`,
+              action: "View Keywords",
+              actionLink: "/gmb-dashboard?tab=analytics",
+              category: "SEO",
+            })
+          }
         }
 
         // Check if there are keyword opportunities
@@ -314,12 +361,13 @@ export function BusinessRecommendations() {
       }
 
       // Location comparison recommendations
-      if (locations && locations.length > 1 && currentMetrics) {
+      if (locations && Array.isArray(locations) && locations.length > 1 && currentMetrics && Array.isArray(currentMetrics) && currentMetrics.length > 0) {
         // Group metrics by location
         const locationMetrics: Record<string, number> = {}
         currentMetrics.forEach((m: any) => {
-          if (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT') {
-            locationMetrics[m.location_id] = (locationMetrics[m.location_id] || 0) + (m.metric_value || 0)
+          if (m && m.location_id && (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')) {
+            const locationId = m.location_id
+            locationMetrics[locationId] = (locationMetrics[locationId] || 0) + (Number(m.metric_value) || 0)
           }
         })
 
@@ -330,8 +378,8 @@ export function BusinessRecommendations() {
           const lowest = sortedLocations[sortedLocations.length - 1]
 
           if (highest[1] > 0 && lowest[1] < highest[1] * 0.3) {
-            const lowLocation = locations.find((l: any) => l.id === lowest[0])
-            if (lowLocation) {
+            const lowLocation = locations.find((l: any) => l && l.id === lowest[0])
+            if (lowLocation && lowLocation.location_name) {
               generatedRecommendations.push({
                 id: "location-performance",
                 type: "profile",

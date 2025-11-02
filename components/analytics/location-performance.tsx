@@ -23,15 +23,62 @@ export function LocationPerformance() {
           return
         }
 
-        const { data } = await supabase
-          .from("gmb_locations_with_rating")
-          .select("*")
+        // Get active GMB account IDs first
+        const { data: accounts } = await supabase
+          .from("gmb_accounts")
+          .select("id")
           .eq("user_id", user.id)
-          .order("rating", { ascending: false })
+          .eq("is_active", true)
+
+        const accountIds = accounts?.map(acc => acc.id) || []
+        if (accountIds.length === 0) {
+          setIsLoading(false)
+          return
+        }
+
+        // Try to use view if available, otherwise use regular query with join
+        const { data, error } = await supabase
+          .from("gmb_locations")
+          .select(`
+            id,
+            location_name,
+            rating,
+            review_count,
+            gmb_accounts!inner(id, is_active)
+          `)
+          .eq("user_id", user.id)
+          .in("gmb_account_id", accountIds)
+          .order("rating", { ascending: false, nullsLast: true })
           .limit(4)
 
-        if (data) {
-          setLocations(data)
+        if (error) {
+          console.error("Error fetching locations:", error)
+          // Fallback: try without join
+          const { data: fallbackData } = await supabase
+            .from("gmb_locations")
+            .select("id, location_name, rating, review_count")
+            .eq("user_id", user.id)
+            .in("gmb_account_id", accountIds)
+            .order("rating", { ascending: false, nullsLast: true })
+            .limit(4)
+          
+          if (fallbackData) {
+            setLocations(fallbackData as any)
+          }
+          setIsLoading(false)
+          return
+        }
+
+        if (data && Array.isArray(data)) {
+          // Map the data to match GMBLocationWithRating interface
+          const mappedData = data.map((loc: any) => ({
+            id: loc.id,
+            location_name: loc.location_name || 'Unknown',
+            rating: loc.rating || 0,
+            review_count: loc.review_count || 0,
+            reviews_count: loc.review_count || 0,
+          }))
+          setLocations(mappedData as any)
         }
       } catch (error) {
         console.error("Error fetching locations:", error)

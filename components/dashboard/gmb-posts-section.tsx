@@ -207,18 +207,39 @@ export function GMBPostsSection() {
           return
         }
         
-        // Fetch locations
-        const { data: locationsData, error: locationsError } = await supabase
-          .from("gmb_locations")
-          .select("id, location_name")
+        // First get active GMB account IDs
+        const { data: activeAccounts, error: accountsError } = await supabase
+          .from("gmb_accounts")
+          .select("id")
           .eq("user_id", user.id)
-          .order("location_name")
-        
-        if (locationsError) {
-          console.error('Failed to fetch locations:', locationsError)
-          toast.error('Failed to load locations')
+          .eq("is_active", true)
+
+        if (accountsError) {
+          console.error('Failed to fetch active accounts:', accountsError)
+          toast.error('Failed to load accounts')
+          setLocations([])
         } else {
-          setLocations((locationsData ?? []) as LocationItem[])
+          const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+
+          if (activeAccountIds.length === 0) {
+            setLocations([])
+          } else {
+            // Only fetch locations from active accounts
+            const { data: locationsData, error: locationsError } = await supabase
+              .from("gmb_locations")
+              .select("id, location_name")
+              .eq("user_id", user.id)
+              .in("gmb_account_id", activeAccountIds)
+              .order("location_name")
+            
+            if (locationsError) {
+              console.error('Failed to fetch locations:', locationsError)
+              toast.error('Failed to load locations')
+              setLocations([])
+            } else {
+              setLocations((locationsData ?? []) as LocationItem[])
+            }
+          }
         }
         
         // Fetch posts
@@ -298,8 +319,17 @@ export function GMBPostsSection() {
         })
       )
       
-      const responses = await Promise.all(savePromises)
-      const results = await Promise.all(responses.map(r => r.json()))
+      const results = await Promise.allSettled(savePromises)
+      const responses = results.map(result => 
+        result.status === 'fulfilled' ? result.value : null
+      ).filter(r => r !== null) as Response[]
+      
+      const responsesData = await Promise.allSettled(
+        responses.map(r => r.json().catch(() => ({})))
+      )
+      const results_data = responsesData.map(result =>
+        result.status === 'fulfilled' ? result.value : {}
+      )
       
       const successful = responses.filter(r => r.ok).length
       const failed = responses.length - successful
@@ -312,7 +342,7 @@ export function GMBPostsSection() {
         // Refresh posts list
         await refreshPosts()
         // Return the first post ID for publishing
-        return results.find(r => r.post?.id)?.post?.id
+        return results_data.find(r => r.post?.id)?.post?.id
       } else {
         throw new Error("Failed to save posts")
       }
@@ -754,7 +784,7 @@ export function GMBPostsSection() {
                         </Button>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {imageFile?.name} ({(imageFile?.size || 0 / 1024 / 1024).toFixed(2)} MB)
+                        {imageFile?.name} ({((imageFile?.size || 0) / 1024 / 1024).toFixed(2)} MB)
                       </p>
                     </div>
                   ) : (

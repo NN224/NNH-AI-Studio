@@ -38,7 +38,7 @@ export function AIInsightsWidget() {
       // Handle session expiration
       if (authError) {
         if (authError.code === 'session_expired' || authError.message?.includes('expired')) {
-          console.log('Session expired in AI insights widget')
+          console.error('Session expired in AI insights widget:', authError)
           setLoading(false)
           return
         }

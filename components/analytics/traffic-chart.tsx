@@ -29,11 +29,17 @@ export function TrafficChart({ dateRange = "30" }: TrafficChartProps) {
         }
 
         // Get active account IDs
-        const { data: accounts } = await supabase
+        const { data: accounts, error: accountsError } = await supabase
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
           .eq("is_active", true)
+
+        if (accountsError) {
+          console.error("Error fetching active accounts:", accountsError)
+          setIsLoading(false)
+          return
+        }
 
         const accountIds = accounts?.map(acc => acc.id) || []
         if (accountIds.length === 0) {
@@ -42,11 +48,17 @@ export function TrafficChart({ dateRange = "30" }: TrafficChartProps) {
         }
 
         // Get locations
-        const { data: locations } = await supabase
+        const { data: locations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", accountIds)
+
+        if (locationsError) {
+          console.error("Error fetching locations:", locationsError)
+          setIsLoading(false)
+          return
+        }
 
         const locationIds = locations?.map(loc => loc.id) || []
         if (locationIds.length === 0) {
@@ -59,30 +71,40 @@ export function TrafficChart({ dateRange = "30" }: TrafficChartProps) {
         const { start, end } = getDateRange(days)
 
         // Fetch performance metrics for Impressions
-        const { data: metrics } = await supabase
-          .from("gmb_performance_metrics")
-          .select("metric_type, metric_value, metric_date")
-          .eq("user_id", user.id)
-          .in("location_id", locationIds)
-          .in("metric_type", [
-            'BUSINESS_IMPRESSIONS_DESKTOP_MAPS',
-            'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
-            'BUSINESS_IMPRESSIONS_MOBILE_MAPS',
-            'BUSINESS_IMPRESSIONS_MOBILE_SEARCH'
-          ])
-          .gte("metric_date", start.toISOString().split('T')[0])
-          .lte("metric_date", end.toISOString().split('T')[0])
-          .order("metric_date", { ascending: true })
+        const { data: metrics, error: metricsError } = locationIds.length > 0
+          ? await supabase
+              .from("gmb_performance_metrics")
+              .select("metric_type, metric_value, metric_date")
+              .eq("user_id", user.id)
+              .in("location_id", locationIds)
+              .in("metric_type", [
+                'BUSINESS_IMPRESSIONS_DESKTOP_MAPS',
+                'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
+                'BUSINESS_IMPRESSIONS_MOBILE_MAPS',
+                'BUSINESS_IMPRESSIONS_MOBILE_SEARCH'
+              ])
+              .gte("metric_date", start.toISOString().split('T')[0])
+              .lte("metric_date", end.toISOString().split('T')[0])
+              .order("metric_date", { ascending: true })
+          : { data: [], error: null }
+
+        if (metricsError) {
+          console.error("Error fetching performance metrics:", metricsError)
+          setData([])
+          setIsLoading(false)
+          return
+        }
 
         if (metrics && metrics.length > 0) {
           // Group by date and sum impressions
           const dailyCounts: Record<string, number> = {}
 
-          metrics.forEach(metric => {
+          metrics.forEach((metric: any) => {
+            if (!metric || !metric.metric_date) return
             const date = metric.metric_date
             const value = typeof metric.metric_value === 'string' 
               ? parseInt(metric.metric_value) || 0 
-              : metric.metric_value || 0
+              : (Number(metric.metric_value) || 0)
             
             if (!dailyCounts[date]) {
               dailyCounts[date] = 0

@@ -93,11 +93,17 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
         }
 
         // Get active account IDs
-        const { data: accounts } = await supabase
+        const { data: accounts, error: accountsError } = await supabase
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
           .eq("is_active", true)
+
+        if (accountsError) {
+          console.error("Error fetching active accounts:", accountsError)
+          setIsLoading(false)
+          return
+        }
 
         const accountIds = accounts?.map(acc => acc.id) || []
         if (accountIds.length === 0) {
@@ -106,27 +112,40 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
         }
 
         // Get locations
-        const { data: locations } = await supabase
+        const { data: locations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", accountIds)
 
+        if (locationsError) {
+          console.error("Error fetching locations:", locationsError)
+          setIsLoading(false)
+          return
+        }
+
         const locationIds = locations?.map(loc => loc.id) || []
 
         // Get reviews for response rate
-        const { data: reviews } = locationIds.length > 0
+        const { data: reviews, error: reviewsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_reviews")
-              .select("rating, reply_text")
+              .select("rating, reply_text, review_reply")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
-          : { data: [] }
+          : { data: [], error: null }
+
+        if (reviewsError) {
+          console.error("Error fetching reviews:", reviewsError)
+        }
 
         // Calculate review metrics
         const reviewsArray = reviews || []
         const totalReviews = reviewsArray.length
-        const repliedReviews = reviewsArray.filter((r) => r.reply_text).length
+        // Check for unresponded reviews using both reply_text and review_reply for compatibility
+        const repliedReviews = reviewsArray.filter((r) => {
+          return !!(r.reply_text || r.review_reply)
+        }).length
         const responseRate = totalReviews > 0 ? (repliedReviews / totalReviews) * 100 : 0
         const avgRating =
           totalReviews > 0
@@ -139,7 +158,7 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
         const previousRange = getPreviousPeriodRange(currentRange.start, currentRange.end)
 
         // Fetch current period metrics
-        const { data: currentMetrics } = locationIds.length > 0
+        const { data: currentMetrics, error: currentMetricsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
@@ -147,10 +166,10 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
               .in("location_id", locationIds)
               .gte("metric_date", currentRange.start.toISOString().split('T')[0])
               .lte("metric_date", currentRange.end.toISOString().split('T')[0])
-          : { data: [] }
+          : { data: [], error: null }
 
         // Fetch previous period metrics for comparison
-        const { data: previousMetrics } = locationIds.length > 0
+        const { data: previousMetrics, error: previousMetricsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
@@ -158,7 +177,14 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
               .in("location_id", locationIds)
               .gte("metric_date", previousRange.start.toISOString().split('T')[0])
               .lte("metric_date", previousRange.end.toISOString().split('T')[0])
-          : { data: [] }
+          : { data: [], error: null }
+
+        if (currentMetricsError) {
+          console.error("Error fetching current metrics:", currentMetricsError)
+        }
+        if (previousMetricsError) {
+          console.error("Error fetching previous metrics:", previousMetricsError)
+        }
 
         // Aggregate current period metrics by type
         const currentAggregated = aggregateMetricsByType(currentMetrics || [], currentRange)

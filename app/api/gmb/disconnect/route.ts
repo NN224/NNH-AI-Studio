@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { errorResponse, successResponse } from '@/lib/utils/api-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
     }
 
     const body = await request.json().catch(() => ({}))
@@ -28,11 +29,10 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[GMB Disconnect] Error disconnecting account:', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        return errorResponse('DISCONNECT_ERROR', error.message || 'Failed to disconnect account', 500)
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return successResponse({ 
         message: 'Account disconnected successfully' 
       })
     }
@@ -48,19 +48,15 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[GMB Disconnect] Error disconnecting all accounts:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return errorResponse('DISCONNECT_ERROR', error.message || 'Failed to disconnect all accounts', 500)
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return successResponse({ 
       message: 'All GMB accounts disconnected successfully' 
     })
   } catch (error: any) {
     console.error('[GMB Disconnect] Unexpected error:', error)
-    return NextResponse.json(
-      { error: error?.message || 'Failed to disconnect GMB account' },
-      { status: 500 }
-    )
+    return errorResponse('INTERNAL_ERROR', error?.message || 'Failed to disconnect GMB account', 500)
   }
 }
 

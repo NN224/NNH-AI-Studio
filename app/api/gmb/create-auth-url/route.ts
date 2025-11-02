@@ -12,8 +12,6 @@ const SCOPES = [
 ];
 
 export async function POST(request: NextRequest) {
-  console.log('[Create Auth URL] Creating Google OAuth URL...');
-  
   try {
     const supabase = await createClient();
     
@@ -27,8 +25,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('[Create Auth URL] User authenticated:', user.id);
-    
     // Ensure user has a profile (optional check - profiles table may not be required)
     // This is just a safety check, but since we use auth.users FK, it's not critical
     const { data: profile, error: profileError } = await supabase
@@ -39,7 +35,7 @@ export async function POST(request: NextRequest) {
     
     if (profileError && profileError.code !== 'PGRST116') {
       // PGRST116 = no rows returned, which is OK
-      console.warn('[Create Auth URL] Profile check warning:', profileError.message);
+      console.error('[Create Auth URL] Profile check error:', profileError.message);
     }
     
     // Get OAuth configuration
@@ -59,11 +55,9 @@ export async function POST(request: NextRequest) {
     
     // Ensure redirect_uri doesn't have trailing slash
     const cleanRedirectUri = redirectUri.replace(/\/$/, '');
-    console.log('[Create Auth URL] Using redirect URI:', cleanRedirectUri);
     
     // Generate random state for security
     const state = crypto.randomUUID();
-    console.log('[Create Auth URL] Generated state:', state);
     
     // Calculate expiry time (30 minutes from now)
     const expiresAt = new Date();
@@ -71,13 +65,6 @@ export async function POST(request: NextRequest) {
     
     // Save state to database using admin client to bypass RLS
     // (We've already authenticated the user above with getUser())
-    console.log('[Create Auth URL] Attempting to insert state:', {
-      state,
-      user_id: user.id,
-      expires_at: expiresAt.toISOString(),
-      used: false,
-    });
-    
     const adminClient = createAdminClient();
     const { data: insertData, error: stateError } = await adminClient
       .from('oauth_states')
@@ -109,8 +96,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('[Create Auth URL] State saved successfully:', insertData);
-    
     // Build OAuth URL
     const authUrl = new URL(GOOGLE_AUTH_URL);
     authUrl.searchParams.set('client_id', clientId);
@@ -123,8 +108,6 @@ export async function POST(request: NextRequest) {
     authUrl.searchParams.set('state', state);
     
     const authUrlString = authUrl.toString();
-    console.log('[Create Auth URL] Auth URL created successfully');
-    console.log('[Create Auth URL] Redirect URI:', cleanRedirectUri);
     
     return NextResponse.json({
       authUrl: authUrlString,

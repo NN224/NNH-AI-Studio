@@ -20,25 +20,56 @@ export function ReviewSentimentChart() {
           return
         }
 
-        const { data: reviews, error: queryError } = await supabase
-          .from("gmb_reviews")
-          .select("ai_sentiment, created_at, rating")
+        // Get active GMB account IDs first
+        const { data: accounts } = await supabase
+          .from("gmb_accounts")
+          .select("id")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: true })
+          .eq("is_active", true)
+
+        const accountIds = accounts?.map(acc => acc.id) || []
+        if (accountIds.length === 0) {
+          setIsLoading(false)
+          return
+        }
+
+        // Get active location IDs
+        const { data: locations } = await supabase
+          .from("gmb_locations")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("gmb_account_id", accountIds)
+
+        const locationIds = locations?.map(loc => loc.id).filter(Boolean) || []
+
+        const { data: reviews, error: queryError } = locationIds.length > 0
+          ? await supabase
+              .from("gmb_reviews")
+              .select("ai_sentiment, created_at, rating")
+              .eq("user_id", user.id)
+              .in("location_id", locationIds)
+              .order("created_at", { ascending: true })
+          : { data: [], error: null }
 
         if (queryError) {
           console.error("Error fetching reviews for sentiment:", queryError)
           // If ai_sentiment column doesn't exist, use rating as fallback
-          const { data: reviewsFallback } = await supabase
-            .from("gmb_reviews")
-            .select("rating, created_at")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: true })
+          const { data: reviewsFallback } = locationIds.length > 0
+            ? await supabase
+                .from("gmb_reviews")
+                .select("rating, created_at")
+                .eq("user_id", user.id)
+                .in("location_id", locationIds)
+                .order("created_at", { ascending: true })
+            : { data: [] }
 
-          if (reviewsFallback) {
+          if (reviewsFallback && Array.isArray(reviewsFallback) && reviewsFallback.length > 0) {
             const monthlyData: Record<string, { positive: number; neutral: number; negative: number }> = {}
             reviewsFallback.forEach((review) => {
+              if (!review || !review.created_at) return
               const date = new Date(review.created_at)
+              if (isNaN(date.getTime())) return
+              
               const monthKey = date.toLocaleDateString("en-US", { month: "short" })
 
               if (!monthlyData[monthKey]) {
@@ -46,9 +77,10 @@ export function ReviewSentimentChart() {
               }
 
               // Use rating as sentiment proxy: 4-5 = positive, 3 = neutral, 1-2 = negative
-              if (review.rating >= 4) monthlyData[monthKey].positive++
-              else if (review.rating === 3) monthlyData[monthKey].neutral++
-              else if (review.rating <= 2) monthlyData[monthKey].negative++
+              const rating = review.rating || 0
+              if (rating >= 4) monthlyData[monthKey].positive++
+              else if (rating === 3) monthlyData[monthKey].neutral++
+              else if (rating <= 2) monthlyData[monthKey].negative++
             })
 
             const chartData = Object.entries(monthlyData).map(([month, counts]) => ({
@@ -62,21 +94,25 @@ export function ReviewSentimentChart() {
           return
         }
 
-        if (reviews) {
+        if (reviews && Array.isArray(reviews) && reviews.length > 0) {
           // Group by month and sentiment
           const monthlyData: Record<string, { positive: number; neutral: number; negative: number }> = {}
 
           reviews.forEach((review) => {
+            if (!review || !review.created_at) return
             const date = new Date(review.created_at)
+            if (isNaN(date.getTime())) return
+            
             const monthKey = date.toLocaleDateString("en-US", { month: "short" })
 
             if (!monthlyData[monthKey]) {
               monthlyData[monthKey] = { positive: 0, neutral: 0, negative: 0 }
             }
 
-            if (review.ai_sentiment === "positive") monthlyData[monthKey].positive++
-            else if (review.ai_sentiment === "neutral") monthlyData[monthKey].neutral++
-            else if (review.ai_sentiment === "negative") monthlyData[monthKey].negative++
+            const sentiment = review.ai_sentiment
+            if (sentiment === "positive") monthlyData[monthKey].positive++
+            else if (sentiment === "neutral") monthlyData[monthKey].neutral++
+            else if (sentiment === "negative") monthlyData[monthKey].negative++
           })
 
           const chartData = Object.entries(monthlyData).map(([month, counts]) => ({

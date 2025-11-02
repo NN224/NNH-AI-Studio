@@ -36,11 +36,17 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
         }
 
         // Get active account IDs
-        const { data: accounts } = await supabase
+        const { data: accounts, error: accountsError } = await supabase
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
           .eq("is_active", true)
+
+        if (accountsError) {
+          console.error("Error fetching active accounts:", accountsError)
+          setIsLoading(false)
+          return
+        }
 
         const accountIds = accounts?.map(acc => acc.id) || []
         if (accountIds.length === 0) {
@@ -49,11 +55,17 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
         }
 
         // Get locations
-        const { data: locations } = await supabase
+        const { data: locations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", accountIds)
+
+        if (locationsError) {
+          console.error("Error fetching locations:", locationsError)
+          setIsLoading(false)
+          return
+        }
 
         const locationIds = locations?.map(loc => loc.id) || []
 
@@ -62,7 +74,7 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
         const { start, end } = getDateRange(periodDays)
 
         // Get performance metrics for impressions only
-        const { data: metrics } = locationIds.length > 0
+        const { data: metrics, error: metricsError } = locationIds.length > 0
           ? await supabase
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
@@ -76,7 +88,14 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
               ])
               .gte("metric_date", start.toISOString().split('T')[0])
               .lte("metric_date", end.toISOString().split('T')[0])
-          : { data: [] }
+          : { data: [], error: null }
+
+        if (metricsError) {
+          console.error("Error fetching performance metrics:", metricsError)
+          setBreakdownData(null)
+          setIsLoading(false)
+          return
+        }
 
         if (metrics && metrics.length > 0) {
           const breakdown = getImpressionsBreakdown(metrics, start, end)

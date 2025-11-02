@@ -13,9 +13,12 @@ import { Badge } from "@/components/ui/badge"
 import { Save, Bell, Globe, Key, Users, CreditCard, Shield, Link2, Sparkles, Clock, CheckCircle, Unlink, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export function GMBSettings() {
   const supabase = createClient()
+  const router = useRouter()
   const [autoReply, setAutoReply] = useState(false)
   const [reviewNotifications, setReviewNotifications] = useState(true)
   const [emailDigest, setEmailDigest] = useState("daily")
@@ -28,6 +31,7 @@ export function GMBSettings() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [syncSchedule, setSyncSchedule] = useState<string>('manual')
   const [syncSettings, setSyncSettings] = useState<any>({})
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
 
   // Check GMB connection status
   useEffect(() => {
@@ -43,18 +47,24 @@ export function GMBSettings() {
 
         if (error) {
           console.error('Error fetching GMB accounts:', error)
+          setGmbAccounts([])
+          setGmbConnected(false)
+          setLoading(false)
           return
         }
 
-        const activeAccounts = accounts?.filter(acc => acc.is_active) || []
-        setGmbAccounts(accounts || [])
+        const accountsArray = accounts || []
+        const activeAccounts = accountsArray.filter((acc: any) => acc && acc.is_active) || []
+        setGmbAccounts(accountsArray)
         setGmbConnected(activeAccounts.length > 0)
         
         // Load sync settings from first active account
-        if (activeAccounts.length > 0 && activeAccounts[0].settings) {
+        if (activeAccounts.length > 0 && activeAccounts[0] && activeAccounts[0].settings) {
           const settings = activeAccounts[0].settings
-          setSyncSettings(settings)
-          setSyncSchedule(settings.syncSchedule || 'manual')
+          if (settings && typeof settings === 'object') {
+            setSyncSettings(settings)
+            setSyncSchedule(settings.syncSchedule || 'manual')
+          }
         }
       } catch (error) {
         console.error('Error checking GMB connection:', error)
@@ -85,6 +95,10 @@ export function GMBSettings() {
         throw new Error(accountsError.message)
       }
 
+      if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+        throw new Error('No active GMB accounts found')
+      }
+
       // Update each account's settings
       const updatedSettings = {
         ...syncSettings,
@@ -97,7 +111,9 @@ export function GMBSettings() {
         updatedAt: new Date().toISOString()
       }
 
-      for (const account of accounts || []) {
+      for (const account of accounts) {
+        if (!account || !account.id) continue
+        
         const { error: updateError } = await supabase
           .from('gmb_accounts')
           .update({ settings: updatedSettings })
@@ -105,7 +121,8 @@ export function GMBSettings() {
           .eq('user_id', user.id)
 
         if (updateError) {
-          throw new Error(updateError.message)
+          console.error('Error updating account settings:', updateError)
+          throw new Error(updateError.message || 'Failed to update settings')
         }
       }
 
@@ -120,10 +137,6 @@ export function GMBSettings() {
   }
 
   const handleDisconnectGMB = async () => {
-    if (!confirm('Are you sure you want to disconnect Google My Business? Sync will stop but current data will not be deleted.')) {
-      return
-    }
-
     setDisconnecting(true)
     try {
       const response = await fetch('/api/gmb/disconnect', {
@@ -139,13 +152,21 @@ export function GMBSettings() {
 
       toast.success('Google My Business disconnected successfully')
       setGmbConnected(false)
+      setShowDisconnectDialog(false)
       // Refresh accounts list
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: accounts } = await supabase
-        .from('gmb_accounts')
-        .select('id, account_name, is_active, last_sync')
-        .eq('user_id', user?.id)
-      setGmbAccounts(accounts || [])
+      if (user) {
+        const { data: accounts, error: accountsError } = await supabase
+          .from('gmb_accounts')
+          .select('id, account_name, is_active, last_sync')
+          .eq('user_id', user.id)
+        
+        if (accountsError) {
+          console.error('Error refreshing accounts:', accountsError)
+        } else {
+          setGmbAccounts(accounts || [])
+        }
+      }
     } catch (error: any) {
       console.error('Error disconnecting GMB:', error)
       toast.error(error.message || 'Failed to disconnect')
@@ -168,7 +189,12 @@ export function GMBSettings() {
       }
 
       // Redirect to Google OAuth
-      window.location.href = data.authUrl || data.url
+      const authUrl = data.authUrl || data.url
+      if (authUrl) {
+        router.push(authUrl)
+      } else {
+        throw new Error('No authorization URL received')
+      }
     } catch (error: any) {
       console.error('Error connecting GMB:', error)
       toast.error(error.message || 'Failed to connect')
@@ -317,20 +343,23 @@ export function GMBSettings() {
                 </div>
               )}
 
-              {gmbAccounts.length > 0 && gmbAccounts.filter(a => a.is_active).length > 0 && (
+              {Array.isArray(gmbAccounts) && gmbAccounts.length > 0 && gmbAccounts.filter((a: any) => a && a.is_active).length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-primary/20">
                   <Label className="text-sm font-medium">Last Sync Status</Label>
                   <div className="space-y-1">
-                    {gmbAccounts.filter(a => a.is_active).map((account) => (
-                      <div key={account.id} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{account.account_name || 'GMB Account'}</span>
-                        <span className="text-muted-foreground">
-                          {account.last_sync 
-                            ? new Date(account.last_sync).toLocaleString() 
-                            : 'Never synced'}
-                        </span>
-                      </div>
-                    ))}
+                    {gmbAccounts.filter((a: any) => a && a.is_active).map((account: any) => {
+                      if (!account || !account.id) return null
+                      return (
+                        <div key={account.id} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{account.account_name || 'GMB Account'}</span>
+                          <span className="text-muted-foreground">
+                            {account.last_sync 
+                              ? new Date(account.last_sync).toLocaleString() 
+                              : 'Never synced'}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -459,9 +488,9 @@ export function GMBSettings() {
                         <Link2 className="h-3 w-3 mr-1" />
                         Connected
                       </Badge>
-                      {gmbAccounts.length > 0 && (
+                      {Array.isArray(gmbAccounts) && gmbAccounts.length > 0 && (
                         <span className="text-sm text-muted-foreground">
-                          {gmbAccounts.filter(a => a.is_active).length} account(s) connected
+                          {gmbAccounts.filter((a: any) => a && a.is_active).length} account(s) connected
                         </span>
                       )}
                     </>
@@ -474,21 +503,24 @@ export function GMBSettings() {
                 </div>
               </div>
 
-              {gmbAccounts.length > 0 && (
+              {Array.isArray(gmbAccounts) && gmbAccounts.length > 0 && (
                 <div className="space-y-2">
                   <Label>Connected Accounts</Label>
                   <div className="space-y-2">
-                    {gmbAccounts.map((account) => (
-                      <div key={account.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{account.account_name || 'GMB Account'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {account.is_active ? 'Active' : 'Inactive'}
-                            {account.last_sync && ` • Last sync: ${new Date(account.last_sync).toLocaleDateString()}`}
-                          </p>
+                    {gmbAccounts.map((account: any) => {
+                      if (!account || !account.id) return null
+                      return (
+                        <div key={account.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{account.account_name || 'GMB Account'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {account.is_active ? 'Active' : 'Inactive'}
+                              {account.last_sync && ` • Last sync: ${new Date(account.last_sync).toLocaleDateString()}`}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -518,20 +550,11 @@ export function GMBSettings() {
                     <Button 
                       variant="outline" 
                       className="w-full sm:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/30"
-                      onClick={handleDisconnectGMB}
+                      onClick={() => setShowDisconnectDialog(true)}
                       disabled={disconnecting}
                     >
-                      {disconnecting ? (
-                        <>
-                          <Clock className="h-4 w-4 mr-2 animate-spin" />
-                          Disconnecting...
-                        </>
-                      ) : (
-                        <>
-                          <Unlink className="h-4 w-4 mr-2" />
-                          Disconnect GMB
-                        </>
-                      )}
+                      <Unlink className="h-4 w-4 mr-2" />
+                      Disconnect GMB
                     </Button>
                     <p className="text-xs text-muted-foreground">
                       Disconnecting will stop syncing but won't delete your existing data
@@ -592,6 +615,44 @@ export function GMBSettings() {
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
+
+      {/* Disconnect Confirmation Dialog */}
+      <Dialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Disconnect Google My Business?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disconnect Google My Business? Sync will stop but current data will not be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDisconnectDialog(false)}
+              disabled={disconnecting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDisconnectGMB}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Disconnecting...
+                </>
+              ) : (
+                <>
+                  <Unlink className="h-4 w-4 mr-2" />
+                  Disconnect
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -63,38 +63,60 @@ export function AIAssistant() {
       const accountIds = accounts.map((a) => a.id)
 
       // Get locations data
-      const { data: locations } = await supabase
+      const { data: locations, error: locationsError } = await supabase
         .from("gmb_locations")
-        .select("category, rating, review_count, address, location_name")
+        .select("id, category, rating, review_count, address, location_name")
         .eq("user_id", user.id)
         .in("gmb_account_id", accountIds)
+      
+      if (locationsError) {
+        console.error("Error fetching locations:", locationsError)
+        setAiTips([
+          {
+            id: "error",
+            type: "warning",
+            title: "Error Loading Data",
+            message: "Failed to load location data. Please try refreshing the page.",
+          },
+        ])
+        setAnalyzing(false)
+        return
+      }
 
       // Get reviews data
-      const locationIds = locations?.map((l: any) => l.id) || []
-      const { data: reviews } =
+      const locationIds = locations?.map((l: any) => l.id).filter(Boolean) || []
+      const { data: reviews, error: reviewsError } =
         locationIds.length > 0
           ? await supabase
               .from("gmb_reviews")
-              .select("rating, comment_text, ai_sentiment")
+              .select("rating, review_text, comment, ai_sentiment, reply_text, review_reply")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
-          : { data: null }
+          : { data: null, error: null }
+      
+      if (reviewsError) {
+        console.error("Error fetching reviews:", reviewsError)
+      }
 
       // Get performance metrics (last 30 days)
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       
-      const { data: performanceMetrics } = locationIds.length > 0
+      const { data: performanceMetrics, error: metricsError } = locationIds.length > 0
         ? await supabase
             .from("gmb_performance_metrics")
-            .select("metric_type, metric_value, metric_date")
+            .select("metric_type, metric_value, metric_date, location_id")
             .eq("user_id", user.id)
             .in("location_id", locationIds)
             .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
-        : { data: null }
+        : { data: null, error: null }
+      
+      if (metricsError) {
+        console.error("Error fetching performance metrics:", metricsError)
+      }
 
       // Get search keywords
-      const { data: searchKeywords } = locationIds.length > 0
+      const { data: searchKeywords, error: keywordsError } = locationIds.length > 0
         ? await supabase
             .from("gmb_search_keywords")
             .select("search_keyword, impressions_count, month_year")
@@ -102,13 +124,20 @@ export function AIAssistant() {
             .in("location_id", locationIds)
             .order("impressions_count", { ascending: false })
             .limit(10)
-        : { data: null }
+        : { data: null, error: null }
+      
+      if (keywordsError) {
+        console.error("Error fetching search keywords:", keywordsError)
+      }
 
       // Analyze and generate tips
       const tips: AITip[] = []
 
-      if (locations && locations.length > 0) {
-        const avgRating = locations.reduce((sum, loc) => sum + (loc.rating || 0), 0) / locations.length
+      if (locations && Array.isArray(locations) && locations.length > 0) {
+        const validRatings = locations.filter(loc => loc.rating != null && loc.rating > 0)
+        const avgRating = validRatings.length > 0 
+          ? validRatings.reduce((sum, loc) => sum + (loc.rating || 0), 0) / validRatings.length 
+          : 0
         const totalReviews = locations.reduce((sum, loc) => sum + (loc.review_count || 0), 0)
 
         // Rating insights
@@ -157,8 +186,13 @@ export function AIAssistant() {
       }
 
       // Reviews sentiment analysis
-      if (reviews && reviews.length > 0) {
-        const negativeReviews = reviews.filter((r: any) => r.rating <= 2 || r.ai_sentiment === "negative").length
+      if (reviews && Array.isArray(reviews) && reviews.length > 0) {
+        const negativeReviews = reviews.filter((r: any) => {
+          const rating = r.rating || 0
+          const sentiment = r.ai_sentiment
+          return rating <= 2 || sentiment === "negative"
+        }).length
+        
         if (negativeReviews > 0) {
           const negativePercent = ((negativeReviews / reviews.length) * 100).toFixed(1)
           tips.push({
@@ -171,7 +205,11 @@ export function AIAssistant() {
           })
         }
 
-        const unrespondedReviews = reviews.filter((r: any) => !r.reply_text).length
+        // Check for unresponded reviews using both reply_text and review_reply for compatibility
+        const unrespondedReviews = reviews.filter((r: any) => {
+          return !(r.reply_text || r.review_reply)
+        }).length
+        
         if (unrespondedReviews > reviews.length * 0.2) {
           tips.push({
             id: "unresponded",
@@ -185,14 +223,14 @@ export function AIAssistant() {
       }
 
       // Performance metrics insights
-      if (performanceMetrics && performanceMetrics.length > 0) {
+      if (performanceMetrics && Array.isArray(performanceMetrics) && performanceMetrics.length > 0) {
         const impressions = performanceMetrics
-          .filter((m: any) => m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
         
         const clicks = performanceMetrics
-          .filter((m: any) => m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS')
-          .reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0)
+          .filter((m: any) => m && (m.metric_type === 'ACTIONS_WEBSITE' || m.metric_type === 'ACTIONS_PHONE' || m.metric_type === 'ACTIONS_DRIVING_DIRECTIONS'))
+          .reduce((sum: number, m: any) => sum + (Number(m.metric_value) || 0), 0)
 
         if (impressions > 0) {
           const conversionRate = (clicks / impressions) * 100
@@ -230,9 +268,9 @@ export function AIAssistant() {
       }
 
       // Search keywords insights
-      if (searchKeywords && searchKeywords.length > 0) {
+      if (searchKeywords && Array.isArray(searchKeywords) && searchKeywords.length > 0) {
         const topKeyword = searchKeywords[0]
-        const totalImpressions = searchKeywords.reduce((sum: number, k: any) => sum + (k.impressions_count || 0), 0)
+        const totalImpressions = searchKeywords.reduce((sum: number, k: any) => sum + (Number(k.impressions_count) || 0), 0)
         
         if (topKeyword && topKeyword.impressions_count > 50) {
           tips.push({
@@ -257,25 +295,28 @@ export function AIAssistant() {
       }
 
       // Location comparison insights
-      if (locations && locations.length > 1 && performanceMetrics) {
+      if (locations && Array.isArray(locations) && locations.length > 1 && performanceMetrics && Array.isArray(performanceMetrics) && performanceMetrics.length > 0) {
         const locationPerformance: Record<string, number> = {}
         performanceMetrics.forEach((m: any) => {
-          if (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT') {
-            locationPerformance[m.location_id] = (locationPerformance[m.location_id] || 0) + (m.metric_value || 0)
+          if (m && m.location_id && (m.metric_type === 'QUERIES_DIRECT' || m.metric_type === 'QUERIES_INDIRECT')) {
+            const locationId = m.location_id
+            locationPerformance[locationId] = (locationPerformance[locationId] || 0) + (Number(m.metric_value) || 0)
           }
         })
 
         const sortedLocations = Object.entries(locationPerformance).sort(([, a], [, b]) => b - a)
         if (sortedLocations.length > 1) {
-          const bestLocation = locations.find((l: any) => l.id === sortedLocations[0][0])
-          const worstLocation = locations.find((l: any) => l.id === sortedLocations[sortedLocations.length - 1][0])
+          const bestLocationId = sortedLocations[0][0]
+          const worstLocationId = sortedLocations[sortedLocations.length - 1][0]
+          const bestLocation = locations.find((l: any) => l.id === bestLocationId)
+          const worstLocation = locations.find((l: any) => l.id === worstLocationId)
           
           if (bestLocation && worstLocation && sortedLocations[0][1] > sortedLocations[sortedLocations.length - 1][1] * 3) {
             tips.push({
               id: "location-disparity",
               type: "warning",
               title: "Location Performance Gap",
-              message: `${bestLocation.location_name} significantly outperforms ${worstLocation.location_name}. Consider applying successful strategies from your best location to improve others.`,
+              message: `${bestLocation.location_name || 'Unknown location'} significantly outperforms ${worstLocation.location_name || 'Unknown location'}. Consider applying successful strategies from your best location to improve others.`,
               category: "Performance",
             })
           }
@@ -311,18 +352,29 @@ export function AIAssistant() {
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to generate response")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || errorData.error || `Failed to generate response (${response.status})`)
+      }
 
       const data = await response.json()
+      
+      if (!data || !data.content) {
+        throw new Error('Invalid response from AI service')
+      }
+      
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.content }])
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating response:", error)
-      toast.error("Failed to get AI response")
+      const errorMessage = error.message || "Failed to get AI response"
+      toast.error(errorMessage)
       setChatMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "I apologize, but I'm having trouble processing your request right now. Please try again later.",
+          content: error.message && error.message.includes('Invalid response') 
+            ? "I apologize, but I received an invalid response. Please try again."
+            : "I apologize, but I'm having trouble processing your request right now. Please try again later.",
         },
       ])
     } finally {

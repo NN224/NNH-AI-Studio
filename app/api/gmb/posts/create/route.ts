@@ -44,16 +44,22 @@ export async function POST(request: NextRequest) {
     
     const validated = validationResult.data
 
-    // Ensure location belongs to user
+    // Ensure location belongs to user and is from an active account
     const { data: loc } = await supabase
       .from('gmb_locations')
-      .select('id')
+      .select('id, gmb_account_id, gmb_accounts!inner(id, is_active)')
       .eq('id', validated.locationId)
       .eq('user_id', user.id)
       .maybeSingle()
 
     if (!loc) {
       return errorResponse('LOCATION_NOT_FOUND', 'Location not found', 404)
+    }
+
+    // Check if the location belongs to an active account
+    const account = (loc as any).gmb_accounts
+    if (!account?.is_active) {
+      return errorResponse('FORBIDDEN', 'Cannot create posts for inactive accounts', 403)
     }
 
     // Build metadata for Event/Offer posts
@@ -97,7 +103,7 @@ export async function POST(request: NextRequest) {
       return errorResponse(errorCode, 'Failed to create post', 500)
     }
 
-    return NextResponse.json({ post: data }, { status: 201 })
+    return NextResponse.json({ post: data, success: true }, { status: 201 })
   } catch (e: any) {
     const errorCode = getErrorCode(e)
     console.error('[GMB Posts API] Error:', e)
