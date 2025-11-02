@@ -239,18 +239,18 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
     }
   }, [supabase, dateRange])
 
-  const periodText = dateRange === "7" ? "last 7 days" 
-    : dateRange === "30" ? "last 30 days"
-    : dateRange === "90" ? "last 90 days"
-    : "last year"
-  
   const previousPeriodText = dateRange === "7" ? "previous 7 days"
     : dateRange === "30" ? "previous 30 days"
     : dateRange === "90" ? "previous 90 days"
     : "previous year"
 
+  // Determine which optional cards to show
+  const showBookings = metrics.totalBookings > 0
+  const showFoodOrders = metrics.totalFoodOrders > 0
+  const totalCards = 4 + (showBookings ? 1 : 0) + (showFoodOrders ? 1 : 0)
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className={`grid gap-4 ${totalCards === 4 ? 'md:grid-cols-2 lg:grid-cols-4' : totalCards === 5 ? 'md:grid-cols-2 lg:grid-cols-5' : 'md:grid-cols-2 lg:grid-cols-6'}`}>
       <MetricCard
         title="Total Impressions"
         value={metrics.totalImpressions.toLocaleString()}
@@ -279,6 +279,24 @@ export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
         period={previousPeriodText}
         isLoading={isLoading}
       />
+      {showBookings && (
+        <MetricCard
+          title="Bookings"
+          value={metrics.totalBookings.toLocaleString()}
+          change={metrics.bookingsChange}
+          period={previousPeriodText}
+          isLoading={isLoading}
+        />
+      )}
+      {showFoodOrders && (
+        <MetricCard
+          title="Food Orders"
+          value={metrics.totalFoodOrders.toLocaleString()}
+          change={metrics.foodOrdersChange}
+          period={previousPeriodText}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   )
 }
