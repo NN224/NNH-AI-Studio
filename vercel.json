@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/gmb/scheduled-sync",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+

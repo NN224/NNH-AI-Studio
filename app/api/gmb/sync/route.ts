@@ -730,17 +730,29 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('[GMB Sync API] Authentication failed:', authError);
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Check if this is an internal cron request (for scheduled syncs)
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    
+    let user: any = null;
+    
+    // If it's a cron request, skip user authentication check
+    if (!isCronRequest) {
+      // Get authenticated user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) {
+        console.error('[GMB Sync API] Authentication failed:', authError);
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      user = authUser;
+      console.log('[GMB Sync API] User authenticated:', user.id);
+    } else {
+      console.log('[GMB Sync API] Cron request detected - skipping user auth');
     }
-
-    console.log('[GMB Sync API] User authenticated:', user.id);
 
     // Parse request body
     const body = await request.json();
@@ -756,12 +768,17 @@ export async function POST(request: NextRequest) {
     console.log(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
 
     // Get account details
-    const { data: account, error: accountError } = await supabase
+    const accountQuery = supabase
       .from('gmb_accounts')
       .select('*')
-      .eq('id', accountId)
-      .eq('user_id', user.id)
-      .single();
+      .eq('id', accountId);
+    
+    // Only filter by user_id if not a cron request
+    if (!isCronRequest && user) {
+      accountQuery.eq('user_id', user.id);
+    }
+    
+    const { data: account, error: accountError } = await accountQuery.single();
 
     if (accountError || !account) {
       console.error('[GMB Sync API] Account not found:', accountError);

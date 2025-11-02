@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Unlink, Link2, AlertTriangle, RefreshCw } from "lucide-react"
+import { MapPin, MessageSquare, Star, TrendingUp, AlertCircle, Unlink, Link2, AlertTriangle, RefreshCw, Clock, CheckCircle2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
 import { Button } from "@/components/ui/button"
@@ -98,6 +98,8 @@ export default function GMBDashboard() {
   const [gmbConnected, setGmbConnected] = useState(false)
   const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [syncSchedule, setSyncSchedule] = useState<string>('manual')
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [syncing, setSyncing] = useState(false)
 
   // Check for mobile view
@@ -174,7 +176,7 @@ export default function GMBDashboard() {
         // Check GMB connection status
         const { data: gmbAccounts } = await supabase
           .from("gmb_accounts")
-          .select("id, is_active")
+          .select("id, is_active, settings, last_sync")
           .eq("user_id", authUser.id)
         
         const activeAccount = gmbAccounts?.find(acc => acc.is_active)
@@ -182,6 +184,17 @@ export default function GMBDashboard() {
         setGmbConnected(hasActiveAccount)
         if (activeAccount) {
           setGmbAccountId(activeAccount.id)
+          
+          // Load sync settings
+          if (activeAccount.settings) {
+            const schedule = activeAccount.settings.syncSchedule || 'manual'
+            setSyncSchedule(schedule)
+          }
+          
+          // Load last sync time
+          if (activeAccount.last_sync) {
+            setLastSyncTime(new Date(activeAccount.last_sync))
+          }
         }
         
         // Fetch dashboard stats with proper error handling
@@ -343,6 +356,9 @@ export default function GMBDashboard() {
         `تم المزامنة بنجاح! تم جلب ${data.counts?.locations || 0} موقع، ${data.counts?.reviews || 0} مراجعة`
       )
       
+      // Update last sync time
+      setLastSyncTime(new Date())
+      
       // Refresh dashboard data without full page reload
       router.refresh()
     } catch (error: any) {
@@ -441,11 +457,27 @@ export default function GMBDashboard() {
               
               {/* Connection Status, Sync & Disconnect Buttons */}
               {gmbConnected ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30">
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-sm font-medium text-green-500">Connected</span>
                   </div>
+                  
+                  {/* Sync Status Indicator */}
+                  {syncSchedule !== 'manual' && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30">
+                      <Clock className="h-3.5 w-3.5 text-primary" />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-primary">Auto-Sync: {syncSchedule}</span>
+                        {lastSyncTime && (
+                          <span className="text-xs text-muted-foreground">
+                            Last: {lastSyncTime.toLocaleTimeString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <Button
                     variant="outline"
                     size="sm"

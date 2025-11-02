@@ -26,6 +26,8 @@ export function GMBSettings() {
   const [gmbAccounts, setGmbAccounts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [syncSchedule, setSyncSchedule] = useState<string>('manual')
+  const [syncSettings, setSyncSettings] = useState<any>({})
 
   // Check GMB connection status
   useEffect(() => {
@@ -36,7 +38,7 @@ export function GMBSettings() {
 
         const { data: accounts, error } = await supabase
           .from('gmb_accounts')
-          .select('id, account_name, is_active, last_sync')
+          .select('id, account_name, is_active, last_sync, settings')
           .eq('user_id', user.id)
 
         if (error) {
@@ -47,6 +49,13 @@ export function GMBSettings() {
         const activeAccounts = accounts?.filter(acc => acc.is_active) || []
         setGmbAccounts(accounts || [])
         setGmbConnected(activeAccounts.length > 0)
+        
+        // Load sync settings from first active account
+        if (activeAccounts.length > 0 && activeAccounts[0].settings) {
+          const settings = activeAccounts[0].settings
+          setSyncSettings(settings)
+          setSyncSchedule(settings.syncSchedule || 'manual')
+        }
       } catch (error) {
         console.error('Error checking GMB connection:', error)
       } finally {
@@ -59,10 +68,55 @@ export function GMBSettings() {
 
   const handleSave = async () => {
     setSaving(true)
-    // Simulate saving
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
-    toast.success("Settings saved successfully")
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update sync settings for all active accounts
+      const { data: accounts, error: accountsError } = await supabase
+        .from('gmb_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (accountsError) {
+        throw new Error(accountsError.message)
+      }
+
+      // Update each account's settings
+      const updatedSettings = {
+        ...syncSettings,
+        syncSchedule,
+        autoReply,
+        reviewNotifications,
+        emailDigest,
+        aiResponseTone,
+        autoPublish,
+        updatedAt: new Date().toISOString()
+      }
+
+      for (const account of accounts || []) {
+        const { error: updateError } = await supabase
+          .from('gmb_accounts')
+          .update({ settings: updatedSettings })
+          .eq('id', account.id)
+          .eq('user_id', user.id)
+
+        if (updateError) {
+          throw new Error(updateError.message)
+        }
+      }
+
+      setSyncSettings(updatedSettings)
+      toast.success("Settings saved successfully")
+    } catch (error: any) {
+      console.error('Error saving settings:', error)
+      toast.error(error.message || 'Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDisconnectGMB = async () => {
@@ -208,6 +262,79 @@ export function GMBSettings() {
                   onCheckedChange={setAutoPublish}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Auto-Sync Settings */}
+          <Card className="bg-card border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Auto-Sync Scheduling
+              </CardTitle>
+              <CardDescription>
+                Configure automatic synchronization of your Google My Business data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sync-schedule">Sync Frequency</Label>
+                <Select value={syncSchedule} onValueChange={setSyncSchedule}>
+                  <SelectTrigger className="bg-secondary border-primary/30">
+                    <SelectValue placeholder="Select sync frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">
+                      <div className="flex items-center gap-2">
+                        <span>Manual Only</span>
+                        <Badge variant="secondary" className="text-xs">You control when to sync</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="hourly">Every Hour</SelectItem>
+                    <SelectItem value="daily">Daily (Once per day)</SelectItem>
+                    <SelectItem value="twice-daily">Twice Daily (Morning & Evening)</SelectItem>
+                    <SelectItem value="weekly">Weekly (Once per week)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {syncSchedule === 'manual' && 'You will need to manually sync your data from the dashboard.'}
+                  {syncSchedule === 'hourly' && 'Your data will be synced automatically every hour.'}
+                  {syncSchedule === 'daily' && 'Your data will be synced once per day at midnight UTC.'}
+                  {syncSchedule === 'twice-daily' && 'Your data will be synced twice per day at 9 AM and 6 PM UTC.'}
+                  {syncSchedule === 'weekly' && 'Your data will be synced once per week on Monday at midnight UTC.'}
+                </p>
+              </div>
+
+              {syncSchedule !== 'manual' && (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium text-foreground">Auto-sync enabled</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your Google My Business data will be automatically synchronized according to your selected schedule.
+                    You can still manually sync anytime from the dashboard.
+                  </p>
+                </div>
+              )}
+
+              {gmbAccounts.length > 0 && gmbAccounts.filter(a => a.is_active).length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-primary/20">
+                  <Label className="text-sm font-medium">Last Sync Status</Label>
+                  <div className="space-y-1">
+                    {gmbAccounts.filter(a => a.is_active).map((account) => (
+                      <div key={account.id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{account.account_name || 'GMB Account'}</span>
+                        <span className="text-muted-foreground">
+                          {account.last_sync 
+                            ? new Date(account.last_sync).toLocaleString() 
+                            : 'Never synced'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
