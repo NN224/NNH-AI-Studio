@@ -446,10 +446,20 @@ async function fetchMedia(
   }
 
   const data = await response.json();
-  console.log('[GMB Sync] Media items fetched:', data.mediaItems?.length || 0);
+  
+  // Extract media from location response
+  // Business Information API returns media inside the location object when using readMask='media'
+  const media = data.media || data.mediaItems || [];
+  
+  console.log('[GMB Sync] Business Info API media response:', media.length, 'items');
+  if (media.length > 0) {
+    console.log('[GMB Sync] Sample media structure:', JSON.stringify(media[0], null, 2).substring(0, 200));
+  } else {
+    console.log('[GMB Sync] Location data structure (for media):', JSON.stringify(Object.keys(data), null, 2));
+  }
   
   return {
-    media: data.mediaItems || [],
+    media: media || [],
     nextPageToken: data.nextPageToken,
   };
 }
