@@ -113,10 +113,17 @@ export async function GET(request: NextRequest) {
     const accessToken = await getValidAccessToken(supabase);
 
     const url = new URL(`${GBP_LOC_BASE}/attributes`);
-    if (parent) url.searchParams.set('parent', parent);
-    if (categoryName) url.searchParams.set('categoryName', categoryName);
-    if (regionCode) url.searchParams.set('regionCode', regionCode);
-    url.searchParams.set('languageCode', languageCode);
+    if (parent) {
+      url.searchParams.set('parent', parent);
+      // When using parent, languageCode cannot be set
+      // Only set regionCode if provided
+      if (regionCode) url.searchParams.set('regionCode', regionCode);
+    } else {
+      // For categoryName or showAll, we can use languageCode
+      if (categoryName) url.searchParams.set('categoryName', categoryName);
+      if (regionCode) url.searchParams.set('regionCode', regionCode);
+      url.searchParams.set('languageCode', languageCode);
+    }
     url.searchParams.set('pageSize', pageSize.toString());
     if (pageToken) url.searchParams.set('pageToken', pageToken);
     if (showAll) url.searchParams.set('showAll', 'true');
