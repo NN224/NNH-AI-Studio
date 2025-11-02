@@ -46,17 +46,20 @@ async function getValidAccessToken(supabase: any): Promise<string> {
     throw new Error('Unauthorized');
   }
 
-  const { data: account, error } = await supabase
+  const { data: accounts, error } = await supabase
     .from('gmb_accounts')
     .select('id, access_token, refresh_token, token_expires_at')
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .limit(1)
-    .single();
+    .limit(1);
 
-  if (error || !account) {
-    throw new Error('No active account found');
+  if (error || !accounts || accounts.length === 0) {
+    console.warn('[Categories API] No active GMB account found for user:', user.id);
+    // Return empty categories list instead of error
+    return null; // Will be handled by the caller
   }
+  
+  const account = accounts[0];
 
   const now = new Date();
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
@@ -103,6 +106,14 @@ export async function GET(request: NextRequest) {
     const view = searchParams.get('view') || 'FULL';
 
     const accessToken = await getValidAccessToken(supabase);
+    
+    // If no access token (no GMB account), return empty categories
+    if (!accessToken) {
+      return NextResponse.json({ 
+        categories: [],
+        message: 'No GMB account connected' 
+      });
+    }
 
     const url = new URL(`${GBP_LOC_BASE}/categories`);
     url.searchParams.set('regionCode', regionCode);
