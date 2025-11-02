@@ -22,7 +22,61 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
+    // First get active GMB account IDs
+    const { data: activeAccounts, error: accountsError } = await supabase
+      .from('gmb_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (accountsError) {
+      console.error('[Questions API] Error fetching active accounts:', accountsError);
+      return errorResponse('DATABASE_ERROR', 'Failed to fetch active accounts', 500);
+    }
+
+    const activeAccountIds = activeAccounts?.map(acc => acc.id) || [];
+
+    if (activeAccountIds.length === 0) {
+      // No active accounts, return empty result
+      return successResponse({
+        questions: [],
+        counts: { total: 0, pending: 0, answered: 0, draft: 0 },
+        pagination: {
+          limit,
+          offset,
+          hasMore: false
+        }
+      });
+    }
+
+    // Get active location IDs
+    const { data: activeLocations, error: locationsError } = await supabase
+      .from('gmb_locations')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('gmb_account_id', activeAccountIds);
+
+    if (locationsError) {
+      console.error('[Questions API] Error fetching active locations:', locationsError);
+      return errorResponse('DATABASE_ERROR', 'Failed to fetch active locations', 500);
+    }
+
+    const activeLocationIds = activeLocations?.map(loc => loc.id) || [];
+
+    if (activeLocationIds.length === 0) {
+      // No active locations, return empty result
+      return successResponse({
+        questions: [],
+        counts: { total: 0, pending: 0, answered: 0, draft: 0 },
+        pagination: {
+          limit,
+          offset,
+          hasMore: false
+        }
+      });
+    }
+
+    // Build query - only fetch questions from active locations
     let query = supabase
       .from('gmb_questions')
       .select(`
@@ -30,12 +84,13 @@ export async function GET(request: NextRequest) {
         location:gmb_locations(id, location_name)
       `)
       .eq('user_id', user.id)
+      .in('location_id', activeLocationIds)
       .order('created_at', { ascending: false })
       .limit(limit)
       .range(offset, offset + limit - 1);
 
     // Apply filters
-    if (locationId) {
+    if (locationId && activeLocationIds.includes(locationId)) {
       query = query.eq('location_id', locationId);
     }
     if (status) {
@@ -49,17 +104,51 @@ export async function GET(request: NextRequest) {
       return errorResponse('DATABASE_ERROR', 'Failed to fetch questions', 500);
     }
 
-    // Get counts for different statuses
-    const { data: statusCounts } = await supabase
-      .from('gmb_questions')
-      .select('answer_status')
-      .eq('user_id', user.id);
+    // Get counts efficiently using aggregate queries (only for active locations)
+    const [pendingResult, answeredResult, draftResult, totalResult] = await Promise.allSettled([
+      supabase
+        .from('gmb_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .in('location_id', activeLocationIds)
+        .eq('answer_status', 'pending'),
+      supabase
+        .from('gmb_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .in('location_id', activeLocationIds)
+        .eq('answer_status', 'answered'),
+      supabase
+        .from('gmb_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .in('location_id', activeLocationIds)
+        .eq('answer_status', 'draft'),
+      supabase
+        .from('gmb_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .in('location_id', activeLocationIds),
+    ]);
+
+    const pendingCount = pendingResult.status === 'fulfilled' && pendingResult.value.count !== null 
+      ? pendingResult.value.count 
+      : 0;
+    const answeredCount = answeredResult.status === 'fulfilled' && answeredResult.value.count !== null 
+      ? answeredResult.value.count 
+      : 0;
+    const draftCount = draftResult.status === 'fulfilled' && draftResult.value.count !== null 
+      ? draftResult.value.count 
+      : 0;
+    const totalCount = totalResult.status === 'fulfilled' && totalResult.value.count !== null 
+      ? totalResult.value.count 
+      : 0;
 
     const counts = {
-      total: statusCounts?.length || 0,
-      pending: statusCounts?.filter(q => q.answer_status === 'pending').length || 0,
-      answered: statusCounts?.filter(q => q.answer_status === 'answered').length || 0,
-      draft: statusCounts?.filter(q => q.answer_status === 'draft').length || 0,
+      total: totalCount,
+      pending: pendingCount,
+      answered: answeredCount,
+      draft: draftCount,
     };
 
     return successResponse({

@@ -37,21 +37,56 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
     setGenerating(true)
 
     try {
-      // Simulate AI generation (in production, this would call an AI API)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Call AI API to generate response
+      const response = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "review_response",
+          context: {
+            reviewText: review.review_text || review.comment || '',
+            rating: review.rating,
+            reviewerName: review.reviewer_name,
+            sentiment: review.ai_sentiment,
+          }
+        })
+      })
 
-      const aiResponse = `Thank you for your ${review.rating}-star review, ${review.reviewer_name}! ${
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to generate AI response')
+      }
+
+      const { content } = await response.json()
+
+      if (!content || typeof content !== 'string') {
+        throw new Error('Invalid response from AI service')
+      }
+
+      setReply(content)
+
+      // Save AI suggestion to database
+      const { error: updateError } = await supabase
+        .from("gmb_reviews")
+        .update({ 
+          ai_generated_response: content,
+          ai_suggested_reply: content // Keep both for backwards compatibility
+        })
+        .eq("id", review.id)
+
+      if (updateError) {
+        console.error("Error saving AI response:", updateError)
+        // Don't throw - user can still use the generated response
+      }
+    } catch (error) {
+      console.error("Error generating AI response:", error)
+      // Fallback to simple template if AI fails
+      const fallbackResponse = `Thank you for your ${review.rating}-star review, ${review.reviewer_name}! ${
         review.rating >= 4
           ? "We're thrilled to hear you had a great experience with us. Your feedback means a lot to our team!"
           : "We appreciate your feedback and apologize for any inconvenience. We'd love to make things right - please reach out to us directly so we can address your concerns."
       }`
-
-      setReply(aiResponse)
-
-      // Save AI suggestion to database
-      await supabase.from("gmb_reviews").update({ ai_suggested_reply: aiResponse }).eq("id", review.id)
-    } catch (error) {
-      console.error("Error generating AI response:", error)
+      setReply(fallbackResponse)
     } finally {
       setGenerating(false)
     }
@@ -71,19 +106,27 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
         // Fallback to internal handling
         const {
           data: { user },
+          error: authError
         } = await supabase.auth.getUser()
-        if (!user) throw new Error("Not authenticated")
+        if (authError || !user) {
+          throw new Error("Not authenticated")
+        }
 
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from("gmb_reviews")
           .update({
-            review_reply: reply,
-            replied_at: new Date().toISOString(),
+            reply_text: reply,
+            review_reply: reply, // Keep both for backwards compatibility
+            reply_date: new Date().toISOString(),
+            has_reply: true,
             status: "responded",
+            updated_at: new Date().toISOString()
           })
           .eq("id", review.id)
 
-        if (error) throw error
+        if (updateError) {
+          throw updateError
+        }
 
         // Log activity
         await supabase.from("activity_logs").insert({
@@ -115,9 +158,9 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            {review?.comment && (
+            {(review?.review_text || review?.comment) && (
               <div className="p-3 rounded-lg bg-secondary border border-primary/20">
-                <p className="text-sm text-foreground">{review.comment}</p>
+                <p className="text-sm text-foreground">{review.review_text || review.comment}</p>
               </div>
             )}
             <div className="space-y-2">

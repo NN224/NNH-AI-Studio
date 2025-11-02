@@ -63,18 +63,32 @@ export function QuestionsList() {
       if (status) url.searchParams.set('status', status)
 
       const response = await fetch(url.toString())
-      const data = await response.json()
-
+      
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to fetch questions')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `Failed to fetch questions (${response.status})`)
       }
 
-      setQuestions(data.data?.questions || [])
-      setCounts(data.data?.counts || { total: 0, pending: 0, answered: 0, draft: 0 })
+      const data = await response.json()
+
+      if (!data || !data.data) {
+        throw new Error('Invalid response from server')
+      }
+
+      setQuestions(Array.isArray(data.data.questions) ? data.data.questions : [])
+      setCounts({
+        total: data.data.counts?.total || 0,
+        pending: data.data.counts?.pending || 0,
+        answered: data.data.counts?.answered || 0,
+        draft: data.data.counts?.draft || 0,
+      })
     } catch (err: any) {
       console.error("Error fetching questions:", err)
-      setError(err.message || "Failed to fetch questions")
-      toast.error("Failed to load questions")
+      const errorMessage = err.message || "Failed to fetch questions"
+      setError(errorMessage)
+      setQuestions([]) // Set empty array on error
+      setCounts({ total: 0, pending: 0, answered: 0, draft: 0 })
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -92,22 +106,28 @@ export function QuestionsList() {
       const response = await fetch(`/api/gmb/questions/${questionId}/answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answerText: answer, isDraft })
+        body: JSON.stringify({ answerText: answer.trim(), isDraft })
       })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `Failed to submit answer (${response.status})`)
+      }
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to submit answer')
+      if (!data || !data.data) {
+        throw new Error('Invalid response from server')
       }
 
       toast.success(isDraft ? "Draft saved successfully" : "Question answered successfully")
       setAnswerText({ ...answerText, [questionId]: '' })
       setEditingId(null)
-      fetchQuestions()
+      await fetchQuestions()
     } catch (err: any) {
       console.error("Error submitting answer:", err)
-      toast.error(err.message || "Failed to submit answer")
+      const errorMessage = err.message || "Failed to submit answer"
+      toast.error(errorMessage)
     } finally {
       setSubmitting(null)
     }
@@ -122,17 +142,23 @@ export function QuestionsList() {
         method: 'DELETE'
       })
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `Failed to remove answer (${response.status})`)
+      }
+
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to remove answer')
+      if (!data || !data.data) {
+        throw new Error('Invalid response from server')
       }
 
       toast.success("Answer removed successfully")
-      fetchQuestions()
+      await fetchQuestions()
     } catch (err: any) {
       console.error("Error removing answer:", err)
-      toast.error(err.message || "Failed to remove answer")
+      const errorMessage = err.message || "Failed to remove answer"
+      toast.error(errorMessage)
     } finally {
       setSubmitting(null)
     }
@@ -226,11 +252,15 @@ export function QuestionsList() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{question.location.location_name}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {question.location?.location_name || 'Unknown Location'}
+                        </CardTitle>
                         <CardDescription className="mt-1">
                           <span className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
-                            {new Date(question.created_at).toLocaleDateString()}
+                            {question.created_at 
+                              ? new Date(question.created_at).toLocaleDateString()
+                              : 'No date'}
                             {question.author_name && (
                               <>
                                 <span className="text-muted-foreground">•</span>

@@ -23,20 +23,35 @@ export async function POST(
     const { answerText, isDraft = false } = body;
 
     // Validate required fields
-    if (!answerText) {
+    if (!answerText || !answerText.trim()) {
       return errorResponse('MISSING_FIELDS', 'Answer text is required', 400);
     }
 
     // Verify question ownership
     const { data: question, error: questionError } = await supabase
       .from('gmb_questions')
-      .select('*')
+      .select('*, location:gmb_locations(id, gmb_account_id)')
       .eq('id', questionId)
       .eq('user_id', user.id)
       .single();
 
     if (questionError || !question) {
       return errorResponse('NOT_FOUND', 'Question not found', 404);
+    }
+
+    // Check if the question belongs to an active account
+    const location = question.location as any;
+    if (location?.gmb_account_id) {
+      const { data: account } = await supabase
+        .from('gmb_accounts')
+        .select('is_active')
+        .eq('id', location.gmb_account_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!account?.is_active) {
+        return errorResponse('FORBIDDEN', 'Cannot answer questions for inactive accounts', 403);
+      }
     }
 
     // Update question with answer
@@ -58,17 +73,22 @@ export async function POST(
       return errorResponse('DATABASE_ERROR', 'Failed to update answer', 500);
     }
 
-    // Log activity
-    await supabase
-      .from('activity_logs')
-      .insert({
-        user_id: user.id,
-        activity_type: isDraft ? 'question_draft' : 'question_answered',
-        activity_message: isDraft 
-          ? `Saved draft answer for question`
-          : `Answered customer question`,
-        metadata: { question_id: questionId }
-      });
+    // Log activity (non-blocking)
+    try {
+      await supabase
+        .from('activity_logs')
+        .insert({
+          user_id: user.id,
+          activity_type: isDraft ? 'question_draft' : 'question_answered',
+          activity_message: isDraft 
+            ? `Saved draft answer for question`
+            : `Answered customer question`,
+          metadata: { question_id: questionId }
+        });
+    } catch (logError) {
+      // Don't fail the request if logging fails
+      console.error('[Questions API] Error logging activity:', logError);
+    }
 
     return successResponse({
       question: updatedQuestion,
@@ -100,13 +120,28 @@ export async function DELETE(
     // Verify question ownership
     const { data: question, error: questionError } = await supabase
       .from('gmb_questions')
-      .select('*')
+      .select('*, location:gmb_locations(id, gmb_account_id)')
       .eq('id', questionId)
       .eq('user_id', user.id)
       .single();
 
     if (questionError || !question) {
       return errorResponse('NOT_FOUND', 'Question not found', 404);
+    }
+
+    // Check if the question belongs to an active account
+    const location = question.location as any;
+    if (location?.gmb_account_id) {
+      const { data: account } = await supabase
+        .from('gmb_accounts')
+        .select('is_active')
+        .eq('id', location.gmb_account_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!account?.is_active) {
+        return errorResponse('FORBIDDEN', 'Cannot modify questions for inactive accounts', 403);
+      }
     }
 
     // Remove answer

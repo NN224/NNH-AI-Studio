@@ -37,30 +37,41 @@ export function ReviewsList() {
 
       const {
         data: { user },
+        error: authError
       } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (authError || !user) {
         setError("Please sign in to view reviews")
         setLoading(false)
         return
       }
 
       // First get active GMB account IDs and their locations
-      const { data: activeAccounts } = await supabase
+      const { data: activeAccounts, error: accountsError } = await supabase
         .from("gmb_accounts")
         .select("id")
         .eq("user_id", user.id)
         .eq("is_active", true)
 
+      if (accountsError) {
+        console.error("Error fetching active accounts:", accountsError)
+        throw accountsError
+      }
+
       const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
 
       let activeLocationIds: string[] = []
       if (activeAccountIds.length > 0) {
-        const { data: activeLocations } = await supabase
+        const { data: activeLocations, error: locationsError } = await supabase
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
           .in("gmb_account_id", activeAccountIds)
+        
+        if (locationsError) {
+          console.error("Error fetching active locations:", locationsError)
+          throw locationsError
+        }
         
         activeLocationIds = activeLocations?.map(loc => loc.id) || []
       }
@@ -75,6 +86,7 @@ export function ReviewsList() {
           .select("*")
           .eq("user_id", user.id)
           .in("location_id", activeLocationIds)
+          .order("review_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
         data = result.data
         fetchError = result.error
@@ -91,6 +103,7 @@ export function ReviewsList() {
     } catch (err) {
       console.error("Error fetching reviews:", err)
       setError(err instanceof Error ? err.message : "Failed to load reviews")
+      setReviews([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
@@ -115,7 +128,7 @@ export function ReviewsList() {
         body: JSON.stringify({
           type: "review_response",
           context: {
-            reviewText: review.comment,
+            reviewText: review.review_text || review.comment || '',
             rating: review.rating,
             sentiment: review.ai_sentiment,
           }
@@ -127,13 +140,19 @@ export function ReviewsList() {
       const { content } = await response.json()
 
       // Update the review with generated response
-      await supabase
+      const { error: updateError } = await supabase
         .from("gmb_reviews")
         .update({
           ai_generated_response: content,
+          ai_suggested_reply: content, // Keep both for backwards compatibility
           status: "in_progress"
         })
         .eq("id", reviewId)
+
+      if (updateError) {
+        console.error("Error saving AI response:", updateError)
+        // Continue anyway - response was generated
+      }
 
       // Refresh reviews to show updated data
       await fetchReviews()
@@ -156,7 +175,7 @@ export function ReviewsList() {
   const filteredReviews = reviews.filter((review) => {
     const matchesSearch = searchQuery === "" || 
       review.reviewer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      review.comment?.toLowerCase().includes(searchQuery.toLowerCase())
+      (review.review_text || review.comment || '')?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesSentiment = filterSentiment === "all" || 
       review.ai_sentiment === filterSentiment
@@ -330,14 +349,21 @@ export function ReviewsList() {
           review={selectedReview}
           onReply={async (reply) => {
             try {
-              await supabase
+              const { error: updateError } = await supabase
                 .from("gmb_reviews")
                 .update({
                   reply_text: reply,
+                  review_reply: reply, // Keep both for backwards compatibility
+                  reply_date: new Date().toISOString(),
+                  has_reply: true,
                   status: "responded",
                   updated_at: new Date().toISOString()
                 })
                 .eq("id", selectedReview.id)
+
+              if (updateError) {
+                throw updateError
+              }
 
               await fetchReviews()
               toast.success("Reply posted successfully")

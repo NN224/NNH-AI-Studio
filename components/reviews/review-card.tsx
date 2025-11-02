@@ -38,9 +38,15 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) return ''
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return ''
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    } catch {
+      return ''
+    }
   }
 
   return (
@@ -79,7 +85,9 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                       </motion.div>
                     ))}
                   </div>
-                  <span className="text-xs text-muted-foreground">{formatDate(review.created_at)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(review.review_date || review.created_at)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -92,10 +100,12 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
           </div>
 
           {/* Review Comment */}
-          {review.comment && <p className="text-sm text-foreground leading-relaxed">{review.comment}</p>}
+          {(review.review_text || review.comment) && (
+            <p className="text-sm text-foreground leading-relaxed">{review.review_text || review.comment}</p>
+          )}
 
           {/* AI Suggested Reply */}
-          {review.ai_suggested_reply && !review.review_reply && (
+          {(review.ai_generated_response || review.ai_suggested_reply) && !(review.reply_text || review.review_reply) && (
             <motion.div 
               className="p-3 rounded-lg bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30"
               initial={{ opacity: 0, height: 0 }}
@@ -106,24 +116,26 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="text-xs font-medium text-primary">AI Suggested Response</span>
               </div>
-              <p className="text-xs text-foreground/80">{review.ai_suggested_reply}</p>
+              <p className="text-xs text-foreground/80">{review.ai_generated_response || review.ai_suggested_reply}</p>
             </motion.div>
           )}
 
           {/* Existing Reply */}
-          {review.review_reply && (
+          {(review.reply_text || review.review_reply) && (
             <div className="p-3 rounded-lg bg-secondary border border-primary/20">
               <p className="text-xs font-medium text-muted-foreground mb-1">Your Response</p>
-              <p className="text-sm text-foreground">{review.review_reply}</p>
-              {review.replied_at && (
-                <p className="text-xs text-muted-foreground mt-2">Replied on {formatDate(review.replied_at)}</p>
+              <p className="text-sm text-foreground">{review.reply_text || review.review_reply}</p>
+              {(review.reply_date || review.replied_at) && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Replied on {formatDate(review.reply_date || review.replied_at || '')}
+                </p>
               )}
             </div>
           )}
 
           {/* Actions */}
           <div className="flex gap-2">
-            {!review.review_reply && (
+            {!(review.reply_text || review.review_reply) && (
               <>
                 <Button
                   size="sm"
