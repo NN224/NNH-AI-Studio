@@ -6,9 +6,11 @@ import { LocationPerformance } from "./location-performance"
 import { TrafficChart } from "./traffic-chart"
 import { ResponseTimeChart } from "./response-time-chart"
 import { SearchKeywords } from "./search-keywords"
+import { PerformanceMetricsChart } from "./performance-metrics-chart"
+import { BusinessInsights } from "@/components/insights/business-insights"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, TrendingUp } from "lucide-react"
+import { CalendarDays } from "lucide-react"
 import { useState } from "react"
 
 export function AnalyticsDashboard() {
@@ -37,65 +39,21 @@ export function AnalyticsDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <MetricsOverview />
+      <MetricsOverview dateRange={dateRange} />
 
       {/* Performance Overview */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-card border-primary/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Performance Summary</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Engagement Rate</span>
-                  <span className="font-medium text-foreground">78%</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                    style={{ width: "78%" }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Review Response Rate</span>
-                  <span className="font-medium text-foreground">92%</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                    style={{ width: "92%" }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Customer Satisfaction</span>
-                  <span className="font-medium text-foreground">85%</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                    style={{ width: "85%" }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Top Performing Locations */}
         <LocationPerformance />
+        
+        {/* Performance Metrics Chart */}
+        <PerformanceMetricsChart dateRange={dateRange} />
       </div>
 
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Traffic Trends */}
-        <TrafficChart />
+        {/* Impressions Trends */}
+        <TrafficChart dateRange={dateRange} />
         
         {/* Review Sentiment */}
         <ReviewSentimentChart />
@@ -109,43 +67,8 @@ export function AnalyticsDashboard() {
       {/* Response Time Chart */}
       <ResponseTimeChart />
 
-      {/* Additional Insights */}
-      <Card className="bg-card border-primary/30">
-        <CardHeader>
-          <CardTitle className="text-foreground">Insights & Recommendations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-green-500 mt-2 shrink-0" />
-              <div>
-                <p className="font-medium text-foreground">Strong review response rate</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Your 92% response rate is above industry average. Keep maintaining this excellent customer engagement.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-yellow-500 mt-2 shrink-0" />
-              <div>
-                <p className="font-medium text-foreground">Opportunity to improve ratings</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Focus on addressing negative feedback quickly to improve your overall rating from 4.3 to 4.5+
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0" />
-              <div>
-                <p className="font-medium text-foreground">Peak activity detected</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Most reviews come in on weekends. Consider scheduling content updates and responses accordingly.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Business Insights */}
+      <BusinessInsights />
     </div>
   )
 }

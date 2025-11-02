@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { getDateRange, getPreviousPeriodRange, aggregateMetricsByType } from "@/lib/utils/performance-calculations"
 
 interface MetricCardProps {
   title: string
@@ -59,15 +60,20 @@ export function MetricCard({ title, value, change, period, isLoading }: MetricCa
   )
 }
 
-export function MetricsOverview() {
+interface MetricsOverviewProps {
+  dateRange?: string // "7" | "30" | "90" | "365"
+}
+
+export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
   const [metrics, setMetrics] = useState({
     totalImpressions: 0,
     totalConversations: 0,
     totalClicks: 0,
     totalDirectionRequests: 0,
-    totalReviews: 0,
-    avgRating: 0,
-    responseRate: 0,
+    impressionsChange: 0,
+    clicksChange: 0,
+    conversationsChange: 0,
+    directionsChange: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
@@ -123,49 +129,67 @@ export function MetricsOverview() {
             ? reviewsArray.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews
             : 0
 
-        // Get performance metrics from Performance API data (last 30 days)
-        const thirtyDaysAgo = new Date()
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-        const today = new Date()
+        // Calculate date ranges
+        const days = parseInt(dateRange) || 30
+        const currentRange = getDateRange(days)
+        const previousRange = getPreviousPeriodRange(currentRange.start, currentRange.end)
 
-        const { data: performanceMetrics } = locationIds.length > 0
+        // Fetch current period metrics
+        const { data: currentMetrics } = locationIds.length > 0
           ? await supabase
               .from("gmb_performance_metrics")
-              .select("metric_type, metric_value")
+              .select("metric_type, metric_value, metric_date")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
-              .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
-              .lte("metric_date", today.toISOString().split('T')[0])
+              .gte("metric_date", currentRange.start.toISOString().split('T')[0])
+              .lte("metric_date", currentRange.end.toISOString().split('T')[0])
           : { data: [] }
 
-        // Aggregate performance metrics
-        let totalImpressions = 0
-        let totalConversations = 0
-        let totalClicks = 0
-        let totalDirectionRequests = 0
+        // Fetch previous period metrics for comparison
+        const { data: previousMetrics } = locationIds.length > 0
+          ? await supabase
+              .from("gmb_performance_metrics")
+              .select("metric_type, metric_value, metric_date")
+              .eq("user_id", user.id)
+              .in("location_id", locationIds)
+              .gte("metric_date", previousRange.start.toISOString().split('T')[0])
+              .lte("metric_date", previousRange.end.toISOString().split('T')[0])
+          : { data: [] }
 
-        if (performanceMetrics) {
-          performanceMetrics.forEach((metric) => {
-            const value = parseInt(metric.metric_value) || 0
-            switch (metric.metric_type) {
-              case 'BUSINESS_IMPRESSIONS_DESKTOP_MAPS':
-              case 'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH':
-              case 'BUSINESS_IMPRESSIONS_MOBILE_MAPS':
-              case 'BUSINESS_IMPRESSIONS_MOBILE_SEARCH':
-                totalImpressions += value
-                break
-              case 'BUSINESS_CONVERSATIONS':
-                totalConversations += value
-                break
-              case 'WEBSITE_CLICKS':
-              case 'CALL_CLICKS':
-                totalClicks += value
-                break
-              case 'BUSINESS_DIRECTION_REQUESTS':
-                totalDirectionRequests += value
-                break
-            }
-          })
+        // Aggregate current period metrics by type
+        const currentAggregated = aggregateMetricsByType(currentMetrics || [], currentRange)
+        const previousAggregated = aggregateMetricsByType(previousMetrics || [], previousRange)
+
+        // Calculate totals
+        const totalImpressions = 
+          (currentAggregated['BUSINESS_IMPRESSIONS_DESKTOP_MAPS'] || 0) +
+          (currentAggregated['BUSINESS_IMPRESSIONS_DESKTOP_SEARCH'] || 0) +
+          (currentAggregated['BUSINESS_IMPRESSIONS_MOBILE_MAPS'] || 0) +
+          (currentAggregated['BUSINESS_IMPRESSIONS_MOBILE_SEARCH'] || 0)
+
+        const totalConversations = currentAggregated['BUSINESS_CONVERSATIONS'] || 0
+        const totalClicks = 
+          (currentAggregated['WEBSITE_CLICKS'] || 0) +
+          (currentAggregated['CALL_CLICKS'] || 0)
+        const totalDirectionRequests = currentAggregated['BUSINESS_DIRECTION_REQUESTS'] || 0
+
+        // Calculate previous period totals
+        const prevImpressions = 
+          (previousAggregated['BUSINESS_IMPRESSIONS_DESKTOP_MAPS'] || 0) +
+          (previousAggregated['BUSINESS_IMPRESSIONS_DESKTOP_SEARCH'] || 0) +
+          (previousAggregated['BUSINESS_IMPRESSIONS_MOBILE_MAPS'] || 0) +
+          (previousAggregated['BUSINESS_IMPRESSIONS_MOBILE_SEARCH'] || 0)
+
+        const prevConversations = previousAggregated['BUSINESS_CONVERSATIONS'] || 0
+        const prevClicks = 
+          (previousAggregated['WEBSITE_CLICKS'] || 0) +
+          (previousAggregated['CALL_CLICKS'] || 0)
+        const prevDirections = previousAggregated['BUSINESS_DIRECTION_REQUESTS'] || 0
+
+        // Calculate percentage changes
+        const calculateChange = (current: number, previous: number): number => {
+          if (previous === 0) return current > 0 ? 100 : 0
+          return Math.round(((current - previous) / previous) * 100 * 100) / 100
         }
 
         setMetrics({
@@ -173,9 +197,10 @@ export function MetricsOverview() {
           totalConversations,
           totalClicks,
           totalDirectionRequests,
-          totalReviews,
-          avgRating: Math.round(avgRating * 10) / 10,
-          responseRate: Math.round(responseRate),
+          impressionsChange: calculateChange(totalImpressions, prevImpressions),
+          clicksChange: calculateChange(totalClicks, prevClicks),
+          conversationsChange: calculateChange(totalConversations, prevConversations),
+          directionsChange: calculateChange(totalDirectionRequests, prevDirections),
         })
       } catch (error) {
         console.error("Error fetching metrics:", error)
@@ -196,36 +221,46 @@ export function MetricsOverview() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [supabase, dateRange])
+
+  const periodText = dateRange === "7" ? "last 7 days" 
+    : dateRange === "30" ? "last 30 days"
+    : dateRange === "90" ? "last 90 days"
+    : "last year"
+  
+  const previousPeriodText = dateRange === "7" ? "previous 7 days"
+    : dateRange === "30" ? "previous 30 days"
+    : dateRange === "90" ? "previous 90 days"
+    : "previous year"
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="Total Impressions"
         value={metrics.totalImpressions.toLocaleString()}
-        change={12.5}
-        period="last 30 days"
+        change={metrics.impressionsChange}
+        period={previousPeriodText}
         isLoading={isLoading}
       />
       <MetricCard
         title="Website/Call Clicks"
         value={metrics.totalClicks.toLocaleString()}
-        change={8.3}
-        period="last 30 days"
+        change={metrics.clicksChange}
+        period={previousPeriodText}
         isLoading={isLoading}
       />
       <MetricCard
         title="Conversations"
         value={metrics.totalConversations.toLocaleString()}
-        change={5.2}
-        period="last 30 days"
+        change={metrics.conversationsChange}
+        period={previousPeriodText}
         isLoading={isLoading}
       />
       <MetricCard
         title="Direction Requests"
         value={metrics.totalDirectionRequests.toLocaleString()}
-        change={-1.5}
-        period="last 30 days"
+        change={metrics.directionsChange}
+        period={previousPeriodText}
         isLoading={isLoading}
       />
     </div>

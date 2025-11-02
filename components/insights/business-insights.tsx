@@ -8,6 +8,7 @@ import { Lightbulb, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, Target,
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { calculateEngagementRate, calculateCTR, getDateRange, comparePeriods } from "@/lib/utils/performance-calculations"
 
 interface Insight {
   id: string
@@ -214,6 +215,111 @@ export function BusinessInsights() {
             unit: "%",
           },
         })
+      }
+
+      // Performance-based insights from Performance API
+      const { data: performanceMetrics } = locationIds.length > 0
+        ? await supabase
+            .from("gmb_performance_metrics")
+            .select("metric_type, metric_value, metric_date")
+            .eq("user_id", user.id)
+            .in("location_id", locationIds)
+        : { data: [] }
+
+      if (performanceMetrics && performanceMetrics.length > 0) {
+        // Get last 30 days metrics
+        const { start, end } = getDateRange(30)
+        const { start: prevStart, end: prevEnd } = getDateRange(60)
+        
+        const currentMetrics = performanceMetrics.filter((m: any) => {
+          const date = new Date(m.metric_date)
+          return date >= start && date <= end
+        })
+
+        const previousMetrics = performanceMetrics.filter((m: any) => {
+          const date = new Date(m.metric_date)
+          return date >= prevStart && date < start
+        })
+
+        if (currentMetrics.length > 0) {
+          // Engagement Rate insight
+          const engagementRate = calculateEngagementRate(currentMetrics, start, end)
+          if (engagementRate > 0) {
+            const industryAverage = 5 // Typical engagement rate
+            if (engagementRate < industryAverage) {
+              generatedInsights.push({
+                id: "engagement-rate",
+                type: "opportunity",
+                category: "Performance",
+                title: "Improve Engagement Rate",
+                description: `Your engagement rate is ${engagementRate.toFixed(1)}%. Industry average is ${industryAverage}%. Focus on improving click-through rates and conversations.`,
+                impact: "high",
+                metrics: {
+                  current: engagementRate,
+                  target: industryAverage,
+                  unit: "%",
+                },
+              })
+            } else if (engagementRate >= industryAverage * 1.5) {
+              generatedInsights.push({
+                id: "engagement-rate-excellent",
+                type: "positive",
+                category: "Performance",
+                title: "Excellent Engagement Rate",
+                description: `Your engagement rate of ${engagementRate.toFixed(1)}% is well above industry average. Keep up the great work!`,
+                impact: "high",
+              })
+            }
+          }
+
+          // CTR insight
+          const ctr = calculateCTR(currentMetrics, start, end)
+          if (ctr > 0) {
+            const industryCTR = 3 // Typical CTR
+            if (ctr < industryCTR) {
+              generatedInsights.push({
+                id: "ctr-low",
+                type: "warning",
+                category: "Performance",
+                title: "Low Click-Through Rate",
+                description: `Your CTR is ${ctr.toFixed(2)}%. Industry average is ${industryCTR}%. Consider optimizing your business profile and photos to increase clicks.`,
+                impact: "high",
+                metrics: {
+                  current: ctr,
+                  target: industryCTR,
+                  unit: "%",
+                },
+              })
+            }
+          }
+
+          // Impressions growth insight
+          const impressionsComparison = comparePeriods(
+            currentMetrics,
+            previousMetrics,
+            'BUSINESS_IMPRESSIONS_DESKTOP_MAPS'
+          )
+          
+          if (impressionsComparison.changePercent < -10) {
+            generatedInsights.push({
+              id: "impressions-declining",
+              type: "warning",
+              category: "Visibility",
+              title: "Impressions Declining",
+              description: `Your impressions decreased by ${Math.abs(impressionsComparison.changePercent).toFixed(1)}% compared to last month. Review your SEO strategy and profile optimization.`,
+              impact: "high",
+            })
+          } else if (impressionsComparison.changePercent > 20) {
+            generatedInsights.push({
+              id: "impressions-growing",
+              type: "positive",
+              category: "Visibility",
+              title: "Strong Impressions Growth",
+              description: `Your impressions increased by ${impressionsComparison.changePercent.toFixed(1)}% this month! Your visibility is improving.`,
+              impact: "medium",
+            })
+          }
+        }
       }
 
       setInsights(generatedInsights)

@@ -118,7 +118,7 @@ export default function GMBDashboard() {
       const errorParam = params.get('error')
       const connectedParam = params.get('connected')
       
-      if (tabParam && ['dashboard', 'locations', 'reviews', 'posts', 'ai-assistant', 'insights', 'recommendations', 'analytics', 'settings'].includes(tabParam)) {
+      if (tabParam && ['dashboard', 'locations', 'reviews', 'posts', 'ai-assistant', 'recommendations', 'analytics', 'settings'].includes(tabParam)) {
         setActiveTab(tabParam)
       }
       
@@ -508,9 +508,8 @@ export default function GMBDashboard() {
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="posts">Posts</TabsTrigger>
                 <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
-                <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics & Insights</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
               
@@ -662,20 +661,6 @@ export default function GMBDashboard() {
                   }
                 >
                   <AIAssistant />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              {/* Insights Tab */}
-              <TabsContent value="insights" className="space-y-6 animate-in fade-in-50">
-                <ErrorBoundary
-                  fallback={
-                    <div className="p-8 text-center text-muted-foreground">
-                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p>Failed to load insights</p>
-                    </div>
-                  }
-                >
-                  <BusinessInsights />
                 </ErrorBoundary>
               </TabsContent>
               
