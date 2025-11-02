@@ -125,6 +125,11 @@ export default function GMBDashboard() {
   const [achievements, setAchievements] = useState<any[]>([])
   const [streak, setStreak] = useState(0)
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([])
+  
+  // Data used for AI recommendations
+  const [currentReviews, setCurrentReviews] = useState<any[]>([])
+  const [currentPosts, setCurrentPosts] = useState<any[]>([])
+  const [currentLocations, setCurrentLocations] = useState<any[]>([])
 
   // Check for mobile view
   useEffect(() => {
@@ -179,6 +184,14 @@ export default function GMBDashboard() {
   // Fetch user and dashboard stats
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Declare data variables at function scope so they're accessible across try-catch blocks
+      let locations: any[] = []
+      let allReviews: any[] = []
+      let reviews: any[] = []
+      let previousReviews: any[] = []
+      let previousLocationIds: string[] = []
+      let posts: any[] = []
+      
       try {
         setLoading(true)
         setError(null)
@@ -280,15 +293,9 @@ export default function GMBDashboard() {
               .eq("user_id", authUser.id)
           ])
           
-          let locations: any[] = []
-          let allReviews: any[] = []
-          let reviews: any[] = []
-          let previousReviews: any[] = []
-          let previousLocationIds: string[] = []
-          let posts: any[] = []
-          
           if (locationsRes.status === 'fulfilled' && !locationsRes.value.error) {
             locations = locationsRes.value.data || []
+            setCurrentLocations(locations)
           } else if (locationsRes.status === 'rejected') {
             console.error("Failed to fetch locations:", locationsRes.reason)
           }
@@ -305,6 +312,7 @@ export default function GMBDashboard() {
               const reviewDate = r.review_date ? new Date(r.review_date) : new Date(r.created_at)
               return reviewDate >= thirtyDaysAgo && reviewDate <= now
             })
+            setCurrentReviews(reviews)
             
             // Previous period: 30-60 days ago
             previousReviews = allReviews.filter(r => {
@@ -317,6 +325,7 @@ export default function GMBDashboard() {
           
           if (postsRes.status === 'fulfilled' && !postsRes.value.error) {
             posts = postsRes.value.data || []
+            setCurrentPosts(posts)
           } else if (postsRes.status === 'rejected') {
             console.error("Failed to fetch posts:", postsRes.reason)
           }
@@ -420,7 +429,8 @@ export default function GMBDashboard() {
           setAchievements(achievementsData.achievements)
           setStreak(achievementsData.streak)
           
-          // Generate AI recommendations based on current data
+          // Generate AI recommendations based on freshly fetched data
+          // Note: Use local variables (not state) because setState is async
           const recommendations: any[] = []
           
           const urgentReviews = reviews.filter((r: any) => {
