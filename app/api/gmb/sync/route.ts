@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GBP_V4_BASE = 'https://mybusiness.googleapis.com/v4';
+const PLACES_API_BASE = 'https://places.googleapis.com/v1';
 
 // Helper function for chunking arrays
 const chunks = <T>(array: T[], size = 100): T[][] => {
@@ -203,7 +203,7 @@ async function fetchLocations(
   };
 }
 
-// Fetch reviews for a location
+// Fetch reviews for a location using Google Places API (New)
 async function fetchReviews(
   accessToken: string,
   locationResource: string,
@@ -211,59 +211,56 @@ async function fetchReviews(
 ): Promise<{ reviews: any[]; nextPageToken?: string }> {
   console.log('[GMB Sync] Fetching reviews for location:', locationResource);
   
-  // Validate locationResource format
-  // Should be: accounts/{accountId}/locations/{locationId}
-  if (!locationResource || !locationResource.startsWith('accounts/')) {
-    console.error('[GMB Sync] Invalid location resource format:', locationResource);
-    console.error('[GMB Sync] Expected format: accounts/{accountId}/locations/{locationId}');
-    return { reviews: [], nextPageToken: undefined };
+  // Extract place ID from location resource
+  // Format: accounts/{accountId}/locations/{locationId} or locations/{locationId}
+  let placeId = locationResource;
+  if (locationResource.includes('/')) {
+    const parts = locationResource.split('/');
+    placeId = parts[parts.length - 1];
   }
   
-  const url = new URL(`${GBP_V4_BASE}/${locationResource}/reviews`);
-  url.searchParams.set('pageSize', '50');
-  if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
-  }
-
-  console.log('[GMB Sync] Reviews URL:', url.toString());
+  // Use Google Places API (New) to fetch reviews
+  // Note: This requires the place to be claimed and linked to Google My Business
+  const url = new URL(`${PLACES_API_BASE}/places/${placeId}`);
+  
+  console.log('[GMB Sync] Reviews URL (Places API):', url.toString());
 
   const response = await fetch(url.toString(), {
+    method: 'GET',
     headers: { 
-      Authorization: `Bearer ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
+      'X-Goog-FieldMask': 'reviews',
+      'Content-Type': 'application/json',
     },
   });
 
   // Check if response failed
   if (!response.ok) {
-    // Try to read error as JSON if Content-Type is correct
     const contentType = response.headers.get('content-type')?.toLowerCase();
     let errorData: any = {};
     
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
-        console.error('[GMB Sync] JSON error response:', JSON.stringify(errorData));
+        console.error('[GMB Sync] Places API error:', JSON.stringify(errorData));
       } catch (e) {
-        // Failed to parse JSON, continue with empty object
         console.error('[GMB Sync] Failed to parse error response as JSON');
       }
     } else {
-      // Not JSON, try to read as text for debugging
       try {
         const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response for reviews. Status:', response.status, response.statusText);
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
       } catch (e) {
         console.error('[GMB Sync] Failed to read error text:', e);
       }
     }
     
-    console.error('[GMB Sync] Failed to fetch reviews for location:', locationResource);
-    // Don't throw error for reviews, just return empty array
+    console.warn('[GMB Sync] Reviews not available via Places API for:', locationResource);
+    console.warn('[GMB Sync] This is expected if the location is not yet indexed in Places API');
     return { reviews: [], nextPageToken: undefined };
   }
 
-  // Response is OK, verify Content-Type before parsing
   const contentType = response.headers.get('content-type')?.toLowerCase();
   if (!contentType || !contentType.includes('application/json')) {
     console.error('[GMB Sync] Unexpected content type for reviews:', contentType);
@@ -271,14 +268,15 @@ async function fetchReviews(
   }
 
   const data = await response.json();
+  console.log('[GMB Sync] Places API reviews response:', data.reviews?.length || 0, 'reviews');
   
   return {
     reviews: data.reviews || [],
-    nextPageToken: data.nextPageToken,
+    nextPageToken: undefined, // Places API doesn't support pagination for reviews
   };
 }
 
-// Fetch media for a location
+// Fetch media for a location using Business Information API
 async function fetchMedia(
   accessToken: string,
   locationResource: string,
@@ -286,16 +284,16 @@ async function fetchMedia(
 ): Promise<{ media: any[]; nextPageToken?: string }> {
   console.log('[GMB Sync] Fetching media for location:', locationResource);
   
-  // Validate locationResource format
-  // Should be: accounts/{accountId}/locations/{locationId}
-  if (!locationResource || !locationResource.startsWith('accounts/')) {
-    console.error('[GMB Sync] Invalid location resource format:', locationResource);
-    console.error('[GMB Sync] Expected format: accounts/{accountId}/locations/{locationId}');
+  // Build full location resource if needed
+  let fullLocationResource = locationResource;
+  if (!locationResource.startsWith('accounts/')) {
+    console.warn('[GMB Sync] Location resource missing accounts/ prefix:', locationResource);
     return { media: [], nextPageToken: undefined };
   }
   
-  const url = new URL(`${GBP_V4_BASE}/${locationResource}/media`);
-  url.searchParams.set('pageSize', '50');
+  // Use Business Information API to fetch location with media
+  const url = new URL(`${GBP_LOC_BASE}/${fullLocationResource}/media`);
+  url.searchParams.set('pageSize', '100');
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
@@ -304,41 +302,37 @@ async function fetchMedia(
 
   const response = await fetch(url.toString(), {
     headers: { 
-      Authorization: `Bearer ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
     },
   });
 
   // Check if response failed
   if (!response.ok) {
-    // Try to read error as JSON if Content-Type is correct
     const contentType = response.headers.get('content-type')?.toLowerCase();
     let errorData: any = {};
     
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
-        console.error('[GMB Sync] JSON error response:', JSON.stringify(errorData));
+        console.error('[GMB Sync] Media API error:', JSON.stringify(errorData));
       } catch (e) {
-        // Failed to parse JSON, continue with empty object
         console.error('[GMB Sync] Failed to parse error response as JSON');
       }
     } else {
-      // Not JSON, try to read as text for debugging
       try {
         const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response for media. Status:', response.status, response.statusText);
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
       } catch (e) {
         console.error('[GMB Sync] Failed to read error text:', e);
       }
     }
     
-    console.error('[GMB Sync] Failed to fetch media for location:', locationResource);
-    // Don't throw error for media, just return empty array
+    console.warn('[GMB Sync] Media not available for:', locationResource);
     return { media: [], nextPageToken: undefined };
   }
 
-  // Response is OK, verify Content-Type before parsing
   const contentType = response.headers.get('content-type')?.toLowerCase();
   if (!contentType || !contentType.includes('application/json')) {
     console.error('[GMB Sync] Unexpected content type for media:', contentType);
@@ -346,6 +340,7 @@ async function fetchMedia(
   }
 
   const data = await response.json();
+  console.log('[GMB Sync] Media items fetched:', data.mediaItems?.length || 0);
   
   return {
     media: data.mediaItems || [],
