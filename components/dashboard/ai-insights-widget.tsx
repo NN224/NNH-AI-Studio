@@ -69,29 +69,32 @@ export function AIInsightsWidget() {
       // Get locations data (include id field)
       const { data: locations } = await supabase
         .from("gmb_locations")
-        .select("id, rating, review_count, response_rate")
+        .select("id")
         .eq("user_id", user.id)
         .in("gmb_account_id", accountIds)
 
-      // Get reviews data
+      // Get reviews data to calculate stats
       const locationIds = locations?.map((l: any) => l.id) || []
       const { data: reviews } =
         locationIds.length > 0
           ? await supabase
               .from("gmb_reviews")
-              .select("rating, review_reply")
+              .select("rating, review_reply, location_id")
               .eq("user_id", user.id)
               .in("location_id", locationIds)
           : { data: null }
 
       const quickInsights: QuickInsight[] = []
 
-      if (locations && locations.length > 0) {
-        const avgRating = locations.reduce((sum, loc) => sum + (loc.rating || 0), 0) / locations.length
-        const avgResponseRate = locations.reduce((sum, loc) => sum + (loc.response_rate || 0), 0) / locations.length
+      // Calculate stats from reviews (more accurate than stored fields)
+      if (reviews && reviews.length > 0) {
+        const totalReviews = reviews.length
+        const respondedReviews = reviews.filter((r: any) => r.review_reply).length
+        const avgRating = reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / totalReviews
+        const avgResponseRate = totalReviews > 0 ? (respondedReviews / totalReviews) * 100 : 0
 
         // Rating insight
-        if (avgRating < 4.0) {
+        if (avgRating < 4.0 && totalReviews >= 3) {
           quickInsights.push({
             id: "rating-low",
             type: "warning",
@@ -102,7 +105,7 @@ export function AIInsightsWidget() {
         }
 
         // Response rate
-        if (avgResponseRate < 80) {
+        if (avgResponseRate < 80 && totalReviews > 0) {
           quickInsights.push({
             id: "response-rate",
             type: "recommendation",
@@ -111,11 +114,9 @@ export function AIInsightsWidget() {
             priority: "medium",
           })
         }
-      }
 
-      // Unresponded reviews
-      if (reviews && reviews.length > 0) {
-        const unresponded = reviews.filter((r: any) => !r.review_reply).length
+        // Unresponded reviews
+        const unresponded = totalReviews - respondedReviews
         if (unresponded > 0) {
           quickInsights.push({
             id: "unresponded-reviews",
@@ -125,6 +126,15 @@ export function AIInsightsWidget() {
             priority: "high",
           })
         }
+      } else if (locations && locations.length > 0 && (!reviews || reviews.length === 0)) {
+        // No reviews yet
+        quickInsights.push({
+          id: "no-reviews",
+          type: "insight",
+          title: "No Reviews Yet",
+          message: "Start engaging with customers to get your first reviews.",
+          priority: "low",
+        })
       }
 
       setInsights(quickInsights.slice(0, 3)) // Show top 3 insights
