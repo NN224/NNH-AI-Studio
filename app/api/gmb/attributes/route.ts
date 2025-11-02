@@ -99,13 +99,13 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const categoryName = searchParams.get('categoryName') || undefined;
-    const country = searchParams.get('country') || undefined;
+    const regionCode = searchParams.get('country') || undefined;
     const languageCode = searchParams.get('languageCode') || 'en';
     const pageSize = parseInt(searchParams.get('pageSize') || '200');
     const pageToken = searchParams.get('pageToken') || undefined;
 
-    // Either categoryName or country must be provided for /v1/attributes
-    if (!categoryName && !country) {
+    // regionCode is used instead of country in body
+    if (!categoryName && !regionCode) {
       return errorResponse(
         'MISSING_FIELDS',
         'Either categoryName or country is required',
@@ -123,19 +123,25 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const url = new URL(`${GBP_LOC_BASE}/attributes`);
-    if (categoryName) url.searchParams.set('categoryName', categoryName);
-    if (country) url.searchParams.set('country', country);
-    url.searchParams.set('languageCode', languageCode);
-    url.searchParams.set('pageSize', pageSize.toString());
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const url = `${GBP_LOC_BASE}/attributes:batchGet`;
 
-    console.log('[Attributes API] Request URL:', url.toString());
-    const response = await fetch(url.toString(), {
+    const body: any = {
+      languageCode,
+      pageSize,
+    };
+    if (categoryName) body.categoryName = categoryName;
+    if (regionCode) body.regionCode = regionCode;
+    if (pageToken) body.pageToken = pageToken;
+
+    console.log('[Attributes API] Request body:', JSON.stringify(body, null, 2));
+    const response = await fetch(url, {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -156,4 +162,3 @@ export async function GET(request: NextRequest) {
     return errorResponse('INTERNAL_ERROR', 'Failed to fetch attributes', 500);
   }
 }
-
