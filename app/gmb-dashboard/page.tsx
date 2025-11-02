@@ -240,35 +240,31 @@ export default function GMBDashboard() {
 
           const activeLocationIds = activeLocationsData?.map(loc => loc.id) || []
 
-          // Get previous period data for comparison (30 days ago)
-          const thirtyDaysAgo = new Date()
+          // Get previous period data for comparison (last 30 days vs previous 30 days)
+          const now = new Date()
+          const thirtyDaysAgo = new Date(now)
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-          const sixtyDaysAgo = new Date()
+          const sixtyDaysAgo = new Date(now)
           sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
-          const [locationsRes, reviewsRes, previousReviewsRes] = await Promise.allSettled([
+          // Fetch all reviews once and filter by date in JavaScript to handle null review_date values
+          // This reduces database queries and improves performance
+          const [locationsRes, allReviewsRes] = await Promise.allSettled([
             Promise.resolve({ data: activeLocationsData || [], error: null }),
             activeLocationIds.length > 0
               ? supabase
                   .from("gmb_reviews")
-                  .select("rating, review_reply, location_id, created_at")
+                  .select("rating, review_reply, location_id, review_date, created_at")
                   .eq("user_id", authUser.id)
                   .in("location_id", activeLocationIds)
-              : Promise.resolve({ data: [], error: null }),
-            activeLocationIds.length > 0
-              ? supabase
-                  .from("gmb_reviews")
-                  .select("rating, review_reply, location_id, created_at")
-                  .eq("user_id", authUser.id)
-                  .in("location_id", activeLocationIds)
-                  .gte("created_at", sixtyDaysAgo.toISOString())
-                  .lt("created_at", thirtyDaysAgo.toISOString())
               : Promise.resolve({ data: [], error: null }),
           ])
           
           let locations: any[] = []
+          let allReviews: any[] = []
           let reviews: any[] = []
           let previousReviews: any[] = []
+          let previousLocationIds: string[] = []
           
           if (locationsRes.status === 'fulfilled' && !locationsRes.value.error) {
             locations = locationsRes.value.data || []
@@ -276,56 +272,90 @@ export default function GMBDashboard() {
             console.error("Failed to fetch locations:", locationsRes.reason)
           }
           
-          if (reviewsRes.status === 'fulfilled' && !reviewsRes.value.error) {
+          if (allReviewsRes.status === 'fulfilled' && !allReviewsRes.value.error) {
             // Filter reviews to only include those from active locations
-            reviews = (reviewsRes.value.data || []).filter(r => 
+            allReviews = (allReviewsRes.value.data || []).filter(r => 
               r.location_id && activeLocationIds.includes(r.location_id)
             )
-          } else if (reviewsRes.status === 'rejected') {
-            console.error("Failed to fetch reviews:", reviewsRes.reason)
+            
+            // Filter by date - use review_date if available, otherwise created_at
+            // Current period: last 30 days
+            reviews = allReviews.filter(r => {
+              const reviewDate = r.review_date ? new Date(r.review_date) : new Date(r.created_at)
+              return reviewDate >= thirtyDaysAgo && reviewDate <= now
+            })
+            
+            // Previous period: 30-60 days ago
+            previousReviews = allReviews.filter(r => {
+              const reviewDate = r.review_date ? new Date(r.review_date) : new Date(r.created_at)
+              return reviewDate >= sixtyDaysAgo && reviewDate < thirtyDaysAgo
+            })
+          } else if (allReviewsRes.status === 'rejected') {
+            console.error("Failed to fetch reviews:", allReviewsRes.reason)
           }
 
-          if (previousReviewsRes.status === 'fulfilled' && !previousReviewsRes.value.error) {
-            previousReviews = previousReviewsRes.value.data || []
+          // Calculate previous location IDs from previous reviews (already fetched in allReviewsRes)
+          if (allReviewsRes.status === 'fulfilled' && !allReviewsRes.value.error) {
+            const previousPeriodData = previousReviews.filter((r: any) => r.location_id && activeLocationIds.includes(r.location_id))
+            
+            const previousLocationIdsSet = new Set(
+              previousPeriodData.map((r: any) => r.location_id).filter((id: any): id is string => typeof id === 'string')
+            )
+            previousLocationIds = Array.from(previousLocationIdsSet)
           }
           
-          // Calculate statistics safely
+          // Calculate statistics safely with proper error handling
           const totalReviews = reviews.length
           const previousTotalReviews = previousReviews.length
           const repliedReviews = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0).length
-          const avgRating = totalReviews > 0
-            ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews).toFixed(1)
-            : "0.0"
-          const previousAvgRating = previousReviews.length > 0
-            ? previousReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / previousReviews.length
-            : 0
+          
+          // Calculate average rating with division by zero protection
+          let avgRating = "0.0"
+          if (totalReviews > 0) {
+            const ratingSum = reviews.reduce((sum, r) => sum + (r.rating || 0), 0)
+            avgRating = (ratingSum / totalReviews).toFixed(1)
+          }
+          
+          // Calculate previous average rating with division by zero protection
+          let previousAvgRating = 0
+          if (previousReviews.length > 0) {
+            const previousRatingSum = previousReviews.reduce((sum, r) => sum + (r.rating || 0), 0)
+            previousAvgRating = previousRatingSum / previousReviews.length
+          }
+          
+          // Calculate response rate with division by zero protection
           const responseRate = totalReviews > 0
             ? Math.round((repliedReviews / totalReviews) * 100)
             : 0
 
-          // Get previous locations count (from 30 days ago)
-          const { data: previousLocations } = await supabase
-            .from("gmb_locations")
-            .select("id")
-            .eq("user_id", authUser.id)
-            .in("gmb_account_id", activeAccountIds)
-            .lt("created_at", thirtyDaysAgo.toISOString())
+          // Calculate previous locations count from unique locations in previous period
+          const previousLocationsCount = previousLocationIds.length
+          const currentLocationsCount = locations.length
 
-          const previousLocationsCount = previousLocations?.length || 0
-
+          // Calculate change percentages only if we have previous data
           let locationsChangePercent: number | undefined
-          if (previousLocationsCount > 0) {
-            locationsChangePercent = parseFloat(((locations.length - previousLocationsCount) / previousLocationsCount * 100).toFixed(0))
+          if (previousLocationsCount > 0 && currentLocationsCount !== previousLocationsCount) {
+            locationsChangePercent = Math.round(((currentLocationsCount - previousLocationsCount) / previousLocationsCount) * 100)
           }
 
           let reviewsChangePercent: number | undefined
-          if (previousTotalReviews > 0) {
-            reviewsChangePercent = parseFloat(((totalReviews - previousTotalReviews) / previousTotalReviews * 100).toFixed(0))
+          if (previousTotalReviews > 0 && totalReviews !== previousTotalReviews) {
+            reviewsChangePercent = Math.round(((totalReviews - previousTotalReviews) / previousTotalReviews) * 100)
           }
 
+          // Calculate rating change in percentage points (not percentage)
           let ratingChangePercent: number | undefined
-          if (previousAvgRating > 0) {
-            ratingChangePercent = parseFloat(((parseFloat(avgRating) - previousAvgRating) * 100).toFixed(1))
+          const currentRating = parseFloat(avgRating)
+          if (previousAvgRating > 0 || currentRating > 0) {
+            // Calculate change in rating points (e.g., 4.5 to 4.7 = +0.2 points)
+            const ratingChange = currentRating - previousAvgRating
+            // Convert to percentage change (0.2 points out of 5 = 4% change)
+            if (previousAvgRating > 0) {
+              ratingChangePercent = Math.round((ratingChange / previousAvgRating) * 100 * 10) / 10
+            } else if (currentRating > 0 && previousAvgRating === 0) {
+              // If we went from 0 to something, show positive change
+              ratingChangePercent = 100
+            }
           }
 
           setStats({
@@ -617,9 +647,10 @@ export default function GMBDashboard() {
                   <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">Google My Business not connected</h3>
+                      <h3 className="font-semibold text-foreground mb-1">Google My Business Not Connected</h3>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Connect your Google My Business account to keep locations, reviews, and insights in sync automatically.
+                        Connect your Google My Business account to automatically sync locations, reviews, and performance insights. 
+                        Data will update regularly to keep your dashboard current.
                       </p>
                       <Button
                         size="sm"
@@ -639,8 +670,8 @@ export default function GMBDashboard() {
                     title="Total Locations"
                     value={stats.totalLocations.toString()}
                     change={typeof stats.locationsChange === 'number'
-                      ? `${stats.locationsChange > 0 ? '+' : ''}${stats.locationsChange}% vs last month`
-                      : stats.totalLocations > 0 ? 'New this month' : undefined
+                      ? `${stats.locationsChange > 0 ? '+' : ''}${stats.locationsChange}% vs last 30 days`
+                      : undefined
                     }
                     changeType={typeof stats.locationsChange === 'number'
                       ? stats.locationsChange > 0
@@ -648,7 +679,7 @@ export default function GMBDashboard() {
                         : stats.locationsChange < 0
                         ? "negative"
                         : "neutral"
-                      : stats.totalLocations > 0 ? "positive" : "neutral"
+                      : "neutral"
                     }
                     index={0}
                     icon={MapPin}
@@ -657,8 +688,8 @@ export default function GMBDashboard() {
                     title="Total Reviews"
                     value={stats.totalReviews.toString()}
                     change={typeof stats.reviewsChange === 'number'
-                      ? `${stats.reviewsChange > 0 ? '+' : ''}${stats.reviewsChange}% vs last month`
-                      : stats.totalReviews > 0 ? 'New this month' : undefined
+                      ? `${stats.reviewsChange > 0 ? '+' : ''}${stats.reviewsChange}% vs last 30 days`
+                      : undefined
                     }
                     changeType={typeof stats.reviewsChange === 'number'
                       ? stats.reviewsChange > 0
@@ -666,7 +697,7 @@ export default function GMBDashboard() {
                         : stats.reviewsChange < 0
                         ? "negative"
                         : "neutral"
-                      : stats.totalReviews > 0 ? "positive" : "neutral"
+                      : "neutral"
                     }
                     index={1}
                     icon={MessageSquare}
@@ -675,7 +706,7 @@ export default function GMBDashboard() {
                     title="Average Rating"
                     value={stats.averageRating}
                     change={typeof stats.ratingChange === 'number'
-                      ? `${stats.ratingChange > 0 ? '+' : ''}${stats.ratingChange}% vs last month`
+                      ? `${stats.ratingChange > 0 ? '+' : ''}${stats.ratingChange}% vs last 30 days`
                       : undefined
                     }
                     changeType={typeof stats.ratingChange === 'number'
