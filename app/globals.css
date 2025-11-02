@@ -454,6 +454,14 @@ body {
   color: rgb(var(--destructive));
 }
 
+.text-destructive {
+  color: rgb(var(--destructive));
+}
+
+.text-info {
+  color: rgb(var(--info));
+}
+
 /* Border Radius Utilities */
 .radius-sm {
   border-radius: 8px;

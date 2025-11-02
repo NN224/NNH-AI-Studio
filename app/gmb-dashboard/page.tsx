@@ -265,7 +265,7 @@ export default function GMBDashboard() {
 
           // Fetch all reviews once and filter by date in JavaScript to handle null review_date values
           // This reduces database queries and improves performance
-          const [locationsRes, allReviewsRes] = await Promise.allSettled([
+          const [locationsRes, allReviewsRes, postsRes] = await Promise.allSettled([
             Promise.resolve({ data: activeLocationsData || [], error: null }),
             activeLocationIds.length > 0
               ? supabase
@@ -274,6 +274,10 @@ export default function GMBDashboard() {
                   .eq("user_id", authUser.id)
                   .in("location_id", activeLocationIds)
               : Promise.resolve({ data: [], error: null }),
+            supabase
+              .from("gmb_posts")
+              .select("id")
+              .eq("user_id", authUser.id)
           ])
           
           let locations: any[] = []
@@ -281,6 +285,7 @@ export default function GMBDashboard() {
           let reviews: any[] = []
           let previousReviews: any[] = []
           let previousLocationIds: string[] = []
+          let posts: any[] = []
           
           if (locationsRes.status === 'fulfilled' && !locationsRes.value.error) {
             locations = locationsRes.value.data || []
@@ -308,6 +313,12 @@ export default function GMBDashboard() {
             })
           } else if (allReviewsRes.status === 'rejected') {
             console.error("Failed to fetch reviews:", allReviewsRes.reason)
+          }
+          
+          if (postsRes.status === 'fulfilled' && !postsRes.value.error) {
+            posts = postsRes.value.data || []
+          } else if (postsRes.status === 'rejected') {
+            console.error("Failed to fetch posts:", postsRes.reason)
           }
 
           // Calculate previous location IDs from previous reviews (already fetched in allReviewsRes)
@@ -465,7 +476,7 @@ export default function GMBDashboard() {
     }
     
     fetchDashboardData()
-  }, [router, supabase])
+  }, [router])
 
   // Handle GMB disconnect
   const handleDisconnectGMB = async () => {
