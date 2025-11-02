@@ -343,8 +343,8 @@ export default function GMBDashboard() {
         `تم المزامنة بنجاح! تم جلب ${data.counts?.locations || 0} موقع، ${data.counts?.reviews || 0} مراجعة`
       )
       
-      // Refresh dashboard data
-      window.location.reload()
+      // Refresh dashboard data without full page reload
+      router.refresh()
     } catch (error: any) {
       console.error('Error syncing GMB:', error)
       toast.error(error.message || 'حدث خطأ أثناء المزامنة')
