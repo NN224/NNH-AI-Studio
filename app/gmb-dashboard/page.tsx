@@ -144,7 +144,7 @@ export default function GMBDashboard() {
       
       // Show success message if connected
       if (connectedParam === 'true') {
-        toast.success('تم الاتصال بـ Google My Business بنجاح!')
+        toast.success('Google My Business connected successfully!')
         // Clean up URL
         const newUrl = new URL(window.location.href)
         newUrl.searchParams.delete('connected')
@@ -352,7 +352,7 @@ export default function GMBDashboard() {
 
   // Handle GMB disconnect
   const handleDisconnectGMB = async () => {
-    if (!confirm('هل أنت متأكد أنك تريد قطع الاتصال بـ Google My Business؟ ستتوقف المزامنة ولكن لن يتم حذف البيانات الحالية.')) {
+    if (!confirm('Are you sure you want to disconnect Google My Business? Sync will stop but current data will not be deleted.')) {
       return
     }
 
@@ -369,13 +369,13 @@ export default function GMBDashboard() {
         throw new Error(data.error || 'Failed to disconnect')
       }
 
-      toast.success('تم قطع الاتصال بـ Google My Business بنجاح')
+      toast.success('Google My Business disconnected successfully')
       setGmbConnected(false)
       // Refresh dashboard data
       window.location.reload()
     } catch (error: any) {
       console.error('Error disconnecting GMB:', error)
-      toast.error(error.message || 'حدث خطأ أثناء قطع الاتصال')
+      toast.error(error.message || 'Failed to disconnect')
     } finally {
       setDisconnecting(false)
     }
@@ -413,7 +413,7 @@ export default function GMBDashboard() {
       const data = await response.json()
       
       toast.success(
-        `تم المزامنة بنجاح! تم جلب ${data.counts?.locations || 0} موقع، ${data.counts?.reviews || 0} مراجعة`
+        `Sync successful! Fetched ${data.counts?.locations || 0} locations, ${data.counts?.reviews || 0} reviews`
       )
       
       // Update last sync time
@@ -423,7 +423,7 @@ export default function GMBDashboard() {
       router.refresh()
     } catch (error: any) {
       console.error('Error syncing GMB:', error)
-      toast.error(error.message || 'حدث خطأ أثناء المزامنة')
+      toast.error(error.message || 'Failed to sync data')
     } finally {
       setSyncing(false)
     }
@@ -447,7 +447,7 @@ export default function GMBDashboard() {
       window.location.href = data.authUrl || data.url
     } catch (error: any) {
       console.error('Error connecting GMB:', error)
-      toast.error(error.message || 'حدث خطأ أثناء الاتصال')
+      toast.error(error.message || 'Failed to connect')
     }
   }
 
