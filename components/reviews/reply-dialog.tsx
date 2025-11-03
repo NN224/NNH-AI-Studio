@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -26,11 +26,20 @@ interface ReplyDialogProps {
 }
 
 export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialogProps) {
-  const [reply, setReply] = useState("")
+  const [reply, setReply] = useState(review?.reply_text || review?.review_reply || "")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Update reply when review changes (for editing existing replies)
+  useEffect(() => {
+    if (review) {
+      setReply(review.reply_text || review.review_reply || "")
+    } else {
+      setReply("")
+    }
+  }, [review])
 
   const handleGenerateAI = async () => {
     if (!review) return
@@ -150,8 +159,10 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Reply to Review</DialogTitle>
+          <DialogHeader>
+          <DialogTitle className="text-foreground">
+            {review && (review.reply_text || review.review_reply) ? 'Edit Reply' : 'Reply to Review'}
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {review && `Responding to ${review.reviewer_name}'s ${review.rating}-star review`}
           </DialogDescription>
@@ -203,16 +214,16 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
             </Button>
             <Button
               type="submit"
-              disabled={loading || !reply}
+              disabled={loading || !reply.trim()}
               className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+                  {review && (review.reply_text || review.review_reply) ? 'Updating...' : 'Sending...'}
                 </>
               ) : (
-                "Send Reply"
+                review && (review.reply_text || review.review_reply) ? 'Update Reply' : 'Send Reply'
               )}
             </Button>
           </DialogFooter>

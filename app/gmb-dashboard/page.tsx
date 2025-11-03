@@ -152,37 +152,87 @@ export default function GMBDashboard() {
       const errorParam = params.get('error')
       const connectedParam = params.get('connected')
       
-      if (tabParam && ['dashboard', 'locations', 'reviews', 'questions', 'posts', 'analytics', 'settings'].includes(tabParam)) {
-        setActiveTab(tabParam)
+      // Priority: URL parameter > localStorage > default "dashboard"
+      let tabToSet = 'dashboard'
+      
+      // Check URL parameter first
+      if (tabParam && ['dashboard', 'locations', 'reviews', 'media', 'questions', 'posts', 'analytics', 'settings'].includes(tabParam)) {
+        tabToSet = tabParam
+        // Save to localStorage
+        localStorage.setItem('gmb-active-tab', tabToSet)
+      } else {
+        // Try to load from localStorage
+        const savedTab = localStorage.getItem('gmb-active-tab')
+        if (savedTab && ['dashboard', 'locations', 'reviews', 'media', 'questions', 'posts', 'analytics', 'settings'].includes(savedTab)) {
+          tabToSet = savedTab
+        }
       }
+      
+      setActiveTab(tabToSet)
       
       // Show error message if present
       if (errorParam) {
         toast.error(decodeURIComponent(errorParam))
-        // Clean up URL
+        // Clean up URL - remove error but keep tab
         const newUrl = new URL(window.location.href)
         newUrl.searchParams.delete('error')
-        newUrl.searchParams.delete('tab')
+        // Keep tab in URL if it was specified, but remove it after showing
+        if (!tabParam) {
+          newUrl.searchParams.delete('tab')
+        }
         window.history.replaceState({}, '', newUrl.toString())
       }
       
       // Show success message if connected
       if (connectedParam === 'true') {
         toast.success('Google My Business connected successfully!')
-        // Clean up URL
+        // Clean up URL - remove connected param, but keep tab only if it was explicitly set
         const newUrl = new URL(window.location.href)
         newUrl.searchParams.delete('connected')
-        if (tabParam) {
-          // Keep tab if specified
-        } else {
+        // If tab was from URL (OAuth callback), remove it after showing success
+        // This prevents it from persisting on reload
+        if (tabParam === 'settings') {
+          // Remove settings tab from URL after OAuth callback to prevent it from sticking
           newUrl.searchParams.delete('tab')
+          // Set activeTab back to dashboard (or last saved tab)
+          const savedTab = localStorage.getItem('gmb-active-tab')
+          if (savedTab && savedTab !== 'settings' && ['dashboard', 'locations', 'reviews', 'media', 'questions', 'posts', 'analytics'].includes(savedTab)) {
+            setActiveTab(savedTab)
+          } else {
+            setActiveTab('dashboard')
+            localStorage.setItem('gmb-active-tab', 'dashboard')
+          }
         }
         window.history.replaceState({}, '', newUrl.toString())
         // Refresh dashboard data
         router.refresh()
       }
+      
+      // Clean up tab from URL if it's still there (one-time cleanup)
+      const remainingTab = new URLSearchParams(window.location.search).get('tab')
+      if (remainingTab && remainingTab === 'settings' && !errorParam && !connectedParam) {
+        // Remove settings tab from URL on initial load if no special params
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('tab')
+        window.history.replaceState({}, '', newUrl.toString())
+        // Use saved tab or default to dashboard
+        const savedTab = localStorage.getItem('gmb-active-tab')
+        if (savedTab && savedTab !== 'settings' && ['dashboard', 'locations', 'reviews', 'media', 'questions', 'posts', 'analytics'].includes(savedTab)) {
+          setActiveTab(savedTab)
+        } else {
+          setActiveTab('dashboard')
+          localStorage.setItem('gmb-active-tab', 'dashboard')
+        }
+      }
     }
   }, [])
+  
+  // Save activeTab to localStorage whenever it changes (user navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activeTab) {
+      localStorage.setItem('gmb-active-tab', activeTab)
+    }
+  }, [activeTab])
 
   // Fetch user and dashboard stats
   useEffect(() => {
@@ -572,13 +622,23 @@ export default function GMBDashboard() {
       const data = await response.json()
       
       toast.success(
-        `Sync successful! Fetched ${data.counts?.locations || 0} locations, ${data.counts?.reviews || 0} reviews`
+        `Sync successful! Fetched ${data.counts?.locations || 0} locations, ${data.counts?.reviews || 0} reviews, ${data.counts?.questions || 0} questions`
       )
       
       // Update last sync time
       setLastSyncTime(new Date())
       
-      // Refresh dashboard data without full page reload
+      // Dispatch custom event to refresh all components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gmb-sync-complete', {
+          detail: { counts: data.counts }
+        }))
+      }
+      
+      // Refresh dashboard data
+      fetchDashboardData()
+      
+      // Also refresh router cache
       router.refresh()
     } catch (error: any) {
       console.error('Error syncing GMB:', error)

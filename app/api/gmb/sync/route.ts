@@ -500,6 +500,122 @@ async function fetchMedia(
   };
 }
 
+// Fetch questions for a location using Google My Business v4 API
+async function fetchQuestions(
+  accessToken: string,
+  locationResource: string,
+  accountResource?: string,
+  pageToken?: string
+): Promise<{ questions: any[]; nextPageToken?: string }> {
+  console.log('[GMB Sync] Fetching questions for location:', locationResource);
+  
+  // Build full location resource if needed
+  let fullLocationResource = locationResource;
+  
+  // If locationResource doesn't start with 'accounts/', try to build it
+  if (!locationResource.startsWith('accounts/')) {
+    // If we have accountResource, build the full path
+    if (accountResource) {
+      // Extract location ID from various formats
+      let locationId = locationResource;
+      if (locationResource.startsWith('locations/')) {
+        locationId = locationResource.replace(/^locations\//, '');
+      }
+      
+      // Ensure accountResource has 'accounts/' prefix
+      const cleanAccountResource = accountResource.startsWith('accounts/') 
+        ? accountResource 
+        : `accounts/${accountResource}`;
+      
+      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
+      console.log('[GMB Sync] Built questions location resource:', locationResource, '→', fullLocationResource);
+    } else {
+      console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
+      return { questions: [], nextPageToken: undefined };
+    }
+  }
+  
+  // Use Google My Business v4 API with /questions endpoint
+  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/questions`);
+  if (pageToken) {
+    url.searchParams.set('pageToken', pageToken);
+  }
+  url.searchParams.set('pageSize', '10'); // Max 10 per API spec
+  
+  console.log('[GMB Sync] Questions URL (v4 API):', url.toString());
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  // Check if response failed
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type')?.toLowerCase();
+    let errorData: any = {};
+
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        errorData = await response.json();
+        console.error('[GMB Sync] Questions API error:', JSON.stringify(errorData));
+      } catch (e) {
+        console.error('[GMB Sync] Failed to parse error response as JSON');
+      }
+    } else {
+      try {
+        const errorText = await response.text();
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+      } catch (e) {
+        console.error('[GMB Sync] Failed to read error text:', e);
+      }
+    }
+    
+    // Handle specific error cases
+    if (response.status === 404) {
+      // Location not found or has no questions - this is normal
+      console.warn('[GMB Sync] Location not found or has no questions:', locationResource);
+      return { questions: [], nextPageToken: undefined };
+    }
+    
+    if (response.status === 403) {
+      // Permission denied
+      console.error('[GMB Sync] Permission denied when fetching questions. Check API permissions.');
+      console.error('[GMB Sync] Error details:', errorData);
+      return { questions: [], nextPageToken: undefined };
+    }
+    
+    console.warn('[GMB Sync] Failed to fetch questions for location:', locationResource);
+    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
+    return { questions: [], nextPageToken: undefined };
+  }
+
+  const contentType = response.headers.get('content-type')?.toLowerCase();
+  if (!contentType || !contentType.includes('application/json')) {
+    console.error('[GMB Sync] Unexpected content type for questions:', contentType);
+    return { questions: [], nextPageToken: undefined };
+  }
+
+  const data = await response.json();
+  
+  // Extract questions from v4 API response
+  // v4 API returns questions directly in the response
+  const questions = data.questions || [];
+  
+  console.log('[GMB Sync] v4 API questions response:', questions.length, 'questions');
+  if (questions.length > 0) {
+    console.log('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 300));
+  }
+  
+  return {
+    questions: questions || [],
+    nextPageToken: data.nextPageToken,
+  };
+}
+
 // Fetch daily metrics for a location using Business Profile Performance API
 // Performance API uses location_id format: locations/{location_id} (without accounts/ prefix)
 async function fetchDailyMetrics(
@@ -869,7 +985,7 @@ export async function POST(request: NextRequest) {
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, accountId);
 
-    const counts = { locations: 0, reviews: 0, media: 0, performance_metrics: 0, search_keywords: 0 };
+    const counts = { locations: 0, reviews: 0, media: 0, questions: 0, performance_metrics: 0, search_keywords: 0 };
     // Note: media count will remain 0 as Media API is deprecated
 
     // Fetch and upsert locations
@@ -1153,10 +1269,97 @@ export async function POST(request: NextRequest) {
 
           mediaNextPageToken = nextPageToken;
         } while (mediaNextPageToken && syncType === 'full');
+
+        // Fetch questions for this location using Google My Business v4 API
+        let questionsNextPageToken: string | undefined = undefined;
+        do {
+          const { questions, nextPageToken } = await fetchQuestions(
+            accessToken,
+            fullLocationName,
+            account.account_id,
+            questionsNextPageToken
+          );
+
+          if (questions.length > 0) {
+            console.log(`[GMB Sync API] Processing ${questions.length} questions for location ${location.id}`);
+            
+            const questionRows = questions.map((question) => {
+              // Get the best answer (first from topAnswers, or use existing answer)
+              const bestAnswer = question.topAnswers && question.topAnswers.length > 0 
+                ? question.topAnswers[0] 
+                : null;
+              
+              // Determine answer status
+              let answerStatus: 'pending' | 'answered' | 'draft' = 'pending';
+              let answerText: string | null = null;
+              let answeredAt: string | null = null;
+              
+              if (bestAnswer && bestAnswer.text) {
+                answerText = bestAnswer.text;
+                answeredAt = bestAnswer.createTime || bestAnswer.updateTime || null;
+                // If answered by merchant, mark as answered, otherwise it's a customer answer
+                answerStatus = bestAnswer.author?.type === 'MERCHANT' ? 'answered' : 'pending';
+              }
+
+              return {
+                gmb_account_id: accountId,
+                user_id: userId,
+                location_id: location.id,  // Use UUID id, not location_id (resource name)
+                external_question_id: question.name,
+                question_text: question.text || '',
+                author_name: question.author?.displayName || 'Anonymous',
+                author_type: question.author?.type === 'MERCHANT' ? 'MERCHANT' : 
+                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER',
+                answer_text: answerText,
+                answered_at: answeredAt,
+                answer_status: answerStatus,
+                upvote_count: question.upvoteCount || 0,
+                created_at: question.createTime || new Date().toISOString(),
+                updated_at: question.updateTime || question.createTime || new Date().toISOString(),
+              };
+            }).filter((q) => {
+              // Filter out questions without question_text
+              if (!q.question_text || q.question_text.trim().length === 0) {
+                console.warn('[GMB Sync API] Skipping question without question_text:', q.external_question_id);
+                return false;
+              }
+              return true;
+            });
+
+            console.log(`[GMB Sync API] Prepared ${questionRows.length} valid question rows from ${questions.length} questions`);
+
+            let upsertedCount = 0;
+            for (const chunk of chunks(questionRows)) {
+              console.log(`[GMB Sync API] Upserting chunk of ${chunk.length} questions...`);
+              
+              const { data, error } = await supabase
+                .from('gmb_questions')
+                .upsert(chunk, { 
+                  onConflict: 'external_question_id',
+                  ignoreDuplicates: false 
+                });
+
+              if (error) {
+                console.error('[GMB Sync API] Error upserting questions:', error);
+                console.error('[GMB Sync API] Failed chunk sample:', JSON.stringify(chunk[0], null, 2));
+              } else {
+                upsertedCount += chunk.length;
+                console.log(`[GMB Sync API] Successfully upserted ${chunk.length} questions (total: ${upsertedCount})`);
+              }
+            }
+
+            console.log(`[GMB Sync API] Completed questions sync: ${upsertedCount}/${questionRows.length} questions saved`);
+            counts.questions += questions.length;
+          } else {
+            console.log(`[GMB Sync API] No questions found for location ${location.id}`);
+          }
+
+          questionsNextPageToken = nextPageToken;
+        } while (questionsNextPageToken && syncType === 'full');
       }
     }
 
-    console.log(`[GMB Sync API] Synced ${counts.reviews} reviews and ${counts.media} media items`);
+    console.log(`[GMB Sync API] Synced ${counts.reviews} reviews, ${counts.media} media items, and ${counts.questions} questions`);
 
     // Fetch performance metrics and search keywords for each location
     console.log('[GMB Sync API] Starting performance metrics sync...');

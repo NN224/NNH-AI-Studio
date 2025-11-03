@@ -38,6 +38,18 @@ export function MediaGallery({ locationId }: MediaGalleryProps) {
 
   useEffect(() => {
     fetchMedia()
+    
+    // Listen for sync completion event
+    const handleSyncComplete = () => {
+      console.log('[MediaGallery] Sync completed, refreshing media...')
+      fetchMedia()
+    }
+    
+    window.addEventListener('gmb-sync-complete', handleSyncComplete)
+    
+    return () => {
+      window.removeEventListener('gmb-sync-complete', handleSyncComplete)
+    }
   }, [locationId])
 
   async function fetchMedia() {

@@ -51,6 +51,18 @@ export function QuestionsList() {
 
   useEffect(() => {
     fetchQuestions()
+    
+    // Listen for sync completion event
+    const handleSyncComplete = () => {
+      console.log('[QuestionsList] Sync completed, refreshing questions...')
+      fetchQuestions()
+    }
+    
+    window.addEventListener('gmb-sync-complete', handleSyncComplete)
+    
+    return () => {
+      window.removeEventListener('gmb-sync-complete', handleSyncComplete)
+    }
   }, [activeTab])
 
   const fetchQuestions = async () => {

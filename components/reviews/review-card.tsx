@@ -158,7 +158,7 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
 
           {/* Actions */}
           <div className="flex gap-2">
-            {!(review.reply_text || review.review_reply) && (
+            {!(review.reply_text || review.review_reply) ? (
               <>
                 <Button
                   size="sm"
@@ -175,6 +175,17 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                   className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-200 hover:scale-105"
                 >
                   Reply
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onReply(review.id)}
+                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105"
+                >
+                  Edit Reply
                 </Button>
               </>
             )}

@@ -193,6 +193,18 @@ export function LocationsList() {
     }
 
     fetchLocations()
+    
+    // Listen for sync completion event
+    const handleSyncComplete = () => {
+      console.log('[LocationsList] Sync completed, refreshing locations...')
+      fetchLocations()
+    }
+    
+    window.addEventListener('gmb-sync-complete', handleSyncComplete)
+    
+    return () => {
+      window.removeEventListener('gmb-sync-complete', handleSyncComplete)
+    }
   }, [])
 
   // Fetch overview stats

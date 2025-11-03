@@ -228,8 +228,12 @@ export function LocationAttributesDialog({
 
   if (!location) return null
 
-  // Group attributes by groupDisplayName
-  const groupedAttributes = availableAttributes.reduce((acc, attr) => {
+  // Separate attributes from links
+  const attributesList = availableAttributes.filter(attr => attr.valueType !== 'URL')
+  const linksList = availableAttributes.filter(attr => attr.valueType === 'URL')
+
+  // Group attributes by groupDisplayName (excluding URLs)
+  const groupedAttributes = attributesList.reduce((acc, attr) => {
     const group = attr.groupDisplayName || 'Other'
     if (!acc[group]) acc[group] = []
     acc[group].push(attr)
@@ -254,103 +258,147 @@ export function LocationAttributesDialog({
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-6 mt-4">
-            {Object.entries(groupedAttributes).map(([groupName, attributes]) => (
-              <div key={groupName} className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground border-b border-primary/20 pb-2">
-                  {groupName}
-                </h3>
+          <div className="space-y-8 mt-4">
+            {/* Links Section */}
+            {linksList.length > 0 && (
+              <div className="space-y-4">
+                <div className="border-b border-primary/20 pb-3">
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Links
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure external links for this location
+                  </p>
+                </div>
                 <div className="space-y-4">
-                  {attributes
+                  {linksList
                     .filter(attr => !attr.deprecated)
                     .map((attribute) => {
                       const currentValues = attributeValues[attribute.name] || []
-                      const valueMetadata = attribute.valueMetadata || []
-
                       return (
                         <div key={attribute.name} className="space-y-2">
-                          <Label className="text-foreground">
+                          <Label className="text-foreground font-medium">
                             {attribute.displayName}
-                            {attribute.repeatable && (
-                              <span className="text-xs text-muted-foreground ml-2">(Multiple)</span>
-                            )}
                           </Label>
-
-                          {attribute.valueType === 'BOOL' ? (
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id={attribute.name}
-                                checked={currentValues.includes(true)}
-                                onCheckedChange={(checked) =>
-                                  handleAttributeChange(attribute.name, checked ? true : null, attribute)
-                                }
-                              />
-                              <Label htmlFor={attribute.name} className="text-sm text-muted-foreground cursor-pointer">
-                                Enable {attribute.displayName}
-                              </Label>
-                            </div>
-                          ) : attribute.valueType === 'ENUM' && valueMetadata.length > 0 ? (
-                            <Select
-                              value={currentValues[0] || ''}
-                              onValueChange={(value) => handleAttributeChange(attribute.name, value, attribute)}
-                            >
-                              <SelectTrigger className="bg-secondary border-primary/30 text-foreground">
-                                <SelectValue placeholder="Select option" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {valueMetadata.map((meta, idx) => (
-                                  <SelectItem key={idx} value={meta.value}>
-                                    {meta.displayName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : attribute.valueType === 'REPEATED_ENUM' && valueMetadata.length > 0 ? (
-                            <div className="space-y-2">
-                              {valueMetadata.map((meta, idx) => (
-                                <div key={idx} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`${attribute.name}-${idx}`}
-                                    checked={currentValues.includes(meta.value)}
-                                    onCheckedChange={(checked) =>
-                                      handleAttributeChange(attribute.name, meta.value, attribute)
-                                    }
-                                  />
-                                  <Label
-                                    htmlFor={`${attribute.name}-${idx}`}
-                                    className="text-sm text-muted-foreground cursor-pointer"
-                                  >
-                                    {meta.displayName}
-                                  </Label>
-                                </div>
-                              ))}
-                            </div>
-                          ) : attribute.valueType === 'URL' ? (
-                            <Input
-                              type="url"
-                              value={currentValues[0] || ''}
-                              onChange={(e) =>
-                                handleAttributeChange(attribute.name, e.target.value || null, attribute)
-                              }
-                              className="bg-secondary border-primary/30 text-foreground"
-                              placeholder="https://example.com"
-                            />
-                          ) : (
-                            <Input
-                              value={currentValues[0] || ''}
-                              onChange={(e) =>
-                                handleAttributeChange(attribute.name, e.target.value || null, attribute)
-                              }
-                              className="bg-secondary border-primary/30 text-foreground"
-                              placeholder="Enter value"
-                            />
-                          )}
+                          <Input
+                            type="url"
+                            value={currentValues[0] || ''}
+                            onChange={(e) =>
+                              handleAttributeChange(attribute.name, e.target.value || null, attribute)
+                            }
+                            className="bg-secondary border-primary/30 text-foreground"
+                            placeholder="https://example.com"
+                          />
                         </div>
                       )
                     })}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Attributes Section */}
+            {Object.keys(groupedAttributes).length > 0 && (
+              <div className="space-y-4">
+                <div className="border-b border-primary/20 pb-3">
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Attributes
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure location features and characteristics
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  {Object.entries(groupedAttributes).map(([groupName, attributes]) => (
+                    <div key={groupName} className="space-y-3">
+                      <h4 className="text-sm font-semibold text-foreground border-b border-primary/10 pb-2">
+                        {groupName}
+                      </h4>
+                      <div className="space-y-4">
+                        {attributes
+                          .filter(attr => !attr.deprecated)
+                          .map((attribute) => {
+                            const currentValues = attributeValues[attribute.name] || []
+                            const valueMetadata = attribute.valueMetadata || []
+
+                            return (
+                              <div key={attribute.name} className="space-y-2">
+                                <Label className="text-foreground">
+                                  {attribute.displayName}
+                                  {attribute.repeatable && (
+                                    <span className="text-xs text-muted-foreground ml-2">(Multiple)</span>
+                                  )}
+                                </Label>
+
+                                {attribute.valueType === 'BOOL' ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={attribute.name}
+                                      checked={currentValues.includes(true)}
+                                      onCheckedChange={(checked) =>
+                                        handleAttributeChange(attribute.name, checked ? true : null, attribute)
+                                      }
+                                    />
+                                    <Label htmlFor={attribute.name} className="text-sm text-muted-foreground cursor-pointer">
+                                      Enable {attribute.displayName}
+                                    </Label>
+                                  </div>
+                                ) : attribute.valueType === 'ENUM' && valueMetadata.length > 0 ? (
+                                  <Select
+                                    value={currentValues[0] || ''}
+                                    onValueChange={(value) => handleAttributeChange(attribute.name, value, attribute)}
+                                  >
+                                    <SelectTrigger className="bg-secondary border-primary/30 text-foreground">
+                                      <SelectValue placeholder="Select option" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {valueMetadata.map((meta, idx) => (
+                                        <SelectItem key={idx} value={meta.value}>
+                                          {meta.displayName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : attribute.valueType === 'REPEATED_ENUM' && valueMetadata.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {valueMetadata.map((meta, idx) => (
+                                      <div key={idx} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`${attribute.name}-${idx}`}
+                                          checked={currentValues.includes(meta.value)}
+                                          onCheckedChange={(checked) =>
+                                            handleAttributeChange(attribute.name, meta.value, attribute)
+                                          }
+                                        />
+                                        <Label
+                                          htmlFor={`${attribute.name}-${idx}`}
+                                          className="text-sm text-muted-foreground cursor-pointer"
+                                        >
+                                          {meta.displayName}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <Input
+                                    value={currentValues[0] || ''}
+                                    onChange={(e) =>
+                                      handleAttributeChange(attribute.name, e.target.value || null, attribute)
+                                    }
+                                    className="bg-secondary border-primary/30 text-foreground"
+                                    placeholder="Enter value"
+                                  />
+                                )}
+                              </div>
+                            )
+                          })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {availableAttributes.length === 0 && !loadingAttributes && (
               <div className="text-center py-8 text-muted-foreground">
