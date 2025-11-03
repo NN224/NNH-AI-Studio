@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -34,35 +34,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
+import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   onMenuClick: () => void;
   onCommandPaletteOpen: () => void;
 }
 
-const notifications = [
-  {
-    id: 1,
-    title: 'New review received',
-    description: '5-star review at Downtown Location',
-    time: '5 minutes ago',
-    unread: true,
-  },
-  {
-    id: 2,
-    title: 'Question needs answer',
-    description: 'Customer asked about business hours',
-    time: '1 hour ago',
-    unread: true,
-  },
-  {
-    id: 3,
-    title: 'Post published successfully',
-    description: 'Holiday hours announcement',
-    time: '2 hours ago',
-    unread: false,
-  },
-];
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  read: boolean;
+  created_at: string;
+}
 
 const routeNames: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -81,7 +70,66 @@ export function Header({ onMenuClick, onCommandPaletteOpen }: HeaderProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { showShortcutsModal } = useKeyboard();
-  const [unreadCount] = useState(2);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const supabase = createClient();
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setLoadingNotifications(false);
+          return;
+        }
+
+        const response = await fetch('/api/notifications?limit=10');
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
+    fetchNotifications();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [supabase]);
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId }),
+      });
+      
+      // Update local state
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'Recently';
+    }
+  };
 
   const pathSegments = pathname.split('/').filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
@@ -190,7 +238,7 @@ export function Header({ onMenuClick, onCommandPaletteOpen }: HeaderProps) {
                     animate={{ scale: 1 }}
                     className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground"
                   >
-                    {unreadCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </motion.span>
                 )}
                 <span className="sr-only">Notifications</span>
@@ -205,34 +253,75 @@ export function Header({ onMenuClick, onCommandPaletteOpen }: HeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <ScrollArea className="max-h-[400px]">
-                {notifications.map((notification) => (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    className="flex flex-col items-start gap-1 p-3"
-                  >
-                    <div className="flex w-full items-start justify-between gap-2">
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {notification.title}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {notification.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {notification.time}
-                        </p>
-                      </div>
-                      {notification.unread && (
-                        <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                {loadingNotifications ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">No notifications</p>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className={cn(
+                        "flex flex-col items-start gap-1 p-3 cursor-pointer",
+                        !notification.read && "bg-accent/50"
                       )}
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                      onClick={() => {
+                        if (!notification.read) {
+                          markAsRead(notification.id);
+                        }
+                        if (notification.link) {
+                          window.location.href = notification.link;
+                        }
+                      }}
+                    >
+                      <div className="flex w-full items-start justify-between gap-2">
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {notification.title}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatTime(notification.created_at)}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
               </ScrollArea>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="w-full justify-center text-center">
-                View all notifications
-              </DropdownMenuItem>
+              {notifications.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="w-full justify-center text-center"
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/notifications', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ markAllAsRead: true }),
+                        });
+                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        setUnreadCount(0);
+                      } catch (error) {
+                        console.error('Failed to mark all as read:', error);
+                      }
+                    }}
+                  >
+                    Mark all as read
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
