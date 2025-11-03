@@ -1268,12 +1268,28 @@ export async function POST(request: NextRequest) {
           mediaNextPageToken = nextPageToken;
         } while (mediaNextPageToken && syncType === 'full');
 
-        // Fetch questions for this location using Google My Business v4 API
+        // Fetch questions for this location using Google My Business Q&A API v1
+        // Q&A API requires just the location ID number (not the full resource path)
         let questionsNextPageToken: string | undefined = undefined;
+        
+        // Extract location ID from fullLocationName for Q&A API
+        let locationIdForQandA: string;
+        if (fullLocationName.includes('/locations/')) {
+          // Extract from: accounts/{account}/locations/{location_id}
+          const match = fullLocationName.match(/locations\/([^\/]+)$/);
+          locationIdForQandA = match ? match[1] : fullLocationName.split('/').pop() || '';
+        } else if (fullLocationName.startsWith('locations/')) {
+          locationIdForQandA = fullLocationName.replace(/^locations\//, '');
+        } else {
+          locationIdForQandA = fullLocationName;
+        }
+        
+        console.log(`[GMB Sync API] Extracted location ID for Q&A: ${fullLocationName} -> ${locationIdForQandA}`);
+        
         do {
           const { questions, nextPageToken } = await fetchQuestions(
             accessToken,
-            fullLocationName,
+            locationIdForQandA, // Pass just the location ID, not the full resource
             account.account_id,
             questionsNextPageToken
           );
