@@ -119,7 +119,10 @@ export async function GET(
 
     const accessToken = await getValidAccessToken(supabase, accountId);
 
-    const url = new URL(`${GBP_LOC_BASE}/${locationResource}/attributes`);
+    // Note: In Google Business Profile API v1, attributes are part of the location object itself,
+    // not a separate endpoint. We fetch the location with attributes in readMask.
+    const url = new URL(`${GBP_LOC_BASE}/${locationResource}`);
+    url.searchParams.set('readMask', 'attributes');
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -130,6 +133,12 @@ export async function GET(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('[Attributes API] Failed to fetch attributes from location:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        url: url.toString()
+      });
       return errorResponse(
         'API_ERROR',
         errorData.error?.message || 'Failed to fetch attributes from Google',
@@ -138,8 +147,11 @@ export async function GET(
       );
     }
 
-    const data = await response.json();
-    return successResponse(data);
+    const locationData = await response.json();
+    // Attributes are included in the location object
+    return successResponse({
+      attributes: locationData.attributes || []
+    });
   } catch (error: any) {
     console.error('[Attributes API] Error:', error);
     return errorResponse('INTERNAL_ERROR', error.message || 'Failed to fetch attributes', 500);

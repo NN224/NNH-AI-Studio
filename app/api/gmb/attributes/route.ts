@@ -124,7 +124,10 @@ export async function GET(request: NextRequest) {
         return errorResponse('NOT_FOUND', 'Location not found', 404);
       }
 
-      const url = new URL(`${GBP_LOC_BASE}/${location.location_id}/attributes`);
+      // Note: In Google Business Profile API v1, attributes are part of the location object,
+      // not a separate endpoint. We fetch the location with attributes in readMask.
+      const url = new URL(`${GBP_LOC_BASE}/${location.location_id}`);
+      url.searchParams.set('readMask', 'attributes');
       
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -135,16 +138,18 @@ export async function GET(request: NextRequest) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Extract attribute metadata from location attributes
-        // The response contains attributes array, we need to convert it to attributeMetadata format
-        const attributes = data.attributes || [];
+        const locationData = await response.json();
+        // Attributes are included in the location object
+        const attributes = locationData.attributes || [];
+        
+        // For attribute metadata, we need to use the v4 attributes.list endpoint
+        // For now, return the actual attributes from the location
         return successResponse({
+          attributes: attributes,
           attributeMetadata: attributes.map((attr: any) => ({
-            name: attr.name,
+            attributeId: attr.attributeId,
             valueType: attr.valueType,
-            displayName: attr.displayName,
-            // Include other metadata fields as needed
+            // Note: displayName may not be in the location attributes, need to get from metadata endpoint
           })),
         });
       }
@@ -161,7 +166,10 @@ export async function GET(request: NextRequest) {
 
     if (locations && locations.length > 0) {
       const sampleLocation = locations[0];
-      const url = new URL(`${GBP_LOC_BASE}/${sampleLocation.location_id}/attributes`);
+      // Note: In Google Business Profile API v1, attributes are part of the location object,
+      // not a separate endpoint. We fetch the location with attributes in readMask.
+      const url = new URL(`${GBP_LOC_BASE}/${sampleLocation.location_id}`);
+      url.searchParams.set('readMask', 'attributes');
       
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -172,15 +180,15 @@ export async function GET(request: NextRequest) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const attributes = data.attributes || [];
+        const locationData = await response.json();
+        // Attributes are included in the location object
+        const attributes = locationData.attributes || [];
         return successResponse({
+          attributes: attributes,
           attributeMetadata: attributes.map((attr: any) => ({
-            name: attr.name,
+            attributeId: attr.attributeId,
             valueType: attr.valueType,
-            displayName: attr.displayName,
-            groupName: attr.groupName,
-            // Include other metadata as available
+            // Note: displayName may not be in the location attributes, need to get from metadata endpoint
           })),
         });
       }

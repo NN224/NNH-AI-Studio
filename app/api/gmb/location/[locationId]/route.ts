@@ -118,9 +118,9 @@ export async function GET(
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, accountId);
 
-    // Fetch full location details with expanded readMask
+    // Fetch full location details with expanded readMask (includes attributes)
     const url = new URL(`${GBP_LOC_BASE}/${locationResource}`);
-    const readMask = 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData';
+    const readMask = 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData,attributes';
     url.searchParams.set('readMask', readMask);
 
     const response = await fetch(url.toString(), {
@@ -140,24 +140,9 @@ export async function GET(
 
     const locationData = await response.json();
 
-    // Fetch attributes if available
-    let attributes: any[] = [];
-    try {
-      const attributesUrl = new URL(`${GBP_LOC_BASE}/${locationResource}/attributes`);
-      const attributesResponse = await fetch(attributesUrl.toString(), {
-        headers: { 
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      });
-      
-      if (attributesResponse.ok) {
-        const attributesData = await attributesResponse.json();
-        attributes = attributesData.attributes || [];
-      }
-    } catch (error) {
-      console.warn('[Location Details API] Failed to fetch attributes:', error);
-    }
+    // Extract attributes from location data (attributes are included in location object via readMask)
+    // Note: In Google Business Profile API v1, attributes are part of the location object, not a separate endpoint
+    const attributes: any[] = locationData.attributes || [];
 
     // Get Google-updated information if available
     let googleUpdated: any = null;
