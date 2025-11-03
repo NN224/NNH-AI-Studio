@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigationShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { LastSyncInfo } from '@/components/dashboard/last-sync-info';
-// ⭐️ تم إزالة استدعاء WeeklyTasksWidget
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap, Clock, ShieldCheck, TrendingUp, AlertTriangle, Loader2, Star, Send, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import Image from 'next/image'; // لاستخدام صورة الربط
 
-// ⭐️ واجهة جديدة لتمثيل حالة عنق الزجاجة (Bottleneck)
+// ⭐️ واجهة لتمثيل حالة عنق الزجاجة
 interface Bottleneck {
 type: 'Response' | 'Content' | 'Compliance' | 'Reviews' | 'General';
 count: number;
@@ -34,13 +34,45 @@ reviewsTrend: number;
 responseRate: number;
 responseTarget: number;
 
-// ⭐️ مقاييس الذكاء الاصطناعي الجديدة
-healthScore: number; // النتيجة الصحية من 100
-bottlenecks: Bottleneck[]; // مصفوفة عنق الزجاجة
+healthScore: number; 
+bottlenecks: Bottleneck[]; 
 }
+
+// ⭐️ مكون موجه المستخدم للربط (يحل محل LastSyncInfo عند عدم الاتصال)
+const GMBSetupPrompt = () => {
+    // 💡 يجب أن توجه هذه الكبسة المستخدم إلى عملية الربط الخاصة بك (مثل OAuth flow)
+    return (
+        <Card className="lg:col-span-4 border-2 border-dashed border-primary/50 bg-primary/10">
+            <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Image 
+                        src="/gmb-icon.png" // 💡 صورة أيقونة GMB (افتراضية)
+                        alt="GMB Icon"
+                        width={40}
+                        height={40}
+                        className="opacity-70"
+                    />
+                    <div>
+                        <h3 className="font-semibold text-foreground">Connect Google My Business</h3>
+                        <p className="text-sm text-muted-foreground">Sync your locations, reviews, and analytics data.</p>
+                    </div>
+                </div>
+                {/* 💡 يجب أن يقود هذا الرابط إلى عملية OAuth الخاصة بك */}
+                <Button asChild size="lg" className="gap-2">
+                    <Link href="/settings"> 
+                        <Zap className="w-5 h-5" />
+                        Start Setup
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 // ⭐️ مكون مصفوفة تدفق العمل الجديدة (Workflow Matrix)
 const WorkflowMatrix = ({ bottlenecks }: { bottlenecks: Bottleneck[] }) => {
+    // ... (الكود يبقى كما هو) ...
 const iconMap = {
 Response: <Clock className="w-5 h-5 text-yellow-600" />,
 Content: <Send className="w-5 h-5 text-blue-600" />,
@@ -429,6 +461,11 @@ isDisconnecting={disconnecting}
           <ActiveLocationInfo loading={loading} stats={stats} />
 </div>
 )}
+
+      {/* ⭐️ إضافة GMB Setup Prompt عند عدم الاتصال ⭐️ */}
+      {!gmbConnected && (
+        <GMBSetupPrompt />
+      )}
 
 
 {/* ⭐️ تم تعديل هذا القسم ليناسب GMB Health Score و StatsCards */}
