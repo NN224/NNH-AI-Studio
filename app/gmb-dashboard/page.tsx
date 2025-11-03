@@ -103,6 +103,7 @@ export default function GMBDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalLocations: 0,
     totalReviews: 0,
+    newReviews: 0,
     averageRating: "0.0",
     responseRate: 0,
     locationsChange: undefined,
