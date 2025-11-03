@@ -300,9 +300,9 @@ export function LocationAttributesDialog({
     const attributesCount = attributesList.length
     const filledAttributesCount = attributesList.filter(attr => {
       const values = attributeValues[attr.name] || currentAttributeValues[attr.name] || []
-      return values.length > 0 && values.some(v => v !== null && v !== '' && v !== false)
+      return values.length > 0 && values.some((v: any) => v !== null && v !== '' && v !== false)
     }).length
-    score += Math.min((filledAttributesCount / attributesCount) * 30, 30) || 0
+    score += attributesCount > 0 ? Math.min((filledAttributesCount / attributesCount) * 30, 30) : 0
     
     // Basic location info (20 points)
     if (location.phone) score += 5
@@ -342,7 +342,7 @@ export function LocationAttributesDialog({
   const missingAttributes = useMemo(() => {
     return attributesList.filter(attr => {
       const values = attributeValues[attr.name] || currentAttributeValues[attr.name] || []
-      return values.length === 0 || !values.some(v => v !== null && v !== '' && v !== false)
+      return values.length === 0 || !values.some((v: any) => v !== null && v !== '' && v !== false)
     })
   }, [attributesList, attributeValues, currentAttributeValues])
 
@@ -350,7 +350,7 @@ export function LocationAttributesDialog({
   const existingAttributesByGroup = useMemo(() => {
     const filled = attributesList.filter(attr => {
       const values = attributeValues[attr.name] || currentAttributeValues[attr.name] || []
-      return values.length > 0 && values.some(v => v !== null && v !== '' && v !== false)
+      return values.length > 0 && values.some((v: any) => v !== null && v !== '' && v !== false)
     })
     
     return filled.reduce((acc, attr) => {
