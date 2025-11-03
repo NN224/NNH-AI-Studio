@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -94,18 +95,34 @@ const bottomNavigation: NavigationItem[] = [
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
+  
+  // On desktop (lg and above), always show sidebar regardless of isOpen
+  // On mobile, hide/show based on isOpen
+  const [isDesktop, setIsDesktop] = useState(false);
+  
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   return (
     <>
       <motion.aside
         initial={false}
-        animate={{ x: isOpen ? 0 : -280 }}
+        // On desktop: always x:0, on mobile: animate based on isOpen
+        animate={{ x: isDesktop ? 0 : (isOpen ? 0 : -280) }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
           'fixed left-0 top-0 z-40 h-screen w-[280px]',
           'border-r bg-background shadow-sm',
           // Always visible on desktop (lg and above)
-          'block'
+          'block',
+          // On desktop, ensure sidebar is always visible
+          'lg:translate-x-0'
         )}
       >
         <div className="flex h-full flex-col">
