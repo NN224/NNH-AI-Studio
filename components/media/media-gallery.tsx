@@ -14,6 +14,7 @@ interface MediaItem {
   sourceUrl?: string
   googleUrl?: string
   mediaFormat?: string
+  type?: string  // Alias for mediaFormat, used by database items
   thumbnailUrl?: string
   createTime?: string
   updateTime?: string
