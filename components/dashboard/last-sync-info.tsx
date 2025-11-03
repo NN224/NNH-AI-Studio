@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { RefreshCw, Clock, CheckCircle2, AlertCircle, Unlink } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
@@ -12,13 +12,17 @@ interface LastSyncInfoProps {
   isSyncing?: boolean
   onSync?: () => void
   syncSchedule?: string
+  onDisconnect?: () => void
+  isDisconnecting?: boolean
 }
 
 export function LastSyncInfo({ 
   lastSyncTime, 
   isSyncing = false, 
   onSync,
-  syncSchedule = 'manual'
+  syncSchedule = 'manual',
+  onDisconnect,
+  isDisconnecting = false
 }: LastSyncInfoProps) {
   const getTimeAgo = () => {
     if (!lastSyncTime) return "Never synced"
@@ -93,21 +97,38 @@ export function LastSyncInfo({
             </div>
           </div>
           
-          {onSync && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onSync}
-              disabled={isSyncing}
-              className="flex-shrink-0"
-            >
-              <RefreshCw className={cn(
-                "h-4 w-4 mr-2",
-                isSyncing && "animate-spin"
-              )} />
-              {isSyncing ? "Syncing" : "Sync Now"}
-            </Button>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {onSync && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onSync}
+                disabled={isSyncing || isDisconnecting}
+                className="flex-shrink-0"
+              >
+                <RefreshCw className={cn(
+                  "h-4 w-4 mr-2",
+                  isSyncing && "animate-spin"
+                )} />
+                {isSyncing ? "Syncing" : "Sync Now"}
+              </Button>
+            )}
+            {onDisconnect && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onDisconnect}
+                disabled={isSyncing || isDisconnecting}
+                className="flex-shrink-0 bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/30"
+              >
+                <Unlink className={cn(
+                  "h-4 w-4 mr-2",
+                  isDisconnecting && "animate-spin"
+                )} />
+                {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

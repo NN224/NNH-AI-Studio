@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [syncSchedule, setSyncSchedule] = useState<string>('manual');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -261,13 +262,22 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Sync failed');
+        // Try to get error message from response
+        let errorMessage = 'Sync failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || `Sync failed: ${response.status}`;
+        } catch {
+          errorMessage = `Sync failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       
       // Update last sync time
-      if (data.success) {
+      // API returns { ok: true, ... } or { success: true, ... }
+      if (data.ok || data.success) {
         setLastSyncTime(new Date());
         toast.success('Sync completed successfully!');
         
@@ -276,12 +286,51 @@ export default function DashboardPage() {
         
         // Refresh dashboard data
         await fetchDashboardData();
+      } else {
+        throw new Error(data.error || 'Sync failed');
       }
     } catch (error) {
       console.error('Sync error:', error);
       toast.error('Failed to sync data');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!gmbAccountId) {
+      toast.error('No GMB account connected');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to disconnect Google My Business? Sync will stop but your data will be preserved.')) {
+      return;
+    }
+
+    try {
+      setDisconnecting(true);
+      const response = await fetch('/api/gmb/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: gmbAccountId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to disconnect');
+      }
+
+      toast.success('Google My Business disconnected successfully');
+      setGmbConnected(false);
+      setGmbAccountId(null);
+      
+      // Refresh dashboard data
+      await fetchDashboardData();
+    } catch (error: any) {
+      console.error('Disconnect error:', error);
+      toast.error(error.message || 'Failed to disconnect');
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -311,6 +360,8 @@ export default function DashboardPage() {
           isSyncing={syncing}
           onSync={handleSync}
           syncSchedule={syncSchedule}
+          onDisconnect={handleDisconnect}
+          isDisconnecting={disconnecting}
         />
       )}
 

@@ -904,7 +904,9 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { accountId, syncType = 'full' } = body;
+    // Support both naming conventions: account_id/accountId and sync_type/syncType
+    const accountId = body.accountId || body.account_id;
+    const syncType = body.syncType || body.sync_type || 'full';
 
     if (!accountId) {
       return errorResponse('MISSING_FIELDS', 'accountId is required', 400);
