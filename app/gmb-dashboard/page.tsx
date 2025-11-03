@@ -931,14 +931,12 @@ export default function GMBDashboard() {
                 </div>
                 
                 {/* Last Sync Info */}
-                {gmbConnected && (
-                  <LastSyncInfo
-                    lastSyncTime={lastSyncTime}
-                    isSyncing={syncing}
-                    onSync={handleSyncGMB}
-                    syncSchedule={syncSchedule}
-                  />
-                )}
+                <LastSyncInfo
+                  lastSyncTime={lastSyncTime}
+                  isSyncing={syncing}
+                  onSync={handleSyncGMB}
+                  syncSchedule={syncSchedule}
+                />
                 
                 {/* Main Dashboard Grid */}
                 <div className="grid gap-6 lg:grid-cols-3">
