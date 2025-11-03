@@ -283,6 +283,10 @@ export async function GET(request: NextRequest) {
     if (dbMedia && dbMedia.length > 0) {
       console.log(`[Media API] Found ${dbMedia.length} media items in database`);
       dbMedia.forEach((item: any) => {
+        // Extract locationAssociation from metadata
+        const metadata = item.metadata || {}
+        const locationAssociation = metadata.locationAssociation || {}
+        
         allMedia.push({
           id: item.id,
           name: item.external_media_id,
@@ -293,6 +297,9 @@ export async function GET(request: NextRequest) {
           createTime: item.created_at,
           updateTime: item.updated_at,
           location_id: item.location_id,
+          locationAssociation: locationAssociation,
+          category: locationAssociation.category || metadata.category,
+          metadata: metadata,
           fromDatabase: true,
           fromGmbMediaTable: true,
         });

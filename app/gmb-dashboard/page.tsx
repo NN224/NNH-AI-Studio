@@ -21,6 +21,7 @@ import { SmartChecklist } from "@/components/dashboard/smart-checklist"
 import { AICopilotEnhanced } from "@/components/dashboard/ai-copilot-enhanced"
 import { PerformanceSnapshot } from "@/components/dashboard/performance-snapshot"
 import { AchievementBadges } from "@/components/dashboard/achievement-badges"
+import { LastSyncInfo } from "@/components/dashboard/last-sync-info"
 
 // Tab Components
 import { LocationsList } from "@/components/locations/locations-list"
@@ -872,6 +873,8 @@ export default function GMBDashboard() {
                     }
                     index={0}
                     icon={MapPin}
+                    showEmptyState={!gmbConnected}
+                    emptyMessage={!gmbConnected ? "Connect GMB to sync locations" : undefined}
                   />
                   <StatCard
                     title="Average Rating"
@@ -890,6 +893,8 @@ export default function GMBDashboard() {
                     }
                     index={1}
                     icon={Star}
+                    showEmptyState={stats.totalReviews === 0}
+                    emptyMessage={stats.totalReviews === 0 ? "No reviews yet" : undefined}
                   />
                   <StatCard
                     title="New Reviews"
@@ -910,6 +915,8 @@ export default function GMBDashboard() {
                     }
                     index={2}
                     icon={MessageSquare}
+                    showEmptyState={stats.totalReviews === 0}
+                    emptyMessage={stats.totalReviews === 0 ? "No reviews in last 30 days" : undefined}
                   />
                   <StatCard
                     title="Response Rate"
@@ -918,8 +925,20 @@ export default function GMBDashboard() {
                     changeType={stats.responseRate >= 80 ? "positive" : stats.responseRate >= 50 ? "neutral" : "negative"}
                     index={3}
                     icon={TrendingUp}
+                    showEmptyState={stats.totalReviews === 0}
+                    emptyMessage={stats.totalReviews === 0 ? "No reviews to respond to" : undefined}
                   />
                 </div>
+                
+                {/* Last Sync Info */}
+                {gmbConnected && (
+                  <LastSyncInfo
+                    lastSyncTime={lastSyncTime}
+                    isSyncing={syncing}
+                    onSync={handleSyncGMB}
+                    syncSchedule={syncSchedule}
+                  />
+                )}
                 
                 {/* Main Dashboard Grid */}
                 <div className="grid gap-6 lg:grid-cols-3">

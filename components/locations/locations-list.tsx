@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { LocationCard } from "./location-card"
+import { LocationProfileEnhanced } from "./location-profile-enhanced"
 import { LocationFilters } from "./location-filters"
 import { AddLocationDialog } from "./add-location-dialog"
 import { LocationsMapView } from "./locations-map-view"
 import { Button } from "@/components/ui/button"
-import { Plus, MapPin, BarChart3, TrendingUp, Eye, MousePointerClick } from "lucide-react"
+import { Plus, MapPin, BarChart3, TrendingUp, Eye, MousePointerClick, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
@@ -24,12 +26,28 @@ export function LocationsList() {
     totalReviews: 0,
   })
   const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(null)
+  const [viewLocation, setViewLocation] = useState<GMBLocation | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterRating, setFilterRating] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [showAddDialog, setShowAddDialog] = useState(false)
   
   const supabase = createClient()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Check for location query param
+  useEffect(() => {
+    const locationId = searchParams.get('location')
+    if (locationId && locations.length > 0) {
+      const location = locations.find(l => l.id === locationId)
+      if (location) {
+        setViewLocation(location)
+      }
+    } else {
+      setViewLocation(null)
+    }
+  }, [searchParams, locations])
 
   useEffect(() => {
     async function fetchLocations() {
@@ -348,6 +366,59 @@ export function LocationsList() {
           </div>
         </CardContent>
       </Card>
+    )
+  }
+
+  // Show location profile if viewing specific location
+  if (viewLocation) {
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            router.push('/gmb-dashboard?tab=locations')
+            setViewLocation(null)
+          }}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Locations
+        </Button>
+        <LocationProfileEnhanced 
+          location={viewLocation} 
+          onRefresh={() => {
+            // Refresh locations list
+            const fetchLocations = async () => {
+              const { data: { user } } = await supabase.auth.getUser()
+              if (!user) return
+              
+              const { data: activeAccounts } = await supabase
+                .from("gmb_accounts")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("is_active", true)
+              
+              const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+              
+              if (activeAccountIds.length > 0) {
+                const { data } = await supabase
+                  .from("gmb_locations")
+                  .select("*")
+                  .eq("user_id", user.id)
+                  .in("gmb_account_id", activeAccountIds)
+                  .order("created_at", { ascending: false })
+                
+                if (data) {
+                  setLocations(data)
+                  const updated = data.find(l => l.id === viewLocation.id)
+                  if (updated) setViewLocation(updated)
+                }
+              }
+            }
+            fetchLocations()
+          }}
+        />
+      </div>
     )
   }
 
