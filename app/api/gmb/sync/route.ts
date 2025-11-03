@@ -8,6 +8,7 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const GBP_ACCOUNT_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4'; // v4 API for reviews and media
+const QANDA_API_BASE = 'https://mybusinessqanda.googleapis.com/v1'; // Q&A API for questions
 const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1'; // Performance API for metrics
 
 // Helper function for chunking arrays
@@ -500,7 +501,8 @@ async function fetchMedia(
   };
 }
 
-// Fetch questions for a location using Google My Business v4 API
+// Fetch questions for a location using Google My Business Q&A API v1
+// Q&A API uses format: locations/{location_id}/questions (NOT accounts/{account}/locations/{location}/questions)
 async function fetchQuestions(
   accessToken: string,
   locationResource: string,
@@ -509,40 +511,36 @@ async function fetchQuestions(
 ): Promise<{ questions: any[]; nextPageToken?: string }> {
   console.log('[GMB Sync] Fetching questions for location:', locationResource);
   
-  // Build full location resource if needed
-  let fullLocationResource = locationResource;
+  // Extract location ID from various formats
+  // Q&A API expects just: locations/{location_id} (NOT accounts/.../locations/...)
+  let locationId = locationResource;
   
-  // If locationResource doesn't start with 'accounts/', try to build it
-  if (!locationResource.startsWith('accounts/')) {
-    // If we have accountResource, build the full path
-    if (accountResource) {
-      // Extract location ID from various formats
-      let locationId = locationResource;
-      if (locationResource.startsWith('locations/')) {
-        locationId = locationResource.replace(/^locations\//, '');
-      }
-      
-      // Ensure accountResource has 'accounts/' prefix
-      const cleanAccountResource = accountResource.startsWith('accounts/') 
-        ? accountResource 
-        : `accounts/${accountResource}`;
-      
-      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
-      console.log('[GMB Sync] Built questions location resource:', locationResource, '→', fullLocationResource);
+  // Handle different input formats
+  if (locationResource.startsWith('accounts/')) {
+    // Extract from: accounts/{account}/locations/{location_id}
+    const match = locationResource.match(/accounts\/[^\/]+\/locations\/(.+)$/);
+    if (match) {
+      locationId = match[1];
     } else {
-      console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
+      console.warn('[GMB Sync] Could not extract location ID from:', locationResource);
       return { questions: [], nextPageToken: undefined };
     }
+  } else if (locationResource.startsWith('locations/')) {
+    // Already in correct format: locations/{location_id}
+    locationId = locationResource;
+  } else {
+    // Just the location ID number
+    locationId = `locations/${locationResource}`;
   }
   
-  // Use Google My Business v4 API with /questions endpoint
-  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/questions`);
+  // Q&A API uses format: locations/{location_id}/questions
+  const url = new URL(`${QANDA_API_BASE}/${locationId}/questions`);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
   }
   url.searchParams.set('pageSize', '10'); // Max 10 per API spec
   
-  console.log('[GMB Sync] Questions URL (v4 API):', url.toString());
+  console.log('[GMB Sync] Questions URL (Q&A API v1):', url.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -601,13 +599,13 @@ async function fetchQuestions(
 
   const data = await response.json();
   
-  // Extract questions from v4 API response
-  // v4 API returns questions directly in the response
+  // Extract questions from Q&A API response
+  // Q&A API v1 returns questions in response.questions array
   const questions = data.questions || [];
   
-  console.log('[GMB Sync] v4 API questions response:', questions.length, 'questions');
+  console.log('[GMB Sync] Q&A API questions response:', questions.length, 'questions');
   if (questions.length > 0) {
-    console.log('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 300));
+    console.log('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 500));
   }
   
   return {
@@ -1307,9 +1305,10 @@ export async function POST(request: NextRequest) {
                 location_id: location.id,  // Use UUID id, not location_id (resource name)
                 external_question_id: question.name,
                 question_text: question.text || '',
-                author_name: question.author?.displayName || 'Anonymous',
-                author_type: question.author?.type === 'MERCHANT' ? 'MERCHANT' : 
-                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER',
+              author_name: question.author?.displayName || 'Anonymous',
+              author_type: question.author?.type === 'MERCHANT' ? 'MERCHANT' : 
+                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' :
+                            question.author?.type === 'REGULAR_USER' ? 'CUSTOMER' : 'CUSTOMER',
                 answer_text: answerText,
                 answered_at: answeredAt,
                 answer_status: answerStatus,
