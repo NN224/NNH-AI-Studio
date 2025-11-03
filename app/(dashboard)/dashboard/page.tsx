@@ -175,7 +175,7 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
                 </p>
             )}
             {totalLocations > 1 && (
-                <Link href="/dashboard/locations" className="text-xs text-primary hover:underline mt-1 block">
+                <Link href="/locations" className="text-xs text-primary hover:underline mt-1 block">
                     Manage {totalLocations - 1} more
                 </Link>
             )}
@@ -499,7 +499,7 @@ isDisconnecting={disconnecting}
 <TrendingUp className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
 <div>
 <p className="font-semibold text-green-500">OPPORTUNITY</p>
-<p className="text-foreground">Analytics suggest a Post about "Limited Time Offer" could increase call clicks by 25% this weekend. <Link href="/dashboard/gmb-posts" className="text-primary hover:underline">Create Post Now</Link></p>
+<p className="text-foreground">Analytics suggest a Post about "Limited Time Offer" could increase call clicks by 25% this weekend. <Link href="/gmb-posts" className="text-primary hover:underline">Create Post Now</Link></p>
 </div>
 </div>
 <div className="text-muted-foreground">
