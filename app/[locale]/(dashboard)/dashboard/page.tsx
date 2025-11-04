@@ -247,8 +247,15 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
             {locationRating.toFixed(1)} / 5.0 Rating
           </p>
         )}
+        {stats.totalLocations > 0 && (
+          <Button asChild size="sm" variant="outline" className="mt-3 w-full">
+            <Link href={`/locations/${bestLocation?.id || 'default'}`}>
+              Go to Location
+            </Link>
+          </Button>
+        )}
         {stats.totalLocations > 1 && (
-          <Link href="/locations" className="text-xs text-primary hover:underline mt-1 block">
+          <Link href="/locations" className="text-xs text-primary hover:underline mt-1 block text-center">
             Manage {stats.totalLocations - 1} more
           </Link>
         )}

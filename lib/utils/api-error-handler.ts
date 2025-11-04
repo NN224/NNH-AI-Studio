@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+
+/**
+ * Centralized error handler for Next.js API Routes.
+ * Logs the error with context and returns a standardized JSON response.
+ * 
+ * @param error The error object (can be any type).
+ * @param context A string describing where the error occurred (e.g., '[OAuth Callback]').
+ * @param status The HTTP status code to return.
+ * @returns A NextResponse object with the error details.
+ */
+export function handleApiError(error: any, context: string, status: number = 500): NextResponse {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorDetails = error.details || error.hint || 'No additional details.';
+  const errorCode = error.code || 'UNKNOWN_ERROR';
+
+  console.error(`${context} ===== API ERROR =====`);
+  console.error(`${context} Message: ${errorMessage}`);
+  console.error(`${context} Code: ${errorCode}`);
+  console.error(`${context} Details: ${errorDetails}`);
+  console.error(`${context} =====================`);
+
+  return NextResponse.json(
+    { 
+      error: errorMessage, 
+      code: errorCode,
+      details: errorDetails,
+      context: context,
+    },
+    { status }
+  );
+}

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/utils/api-error-handler';
+import { getBaseUrlDynamic } from '@/lib/utils/get-base-url-dynamic';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -18,11 +20,7 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('[Create Auth URL] User not authenticated:', authError);
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return handleApiError(authError || new Error('User not authenticated'), '[Create Auth URL]', 401);
     }
     
     // Ensure user has a profile (optional check - profiles table may not be required)
@@ -40,17 +38,13 @@ export async function POST(request: NextRequest) {
     
     // Get OAuth configuration
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrlDynamic(request);
     // Ensure consistent redirect_uri between create-auth-url and oauth-callback
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
       `${baseUrl}/api/gmb/oauth-callback`;
     
     if (!clientId) {
-      console.error('[Create Auth URL] Missing Google OAuth configuration');
-      return NextResponse.json(
-        { error: 'Server configuration error: Missing Google OAuth credentials' },
-        { status: 500 }
-      );
+      return handleApiError(new Error('Server configuration error: Missing Google OAuth credentials'), '[Create Auth URL]', 500);
     }
     
     // Ensure redirect_uri doesn't have trailing slash
@@ -77,23 +71,7 @@ export async function POST(request: NextRequest) {
       .select();
       
     if (stateError) {
-      console.error('[Create Auth URL] ===== ERROR SAVING STATE =====');
-      console.error('[Create Auth URL] Full error object:', JSON.stringify(stateError, null, 2));
-      console.error('[Create Auth URL] Error code:', stateError.code);
-      console.error('[Create Auth URL] Error message:', stateError.message);
-      console.error('[Create Auth URL] Error details:', stateError.details);
-      console.error('[Create Auth URL] Error hint:', stateError.hint);
-      console.error('[Create Auth URL] ================================');
-      
-      return NextResponse.json(
-        { 
-          error: 'Failed to save OAuth state', 
-          message: stateError.message,
-          code: stateError.code,
-          hint: stateError.hint
-        },
-        { status: 500 }
-      );
+      return handleApiError(stateError, '[Create Auth URL] Failed to save OAuth state');
     }
     
     // Build OAuth URL
@@ -115,10 +93,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('[Create Auth URL] Unexpected error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to create authorization URL' },
-      { status: 500 }
-    );
+    return handleApiError(error, '[Create Auth URL] Unexpected error');
   }
 }

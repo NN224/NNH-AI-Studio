@@ -143,8 +143,8 @@ export function QuickActionsBar({
                       </p>
                       
                       {action.count !== undefined && action.count > 0 && (
-                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold shadow-lg shadow-red-500/30">
+                          <Zap className="w-3 h-3 fill-white" />
                           {action.count} {isArabic ? 'معلق' : 'pending'}
                         </div>
                       )}

@@ -185,6 +185,62 @@ export function WeeklyTasksWidget() {
     );
   }
 
+  const defaultTasks: Task[] = [
+    {
+      id: 'default-1',
+      title: 'Complete GMB Profile',
+      description: 'Ensure all fields (hours, services, description) are filled out.',
+      category: 'optimization',
+      priority: 'high',
+      effort_level: 'quick',
+      estimated_minutes: 10,
+      status: 'pending',
+      reasoning: 'Incomplete profiles rank lower.',
+      expected_impact: 'Immediate visibility boost.',
+    },
+    {
+      id: 'default-2',
+      title: 'Upload 5 New Photos',
+      description: 'Add high-quality photos of your business interior and exterior.',
+      category: 'content',
+      priority: 'medium',
+      effort_level: 'moderate',
+      estimated_minutes: 20,
+      status: 'pending',
+      reasoning: 'Profiles with photos get more clicks.',
+      expected_impact: 'Increased engagement.',
+    },
+    {
+      id: 'default-3',
+      title: 'Create a GMB Post',
+      description: 'Post about a new offer or event.',
+      category: 'content',
+      priority: 'medium',
+      effort_level: 'quick',
+      estimated_minutes: 15,
+      status: 'pending',
+      reasoning: 'Posts keep your profile fresh and visible.',
+      expected_impact: 'Temporary ranking boost.',
+    },
+  ];
+
+  const displayTasks = tasks.length > 0 ? tasks : defaultTasks;
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Weekly Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (tasks.length === 0) {
     return (
       <Card>
@@ -196,27 +252,45 @@ export function WeeklyTasksWidget() {
           <CardDescription>AI-powered recommendations to improve your business</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
-              <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
+                <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No personalized tasks yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Generate personalized tasks based on your business performance
+              </p>
+              <Button onClick={generateTasks} disabled={generating}>
+                {generating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Generate Weekly Tasks
+                  </>
+                )}
+              </Button>
             </div>
-            <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Generate personalized tasks based on your business performance
-            </p>
-            <Button onClick={generateTasks} disabled={generating}>
-              {generating ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Zap className="mr-2 h-4 w-4" />
-                  Generate Weekly Tasks
-                </>
-              )}
-            </Button>
+            
+            <div className="border-t pt-6">
+              <h4 className="text-sm font-semibold mb-3">Recommended Quick Wins</h4>
+              <div className="space-y-2">
+                {defaultTasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    onStatusChange={() => toast.info('Please generate personalized tasks to track completion.')}
+                    getCategoryColor={getCategoryColor}
+                    getPriorityIcon={getPriorityIcon}
+                    isDefault={true}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -317,6 +391,21 @@ function TaskItem({
 }) {
   const isCompleted = task.status === 'completed';
 
+function TaskItem({
+  task,
+  onStatusChange,
+  getCategoryColor,
+  getPriorityIcon,
+  isDefault = false,
+}: {
+  task: Task;
+  onStatusChange: (id: string, status: string) => void;
+  getCategoryColor: (category: string) => string;
+  getPriorityIcon: (priority: string) => React.ReactNode;
+  isDefault?: boolean;
+}) {
+  const isCompleted = task.status === 'completed';
+
   return (
     <div
       className={cn(
@@ -327,9 +416,14 @@ function TaskItem({
       <Checkbox
         checked={isCompleted}
         onCheckedChange={(checked) => {
-          onStatusChange(task.id, checked ? 'completed' : 'pending');
+          if (!isDefault) {
+            onStatusChange(task.id, checked ? 'completed' : 'pending');
+          } else {
+            onStatusChange(task.id, 'default'); // Placeholder to trigger toast
+          }
         }}
         className="mt-1"
+        disabled={isDefault}
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2 mb-1">
@@ -351,5 +445,6 @@ function TaskItem({
       </div>
     </div>
   );
+}
 }
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleApiError } from '@/lib/utils/api-error-handler';
+import { getBaseUrlDynamic } from '@/lib/utils/get-base-url-dynamic';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -23,19 +25,19 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[OAuth Callback] OAuth error:', error);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(`OAuth error: ${error}`)}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Validate parameters
     if (!code || !state) {
       console.error('[OAuth Callback] Missing code or state');
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Missing authorization code or state')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     console.log('[OAuth Callback] State:', state);
@@ -52,20 +54,20 @@ export async function GET(request: NextRequest) {
       
     if (stateError || !stateRecord) {
       console.error('[OAuth Callback] Invalid state:', stateError);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Invalid or expired authorization state')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Check if state has expired (30 minute expiry)
     const expiresAt = new Date(stateRecord.expires_at);
     if (expiresAt < new Date()) {
       console.error('[OAuth Callback] State has expired');
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Authorization state has expired')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Mark state as used
@@ -80,16 +82,17 @@ export async function GET(request: NextRequest) {
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrlDynamic(request);
     // Ensure consistent redirect_uri - must match create-auth-url exactly
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 
       `${baseUrl}/api/gmb/oauth-callback`;
     
     if (!clientId || !clientSecret) {
       console.error('[OAuth Callback] Missing Google OAuth configuration');
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Server configuration error')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Ensure redirect_uri doesn't have trailing slash (must match create-auth-url)
@@ -115,12 +118,12 @@ export async function GET(request: NextRequest) {
     
     if (!tokenResponse.ok) {
       console.error('[OAuth Callback] Token exchange failed:', tokenData);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           `Token exchange failed: ${tokenData.error_description || tokenData.error}`
         )}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     console.log('[OAuth Callback] Tokens received successfully');
@@ -139,10 +142,10 @@ export async function GET(request: NextRequest) {
     
     if (!userInfoResponse.ok) {
       console.error('[OAuth Callback] Failed to fetch user info');
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to fetch user information')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     const userInfo = await userInfoResponse.json();
@@ -166,10 +169,10 @@ export async function GET(request: NextRequest) {
     
     if (!gmbAccountsResponse.ok) {
       console.error('[OAuth Callback] Failed to fetch GMB accounts:', await gmbAccountsResponse.text());
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to fetch Google My Business accounts')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     const gmbAccountsData = await gmbAccountsResponse.json();
@@ -179,10 +182,10 @@ export async function GET(request: NextRequest) {
     
     if (gmbAccounts.length === 0) {
       console.warn('[OAuth Callback] No GMB accounts found for user');
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('No Google My Business accounts found')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Process each GMB account
@@ -202,11 +205,11 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
       
       if (existingAccount && existingAccount.user_id !== userId) {
-        console.error('[OAuth Callback] Security violation: GMB account already linked to different user');
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('This Google My Business account is already linked to another user')}`
-        );
+      console.error('[OAuth Callback] Security violation: GMB account already linked to different user');
+      const baseUrl = getBaseUrlDynamic(request);
+      return NextResponse.redirect(
+        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('This Google My Business account is already linked to another user')}`
+      ); // Keep redirect for user-facing error
       }
       
       // Use UPSERT to insert or update the account
@@ -235,14 +238,18 @@ export async function GET(request: NextRequest) {
         .select('id')
         .single();
         
-      if (upsertError || !upsertedAccount) {
-        console.error('[OAuth Callback] Error upserting account:', upsertError);
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-            `Failed to save account: ${upsertError?.message || 'Unknown error'}`
-          )}`
-        );
+      if (upsertError || !upsertedAccount  } catch (error: any) {
+    // Use the new centralized handler for logging the unexpected error
+    handleApiError(error, '[OAuth Callback] Unexpected error');
+    
+    // Still redirect the user with a generic error message
+    const baseUrl = getBaseUrlDynamic(request);
+    return NextResponse.redirect(
+      `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
+        `An unexpected error occurred: ${error.message || 'Unknown error'}`
+      )}`
+    );
+  } ); // Keep redirect for user-facing error
       }
       
       savedAccountId = upsertedAccount.id;
@@ -268,14 +275,6 @@ export async function GET(request: NextRequest) {
         console.log(`[OAuth Callback] Found ${locations.length} locations`);
         
         for (const location of locations) {
-          // Use location_id (which is unique globally) to find existing location
-          // This prevents duplicates when reconnecting the same Google account
-          const { data: existingLocation } = await supabase
-            .from('gmb_locations')
-            .select('id, gmb_account_id, user_id')
-            .eq('location_id', location.name)
-            .maybeSingle();
-            
           const locationData = {
             gmb_account_id: savedAccountId,
             user_id: userId,
@@ -295,41 +294,18 @@ export async function GET(request: NextRequest) {
             metadata: location,
             updated_at: new Date().toISOString(),
           };
-          
-          if (existingLocation) {
-            // Update existing location - also update gmb_account_id in case account changed
-            console.log(`[OAuth Callback] Updating existing location ${location.name} (was account ${existingLocation.gmb_account_id}, now ${savedAccountId})`);
-            const { error: updateError } = await supabase
-              .from('gmb_locations')
-              .update(locationData)
-              .eq('id', existingLocation.id);
-              
-            if (updateError) {
-              console.error(`[OAuth Callback] Error updating location ${location.name}:`, updateError);
-            }
-          } else {
-            // Insert new location
-            console.log(`[OAuth Callback] Inserting new location ${location.name}`);
-            const { error: insertError } = await supabase
-              .from('gmb_locations')
-              .insert(locationData);
-              
-            if (insertError) {
-              console.error(`[OAuth Callback] Error inserting location ${location.name}:`, insertError);
-              // If insert fails due to unique constraint, try update instead
-              if (insertError.code === '23505') { // Unique violation
-                console.log(`[OAuth Callback] Location already exists (unique constraint), updating instead`);
-                const { error: updateError } = await supabase
-                  .from('gmb_locations')
-                  .update(locationData)
-                  .eq('location_name', location.name)
-                  .eq('gmb_account_id', savedAccountId);
-                  
-                if (updateError) {
-                  console.error(`[OAuth Callback] Error updating location after insert conflict:`, updateError);
-                }
-              }
-            }
+
+          // Use UPSERT to insert or update the location in a single query
+          // The unique constraint on location_id will handle the conflict
+          const { error: upsertLocationError } = await supabase
+            .from('gmb_locations')
+            .upsert(locationData, {
+              onConflict: 'location_id',
+              ignoreDuplicates: false,
+            });
+
+          if (upsertLocationError) {
+            console.error(`[OAuth Callback] Error upserting location ${location.name}:`, upsertLocationError);
           }
         }
       } else {
@@ -340,9 +316,10 @@ export async function GET(request: NextRequest) {
     // Redirect to GMB dashboard with success or error
     if (!savedAccountId) {
       console.error('[OAuth Callback] No account was saved');
+      const baseUrl = getBaseUrlDynamic(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to save any account')}`
-      );
+      ); // Keep redirect for user-facing error
     }
     
     // Redirect to dashboard settings with success message
@@ -352,7 +329,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error: any) {
     console.error('[OAuth Callback] Unexpected error:', error);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrlDynamic(request);
     const localeCookie = request.cookies.get('NEXT_LOCALE')?.value || 'en';
     return NextResponse.redirect(
       `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
