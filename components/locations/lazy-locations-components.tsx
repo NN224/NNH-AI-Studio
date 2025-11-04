@@ -99,7 +99,7 @@ export const LazyLocationCard = ({
         </div>
 
         {/* Insights Grid */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="text-center p-2 rounded-lg border border-muted">
             <div className="text-base font-bold text-foreground">{formatLargeNumber(getSafeInsights(location).views)}</div>
             <div className="text-xs text-muted-foreground">{t('labels.views')}</div>
@@ -279,7 +279,7 @@ export const LocationCardSkeleton = () => {
         </div>
 
         {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="text-center p-2 rounded-lg border border-muted">
               <Skeleton className="h-5 w-8 mx-auto mb-1" />

@@ -129,7 +129,7 @@ export function PerformanceComparisonChart({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* المقاييس السريعة */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
             const isPositive = metric.change >= 0;

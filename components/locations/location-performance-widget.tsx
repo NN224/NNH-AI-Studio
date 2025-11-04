@@ -176,7 +176,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
           <BarChart3 className="h-4 w-4 text-primary" />
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div className="flex items-center gap-1 mb-1">
               <Eye className="h-3.5 w-3.5 text-muted-foreground" />

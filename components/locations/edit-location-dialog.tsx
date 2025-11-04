@@ -293,7 +293,7 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="locality" className="text-foreground">
                   City
@@ -321,7 +321,7 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="postalCode" className="text-foreground">
                   Postal Code
@@ -409,7 +409,7 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
 
                 <div className="p-4 rounded-lg bg-secondary border border-primary/20 space-y-3">
                   <Label className="text-foreground">Add Special Hour Period</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">Start Date</Label>
                       <Input
@@ -439,7 +439,7 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                     <Label className="text-sm text-foreground cursor-pointer">Closed on this date</Label>
                   </div>
                   {!newSpecialHour.closed && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Open Time</Label>
                         <div className="flex gap-2">

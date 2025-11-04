@@ -76,7 +76,7 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="p-3 rounded-lg bg-secondary border border-primary/20">
             <div className="flex items-center gap-2 mb-1">
               <Eye className="h-4 w-4 text-primary" />

@@ -135,7 +135,7 @@ export function MobileLocationCard({
           <Separator className="mb-3" />
           
           {/* Quick stats */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div className="text-center p-2 bg-muted/50 rounded-lg">
               <div className="text-lg font-semibold text-primary">{location.weeklyViews || 0}</div>
               <div className="text-xs text-muted-foreground">Views</div>

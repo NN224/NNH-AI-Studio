@@ -562,7 +562,7 @@ export function GMBPostsSection() {
               {/* Post Type Selector */}
               <div className="grid gap-3">
                 <label className="text-sm font-medium text-primary">Post Type</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[
                     { value: 'whats_new', label: "What's New", icon: Sparkles, description: 'Share updates & news' },
                     { value: 'event', label: 'Event', icon: CalendarClock, description: 'Announce events' },
@@ -599,7 +599,7 @@ export function GMBPostsSection() {
                     <p className="text-sm text-muted-foreground mt-2">Add locations in the Locations tab first</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {locations.map((location) => (
                       <label
                         key={location.id}
@@ -649,7 +649,7 @@ export function GMBPostsSection() {
                     onChange={(e) => setEventTitle(e.target.value)}
                     className="glass-strong"
                   />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Start Date</label>
                       <Input
@@ -682,7 +682,7 @@ export function GMBPostsSection() {
                     onChange={(e) => setOfferTitle(e.target.value)}
                     className="glass-strong"
                   />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input
                       placeholder="Coupon Code (optional)"
                       value={couponCode}
@@ -817,7 +817,7 @@ export function GMBPostsSection() {
               </div>
 
               {/* Call-to-Action */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-primary">Call to Action</label>
                   <Select value={cta} onValueChange={setCta}>

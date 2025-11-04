@@ -382,7 +382,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
             )}
 
             {/* Metrics grid */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
               <div className="text-center p-3 rounded-lg bg-secondary border border-primary/20">
                 <div className="text-2xl font-bold text-primary">{(location.rating ?? 0).toFixed(1)}</div>
                 <div className="text-xs text-muted-foreground">Rating</div>
