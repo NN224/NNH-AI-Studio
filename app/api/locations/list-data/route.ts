@@ -98,7 +98,4 @@ async function handler(request: NextRequest, user: any) {
   })
 }
 
-export async function GET(request: NextRequest) {
-  const wrapped = await withAuth(handler)
-  return wrapped(request)
-}
+export const GET = withAuth(handler)
