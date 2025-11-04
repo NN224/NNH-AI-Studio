@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, TrendingUp, AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -173,9 +174,15 @@ export function AIInsightsCard({ stats, loading = false, locale = 'en' }: AIInsi
             {isArabic ? 'رؤى الذكاء الاصطناعي' : 'AI Insights'}
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-[250px] flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">
-            {isArabic ? 'جاري تحليل البيانات...' : 'Analyzing data...'}
+        <CardContent className="h-[250px] p-6">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Sparkles, Target, Clock } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -11,13 +12,15 @@ interface WelcomeHeroProps {
   profileStrength: number
   tasksRemaining: number
   estimatedMinutes: number
+  loading?: boolean
 }
 
 export function WelcomeHero({ 
   userName, 
   profileStrength, 
   tasksRemaining,
-  estimatedMinutes 
+  estimatedMinutes,
+  loading = false
 }: WelcomeHeroProps) {
   const [displayProgress, setDisplayProgress] = useState(0)
 
@@ -42,6 +45,34 @@ export function WelcomeHero({
     if (strength < 70) return "text-info"
     if (strength < 90) return "text-primary"
     return "text-success"
+  }
+
+  if (loading) {
+    return (
+      <Card className="bg-gradient-to-br from-card via-card to-primary/5 border-primary/30 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <CardContent className="p-6 relative">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-[300px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Skeleton className="h-5 w-5 rounded" />
+                <Skeleton className="h-7 w-48" />
+              </div>
+              <Skeleton className="h-4 w-3/4 mb-4" />
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

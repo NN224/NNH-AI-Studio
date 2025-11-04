@@ -40,7 +40,7 @@ function StatsCard({ title, value, trend, icon, suffix, loading, target }: Stats
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="hover:shadow-lg hover:shadow-primary/20 transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
           <div className="text-muted-foreground">{icon}</div>

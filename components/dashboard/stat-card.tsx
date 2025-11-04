@@ -78,11 +78,12 @@ export function StatCard({
               <p className="text-sm font-medium text-muted-foreground">{title}</p>
               
               {isEmpty && showEmptyState && emptyMessage ? (
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-muted-foreground">
-                    {typeof value === "string" ? value : "0"}
-                  </p>
-                  <p className="text-xs text-muted-foreground italic">{emptyMessage}</p>
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Icon className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2 text-foreground">{title}</h3>
+                  <p className="text-sm text-muted-foreground">{emptyMessage}</p>
                 </div>
               ) : isRating && hasRating ? (
                 <div className="flex items-center gap-2">
