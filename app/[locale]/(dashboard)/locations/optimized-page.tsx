@@ -22,7 +22,7 @@ import {
   locationsCacheUtils 
 } from '@/hooks/use-locations-cache';
 import { 
-  Location as LocationType, 
+  Location, 
   formatLargeNumber
 } from '@/components/locations/location-types';
 import { LazyLocationCard, LocationCardSkeleton } from '@/components/locations/lazy-locations-components';
@@ -32,7 +32,7 @@ import { GMBConnectionBanner, EmptyLocationsState } from '@/components/locations
 import { LocationsErrorAlert } from '@/components/locations/locations-error-alert';
 
 // Main Optimized Locations Page
-export default function LocationsPage() {
+export default function OptimizedLocationsPage() {
   const t = useTranslations('Locations');
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -82,7 +82,7 @@ export default function LocationsPage() {
   useEffect(() => {
     if (locations.length > 0) {
       const uniqueCategories = Array.from(
-        new Set(locations.map((loc: LocationType) => loc.category).filter(Boolean))
+        new Set(locations.map((loc: Location) => loc.category).filter(Boolean))
       ) as string[];
       setCategories(uniqueCategories);
     }
@@ -114,10 +114,10 @@ export default function LocationsPage() {
   const getOverallStats = () => {
     if (!locations.length) return { totalViews: 0, totalClicks: 0, avgRating: 0, avgHealthScore: 0 };
     
-    const totalViews = locations.reduce((sum: number, loc: LocationType) => sum + loc.insights.views, 0);
-    const totalClicks = locations.reduce((sum: number, loc: LocationType) => sum + loc.insights.clicks, 0);
-    const avgRating = locations.reduce((sum: number, loc: LocationType) => sum + loc.rating, 0) / locations.length;
-    const avgHealthScore = locations.reduce((sum: number, loc: LocationType) => sum + loc.healthScore, 0) / locations.length;
+    const totalViews = locations.reduce((sum: number, loc: Location) => sum + loc.insights.views, 0);
+    const totalClicks = locations.reduce((sum: number, loc: Location) => sum + loc.insights.clicks, 0);
+    const avgRating = locations.reduce((sum: number, loc: Location) => sum + loc.rating, 0) / locations.length;
+    const avgHealthScore = locations.reduce((sum: number, loc: Location) => sum + loc.healthScore, 0) / locations.length;
     
     return { totalViews, totalClicks, avgRating, avgHealthScore };
   };
@@ -351,7 +351,7 @@ export default function LocationsPage() {
             gridCols === 3 ? 'md:grid-cols-2 lg:grid-cols-3' :
             'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           }`}>
-            {locations.map((location: LocationType) => (
+            {locations.map((location: Location) => (
               <LazyLocationCard
                 key={location.id}
                 location={location}
