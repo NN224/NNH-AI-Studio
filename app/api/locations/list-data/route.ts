@@ -22,7 +22,7 @@ async function handler(request: Request, user: any): Promise<Response> {
   let query = supabase
     .from('gmb_locations')
     .select(`
-      id, location_name, address, phone, website:websiteUri,
+      id, location_name, address, phone, website,
       rating, review_count, status, category, latlng, regularHours,
       serviceItems, mediaCount, postsCount, health_score, visibility_score,
       last_sync, insights_json
