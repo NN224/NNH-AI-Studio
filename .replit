@@ -42,7 +42,7 @@ localPort = 45989
 externalPort = 3000
 
 [deployment]
-build = ["npm", "run", "build"]
+build = ["sh", "-c", "rm -rf .next && npm run build"]
 run = ["npm", "start"]
 deploymentTarget = "autoscale"
 [env]
