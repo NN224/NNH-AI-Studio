@@ -27,10 +27,24 @@ export async function GET(request: NextRequest) {
         const { data: locationsData, error: dbError } = await supabase
             .from('gmb_locations')
             .select(`
-                id, name:location_name, address, phone, website:websiteUri,
-                rating, review_count, status, category, coordinates:latlng,
-                hours:regularHours, attributes:serviceItems, photos:mediaCount, posts:postsCount,
-                health_score, visibility_score, last_sync, insights_json
+                id,
+                name:location_name,
+                address,
+                phone,
+                website,
+                rating,
+                review_count,
+                status,
+                category,
+                coordinates:latlng,
+                regularHours:regularhours,
+                businessHours:business_hours,
+                metadata,
+                response_rate,
+                is_syncing,
+                ai_insights,
+                updated_at,
+                created_at
             `)
             .eq('user_id', userId);
 
@@ -38,7 +52,14 @@ export async function GET(request: NextRequest) {
 
         // 2. معالجة وتوحيد شكل البيانات للواجهة الأمامية
         const processedLocations = locationsData.map(loc => {
-            const insights = loc.insights_json || {}; // استخراج الـ Insights
+            const metadata = (loc.metadata as Record<string, any> | null) || {};
+            const insights = (metadata.insights_json || metadata.insights || {}) as Record<string, any>;
+            const derivedHealth = metadata.health_score ?? metadata.healthScore;
+            const derivedVisibility = metadata.visibility_score ?? metadata.visibilityScore;
+            const derivedPhotos = metadata.mediaCount ?? metadata.photos ?? 0;
+            const derivedPosts = metadata.postsCount ?? metadata.posts ?? 0;
+            const derivedAttributes = metadata.serviceItems ?? metadata.attributes ?? [];
+            const lastSync = metadata.last_sync ?? metadata.lastSync ?? loc.updated_at ?? loc.created_at;
 
             return {
                 id: loc.id,
@@ -51,13 +72,13 @@ export async function GET(request: NextRequest) {
                 status: loc.status || 'pending',
                 category: loc.category || 'General',
                 coordinates: loc.coordinates || { lat: 0, lng: 0 },
-                hours: loc.hours || {}, // يجب تحويلها إلى شكل BusinessHours
-                attributes: loc.attributes || [],
-                photos: loc.photos || 0,
-                posts: loc.posts || 0,
-                healthScore: loc.health_score || 0,
-                visibility: loc.visibility_score || 0,
-                lastSync: new Date(loc.last_sync || Date.now()),
+                hours: loc.regularHours || loc.businessHours || {},
+                attributes: Array.isArray(derivedAttributes) ? derivedAttributes : [],
+                photos: Number(derivedPhotos) || 0,
+                posts: Number(derivedPosts) || 0,
+                healthScore: Number(derivedHealth ?? 0) || 0,
+                visibility: Number(derivedVisibility ?? 0) || 0,
+                lastSync: typeof lastSync === 'string' ? lastSync : (lastSync instanceof Date ? lastSync.toISOString() : new Date().toISOString()),
 
                 // 💡 توحيد شكل الـ Insights
                 insights: {

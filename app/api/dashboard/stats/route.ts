@@ -92,9 +92,9 @@ export async function GET(request: Request) {
 
     const activeAccountIds = activeAccounts?.map(acc => acc.id) || [];
 
-    const { data: activeLocationsData } = await supabase
-        .from("gmb_locations")
-        .select("id, created_at, location_name, average_rating")
+  const { data: activeLocationsData } = await supabase
+    .from("gmb_locations")
+    .select("id, created_at, location_name, rating")
         .eq("user_id", userId)
         .in("gmb_account_id", activeAccountIds);
 

@@ -42,13 +42,17 @@ export async function POST(request: NextRequest) {
     // 2. الحصول على الحساب الرئيسي للمستخدم لجلب الـ Access Token
     const { data: account } = await supabase
         .from('gmb_accounts')
-        .select('id, primary_account_id')
+        .select('id, account_id')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .single();
 
     if (!account) {
         return NextResponse.json({ error: 'No active GMB account found.' }, { status: 403 });
+    }
+
+    if (!account.account_id) {
+        return NextResponse.json({ error: 'Active GMB account is missing account_id.' }, { status: 422 });
     }
 
     const accessToken = await getValidAccessToken(supabase, account.id);
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest) {
     for (const locationId of locationIds) {
 
         // بناء مسار المورد المطلوب لـ GMB API
-        const locationResource = buildLocationResourceName(account.primary_account_id, locationId); 
+        const locationResource = buildLocationResourceName(account.account_id, locationId);
 
         // 💡 تحويل كائن المنشور (Post object) من Supabase إلى كائن (LocalPost) مناسب لـ GMB API
         const localPostData = {

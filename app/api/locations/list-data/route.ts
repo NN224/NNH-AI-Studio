@@ -22,10 +22,24 @@ async function handler(request: Request, user: any): Promise<Response> {
   let query = supabase
     .from('gmb_locations')
     .select(`
-      id, location_name, address, phone, website,
-      rating, review_count, status, category, latlng, regularHours,
-      serviceItems, mediaCount, postsCount, health_score, visibility_score,
-      last_sync, insights_json
+      id,
+      location_name,
+      address,
+      phone,
+      website,
+      rating,
+      review_count,
+      status,
+      category,
+      latlng,
+      regularHours:regularhours,
+      businessHours:business_hours,
+      metadata,
+      response_rate,
+      is_syncing,
+      ai_insights,
+      updated_at,
+      created_at
     `, { count: 'exact' })
     .eq('user_id', user.id)
 
@@ -56,7 +70,14 @@ async function handler(request: Request, user: any): Promise<Response> {
   }
 
   const processed = (locationsData || []).map((loc: any) => {
-    const insights = loc.insights_json || {}
+    const metadata = (loc.metadata as Record<string, any> | null) || {}
+    const insights = (metadata.insights_json || metadata.insights || {}) as Record<string, any>
+    const derivedHealth = metadata.health_score ?? metadata.healthScore
+    const derivedVisibility = metadata.visibility_score ?? metadata.visibilityScore
+    const derivedPhotos = metadata.mediaCount ?? metadata.photos ?? 0
+    const derivedPosts = metadata.postsCount ?? metadata.posts ?? 0
+    const derivedAttributes = metadata.serviceItems ?? metadata.attributes ?? []
+    const lastSync = metadata.last_sync ?? metadata.lastSync ?? loc.updated_at ?? loc.created_at
 
     return {
       id: loc.id,
@@ -69,13 +90,13 @@ async function handler(request: Request, user: any): Promise<Response> {
       status: (loc.status as 'verified' | 'pending' | 'suspended') || 'pending',
       category: loc.category || 'General',
       coordinates: loc.latlng || { lat: 0, lng: 0 },
-      hours: loc.regularHours || {},
-      attributes: loc.serviceItems || [],
-      photos: Number(loc.mediaCount) || 0,
-      posts: Number(loc.postsCount) || 0,
-      healthScore: Number(loc.health_score) || 0,
-      visibility: Number(loc.visibility_score) || 0,
-      lastSync: loc.last_sync || new Date().toISOString(),
+      hours: loc.regularHours || loc.businessHours || {},
+      attributes: Array.isArray(derivedAttributes) ? derivedAttributes : [],
+      photos: Number(derivedPhotos) || 0,
+      posts: Number(derivedPosts) || 0,
+      healthScore: Number(derivedHealth ?? 0) || 0,
+      visibility: Number(derivedVisibility ?? 0) || 0,
+      lastSync: typeof lastSync === 'string' ? lastSync : (lastSync instanceof Date ? lastSync.toISOString() : new Date().toISOString()),
       insights: {
         views: Number(insights.views) || 0,
         viewsTrend: Number(insights.viewsTrend) || 0,
