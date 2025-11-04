@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigationShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { LastSyncInfo } from '@/components/dashboard/last-sync-info';
 import { WeeklyTasksWidget } from '@/components/dashboard/weekly-tasks-widget';
+import { BottlenecksWidget } from '@/components/dashboard/bottlenecks-widget';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Zap, ShieldCheck, TrendingUp, AlertTriangle, Loader2, Star, MapPin, CheckCircle } from 'lucide-react';
+import { RefreshCw, Zap, ShieldCheck, Loader2, Star, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Link } from '@/lib/navigation';
@@ -24,7 +25,14 @@ interface DashboardStats {
   reviewsTrend: number;
   responseRate: number;
   responseTarget: number;
-  healthScore: number; 
+  healthScore: number;
+  bottlenecks: Array<{
+    type: 'Response' | 'Content' | 'Compliance' | 'Reviews' | 'General';
+    count: number;
+    message: string;
+    link: string;
+    severity: 'low' | 'medium' | 'high';
+  }>;
 }
 
 // GMB Setup Prompt
@@ -257,6 +265,7 @@ export default function DashboardPage() {
     responseRate: 0,
     responseTarget: 100,
     healthScore: 0,
+    bottlenecks: [],
   });
 
   const [gmbConnected, setGmbConnected] = useState(false);
@@ -320,6 +329,7 @@ export default function DashboardPage() {
             responseRate: newStats.responseRate || 0,
             responseTarget: 100,
             healthScore: newStats.healthScore || 0,
+            bottlenecks: newStats.bottlenecks || [],
           });
         }
       }
@@ -501,30 +511,12 @@ export default function DashboardPage() {
 
         <div className="space-y-4">
           <ProfileProtectionStatus loading={loading} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Risk & Opportunity Feed</CardTitle>
-              <CardDescription>Predictive alerts and automated executions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                {gmbConnected ? (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2 p-2 bg-blue-500/10 rounded-md border border-blue-500/50">
-                      <TrendingUp className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-blue-500">OPPORTUNITY DETECTED</p>
-                        <p className="text-foreground">AI monitoring active. Ready to alert on opportunities and risks.</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p>Connect your Google My Business account to receive proactive AI insights.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          
+          {/* Bottlenecks Widget - يعرض المشاكل والفرص */}
+          <BottlenecksWidget 
+            bottlenecks={stats.bottlenecks} 
+            loading={loading}
+          />
         </div>
       </div>
     </div>

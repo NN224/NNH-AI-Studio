@@ -77,78 +77,142 @@ export async function GET(request: Request) {
         return NextResponse.json(zeroStats);
     }
 
-    // ... (منطق جلب المراجعات) ...
-    // 💡 يمكن تحسين هذا بجلب فقط بيانات الـ Reviews/Questions التي تحتاج لرد
+    // 💡 جلب الأسئلة غير المستجاب لها من قاعدة البيانات
     const { data: allReviews } = await supabase
         .from("gmb_reviews")
-        .select("rating, review_reply, review_date")
+        .select("rating, review_reply, review_date, created_at")
         .eq("user_id", userId)
         .in("location_id", activeLocationIds);
 
-    // 💡 افتراض: جلب الأسئلة غير المستجاب لها (يجب أن يكون لديك جدول gmb_questions)
-    // const { data: unansweredQuestions } = await supabase
-    //     .from("gmb_questions")
-    //     .select("id")
-    //     .eq("user_id", userId)
-    //     .eq("has_answer", false);
-    // const questionCount = unansweredQuestions?.length || 0;
-    const questionCount = 2; // placeholder
-
     const reviews = allReviews || [];
 
-    // ... (منطق حساب الإحصائيات القديم) ...
+    // ========================================
+    // حساب الإحصائيات الأساسية
+    // ========================================
 
-    // ⭐️ منطق حساب GMB Health Score (GHS) و Bottlenecks
+    // 1. إجمالي المراجعات والتقييمات
+    const allTimeRatings = reviews.map(r => r.rating).filter(r => r && r > 0);
+    const allTimeAverageRating = allTimeRatings.length > 0 
+      ? parseFloat((allTimeRatings.reduce((sum, r) => sum + r, 0) / allTimeRatings.length).toFixed(2)) 
+      : 0;
+    const totalReviews = reviews.length;
+
+    // 2. فلترة المراجعات حسب الفترات الزمنية
+    const recentReviews = reviews.filter(r => {
+      const reviewDate = new Date(r.review_date || r.created_at);
+      return reviewDate >= thirtyDaysAgo;
+    });
+
+    const previousPeriodReviews = reviews.filter(r => {
+      const reviewDate = new Date(r.review_date || r.created_at);
+      return reviewDate >= sixtyDaysAgo && reviewDate < thirtyDaysAgo;
+    });
+
+    // 3. حساب متوسط التقييم للفترة الأخيرة (30 يوم)
+    const recentRatings = recentReviews.map(r => r.rating).filter(r => r && r > 0);
+    const recentAverageRating = recentRatings.length > 0
+      ? parseFloat((recentRatings.reduce((sum, r) => sum + r, 0) / recentRatings.length).toFixed(2))
+      : allTimeAverageRating;
+
+    // 4. حساب متوسط التقييم للفترة السابقة (30-60 يوم قبل)
+    const previousRatings = previousPeriodReviews.map(r => r.rating).filter(r => r && r > 0);
+    const previousAverageRating = previousRatings.length > 0
+      ? parseFloat((previousRatings.reduce((sum, r) => sum + r, 0) / previousRatings.length).toFixed(2))
+      : 0;
+
+    // 5. حساب Rating Trend (% تغيير)
+    const ratingTrend = previousAverageRating > 0
+      ? parseFloat((((recentAverageRating - previousAverageRating) / previousAverageRating) * 100).toFixed(2))
+      : 0;
+
+    // 6. حساب Reviews Trend (% تغيير في عدد المراجعات)
+    const reviewsTrend = previousPeriodReviews.length > 0
+      ? parseFloat((((recentReviews.length - previousPeriodReviews.length) / previousPeriodReviews.length) * 100).toFixed(2))
+      : 0;
+
+    // 7. حساب معدل الرد (Response Rate)
+    const reviewsWithReplies = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0);
+    const responseRate = totalReviews > 0 
+      ? parseFloat((reviewsWithReplies.length / totalReviews * 100).toFixed(2)) 
+      : 0;
+    const unansweredReviewCount = totalReviews - reviewsWithReplies.length;
+
+    // 8. حساب Locations Trend (% تغيير في عدد المواقع)
+    const recentLocations = activeLocationsData?.filter(loc => {
+      const createdDate = new Date(loc.created_at);
+      return createdDate >= thirtyDaysAgo;
+    }) || [];
+
+    const locationsTrend = recentLocations.length > 0
+      ? parseFloat(((recentLocations.length / totalLocations) * 100).toFixed(2))
+      : 0;
+
+    // ========================================
+    // حساب GMB Health Score و Bottlenecks
+    // ========================================
     const bottlenecks: Bottleneck[] = [];
     let score = 100;
 
-    // 1. حساب الإحصائيات (نقوم بتضمينها هنا لسهولة القراءة)
-    const allTimeRatings = reviews.map(r => r.rating).filter(r => r && r > 0);
-    const allTimeAverageRating = allTimeRatings.length > 0 ? parseFloat((allTimeRatings.reduce((sum, r) => sum + r, 0) / allTimeRatings.length).toFixed(2)) : 0;
-    const totalReviews = reviews.length;
-    const reviewsWithReplies = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0);
-    const responseRate = totalReviews > 0 ? parseFloat((reviewsWithReplies.length / totalReviews * 100).toFixed(2)) : 0;
-    const unansweredReviewCount = totalReviews - reviewsWithReplies.length;
-
     // 2. تقييم عنق الزجاجة (Bottlenecks)
 
-    // a. تقييم الردود (Response/Reviews)
+    // a. تقييم الردود (Reviews)
     if (unansweredReviewCount > 0) {
         score -= Math.min(20, unansweredReviewCount * 2);
         bottlenecks.push({
             type: 'Reviews',
             count: unansweredReviewCount,
-            message: `${unansweredReviewCount} new reviews are awaiting response.`,
-            link: '/dashboard/reviews',
-            severity: unansweredReviewCount > 10 ? 'high' : 'medium',
+            message: `${unansweredReviewCount} review${unansweredReviewCount > 1 ? 's' : ''} awaiting response.`,
+            link: '/reviews',
+            severity: unansweredReviewCount > 10 ? 'high' : unansweredReviewCount > 5 ? 'medium' : 'low',
         });
     }
 
-    // b. تقييم الأسئلة (Q&A)
+    // b. تقييم الأسئلة (Q&A) - جلب فعلي من قاعدة البيانات
+    const { data: unansweredQuestions } = await supabase
+        .from("gmb_questions")
+        .select("id")
+        .eq("user_id", userId)
+        .in("location_id", activeLocationIds)
+        .is("answer_text", null);
+    
+    const questionCount = unansweredQuestions?.length || 0;
+    
     if (questionCount > 0) {
         score -= Math.min(10, questionCount * 3);
         bottlenecks.push({
             type: 'Response',
             count: questionCount,
-            message: `${questionCount} customer questions need answering.`,
-            link: '/dashboard/questions',
-            severity: 'medium',
+            message: `${questionCount} customer question${questionCount > 1 ? 's' : ''} need answering.`,
+            link: '/questions',
+            severity: questionCount > 5 ? 'high' : 'medium',
         });
     }
 
     // c. تقييم الجودة (Quality - Rating)
-    if (allTimeAverageRating < 4.0 && totalReviews > 10) {
+    if (recentAverageRating < 4.0 && totalReviews > 10) {
         score -= 15;
         bottlenecks.push({
             type: 'General',
             count: 1,
-            message: `Average rating is below 4.0. Focus on service quality.`,
-            link: '/dashboard/analytics',
+            message: `Average rating (${recentAverageRating.toFixed(1)}) is below 4.0. Focus on service quality.`,
+            link: '/analytics',
             severity: 'high',
         });
     }
 
-    // d. تقييم الامتثال (Compliance - Sync)
+    // d. تقييم معدل الرد (Response Rate)
+    if (responseRate < 80 && totalReviews > 5) {
+        score -= 10;
+        bottlenecks.push({
+            type: 'Response',
+            count: 1,
+            message: `Response rate (${responseRate.toFixed(1)}%) is below target. Aim for 80%+.`,
+            link: '/reviews',
+            severity: 'medium',
+        });
+    }
+
+    // e. تقييم الامتثال (Compliance - Sync)
     if (activeAccount && activeAccount.last_sync) {
         const lastSyncTime = new Date(activeAccount.last_sync);
         const hoursSinceLastSync = (now.getTime() - lastSyncTime.getTime()) / (1000 * 60 * 60);
@@ -158,24 +222,32 @@ export async function GET(request: Request) {
                 type: 'Compliance',
                 count: 1,
                 message: `Data is stale. Last sync was ${Math.round(hoursSinceLastSync)} hours ago.`,
-                link: '/dashboard/settings',
-                severity: 'low',
+                link: '/settings',
+                severity: hoursSinceLastSync > 72 ? 'high' : 'low',
             });
         }
     }
 
-
     // 3. تحديد النتيجة النهائية (Health Score)
-    const healthScore = Math.max(0, Math.min(100, Math.round(score))); // حفظ النتيجة بين 0 و 100
+    const healthScore = Math.max(0, Math.min(100, Math.round(score)));
 
-    // ... (منطق حساب الإحصائيات المتبقية) ...
-    // هنا يجب أن تعيد حساب الإحصائيات المتبقية (reviewsTrend, ratingTrend, إلخ)
-
+    // ========================================
+    // إرجاع الإحصائيات النهائية
+    // ========================================
     const finalStats: ProcessedStats = {
-        totalLocations, locationsTrend: 0, recentAverageRating: 0, allTimeAverageRating, ratingTrend: 0,
-        totalReviews, reviewsTrend: 0, responseRate, 
+        totalLocations,
+        locationsTrend,
+        recentAverageRating,
+        allTimeAverageRating,
+        ratingTrend,
+        totalReviews,
+        reviewsTrend,
+        responseRate,
         healthScore,
-        bottlenecks: bottlenecks.sort((a, b) => (b.severity === 'high' ? 1 : b.severity === 'medium' ? 0 : -1)),
+        bottlenecks: bottlenecks.sort((a, b) => {
+            const severityOrder = { high: 3, medium: 2, low: 1 };
+            return severityOrder[b.severity] - severityOrder[a.severity];
+        }),
     };
 
     return NextResponse.json(finalStats);
