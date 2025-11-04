@@ -66,7 +66,9 @@ export function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
     >
       <Card className={cn(
         "bg-card border-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20",
@@ -98,6 +100,7 @@ export function StatCard({
                             ? "fill-warning text-warning"
                             : "fill-muted text-muted-foreground"
                         )}
+                        aria-label={`${star} star${star <= Math.round(ratingValue) ? ' filled' : ''}`}
                       />
                     ))}
                   </div>
@@ -114,10 +117,13 @@ export function StatCard({
               "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
               isEmpty && showEmptyState ? "bg-muted/20" : "bg-primary/20"
             )}>
-              <Icon className={cn(
-                "w-6 h-6",
-                isEmpty && showEmptyState ? "text-muted-foreground" : "text-primary"
-              )} />
+              <Icon 
+                className={cn(
+                  "w-6 h-6",
+                  isEmpty && showEmptyState ? "text-muted-foreground" : "text-primary"
+                )}
+                aria-label={`${title} icon`}
+              />
             </div>
           </div>
         </CardContent>

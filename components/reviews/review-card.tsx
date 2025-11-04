@@ -30,11 +30,11 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
   const getSentimentColor = (sentiment?: string) => {
     switch (sentiment) {
       case "positive":
-        return "bg-green-500/20 text-green-500 border-green-500/30"
+        return "bg-success/20 text-success border-success/30"
       case "negative":
-        return "bg-red-500/20 text-red-500 border-red-500/30"
+        return "bg-destructive/20 text-destructive border-destructive/30"
       default:
-        return "bg-gray-500/20 text-gray-500 border-gray-500/30"
+        return "bg-muted/20 text-muted-foreground border-muted/30"
     }
   }
 
@@ -74,17 +74,21 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }} 
-      animate={{ opacity: 1, scale: 1 }} 
-      transition={{ duration: 0.2, delay: index * 0.03 }}
-      whileHover={{ y: -4, scale: 1.02 }}
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
     >
-      <Card className="bg-card border-primary/30 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20">
+      <Card className="bg-card border-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
         <CardContent className="p-4 space-y-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.2 }}>
+              <motion.div 
+                whileHover={{ scale: 1.1, transition: { duration: 0.2 } }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Avatar className="h-10 w-10 border-2 border-primary/30">
                   <AvatarFallback className="bg-primary/20 text-primary font-semibold">
                     {review.reviewer_name.charAt(0).toUpperCase()}
@@ -100,10 +104,11 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                         key={i}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ duration: 0.2, delay: index * 0.03 + i * 0.05 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 + i * 0.05 }}
                       >
                         <Star
                           className={`w-4 h-4 ${i < review.rating ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                          aria-label={`${i + 1} star${i < review.rating ? ' filled' : ''}`}
                         />
                       </motion.div>
                     ))}
@@ -115,7 +120,10 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
               </div>
             </div>
             {review.ai_sentiment && (
-              <Badge className={`${getSentimentColor(review.ai_sentiment)} flex items-center gap-1 transition-all duration-200`}>
+              <Badge 
+                className={`${getSentimentColor(review.ai_sentiment)} flex items-center gap-1 transition-all duration-200`}
+                aria-label={`Review sentiment: ${review.ai_sentiment}`}
+              >
                 {getSentimentIcon(review.ai_sentiment)}
                 <span className="capitalize">{review.ai_sentiment}</span>
               </Badge>
@@ -131,12 +139,12 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
           {(review.ai_generated_response || review.ai_suggested_reply) && !(review.reply_text || review.review_reply) && (
             <motion.div 
               className="p-3 rounded-lg bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Sparkles className="w-4 h-4 text-primary" aria-label="AI suggestion icon" />
                 <span className="text-xs font-medium text-primary">AI Suggested Response</span>
               </div>
               <p className="text-xs text-foreground/80">{review.ai_generated_response || review.ai_suggested_reply}</p>
@@ -164,15 +172,17 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                   size="sm"
                   variant="outline"
                   onClick={() => onGenerateResponse(review.id)}
-                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0"
+                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+                  aria-label="Generate AI response for this review"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-2" aria-hidden="true" />
                   Generate AI Response
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => onReply(review.id)}
-                  className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0"
+                  className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+                  aria-label="Reply to this review"
                 >
                   Reply
                 </Button>
@@ -183,7 +193,8 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                   size="sm"
                   variant="outline"
                   onClick={() => onReply(review.id)}
-                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105"
+                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+                  aria-label="Edit reply to this review"
                 >
                   Edit Reply
                 </Button>
