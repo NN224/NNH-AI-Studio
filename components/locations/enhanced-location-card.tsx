@@ -33,18 +33,32 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
       try {
         setLoadingImages(true);
         
-        // Fetch cover image
-        const coverRes = await fetch(`/api/locations/${location.id}/cover`);
-        if (coverRes.ok) {
-          const coverData = await coverRes.json();
-          setCoverUrl(coverData.url);
+        // Fetch cover image (silently fail if not found)
+        try {
+          const coverRes = await fetch(`/api/locations/${location.id}/cover`);
+          if (coverRes.ok) {
+            const coverData = await coverRes.json();
+            if (coverData.url) {
+              setCoverUrl(coverData.url);
+            }
+          }
+        } catch (err) {
+          // Silently fail for cover - will show gradient fallback
+          console.debug('No cover image available');
         }
 
-        // Fetch logo image
-        const logoRes = await fetch(`/api/locations/${location.id}/logo`);
-        if (logoRes.ok) {
-          const logoData = await logoRes.json();
-          setLogoUrl(logoData.url);
+        // Fetch logo image (silently fail if not found)
+        try {
+          const logoRes = await fetch(`/api/locations/${location.id}/logo`);
+          if (logoRes.ok) {
+            const logoData = await logoRes.json();
+            if (logoData.url) {
+              setLogoUrl(logoData.url);
+            }
+          }
+        } catch (err) {
+          // Silently fail for logo - will show icon fallback
+          console.debug('No logo available');
         }
       } catch (error) {
         console.error('Failed to fetch images:', error);
@@ -71,7 +85,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
   const reviewCount = location.reviewCount || 0;
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 glass-strong">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 glass-strong relative">
       {/* Cover Image Section */}
       <div className="relative h-32 overflow-hidden rounded-t-lg">
         {loadingImages ? (
@@ -86,23 +100,23 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
           // Gradient fallback if no cover image
           <div className="absolute inset-0 gradient-orange opacity-80" />
         )}
-      </div>
-
-      {/* Logo positioned over cover image */}
-      <div className="absolute left-6 top-24 z-10">
-        <div className="w-24 h-24 rounded-lg border-4 border-background bg-muted flex items-center justify-center overflow-hidden">
-          {loadingImages ? (
-            <Skeleton className="w-full h-full rounded-lg" />
-          ) : logoUrl ? (
-            <img 
-              src={logoUrl} 
-              alt={location.name || 'Logo'} 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            // Fallback icon if no logo
-            <MapPin className="w-10 h-10 text-muted-foreground" />
-          )}
+        
+        {/* Logo positioned over cover image */}
+        <div className="absolute left-6 -bottom-12 z-10">
+          <div className="w-24 h-24 rounded-lg border-4 border-background bg-muted flex items-center justify-center overflow-hidden">
+            {loadingImages ? (
+              <Skeleton className="w-full h-full rounded-lg" />
+            ) : logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={location.name || 'Logo'} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              // Fallback icon if no logo
+              <MapPin className="w-10 h-10 text-muted-foreground" />
+            )}
+          </div>
         </div>
       </div>
 
@@ -201,7 +215,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
               onClick={() => onEdit?.(location.id)}
             >
               <Edit3 className="w-4 h-4 mr-2" />
-              {t('card.edit')}
+              {t('card.editLocation')}
             </Button>
           </div>
         </div>
@@ -213,14 +227,14 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
 // Skeleton for loading state
 export const EnhancedLocationCardSkeleton = () => {
   return (
-    <Card className="overflow-hidden glass-strong">
+    <Card className="overflow-hidden glass-strong relative">
       <div className="relative h-32 bg-muted animate-pulse" />
       <CardContent className="pt-16 pb-6">
         <div className="space-y-4">
           <div className="h-6 bg-muted rounded animate-pulse" />
           <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
           <div className="h-4 bg-muted rounded w-1/2 animate-pulse" />
-          <div className="grid grid-cols-4 gap-3 pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-12 bg-muted rounded animate-pulse" />
             ))}

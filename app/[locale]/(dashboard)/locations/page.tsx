@@ -25,8 +25,7 @@ import {
   Location as LocationType, 
   formatLargeNumber
 } from '@/components/locations/location-types';
-import { LocationCardSkeleton } from '@/components/locations/lazy-locations-components';
-import { EnhancedLocationCard } from '@/components/locations/enhanced-location-card';
+import { EnhancedLocationCard, EnhancedLocationCardSkeleton } from '@/components/locations/enhanced-location-card';
 import { LocationsStats } from '@/components/locations/locations-stats';
 import { LocationsFilters } from '@/components/locations/locations-filters';
 import { GMBConnectionBanner, EmptyLocationsState } from '@/components/locations/gmb-connection-banner';
@@ -213,7 +212,7 @@ export default function LocationsPage() {
           'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
         }`}>
           {Array.from({ length: 6 }, (_, i) => (
-            <LocationCardSkeleton key={i} />
+            <EnhancedLocationCardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -341,7 +340,7 @@ export default function LocationsPage() {
             'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           }`}>
             {Array.from({ length: 6 }, (_, i) => (
-              <LocationCardSkeleton key={i} />
+              <EnhancedLocationCardSkeleton key={i} />
             ))}
           </div>
         ) : (

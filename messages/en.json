@@ -414,6 +414,7 @@
       "calls": "Calls",
       "directions": "Directions",
       "healthScore": "Health Score",
+      "reviews": "Reviews",
       "attributesMore": "+{count} more",
       "lastSync": "Last sync"
     },
