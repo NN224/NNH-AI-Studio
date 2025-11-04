@@ -8,7 +8,7 @@ import { Target, Sparkles, MessageSquare, TrendingUp, Calendar, MapPin, CheckCir
 import { motion } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
-import Link from "next/link"
+import { Link } from "@/lib/navigation"
 
 interface Recommendation {
   id: string
@@ -162,7 +162,7 @@ export function BusinessRecommendations() {
             title: "Create Your First Post",
             description: "Posts help keep your business visible and engage with customers. Share updates, offers, or events.",
             action: "Create Post",
-            actionLink: "/dashboard/posts",
+            actionLink: "/posts",
             category: "Content",
           })
         } else if (recentPosts < 2) {
@@ -173,7 +173,7 @@ export function BusinessRecommendations() {
             title: "Post More Regularly",
             description: `You've posted ${recentPosts} times in the last 30 days. Regular posts (weekly) improve visibility and engagement.`,
             action: "Create Post",
-            actionLink: "/dashboard/posts",
+            actionLink: "/posts",
             category: "Content",
           })
         }
@@ -194,7 +194,7 @@ export function BusinessRecommendations() {
             title: "Respond to Unanswered Reviews",
             description: `You have ${unrespondedReviews} review${unrespondedReviews > 1 ? "s" : ""} without responses. Quick responses show you care and improve ratings.`,
             action: "View Reviews",
-            actionLink: "/dashboard/reviews",
+            actionLink: "/reviews",
             category: "Engagement",
           })
         }
@@ -212,7 +212,7 @@ export function BusinessRecommendations() {
             title: "Address Negative Reviews",
             description: `${negativeUnresponded} negative review${negativeUnresponded > 1 ? "s" : ""} need your attention. Professional responses can turn unhappy customers around.`,
             action: "Respond Now",
-            actionLink: "/dashboard/reviews",
+            actionLink: "/reviews",
             category: "Reputation",
           })
         }
@@ -231,7 +231,7 @@ export function BusinessRecommendations() {
             title: "Optimize Business Categories",
             description: "Ensure each location has the most relevant primary category to improve search visibility.",
             action: "Update Categories",
-            actionLink: "/dashboard/locations",
+            actionLink: "/locations",
             category: "SEO",
           })
         }
@@ -273,7 +273,7 @@ export function BusinessRecommendations() {
             title: "Impressions Declining",
             description: `Your impressions dropped by ${declinePercent}% compared to last month. Consider posting more frequently and optimizing your profile.`,
             action: "View Analytics",
-            actionLink: "/dashboard/analytics",
+            actionLink: "/analytics",
             category: "Performance",
           })
         }
@@ -295,7 +295,7 @@ export function BusinessRecommendations() {
             title: "Click-Through Rate Dropping",
             description: "Your click-through rate has decreased. Ensure your business profile is complete and engaging.",
             action: "Optimize Profile",
-            actionLink: "/dashboard/locations",
+            actionLink: "/locations",
             category: "Performance",
           })
         }
@@ -311,7 +311,7 @@ export function BusinessRecommendations() {
               title: "Improve Conversion Rate",
               description: `Your conversion rate is ${conversionRate.toFixed(1)}%. Optimize your profile, add more photos, and ensure your hours and contact info are up to date.`,
               action: "Update Profile",
-              actionLink: "/dashboard/locations",
+              actionLink: "/locations",
               category: "Performance",
             })
           }
@@ -340,7 +340,7 @@ export function BusinessRecommendations() {
               title: "Optimize for Search Keywords",
               description: `Your top search keywords have low impressions. Consider optimizing your business profile with relevant keywords and creating content around these terms: ${keywordNames}.`,
               action: "View Keywords",
-              actionLink: "/dashboard/analytics",
+              actionLink: "/analytics",
               category: "SEO",
             })
           }
@@ -387,7 +387,7 @@ export function BusinessRecommendations() {
                 title: "Location Performance Gap",
                 description: `${lowLocation.location_name} has significantly lower impressions than your best-performing location. Consider optimizing its profile or location-specific content.`,
                 action: "View Location",
-                actionLink: `/dashboard/locations`,
+                actionLink: `/locations`,
                 category: "Performance",
               })
             }
@@ -406,7 +406,7 @@ export function BusinessRecommendations() {
           title: "Create Holiday-Themed Posts",
           description: "Holiday posts attract more attention and engagement. Share special offers or seasonal greetings.",
           action: "Create Post",
-          actionLink: "/dashboard/posts",
+          actionLink: "/posts",
           category: "Content",
         })
       }

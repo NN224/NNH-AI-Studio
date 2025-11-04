@@ -281,6 +281,15 @@
   "Dashboard": {
     "title": "GMB Dashboard",
     "subtitle": "Manage your business",
+    "connectionBanner": {
+      "title": "Connect Your Google My Business Account",
+      "description": "Link your GMB account to unlock powerful features: manage locations, respond to reviews with AI, track analytics, and boost your local SEO—all from one dashboard.",
+      "benefit1": "AI-Powered Review Replies",
+      "benefit2": "Real-time Analytics",
+      "benefit3": "Multi-Location Management",
+      "connectButton": "Connect GMB Account",
+      "learnMore": "Learn More"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "locations": "Locations",

@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { EditLocationDialog } from "./edit-location-dialog"
 import { LocationAttributesDialog } from "./location-attributes-dialog"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
+import { Link } from "@/lib/navigation"
 
 interface LocationProfileEnhancedProps {
   location: GMBLocation
@@ -477,7 +477,7 @@ export function LocationProfileEnhanced({ location, onRefresh }: LocationProfile
                     className="w-full justify-start"
                     variant="outline"
                   >
-                    <Link href={`/dashboard/reviews?location=${location.id}`}>
+                    <Link href={`/reviews?location=${location.id}`}>
                       <MessageSquare className="w-4 h-4 mr-2" />
                       View Reviews
                     </Link>

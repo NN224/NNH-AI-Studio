@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/lib/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -292,10 +293,10 @@ export function WeeklyTasksWidget() {
 
         {totalTasks > 0 && (
           <Button variant="outline" className="w-full" asChild>
-            <a href="/dashboard/tasks">
+            <Link href="/dashboard">
               View All Tasks
               <ChevronRight className="ml-2 h-4 w-4" />
-            </a>
+            </Link>
           </Button>
         )}
       </CardContent>

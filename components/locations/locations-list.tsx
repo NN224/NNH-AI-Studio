@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import { LocationCard } from "./location-card"
 import { LocationProfileEnhanced } from "./location-profile-enhanced"
 import { LocationFilters } from "./location-filters"
@@ -377,7 +377,7 @@ export function LocationsList() {
         <Button
           variant="ghost"
           onClick={() => {
-            router.push('/dashboard/locations')
+            router.push('/locations')
             setViewLocation(null)
           }}
           className="mb-4"

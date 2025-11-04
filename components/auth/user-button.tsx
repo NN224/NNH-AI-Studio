@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { LogOut, Settings, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
@@ -82,11 +82,11 @@ export function UserButton() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
+        <DropdownMenuItem onClick={() => router.push('/settings')}>
           <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+        <DropdownMenuItem onClick={() => router.push('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>

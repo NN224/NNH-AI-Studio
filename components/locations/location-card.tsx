@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
 import { Eye, MessageSquare, MapPin, Phone, Globe, Sparkles, Maximize2, ExternalLink, Clock, Info, AlertCircle, CheckCircle2, Utensils, MessageCircle, Edit, Settings } from "lucide-react"
 import type { GMBLocation } from "@/lib/types/database"
-import Link from "next/link"
+import { Link } from "@/lib/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { EditLocationDialog } from "./edit-location-dialog"
 import { LocationAttributesDialog } from "./location-attributes-dialog"
@@ -459,7 +459,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 variant="ghost"
                 className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground"
               >
-                <Link href={`/dashboard/locations?location=${location.id}`}>
+                <Link href={`/locations?location=${location.id}`}>
                   <Eye className="w-4 h-4 mr-2" />
                   View Profile
                 </Link>
@@ -470,7 +470,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 variant="ghost"
                 className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground"
               >
-                <Link href={`/dashboard/reviews?location=${location.id}`}>
+                <Link href={`/reviews?location=${location.id}`}>
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Reviews
                 </Link>

@@ -1,6 +1,5 @@
 import createMiddleware from 'next-intl/middleware';
 import { updateSession } from "@/lib/supabase/middleware"
-import type { NextRequest } from "next/server"
 import { locales } from './i18n';
 
 const intlMiddleware = createMiddleware({
@@ -9,8 +8,9 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always'
 });
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: any) {
   const response = intlMiddleware(request);
+  // @ts-ignore - Type conflict between next-intl and supabase middleware
   return await updateSession(request, response);
 }
 

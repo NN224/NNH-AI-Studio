@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { Link } from '@/lib/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Home, ArrowLeft, Search } from 'lucide-react'
@@ -59,9 +59,9 @@ export default function NotFound() {
               {[
                 { label: 'Dashboard', href: '/dashboard' },
                 { label: 'YouTube Dashboard', href: '/youtube-dashboard' },
-                { label: 'GMB Posts', href: '/dashboard/posts' },
+                { label: 'GMB Posts', href: '/posts' },
                 { label: 'YouTube Posts', href: '/youtube-posts' },
-                { label: 'Analytics', href: '/dashboard/analytics' },
+                { label: 'Analytics', href: '/analytics' },
                 { label: 'About', href: '/about' },
               ].map((link) => (
                 <Link

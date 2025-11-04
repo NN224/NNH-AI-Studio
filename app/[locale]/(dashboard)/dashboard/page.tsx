@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigationShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -66,72 +67,79 @@ interface DashboardStats {
   }>;
 }
 
-// GMB Setup Prompt
-const GMBSetupPrompt = () => {
+// GMB Connection Banner - Prominent CTA when not connected
+const GMBConnectionBanner = () => {
+  const t = useTranslations('Dashboard.connectionBanner');
+  
   return (
-    <Card className="lg:col-span-4 border-2 border-dashed border-primary/50 bg-primary/10">
-      <CardContent className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <MapPin className="w-6 h-6 text-primary" />
+    <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
+      <CardContent className="p-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
+          {/* Icon and Title */}
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
+              <MapPin className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">
+                {t('title')}
+              </h2>
+              <p className="text-muted-foreground text-base max-w-2xl">
+                {t('description')}
+              </p>
+              
+              {/* Benefits Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-sm text-foreground">{t('benefit1')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-sm text-foreground">{t('benefit2')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-sm text-foreground">{t('benefit3')}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">Connect Google My Business</h3>
-            <p className="text-sm text-muted-foreground">Sync your locations, reviews, and analytics data.</p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:flex-shrink-0">
+            <Button asChild size="lg" className="gap-2 gradient-orange min-w-[200px]">
+              <Link href="/settings">
+                <Zap className="w-5 h-5" />
+                {t('connectButton')}
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2 min-w-[200px]">
+              <a 
+                href="https://business.google.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Star className="w-5 h-5" />
+                {t('learnMore')}
+              </a>
+            </Button>
           </div>
         </div>
-        <Button asChild size="lg" className="gap-2 flex-shrink-0">
-          <Link href="/settings"> 
-            <Zap className="w-5 h-5" />
-            Start Setup
-          </Link>
-        </Button>
       </CardContent>
     </Card>
   );
 };
 
-// Profile Protection Status
-const ProfileProtectionStatus = ({ loading }: { loading: boolean }) => {
-  const [protectionData, setProtectionData] = useState<{
-    enabled: boolean;
-    locationsProtected: number;
-    totalLocations: number;
-    recentAlerts: number;
-    lastCheck: Date | null;
-  } | null>(null);
+// Profile Protection Status - Using local data
+const ProfileProtectionStatus = ({ loading, stats }: { loading: boolean; stats: DashboardStats }) => {
+  // Calculate protection status based on health score
+  const enabled = (stats.healthScore || 0) >= 70;
+  const locationsProtected = enabled ? stats.totalLocations : 0;
+  const recentAlerts = stats.pendingReviews > 5 || stats.unansweredQuestions > 3 ? 1 : 0;
 
-  useEffect(() => {
-    const fetchProtectionStatus = async () => {
-      try {
-        const response = await fetch('/api/profile-protection/status');
-        if (response.ok) {
-          const data = await response.json();
-          setProtectionData({
-            enabled: data.enabled || false,
-            locationsProtected: data.locationsProtected || 0,
-            totalLocations: data.totalLocations || 0,
-            recentAlerts: data.recentAlerts || 0,
-            lastCheck: data.lastCheck ? new Date(data.lastCheck) : null
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch protection status:', error);
-        // Set default values on error
-        setProtectionData({
-          enabled: false,
-          locationsProtected: 0,
-          totalLocations: 0,
-          recentAlerts: 0,
-          lastCheck: null
-        });
-      }
-    };
-
-    fetchProtectionStatus();
-  }, []);
-
-  if (loading || !protectionData) {
+  if (loading) {
     return (
       <Card className="border-l-4 border-l-gray-300">
         <CardContent className="p-4 flex items-center justify-center">
@@ -143,57 +151,55 @@ const ProfileProtectionStatus = ({ loading }: { loading: boolean }) => {
 
   return (
     <Card className={cn("border-l-4", 
-      protectionData.enabled ? "border-l-green-500" : "border-l-yellow-500"
+      enabled ? "border-l-green-500" : "border-l-yellow-500"
     )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Profile Protection</CardTitle>
         <ShieldCheck className={cn("w-4 h-4", 
-          protectionData.enabled ? "text-green-500" : "text-yellow-500"
+          enabled ? "text-green-500" : "text-yellow-500"
         )} />
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <span className={cn("text-2xl font-bold", 
-            protectionData.enabled ? "text-green-600" : "text-yellow-600"
+            enabled ? "text-green-600" : "text-yellow-600"
           )}>
-            {protectionData.locationsProtected}/{protectionData.totalLocations}
+            {locationsProtected}/{stats.totalLocations}
           </span>
           <div className={cn("px-2 py-1 text-xs border rounded", 
-            protectionData.enabled 
+            enabled 
               ? "bg-green-50 text-green-700 border-green-200"
               : "bg-yellow-50 text-yellow-700 border-yellow-200"
           )}>
-            {protectionData.enabled ? 'Active' : 'Inactive'}
+            {enabled ? 'Active' : 'Inactive'}
           </div>
         </div>
 
         <div className="space-y-2">
-          {protectionData.enabled ? (
+          {enabled ? (
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle className="w-3 h-3 text-green-500" />
-              <span className="text-muted-foreground">All locations monitored</span>
+              <span className="text-muted-foreground">Health score above threshold</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-xs">
               <AlertTriangle className="w-3 h-3 text-yellow-500" />
-              <span className="text-muted-foreground">Protection disabled</span>
+              <span className="text-muted-foreground">Improve health score to activate</span>
             </div>
           )}
 
-          {protectionData.recentAlerts > 0 && (
+          {recentAlerts > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <AlertTriangle className="w-3 h-3 text-yellow-500" />
               <span className="text-muted-foreground">
-                {protectionData.recentAlerts} alert{protectionData.recentAlerts > 1 ? 's' : ''} this week
+                Pending items need attention
               </span>
             </div>
           )}
 
-          {protectionData.lastCheck && (
-            <div className="text-xs text-muted-foreground">
-              Last check: {protectionData.lastCheck.toLocaleTimeString()}
-            </div>
-          )}
+          <div className="text-xs text-muted-foreground">
+            Based on GMB Health Score: {stats.healthScore}%
+          </div>
         </div>
 
         <Button asChild size="sm" variant="outline" className="w-full">
@@ -207,38 +213,12 @@ const ProfileProtectionStatus = ({ loading }: { loading: boolean }) => {
   );
 };
 
-// Active Location Info
+// Active Location Info - Using stats data
 const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: DashboardStats }) => {
-  const [activeLocation, setActiveLocation] = useState<{
-    name: string;
-    rating: number;
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchActiveLocation = async () => {
-      try {
-        const response = await fetch('/api/locations/active');
-        if (response.ok) {
-          const data = await response.json();
-          setActiveLocation({
-            name: data.name || 'Unknown Location',
-            rating: data.rating || 0
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch active location:', error);
-        // Set default values on error
-        setActiveLocation({
-          name: 'Default Location',
-          rating: 0
-        });
-      }
-    };
-
-    if (stats.totalLocations > 0) {
-      fetchActiveLocation();
-    }
-  }, [stats.totalLocations]);
+  // Get best location from highlights if available
+  const bestLocation = stats.locationHighlights?.find(loc => loc.category === 'top');
+  const locationName = bestLocation?.name || 'Primary Location';
+  const locationRating = bestLocation?.rating || stats.averageRating || stats.allTimeAverageRating || 0;
 
   if (loading) {
     return (
@@ -247,8 +227,6 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
       </Card>
     );
   }
-
-  const safeRating = activeLocation?.rating || stats.allTimeAverageRating || 0;
 
   return (
     <Card className="lg:col-span-1 border border-primary/20">
@@ -260,13 +238,13 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
         <h3 className="text-xl font-bold truncate">
           {stats.totalLocations === 0 
             ? "No Locations" 
-            : activeLocation?.name || "Loading..."
+            : locationName
           }
         </h3>
         {stats.totalLocations > 0 && (
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-            {safeRating.toFixed(1)} / 5.0 Rating
+            {locationRating.toFixed(1)} / 5.0 Rating
           </p>
         )}
         {stats.totalLocations > 1 && (
@@ -278,6 +256,31 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
     </Card>
   );
 };
+
+// Health Score Card with safe defaults
+const HealthScoreCard = ({ loading, healthScore }: { loading: boolean; healthScore: number }) => (
+  <Card className={cn("lg:col-span-1 border-l-4", 
+    healthScore > 80 ? 'border-green-500' : 
+    healthScore > 60 ? 'border-yellow-500' : 'border-red-500'
+  )}>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">GMB Health Score</CardTitle>
+      <ShieldCheck className="w-4 h-4 text-primary" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-4xl font-bold">
+        {loading ? (
+          <Loader2 className="w-6 h-6 animate-spin" />
+        ) : (
+          `${healthScore}%`
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        Score based on Quality, Visibility, and Compliance.
+      </p>
+    </CardContent>
+  </Card>
+);
 
 export default function DashboardPage() {
   useNavigationShortcuts();
@@ -514,31 +517,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Health Score Card with safe defaults
-  const HealthScoreCard = () => (
-    <Card className={cn("lg:col-span-1 border-l-4", 
-      (stats.healthScore || 0) > 80 ? 'border-green-500' : 
-      (stats.healthScore || 0) > 60 ? 'border-yellow-500' : 'border-red-500'
-    )}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">GMB Health Score</CardTitle>
-        <ShieldCheck className="w-4 h-4 text-primary" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-4xl font-bold">
-          {loading ? (
-            <Loader2 className="w-6 h-6 animate-spin" />
-          ) : (
-            `${(stats.healthScore || 0)}%`
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Score based on Quality, Visibility, and Compliance.
-        </p>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <div className="space-y-8" data-print-root>
       <div className="flex items-center justify-between">
@@ -596,8 +574,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* GMB Setup Prompt */}
-      {!gmbConnected && <GMBSetupPrompt />}
+      {/* GMB Connection Banner - Show when not connected */}
+      {!gmbConnected && <GMBConnectionBanner />}
 
       {/* Quick Actions Bar - Only show when connected */}
       {gmbConnected && (
@@ -611,7 +589,7 @@ export default function DashboardPage() {
 
       {/* Health Score and Stats */}
       <div className="grid gap-4 lg:grid-cols-5">
-        <HealthScoreCard />
+        <HealthScoreCard loading={loading} healthScore={stats.healthScore || 0} />
         <div className="lg:col-span-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCards loading={loading} data={stats} />
         </div>
@@ -622,7 +600,7 @@ export default function DashboardPage() {
         <WeeklyTasksWidget />
 
         <div className="space-y-4">
-          <ProfileProtectionStatus loading={loading} />
+          <ProfileProtectionStatus loading={loading} stats={stats} />
           
           {/* Bottlenecks Widget - يعرض المشاكل والفرص */}
           <BottlenecksWidget 

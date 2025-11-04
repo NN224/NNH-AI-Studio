@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/lib/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -334,7 +334,7 @@ Manage and monitor all your business locations
 {syncing ? 'Syncing...' : 'Sync All'}
 </Button>
 {/* ⭐️ زر التبديل إلى Map View ⭐️ */}
-<Button onClick={() => router.push('/dashboard/locations')} variant="secondary">
+<Button onClick={() => router.push('/locations')} variant="secondary">
 <Layers className="w-4 h-4 mr-2" />
 Map View
 </Button>

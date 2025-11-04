@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, Lightbulb, TrendingUp, AlertCircle, ChevronRight, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
-import Link from "next/link"
+import { Link } from "@/lib/navigation"
 
 interface QuickInsight {
   id: string
@@ -190,7 +190,7 @@ export function AIInsightsWidget() {
               <CardDescription className="text-xs">Personalized recommendations for your business</CardDescription>
             </div>
           </div>
-          <Link href="/dashboard/analytics">
+          <Link href="/analytics">
             <Button variant="ghost" size="sm" className="text-xs">
               View All
               <ChevronRight className="h-3 w-3 ml-1" />

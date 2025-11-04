@@ -32,6 +32,7 @@ export function GMBSettings() {
   const [syncSchedule, setSyncSchedule] = useState<string>('manual')
   const [syncSettings, setSyncSettings] = useState<any>({})
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
+  const [syncingAll, setSyncingAll] = useState(false)
 
   // Check GMB connection status
   useEffect(() => {
@@ -175,6 +176,42 @@ export function GMBSettings() {
     }
   }
 
+  const handleSyncAll = async () => {
+    try {
+      setSyncingAll(true)
+      const active = (gmbAccounts || []).filter((a: any) => a && a.is_active)
+      if (active.length === 0) {
+        toast.error('No active accounts to sync')
+        return
+      }
+      for (const acc of active) {
+        const res = await fetch('/api/gmb/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accountId: acc.id, syncType: 'incremental' })
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data?.error || 'Failed to sync')
+        }
+      }
+      toast.success('Sync completed')
+      // refresh last_sync
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: accounts } = await supabase
+          .from('gmb_accounts')
+          .select('id, account_name, is_active, last_sync, settings')
+          .eq('user_id', user.id)
+        setGmbAccounts(accounts || [])
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Sync failed')
+    } finally {
+      setSyncingAll(false)
+    }
+  }
+
   const handleConnectGMB = async () => {
     try {
       const response = await fetch('/api/gmb/create-auth-url', {
@@ -209,7 +246,82 @@ export function GMBSettings() {
         <p className="text-muted-foreground">Manage your Google My Business integration settings</p>
       </div>
 
-      {/* Settings Tabs */}
+      {/* Connection Banner - prominent CTA */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center justify-between gap-3">
+            <span className="text-lg">Google My Business Connection</span>
+            <div className="flex items-center gap-2">
+              {loading ? (
+                <Badge variant="secondary" className="bg-secondary text-muted-foreground">
+                  <Clock className="h-3 w-3 mr-1 animate-spin" /> Checking...
+                </Badge>
+              ) : gmbConnected ? (
+                <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/30">
+                  <Link2 className="h-3 w-3 mr-1" /> Connected
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-orange-500/20 text-orange-500 border-orange-500/30">
+                  <AlertTriangle className="h-3 w-3 mr-1" /> Not Connected
+                </Badge>
+              )}
+            </div>
+          </CardTitle>
+          <CardDescription>
+            {gmbConnected
+              ? 'Your account is connected. You can sync data, re-authenticate, or disconnect.'
+              : 'Connect your Google My Business to sync locations, reviews, and insights.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {gmbConnected ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleSyncAll}
+                disabled={syncingAll}
+                className="sm:w-auto w-full"
+                variant="outline"
+              >
+                {syncingAll ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" /> Syncing...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" /> Sync Now
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handleConnectGMB}
+                className="sm:w-auto w-full"
+                variant="outline"
+              >
+                <Key className="h-4 w-4 mr-2" /> Re-authenticate
+              </Button>
+              <Button 
+                onClick={() => setShowDisconnectDialog(true)}
+                className="sm:w-auto w-full"
+                variant="destructive"
+              >
+                <Unlink className="h-4 w-4 mr-2" /> Disconnect
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent text-white"
+                onClick={handleConnectGMB}
+              >
+                <Link2 className="h-4 w-4 mr-2" /> Connect Google My Business
+              </Button>
+              <p className="text-xs text-muted-foreground sm:self-center">Required scopes will be requested from Google</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+  {/* Settings Tabs */}
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 bg-secondary/50">
           <TabsTrigger value="general" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
