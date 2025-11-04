@@ -3,9 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "sonner"
-import dynamic from 'next/dynamic'
-
-const LanguageSwitcher = dynamic(() => import('@/components/ui/LanguageSwitcher'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -46,7 +43,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <LanguageSwitcher />
         {children}
         <Toaster position="top-right" richColors closeButton />
       </body>
