@@ -164,7 +164,7 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                   size="sm"
                   variant="outline"
                   onClick={() => onGenerateResponse(review.id)}
-                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105"
+                  className="flex-1 border-primary/30 text-foreground hover:bg-primary/20 transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Generate AI Response
@@ -172,7 +172,7 @@ export function ReviewCard({ review, onGenerateResponse, onReply, index = 0 }: R
                 <Button
                   size="sm"
                   onClick={() => onReply(review.id)}
-                  className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-200 hover:scale-105"
+                  className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-200 hover:scale-105 h-11 md:h-9 min-h-[44px] md:min-h-0"
                 >
                   Reply
                 </Button>

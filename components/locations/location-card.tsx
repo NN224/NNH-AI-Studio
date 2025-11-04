@@ -457,7 +457,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 asChild
                 size="sm"
                 variant="ghost"
-                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground"
+                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
               >
                 <Link href={`/locations?location=${location.id}`}>
                   <Eye className="w-4 h-4 mr-2" />
@@ -468,7 +468,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 asChild
                 size="sm"
                 variant="ghost"
-                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground"
+                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
               >
                 <Link href={`/reviews?location=${location.id}`}>
                   <MessageSquare className="w-4 h-4 mr-2" />
@@ -478,7 +478,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground"
+                className="flex-1 bg-secondary hover:bg-primary/20 border border-primary/30 text-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
                 onClick={() => setEditOpen(true)}
               >
                 <Edit className="w-4 h-4 mr-2" />

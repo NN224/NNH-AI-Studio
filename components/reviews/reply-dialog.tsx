@@ -158,7 +158,7 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[600px]">
+      <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
           <DialogTitle className="text-foreground">
             {review && (review.reply_text || review.review_reply) ? 'Edit Reply' : 'Reply to Review'}
@@ -179,7 +179,7 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Write your response..."
-                className="bg-secondary border-primary/30 text-foreground resize-none min-h-[150px]"
+                className="w-full bg-secondary border-primary/30 text-foreground resize-none min-h-[150px] p-3 md:p-2"
                 required
               />
             </div>
@@ -188,7 +188,7 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
               variant="outline"
               onClick={handleGenerateAI}
               disabled={generating}
-              className="w-full border-primary/30 text-foreground hover:bg-primary/20 bg-transparent"
+              className="w-full border-primary/30 text-foreground hover:bg-primary/20 bg-transparent h-11 md:h-9 min-h-[44px] md:min-h-0"
             >
               {generating ? (
                 <>
@@ -203,19 +203,19 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
               )}
             </Button>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 pb-safe sm:pb-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-primary/30 text-muted-foreground"
+              className="w-full sm:w-auto border-primary/30 text-muted-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading || !reply.trim()}
-              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white h-11 md:h-9 min-h-[44px] md:min-h-0"
             >
               {loading ? (
                 <>

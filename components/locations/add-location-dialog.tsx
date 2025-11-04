@@ -131,7 +131,7 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
           Search Google
         </Button>
       </div>
-      <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[500px]">
+      <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Add New Location</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -149,7 +149,7 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
                 required
                 value={formData.location_name}
                 onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
-                className="bg-secondary border-primary/30 text-foreground"
+                className="w-full bg-secondary border-primary/30 text-foreground p-3 md:p-2 h-11 md:h-9 min-h-[44px] md:min-h-0"
                 placeholder="My Business Location"
               />
             </div>
@@ -161,7 +161,7 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
                 id="address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="bg-secondary border-primary/30 text-foreground resize-none"
+                className="w-full bg-secondary border-primary/30 text-foreground resize-none p-3 md:p-2 min-h-[44px]"
                 placeholder="123 Main St, City, State 12345"
                 rows={2}
               />
@@ -176,7 +176,7 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="bg-secondary border-primary/30 text-foreground"
+                  className="w-full bg-secondary border-primary/30 text-foreground p-3 md:p-2 h-11 md:h-9 min-h-[44px] md:min-h-0"
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -196,7 +196,7 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
                   }}
                   disabled={loadingCategories}
                 >
-                  <SelectTrigger className="w-full bg-secondary border-primary/30 text-foreground">
+                  <SelectTrigger className="w-full bg-secondary border-primary/30 text-foreground h-11 md:h-9 min-h-[44px] md:min-h-0 p-3 md:p-2">
                     <SelectValue placeholder={loadingCategories ? "Loading..." : "Select category..."} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
@@ -218,24 +218,24 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
                 type="url"
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                className="bg-secondary border-primary/30 text-foreground"
+                className="w-full bg-secondary border-primary/30 text-foreground p-3 md:p-2 h-11 md:h-9 min-h-[44px] md:min-h-0"
                 placeholder="https://example.com"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 pb-safe sm:pb-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              className="border-primary/30 text-muted-foreground"
+              className="w-full sm:w-auto border-primary/30 text-muted-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white h-11 md:h-9 min-h-[44px] md:min-h-0"
             >
               {loading ? (
                 <>
