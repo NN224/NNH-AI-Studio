@@ -362,7 +362,7 @@
       "mapView": "عرض الخريطة",
       "addLocation": "إضافة موقع",
       "retry": "إعادة المحاولة",
-      "reviews": "التقييمات",
+      "reviews": "المراجعات",
       "insights": "الإحصائيات",
       "edit": "تعديل"
     },
@@ -419,7 +419,14 @@
     },
     "card": {
       "reviews": "التقييمات",
-      "insights": "الإحصائيات"
+      "insights": "الإحصائيات",
+      "viewInsights": "عرض الإحصائيات",
+      "editLocation": "تعديل الموقع",
+      "healthScore": "نقاط الصحة",
+      "views": "المشاهدات",
+      "calls": "المكالمات",
+      "verified": "موثق",
+      "notVerified": "غير موثق"
     },
     "healthScore": {
       "title": "اكتمال الملف التجاري",

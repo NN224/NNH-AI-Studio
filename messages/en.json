@@ -419,7 +419,14 @@
     },
     "card": {
       "reviews": "Reviews",
-      "insights": "Insights"
+      "insights": "Insights",
+      "viewInsights": "View Insights",
+      "editLocation": "Edit Location",
+      "healthScore": "Health Score",
+      "views": "Views",
+      "calls": "Calls",
+      "verified": "Verified",
+      "notVerified": "Not Verified"
     },
     "healthScore": {
       "title": "Profile Completeness",

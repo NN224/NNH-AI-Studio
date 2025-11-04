@@ -25,7 +25,8 @@ import {
   Location as LocationType, 
   formatLargeNumber
 } from '@/components/locations/location-types';
-import { LazyLocationCard, LocationCardSkeleton } from '@/components/locations/lazy-locations-components';
+import { LocationCardSkeleton } from '@/components/locations/lazy-locations-components';
+import { EnhancedLocationCard } from '@/components/locations/enhanced-location-card';
 import { LocationsStats } from '@/components/locations/locations-stats';
 import { LocationsFilters } from '@/components/locations/locations-filters';
 import { GMBConnectionBanner, EmptyLocationsState } from '@/components/locations/gmb-connection-banner';
@@ -352,11 +353,9 @@ export default function LocationsPage() {
             'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           }`}>
             {locations.map((location: LocationType) => (
-              <LazyLocationCard
+              <EnhancedLocationCard
                 key={location.id}
                 location={location}
-                onEditAction={handleEditAction}
-                onViewDetailsAction={handleViewDetailsAction}
               />
             ))}
           </div>
