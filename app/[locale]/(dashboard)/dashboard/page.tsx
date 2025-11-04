@@ -13,6 +13,7 @@ import { QuickActionsBar } from '@/components/dashboard/quick-actions-bar';
 import { RealtimeUpdatesIndicator } from '@/components/dashboard/realtime-updates-indicator';
 import { PerformanceComparisonChart } from '@/components/dashboard/performance-comparison-chart';
 import { LocationHighlightsCarousel } from '@/components/dashboard/location-highlights-carousel';
+import { AIInsightsCard } from '@/components/dashboard/ai-insights-card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap, ShieldCheck, Loader2, Star, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -566,7 +567,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Performance Comparison Chart */}
+      {/* Performance Charts and Location Highlights */}
       {gmbConnected && stats.monthlyComparison && (
         <div className="grid gap-4 lg:grid-cols-2">
           <PerformanceComparisonChart
@@ -575,12 +576,27 @@ export default function DashboardPage() {
             loading={loading}
           />
           
-          {/* Location Highlights Carousel */}
           <LocationHighlightsCarousel
             locations={stats.locationHighlights || []}
             loading={loading}
           />
         </div>
+      )}
+
+      {/* AI Insights */}
+      {gmbConnected && (
+        <AIInsightsCard
+          stats={{
+            totalReviews: stats.totalReviews,
+            averageRating: stats.averageRating,
+            responseRate: stats.responseRate,
+            pendingReviews: stats.pendingReviews,
+            unansweredQuestions: stats.unansweredQuestions,
+            ratingTrend: stats.ratingTrend,
+            reviewsTrend: stats.reviewsTrend
+          }}
+          loading={loading}
+        />
       )}
     </div>
   );
