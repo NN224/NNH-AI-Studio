@@ -12,6 +12,7 @@ import { BottlenecksWidget } from '@/components/dashboard/bottlenecks-widget';
 import { QuickActionsBar } from '@/components/dashboard/quick-actions-bar';
 import { RealtimeUpdatesIndicator } from '@/components/dashboard/realtime-updates-indicator';
 import { PerformanceComparisonChart } from '@/components/dashboard/performance-comparison-chart';
+import { LocationHighlightsCarousel } from '@/components/dashboard/location-highlights-carousel';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Zap, ShieldCheck, Loader2, Star, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,6 +44,15 @@ interface DashboardStats {
       questions: number;
     };
   };
+  locationHighlights?: Array<{
+    id: string;
+    name: string;
+    rating: number;
+    reviewCount: number;
+    pendingReviews: number;
+    ratingChange?: number;
+    category: 'top' | 'attention' | 'improved';
+  }>;
   bottlenecks: Array<{
     type: 'Response' | 'Content' | 'Compliance' | 'Reviews' | 'General';
     count: number;
@@ -352,6 +362,7 @@ export default function DashboardPage() {
             pendingReviews: newStats.pendingReviews || 0,
             unansweredQuestions: newStats.unansweredQuestions || 0,
             monthlyComparison: newStats.monthlyComparison,
+            locationHighlights: newStats.locationHighlights || [],
             bottlenecks: newStats.bottlenecks || [],
           });
         }
@@ -557,11 +568,19 @@ export default function DashboardPage() {
 
       {/* Performance Comparison Chart */}
       {gmbConnected && stats.monthlyComparison && (
-        <PerformanceComparisonChart
-          currentMonthData={stats.monthlyComparison.current}
-          previousMonthData={stats.monthlyComparison.previous}
-          loading={loading}
-        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <PerformanceComparisonChart
+            currentMonthData={stats.monthlyComparison.current}
+            previousMonthData={stats.monthlyComparison.previous}
+            loading={loading}
+          />
+          
+          {/* Location Highlights Carousel */}
+          <LocationHighlightsCarousel
+            locations={stats.locationHighlights || []}
+            loading={loading}
+          />
+        </div>
       )}
     </div>
   );

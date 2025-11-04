@@ -40,6 +40,16 @@ interface ProcessedStats {
       questions: number;
     };
   };
+  // أبرز المواقع
+  locationHighlights: Array<{
+    id: string;
+    name: string;
+    rating: number;
+    reviewCount: number;
+    pendingReviews: number;
+    ratingChange?: number;
+    category: 'top' | 'attention' | 'improved';
+  }>;
 }
 
 /**
@@ -76,7 +86,7 @@ export async function GET(request: Request) {
 
     const { data: activeLocationsData } = await supabase
         .from("gmb_locations")
-        .select("id, created_at")
+        .select("id, created_at, location_name, average_rating")
         .eq("user_id", userId)
         .in("gmb_account_id", activeAccountIds);
 
@@ -92,7 +102,8 @@ export async function GET(request: Request) {
             monthlyComparison: {
               current: { reviews: 0, rating: 0, questions: 0 },
               previous: { reviews: 0, rating: 0, questions: 0 }
-            }
+            },
+            locationHighlights: []
         };
         return NextResponse.json(zeroStats);
     }
@@ -313,6 +324,103 @@ export async function GET(request: Request) {
     };
 
     // ========================================
+    // حساب أبرز المواقع (Location Highlights)
+    // ========================================
+    
+    const locationHighlights: Array<{
+      id: string;
+      name: string;
+      rating: number;
+      reviewCount: number;
+      pendingReviews: number;
+      ratingChange?: number;
+      category: 'top' | 'attention' | 'improved';
+    }> = [];
+
+    if (activeLocationsData && activeLocationsData.length > 0) {
+      // جلب بيانات المراجعات لكل موقع
+      const locationStats = await Promise.all(
+        activeLocationsData.map(async (location) => {
+          const { data: locationReviews } = await supabase
+            .from("gmb_reviews")
+            .select("rating, review_reply, review_date, created_at")
+            .eq("location_id", location.id)
+            .eq("user_id", userId);
+
+          const reviewsData = locationReviews || [];
+          const ratings = reviewsData.map(r => r.rating).filter(r => r && r > 0);
+          const avgRating = ratings.length > 0
+            ? parseFloat((ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(2))
+            : 0;
+
+          const pendingReviewsCount = reviewsData.filter(r => !r.review_reply || r.review_reply.trim() === '').length;
+
+          // حساب التغيير في التقييم
+          const recentLocationReviews = reviewsData.filter(r => {
+            const reviewDate = new Date(r.review_date || r.created_at);
+            return reviewDate >= thirtyDaysAgo;
+          });
+
+          const previousLocationReviews = reviewsData.filter(r => {
+            const reviewDate = new Date(r.review_date || r.created_at);
+            return reviewDate >= sixtyDaysAgo && reviewDate < thirtyDaysAgo;
+          });
+
+          const recentLocationRatings = recentLocationReviews.map(r => r.rating).filter(r => r && r > 0);
+          const previousLocationRatings = previousLocationReviews.map(r => r.rating).filter(r => r && r > 0);
+
+          const recentRating = recentLocationRatings.length > 0
+            ? recentLocationRatings.reduce((sum, r) => sum + r, 0) / recentLocationRatings.length
+            : 0;
+
+          const previousRating = previousLocationRatings.length > 0
+            ? previousLocationRatings.reduce((sum, r) => sum + r, 0) / previousLocationRatings.length
+            : 0;
+
+          const ratingChange = previousRating > 0
+            ? parseFloat((((recentRating - previousRating) / previousRating) * 100).toFixed(2))
+            : 0;
+
+          return {
+            id: location.id,
+            name: location.location_name || 'Unknown Location',
+            rating: avgRating,
+            reviewCount: reviewsData.length,
+            pendingReviews: pendingReviewsCount,
+            ratingChange
+          };
+        })
+      );
+
+      // 1. Top Performer (أعلى تقييم)
+      const topLocation = [...locationStats].sort((a, b) => b.rating - a.rating)[0];
+      if (topLocation && topLocation.rating > 0) {
+        locationHighlights.push({ ...topLocation, category: 'top' });
+      }
+
+      // 2. Needs Attention (أكثر مراجعات معلقة أو أقل تقييم)
+      const attentionLocation = [...locationStats]
+        .filter(l => l.pendingReviews > 0 || l.rating < 4.0)
+        .sort((a, b) => {
+          if (a.pendingReviews !== b.pendingReviews) return b.pendingReviews - a.pendingReviews;
+          return a.rating - b.rating;
+        })[0];
+      
+      if (attentionLocation && attentionLocation.id !== topLocation?.id) {
+        locationHighlights.push({ ...attentionLocation, category: 'attention' });
+      }
+
+      // 3. Most Improved (أكبر تحسن)
+      const improvedLocation = [...locationStats]
+        .filter(l => l.ratingChange && l.ratingChange > 0)
+        .sort((a, b) => (b.ratingChange || 0) - (a.ratingChange || 0))[0];
+      
+      if (improvedLocation && improvedLocation.id !== topLocation?.id && improvedLocation.id !== attentionLocation?.id) {
+        locationHighlights.push({ ...improvedLocation, category: 'improved' });
+      }
+    }
+
+    // ========================================
     // إرجاع الإحصائيات النهائية
     // ========================================
     const finalStats: ProcessedStats = {
@@ -328,6 +436,7 @@ export async function GET(request: Request) {
         unansweredQuestions,
         healthScore,
         monthlyComparison,
+        locationHighlights,
         bottlenecks: bottlenecks.sort((a, b) => {
             const severityOrder = { high: 3, medium: 2, low: 1 };
             return severityOrder[b.severity] - severityOrder[a.severity];
