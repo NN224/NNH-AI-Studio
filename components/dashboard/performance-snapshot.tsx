@@ -27,7 +27,7 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Last 7 Days</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Last 7 Days</CardTitle>
               <p className="text-xs text-muted-foreground">
                 Performance overview
               </p>
@@ -67,7 +67,7 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg">Last 7 Days</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Last 7 Days</CardTitle>
             <p className="text-xs text-muted-foreground">
               Performance overview
             </p>
@@ -82,7 +82,7 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
               <Eye className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Views</span>
             </div>
-            <p className="text-lg font-bold text-foreground">{totalViews.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{totalViews.toLocaleString()}</p>
           </div>
           
           <div className="p-3 rounded-lg bg-secondary border border-primary/20">
@@ -90,7 +90,7 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
               <MousePointerClick className="h-4 w-4 text-info" />
               <span className="text-xs text-muted-foreground">Clicks</span>
             </div>
-            <p className="text-lg font-bold text-foreground">{totalClicks.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{totalClicks.toLocaleString()}</p>
           </div>
           
           <div className="p-3 rounded-lg bg-secondary border border-primary/20">
@@ -98,11 +98,11 @@ export function PerformanceSnapshot({ data, aiInsight }: PerformanceSnapshotProp
               <Phone className="h-4 w-4 text-success" />
               <span className="text-xs text-muted-foreground">Calls</span>
             </div>
-            <p className="text-lg font-bold text-foreground">{totalCalls.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{totalCalls.toLocaleString()}</p>
           </div>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {data.map((day, index) => {
             const barHeight = (day.views / maxViews) * 100
             const isPeak = peakDay ? day.day === peakDay.day : false

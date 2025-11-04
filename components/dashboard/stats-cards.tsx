@@ -31,7 +31,7 @@ function StatsCard({ title, value, trend, icon, suffix, loading, target }: Stats
     );
   }
 
-  const trendColor = trend && trend > 0 ? 'text-green-600' : trend && trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+  const trendColor = trend && trend > 0 ? 'text-success' : trend && trend < 0 ? 'text-destructive' : 'text-muted-foreground';
   const TrendIcon = trend && trend > 0 ? TrendingUp : TrendingDown;
 
   return (
@@ -42,11 +42,11 @@ function StatsCard({ title, value, trend, icon, suffix, loading, target }: Stats
     >
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
           <div className="text-muted-foreground">{icon}</div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
+        <CardContent className="p-6">
+          <div className="text-3xl font-bold">
             {value}
             {suffix && <span className="text-lg text-muted-foreground ml-1">{suffix}</span>}
           </div>

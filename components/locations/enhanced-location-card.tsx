@@ -120,7 +120,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
         </div>
       </div>
 
-      <CardContent className="pt-16 pb-6">
+      <CardContent className="p-6 pt-16">
         {/* Header Info */}
         <div className="space-y-3">
           {/* Name and Rating */}
