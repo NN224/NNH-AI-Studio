@@ -117,7 +117,6 @@ app.post('/api/audit/dashboard', async (req, res) => {
     } catch (error) {
       console.error('❌ Error reading files:', error.message);
 
-      // If files not found, provide helpful error
       if (error.message.includes('No dashboard files found')) {
         return res.status(400).json({
           success: false,
@@ -136,7 +135,6 @@ app.post('/api/audit/dashboard', async (req, res) => {
     }
 
     console.log(`✅ Found ${files.length} files`);
-
     const totalLines = files.reduce((sum, f) => sum + f.lines, 0);
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     console.log(`📊 Total: ${totalLines} lines, ${(totalSize / 1024).toFixed(2)} KB`);
@@ -213,7 +211,6 @@ app.post('/api/fix/apply', async (req, res) => {
     console.log('═══════════════════════════════════════════');
     console.log('');
 
-    // Apply each fix
     const results = [];
     for (let i = 0; i < fixes.length; i++) {
       const fix = fixes[i];
@@ -315,7 +312,8 @@ app.use((err, req, res, next) => {
 // ==========================================
 
 const server = app.listen(PORT, () => {
-  console.log('');
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log('...');
   console.log('╔══════════════════════════════════════════╗');
   console.log('║  🚀 NNH Code Auditor Extension          ║');
   console.log('║                                          ║');
@@ -337,7 +335,9 @@ const server = app.listen(PORT, () => {
   console.log('');
 });
 
+// =======================================
 // Graceful shutdown
+// =======================================
 process.on('SIGTERM', () => {
   console.log('');
   console.log('👋 Shutting down gracefully...');
