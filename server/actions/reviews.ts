@@ -10,7 +10,10 @@ export async function getReviews(locationId?: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   if (authError || !user) {
-    console.error("Authentication error:", authError)
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error("Authentication error:", authError)
+    }
     return { reviews: [], error: "Not authenticated" }
   }
 
@@ -39,7 +42,10 @@ export async function updateReviewStatus(reviewId: string, status: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   if (authError || !user) {
-    console.error("Authentication error:", authError)
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error("Authentication error:", authError)
+    }
     return { success: false, error: "Not authenticated" }
   }
 
@@ -75,7 +81,10 @@ export async function addReviewReply(reviewId: string, reply: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   if (authError || !user) {
-    console.error("Authentication error:", authError)
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error("Authentication error:", authError)
+    }
     return { success: false, error: "Not authenticated" }
   }
 

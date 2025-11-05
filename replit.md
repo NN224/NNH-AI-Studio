@@ -54,6 +54,7 @@ Preferred communication style: Simple, everyday language.
 - Domain-grouped actions: `auth.ts`, `dashboard.ts`, `reviews.ts`, etc.
 - Authentication check required at start of each action
 - Error handling with try-catch and user-friendly messages
+- Production optimization: Suppresses `AuthSessionMissingError` logs (expected when users aren't logged in) while still logging actual authentication failures
 
 **API Routes**:
 - API routes protected with `withAuth` middleware wrapper (`lib/api/auth-middleware.ts`)

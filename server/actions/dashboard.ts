@@ -7,7 +7,10 @@ export async function getDashboardStats() {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   if (authError || !user) {
-    console.error("Authentication error:", authError)
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error("Authentication error:", authError)
+    }
     throw new Error("Not authenticated")
   }
 
