@@ -1,0 +1,241 @@
+{
+  "summary": "Found 4 critical, 6 high, 8 medium, 4 low issues across 15 files",
+  "critical": [
+    {
+      "issue": "Missing Authentication Check in API Route",
+      "description": "The bulk publish API route doesn't verify user owns the locations before performing operations",
+      "impact": "Users could potentially publish posts to locations they don't own, leading to unauthorized access",
+      "location": "app/api/locations/bulk-publish/route.ts:89",
+      "currentCode": "const { data: userLocations, error: locationsError } = await supabase\n  .from('gmb_locations')\n  .select('id, gmb_account_id')\n  .eq('user_id', user.id)\n  .in('id', locationIds);",
+      "category": "security"
+    },
+    {
+      "issue": "SQL Injection Risk in Search Query",
+      "description": "Search parameter is directly interpolated into SQL query without proper escaping",
+      "impact": "Attackers could inject malicious SQL to access unauthorized data or corrupt the database",
+      "location": "app/api/locations/list-data/route.ts:42",
+      "currentCode": "const escapedSearch = sanitizedSearch.replace(/%/g, '\\\\%').replace(/_/g, '\\\\_');\nquery = query.or(`location_name.ilike.%${escapedSearch}%,address.ilike.%${escapedSearch}%`)",
+      "category": "security"
+    },
+    {
+      "issue": "Memory Leak in Map Component",
+      "description": "Google Maps markers and InfoWindow instances are not properly cleaned up on component unmount",
+      "impact": "Causes memory leaks and potential browser crashes with repeated component mounting/unmounting",
+      "location": "components/locations/LocationMapDashboard.tsx:82",
+      "currentCode": "useEffect(() => {\n  isMountedRef.current = true;\n  \n  return () => {\n    isMountedRef.current = false;",
+      "category": "performance"
+    },
+    {
+      "issue": "Exposed Sensitive API Key",
+      "description": "Google Maps API key is exposed in client-side code without domain restrictions",
+      "impact": "API key can be stolen and abused, leading to quota exhaustion and billing issues",
+      "location": "components/locations/LocationMapDashboard.tsx:62",
+      "currentCode": "googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY',",
+      "category": "security"
+    }
+  ],
+  "high": [
+    {
+      "issue": "Unhandled Promise Rejection",
+      "description": "Async operations in location card component lack proper error handling",
+      "impact": "Unhandled promise rejections can crash the application and provide poor user experience",
+      "location": "components/locations/location-card.tsx:89",
+      "currentCode": "async function fetchLocationMedia() {\n  try {\n    setLoadingMedia(true)\n    const response = await fetch(`/api/gmb/media?locationId=${location.id}`)",
+      "category": "error"
+    },
+    {
+      "issue": "Race Condition in State Updates",
+      "description": "Multiple state updates in location list component can cause race conditions",
+      "impact": "Inconsistent UI state and potential data corruption in component state",
+      "location": "components/locations/locations-list.tsx:156",
+      "currentCode": "setLocations(uniqueLocations)\n} catch (err) {\n  console.error(\"Error fetching locations:\", err)\n  setError(err instanceof Error ? err.message : \"Failed to load locations\")",
+      "category": "error"
+    },
+    {
+      "issue": "Missing Error Boundary",
+      "description": "Location components don't have proper error boundaries to catch runtime errors",
+      "impact": "Runtime errors in location components will crash the entire page instead of showing fallback UI",
+      "location": "app/[locale]/(dashboard)/locations/page.tsx:145",
+      "currentCode": "return (\n  <div className=\"space-y-6\">\n    {/* Error Alert */}\n    {error && (",
+      "category": "error"
+    },
+    {
+      "issue": "No Input Validation for Location Data",
+      "description": "Location form inputs don't validate data before submission",
+      "impact": "Invalid data can be submitted to the database, causing data integrity issues",
+      "location": "components/locations/add-location-dialog.tsx:78",
+      "currentCode": "const handleSubmit = async (e: React.FormEvent) => {\n  e.preventDefault()\n  setLoading(true)\n\n  try {",
+      "category": "security"
+    },
+    {
+      "issue": "Inefficient Database Queries",
+      "description": "N+1 query problem in locations list where reviews are fetched separately for each location",
+      "impact": "Poor performance with multiple database round trips, slow page load times",
+      "location": "app/api/locations/map-data/route.ts:67",
+      "currentCode": "const { data: reviews, error: reviewError } = await supabase\n  .from(\"gmb_reviews\")\n  .select(\"location_id, rating\")\n  .eq(\"user_id\", userId);",
+      "category": "performance"
+    },
+    {
+      "issue": "Missing Loading State Cleanup",
+      "description": "Loading states are not properly cleared when components unmount or errors occur",
+      "impact": "UI remains in loading state indefinitely, poor user experience",
+      "location": "components/locations/location-performance-widget.tsx:89",
+      "currentCode": "} catch (error) {\n  console.error(\"Error fetching performance metrics:\", error)\n} finally {\n  setLoading(false)",
+      "category": "error"
+    }
+  ],
+  "medium": [
+    {
+      "issue": "Missing Null Check for Location Data",
+      "description": "Location properties are accessed without null/undefined checks",
+      "impact": "Runtime errors when location data is incomplete or missing",
+      "location": "components/locations/lazy-locations-components.tsx:45",
+      "currentCode": "const getSafeInsights = (location: Location) => {\n  return {\n    views: location.insights?.views || 0,",
+      "category": "error"
+    },
+    {
+      "issue": "No Pagination Implementation",
+      "description": "Location lists don't implement proper pagination for large datasets",
+      "impact": "Poor performance and user experience when loading many locations",
+      "location": "components/locations/locations-list.tsx:234",
+      "currentCode": "const filteredLocations = locations.filter((location) => {\n  const matchesSearch = searchQuery === \"\" ||",
+      "category": "performance"
+    },
+    {
+      "issue": "Missing Accessibility Labels",
+      "description": "Interactive elements lack proper ARIA labels and accessibility attributes",
+      "impact": "Poor accessibility for screen readers and assistive technologies",
+      "location": "components/locations/location-filters.tsx:45",
+      "currentCode": "<Button\n  variant={viewMode === \"grid\" ? \"default\" : \"outline\"}\n  size=\"icon\"\n  onClick={() => onViewModeChange(\"grid\")}",
+      "category": "accessibility"
+    },
+    {
+      "issue": "Hardcoded Magic Numbers",
+      "description": "Magic numbers used throughout the codebase without constants",
+      "impact": "Difficult to maintain and modify, potential for inconsistencies",
+      "location": "components/locations/location-types.tsx:89",
+      "currentCode": "if (num >= 1000) return (num / 1000).toFixed(1).replace(/\\.0$/, '') + 'K';",
+      "category": "maintainability"
+    },
+    {
+      "issue": "Inconsistent Error Handling",
+      "description": "Different components handle errors in different ways without standardization",
+      "impact": "Inconsistent user experience and difficult debugging",
+      "location": "components/locations/gmb-connection-banner.tsx:23",
+      "currentCode": "} catch (error) {\n  toast.error('Failed to connect');\n}",
+      "category": "error"
+    },
+    {
+      "issue": "Missing Component Memoization",
+      "description": "Expensive components are not memoized and re-render unnecessarily",
+      "impact": "Poor performance due to unnecessary re-renders",
+      "location": "components/locations/enhanced-location-card.tsx:15",
+      "currentCode": "export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({ \n  location,\n  onEdit",
+      "category": "performance"
+    },
+    {
+      "issue": "Duplicate Code in Location Pages",
+      "description": "Similar logic is duplicated between optimized-page.tsx and page.tsx",
+      "impact": "Code duplication makes maintenance difficult and error-prone",
+      "location": "app/[locale]/(dashboard)/locations/optimized-page.tsx:1",
+      "currentCode": "\"use client\";\n\nimport React, { useState, useEffect } from 'react';",
+      "category": "maintainability"
+    },
+    {
+      "issue": "Inefficient State Management",
+      "description": "Multiple useState hooks could be consolidated into useReducer for complex state",
+      "impact": "Difficult to manage complex state updates and potential state inconsistencies",
+      "location": "components/locations/LocationMapDashboard.tsx:45",
+      "currentCode": "const [locationsData, setLocationsData] = useState<LocationData[]>([]);\n  const [competitorData, setCompetitorData] = useState<CompetitorData[]>([]);\n  const [loadingData, setLoadingData] = useState(true);",
+      "category": "maintainability"
+    }
+  ],
+  "low": [
+    {
+      "issue": "Console Logs in Production Code",
+      "description": "Debug console.log statements left in production code",
+      "impact": "Exposes internal application state and clutters browser console",
+      "location": "components/locations/location-profile-enhanced.tsx:89",
+      "currentCode": "console.log('[LocationProfile] Media item:', {\n  category,\n  url: url.substring(0, 50) + '...',",
+      "category": "maintainability"
+    },
+    {
+      "issue": "Unused Import Statements",
+      "description": "Several components import modules that are not used",
+      "impact": "Increases bundle size and makes code harder to maintain",
+      "location": "components/locations/location-card.tsx:12",
+      "currentCode": "import { Eye, MessageSquare, MapPin, Phone, Globe, Sparkles, Maximize2, ExternalLink, Clock, Info, AlertCircle, CheckCircle2, Utensils, MessageCircle, Edit, Settings } from \"lucide-react\"",
+      "category": "maintainability"
+    },
+    {
+      "issue": "Missing TypeScript Strict Mode",
+      "description": "Components use 'any' type instead of proper TypeScript interfaces",
+      "impact": "Reduced type safety and potential runtime errors",
+      "location": "components/locations/location-attributes-dialog.tsx:234",
+      "currentCode": "const handleFiltersChangeAction = (newFilters: any) => {",
+      "category": "type-safety"
+    },
+    {
+      "issue": "Inconsistent Naming Conventions",
+      "description": "Mixed naming conventions for variables and functions throughout the codebase",
+      "impact": "Reduces code readability and maintainability",
+      "location": "components/locations/responsive-locations-layout.tsx:67",
+      "currentCode": "const MobileLocationCard = ({ \n  location, \n  onSelectAction, \n  isSelected = false",
+      "category": "maintainability"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "Critical",
+      "action": "Implement proper authentication middleware",
+      "description": "Add authentication checks to all API routes and verify user ownership of resources before operations"
+    },
+    {
+      "priority": "Critical",
+      "action": "Fix SQL injection vulnerability",
+      "description": "Use parameterized queries and proper input sanitization for all database operations"
+    },
+    {
+      "priority": "High",
+      "action": "Add comprehensive error boundaries",
+      "description": "Implement error boundaries around all major component sections to prevent crashes"
+    },
+    {
+      "priority": "High",
+      "action": "Optimize database queries",
+      "description": "Implement proper joins and reduce N+1 query problems, add pagination for large datasets"
+    },
+    {
+      "priority": "Medium",
+      "action": "Implement proper state management",
+      "description": "Use useReducer for complex state and add proper cleanup in useEffect hooks"
+    },
+    {
+      "priority": "Medium",
+      "action": "Add accessibility improvements",
+      "description": "Include proper ARIA labels, keyboard navigation, and screen reader support"
+    },
+    {
+      "priority": "Low",
+      "action": "Clean up code quality issues",
+      "description": "Remove console logs, unused imports, and standardize naming conventions"
+    }
+  ],
+  "filesAffected": [
+    "app/api/locations/bulk-publish/route.ts",
+    "app/api/locations/list-data/route.ts",
+    "app/api/locations/map-data/route.ts",
+    "components/locations/LocationMapDashboard.tsx",
+    "components/locations/location-card.tsx",
+    "components/locations/locations-list.tsx",
+    "components/locations/add-location-dialog.tsx",
+    "components/locations/location-performance-widget.tsx",
+    "components/locations/lazy-locations-components.tsx",
+    "components/locations/location-filters.tsx",
+    "components/locations/gmb-connection-banner.tsx",
+    "components/locations/enhanced-location-card.tsx",
+    "app/[locale]/(dashboard)/locations/optimized-page.tsx",
+    "components/locations/location-profile-enhanced.tsx",
+    "components/locations/responsive-locations-layout.tsx"
+  ]
+}
