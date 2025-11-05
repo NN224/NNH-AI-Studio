@@ -238,18 +238,14 @@ export async function GET(request: NextRequest) {
         .select('id')
         .single();
         
-      if (upsertError || !upsertedAccount  } catch (error: any) {
-    // Use the new centralized handler for logging the unexpected error
-    handleApiError(error, '[OAuth Callback] Unexpected error');
-    
-    // Still redirect the user with a generic error message
-    const baseUrl = getBaseUrlDynamic(request);
-    return NextResponse.redirect(
-      `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-        `An unexpected error occurred: ${error.message || 'Unknown error'}`
-      )}`
-    );
-  } ); // Keep redirect for user-facing error
+      if (upsertError || !upsertedAccount) {
+        console.error('[OAuth Callback] Failed to upsert account:', upsertError);
+        const baseUrl = getBaseUrlDynamic(request);
+        return NextResponse.redirect(
+          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
+            `Failed to save account: ${upsertError?.message || 'Unknown error'}`
+          )}`
+        );
       }
       
       savedAccountId = upsertedAccount.id;

@@ -383,19 +383,6 @@ function TaskItem({
   onStatusChange,
   getCategoryColor,
   getPriorityIcon,
-}: {
-  task: Task;
-  onStatusChange: (id: string, status: string) => void;
-  getCategoryColor: (category: string) => string;
-  getPriorityIcon: (priority: string) => React.ReactNode;
-}) {
-  const isCompleted = task.status === 'completed';
-
-function TaskItem({
-  task,
-  onStatusChange,
-  getCategoryColor,
-  getPriorityIcon,
   isDefault = false,
 }: {
   task: Task;
@@ -445,6 +432,5 @@ function TaskItem({
       </div>
     </div>
   );
-}
 }
 

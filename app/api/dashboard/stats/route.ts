@@ -394,20 +394,20 @@ export async function GET(request: Request) {
       // Step 1: All reviews are already fetched above, group by location
       const reviewsByLocation = (allReviews || []).reduce((acc, review) => {
         if (!acc[review.location_id]) acc[review.location_id] = [];
-        acc[review.location_id].push(review);
+        acc[review.location_id]!.push(review);
         return acc;
       }, {} as Record<string, typeof allReviews>);
 
       // Step 2: Group recent and previous period reviews by location
       const recentReviewsByLocation = (recentReviews || []).reduce((acc, review) => {
         if (!acc[review.location_id]) acc[review.location_id] = [];
-        acc[review.location_id].push(review);
+        acc[review.location_id]!.push(review);
         return acc;
       }, {} as Record<string, typeof recentReviews>);
 
       const previousReviewsByLocation = (previousPeriodReviews || []).reduce((acc, review) => {
         if (!acc[review.location_id]) acc[review.location_id] = [];
-        acc[review.location_id].push(review);
+        acc[review.location_id]!.push(review);
         return acc;
       }, {} as Record<string, typeof previousPeriodReviews>);
 
