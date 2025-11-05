@@ -604,7 +604,18 @@ export function LocationMapDashboard() {
                                         onCheckedChange={() => toggleLocationSelection(loc.id)}
                                         onClick={(e) => e.stopPropagation()} 
                                     />
-                                    <div onClick={() => setSelectedMarker(loc)}>
+                                    <div 
+                                        onClick={() => setSelectedMarker(loc)}
+                                        role="button"
+                                        aria-label={`View ${loc.name} on map`}
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setSelectedMarker(loc);
+                                            }
+                                        }}
+                                    >
                                         <p className="font-medium text-sm">{loc.name}</p>
                                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                                             <Star className="w-3 h-3 text-warning fill-warning" />

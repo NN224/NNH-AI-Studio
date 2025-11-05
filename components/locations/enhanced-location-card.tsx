@@ -239,6 +239,14 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.m
       </CardContent>
     </Card>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  // Only re-render if these specific props change
+  return (
+    prevProps.location.id === nextProps.location.id &&
+    prevProps.location.updatedAt === nextProps.location.updatedAt &&
+    prevProps.onEdit === nextProps.onEdit
+  );
 });
 
 // Add display name for better debugging

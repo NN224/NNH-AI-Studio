@@ -91,7 +91,7 @@ export function LocationProfileEnhanced({ location, onRefresh }: LocationProfile
             if (firstPhoto) {
               const photoUrl = firstPhoto.sourceUrl || firstPhoto.googleUrl || firstPhoto.url || firstPhoto.thumbnailUrl
               setCoverPhoto(photoUrl)
-              console.log('[LocationProfile] Using first photo as cover:', photoUrl.substring(0, 50) + '...')
+              // Removed console.log to prevent information disclosure in production
             }
           }
         }

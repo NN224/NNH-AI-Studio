@@ -105,8 +105,8 @@ export const getTrendColor = (trend: number) => {
 // Calculate Health Score Breakdown (17 sections)
 export const getHealthScoreBreakdown = (location: Location) => {
   // Check each section
-  const hasPhone = location.phone && location.phone.length > 0;
-  const hasWebsite = location.website && location.website.length > 0;
+  const hasPhone = location?.phone && location.phone.length > 0;
+  const hasWebsite = location?.website && location.website.length > 0;
   const hasCategories = location.additionalCategories && location.additionalCategories.length > 0;
   const hasMenuLink = location.menuLink && location.menuLink.length > 0;
   const hasMenuItems = (location.menuItems || 0) > 0;

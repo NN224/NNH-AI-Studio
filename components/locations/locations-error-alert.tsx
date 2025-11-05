@@ -14,8 +14,10 @@ export const LocationsErrorAlert = ({
 }) => {
   const t = useTranslations('Locations');
 
-  // Extract error message with proper type checking
-  const errorMessage = typeof error === 'string' ? error : (error.message || t('errors.genericMessage'));
+  // Extract error message with proper type checking and internationalization
+  const errorMessage = typeof error === 'string' 
+    ? t('errors.customMessage', { message: error }) 
+    : t('errors.customMessage', { message: error.message || t('errors.genericMessage') });
 
   return (
     <Card className="border-destructive">
