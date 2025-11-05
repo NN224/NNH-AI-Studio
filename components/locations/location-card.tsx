@@ -92,7 +92,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
           
           // Batch state updates after loop completion
           if (coverPhotoUrl) setCoverPhoto(coverPhotoUrl)
-          if (logoUrl) setLogo(logoUrl)
+          if (logoUrl) setLogoPhoto(logoUrl)
           
           // If no categorized media found, use first photo as cover
           if (!foundCover && media.length > 0) {
