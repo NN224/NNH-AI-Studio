@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,17 +27,22 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.m
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(true);
+  
+  // Track if component is still mounted to prevent race conditions
+  const isMountedRef = useRef(true);
 
   // Fetch cover and logo images
   useEffect(() => {
     const fetchImages = async () => {
       try {
+        // Check if component is still mounted before setting loading state
+        if (!isMountedRef.current) return;
         setLoadingImages(true);
         
         // Fetch cover image (silently fail if not found)
         try {
           const coverRes = await fetch(`/api/locations/${location.id}/cover`);
-          if (coverRes.ok) {
+          if (coverRes.ok && isMountedRef.current) {
             const coverData = await coverRes.json();
             if (coverData.url) {
               setCoverUrl(coverData.url);
@@ -51,7 +56,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.m
         // Fetch logo image (silently fail if not found)
         try {
           const logoRes = await fetch(`/api/locations/${location.id}/logo`);
-          if (logoRes.ok) {
+          if (logoRes.ok && isMountedRef.current) {
             const logoData = await logoRes.json();
             if (logoData.url) {
               setLogoUrl(logoData.url);
@@ -64,13 +69,21 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.m
       } catch (error) {
         console.error('Failed to fetch images:', error);
       } finally {
-        setLoadingImages(false);
+        // Only update loading state if component is still mounted
+        if (isMountedRef.current) {
+          setLoadingImages(false);
+        }
       }
     };
 
     if (location.id) {
       fetchImages();
     }
+
+    // Cleanup function to mark component as unmounted
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [location.id]);
 
   // Safe insights access - Added null check for location object before accessing properties

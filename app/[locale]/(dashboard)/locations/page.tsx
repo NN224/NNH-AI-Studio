@@ -75,7 +75,10 @@ export default function LocationsPage() {
       }
     };
 
-    checkGMBAccount();
+    checkGMBAccount().catch((error) => {
+      console.error('Failed to check GMB account:', error);
+      setHasGmbAccount(false);
+    });
   }, []);
 
   // Extract categories from locations
@@ -83,7 +86,7 @@ export default function LocationsPage() {
     if (locations.length > 0) {
       const uniqueCategories = Array.from(
         new Set(locations.map((loc: LocationType) => loc.category).filter(Boolean))
-      ) as string[];
+      ).filter((category): category is string => typeof category === 'string');
       setCategories(uniqueCategories);
     }
   }, [locations]);

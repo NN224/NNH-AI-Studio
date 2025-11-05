@@ -87,7 +87,6 @@ export function LocationAttributesDialog({
           const attributes = locationData.data?.attributeMetadata || locationData.attributeMetadata || []
           if (attributes.length > 0) {
             setAvailableAttributes(attributes)
-            setLoadingAttributes(false)
             return
           }
         }
@@ -101,7 +100,6 @@ export function LocationAttributesDialog({
           const attributes = categoryData.data?.attributeMetadata || categoryData.attributeMetadata || []
           if (attributes.length > 0) {
             setAvailableAttributes(attributes)
-            setLoadingAttributes(false)
             return
           }
         }
@@ -114,7 +112,6 @@ export function LocationAttributesDialog({
         const attributes = countryData.data?.attributeMetadata || countryData.attributeMetadata || []
         if (attributes.length > 0) {
           setAvailableAttributes(attributes)
-          setLoadingAttributes(false)
           return
         }
       }

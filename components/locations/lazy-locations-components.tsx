@@ -4,7 +4,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Location, 
   formatLargeNumber, 
@@ -22,7 +22,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { Link } from '@/lib/navigation';
 
-// Helper function to safely access insights
+// Helper function to safely access insights - memoized to prevent recalculation
 const getSafeInsights = (location: Location) => {
   return {
     views: location.insights?.views || 0,
@@ -37,8 +37,8 @@ const getSafeInsights = (location: Location) => {
 // Placeholder for when we extract components
 // For now, these return the skeleton components
 
-// LocationCard Component
-export const LazyLocationCard = ({ 
+// Memoized LocationCard component to prevent unnecessary re-renders
+export const LazyLocationCard = React.memo(({ 
   location, 
   onEditAction, 
   onViewDetailsAction 
@@ -48,6 +48,9 @@ export const LazyLocationCard = ({
   onViewDetailsAction: (id: string) => void;
 }) => {
   const t = useTranslations('Locations');
+  
+  // Memoize insights calculation to avoid recalculation on every render
+  const insights = useMemo(() => getSafeInsights(location), [location.insights]);
   
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20 hover:border-l-primary">
@@ -183,7 +186,10 @@ export const LazyLocationCard = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+// Display name for debugging
+LazyLocationCard.displayName = 'LazyLocationCard';
 
 // HealthScoreDetails Placeholder 
 export const LazyHealthScoreDetails = () => (
