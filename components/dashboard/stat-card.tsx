@@ -70,27 +70,41 @@ export function StatCard({
       whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.98 }}
     >
-      <Card className={cn(
-        "bg-card border-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20",
-        isEmpty && showEmptyState && "border-muted/50"
-      )}>
+      <Card 
+        className={cn(
+          "bg-card border-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20",
+          isEmpty && showEmptyState && "border-muted/50"
+        )}
+        role="region"
+        aria-label={`${title} statistics`}
+      >
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="space-y-2 flex-1">
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
+              <p 
+                className="text-sm font-medium text-muted-foreground"
+                id={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                {title}
+              </p>
               
               {isEmpty && showEmptyState && emptyMessage ? (
                 <div className="p-8 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Icon className="w-8 h-8 text-primary" />
+                    <Icon className="w-8 h-8 text-primary" aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-medium mb-2 text-foreground">{title}</h3>
                   <p className="text-sm text-muted-foreground">{emptyMessage}</p>
                 </div>
               ) : isRating && hasRating ? (
                 <div className="flex items-center gap-2">
-                  <p className="text-3xl font-bold text-foreground">{ratingValue.toFixed(1)}</p>
-                  <div className="flex gap-0.5">
+                  <p 
+                    className="text-3xl font-bold text-foreground"
+                    aria-label={`Current value: ${ratingValue.toFixed(1)}`}
+                  >
+                    {ratingValue.toFixed(1)}
+                  </p>
+                  <div className="flex gap-0.5" role="img" aria-label={`Rating: ${ratingValue.toFixed(1)} out of 5 stars`}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
@@ -106,17 +120,30 @@ export function StatCard({
                   </div>
                 </div>
               ) : (
-                <p className="text-3xl font-bold text-foreground">
+                <p 
+                  className="text-3xl font-bold text-foreground"
+                  aria-label={`Current value: ${typeof value === "string" ? value : Math.round(displayValue).toLocaleString()}`}
+                >
                   {typeof value === "string" ? value : Math.round(displayValue).toLocaleString()}
                 </p>
               )}
               
-              {change && !isEmpty && <p className={`text-xs font-medium ${changeColor}`}>{change}</p>}
+              {change && !isEmpty && (
+                <p 
+                  className={`text-xs font-medium ${changeColor}`}
+                  aria-label={`Trend: ${changeType === 'positive' ? 'up' : changeType === 'negative' ? 'down' : 'no change'} by ${change}`}
+                >
+                  {change}
+                </p>
+              )}
             </div>
-            <div className={cn(
-              "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
-              isEmpty && showEmptyState ? "bg-muted/20" : "bg-primary/20"
-            )}>
+            <div 
+              className={cn(
+                "w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0",
+                isEmpty && showEmptyState ? "bg-muted/20" : "bg-primary/20"
+              )}
+              aria-hidden="true"
+            >
               <Icon 
                 className={cn(
                   "w-6 h-6",

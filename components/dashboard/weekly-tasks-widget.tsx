@@ -155,19 +155,19 @@ export function WeeklyTasksWidget() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      content: 'bg-blue-100 text-blue-700 border-blue-200',
-      reviews: 'bg-green-100 text-green-700 border-green-200',
-      optimization: 'bg-purple-100 text-purple-700 border-purple-200',
-      performance: 'bg-orange-100 text-orange-700 border-orange-200',
-      team: 'bg-pink-100 text-pink-700 border-pink-200',
+      content: 'bg-info/10 text-info border-info/20',
+      reviews: 'bg-success/10 text-success border-success/20',
+      optimization: 'bg-primary/10 text-primary border-primary/20',
+      performance: 'bg-warning/10 text-warning border-warning/20',
+      team: 'bg-accent/10 text-accent border-accent/20',
     };
-    return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
+    return colors[category] || 'bg-muted/10 text-muted-foreground border-muted/20';
   };
 
   const getPriorityIcon = (priority: string) => {
-    if (priority === 'high') return <AlertCircle className="h-4 w-4 text-red-600" />;
-    if (priority === 'medium') return <TrendingUp className="h-4 w-4 text-orange-600" />;
-    return <Circle className="h-4 w-4 text-gray-400" />;
+    if (priority === 'high') return <AlertCircle className="h-4 w-4 text-destructive" />;
+    if (priority === 'medium') return <TrendingUp className="h-4 w-4 text-warning" />;
+    return <Circle className="h-4 w-4 text-muted-foreground" />;
   };
 
   if (loading) {
@@ -246,7 +246,7 @@ export function WeeklyTasksWidget() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-600" />
+            <Zap className="h-5 w-5 text-warning" />
             Weekly Tasks
           </CardTitle>
           <CardDescription>AI-powered recommendations to improve your business</CardDescription>
@@ -303,7 +303,7 @@ export function WeeklyTasksWidget() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-yellow-600" />
+              <Zap className="h-5 w-5 text-warning" />
               Weekly Tasks
             </CardTitle>
             <CardDescription>Your personalized action plan for this week</CardDescription>
@@ -328,7 +328,7 @@ export function WeeklyTasksWidget() {
         {highPriorityTasks.length > 0 && (
           <div>
             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertCircle className="h-4 w-4 text-destructive" />
               High Priority
             </h4>
             <div className="space-y-2">
@@ -348,7 +348,7 @@ export function WeeklyTasksWidget() {
         {quickWins.length > 0 && (
           <div>
             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-600" />
+              <Zap className="h-4 w-4 text-warning" />
               Quick Wins (Under 15 min)
             </h4>
             <div className="space-y-2">

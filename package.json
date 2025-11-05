@@ -51,6 +51,8 @@
     "@sendgrid/mail": "^8.1.6",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@tanstack/react-query": "^5.90.6",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "@types/nodemailer": "^7.0.3",
     "@types/styled-components": "^5.1.35",
     "autoprefixer": "^10.4.20",

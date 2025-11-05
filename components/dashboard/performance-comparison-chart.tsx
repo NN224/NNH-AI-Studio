@@ -93,8 +93,8 @@ export function PerformanceComparisonChart({
       icon: HelpCircle,
       current: currentMonthData.questions,
       change: questionsChange,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-500/10'
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
     },
   ];
 
@@ -155,7 +155,7 @@ export function PerformanceComparisonChart({
                   <span className="text-xs text-muted-foreground">{metric.label}</span>
                   <span className={cn(
                     "text-xs font-medium",
-                    isPositive ? "text-green-600" : "text-red-600"
+                    isPositive ? "text-success" : "text-destructive"
                   )}>
                     {isPositive ? '+' : ''}{metric.change.toFixed(1)}%
                   </span>

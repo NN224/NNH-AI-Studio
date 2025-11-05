@@ -2,6 +2,7 @@ import type React from "react"
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { Toaster } from "sonner"
+import { Providers } from '../providers';
 
 export default async function LocaleLayout({
   children,
@@ -17,8 +18,10 @@ export default async function LocaleLayout({
   return (
     <div dir={dir} lang={locale}>
       <NextIntlClientProvider messages={messages} locale={locale}>
-        {children}
-        <Toaster position="top-right" richColors closeButton />
+        <Providers>
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+        </Providers>
       </NextIntlClientProvider>
     </div>
   )

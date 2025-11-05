@@ -101,25 +101,25 @@ export function LocationHighlightsCarousel({
     top: {
       label: isArabic ? '🏆 الأفضل أداءً' : '🏆 Top Performer',
       icon: Award,
-      color: 'text-yellow-600',
-      bgColor: 'bg-gradient-to-br from-yellow-500/10 to-yellow-600/5',
-      borderColor: 'border-yellow-500/30',
+      color: 'text-warning',
+      bgColor: 'bg-gradient-to-br from-warning/10 to-warning/5',
+      borderColor: 'border-warning/30',
       description: isArabic ? 'أعلى تقييم بين جميع المواقع' : 'Highest rating across all locations'
     },
     attention: {
       label: isArabic ? '⚠️ يحتاج اهتمام' : '⚠️ Needs Attention',
       icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-gradient-to-br from-red-500/10 to-red-600/5',
-      borderColor: 'border-red-500/30',
+      color: 'text-destructive',
+      bgColor: 'bg-gradient-to-br from-destructive/10 to-destructive/5',
+      borderColor: 'border-destructive/30',
       description: isArabic ? 'يتطلب ردوداً أو تحسينات' : 'Requires responses or improvements'
     },
     improved: {
       label: isArabic ? '📈 الأكثر تحسناً' : '📈 Most Improved',
       icon: TrendingUp,
-      color: 'text-green-600',
-      bgColor: 'bg-gradient-to-br from-green-500/10 to-green-600/5',
-      borderColor: 'border-green-500/30',
+      color: 'text-success',
+      bgColor: 'bg-gradient-to-br from-success/10 to-success/5',
+      borderColor: 'border-success/30',
       description: isArabic ? 'أكبر تحسن في التقييم' : 'Biggest rating improvement'
     }
   };

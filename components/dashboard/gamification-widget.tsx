@@ -42,7 +42,7 @@ export function GamificationWidget({ stats, locale = 'en' }: GamificationWidgetP
         <div>
           <div className="flex items-center justify-between text-sm mb-1">
             <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-500" />
+              <Flame className="w-4 h-4 text-primary" />
               {isArabic ? 'معدل الرد' : 'Response Rate'}
             </div>
             <span className="text-muted-foreground">{stats.responseRate.toFixed(0)}% / {responseGoal}%</span>
@@ -54,7 +54,7 @@ export function GamificationWidget({ stats, locale = 'en' }: GamificationWidgetP
         <div>
           <div className="flex items-center justify-between text-sm mb-1">
             <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-green-600" />
+              <Target className="w-4 h-4 text-success" />
               {isArabic ? 'درجة الصحة' : 'Health Score'}
             </div>
             <span className="text-muted-foreground">{stats.healthScore}% / 100%</span>

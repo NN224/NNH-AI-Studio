@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardRealtime } from '@/lib/hooks/use-dashboard-realtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigationShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { StatsCards } from '@/components/dashboard/stats-cards';
@@ -265,8 +266,8 @@ const ActiveLocationInfo = ({ loading, stats }: { loading: boolean; stats: Dashb
 };
 
 // Health Score Card with safe defaults
-const HealthScoreCard = ({ loading, healthScore }: { loading: boolean; healthScore: number }) => (
-  <Card className={cn("lg:col-span-1 border-l-4", 
+const HealthScoreCard = ({ loading, healthScore, className }: { loading: boolean; healthScore: number; className?: string }) => (
+  <Card className={cn("border-l-4", className, 
     healthScore > 80 ? 'border-green-500' : 
     healthScore > 60 ? 'border-yellow-500' : 'border-red-500'
   )}>
@@ -319,6 +320,7 @@ export default function DashboardPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [lastDataUpdate, setLastDataUpdate] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ preset: '30d', start: null, end: null });
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
     try {
@@ -341,9 +343,13 @@ export default function DashboardPage() {
         } else if (authError) {
           console.error('Authentication error:', authError);
         }
+        setCurrentUserId(null);
         router.push("/auth/login");
         return;
       }
+
+      // Store user ID for real-time subscriptions
+      setCurrentUserId(authUser.id);
 
       // Check GMB connection status
       const { data: gmbAccounts } = await supabase
@@ -446,6 +452,12 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Real-time subscriptions for live updates
+  useDashboardRealtime(currentUserId, () => {
+    console.log('📡 Real-time update received, refreshing dashboard...');
+    fetchDashboardData();
+  });
+
   const handleSync = async () => {
     if (!gmbAccountId) {
       toast.error('No GMB account connected');
@@ -547,7 +559,7 @@ export default function DashboardPage() {
 
       {/* Date Range Controls & Export/Share */}
       {gmbConnected && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2">
           <DateRangeControls
             value={dateRange}
             onChange={setDateRange}
@@ -567,7 +579,7 @@ export default function DashboardPage() {
 
       {/* GMB Connection Status */}
       {gmbConnected && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
           <LastSyncInfo
             lastSyncTime={lastSyncTime}
             isSyncing={syncing}
@@ -595,15 +607,15 @@ export default function DashboardPage() {
       )}
 
       {/* Health Score and Stats */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <HealthScoreCard loading={loading} healthScore={stats.healthScore || 0} />
-        <div className="lg:col-span-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <HealthScoreCard loading={loading} healthScore={stats.healthScore || 0} className="sm:col-span-2 lg:col-span-1" />
+        <div className="sm:col-span-2 lg:col-span-4 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCards loading={loading} data={stats} />
         </div>
       </div>
 
       {/* Weekly Tasks and AI Feed */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2">
         <WeeklyTasksWidget />
 
         <div className="space-y-4">
@@ -619,7 +631,7 @@ export default function DashboardPage() {
 
       {/* Performance Charts and Location Highlights */}
       {gmbConnected && stats.monthlyComparison && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2">
           <PerformanceComparisonChart
             currentMonthData={stats.monthlyComparison.current}
             previousMonthData={stats.monthlyComparison.previous}
@@ -635,7 +647,7 @@ export default function DashboardPage() {
 
       {/* AI Insights + Gamification */}
       {gmbConnected && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2">
           <AIInsightsCard
             stats={{
               totalReviews: stats.totalReviews,
