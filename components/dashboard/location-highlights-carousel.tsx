@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { 
   MapPin, 
@@ -70,9 +71,13 @@ export function LocationHighlightsCarousel({
         <CardHeader>
           <CardTitle>{isArabic ? 'أبرز المواقع' : 'Location Highlights'}</CardTitle>
         </CardHeader>
-        <CardContent className="h-[200px] flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">
-            {isArabic ? 'جاري التحميل...' : 'Loading...'}
+        <CardContent className="h-[200px] space-y-4">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+          <div className="mt-4">
+            <Skeleton className="h-24 w-full rounded-lg" />
           </div>
         </CardContent>
       </Card>

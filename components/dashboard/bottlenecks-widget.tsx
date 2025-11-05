@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, TrendingUp, MessageSquare, Star, Clock, ChevronRight } from 'lucide-react';
 import { Link } from '@/lib/navigation';
@@ -58,8 +59,10 @@ export function BottlenecksWidget({ bottlenecks, loading }: BottlenecksWidgetPro
           <CardDescription>Analyzing your business performance...</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-pulse text-muted-foreground">Loading insights...</div>
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
           </div>
         </CardContent>
       </Card>
