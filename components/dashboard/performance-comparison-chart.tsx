@@ -49,13 +49,12 @@ export function PerformanceComparisonChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
   // ✅ FIX: Cleanup on unmount to prevent memory leaks
+  // Note: Recharts handles cleanup automatically, and React refs are read-only
+  // so we don't need to manually set ref.current to null
   useEffect(() => {
     return () => {
-      // Cleanup any chart-related resources
-      if (chartContainerRef.current) {
-        // Recharts handles cleanup automatically, but we ensure container is cleared
-        chartContainerRef.current = null;
-      }
+      // Recharts handles cleanup automatically - no manual cleanup needed
+      // The ref will be automatically cleaned up when component unmounts
     };
   }, []);
 
