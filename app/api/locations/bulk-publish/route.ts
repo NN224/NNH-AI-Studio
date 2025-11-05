@@ -18,33 +18,18 @@ const GMB_V4_BASE = process.env.GMB_V4_BASE_URL || 'https://mybusiness.googleapi
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
-  // ✅ SECURITY: Enhanced authentication validation with proper session check
+  // ✅ SECURITY: Enhanced authentication validation
+  // Using getUser() instead of getSession() for secure authentication
+  // getUser() validates against Supabase Auth server, preventing cookie tampering
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // Enhanced authentication check
   if (authError || !user) {
-    console.error('Authentication error:', authError);
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error('Authentication error:', authError);
+    }
     return NextResponse.json(
       { error: 'Unauthorized: Valid authentication required' },
-      { status: 401 }
-    );
-  }
-
-  // Get session separately to validate
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-  if (sessionError || !session || session.user.id !== user.id) {
-    console.error('Session validation error:', sessionError);
-    return NextResponse.json(
-      { error: 'Unauthorized: Invalid session' },
-      { status: 401 }
-    );
-  }
-
-  // Additional session validity check
-  if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
-    return NextResponse.json(
-      { error: 'Unauthorized: Session expired' },
       { status: 401 }
     );
   }

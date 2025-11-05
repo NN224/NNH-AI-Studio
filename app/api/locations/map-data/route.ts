@@ -21,29 +21,20 @@ export async function GET(request: Request) {
 const supabase = await createClient();
 
 // ✅ SECURITY: Enhanced authentication validation
+// Using getUser() instead of getSession() for secure authentication
+// getUser() validates against Supabase Auth server, preventing cookie tampering
 const { data: { user }, error: authError } = await supabase.auth.getUser();
 
 if (authError || !user) {
-    console.error('Authentication error:', authError);
+    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+        console.error('Authentication error:', authError);
+    }
     return NextResponse.json(
         { 
             error: 'Unauthorized',
             message: 'Authentication required. Please sign in again.'
         }, 
-        { status: 401 }
-    );
-}
-
-// ✅ SECURITY: Verify user session is valid
-const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-if (sessionError || !session || !session.user || session.user.id !== user.id) {
-    console.error('Session validation error:', sessionError);
-    return NextResponse.json(
-        { 
-            error: 'Invalid session',
-            message: 'Your session has expired. Please sign in again.'
-        },
         { status: 401 }
     );
 }

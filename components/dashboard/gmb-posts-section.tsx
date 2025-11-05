@@ -63,18 +63,18 @@ export function GMBPostsSection() {
   const [schedule, setSchedule] = useState<string>("")
   const [genLoading, setGenLoading] = useState(false)
   const [aiGenerated, setAiGenerated] = useState(false)
-  
+
   // Event-specific fields
   const [eventTitle, setEventTitle] = useState("")
   const [eventStartDate, setEventStartDate] = useState("")
   const [eventEndDate, setEventEndDate] = useState("")
-  
+
   // Offer-specific fields
   const [offerTitle, setOfferTitle] = useState("")
   const [couponCode, setCouponCode] = useState("")
   const [redeemUrl, setRedeemUrl] = useState("")
   const [terms, setTerms] = useState("")
-  
+
   // Posts list state
   const [posts, setPosts] = useState<Post[]>([])
   const [listLoading, setListLoading] = useState(true)
@@ -82,14 +82,14 @@ export function GMBPostsSection() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all')
   const [isDragging, setIsDragging] = useState(false)
   const [editingPost, setEditingPost] = useState<Post | null>(null)
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Templates state
   const [templateSearch, setTemplateSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [activeTab, setActiveTab] = useState<string>("create")
-  
+
   // Enhanced Templates with categories and metadata
   const templates = [
     { 
@@ -173,7 +173,7 @@ export function GMBPostsSection() {
       description: 'Promote community involvement'
     }
   ]
-  
+
   // Template categories
   const categories = [
     { id: 'all', label: 'All Templates', icon: FileText },
@@ -182,7 +182,7 @@ export function GMBPostsSection() {
     { id: 'announcement', label: 'Announcements', icon: MessageSquare },
     { id: 'seasonal', label: 'Seasonal', icon: Gift },
   ]
-  
+
   // Filter templates based on search and category
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.label.toLowerCase().includes(templateSearch.toLowerCase()) ||
@@ -191,7 +191,7 @@ export function GMBPostsSection() {
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
     return matchesSearch && matchesCategory
   })
-  
+
   // CTA Options with icons
   const ctaOptions = [
     { value: 'BOOK', label: 'Book', icon: Calendar },
@@ -241,12 +241,12 @@ export function GMBPostsSection() {
         method: 'POST',
         body: formData
       })
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to upload image')
       }
-      
+
       const data = await res.json()
       if (data.url) {
         return data.url
@@ -267,23 +267,23 @@ export function GMBPostsSection() {
         postType === 'offer' ?
         `Create an offer post for: ${offerTitle || content}` :
         content || title
-      
+
       if (!prompt.trim()) {
         toast.error('Please provide some content to generate from')
         return
       }
-      
+
       const res = await fetch('/api/ai/generate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platform: 'gmb', prompt, tone: 'friendly' })
       })
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to generate content')
       }
-      
+
       const data = await res.json()
       if (data?.title) setTitle(data.title)
       if (data?.description) setContent(data.description)
@@ -306,7 +306,7 @@ export function GMBPostsSection() {
           setListLoading(false)
           return
         }
-        
+
         // First get active GMB account IDs
         const { data: activeAccounts, error: accountsError } = await supabase
           .from("gmb_accounts")
@@ -331,7 +331,7 @@ export function GMBPostsSection() {
               .eq("user_id", user.id)
               .in("gmb_account_id", activeAccountIds)
               .order("location_name")
-            
+
             if (locationsError) {
               console.error('Failed to fetch locations:', locationsError)
               toast.error('Failed to load locations')
@@ -341,7 +341,7 @@ export function GMBPostsSection() {
             }
           }
         }
-        
+
         // Fetch posts
         try {
           const res = await fetch('/api/gmb/posts/list')
@@ -366,7 +366,7 @@ export function GMBPostsSection() {
         setListLoading(false)
       }
     }
-    
+
     fetchData()
   }, [])
 
@@ -375,17 +375,17 @@ export function GMBPostsSection() {
       toast.error("Please select at least one location and add content")
       return
     }
-    
+
     try {
       setSaving(true)
-      
+
       // Upload image if selected
       let uploadedMediaUrl = mediaUrl
       if (imageFile) {
         const url = await uploadImage(imageFile)
         if (url) uploadedMediaUrl = url
       }
-      
+
       // Build post data based on type
       const postData: any = {
         title: title || undefined,
@@ -397,7 +397,7 @@ export function GMBPostsSection() {
         postType,
         aiGenerated,
       }
-      
+
       // Add type-specific fields
       if (postType === 'event') {
         postData.eventTitle = eventTitle
@@ -409,7 +409,7 @@ export function GMBPostsSection() {
         postData.redeemUrl = redeemUrl
         postData.terms = terms
       }
-      
+
       // Save post for each selected location
       const savePromises = selectedLocations.map(locationId =>
         fetch("/api/gmb/posts/create", {
@@ -418,22 +418,22 @@ export function GMBPostsSection() {
           body: JSON.stringify({ ...postData, locationId }),
         })
       )
-      
+
       const results = await Promise.allSettled(savePromises)
       const responses = results.map(result => 
         result.status === 'fulfilled' ? result.value : null
       ).filter(r => r !== null) as Response[]
-      
+
       const responsesData = await Promise.allSettled(
         responses.map(r => r.json().catch(() => ({})))
       )
       const results_data = responsesData.map(result =>
         result.status === 'fulfilled' ? result.value : {}
       )
-      
+
       const successful = responses.filter(r => r.ok).length
       const failed = responses.length - successful
-      
+
       if (successful > 0) {
         toast.success(`Post saved as draft for ${successful} location(s)`)
         if (failed > 0) {
@@ -460,26 +460,26 @@ export function GMBPostsSection() {
       toast.error("Please select at least one location and add content")
       return
     }
-    
+
     // Validate: Event and Offer posts cannot be published
     if (postType === 'event' || postType === 'offer') {
       toast.error("Event and Offer posts cannot be published to Google. Google Business Profile API only supports 'What's New' posts. You can save them as drafts.")
       return
     }
-    
+
     try {
       // Save first then publish
       const postId = await handleSave()
       if (!postId) return
-      
+
       const res = await fetch('/api/gmb/posts/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postId })
       })
-      
+
       const data = await res.json()
-      
+
       if (!res.ok) {
         if (data.code === 'INSUFFICIENT_SCOPES') {
           toast.error('Your Google Business Profile connection needs to be updated. Please disconnect and reconnect your account.')
@@ -491,12 +491,12 @@ export function GMBPostsSection() {
         }
         throw new Error(data.error || 'Failed to publish')
       }
-      
+
       toast.success('Published to Google successfully')
-      
+
       // Clear form after publish
       resetForm()
-      
+
       // Refresh posts list
       await refreshPosts()
     } catch (error: any) {
@@ -507,19 +507,19 @@ export function GMBPostsSection() {
 
   const handleDeletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return
-    
+
     try {
       const res = await fetch('/api/gmb/posts/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postId })
       })
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to delete post')
       }
-      
+
       toast.success('Post deleted successfully')
       await refreshPosts()
     } catch (error: any) {
@@ -527,7 +527,7 @@ export function GMBPostsSection() {
       toast.error(error.message || 'Failed to delete post')
     }
   }
-  
+
   const refreshPosts = async () => {
     try {
       const res = await fetch('/api/gmb/posts/list')
@@ -544,7 +544,7 @@ export function GMBPostsSection() {
       setPosts([])
     }
   }
-  
+
   const resetForm = () => {
     setTitle("")
     setContent("")
@@ -564,25 +564,25 @@ export function GMBPostsSection() {
     setTerms("")
     setAiGenerated(false)
   }
-  
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
   }
-  
+
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
   }
-  
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    
+
     const files = e.dataTransfer.files
     if (files && files[0]) {
       const file = files[0]
-      
+
       // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
       if (!file.type.startsWith('image/') || !validTypes.includes(file.type)) {
@@ -605,7 +605,7 @@ export function GMBPostsSection() {
       reader.readAsDataURL(file)
     }
   }
-  
+
   // Filter posts
   const filteredPosts = posts.filter(post => {
     const postType = post.post_type || post.postType
@@ -658,7 +658,7 @@ export function GMBPostsSection() {
                   </div>
                 </div>
               )}
-              
+
               {/* Post Type Selector */}
               <div className="grid gap-3">
                 <label className="text-sm font-medium text-primary">Post Type</label>
@@ -816,7 +816,7 @@ export function GMBPostsSection() {
                     className="mt-1 glass-strong"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-sm font-medium text-primary">Content *</label>
@@ -936,7 +936,7 @@ export function GMBPostsSection() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 {cta && (
                   <div>
                     <label className="text-sm font-medium text-primary">CTA URL</label>
@@ -975,7 +975,7 @@ export function GMBPostsSection() {
                   )}
                   Save as Draft
                 </Button>
-                
+
                 <Button
                   onClick={handlePublish}
                   disabled={saving || selectedLocations.length === 0 || !content.trim() || postType !== 'whats_new'}
@@ -1009,7 +1009,7 @@ export function GMBPostsSection() {
                     <SelectItem value="offer">Offers</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
                   <SelectTrigger className="w-[180px] glass-strong">
                     <SelectValue placeholder="Filter by status" />

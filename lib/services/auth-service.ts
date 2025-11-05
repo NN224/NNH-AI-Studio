@@ -89,11 +89,25 @@ export const authService = {
     if (error) throw error;
   },
 
+  /**
+   * @deprecated SECURITY WARNING: Using getSession() is insecure!
+   * 
+   * This method reads session data directly from storage (cookies) without verifying
+   * its authenticity with the Supabase Auth server. An attacker could modify cookies
+   * to impersonate another user.
+   * 
+   * Use getUser() instead, which validates the session by contacting the
+   * Supabase Auth server and ensures the data is authentic.
+   * 
+   * @see {@link https://supabase.com/docs/guides/auth/server-side/creating-a-client#creating-a-client}
+   */
   async getSession() {
     const supabase = createClient();
     const { data, error } = await supabase.auth.getSession();
 
     if (error) throw error;
+    // WARNING: This session data comes from cookies and may not be authentic!
+    // Do not use this for authentication checks. Use getUser() instead.
     return data.session;
   },
 
