@@ -234,10 +234,10 @@ export function ReviewsList() {
 
   if (error) {
     return (
-      <Card className="bg-card border-red-500/30">
+      <Card className="bg-card border-destructive/30">
         <CardContent className="p-12">
           <div className="flex flex-col items-center text-center space-y-4">
-            <MessageSquare className="w-12 h-12 text-red-500" />
+            <MessageSquare className="w-12 h-12 text-destructive" aria-hidden="true" />
             <div>
               <h3 className="text-lg font-semibold text-foreground">Error Loading Reviews</h3>
               <p className="text-muted-foreground mt-2">{error}</p>

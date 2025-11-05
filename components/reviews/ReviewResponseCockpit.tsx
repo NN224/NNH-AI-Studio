@@ -50,11 +50,13 @@ export function ReviewResponseCockpit() {
     const [aiLoading, setAiLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
 
     const getSentimentColor = (rating: number) => {
-        if (rating >= 4) return 'from-green-500/20 to-emerald-500/20 border-green-500/50';
-        if (rating === 3) return 'from-yellow-500/20 to-orange-500/20 border-yellow-500/50';
-        return 'from-red-500/20 to-pink-500/20 border-red-500/50';
+        if (rating >= 4) return 'from-success/20 to-success/10 border-success/50';
+        if (rating === 3) return 'from-warning/20 to-warning/10 border-warning/50';
+        return 'from-destructive/20 to-destructive/10 border-destructive/50';
     };
 
     const getSentimentIcon = (rating: number) => {
@@ -63,11 +65,13 @@ export function ReviewResponseCockpit() {
         return '😞';
     };
 
-    const handleGenerateAI = async () => {
+    const handleGenerateAI = async (retry = false) => {
         if (!selectedReview) return;
         setAiLoading(true);
+        setAiError(null);
 
         try {
+            const startTime = Date.now();
             const response = await fetch('/api/ai/generate-review-reply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -80,20 +84,46 @@ export function ReviewResponseCockpit() {
             });
 
             const result = await response.json();
+            const duration = Date.now() - startTime;
 
             if (!response.ok || result.error) {
                 throw new Error(result.error || "Failed to generate AI response.");
             }
 
-            setReplyContent(result.reply || "AI generated reply failed. Please try a different tone.");
-            toast.success("✨ AI response generated!");
+            if (!result.reply || result.reply.trim().length === 0) {
+                throw new Error("AI generated an empty response. Please try again.");
+            }
+
+            setReplyContent(result.reply);
+            setRetryCount(0);
+            
+            if (duration < 5000) {
+                toast.success(`✨ AI response generated in ${Math.round(duration / 1000)}s!`);
+            } else {
+                toast.success("✨ AI response generated!");
+            }
 
         } catch (e: any) {
-            toast.error(e.message);
-            setReplyContent("Could not generate AI reply. Please check your API configuration.");
+            const errorMessage = e.message || "Failed to generate AI response. Please check your API configuration.";
+            setAiError(errorMessage);
+            
+            if (!retry && retryCount < 2) {
+                // Auto-retry once on failure
+                setRetryCount(prev => prev + 1);
+                toast.error(`${errorMessage} Retrying...`);
+                setTimeout(() => handleGenerateAI(true), 1000);
+            } else {
+                toast.error(errorMessage);
+                setReplyContent("Could not generate AI reply. Please try a different tone or check your API configuration.");
+            }
         } finally {
             setAiLoading(false);
         }
+    }
+
+    const handleRetry = () => {
+        setRetryCount(0);
+        handleGenerateAI(false);
     }
 
     const handleSubmitReply = async () => {
@@ -170,11 +200,11 @@ export function ReviewResponseCockpit() {
                             <div className="text-xs text-gray-400">Pending</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-green-500">85%</div>
+                            <div className="text-2xl font-bold text-success">85%</div>
                             <div className="text-xs text-gray-400">Response Rate</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-blue-500">~30s</div>
+                            <div className="text-2xl font-bold text-info">~30s</div>
                             <div className="text-xs text-gray-400">Avg. Time</div>
                         </div>
                     </div>
@@ -182,9 +212,9 @@ export function ReviewResponseCockpit() {
             </div>
 
             {/* Main Two-Column Layout */}
-            <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
                 {/* LEFT: Review Stream */}
-                <div className="col-span-4 flex flex-col min-h-0">
+                <div className="lg:col-span-4 flex flex-col min-h-0">
                     <div className="mb-3 flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Review Stream</h3>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -220,7 +250,7 @@ export function ReviewResponseCockpit() {
                                                     <h4 className="font-semibold text-sm text-white">{review.reviewer_name}</h4>
                                                     <div className="flex items-center gap-1 text-xs text-gray-400">
                                                         {Array.from({ length: review.rating }).map((_, i) => (
-                                                            <Star key={i} className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                                                            <Star key={i} className="w-3 h-3 fill-warning text-warning" aria-hidden="true" />
                                                         ))}
                                                     </div>
                                                 </div>
@@ -250,7 +280,7 @@ export function ReviewResponseCockpit() {
                 </div>
 
                 {/* RIGHT: AI Studio Panel */}
-                <div className="col-span-8 flex flex-col min-h-0">
+                <div className="lg:col-span-8 flex flex-col min-h-0">
                     {!selectedReview ? (
                         <Card className="flex-1 flex flex-col items-center justify-center border-dashed border-gray-700 bg-black/30">
                             <div className="relative">
@@ -273,7 +303,7 @@ export function ReviewResponseCockpit() {
                                             <div>
                                                 <h4 className="font-bold text-white flex items-center gap-2">
                                                     {selectedReview.reviewer_name}
-                                                    <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/50">
+                                                    <span className="text-xs px-2 py-0.5 bg-warning/20 text-warning rounded-full border border-warning/50">
                                                         {selectedReview.rating} ★
                                                     </span>
                                                 </h4>
@@ -320,28 +350,51 @@ export function ReviewResponseCockpit() {
                                 </div>
                             </div>
 
-                            {/* Generate Button */}
-                            <Button
-                                onClick={handleGenerateAI}
-                                disabled={aiLoading || isSubmitting}
-                                className="relative w-full h-14 bg-gradient-to-r from-[#FF6B00] to-[#FF8C42] hover:from-[#FF8C42] hover:to-[#FF6B00] text-black font-bold text-base shadow-lg shadow-[#FF6B00]/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
-                            >
-                                <div className="absolute inset-0 bg-white/20 animate-pulse rounded-lg" />
-                                <div className="relative flex items-center justify-center gap-3">
-                                    {aiLoading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            <span>Generating Magic...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-5 h-5" />
-                                            <span>Generate with AI</span>
-                                            <Zap className="w-5 h-5" />
-                                        </>
-                                    )}
-                                </div>
-                            </Button>
+                            {/* Generate Button with Error Handling */}
+                            <div className="space-y-2">
+                                <Button
+                                    onClick={() => handleGenerateAI(false)}
+                                    disabled={aiLoading || isSubmitting}
+                                    className="relative w-full h-14 bg-gradient-to-r from-[#FF6B00] to-[#FF8C42] hover:from-[#FF8C42] hover:to-[#FF6B00] text-black font-bold text-base shadow-lg shadow-[#FF6B00]/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 min-h-[44px] md:min-h-[56px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                    aria-label={aiLoading ? "Generating AI response" : "Generate AI response for this review"}
+                                >
+                                    <div className="absolute inset-0 bg-white/20 animate-pulse rounded-lg" />
+                                    <div className="relative flex items-center justify-center gap-3">
+                                        {aiLoading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                                                <span>Generating Magic...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-5 h-5" aria-hidden="true" />
+                                                <span>Generate with AI</span>
+                                                <Zap className="w-5 h-5" aria-hidden="true" />
+                                            </>
+                                        )}
+                                    </div>
+                                </Button>
+                                
+                                {/* Error Message and Retry */}
+                                {aiError && !aiLoading && (
+                                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4 text-destructive" aria-hidden="true" />
+                                            <p className="text-xs text-destructive">{aiError}</p>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={handleRetry}
+                                            className="h-8 px-3 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
+                                            aria-label="Retry generating AI response"
+                                        >
+                                            <RotateCw className="w-3 h-3 mr-1" aria-hidden="true" />
+                                            Retry
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Response Preview Area */}
                             <div className="flex-1 flex flex-col min-h-0">
@@ -360,7 +413,7 @@ export function ReviewResponseCockpit() {
                                                 onClick={handleCopy}
                                                 className="h-7 px-2 text-xs"
                                             >
-                                                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                                {copied ? <Check className="w-3 h-3 text-success" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
                                             </Button>
                                         )}
                                     </div>
@@ -401,7 +454,7 @@ export function ReviewResponseCockpit() {
                                 <Button
                                     onClick={handleSubmitReply}
                                     disabled={!replyContent.trim() || isSubmitting}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                                    className="flex-1 bg-success hover:bg-success/90 text-white font-semibold min-h-[44px] md:min-h-0 focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2"
                                 >
                                     {isSubmitting ? (
                                         <>

@@ -16,13 +16,13 @@ export function ReviewColumn({ title, status, reviews, onGenerateResponse, onRep
   const getStatusColor = () => {
     switch (status) {
       case "new":
-        return "bg-blue-500/20 text-blue-500 border-blue-500/30"
+        return "bg-info/10 text-info border-info/30"
       case "in_progress":
-        return "bg-yellow-500/20 text-yellow-500 border-yellow-500/30"
+        return "bg-warning/10 text-warning border-warning/30"
       case "responded":
-        return "bg-green-500/20 text-green-500 border-green-500/30"
+        return "bg-success/10 text-success border-success/30"
       default:
-        return "bg-gray-500/20 text-gray-500 border-gray-500/30"
+        return "bg-muted/10 text-muted-foreground border-muted/30"
     }
   }
 

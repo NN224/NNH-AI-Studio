@@ -9,16 +9,16 @@ import { cn } from '@/lib/utils';
 import { Link } from '@/lib/navigation';
 
 // ⭐️ مكون بطاقة التحليل العاطفي (Sentiment Analysis Card) ⭐️
-const SentimentAnalysisCard = () => {
+const SentimentAnalysisCard = ({ className }: { className?: string }) => {
     // 💡 يمكن جلب هذه البيانات من API جديد مثل /api/reviews/sentiment
     const sentimentData = [
-        { label: 'Positive', value: 75, color: 'text-green-500', icon: ShieldCheck },
-        { label: 'Neutral', value: 15, color: 'text-yellow-500', icon: Clock },
-        { label: 'Negative', value: 10, color: 'text-red-500', icon: AlertTriangle },
+        { label: 'Positive', value: 75, color: 'text-success', icon: ShieldCheck },
+        { label: 'Neutral', value: 15, color: 'text-warning', icon: Clock },
+        { label: 'Negative', value: 10, color: 'text-destructive', icon: AlertTriangle },
     ];
 
     return (
-        <Card className="lg:col-span-1">
+        <Card className={cn("lg:col-span-1", className)}>
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                     <BarChart3 className="w-5 h-5"/> Sentiment Analysis
@@ -59,12 +59,12 @@ Manage, analyze, and generate AI responses for customer reviews
 </p>
 </div>
 
-      <div className="grid gap-6 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-1 lg:grid-cols-4">
         {/* ⭐️ بطاقة التحليل الجديدة (العمود 1) */}
-        <SentimentAnalysisCard />
+        <SentimentAnalysisCard className="sm:col-span-1 lg:col-span-1" />
 
         {/* ⭐️ بطاقة الردود الفورية (العمود 2-4) ⭐️ */}
-        <Card className="lg:col-span-3">
+        <Card className="sm:col-span-1 lg:col-span-3">
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                     <MessageSquare className="w-5 h-5"/> Pending Responses
