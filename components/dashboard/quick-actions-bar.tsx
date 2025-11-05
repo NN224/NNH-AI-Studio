@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Link } from '@/lib/navigation';
+import { Link, useRouter } from '@/lib/navigation';
 import { 
   MessageSquare, 
   HelpCircle, 
@@ -43,6 +43,7 @@ export function QuickActionsBar({
   locale = 'en'
 }: QuickActionsBarProps) {
   const isArabic = locale === 'ar';
+  const router = useRouter();
 
   const quickActions: QuickAction[] = [
     {
@@ -123,16 +124,30 @@ export function QuickActionsBar({
             <Link 
               href={action.href}
               aria-label={`${isArabic ? action.labelAr : action.label}. ${isArabic ? action.descriptionAr : action.description}. ${action.count !== undefined && action.count > 0 ? `${action.count} pending items` : 'No pending items'}.`}
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
             >
               <Card 
                 className={cn(
                 "p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group",
                 "border-2 border-transparent hover:border-primary/30",
+                "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2",
                 `bg-gradient-to-br ${action.gradient}`
                 )}
                 role="button"
                 tabIndex={0}
                 aria-labelledby={`action-${action.id}-title`}
+                aria-describedby={`action-${action.id}-description`}
+                onKeyDown={(e) => {
+                  // ✅ Enable keyboard activation (Enter or Space)
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    // Link component will handle navigation
+                    const link = e.currentTarget.closest('a');
+                    if (link) {
+                      link.click();
+                    }
+                  }
+                }}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -153,7 +168,10 @@ export function QuickActionsBar({
                       >
                         {isArabic ? action.labelAr : action.label}
                       </h4>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p 
+                        id={`action-${action.id}-description`}
+                        className="text-xs text-muted-foreground mt-1"
+                      >
                         {isArabic ? action.descriptionAr : action.description}
                       </p>
                       
@@ -161,8 +179,10 @@ export function QuickActionsBar({
                         <div 
                           className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
                           aria-label={`${action.count} pending`}
+                          role="status"
+                          aria-live="polite"
                         >
-                          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
                           {action.count} {isArabic ? 'معلق' : 'pending'}
                         </div>
                       )}

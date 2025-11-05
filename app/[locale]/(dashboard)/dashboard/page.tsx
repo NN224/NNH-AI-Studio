@@ -323,14 +323,18 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>({ preset: '30d', start: null, end: null });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // ✅ FIX: Add request cancellation with AbortController
+  // ✅ FIX: Add request cancellation with AbortController + sequence tracking
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestSequenceRef = useRef(0);
 
   const fetchDashboardData = async (signal?: AbortSignal) => {
     // Cancel previous request if exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+
+    // Increment sequence for this request
+    const currentSequence = ++requestSequenceRef.current;
 
     // Create new abort controller for this request
     const controller = new AbortController();
@@ -426,8 +430,8 @@ export default function DashboardPage() {
           // Check if aborted before state update
           if (effectiveSignal.aborted) return;
 
-          // Only update state if this is still the active request
-          if (abortControllerRef.current === controller) {
+          // ✅ Only update state if this is still the latest request (sequence check)
+          if (currentSequence === requestSequenceRef.current && !effectiveSignal.aborted) {
             setStats({
             totalLocations: newStats.totalLocations || 0,
             locationsTrend: newStats.locationsTrend || 0,
@@ -445,6 +449,7 @@ export default function DashboardPage() {
             locationHighlights: newStats.locationHighlights || [],
             bottlenecks: newStats.bottlenecks || [],
           });
+            setLastDataUpdate(new Date());
           }
         } else if (statsRes.status === 401) {
           // Unauthenticated from API -> sign out and redirect
@@ -474,15 +479,14 @@ export default function DashboardPage() {
       
       console.error('Error fetching dashboard data:', error);
       
-      // Only show error if this is still the active request
-      if (abortControllerRef.current === controller) {
+      // Only show error if this is still the latest request
+      if (currentSequence === requestSequenceRef.current) {
         toast.error('Failed to load dashboard data');
       }
     } finally {
-      // Only clear loading if this is still the active request
-      if (abortControllerRef.current === controller) {
+      // Only clear loading if this is still the latest request
+      if (currentSequence === requestSequenceRef.current) {
         setLoading(false);
-        setLastDataUpdate(new Date());
       }
       
       // Clear ref if this controller is still current
@@ -524,23 +528,65 @@ export default function DashboardPage() {
       return;
     }
 
+    // ✅ Prevent multiple concurrent syncs
+    if (syncing) {
+      toast.info('Sync already in progress');
+      return;
+    }
+
     try {
       setSyncing(true);
+      
+      // ✅ Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
       const response = await fetch('/api/gmb/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_id: gmbAccountId, sync_type: 'full' }),
+        body: JSON.stringify({ 
+          account_id: gmbAccountId, 
+          sync_type: 'full' 
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
+      // ✅ Handle specific HTTP error codes
+      if (response.status === 401) {
+        toast.error('Session expired. Please sign in again.');
+        await supabase.auth.signOut();
+        router.push('/auth/login');
+        return;
+      }
+      
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        toast.error(`Rate limit exceeded. Try again in ${retryAfter || 60} seconds.`);
+        return;
+      }
+      
+      if (response.status === 403) {
+        toast.error('You do not have permission to sync this account.');
+        return;
+      }
 
       if (!response.ok) {
         let errorMessage = 'Sync failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || `Sync failed: ${response.status}`;
-        } catch {
-          errorMessage = `Sync failed: ${response.status} ${response.statusText}`;
+        const contentType = response.headers.get('content-type');
+        
+        // ✅ Only parse JSON if response is JSON
+        if (contentType?.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch (parseError) {
+            console.error('Failed to parse error response:', parseError);
+          }
         }
-        throw new Error(errorMessage);
+        
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
 
       const data = await response.json();
@@ -548,14 +594,32 @@ export default function DashboardPage() {
       if (data.ok || data.success) {
         setLastSyncTime(new Date());
         toast.success('Sync completed successfully!');
-        window.dispatchEvent(new CustomEvent('gmb-sync-complete', { detail: data }));
+        
+        // ✅ Dispatch event for other components
+        window.dispatchEvent(new CustomEvent('gmb-sync-complete', { 
+          detail: { timestamp: Date.now(), data } 
+        }));
+        
+        // ✅ Refresh dashboard data
         await fetchDashboardData();
       } else {
-        throw new Error(data.error || 'Sync failed');
+        throw new Error(data.error || data.message || 'Sync failed without error details');
       }
     } catch (error) {
       console.error('Sync error:', error);
-      toast.error('Failed to sync data');
+      
+      // ✅ Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          toast.error('Sync timed out. Please check your connection and try again.');
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+          toast.error('Network error. Please check your internet connection.');
+        } else {
+          toast.error(error.message || 'Failed to sync data');
+        }
+      } else {
+        toast.error('An unexpected error occurred during sync');
+      }
     } finally {
       setSyncing(false);
     }
@@ -567,21 +631,55 @@ export default function DashboardPage() {
       return;
     }
 
+    // ✅ Prevent multiple concurrent disconnects
+    if (disconnecting) {
+      toast.info('Disconnect already in progress');
+      return;
+    }
+
     if (!confirm('Are you sure you want to disconnect Google My Business? Sync will stop but your data will be preserved.')) {
       return;
     }
 
     try {
       setDisconnecting(true);
+      
+      // ✅ Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
       const response = await fetch('/api/gmb/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId: gmbAccountId }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
+      // ✅ Handle specific HTTP error codes
+      if (response.status === 401) {
+        toast.error('Session expired. Please sign in again.');
+        await supabase.auth.signOut();
+        router.push('/auth/login');
+        return;
+      }
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || 'Failed to disconnect');
+        let errorMessage = 'Failed to disconnect';
+        const contentType = response.headers.get('content-type');
+        
+        // ✅ Only parse JSON if response is JSON
+        if (contentType?.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch (parseError) {
+            console.error('Failed to parse error response:', parseError);
+          }
+        }
+        
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
 
       toast.success('Google My Business disconnected successfully');
@@ -590,7 +688,19 @@ export default function DashboardPage() {
       await fetchDashboardData();
     } catch (error: any) {
       console.error('Disconnect error:', error);
-      toast.error(error.message || 'Failed to disconnect');
+      
+      // ✅ Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          toast.error('Disconnect timed out. Please try again.');
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+          toast.error('Network error. Please check your internet connection.');
+        } else {
+          toast.error(error.message || 'Failed to disconnect');
+        }
+      } else {
+        toast.error('An unexpected error occurred during disconnect');
+      }
     } finally {
       setDisconnecting(false);
     }

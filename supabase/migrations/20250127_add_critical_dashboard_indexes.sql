@@ -40,3 +40,15 @@ CREATE INDEX IF NOT EXISTS idx_gmb_accounts_last_sync
 ON gmb_accounts (last_sync DESC) 
 WHERE is_active = true;
 
+-- CRITICAL: Additional index for date range queries on reviews (user_id + review_date)
+CREATE INDEX IF NOT EXISTS idx_gmb_reviews_user_date 
+ON gmb_reviews(user_id, review_date DESC, location_id);
+
+-- CRITICAL: Index for questions date range queries
+CREATE INDEX IF NOT EXISTS idx_gmb_questions_user_date 
+ON gmb_questions(user_id, created_at DESC, location_id);
+
+-- HIGH: Composite index for weekly tasks with priority and estimated_minutes for sorting
+CREATE INDEX IF NOT EXISTS idx_weekly_tasks_user_week_priority 
+ON weekly_task_recommendations(user_id, week_start_date DESC, priority, estimated_minutes);
+
