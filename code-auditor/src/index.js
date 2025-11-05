@@ -1,5 +1,5 @@
 // ==========================================
-// NNH CODE AUDITOR - MAIN SERVER (UPDATED)
+// NNH CODE AUDITOR - FIXED FOR i18n ROUTES
 // ==========================================
 
 import express from 'express';
@@ -8,78 +8,95 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import fs from 'fs';
 
-// ES modules fix for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
 dotenv.config();
 
-// Validate environment
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('❌ ERROR: ANTHROPIC_API_KEY not found in .env file!');
+  console.error('❌ ERROR: ANTHROPIC_API_KEY not found!');
   process.exit(1);
 }
 
-// ✅ IMPORTS
 import { collectFiles } from './fileHandler.js';
 import { buildAuditPrompt } from './prompts.js';
 import { analyzeCodeWithClaude } from './claudeClient.js';
-import { generateFixPrompt, saveFixPrompt } from './generateFixPrompt.js';
+import { generateFixPrompt } from './generateFixPrompt.js';
 
-// Initialize Express server
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Serve static files (UI)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Request logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-console.log('✅ Services initialized');
-console.log('');
+console.log('✅ Services initialized\n');
+
+// ==========================================
+// HELPER: Get correct paths for components
+// ==========================================
+
+function getComponentPaths(component) {
+  const projectRoot = process.env.PROJECT_PATH 
+    ? path.resolve(process.env.PROJECT_PATH)
+    : path.resolve(__dirname, '..', '..');
+
+  // Map component names to actual paths in the project
+  const componentMap = {
+    dashboard: [
+      `app/[locale]/(dashboard)/dashboard`,  // Main dashboard page
+      `components/dashboard`,                // Dashboard components
+      `app/api/dashboard`                    // Dashboard API routes
+    ],
+    locations: [
+      `app/[locale]/(dashboard)/locations`,
+      `components/locations`,
+      `app/api/locations`
+    ],
+    reviews: [
+      `app/[locale]/(dashboard)/reviews`,
+      `components/reviews`,
+      `app/api/reviews`
+    ],
+    questions: [
+      `app/[locale]/(dashboard)/questions`,
+      `components/questions`,
+      `app/api/questions`
+    ]
+  };
+
+  const paths = componentMap[component] || [`app/${component}`];
+
+  return paths.map(p => path.join(projectRoot, p));
+}
 
 // ==========================================
 // API ENDPOINTS
 // ==========================================
 
-/**
- * Root endpoint
- */
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-/**
- * Health check endpoint
- */
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    projectPath: process.env.PROJECT_PATH || process.cwd(),
+    projectPath: process.env.PROJECT_PATH || path.resolve(__dirname, '..', '..'),
     services: {
       claude: '✅ Connected',
       fileHandler: '✅ Ready',
@@ -88,9 +105,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-/**
- * Audit endpoint
- */
 app.post('/api/audit/:component', async (req, res) => {
   try {
     const { component } = req.params;
@@ -101,23 +115,44 @@ app.post('/api/audit/:component', async (req, res) => {
     console.log('═══════════════════════════════════════════');
     console.log('');
 
-    // Step 1: Collect files
+    // Step 1: Get all paths for this component
     console.log('📁 Step 1: Collecting files...');
-    const targetDir = process.env.PROJECT_PATH 
-      ? path.join(process.env.PROJECT_PATH, `app/${component}`)
-      : `./app/${component}`;
+    const componentPaths = getComponentPaths(component);
+    console.log(`📂 Scanning ${componentPaths.length} directories:`);
+    componentPaths.forEach(p => console.log(`   - ${p}`));
+    console.log('');
 
-    const files = collectFiles(targetDir);
-    console.log(`✅ Found ${files.length} files`);
+    // Collect files from all paths
+    let allFiles = [];
+    for (const targetPath of componentPaths) {
+      if (fs.existsSync(targetPath)) {
+        try {
+          const files = collectFiles(targetPath);
+          allFiles = allFiles.concat(files);
+          console.log(`   ✅ ${path.basename(targetPath)}: ${files.length} files`);
+        } catch (error) {
+          console.log(`   ⚠️ ${path.basename(targetPath)}: ${error.message}`);
+        }
+      } else {
+        console.log(`   ⚠️ ${path.basename(targetPath)}: not found`);
+      }
+    }
 
-    const totalLines = files.reduce((sum, f) => sum + f.lines, 0);
-    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-    console.log(`📊 Total: ${totalLines} lines, ${(totalSize / 1024).toFixed(2)} KB`);
+    if (allFiles.length === 0) {
+      throw new Error(
+        `No files found for component "${component}".\n` +
+        `Searched in:\n${componentPaths.map(p => `  - ${p}`).join('\n')}`
+      );
+    }
+
+    const totalLines = allFiles.reduce((sum, f) => sum + f.lines, 0);
+    const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
+    console.log(`\n📊 Total: ${allFiles.length} files, ${totalLines} lines, ${(totalSize / 1024).toFixed(2)} KB`);
     console.log('');
 
     // Step 2: Build prompt
     console.log('📝 Step 2: Building audit prompt...');
-    const prompt = buildAuditPrompt(component, files);
+    const prompt = buildAuditPrompt(component, allFiles);
     console.log(`✅ Prompt built (${prompt.length} characters)`);
     console.log('');
 
@@ -147,7 +182,11 @@ app.post('/api/audit/:component', async (req, res) => {
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
-      saveFixPrompt(analysis.text, component, outputDir);
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const reportPath = path.join(outputDir, `FIX_PROMPT_${component}_${timestamp}.md`);
+      fs.writeFileSync(reportPath, fixPrompt, 'utf-8');
+      console.log(`📁 Fix prompt saved: ${reportPath}`);
     }
 
     console.log('');
@@ -156,20 +195,20 @@ app.post('/api/audit/:component', async (req, res) => {
     console.log('═══════════════════════════════════════════');
     console.log('');
 
-    // Step 5: Return results
+    // Return results
     res.json({
       success: true,
       component,
       analysis: {
         content: analysis.text,
         usage: {
-          inputTokens: 0, // Update if you track tokens
+          inputTokens: 0,
           outputTokens: 0,
           totalCost: '0.00'
         }
       },
       fixPrompt,
-      filesAnalyzed: files.length,
+      filesAnalyzed: allFiles.length,
       totalLines,
       duration: `${duration}s`,
       timestamp: new Date().toISOString()
@@ -181,7 +220,6 @@ app.post('/api/audit/:component', async (req, res) => {
     console.error('❌ Audit Error');
     console.error('═══════════════════════════════════════════');
     console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
     console.error('');
 
     res.status(500).json({
@@ -192,9 +230,6 @@ app.post('/api/audit/:component', async (req, res) => {
   }
 });
 
-/**
- * Download fix prompt endpoint
- */
 app.get('/api/fix-prompt/:component', (req, res) => {
   const { component } = req.params;
   const { report } = req.query;
@@ -205,20 +240,13 @@ app.get('/api/fix-prompt/:component', (req, res) => {
 
   try {
     const fixPrompt = generateFixPrompt(decodeURIComponent(report), component);
-
-    // Return as downloadable file
     res.setHeader('Content-Type', 'text/markdown');
     res.setHeader('Content-Disposition', `attachment; filename="FIX_PROMPT_${component}.md"`);
     res.send(fixPrompt);
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ==========================================
-// ERROR HANDLING
-// ==========================================
 
 // 404 handler
 app.use((req, res) => {
@@ -267,10 +295,8 @@ const server = app.listen(PORT, () => {
   console.log('');
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('');
-  console.log('👋 Shutting down gracefully...');
+  console.log('\n👋 Shutting down gracefully...');
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
@@ -278,8 +304,7 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.log('');
-  console.log('👋 Shutting down gracefully...');
+  console.log('\n👋 Shutting down gracefully...');
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
