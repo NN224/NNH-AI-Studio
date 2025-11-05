@@ -170,7 +170,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
 
             {/* Views */}
             <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-blue-400" />
+              <Eye className="w-5 h-5 text-info" aria-hidden="true" />
               <div>
                 <p className="text-xs text-muted-foreground">{t('labels.views')}</p>
                 <p className="font-bold text-foreground">{formatLargeNumber(insights.views)}</p>
@@ -179,7 +179,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
 
             {/* Calls */}
             <div className="flex items-center gap-2">
-              <Phone className="w-5 h-5 text-green-400" />
+              <Phone className="w-5 h-5 text-success" aria-hidden="true" />
               <div>
                 <p className="text-xs text-muted-foreground">{t('labels.calls')}</p>
                 <p className="font-bold text-foreground">{formatLargeNumber(insights.calls)}</p>
@@ -188,7 +188,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
 
             {/* Reviews */}
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-purple-400" />
+              <MessageSquare className="w-5 h-5 text-primary" aria-hidden="true" />
               <div>
                 <p className="text-xs text-muted-foreground">{t('labels.reviews')}</p>
                 <p className="font-bold text-foreground">{formatLargeNumber(reviewCount)}</p>
@@ -201,20 +201,20 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
             <Button
               asChild
               variant="outline"
-              className="flex-1 border-orange-500/30 hover:bg-orange-500/10 hover:border-orange-500/50"
+              className="flex-1 border-primary/30 hover:bg-primary/10 hover:border-primary/50 min-h-[44px] md:min-h-0"
             >
               <Link href={`/locations/${location.id}/insights`}>
-                <BarChart3 className="w-4 h-4 mr-2" />
+                <BarChart3 className="w-4 h-4 mr-2" aria-hidden="true" />
                 {t('card.viewInsights')}
               </Link>
             </Button>
 
             <Button
               variant="default"
-              className="flex-1 gradient-orange"
+              className="flex-1 min-h-[44px] md:min-h-0"
               onClick={() => onEdit?.(location.id)}
             >
-              <Edit3 className="w-4 h-4 mr-2" />
+              <Edit3 className="w-4 h-4 mr-2" aria-hidden="true" />
               {t('card.editLocation')}
             </Button>
           </div>
@@ -228,20 +228,20 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
 export const EnhancedLocationCardSkeleton = () => {
   return (
     <Card className="overflow-hidden glass-strong relative">
-      <div className="relative h-32 bg-muted animate-pulse" />
-      <CardContent className="pt-16 pb-6">
+      <Skeleton className="h-32 w-full" />
+      <CardContent className="p-6 pt-16">
         <div className="space-y-4">
-          <div className="h-6 bg-muted rounded animate-pulse" />
-          <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
-          <div className="h-4 bg-muted rounded w-1/2 animate-pulse" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+              <Skeleton key={i} className="h-12 w-full rounded-lg" />
             ))}
           </div>
           <div className="flex gap-3 pt-4">
-            <div className="h-10 bg-muted rounded flex-1 animate-pulse" />
-            <div className="h-10 bg-muted rounded flex-1 animate-pulse" />
+            <Skeleton className="h-10 flex-1 rounded-md" />
+            <Skeleton className="h-10 flex-1 rounded-md" />
           </div>
         </div>
       </CardContent>

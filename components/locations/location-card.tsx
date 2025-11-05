@@ -173,7 +173,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
                 className="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-accent"
               />
             ) : (
-              <div className="w-3 h-3 rounded-full bg-success" />
+              <div className="w-3 h-3 rounded-full bg-success/80" />
             )}
           </div>
 
@@ -220,20 +220,20 @@ export function LocationCard({ location, index }: LocationCardProps) {
                       </Badge>
                     )}
                     {isOpen && (
-                      <Badge variant="default" className="bg-success/20 text-success border-success/30">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                      <Badge variant="default" className="bg-success/10 text-success border-success/30">
+                        <CheckCircle2 className="w-3 h-3 mr-1" aria-hidden="true" />
                         Open
                       </Badge>
                     )}
                     {hasPendingEdits && (
-                      <Badge variant="outline" className="bg-warning/20 text-warning border-warning/30">
-                        <AlertCircle className="w-3 h-3 mr-1" />
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                        <AlertCircle className="w-3 h-3 mr-1" aria-hidden="true" />
                         Pending Edits
                       </Badge>
                     )}
                     {hasVoiceOfMerchant && (
-                      <Badge variant="outline" className="bg-info/20 text-info border-info/30">
-                        <MessageCircle className="w-3 h-3 mr-1" />
+                      <Badge variant="outline" className="bg-info/10 text-info border-info/30">
+                        <MessageCircle className="w-3 h-3 mr-1" aria-hidden="true" />
                         Voice of Merchant
                       </Badge>
                     )}
@@ -382,7 +382,7 @@ export function LocationCard({ location, index }: LocationCardProps) {
             )}
 
             {/* Metrics grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
               <div className="text-center p-3 rounded-lg bg-secondary border border-primary/20">
                 <div className="text-2xl font-bold text-primary">{(location.rating ?? 0).toFixed(1)}</div>
                 <div className="text-xs text-muted-foreground">Rating</div>

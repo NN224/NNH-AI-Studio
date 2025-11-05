@@ -307,6 +307,7 @@ export default function LocationsPage() {
             totalViews={stats.totalViews}
             avgRating={stats.avgRating}
             avgHealthScore={stats.avgHealthScore}
+            loading={statsLoading}
           />
         )}
       </LocationsSection>
