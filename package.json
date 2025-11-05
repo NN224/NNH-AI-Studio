@@ -80,7 +80,7 @@
     "react-hook-form": "^7.60.0",
     "react-is": "^18.3.1",
     "react-resizable-panels": "^2.1.7",
-    "recharts": "latest",
+    "recharts": "^3.3.0",
     "sonner": "^1.7.4",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^2.5.5",

@@ -15,6 +15,16 @@ async function handler(request: Request, user: any): Promise<Response> {
   const search = searchParams.get('search') || ''
   const status = searchParams.get('status') || 'all'
   const category = searchParams.get('category') || 'all'
+  const ratingMin = searchParams.get('ratingMin') ? parseFloat(searchParams.get('ratingMin')!) : undefined
+  const ratingMax = searchParams.get('ratingMax') ? parseFloat(searchParams.get('ratingMax')!) : undefined
+  const healthScoreMin = searchParams.get('healthScoreMin') ? parseInt(searchParams.get('healthScoreMin')!, 10) : undefined
+  const healthScoreMax = searchParams.get('healthScoreMax') ? parseInt(searchParams.get('healthScoreMax')!, 10) : undefined
+  const reviewCountMin = searchParams.get('reviewCountMin') ? parseInt(searchParams.get('reviewCountMin')!, 10) : undefined
+  const reviewCountMax = searchParams.get('reviewCountMax') ? parseInt(searchParams.get('reviewCountMax')!, 10) : undefined
+  const dateRange = searchParams.get('dateRange') as 'last_sync' | 'created' | null
+  const dateFrom = searchParams.get('dateFrom') || undefined
+  const dateTo = searchParams.get('dateTo') || undefined
+  const quickFilter = searchParams.get('quickFilter') as 'needs_attention' | 'top_performers' | null
   const limit = parseInt(searchParams.get('limit') || '50', 10)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
 
@@ -81,6 +91,45 @@ async function handler(request: Request, user: any): Promise<Response> {
   
   if (category !== 'all') {
     query = query.eq('category', category)
+  }
+
+  // Rating range filter
+  if (ratingMin !== undefined) {
+    query = query.gte('rating', ratingMin)
+  }
+  if (ratingMax !== undefined) {
+    query = query.lte('rating', ratingMax)
+  }
+
+  // Health score range filter
+  if (healthScoreMin !== undefined) {
+    query = query.gte('health_score', healthScoreMin)
+  }
+  if (healthScoreMax !== undefined) {
+    query = query.lte('health_score', healthScoreMax)
+  }
+
+  // Review count range filter
+  if (reviewCountMin !== undefined) {
+    query = query.gte('review_count', reviewCountMin)
+  }
+  if (reviewCountMax !== undefined) {
+    query = query.lte('review_count', reviewCountMax)
+  }
+
+  // Date range filter
+  if (dateRange && dateFrom && dateTo) {
+    const dateField = dateRange === 'last_sync' ? 'updated_at' : 'created_at'
+    query = query.gte(dateField, dateFrom)
+    query = query.lte(dateField, dateTo)
+  }
+
+  // Quick filters
+  if (quickFilter === 'needs_attention') {
+    query = query.lte('health_score', 60)
+  } else if (quickFilter === 'top_performers') {
+    query = query.gte('rating', 4.5)
+    query = query.gte('health_score', 80)
   }
 
   // Apply pagination

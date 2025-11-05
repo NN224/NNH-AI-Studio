@@ -4,12 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/locations/[locationId]/logo
+ * GET /api/locations/[id]/logo
  * Get logo photo for a location from GMB media
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const supabase = await createClient();
@@ -22,7 +22,7 @@ export async function GET(
       );
     }
 
-    const { locationId } = params;
+    const locationId = params.id;
 
     // Get location from database to find GMB resource name
     const { data: location, error: locationError } = await supabase
