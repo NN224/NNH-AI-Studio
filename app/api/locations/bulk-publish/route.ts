@@ -19,13 +19,24 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
   // ✅ SECURITY: Enhanced authentication validation with proper session check
-  const { data: { user, session }, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // Enhanced authentication check including session validation
-  if (authError || !user || !session) {
+  // Enhanced authentication check
+  if (authError || !user) {
     console.error('Authentication error:', authError);
     return NextResponse.json(
       { error: 'Unauthorized: Valid authentication required' },
+      { status: 401 }
+    );
+  }
+
+  // Get session separately to validate
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session || session.user.id !== user.id) {
+    console.error('Session validation error:', sessionError);
+    return NextResponse.json(
+      { error: 'Unauthorized: Invalid session' },
       { status: 401 }
     );
   }
