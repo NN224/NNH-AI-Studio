@@ -73,20 +73,35 @@ export function LocationMapDashboard() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [showCompetitors, setShowCompetitors] = useState(false);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>('');
   
   // ✅ FIX: Memory leak prevention - track map instance and cleanup
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const isMountedRef = useRef(true); 
+  const isMountedRef = useRef(true);
 
+  // ✅ SECURITY FIX: Fetch API key securely from server-side API route
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        const response = await fetch('/api/google-maps-config');
+        const data = await response.json();
+        if (data.apiKey && isMountedRef.current) {
+          setGoogleMapsApiKey(data.apiKey);
+        }
+      } catch (error) {
+        console.error('Failed to load Google Maps API key:', error);
+      }
+    };
+    
+    fetchApiKey();
+  }, []);
 
   // 1. تحميل سكربت الخريطة
-  // ⚠️ SECURITY NOTE: Google Maps API key is exposed to client-side.
-  // Must restrict API key in Google Cloud Console to specific referrers/domains only.
-  // Consider implementing server-side proxy for production use.
+  // ✅ SECURITY: API key now loaded securely from server-side route
   const { isLoaded, loadError: mapLoadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY',
+    googleMapsApiKey: googleMapsApiKey,
     libraries,
   });
 

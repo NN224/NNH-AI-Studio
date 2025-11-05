@@ -7,8 +7,8 @@ import { getValidAccessToken, buildLocationResourceName } from '@/lib/gmb/helper
 // 💡 افتراض: استيراد دالة جلب المنشور من Supabase
 import { fetchPostContent } from '@/lib/posts/posts-crud'; // ⭐️ يجب تعديل هذا المسار
 
-// 💡 افتراض: هذا الثابت موجود لديك في ملف الـ helpers
-const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4'; 
+// Line 12 - Replace hardcoded API endpoint with environment variable
+const GMB_V4_BASE = process.env.GMB_V4_BASE_URL || 'https://mybusiness.googleapis.com/v4'; 
 
 
 /**
