@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 export function useDashboardRealtime(
   userId: string | null,
   onUpdate: () => void
 ) {
+  const router = useRouter();
+
   useEffect(() => {
     if (!userId) return;
 
@@ -57,11 +61,31 @@ export function useDashboardRealtime(
             onUpdate();
           }
         )
-        .subscribe((status) => {
+        .on('system', { event: 'error' }, (error) => {
+          console.error('Realtime subscription error:', error);
+          
+          // Check if it's an auth error
+          const errorMessage = error?.message || '';
+          if (errorMessage.includes('JWT') || 
+              errorMessage.includes('session') ||
+              errorMessage.includes('expired') ||
+              errorMessage.includes('Invalid Refresh Token')) {
+            toast.error('Session expired. Redirecting to login...');
+            
+            // Sign out and redirect
+            supabase.auth.signOut().finally(() => {
+              router.push('/auth/login');
+            });
+          }
+        })
+        .subscribe((status, err) => {
           if (status === 'SUBSCRIBED') {
             console.log('✅ Real-time subscriptions active');
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Real-time subscription error');
+            console.error('❌ Channel error:', err);
+            toast.error('Real-time updates disconnected');
+          } else if (status === 'TIMED_OUT') {
+            console.warn('⏱️ Channel subscription timed out, retrying...');
           }
         });
     };
@@ -71,10 +95,11 @@ export function useDashboardRealtime(
     // Cleanup
     return () => {
       if (channel) {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
         console.log('🔌 Real-time subscriptions disconnected');
       }
     };
-  }, [userId, onUpdate]);
+  }, [userId, onUpdate, router]);
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
@@ -322,14 +322,34 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>({ preset: '30d', start: null, end: null });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const fetchDashboardData = async () => {
+  // ✅ FIX: Add request sequence tracking to prevent race conditions
+  const requestSequenceRef = useRef(0);
+  const pendingRequestRef = useRef(false);
+
+  const fetchDashboardData = async (signal?: AbortSignal) => {
+    // Prevent duplicate concurrent requests
+    if (pendingRequestRef.current) {
+      console.log('Request already in progress, skipping...');
+      return;
+    }
+
+    // Increment sequence number for this request
+    const currentSequence = ++requestSequenceRef.current;
+    pendingRequestRef.current = true;
+
     try {
       setLoading(true);
+
+      // Check if aborted before continuing
+      if (signal?.aborted) return;
 
       const {
         data: { user: authUser },
         error: authError
       } = await supabase.auth.getUser();
+
+      // Check if aborted after async operation
+      if (signal?.aborted) return;
 
       if (authError || !authUser) {
         // Handle expired/invalid sessions gracefully
@@ -391,10 +411,22 @@ export default function DashboardPage() {
           params.set('end', dateRange.end.toISOString());
         }
 
-        const statsRes = await fetch(`/api/dashboard/stats?${params.toString()}`);
+        const statsRes = await fetch(`/api/dashboard/stats?${params.toString()}`, {
+          signal // Pass abort signal to fetch
+        });
+
+        // Check if aborted after async operation
+        if (signal?.aborted) return;
+
         if (statsRes.ok) {
           const newStats = await statsRes.json();
-          setStats({
+
+          // Check if aborted before state update
+          if (signal?.aborted) return;
+
+          // Only update state if this is still the latest request
+          if (currentSequence === requestSequenceRef.current) {
+            setStats({
             totalLocations: newStats.totalLocations || 0,
             locationsTrend: newStats.locationsTrend || 0,
             averageRating: newStats.recentAverageRating || 0,
@@ -411,6 +443,9 @@ export default function DashboardPage() {
             locationHighlights: newStats.locationHighlights || [],
             bottlenecks: newStats.bottlenecks || [],
           });
+          } else {
+            console.log(`Discarding stale response (sequence ${currentSequence}, current ${requestSequenceRef.current})`);
+          }
         } else if (statsRes.status === 401) {
           // Unauthenticated from API -> sign out and redirect
           try {
@@ -431,31 +466,50 @@ export default function DashboardPage() {
       }
 
     } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
+      
       console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      
+      // Only show error if this is still the latest request
+      if (currentSequence === requestSequenceRef.current) {
+        toast.error('Failed to load dashboard data');
+      }
     } finally {
-      setLoading(false);
-      setLastDataUpdate(new Date());
+      // Only clear loading if this is the latest request
+      if (currentSequence === requestSequenceRef.current) {
+        setLoading(false);
+        setLastDataUpdate(new Date());
+      }
+      pendingRequestRef.current = false;
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    const abortController = new AbortController();
+    
+    fetchDashboardData(abortController.signal);
 
     const handleSyncComplete = () => {
-      fetchDashboardData();
+      fetchDashboardData(abortController.signal);
     };
 
     window.addEventListener('gmb-sync-complete', handleSyncComplete);
+    
     return () => {
+      abortController.abort(); // Cancel ongoing requests
       window.removeEventListener('gmb-sync-complete', handleSyncComplete);
     };
-  }, []);
+  }, []); // Empty deps to run once on mount
 
   // Real-time subscriptions for live updates
+  // Note: Realtime updates don't use abort controller - they should complete
   useDashboardRealtime(currentUserId, () => {
     console.log('📡 Real-time update received, refreshing dashboard...');
-    fetchDashboardData();
+    fetchDashboardData(); // Will use sequence tracking to prevent race conditions
   });
 
   const handleSync = async () => {

@@ -112,6 +112,20 @@ export function WeeklyTasksWidget() {
   };
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    // ✅ SECURITY: Validate inputs
+    const validStatuses = ['pending', 'in_progress', 'completed', 'dismissed'];
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidRegex.test(taskId)) {
+      toast.error('Invalid task ID');
+      return;
+    }
+    
+    if (!validStatuses.includes(newStatus)) {
+      toast.error('Invalid task status');
+      return;
+    }
+    
     try {
       const response = await fetch('/api/tasks/update', {
         method: 'PATCH',
@@ -122,7 +136,10 @@ export function WeeklyTasksWidget() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update task');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || 'Failed to update task');
+      }
 
       setTasks((prev) =>
         prev.map((task) =>

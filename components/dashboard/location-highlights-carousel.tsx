@@ -151,24 +151,49 @@ export function LocationHighlightsCarousel({
           </CardTitle>
           
           {locations.length > 1 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="group" aria-label={isArabic ? "تنقل بين المواقع" : "Navigate between locations"}>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={setPrevious}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (e.key === 'ArrowLeft' || (isArabic && e.key === 'ArrowRight')) {
+                      setPrevious();
+                    } else {
+                      setNext();
+                    }
+                  }
+                }}
                 className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 aria-label={isArabic ? "الموقع السابق" : "Previous location"}
                 aria-describedby="location-counter"
               >
                 <ChevronLeft className={cn("w-4 h-4", isArabic && "rotate-180")} aria-hidden="true" />
               </Button>
-              <span id="location-counter" className="text-sm text-muted-foreground" aria-label={`Location ${currentIndex + 1} of ${locations.length}`}>
+              <span 
+                id="location-counter" 
+                className="text-sm text-muted-foreground" 
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 {currentIndex + 1} / {locations.length}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={setNext}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (e.key === 'ArrowRight' || (isArabic && e.key === 'ArrowLeft')) {
+                      setNext();
+                    } else {
+                      setPrevious();
+                    }
+                  }
+                }}
                 className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 aria-label={isArabic ? "الموقع التالي" : "Next location"}
                 aria-describedby="location-counter"
@@ -189,6 +214,10 @@ export function LocationHighlightsCarousel({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
             className={cn("p-6 rounded-lg", config.bgColor)}
+            role="region"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={isArabic ? `تفاصيل الموقع: ${currentLocation.name}` : `Location details: ${currentLocation.name}`}
           >
             {/* Category Badge */}
             <div className="flex items-center gap-2 mb-4">
@@ -261,17 +290,31 @@ export function LocationHighlightsCarousel({
 
         {/* Progress Indicators */}
         {locations.length > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div 
+            className="flex items-center justify-center gap-2 mt-4"
+            role="tablist"
+            aria-label={isArabic ? "مؤشرات المواقع" : "Location indicators"}
+          >
             {locations.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setCurrentIndex(index);
+                  }
+                }}
                 className={cn(
-                  "h-1.5 rounded-full transition-all",
+                  "h-1.5 rounded-full transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none",
                   index === currentIndex 
                     ? "w-8 bg-primary" 
                     : "w-1.5 bg-muted-foreground/30"
                 )}
+                role="tab"
+                aria-selected={index === currentIndex}
+                aria-label={isArabic ? `الموقع ${index + 1}` : `Location ${index + 1}`}
+                tabIndex={index === currentIndex ? 0 : -1}
               />
             ))}
           </div>

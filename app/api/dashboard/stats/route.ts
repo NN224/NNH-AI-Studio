@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Input validation schema
 const dateRangeSchema = z.object({
@@ -87,6 +88,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // ✅ SECURITY: Rate limiting check
+  const { success, headers } = await checkRateLimit(user.id);
+  if (!success) {
+    return NextResponse.json(
+      { 
+        error: 'Too many requests', 
+        message: 'Rate limit exceeded. Please try again later.',
+        retry_after: headers['X-RateLimit-Reset']
+      },
+      { 
+        status: 429,
+        headers: headers as HeadersInit
+      }
+    );
+  }
+
   try {
   const userId = user.id;
   // فترات زمنية ديناميكية حسب بارامترات الطلب (start/end)
@@ -141,8 +158,33 @@ export async function GET(request: Request) {
     const activeLocationIds = activeLocationsData?.map(loc => loc.id) || [];
     const totalLocations = activeLocationsData?.length || 0;
 
+    // ✅ SECURITY: Validate location IDs are valid UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validLocationIds = activeLocationIds.filter(id => uuidRegex.test(id));
+
+    if (validLocationIds.length !== activeLocationIds.length) {
+      console.error('Invalid location IDs detected');
+      return NextResponse.json(
+        { error: 'Invalid location data' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ SECURITY: Limit array size to prevent query errors
+    const MAX_LOCATIONS = 1000;
+    if (validLocationIds.length > MAX_LOCATIONS) {
+      console.error(`Too many locations: ${validLocationIds.length}`);
+      return NextResponse.json(
+        { 
+          error: 'Too many locations',
+          message: `Maximum ${MAX_LOCATIONS} locations supported`
+        },
+        { status: 400 }
+      );
+    }
+
     // ... (منطق إرجاع الصفر في حالة عدم وجود مواقع) ...
-    if (activeLocationIds.length === 0) {
+    if (validLocationIds.length === 0) {
         const zeroStats: ProcessedStats = {
             totalLocations: 0, locationsTrend: 0, recentAverageRating: 0, allTimeAverageRating: 0, ratingTrend: 0,
             totalReviews: 0, reviewsTrend: 0, responseRate: 0, pendingReviews: 0, unansweredQuestions: 0,
@@ -162,7 +204,7 @@ export async function GET(request: Request) {
         .from("gmb_reviews")
         .select("rating, review_reply, review_date, created_at, location_id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds);
+        .in("location_id", validLocationIds);
 
     const reviews = allReviews || [];
 
@@ -171,7 +213,7 @@ export async function GET(request: Request) {
         .from("gmb_reviews")
         .select("rating, review_reply, review_date, created_at, location_id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds)
+        .in("location_id", validLocationIds)
         .gte("review_date", startOfPeriod.toISOString())
         .lte("review_date", endOfPeriod.toISOString())
         .order("review_date", { ascending: false });
@@ -183,7 +225,7 @@ export async function GET(request: Request) {
         .from("gmb_reviews")
         .select("rating, review_reply, review_date, created_at, location_id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds)
+        .in("location_id", validLocationIds)
         .gte("review_date", prevStart.toISOString())
         .lte("review_date", prevEnd.toISOString())
         .order("review_date", { ascending: false });
@@ -195,7 +237,7 @@ export async function GET(request: Request) {
         .from("gmb_questions")
         .select("id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds)
+        .in("location_id", validLocationIds)
         .is("answer_text", null);
 
     const unansweredQuestions = unansweredQuestionsData?.length || 0;
@@ -339,7 +381,7 @@ export async function GET(request: Request) {
         .from("gmb_questions")
         .select("id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds)
+        .in("location_id", validLocationIds)
         .gte("created_at", startOfPeriod.toISOString())
         .lte("created_at", endOfPeriod.toISOString());
 
@@ -347,7 +389,7 @@ export async function GET(request: Request) {
         .from("gmb_questions")
         .select("id")
         .eq("user_id", userId)
-        .in("location_id", activeLocationIds)
+        .in("location_id", validLocationIds)
         .gte("created_at", prevStart.toISOString())
         .lte("created_at", prevEnd.toISOString());
 
@@ -504,7 +546,22 @@ export async function GET(request: Request) {
     return NextResponse.json(finalStats);
 
   } catch (error) {
-    console.error('API Error fetching dashboard stats:', error);
-    return NextResponse.json({ error: 'Failed to process dashboard stats' }, { status: 500 });
+    // Log full error internally for debugging
+    console.error('API Error fetching dashboard stats:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: userId || 'unknown',
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Send generic error to client
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        message: 'Unable to load dashboard statistics. Please try again later.',
+        code: 'DASHBOARD_STATS_ERROR'
+      },
+      { status: 500 }
+    );
   }
 }
