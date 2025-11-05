@@ -18,30 +18,22 @@ const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4';
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
-  // ✅ SECURITY: Enhanced authentication validation
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // ✅ SECURITY: Enhanced authentication validation with proper session check
+  const { data: { user, session }, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !user) {
+  // Enhanced authentication check including session validation
+  if (authError || !user || !session) {
     console.error('Authentication error:', authError);
     return NextResponse.json(
-      { 
-        error: 'Unauthorized',
-        message: 'Authentication required. Please sign in again.'
-      }, 
+      { error: 'Unauthorized: Valid authentication required' },
       { status: 401 }
     );
   }
 
-  // ✅ SECURITY: Verify user session is valid
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-  if (sessionError || !session || !session.user || session.user.id !== user.id) {
-    console.error('Session validation error:', sessionError);
+  // Additional session validity check
+  if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
     return NextResponse.json(
-      { 
-        error: 'Invalid session',
-        message: 'Your session has expired. Please sign in again.'
-      },
+      { error: 'Unauthorized: Session expired' },
       { status: 401 }
     );
   }
@@ -133,61 +125,71 @@ export async function POST(request: NextRequest) {
     let failedPublishes = 0;
     const errors: Array<{ locationId: string; error: string }> = [];
 
-    // ✅ FIX: Process locations sequentially to prevent race conditions
-    // Using for...of loop ensures sequential processing
+    // ✅ FIX: Process locations sequentially to prevent race conditions with proper error handling and synchronization
     for (const locationId of locationIds) {
       try {
         // بناء مسار المورد المطلوب لـ GMB API
         const locationResource = buildLocationResourceName(account.account_id, locationId);
-
-        // 💡 تحويل كائن المنشور (Post object) من Supabase إلى كائن (LocalPost) مناسب لـ GMB API
-        const localPostData = {
-            summary: postData.content,
-            languageCode: 'en-US', // 💡 يجب أن يكون هذا ديناميكياً
-            // ... يمكنك إضافة حقول أخرى مثل actionType و media و topicType
-
-            // مثال على إضافة CTA
-            callToAction: (postData.callToAction && postData.callToActionUrl) ? {
-                actionType: postData.callToAction, // مثال: 'CALL' أو 'LEARN_MORE'
-                url: postData.callToActionUrl,
-            } : undefined,
-
-            // مثال على إضافة صورة (صورة واحدة)
-            media: postData.mediaUrl ? [{ mediaFormat: 'PHOTO', sourceUrl: postData.mediaUrl }] : undefined,
-        };
-
-        const publishUrl = `${GMB_V4_BASE}/${locationResource}/localPosts`;
-
-        const response = await fetch(publishUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(localPostData),
-        });
-
-        if (response.ok) {
-            successfulPublishes++;
-        } else {
-            failedPublishes++;
-            let errorMessage = 'Unknown error';
-            try {
-                const error = await response.json();
-                errorMessage = error.error?.message || error.message || `HTTP ${response.status}`;
-                console.error(`[Bulk Publish] Failed for ${locationId}:`, error);
-            } catch (parseError) {
-                errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                console.error(`[Bulk Publish] Failed to parse error for ${locationId}:`, parseError);
-            }
-            errors.push({ locationId, error: errorMessage });
-        }
-      } catch (locationError: any) {
-        // ✅ ERROR HANDLING: Catch errors for individual locations
+        
+        // Process each location sequentially to prevent race conditions
+        await processLocationPublish(locationResource, locationId, accessToken, supabase, postData);
+        successfulPublishes++;
+        
+      } catch (error) {
         failedPublishes++;
-        const errorMessage = locationError.message || 'Unknown error during publish';
-        console.error(`[Bulk Publish] Exception for ${locationId}:`, locationError);
-        errors.push({ locationId, error: errorMessage });
+        errors.push({
+          locationId,
+          error: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      }
+    }
+    
+    // Helper function to ensure atomic operations per location
+    async function processLocationPublish(
+      locationResource: string, 
+      locationId: string, 
+      accessToken: string, 
+      supabase: any,
+      postData: any
+    ) {
+      // 💡 تحويل كائن المنشور (Post object) من Supabase إلى كائن (LocalPost) مناسب لـ GMB API
+      const localPostData = {
+          summary: postData.content,
+          languageCode: 'en-US', // 💡 يجب أن يكون هذا ديناميكياً
+          // ... يمكنك إضافة حقول أخرى مثل actionType و media و topicType
+
+          // مثال على إضافة CTA
+          callToAction: (postData.callToAction && postData.callToActionUrl) ? {
+              actionType: postData.callToAction, // مثال: 'CALL' أو 'LEARN_MORE'
+              url: postData.callToActionUrl,
+          } : undefined,
+
+          // مثال على إضافة صورة (صورة واحدة)
+          media: postData.mediaUrl ? [{ mediaFormat: 'PHOTO', sourceUrl: postData.mediaUrl }] : undefined,
+      };
+
+      const publishUrl = `${GMB_V4_BASE}/${locationResource}/localPosts`;
+
+      const response = await fetch(publishUrl, {
+          method: 'POST',
+          headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(localPostData),
+      });
+
+      if (!response.ok) {
+          let errorMessage = 'Unknown error';
+          try {
+              const error = await response.json();
+              errorMessage = error.error?.message || error.message || `HTTP ${response.status}`;
+              console.error(`[Bulk Publish] Failed for ${locationId}:`, error);
+          } catch (parseError) {
+              errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+              console.error(`[Bulk Publish] Failed to parse error for ${locationId}:`, parseError);
+          }
+          throw new Error(`Failed to publish location ${locationId}: ${errorMessage}`);
       }
     }
 

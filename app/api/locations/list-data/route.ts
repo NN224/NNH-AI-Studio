@@ -67,11 +67,11 @@ async function handler(request: Request, user: any): Promise<Response> {
   // Apply filters with proper escaping
   if (search) {
     // ✅ Sanitize search input and use parameterized query
-    const sanitizedSearch = search.trim().slice(0, 100); // Limit length
+    const sanitizedSearch = search.trim().slice(0, 100).replace(/%/g, '\\%').replace(/_/g, '\\_');
     if (sanitizedSearch) {
-      // Supabase automatically parameterizes queries, but we need to escape special characters
-      const escapedSearch = sanitizedSearch.replace(/%/g, '\\%').replace(/_/g, '\\_');
-      query = query.or(`location_name.ilike.%${escapedSearch}%,address.ilike.%${escapedSearch}%`)
+      query = query.or(
+        `location_name.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
+      );
     }
   }
   

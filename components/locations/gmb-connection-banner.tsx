@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -12,8 +12,11 @@ import { toast } from 'sonner';
 export const GMBConnectionBanner = () => {
   const t = useTranslations('Locations');
   const router = useRouter();
+  const [isConnecting, setIsConnecting] = useState(false);
 
+  // Added loading state management for GMB connection API call
   const handleConnectGMB = async () => {
+    setIsConnecting(true); // Start loading state
     try {
       const res = await fetch('/api/gmb/create-auth-url');
       const data = await res.json();
@@ -23,7 +26,10 @@ export const GMBConnectionBanner = () => {
         toast.error('Failed to create auth URL');
       }
     } catch (error) {
-      toast.error('Failed to connect');
+      console.error('Error connecting to GMB:', error);
+      toast.error('Failed to connect to Google My Business');
+    } finally {
+      setIsConnecting(false); // End loading state
     }
   };
 
@@ -78,9 +84,10 @@ export const GMBConnectionBanner = () => {
                 size="lg" 
                 className="w-full sm:w-auto text-base px-8"
                 onClick={handleConnectGMB}
+                disabled={isConnecting}
               >
                 <Users className="w-5 h-5 mr-2" />
-                {t('noAccount.connectButton')}
+                {isConnecting ? 'Connecting...' : t('noAccount.connectButton')}
               </Button>
               <Button 
                 size="lg" 

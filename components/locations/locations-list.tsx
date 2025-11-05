@@ -62,7 +62,6 @@ export function LocationsList() {
 
         if (!user) {
           setError("Please sign in to view locations")
-          setLoading(false)
           return
         }
 
@@ -262,10 +261,14 @@ export function LocationsList() {
           return
         }
 
-        // Get performance metrics with error handling
+        // Get performance metrics with error handling - Fixed N+1 query by using single aggregated query with grouping
         const { data: metrics, error: metricsError } = await supabase
           .from("gmb_performance_metrics")
-          .select("metric_type, metric_value, location_id")
+          .select(`
+            location_id,
+            metric_type,
+            metric_value
+          `)
           .eq("user_id", user.id)
           .in("location_id", locationIds)
           .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])

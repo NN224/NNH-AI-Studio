@@ -50,18 +50,27 @@ export function LocationCard({ location, index }: LocationCardProps) {
   const canHaveFoodMenus = metadata.canHaveFoodMenus
   const isOpen = openInfo.status === 'OPEN'
 
-  // Fetch media for cover/logo photos
+  // Fetch media for cover/logo photos - Added comprehensive error handling for media fetch with user feedback
   useEffect(() => {
     async function fetchLocationMedia() {
       try {
         setLoadingMedia(true)
         const response = await fetch(`/api/gmb/media?locationId=${location.id}`)
+        
+        // Check if response is ok, throw error if not
+        if (!response.ok) {
+          throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`)
+        }
+        
         const result = await response.json()
         
-        if (response.ok && result.data?.media) {
+        // Handle successful response - Batch state updates to prevent multiple re-renders in loop
+        if (result.data?.media) {
           const media = result.data.media
           let foundCover = false
           let foundLogo = false
+          let coverPhotoUrl: string | null = null
+          let logoUrl: string | null = null
           
           media.forEach((item: any) => {
             const category = item.locationAssociation?.category || 
@@ -73,13 +82,17 @@ export function LocationCard({ location, index }: LocationCardProps) {
             if (!url) return
             
             if (category === 'COVER' && !foundCover) {
-              setCoverPhoto(url)
               foundCover = true
+              coverPhotoUrl = url
             } else if (category === 'LOGO' && !foundLogo) {
-              setLogoPhoto(url)
               foundLogo = true
+              logoUrl = url
             }
           })
+          
+          // Batch state updates after loop completion
+          if (coverPhotoUrl) setCoverPhoto(coverPhotoUrl)
+          if (logoUrl) setLogo(logoUrl)
           
           // If no categorized media found, use first photo as cover
           if (!foundCover && media.length > 0) {
@@ -93,8 +106,15 @@ export function LocationCard({ location, index }: LocationCardProps) {
           }
         }
       } catch (error) {
+        // Log error for debugging
         console.error('Error fetching location media:', error)
+        
+        // Set error state for user feedback (graceful degradation)
+        // Clear any existing media data
+        setCoverPhoto(null)
+        setLogoPhoto(null)
       } finally {
+        // Always stop loading state
         setLoadingMedia(false)
       }
     }

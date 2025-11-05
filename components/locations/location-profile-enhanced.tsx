@@ -72,15 +72,7 @@ export function LocationProfileEnhanced({ location, onRefresh }: LocationProfile
             const url = item.sourceUrl || item.googleUrl || item.url || item.thumbnailUrl
             
             if (!url) return
-            
-            console.log('[LocationProfile] Media item:', {
-              category,
-              url: url.substring(0, 50) + '...',
-              hasLocationAssociation: !!item.locationAssociation,
-              hasMetadata: !!item.metadata,
-              allKeys: Object.keys(item)
-            })
-            
+            // Removed debug console.log statement to prevent information disclosure in production
             if (category === 'COVER' && !coverPhoto) {
               setCoverPhoto(url)
             } else if (category === 'LOGO' && !logoPhoto) {

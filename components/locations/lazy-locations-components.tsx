@@ -1,6 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+// Removed unused dynamic import from next/dynamic
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

@@ -82,34 +82,37 @@ export function LocationMapDashboard() {
 
 
   // 1. تحميل سكربت الخريطة
+  // ⚠️ SECURITY NOTE: Google Maps API key is exposed to client-side.
+  // Must restrict API key in Google Cloud Console to specific referrers/domains only.
+  // Consider implementing server-side proxy for production use.
   const { isLoaded, loadError: mapLoadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY',
     libraries,
   });
 
-  // ✅ FIX: Cleanup on unmount
+  // ✅ FIX: Cleanup on unmount - Added comprehensive cleanup for Google Maps markers and InfoWindow instances to prevent memory leaks
   useEffect(() => {
     isMountedRef.current = true;
     
     return () => {
       isMountedRef.current = false;
       
-      // ✅ Cleanup Google Maps markers
-      markersRef.current.forEach(marker => {
-        if (marker) {
-          marker.setMap(null);
-        }
-      });
-      markersRef.current = [];
-      
-      // ✅ Cleanup InfoWindow
+      // Cleanup InfoWindow
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
         infoWindowRef.current = null;
       }
       
-      // ✅ Clear map reference
+      // Cleanup all markers
+      markersRef.current.forEach(marker => {
+        marker.setMap(null);
+        google.maps.event.clearInstanceListeners(marker);
+      });
+      markersRef.current = [];
+      
+      // Cleanup map instance
       if (mapRef.current) {
+        google.maps.event.clearInstanceListeners(mapRef.current);
         mapRef.current = null;
       }
     };

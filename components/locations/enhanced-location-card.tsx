@@ -18,7 +18,8 @@ interface EnhancedLocationCardProps {
   onEdit?: (id: string) => void;
 }
 
-export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({ 
+// Added React.memo for performance optimization to prevent unnecessary re-renders
+export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.memo(({ 
   location,
   onEdit 
 }) => {
@@ -72,8 +73,8 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
     }
   }, [location.id]);
 
-  // Safe insights access
-  const insights = location.insights || {
+  // Safe insights access - Added null check for location object before accessing properties
+  const insights = location?.insights || {
     views: 0,
     clicks: 0,
     calls: 0,
@@ -93,8 +94,10 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
         ) : coverUrl ? (
           <img 
             src={coverUrl} 
-            alt={location.name || 'Cover'} 
+            alt={location?.name ? `Cover image for ${location.name}` : 'Location cover image'} 
             className="w-full h-full object-cover"
+            role="img"
+            aria-describedby={`location-${location?.id}-description`}
           />
         ) : (
           // Gradient fallback if no cover image
@@ -213,6 +216,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
               variant="default"
               className="flex-1 min-h-[44px] md:min-h-0"
               onClick={() => onEdit?.(location.id)}
+              aria-label={`Edit location ${location?.name || location?.id}`}
             >
               <Edit3 className="w-4 h-4 mr-2" aria-hidden="true" />
               {t('card.editLocation')}
@@ -222,7 +226,10 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+// Add display name for better debugging
+EnhancedLocationCard.displayName = 'EnhancedLocationCard';
 
 // Skeleton for loading state
 export const EnhancedLocationCardSkeleton = () => {

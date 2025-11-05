@@ -61,13 +61,33 @@ export async function GET(request: Request) {
     }
 
     try {
-        // ✅ SECURITY: Input validation for query parameters
+        // ✅ SECURITY: Input validation for query parameters - Added comprehensive input validation for radius parameter with proper error handling
         const url = new URL(request.url);
-        const radius = parseInt(url.searchParams.get('radius') || '5000', 10);
         
-        if (radius < 100 || radius > 50000) {
+        // Validate and sanitize radius parameter
+        const radiusParam = url.searchParams.get('radius');
+        
+        // Check if radius parameter exists and is a valid string
+        if (radiusParam && typeof radiusParam !== 'string') {
             return NextResponse.json(
-                { error: 'Invalid radius', message: 'Radius must be between 100 and 50000 meters' },
+                { 
+                    error: 'Invalid radius parameter', 
+                    message: 'Radius parameter must be a valid number'
+                },
+                { status: 400 }
+            );
+        }
+        
+        // Parse radius with additional validation
+        const radius = radiusParam ? parseInt(radiusParam.trim(), 10) : 5000;
+        
+        // Validate radius is a valid number and within acceptable range
+        if (isNaN(radius) || !isFinite(radius) || radius < 100 || radius > 50000) {
+            return NextResponse.json(
+                { 
+                    error: 'Invalid radius value', 
+                    message: 'Radius must be a number between 100 and 50000 meters'
+                },
                 { status: 400 }
             );
         }

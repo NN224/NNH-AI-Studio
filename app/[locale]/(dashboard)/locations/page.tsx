@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,7 @@ export default function LocationsPage() {
     }
   }, [locations]);
 
-  // Handle sync with cache invalidation
+  // Handle sync with cache invalidation - Added comprehensive error handling with try-catch-finally and proper promise rejection handling
   const handleSync = async () => {
     try {
       setSyncing(true);
@@ -104,8 +104,11 @@ export default function LocationsPage() {
       
       toast.success('Locations synced successfully!');
     } catch (error) {
-      toast.error('Failed to sync locations');
+      // Handle any promise rejections or errors during sync
+      console.error('Sync operation failed:', error);
+      toast.error('Failed to sync locations. Please try again.');
     } finally {
+      // Ensure syncing state is reset regardless of success or failure
       setSyncing(false);
     }
   };
@@ -125,10 +128,10 @@ export default function LocationsPage() {
   const stats = getOverallStats();
   const hasFilters = Boolean(searchTerm || selectedStatus !== 'all' || selectedCategory !== 'all');
 
-  // Event handlers with proper server action naming
-  const handleEditAction = (id: string) => {
+  // Event handlers with proper server action naming - Wrap event handler in useCallback to prevent unnecessary re-renders
+  const handleEditAction = useCallback((id: string) => {
     toast.info(`Edit location ${id}`);
-  };
+  }, []); // Empty dependency array since function doesn't depend on any props or state
 
   const handleViewDetailsAction = (id: string) => {
     toast.info(`View details for ${id}`);
