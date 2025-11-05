@@ -217,12 +217,10 @@ export function PerformanceComparisonChart({
                 dataKey="month" 
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 stroke="#4b5563"
-                aria-label={isArabic ? 'الفترة الزمنية' : 'Time period'}
               />
               <YAxis 
                 tick={{ fill: '#9ca3af', fontSize: 12 }}
                 stroke="#4b5563"
-                aria-label={isArabic ? 'القيمة' : 'Value'}
               />
               <Tooltip
                 contentStyle={{
@@ -232,12 +230,10 @@ export function PerformanceComparisonChart({
                   color: '#f9fafb'
                 }}
                 labelStyle={{ color: '#f9fafb', fontWeight: 'bold' }}
-                aria-label={isArabic ? 'معلومات المخطط' : 'Chart information'}
               />
               <Legend 
                 wrapperStyle={{ paddingTop: '20px' }}
                 iconType="circle"
-                aria-label={isArabic ? 'مفتاح المخطط' : 'Chart legend'}
               />
               <Area
                 type="monotone"

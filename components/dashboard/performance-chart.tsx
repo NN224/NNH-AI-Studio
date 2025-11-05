@@ -122,34 +122,38 @@ export function PerformanceChart() {
         <CardTitle className="text-foreground">Rating Trends</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer 
-          width="100%" 
-          height={300}
-          role="img"
+        {/* ✅ ACCESSIBILITY: Wrap ResponsiveContainer in div since it doesn't accept role/aria-label props */}
+        <div 
+          role="img" 
           aria-label="Rating trends over time chart"
         >
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 107, 53, 0.1)" />
-            <XAxis dataKey="month" stroke="#999999" style={{ fontSize: "12px" }} />
-            <YAxis stroke="#999999" style={{ fontSize: "12px" }} domain={domain} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#0a0a0a",
-                border: "1px solid rgba(255, 107, 53, 0.3)",
-                borderRadius: "8px",
-                color: "#ffffff",
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="rating"
-              stroke="#ff6b35"
-              strokeWidth={3}
-              dot={{ fill: "#ff6b35", r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+          <ResponsiveContainer 
+            width="100%" 
+            height={300}
+          >
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 107, 53, 0.1)" />
+              <XAxis dataKey="month" stroke="#999999" style={{ fontSize: "12px" }} />
+              <YAxis stroke="#999999" style={{ fontSize: "12px" }} domain={domain} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#0a0a0a",
+                  border: "1px solid rgba(255, 107, 53, 0.3)",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="rating"
+                stroke="#ff6b35"
+                strokeWidth={3}
+                dot={{ fill: "#ff6b35", r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )
