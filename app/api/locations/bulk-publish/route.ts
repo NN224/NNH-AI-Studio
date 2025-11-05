@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     // ✅ FIX: Process locations sequentially to prevent race conditions
     // Using for...of loop ensures sequential processing
     for (const locationId of locationIds) {
-
+      try {
         // بناء مسار المورد المطلوب لـ GMB API
         const locationResource = buildLocationResourceName(account.account_id, locationId);
 
@@ -182,13 +182,13 @@ export async function POST(request: NextRequest) {
             }
             errors.push({ locationId, error: errorMessage });
         }
-    } catch (locationError: any) {
+      } catch (locationError: any) {
         // ✅ ERROR HANDLING: Catch errors for individual locations
         failedPublishes++;
         const errorMessage = locationError.message || 'Unknown error during publish';
         console.error(`[Bulk Publish] Exception for ${locationId}:`, locationError);
         errors.push({ locationId, error: errorMessage });
-    }
+      }
     }
 
     // 4. إرجاع النتيجة
