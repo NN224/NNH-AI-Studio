@@ -251,25 +251,30 @@ export function WeeklyTasksWidget() {
           </CardTitle>
           <CardDescription>AI-powered recommendations to improve your business</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="space-y-6">
-            <div className="text-center">
-              <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
-                <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+            <div className="text-center py-8">
+              <div className="rounded-full bg-primary/10 p-4 w-fit mx-auto mb-4">
+                <Zap className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No personalized tasks yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Generate personalized tasks based on your business performance
+              <h3 className="text-2xl font-bold mb-3 text-foreground">No personalized tasks yet</h3>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                Generate personalized tasks based on your business performance to unlock AI-powered recommendations
               </p>
-              <Button onClick={generateTasks} disabled={generating}>
+              <Button 
+                onClick={generateTasks} 
+                disabled={generating}
+                className="focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                aria-label={generating ? "Generating weekly tasks" : "Generate personalized weekly tasks"}
+              >
                 {generating ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Zap className="mr-2 h-4 w-4" />
+                    <Zap className="mr-2 h-4 w-4" aria-hidden="true" />
                     Generate Weekly Tasks
                   </>
                 )}

@@ -203,7 +203,7 @@ export function AIInsightsCard({ stats, loading = false, locale = 'en' }: AIInsi
           }
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="p-6 space-y-3">
         {insights.map((insight, index) => {
           const config = typeConfig[insight.type];
           

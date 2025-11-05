@@ -90,11 +90,20 @@ export function LocationHighlightsCarousel({
         <CardHeader>
           <CardTitle>{isArabic ? 'أبرز المواقع' : 'Location Highlights'}</CardTitle>
         </CardHeader>
-        <CardContent className="h-[200px] flex flex-col items-center justify-center text-center">
-          <MapPin className="w-12 h-12 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">
-            {isArabic ? 'لا توجد بيانات متاحة' : 'No data available'}
-          </p>
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center justify-center text-center py-12">
+            <div className="rounded-full bg-primary/10 p-4 w-fit mx-auto mb-4">
+              <MapPin className="w-8 h-8 text-primary" aria-hidden="true" />
+            </div>
+            <h3 className="text-2xl font-bold mb-3 text-foreground">
+              {isArabic ? 'لا توجد مواقع متاحة' : 'No locations available'}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              {isArabic 
+                ? 'قم بتوصيل حساب Google My Business لعرض إحصائيات المواقع'
+                : 'Connect your Google My Business account to see location statistics'}
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -147,27 +156,31 @@ export function LocationHighlightsCarousel({
                 variant="ghost"
                 size="icon"
                 onClick={setPrevious}
-                className="h-8 w-8"
+                className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                aria-label={isArabic ? "الموقع السابق" : "Previous location"}
+                aria-describedby="location-counter"
               >
-                <ChevronLeft className={cn("w-4 h-4", isArabic && "rotate-180")} />
+                <ChevronLeft className={cn("w-4 h-4", isArabic && "rotate-180")} aria-hidden="true" />
               </Button>
-              <span className="text-sm text-muted-foreground">
+              <span id="location-counter" className="text-sm text-muted-foreground" aria-label={`Location ${currentIndex + 1} of ${locations.length}`}>
                 {currentIndex + 1} / {locations.length}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={setNext}
-                className="h-8 w-8"
+                className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                aria-label={isArabic ? "الموقع التالي" : "Next location"}
+                aria-describedby="location-counter"
               >
-                <ChevronRight className={cn("w-4 h-4", isArabic && "rotate-180")} />
+                <ChevronRight className={cn("w-4 h-4", isArabic && "rotate-180")} aria-hidden="true" />
               </Button>
             </div>
           )}
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="p-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentLocation.id}

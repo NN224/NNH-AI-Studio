@@ -103,9 +103,10 @@ export function QuickActionsBar({
             size="sm"
             onClick={onSync}
             disabled={isSyncing}
-            className="gap-2"
+            className="gap-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            aria-label={isSyncing ? (isArabic ? "جاري المزامنة..." : "Syncing...") : (isArabic ? "مزامنة جميع البيانات" : "Sync all data")}
           >
-            <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} aria-hidden="true" />
             {isArabic ? 'مزامنة الكل' : 'Sync All'}
           </Button>
         )}

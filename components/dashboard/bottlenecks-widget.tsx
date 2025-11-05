@@ -58,7 +58,7 @@ export function BottlenecksWidget({ bottlenecks, loading }: BottlenecksWidgetPro
           <CardTitle>AI Risk & Opportunity Feed</CardTitle>
           <CardDescription>Analyzing your business performance...</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="space-y-3">
             <Skeleton className="h-16 w-full rounded-lg" />
             <Skeleton className="h-16 w-full rounded-lg" />
@@ -80,8 +80,8 @@ export function BottlenecksWidget({ bottlenecks, loading }: BottlenecksWidgetPro
           </CardTitle>
           <CardDescription>No critical issues detected. Great job!</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground space-y-2">
+        <CardContent className="p-6">
+          <div className="text-sm text-muted-foreground space-y-3">
             <p>✅ All reviews responded to</p>
             <p>✅ Customer questions answered</p>
             <p>✅ Rating above target</p>
@@ -103,7 +103,7 @@ export function BottlenecksWidget({ bottlenecks, loading }: BottlenecksWidgetPro
         </CardTitle>
         <CardDescription>Predictive alerts and recommended actions</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <div className="space-y-3">
           {bottlenecks.map((bottleneck, index) => {
             const config = severityConfig[bottleneck.severity];
