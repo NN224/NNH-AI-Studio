@@ -145,7 +145,14 @@ export function LocationsMapTab() {
     );
   }, [locations]);
 
-  // Calculate center from selected location or all locations
+  // Create stable string key from locations array to avoid infinite loops
+  const locationsKeyString = useMemo(() => {
+    return locations
+      .filter(loc => loc.coordinates?.lat && loc.coordinates?.lng)
+      .map(l => `${l.id}:${l.coordinates?.lat},${l.coordinates?.lng}`)
+      .join('|');
+  }, [locations]);
+
   const mapCenter = useMemo(() => {
     if (selectedLocation?.coordinates) {
       return {
@@ -172,7 +179,11 @@ export function LocationsMapTab() {
       sum + loc.coordinates!.lng, 0) / locationsWithCoords.length;
 
     return { lat: avgLat, lng: avgLng };
-  }, [selectedLocation, locationsWithCoords]);
+  }, [
+    selectedLocation?.coordinates?.lat, 
+    selectedLocation?.coordinates?.lng,
+    locationsKeyString
+  ]);
 
   return (
     <div className="relative w-full h-[calc(100vh-200px)] min-h-[600px] md:min-h-[700px]">

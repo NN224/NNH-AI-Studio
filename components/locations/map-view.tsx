@@ -44,6 +44,15 @@ export function MapView({
     );
   }, [locations]);
 
+  // Create stable string key from locations array to avoid infinite loops
+  // Calculate this once and use primitive string as dependency
+  const locationsKeyString = useMemo(() => {
+    return locations
+      .filter(loc => loc.coordinates?.lat && loc.coordinates?.lng)
+      .map(l => `${l.id}:${l.coordinates?.lat},${l.coordinates?.lng}`)
+      .join('|');
+  }, [locations]);
+
   // Calculate center from locations if not provided
   const calculatedCenter = useMemo(() => {
     if (center) return center;
@@ -66,9 +75,8 @@ export function MapView({
       sum + loc.coordinates!.lng, 0) / locationsWithCoords.length;
 
     return { lat: avgLat, lng: avgLng };
-  }, [center, locationsWithCoords]);
+  }, [center?.lat, center?.lng, locationsKeyString, locationsWithCoords.length]);
 
-  // Auto-fit bounds to show all locations
   useEffect(() => {
     if (mapRef.current && locationsWithCoords.length > 1) {
       const bounds = new google.maps.LatLngBounds();
@@ -84,7 +92,7 @@ export function MapView({
       // Fit bounds with padding (using number for uniform padding)
       mapRef.current.fitBounds(bounds, 50);
     }
-  }, [locationsWithCoords, mapRef.current]);
+  }, [locationsKeyString, locationsWithCoords.length]);
 
   // Center map on selected location
   useEffect(() => {
@@ -98,7 +106,8 @@ export function MapView({
         mapRef.current.setZoom(15);
       }
     }
-  }, [selectedLocationId, locationsWithCoords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLocationId]);
 
   // Handle map load
   const onMapLoad = useCallback((map: google.maps.Map) => {
