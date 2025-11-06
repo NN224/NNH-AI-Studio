@@ -38,12 +38,19 @@ export function MapView({
     );
   }, [locations]);
 
+  // Create stable string key from locations array to avoid infinite loops
+  // Calculate locations string representation first, then use it as dependency
+  const locationsString = useMemo(() => 
+    locations.map(l => `${l.id}:${l.coordinates?.lat},${l.coordinates?.lng}`).join('|'),
+    [locations]
+  );
+  
   const locationsKeyString = useMemo(() => {
     return locations
       .filter(loc => loc.coordinates?.lat && loc.coordinates?.lng)
       .map(l => `${l.id}:${l.coordinates?.lat},${l.coordinates?.lng}`)
       .join('|');
-  }, [locations.map(l => `${l.id}:${l.coordinates?.lat},${l.coordinates?.lng}`).join('|')]);
+  }, [locationsString]);
 
   const calculatedCenter = useMemo(() => {
     if (center) return center;
