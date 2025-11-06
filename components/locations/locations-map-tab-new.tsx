@@ -326,7 +326,7 @@ export function LocationsMapTab() {
         locations={locationsWithCoords}
         selectedLocationId={selectedLocationId}
         onMarkerClick={handleMarkerClick}
-        center={mapCenter}
+        center={mapCenter || undefined}
         className="absolute inset-0"
       />
 
