@@ -200,7 +200,7 @@ export function LocationsMapTab() {
           <div className="relative">
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
-              center={mapCenter || calculatedCenter}
+              center={mapCenter || calculatedCenter || { lat: 0, lng: 0 }} // Fallback only if no locations - will show empty map
               zoom={mapZoom}
               onLoad={onMapLoad}
               options={{
