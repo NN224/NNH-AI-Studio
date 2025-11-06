@@ -54,7 +54,7 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
         body: JSON.stringify({
           type: "review_response",
           context: {
-            reviewText: review.review_text || review.comment || '',
+            reviewText: review.review_text || '',
             rating: review.rating,
             reviewerName: review.reviewer_name,
             sentiment: review.ai_sentiment,
@@ -169,9 +169,9 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            {(review?.review_text || review?.comment) && (
+            {review?.review_text && (
               <div className="p-3 rounded-lg bg-secondary border border-primary/20">
-                <p className="text-sm text-foreground">{review.review_text || review.comment}</p>
+                <p className="text-sm text-foreground">{review.review_text}</p>
               </div>
             )}
             <div className="space-y-2">
