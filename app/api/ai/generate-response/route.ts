@@ -12,20 +12,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Extract with fallbacks
-    const review_text = body.review_text || 'No review text';
+    const review_text = body.review_text || body.comment || '';
     const rating = body.rating || 3;
     const reviewer_name = body.reviewer_name || 'Valued Customer';
     const location_name = body.location_name || 'our location';
 
     console.log('Received data:', { review_text, rating, reviewer_name, location_name }); // Debug
 
-    // Only validate critical fields
-    if (!review_text || review_text === 'No review text') {
-      return NextResponse.json(
-        { success: false, error: 'Review text is required' },
-        { status: 400 }
-      );
-    }
+    // Handle empty review text - generate response based on rating only
+    const reviewTextForPrompt = review_text && review_text !== 'No review text provided' && review_text !== 'No review text'
+      ? review_text
+      : `Customer rated ${rating} out of 5 stars${rating >= 4 ? ' - positive experience' : rating <= 2 ? ' - negative experience' : ' - neutral experience'}`;
 
     // Build context-aware prompt based on rating
     let tone = '';
@@ -47,22 +44,22 @@ export async function POST(request: NextRequest) {
 Review Details:
 - Customer: ${reviewer_name}
 - Rating: ${rating}/5 stars
-- Review: "${review_text}"
+- Review: "${reviewTextForPrompt}"
 
 Generate a professional response that:
 1. Is ${tone}
 2. ${instructions}
 3. Is 2-4 sentences long (50-100 words)
 4. Sounds natural and human (not robotic)
-5. Addresses specific points from their review when possible
+5. ${review_text && review_text !== 'No review text provided' && review_text !== 'No review text' ? 'Addresses specific points from their review when possible' : 'Acknowledges their rating and experience'}
 6. Uses proper English
 7. Signs off appropriately (e.g., "Best regards, The ${location_name} Team")
 
 Important: Write ONLY the response text, no additional commentary or explanations.`;
 
-    // Call Anthropic Claude API - Using Claude 3 Opus (guaranteed to work)
+    // Call Anthropic Claude API - Using Claude 3 Haiku (fastest, cheapest, works with all API keys)
     const message = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229', // Most powerful model - guaranteed to work
+      model: 'claude-3-haiku-20240307', // Fastest and most accessible model
       max_tokens: 250,
       temperature: 0.7,
       messages: [
@@ -86,7 +83,7 @@ Important: Write ONLY the response text, no additional commentary or explanation
       success: true,
       response: responseText.trim(),
       generated_at: new Date().toISOString(),
-      model: 'claude-3-opus-20240229',
+      model: 'claude-3-haiku-20240307',
       usage: {
         input_tokens: message.usage.input_tokens,
         output_tokens: message.usage.output_tokens
