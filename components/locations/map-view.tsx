@@ -77,10 +77,8 @@ export function MapView({
         }
       });
       
-      // Fit bounds with padding
-      mapRef.current.fitBounds(bounds, {
-        padding: { top: 50, right: 50, bottom: 50, left: 50 },
-      });
+      // Fit bounds with padding (using number for uniform padding)
+      mapRef.current.fitBounds(bounds, 50);
     }
   }, [locationsWithCoords, mapRef.current]);
 

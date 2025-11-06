@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LocationsOverviewTab } from '@/components/locations/locations-overview-tab';
-import { LocationsMapTab } from '@/components/locations/locations-map-tab';
+import { LocationsMapTab } from '@/components/locations/locations-map-tab-new';
 import { LocationsAnalyticsTab } from '@/components/locations/locations-analytics-tab';
 import { MapPin, BarChart3, LayoutGrid } from 'lucide-react';
 
