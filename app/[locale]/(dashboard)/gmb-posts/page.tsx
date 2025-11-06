@@ -39,7 +39,7 @@ export default function GMBPostsPage() {
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
   // استخدام قيمة CTA (value) التي تطابق الخيارات المحددة
-  const [cta, setCta] = useState<string>('');
+  const [cta, setCta] = useState<string>('none');
   const [ctaUrl, setCtaUrl] = useState('');
   const [schedule, setSchedule] = useState<string>('');
   const [genLoading, setGenLoading] = useState(false);
@@ -106,9 +106,9 @@ export default function GMBPostsPage() {
           title: title || undefined,
           content,
           mediaUrl: mediaUrl || undefined,
-          // إرسال قيمة CTA فقط إذا كانت محددة
-          callToAction: cta || undefined,
-          callToActionUrl: (cta && ctaUrl) || undefined,
+          // إرسال قيمة CTA فقط إذا كانت محددة (تجاهل "none")
+          callToAction: cta && cta !== 'none' ? cta : undefined,
+          callToActionUrl: (cta && cta !== 'none' && ctaUrl) || undefined,
           scheduledAt: schedule || undefined,
         }),
       });
@@ -146,7 +146,7 @@ export default function GMBPostsPage() {
       setTitle('');
       setContent('');
       setMediaUrl('');
-      setCta('');
+      setCta('none');
       setCtaUrl('');
       setSchedule('');
       // تحديث القائمة بعد النشر (بدلًا من جلبها بالكامل، يمكننا إزالة المنشور القديم وإضافة المنشور الجديد إذا لزم الأمر)
@@ -311,12 +311,12 @@ export default function GMBPostsPage() {
                   <span className="ml-2 text-xs text-muted-foreground">زر تفاعل مثل Book أو Order</span>
                 </label>
                 {/* ⭐️ تم استبدال Input بـ Select لتحسين UX */}
-                <Select onValueChange={setCta} value={cta}>
+                <Select onValueChange={setCta} value={cta} defaultValue="none">
                     <SelectTrigger>
                         <SelectValue placeholder="Select CTA type (Book, Order, etc.)" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {ctaOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
@@ -330,7 +330,7 @@ export default function GMBPostsPage() {
                   <span className="ml-2 text-xs text-muted-foreground">رابط صفحة الحجز أو الطلب</span>
                 </label>
                 {/* الحقل الآن معطّل إذا لم يتم تحديد CTA */}
-                <Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://..." disabled={!cta} />
+                <Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://..." disabled={!cta || cta === 'none'} />
               </div>
             </div>
 
@@ -365,7 +365,7 @@ export default function GMBPostsPage() {
                 <div className="text-sm text-muted-foreground mb-2">Preview</div>
                 {title && <div className="font-semibold mb-1">{title}</div>}
                 <div className="whitespace-pre-wrap text-sm">{content}</div>
-                {cta && ctaOptions.find(o => o.value === cta) && (
+                {cta && cta !== 'none' && ctaOptions.find(o => o.value === cta) && (
                     <Button size="sm" className="mt-3" variant="secondary" disabled={!ctaUrl}>
                         {ctaOptions.find(o => o.value === cta)?.label || 'CTA'}
                     </Button>
@@ -412,7 +412,7 @@ export default function GMBPostsPage() {
                               setContent(p.content || '');
                               setLocationId(p.location_id);
                               // تحميل CTA و CTA URL عند التعديل
-                              setCta(p.call_to_action?.type || '');
+                              setCta(p.call_to_action?.type || 'none');
                               setCtaUrl(p.call_to_action?.url || '');
                             }}
                           >
