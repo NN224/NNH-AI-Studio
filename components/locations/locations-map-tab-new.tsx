@@ -234,7 +234,7 @@ export function LocationsMapTab() {
                   <br />• Locations Count: {locations.length}
                   <br />• Google Maps Loaded: {isLoaded ? 'Yes' : 'No'}
                   <br />• Google Maps Error: {loadError ? String(loadError) : 'None'}
-                  <br />• Locations Error: {locationsError ? String(locationsError.message || locationsError) : 'None'}
+                  <br />• Locations Error: {locationsError ? String(locationsError) : 'None'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   This might mean:
