@@ -187,7 +187,7 @@ export async function GET(
     // Get recent reviews for this location
     const { data: recentReviews, error: reviewsError } = await supabase
       .from('gmb_reviews')
-      .select('id, rating, reviewer_name, comment, created_at, status')
+      .select('id, rating, reviewer_name, review_text, created_at, status')
       .eq('location_id', locationId)
       .order('created_at', { ascending: false })
       .limit(10);
