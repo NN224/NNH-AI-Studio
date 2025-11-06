@@ -59,10 +59,11 @@ export function LocationsMapTab() {
   const prevLocationsRef = useRef<string>('');
   const locationsKeyRef = useRef<string>('');
   
-  // Calculate current key - use useMemo with stable dependencies
+  // Calculate current key - use useMemo with stable dependencies (only length and IDs)
+  const locationsIds = useMemo(() => locations.map(l => l.id).join(','), [locations.length]);
   const currentKey = useMemo(() => 
     locations.map(l => `${l.id}-${l.coordinates?.lat}-${l.coordinates?.lng}`).join('|'),
-    [locations.length, locations.map(l => `${l.id}`).join(',')]
+    [locations.length, locationsIds]
   );
   
   // Update ref only if content actually changed - use useEffect to avoid side effects in render
