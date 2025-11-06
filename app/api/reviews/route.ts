@@ -68,13 +68,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data properly - use comment field which is the actual review text
-    let reviewsWithLocation = (reviews || []).map(r => ({
-      ...r,
-      location_name: r.gmb_locations?.location_name || r.gmb_locations?.name || 'Unknown Location',
-      // Use 'comment' field which is the actual review text, fallback to review_text
-      review_text: r.comment || r.review_text || '',
-      reviewer_name: r.reviewer_name || 'Anonymous'
-    }));
+    // Note: gmb_locations is an array from the join, so we access the first element
+    let reviewsWithLocation = (reviews || []).map(r => {
+      const location = Array.isArray(r.gmb_locations) ? r.gmb_locations[0] : r.gmb_locations;
+      return {
+        ...r,
+        location_name: location?.location_name || location?.name || 'Unknown Location',
+        // Use 'comment' field which is the actual review text, fallback to review_text
+        review_text: r.comment || r.review_text || '',
+        reviewer_name: r.reviewer_name || 'Anonymous'
+      };
+    });
 
     // Client-side search filter (since Supabase text search might be complex)
     if (search) {
