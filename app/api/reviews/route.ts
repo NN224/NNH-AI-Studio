@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         updated_at,
         gmb_locations!inner (
           id,
-          name,
+          location_name,
           address,
           user_id
         )
@@ -95,8 +95,8 @@ export async function GET(request: NextRequest) {
         location = r.gmb_locations;
       }
       
-      // Extract location name
-      const locationName = location?.name || location?.location_name || 'Unknown Location';
+      // Extract location name - use location_name (the actual column name)
+      const locationName = location?.location_name || 'Unknown Location';
       
       // Get review text - prefer 'comment' field, fallback to 'review_text'
       const reviewText = (r.comment || r.review_text || '').trim();
