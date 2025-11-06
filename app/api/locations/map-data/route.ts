@@ -88,14 +88,14 @@ if (loc.location_name.includes('Suspended')) status = 'Suspended';
 return {
 id: loc.id,
 name: loc.location_name,
-// 💡 يجب التأكد من وجود هذه البيانات في القاعدة
-lat: loc.latitude || 25.2048, 
-lng: loc.longitude || 55.2708,
+// Only include locations with valid coordinates - no mock/fallback data
+lat: loc.latitude || null, 
+lng: loc.longitude || null,
 rating: averageRating,
 status: status,
 };
 })
-.filter(loc => loc.lat && loc.lng) as MapLocationData[]; // فلترة أي موقع بدون إحداثيات صالحة
+.filter(loc => loc.lat !== null && loc.lng !== null && loc.lat !== undefined && loc.lng !== undefined) as MapLocationData[]; // Only include locations with valid coordinates - no mock data
 
 
 // 5. إرجاع النتائج المعالجة

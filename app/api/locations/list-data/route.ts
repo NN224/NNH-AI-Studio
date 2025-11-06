@@ -178,7 +178,7 @@ async function handler(request: Request, user: any): Promise<Response> {
       reviewCount: Number(loc.review_count) || 0,
       status: (loc.status as 'verified' | 'pending' | 'suspended') || 'pending',
       category: loc.category || 'General',
-      coordinates: loc.latlng || { lat: 0, lng: 0 },
+      coordinates: loc.latlng || null, // No mock coordinates - use null if missing
       hours: loc.regularHours || loc.businessHours || {},
       attributes: Array.isArray(derivedAttributes) ? derivedAttributes : [],
       photos: Number(derivedPhotos) || 0,

@@ -58,18 +58,14 @@ export function LocationsMapTab() {
     };
   }, [loadError]);
 
-  // Calculate map center from locations
+  // Calculate map center from locations - no mock data
   const calculatedCenter = useMemo(() => {
-    if (locations.length === 0) {
-      return { lat: 25.2048, lng: 55.2708 }; // Default: Dubai
-    }
-
     const locationsWithCoords = locations.filter(loc => 
       loc.coordinates?.lat && loc.coordinates?.lng
     );
 
     if (locationsWithCoords.length === 0) {
-      return { lat: 25.2048, lng: 55.2708 };
+      return null; // No mock coordinates - return null if no valid locations
     }
 
     if (locationsWithCoords.length === 1) {

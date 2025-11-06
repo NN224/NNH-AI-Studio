@@ -56,7 +56,7 @@ export function MapView({
   const calculatedCenter = (() => {
     if (center) return center;
     if (locationsWithCoords.length === 0) {
-      return { lat: 25.2048, lng: 55.2708 }; // Default: Dubai
+      return null; // No mock coordinates - return null if no valid coordinates
     }
     if (locationsWithCoords.length === 1) {
       return {

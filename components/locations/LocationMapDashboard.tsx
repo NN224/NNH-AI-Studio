@@ -39,10 +39,7 @@ const mapContainerStyle = {
   height: '600px',
 };
 
-const defaultCenter = {
-  lat: 25.2048, 
-  lng: 55.2708,
-};
+// No mock coordinates - center will be calculated from actual location data
 
 const libraries: ("places" | "drawing" | "geometry" | "visualization" | "marker")[] = ['places'];
 
@@ -279,7 +276,9 @@ export function LocationMapDashboard() {
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
       zoom={locationsData.length > 0 ? 11 : 4} 
-      center={locationsData.length > 0 ? { lat: locationsData[0].lat, lng: locationsData[0].lng } : defaultCenter}
+      center={locationsData.length > 0 && locationsData[0].lat && locationsData[0].lng 
+        ? { lat: locationsData[0].lat, lng: locationsData[0].lng } 
+        : { lat: 0, lng: 0 }} // Only show map if we have real location data
       options={{ 
           disableDefaultUI: true, 
           zoomControl: true,
