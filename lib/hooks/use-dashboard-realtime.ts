@@ -74,10 +74,19 @@ export function useDashboardRealtime(
           }
         )
         .on('system', { event: 'error' }, (error) => {
+          // Check if this is actually an error or just a status message
+          const errorStatus = error?.status || '';
+          const errorMessage = error?.message || '';
+          
+          // Ignore success messages that are logged as errors
+          if (errorStatus === 'ok' || errorMessage.includes('Subscribed to PostgreSQL')) {
+            // This is actually a success message, not an error
+            return;
+          }
+          
           console.error('Realtime subscription error:', error);
           
           // Check if it's an auth error
-          const errorMessage = error?.message || '';
           if (errorMessage.includes('JWT') || 
               errorMessage.includes('session') ||
               errorMessage.includes('expired') ||
@@ -88,6 +97,14 @@ export function useDashboardRealtime(
             supabase.auth.signOut().finally(() => {
               router.push('/auth/login');
             });
+            return;
+          }
+          
+          // Check if it's a Realtime configuration error
+          if (errorMessage.includes('Realtime is enabled') || 
+              errorMessage.includes('Unable to subscribe')) {
+            console.warn('⚠️ Realtime may not be enabled for dashboard tables. Continuing without real-time updates.');
+            // Don't show error toast - it's a configuration issue, not a critical error
           }
         })
         .subscribe((status, err) => {
@@ -95,9 +112,24 @@ export function useDashboardRealtime(
             console.log('✅ Real-time subscriptions active');
           } else if (status === 'CHANNEL_ERROR') {
             console.error('❌ Channel error:', err);
+            
+            // Log detailed error for debugging
+            if (err) {
+              const errorMessage = err?.message || JSON.stringify(err);
+              if (errorMessage.includes('Realtime is enabled') || 
+                  errorMessage.includes('Unable to subscribe')) {
+                console.warn('⚠️ Realtime subscription failed - Realtime may not be enabled for dashboard tables in Supabase. The app will continue to work, but without real-time updates.');
+                // Don't show error toast - it's a configuration issue
+                return;
+              }
+            }
+            
+            // Only show toast for unexpected errors
             toast.error('Real-time updates disconnected');
           } else if (status === 'TIMED_OUT') {
             console.warn('⏱️ Channel subscription timed out, retrying...');
+          } else if (status === 'CLOSED') {
+            console.log('🔌 Real-time subscriptions closed');
           }
         });
       
