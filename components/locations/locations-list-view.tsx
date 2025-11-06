@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocations } from '@/hooks/use-locations';
 import { useRouter } from '@/lib/navigation';
 import { HorizontalLocationCard } from '@/components/locations/horizontal-location-card';
@@ -16,6 +16,14 @@ import {
 } from '@/components/ui/select';
 import { Search, X, AlertCircle, Star, Loader2 } from 'lucide-react';
 import { LocationCardSkeleton } from '@/components/locations/location-card-skeleton';
+import { Location } from '@/components/locations/location-types';
+
+interface LocationsStats {
+  totalLocations: number;
+  avgRating: number;
+  totalReviews: number;
+  avgHealthScore: number;
+}
 
 export function LocationsListView() {
   const router = useRouter();
@@ -24,6 +32,8 @@ export function LocationsListView() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'rating' | 'reviews' | 'healthScore'>('name');
   const [quickFilter, setQuickFilter] = useState<'none' | 'attention' | 'top'>('none');
+  const [stats, setStats] = useState<LocationsStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Use stable empty filters object to prevent infinite loops
   // Memoize empty object to prevent re-creation on every render
@@ -35,6 +45,65 @@ export function LocationsListView() {
 
   // Ensure locations is always an array
   const locations = Array.isArray(rawLocations) ? rawLocations : [];
+
+  // Fetch aggregated stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const res = await fetch('/api/locations/stats');
+        if (!res.ok) {
+          console.error('[LocationsListView] Failed to fetch stats:', res.statusText);
+          return;
+        }
+        const data = await res.json();
+        console.log('[LocationsListView] Stats fetched:', data);
+        setStats(data);
+      } catch (err) {
+        console.error('[LocationsListView] Error fetching stats:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Enhance locations with stats when applicable
+  const locationsWithStats = useMemo(() => {
+    if (!stats || locations.length === 0) {
+      return locations;
+    }
+
+    // If we have only one location and stats show one location, use aggregated stats
+    // This works because the stats are calculated from all locations
+    // Also handle case where stats.totalLocations matches locations.length (all locations accounted for)
+    if (locations.length === 1 && stats.totalLocations === 1) {
+      console.log('[LocationsListView] Enhancing single location with stats:', {
+        locationId: locations[0].id,
+        originalRating: locations[0].rating,
+        originalHealthScore: locations[0].healthScore,
+        originalReviewCount: locations[0].reviewCount,
+        stats: {
+          rating: stats.avgRating,
+          reviewCount: stats.totalReviews,
+          healthScore: stats.avgHealthScore,
+        }
+      });
+      
+      return locations.map(loc => ({
+        ...loc,
+        // Use stats values if location doesn't have them, otherwise keep location's values
+        rating: loc.rating != null ? loc.rating : (stats.avgRating || undefined),
+        reviewCount: loc.reviewCount != null ? loc.reviewCount : (stats.totalReviews || undefined),
+        healthScore: loc.healthScore != null ? loc.healthScore : (stats.avgHealthScore || undefined),
+      }));
+    }
+
+    // For multiple locations, we'd need individual stats per location
+    // For now, return locations as-is
+    return locations;
+  }, [locations, stats]);
 
   // Debug logging at component level
   React.useEffect(() => {
@@ -70,18 +139,21 @@ export function LocationsListView() {
 
   // Client-side filtering and sorting
   const filteredLocations = useMemo(() => {
+    // Use locationsWithStats instead of locations
+    const locationsToFilter = locationsWithStats;
+    
     // Safety check: ensure locations is an array
-    if (!Array.isArray(locations)) {
-      console.warn('[LocationsListView] locations is not an array:', locations);
+    if (!Array.isArray(locationsToFilter)) {
+      console.warn('[LocationsListView] locations is not an array:', locationsToFilter);
       return [];
     }
     
     // If locations is empty, return empty array (this is valid)
-    if (locations.length === 0) {
+    if (locationsToFilter.length === 0) {
       return [];
     }
     
-    let filtered = [...locations];
+    let filtered = [...locationsToFilter];
 
     // Search filter
     if (searchQuery) {
@@ -130,14 +202,22 @@ export function LocationsListView() {
     });
 
     return filtered;
-  }, [locations, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
+  }, [locationsWithStats, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
 
   // Debug logging (after filteredLocations is declared)
   React.useEffect(() => {
     console.log('[LocationsListView] Debug info:', {
       locationsCount: locations.length,
+      locationsWithStatsCount: locationsWithStats.length,
       total,
       loading,
+      statsLoading,
+      stats: stats ? {
+        totalLocations: stats.totalLocations,
+        avgRating: stats.avgRating,
+        totalReviews: stats.totalReviews,
+        avgHealthScore: stats.avgHealthScore,
+      } : null,
       error: error?.message,
       searchQuery,
       categoryFilter,
@@ -146,12 +226,13 @@ export function LocationsListView() {
       quickFilter,
       filteredCount: filteredLocations.length,
     });
-    if (locations.length > 0) {
-      console.log('[LocationsListView] Sample location:', locations[0]);
+    if (locationsWithStats.length > 0) {
+      console.log('[LocationsListView] Sample location (with stats):', locationsWithStats[0]);
+      console.log('[LocationsListView] Sample location (original):', locations[0]);
     } else if (!loading) {
       console.warn('[LocationsListView] No locations found - check if data is being fetched correctly');
     }
-  }, [locations, total, loading, error, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter, filteredLocations.length]);
+  }, [locations, locationsWithStats, total, loading, statsLoading, stats, error, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter, filteredLocations.length]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -269,9 +350,9 @@ export function LocationsListView() {
       {/* Results Count */}
       {!loading && (
         <div className="text-sm text-muted-foreground">
-          Showing {filteredLocations.length} of {locations.length} location{locations.length !== 1 ? 's' : ''}
-          {hasActiveFilters && filteredLocations.length !== locations.length && (
-            <span className="ml-2 text-xs">(filtered from {locations.length} total)</span>
+          Showing {filteredLocations.length} of {locationsWithStats.length} location{locationsWithStats.length !== 1 ? 's' : ''}
+          {hasActiveFilters && filteredLocations.length !== locationsWithStats.length && (
+            <span className="ml-2 text-xs">(filtered from {locationsWithStats.length} total)</span>
           )}
         </div>
       )}
