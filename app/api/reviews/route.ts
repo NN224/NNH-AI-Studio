@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('ai_sentiment', sentiment);
     }
 
-    // Order and limit
-    query = query.order('review_date', { ascending: false, nullsFirst: false }).limit(100);
+    // Order and limit - increased to 500 to show all reviews
+    query = query.order('review_date', { ascending: false, nullsFirst: false }).limit(500);
 
     const { data: reviews, error } = await query;
 

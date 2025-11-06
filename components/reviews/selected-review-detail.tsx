@@ -11,28 +11,35 @@ interface SelectedReviewDetailProps {
 export function SelectedReviewDetail({ review }: SelectedReviewDetailProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResponse, setGeneratedResponse] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setError(null); // Clear previous errors
+    
     try {
-      const res = await fetch('/api/reviews/ai-response', {
+      const res = await fetch('/api/ai/generate-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewId: review.id,
-          reviewText: review.review_text || '',
+          review_id: review.id,
+          review_text: review.review_text || '',
           rating: review.rating,
-          locationName: review.location_name || 'Our Business'
+          reviewer_name: review.reviewer_name || 'Valued Customer',
+          location_name: review.location_name || 'our location'
         })
       });
       
-      if (!res.ok) throw new Error('Failed to generate response');
-      
       const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate response');
+      }
+      
       setGeneratedResponse(data.response || '');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to generate response:', error);
-      alert('Failed to generate AI response. Please try again.');
+      setError(error.message || 'Failed to generate response. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -121,6 +128,11 @@ export function SelectedReviewDetail({ review }: SelectedReviewDetailProps) {
       {!generatedResponse ? (
         <div className="space-y-3">
           <div className="text-sm font-medium text-white">🤖 AI Response Generator</div>
+          {error && (
+            <div className="p-3 bg-red-500/20 border border-red-500 rounded-lg text-sm text-red-400">
+              {error}
+            </div>
+          )}
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
