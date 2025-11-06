@@ -71,6 +71,7 @@ export default function LocationDetailPage() {
   const location = data.location;
   const locationData = location.location || {};
   const metadata = location.metadata || {};
+  const gmbAccountId = location.gmb_account_id || metadata.gmb_account_id;
 
   return (
     <ErrorBoundary>
@@ -81,6 +82,7 @@ export default function LocationDetailPage() {
           locationId={locationId}
           metadata={metadata}
           onRefresh={refetch}
+          gmbAccountId={gmbAccountId}
         />
 
         {/* Main Content Tabs */}

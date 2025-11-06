@@ -33,17 +33,53 @@ interface LocationDetailHeaderProps {
   locationId: string;
   metadata: any;
   onRefresh: () => void;
+  gmbAccountId?: string; // Optional: pass accountId if available
 }
 
 export function LocationDetailHeader({ 
   location, 
   locationId, 
   metadata,
-  onRefresh 
+  onRefresh,
+  gmbAccountId
 }: LocationDetailHeaderProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(gmbAccountId || null);
+
+  // Fetch accountId if not provided
+  React.useEffect(() => {
+    if (accountId) return; // Already have accountId
+    
+    const fetchAccountId = async () => {
+      try {
+        // Try to get accountId from location detail API
+        const res = await fetch(`/api/gmb/location/${locationId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.gmb_account_id) {
+            setAccountId(data.gmb_account_id);
+            return;
+          }
+        }
+        
+        // Fallback: get first active account
+        const accountsRes = await fetch('/api/gmb/accounts');
+        const accountsData = await accountsRes.json();
+        if (accountsData && accountsData.length > 0) {
+          const activeAccount = accountsData.find((acc: any) => acc.is_active) || accountsData[0];
+          if (activeAccount?.id) {
+            setAccountId(activeAccount.id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch accountId:', error);
+      }
+    };
+
+    fetchAccountId();
+  }, [locationId, accountId]);
 
   const name = location?.name || location?.title || 'Unnamed Location';
   const address = location?.storefrontAddress?.addressLines?.[0] || 
@@ -62,26 +98,33 @@ export function LocationDetailHeader({
   const isOpen = location?.openInfo?.status === 'OPEN' || metadata?.isOpen;
 
   const handleSync = async () => {
+    if (!accountId) {
+      toast.error('No GMB account found. Please connect a GMB account first.');
+      return;
+    }
+
     try {
       setSyncing(true);
       const response = await fetch('/api/gmb/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          accountId: accountId,
           sync_type: 'location',
           location_id: locationId 
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Sync failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Sync failed');
       }
 
       toast.success('Location synced successfully!');
       onRefresh();
     } catch (error) {
       console.error('Sync error:', error);
-      toast.error('Failed to sync location');
+      toast.error(error instanceof Error ? error.message : 'Failed to sync location');
     } finally {
       setSyncing(false);
     }

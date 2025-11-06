@@ -31,28 +31,49 @@ export function LocationsOverviewTab() {
 
   const { locations, loading, error, total, refetch, hasMore, loadMore } = useLocations(filters);
 
+  const [gmbAccountId, setGmbAccountId] = useState<string | null>(null);
+
   // Check GMB account on mount
   React.useEffect(() => {
     const checkGMBAccount = async () => {
       try {
         const res = await fetch('/api/gmb/accounts');
         const data = await res.json();
-        setHasGmbAccount(data && data.length > 0);
+        if (data && data.length > 0) {
+          setHasGmbAccount(true);
+          // Get the first active account ID
+          const activeAccount = data.find((acc: any) => acc.is_active) || data[0];
+          if (activeAccount?.id) {
+            setGmbAccountId(activeAccount.id);
+          }
+        } else {
+          setHasGmbAccount(false);
+          setGmbAccountId(null);
+        }
       } catch (error) {
         console.error('Failed to check GMB account:', error);
         setHasGmbAccount(false);
+        setGmbAccountId(null);
       }
     };
     checkGMBAccount();
   }, []);
 
   const handleSync = async () => {
+    if (!gmbAccountId) {
+      toast.error('No GMB account found. Please connect a GMB account first.');
+      return;
+    }
+
     try {
       setSyncing(true);
       const response = await fetch('/api/gmb/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sync_type: 'full' }),
+        body: JSON.stringify({ 
+          accountId: gmbAccountId,
+          sync_type: 'full' 
+        }),
       });
 
       if (!response.ok) {

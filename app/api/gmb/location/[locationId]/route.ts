@@ -168,6 +168,7 @@ export async function GET(
       location: locationData,
       attributes,
       googleUpdated,
+      gmb_account_id: location.gmb_account_id, // Include accountId for sync operations
     });
   } catch (error: any) {
     console.error('[Location Details API] Error:', error);
