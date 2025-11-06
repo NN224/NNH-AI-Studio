@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Location } from '@/components/locations/location-types';
 import { getMarkerIcon, MAP_CONTAINER_STYLE, DEFAULT_MAP_OPTIONS } from '@/utils/map-styles';
+import { useGoogleMaps } from '@/hooks/use-google-maps';
 
 interface MapViewProps {
   locations: Location[];
@@ -26,6 +27,9 @@ export function MapView({
   zoom = 10,
   className = '',
 }: MapViewProps) {
+  // Use shared Google Maps hook to ensure API is loaded only once
+  const { isLoaded: mapsLoaded, loadError } = useGoogleMaps();
+  
   const mapRef = useRef<google.maps.Map | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -144,6 +148,31 @@ export function MapView({
     center: calculatedCenter,
     zoom: zoom,
   }), [calculatedCenter, zoom]);
+
+  // Show loading state if Google Maps API is not loaded
+  if (!mapsLoaded) {
+    return (
+      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if Google Maps API failed to load
+  if (loadError) {
+    return (
+      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold mb-2">Failed to load map</h2>
+          <p className="text-muted-foreground">Please check your Google Maps configuration</p>
+        </div>
+      </div>
+    );
+  }
 
   if (locationsWithCoords.length === 0) {
     return (
