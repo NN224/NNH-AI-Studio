@@ -74,7 +74,14 @@ export function MapView({
 
   // ✅ Fix: Add strong guards before using mapRef or google.maps.*
   useEffect(() => {
-    if (!mapsLoaded || !mapRef.current || typeof google === 'undefined') return;
+    // Strong guards: check all conditions before accessing google.maps
+    if (!mapsLoaded) return;
+    if (!mapRef.current) return;
+    if (typeof window === 'undefined') return;
+    if (typeof google === 'undefined') return;
+    if (!google.maps) return;
+    if (!google.maps.LatLngBounds) return;
+    
     if (locationsWithCoords.length > 1) {
       try {
         const bounds = new google.maps.LatLngBounds();
@@ -86,7 +93,9 @@ export function MapView({
             });
           }
         });
-        mapRef.current.fitBounds(bounds, 50);
+        if (mapRef.current && typeof mapRef.current.fitBounds === 'function') {
+          mapRef.current.fitBounds(bounds, 50);
+        }
       } catch (err) {
         console.warn('FitBounds failed:', err);
       }
@@ -94,23 +103,37 @@ export function MapView({
   }, [mapsLoaded, locationsKey, locationsWithCoords.length]);
 
   useEffect(() => {
-    if (!mapsLoaded || !mapRef.current || !selectedLocationId) return;
+    // Strong guards: check all conditions before accessing google.maps
+    if (!mapsLoaded) return;
+    if (!mapRef.current) return;
+    if (!selectedLocationId) return;
+    if (typeof window === 'undefined') return;
+    if (typeof google === 'undefined') return;
+    if (!google.maps) return;
+    
     const selectedLocation = locationsWithCoords.find(loc => loc.id === selectedLocationId);
     if (selectedLocation?.coordinates) {
       try {
-        mapRef.current.panTo({
-          lat: selectedLocation.coordinates.lat,
-          lng: selectedLocation.coordinates.lng,
-        });
-        mapRef.current.setZoom(15);
+        if (mapRef.current && typeof mapRef.current.panTo === 'function') {
+          mapRef.current.panTo({
+            lat: selectedLocation.coordinates.lat,
+            lng: selectedLocation.coordinates.lng,
+          });
+        }
+        if (mapRef.current && typeof mapRef.current.setZoom === 'function') {
+          mapRef.current.setZoom(15);
+        }
       } catch (err) {
         console.warn('PanTo failed:', err);
       }
     }
-  }, [mapsLoaded, selectedLocationId, locationsWithCoords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapsLoaded, selectedLocationId]);
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
+  const onMapLoad = useCallback((map: google.maps.Map | null) => {
+    if (map && typeof map === 'object') {
+      mapRef.current = map;
+    }
   }, []);
 
   const onMapUnmount = useCallback(() => {
@@ -125,8 +148,8 @@ export function MapView({
     if (infoWindowRef.current) infoWindowRef.current.close();
   }, [onMarkerClick]);
 
-  const handleMarkerLoad = useCallback((marker: google.maps.Marker) => {
-    if (marker && !markersRef.current.includes(marker)) {
+  const handleMarkerLoad = useCallback((marker: google.maps.Marker | null) => {
+    if (marker && typeof marker === 'object' && !markersRef.current.includes(marker)) {
       markersRef.current.push(marker);
     }
   }, []);
@@ -167,6 +190,18 @@ export function MapView({
           <div className="text-6xl mb-4">🗺️</div>
           <h2 className="text-xl font-semibold mb-2">No Locations with Coordinates</h2>
           <p className="text-muted-foreground">Add locations with valid coordinates to display them on the map</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Final guard: only render GoogleMap if maps are fully loaded and google.maps is available
+  if (typeof window === 'undefined' || typeof google === 'undefined' || !google.maps) {
+    return (
+      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading map...</p>
         </div>
       </div>
     );

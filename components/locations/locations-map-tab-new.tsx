@@ -59,18 +59,23 @@ export function LocationsMapTab() {
   const prevLocationsRef = useRef<string>('');
   const locationsKeyRef = useRef<string>('');
   
-  // Calculate current key
-  const currentKey = locations.map(l => `${l.id}-${l.coordinates?.lat}-${l.coordinates?.lng}`).join('|');
+  // Calculate current key - use useMemo with stable dependencies
+  const currentKey = useMemo(() => 
+    locations.map(l => `${l.id}-${l.coordinates?.lat}-${l.coordinates?.lng}`).join('|'),
+    [locations.length, locations.map(l => `${l.id}`).join(',')]
+  );
   
-  // Update ref only if content actually changed
-  if (currentKey !== prevLocationsRef.current) {
-    prevLocationsRef.current = currentKey;
-    locationsKeyRef.current = currentKey;
-  }
+  // Update ref only if content actually changed - use useEffect to avoid side effects in render
+  useEffect(() => {
+    if (currentKey !== prevLocationsRef.current) {
+      prevLocationsRef.current = currentKey;
+      locationsKeyRef.current = currentKey;
+    }
+  }, [currentKey]);
   
   const locationsKey = locationsKeyRef.current;
 
-  // Set default selection to first location
+  // Set default selection to first location - use stable dependency
   useEffect(() => {
     if (locations.length > 0 && !selectedLocationId) {
       const firstLocationWithCoords = locations.find(loc => loc.coordinates?.lat && loc.coordinates?.lng);
@@ -78,7 +83,8 @@ export function LocationsMapTab() {
         setSelectedLocationId(firstLocationWithCoords.id);
       }
     }
-  }, [locations, selectedLocationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locations.length, locationsKey, selectedLocationId]);
 
   // Get selected location - use stable dependency
   const selectedLocation = useMemo(() => {
