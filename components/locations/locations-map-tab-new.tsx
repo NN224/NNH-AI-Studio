@@ -57,13 +57,18 @@ export function LocationsMapTab() {
   // Create stable key based on locations content to avoid infinite loops
   // Use ref to track previous value and only update when content actually changes
   const prevLocationsRef = useRef<string>('');
-  const locationsKey = useMemo(() => {
-    const currentKey = locations.map(l => `${l.id}-${l.coordinates?.lat}-${l.coordinates?.lng}`).join('|');
-    if (currentKey !== prevLocationsRef.current) {
-      prevLocationsRef.current = currentKey;
-    }
-    return prevLocationsRef.current;
-  }, [locations]);
+  const locationsKeyRef = useRef<string>('');
+  
+  // Calculate current key
+  const currentKey = locations.map(l => `${l.id}-${l.coordinates?.lat}-${l.coordinates?.lng}`).join('|');
+  
+  // Update ref only if content actually changed
+  if (currentKey !== prevLocationsRef.current) {
+    prevLocationsRef.current = currentKey;
+    locationsKeyRef.current = currentKey;
+  }
+  
+  const locationsKey = locationsKeyRef.current;
 
   // Set default selection to first location
   useEffect(() => {
