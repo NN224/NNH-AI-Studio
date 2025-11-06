@@ -140,13 +140,33 @@ export function useLocations(
       const to = from + pageSize - 1;
       query = query.range(from, to);
 
+      console.log('📊 [useLocations] Executing query...', { 
+        filters: Object.keys(filters).length,
+        pageNum,
+        pageSize 
+      });
+
       const { data, error: queryError, count } = await query;
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        console.log('⏹️ [useLocations] Request aborted');
+        return;
+      }
 
       if (queryError) {
+        console.error('❌ [useLocations] Query error:', {
+          message: queryError.message,
+          code: queryError.code,
+          details: queryError.details,
+          hint: queryError.hint
+        });
         throw queryError;
       }
+
+      console.log('✅ [useLocations] Query successful:', { 
+        count: data?.length || 0, 
+        total: count || 0 
+      });
 
       // Transform data to Location type
       const transformedLocations: Location[] = (data || []).map((loc: any) => ({
@@ -187,14 +207,32 @@ export function useLocations(
       setTotal(count || 0);
       setHasMore((count || 0) > pageNum * pageSize);
       setError(null);
+      
+      console.log('✅ [useLocations] Locations set:', { 
+        locationsCount: transformedLocations.length,
+        total,
+        hasMore 
+      });
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
+        const errorMessage = err.message || 'Unknown error occurred';
+        const errorName = err.name || 'Error';
+        
+        console.error('❌ [useLocations] Fetch error:', {
+          name: errorName,
+          message: errorMessage,
+          stack: err.stack,
+          timestamp: new Date().toISOString()
+        });
+        
         setError(err);
-        console.error('Error fetching locations:', err);
+      } else if (err instanceof Error && err.name === 'AbortError') {
+        console.log('⏹️ [useLocations] Request aborted (expected)');
       }
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
+        console.log('🏁 [useLocations] Loading complete');
       }
     }
   }, [supabase, filters, pageSize]);

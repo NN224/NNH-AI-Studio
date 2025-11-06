@@ -44,6 +44,7 @@ export function LocationsMapTab() {
   const { locations, loading, error: locationsError } = useLocations({});
   const { isLoaded, loadError } = useGoogleMaps();
   const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const isMobile = useIsMobile();
   
   // Store locations in ref to avoid re-renders
@@ -54,6 +55,46 @@ export function LocationsMapTab() {
   useEffect(() => {
     locationsRef.current = locations;
   }, [locations.length]); // Only depend on length
+
+  // Timeout for loading state (10 seconds)
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+        console.warn('⚠️ Locations loading timeout - taking longer than expected');
+      }, 10000); // 10 seconds
+
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [loading]);
+
+  // Debug logging
+  useEffect(() => {
+    if (loading) {
+      console.log('🔄 Loading locations...', { 
+        timestamp: new Date().toISOString(),
+        hasError: !!locationsError 
+      });
+    } else if (locationsError) {
+      console.error('❌ Locations error:', {
+        message: locationsError.message,
+        name: locationsError.name,
+        stack: locationsError.stack,
+        timestamp: new Date().toISOString()
+      });
+    } else if (locations.length > 0) {
+      console.log('✅ Locations loaded:', {
+        count: locations.length,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log('ℹ️ No locations found', {
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [loading, locationsError, locations.length]);
 
   // Fetch stats for selected location
   const { stats, loading: statsLoading, error: statsError } = useLocationMapData(selectedLocationId);
@@ -119,24 +160,54 @@ export function LocationsMapTab() {
       <Card>
         <CardContent className="p-12">
           <div className="text-center">
-            <p className="text-destructive font-medium mb-2">Failed to load locations</p>
-            <p className="text-sm text-muted-foreground">
-              {locationsError.message || 'Please try refreshing the page'}
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to load locations</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {locationsError.message || 'An error occurred while loading locations'}
             </p>
+            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md text-left max-w-md mx-auto">
+              <p className="font-mono mb-1">Error Details:</p>
+              <p className="font-mono text-xs break-all">{locationsError.name}: {locationsError.message}</p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Refresh Page
+            </button>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Loading state
+  // Loading state with timeout
   if (loading) {
     return (
       <Card>
         <CardContent className="p-12">
           <div className="flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading locations...</p>
+            <p className="text-muted-foreground mb-2">Loading locations...</p>
+            {loadingTimeout && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-2">
+                  ⏱️ This is taking longer than expected
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This might mean:
+                  <br />• No locations exist in the database
+                  <br />• There's a network issue
+                  <br />• The API is slow to respond
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 px-3 py-1.5 text-xs bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+                >
+                  Refresh
+                </button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
