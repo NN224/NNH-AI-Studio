@@ -28,27 +28,6 @@ export function LocationsListView() {
   // Then do client-side filtering for better control
   const { locations, loading, error, total } = useLocations({});
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[LocationsListView] Debug info:', {
-      locationsCount: locations.length,
-      total,
-      loading,
-      error: error?.message,
-      searchQuery,
-      categoryFilter,
-      statusFilter,
-      sortBy,
-      quickFilter,
-      filteredCount: filteredLocations.length,
-    });
-    if (locations.length > 0) {
-      console.log('[LocationsListView] Sample location:', locations[0]);
-    } else if (!loading) {
-      console.warn('[LocationsListView] No locations found - check if data is being fetched correctly');
-    }
-  }, [locations, total, loading, error, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter, filteredLocations.length]);
-
   // Get unique categories from locations
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -112,6 +91,27 @@ export function LocationsListView() {
 
     return filtered;
   }, [locations, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
+
+  // Debug logging (after filteredLocations is declared)
+  React.useEffect(() => {
+    console.log('[LocationsListView] Debug info:', {
+      locationsCount: locations.length,
+      total,
+      loading,
+      error: error?.message,
+      searchQuery,
+      categoryFilter,
+      statusFilter,
+      sortBy,
+      quickFilter,
+      filteredCount: filteredLocations.length,
+    });
+    if (locations.length > 0) {
+      console.log('[LocationsListView] Sample location:', locations[0]);
+    } else if (!loading) {
+      console.warn('[LocationsListView] No locations found - check if data is being fetched correctly');
+    }
+  }, [locations, total, loading, error, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter, filteredLocations.length]);
 
   const clearFilters = () => {
     setSearchQuery('');
