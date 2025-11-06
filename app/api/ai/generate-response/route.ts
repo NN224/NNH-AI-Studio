@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Extract with fallbacks
-    const review_text = body.review_text || body.comment || 'No review text';
+    const review_text = body.review_text || 'No review text';
     const rating = body.rating || 3;
     const reviewer_name = body.reviewer_name || 'Valued Customer';
     const location_name = body.location_name || 'our location';
