@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useLocations, LocationFilters } from '@/hooks/use-locations';
-import { LocationCardV2 } from '@/components/locations/location-card-v2';
+import { useLocations } from '@/hooks/use-locations';
+import { useRouter } from '@/lib/navigation';
+import { HorizontalLocationCard } from '@/components/locations/horizontal-location-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,10 +15,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, X, AlertCircle, Star, Loader2 } from 'lucide-react';
-import { Location } from '@/components/locations/location-types';
 import { LocationCardSkeleton } from '@/components/locations/location-card-skeleton';
 
 export function LocationsListView() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -280,14 +281,14 @@ export function LocationsListView() {
         </div>
       )}
 
-      {/* Locations Grid */}
+      {/* Locations List - Horizontal Cards */}
       {!loading && filteredLocations.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-4">
           {filteredLocations.map((location) => (
-            <LocationCardV2
+            <HorizontalLocationCard
               key={location.id}
               location={location}
-              viewMode="grid"
+              onViewDetails={(id) => router.push(`/locations/${id}`)}
             />
           ))}
         </div>
