@@ -1,84 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// 💡 سنفترض أننا نستخدم مكوناً جديداً لبيئة العمل
-import { ReviewResponseCockpit } from '@/components/reviews/ReviewResponseCockpit';
-import { BarChart3, MessageSquare, ShieldCheck, Sparkles, AlertTriangle, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Link } from '@/lib/navigation';
-
-// ⭐️ مكون بطاقة التحليل العاطفي (Sentiment Analysis Card) ⭐️
-const SentimentAnalysisCard = ({ className }: { className?: string }) => {
-    // 💡 يمكن جلب هذه البيانات من API جديد مثل /api/reviews/sentiment
-    const sentimentData = [
-        { label: 'Positive', value: 75, color: 'text-success', icon: ShieldCheck },
-        { label: 'Neutral', value: 15, color: 'text-warning', icon: Clock },
-        { label: 'Negative', value: 10, color: 'text-destructive', icon: AlertTriangle },
-    ];
-
-    return (
-        <Card className={cn("lg:col-span-1", className)}>
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5"/> Sentiment Analysis
-                </CardTitle>
-                <CardDescription>Customer emotion breakdown</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                {sentimentData.map((item) => (
-                    <div key={item.label} className="flex justify-between items-center text-sm">
-                        <div className={cn("flex items-center gap-2", item.color)}>
-                            <item.icon className="w-4 h-4"/>
-                            <span>{item.label}</span>
-                        </div>
-                        <span className="font-semibold">{item.value}%</span>
-                    </div>
-                ))}
-                <div className="pt-2 border-t mt-3">
-                    <p className="text-xs font-semibold">Hot Topics:</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                        <span className="text-xs bg-muted p-1 rounded">Staff (15)</span>
-                        <span className="text-xs bg-muted p-1 rounded">Pricing (8)</span>
-                        <span className="text-xs bg-muted p-1 rounded">Wait Time (5)</span>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
+import { useState } from 'react';
+import { StatsCards } from '@/components/reviews/stats-cards';
+import { ReviewsFeed } from '@/components/reviews/reviews-feed';
+import { AIAssistantPanel } from '@/components/reviews/ai-assistant-panel';
+import type { GMBReview } from '@/lib/types/database';
 
 export default function ReviewsPage() {
-return (
-<div className="space-y-6">
-<div>
-<h1 className="text-3xl font-bold tracking-tight">AI Review Cockpit</h1>
-<p className="text-muted-foreground mt-2">
-Manage, analyze, and generate AI responses for customer reviews
-</p>
-</div>
+  const [selectedReview, setSelectedReview] = useState<(GMBReview & { location_name?: string }) | null>(null);
 
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-1 lg:grid-cols-4">
-        {/* ⭐️ بطاقة التحليل الجديدة (العمود 1) */}
-        <SentimentAnalysisCard className="sm:col-span-1 lg:col-span-1" />
-
-        {/* ⭐️ بطاقة الردود الفورية (العمود 2-4) ⭐️ */}
-        <Card className="sm:col-span-1 lg:col-span-3">
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5"/> Pending Responses
-                </CardTitle>
-                <CardDescription>Prioritize and resolve reviews by impact and sentiment.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {/* 💡 هذا هو المكون الذي سيحتوي على القائمة والردود الآلية */}
-                <ReviewResponseCockpit />
-            </CardContent>
-        </Card>
+  return (
+    <div className="flex flex-col h-full bg-black min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Reviews Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Manage, analyze, and respond to customer reviews with AI
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">🔔</button>
+          <button className="p-2 rounded-lg hover:bg-gray-800 transition-colors">⚙️</button>
+        </div>
       </div>
 
-      {/* 💡 يمكن وضع ReviewsList هنا مؤقتاً إذا لم يكن لديك ReviewResponseCockpit جاهزاً */}
-</div>
-);
+      {/* Stats Cards */}
+      <div className="p-6">
+        <StatsCards />
+      </div>
+
+      {/* Main Content: Split Layout */}
+      <div className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0">
+        {/* Left: Reviews Feed (60%) */}
+        <div className="w-[60%] flex flex-col min-h-0">
+          <ReviewsFeed 
+            selectedReview={selectedReview}
+            onSelectReview={setSelectedReview}
+          />
+        </div>
+
+        {/* Right: AI Assistant Panel (40%) */}
+        <div className="w-[40%] min-h-0">
+          <AIAssistantPanel selectedReview={selectedReview} />
+        </div>
+      </div>
+    </div>
+  );
 }

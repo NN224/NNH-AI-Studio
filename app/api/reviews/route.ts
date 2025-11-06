@@ -7,75 +7,68 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
+    
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const locationId = searchParams.get('location');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = (page - 1) * limit;
+    const rating = searchParams.get('rating');
+    const sentiment = searchParams.get('sentiment');
+    const search = searchParams.get('search');
 
+    // Build query
     let query = supabase
       .from('gmb_reviews')
-      .select('*', { count: 'exact' })
-      .eq('user_id', user.id);
+      .select(`
+        *,
+        gmb_locations!inner (
+          id,
+          location_name,
+          address,
+          user_id
+        )
+      `)
+      .eq('gmb_locations.user_id', user.id);
 
-    // Filter by location if specified
-    if (locationId) {
-      query = query.eq('location_id', locationId);
+    // Apply filters
+    if (rating) {
+      query = query.eq('rating', parseInt(rating));
     }
 
-    const { data: reviews, error: reviewsError, count } = await query
-      .order('review_time', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (reviewsError) {
-      console.error('Reviews fetch error:', reviewsError);
-      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
+    if (sentiment) {
+      query = query.eq('ai_sentiment', sentiment);
     }
 
-    // Calculate basic stats
-    const totalReviews = count || 0;
-    const averageRating = reviews && reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length 
-      : 0;
+    // Order and limit
+    query = query.order('review_date', { ascending: false, nullsFirst: false }).limit(100);
 
-    const pendingReplies = reviews ? reviews.filter(review => !review.reply_text).length : 0;
-    const recentReviews = reviews ? reviews.filter(review => {
-      const reviewDate = new Date(review.review_time || review.created_at);
-      const daysDiff = (Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysDiff <= 7; // Reviews in last 7 days
-    }).length : 0;
+    const { data: reviews, error } = await query;
 
-    return NextResponse.json({
-      reviews: reviews || [],
-      pagination: {
-        page,
-        limit,
-        total: totalReviews,
-        totalPages: Math.ceil(totalReviews / limit),
-        hasNext: offset + limit < totalReviews,
-        hasPrev: page > 1
-      },
-      stats: {
-        total: totalReviews,
-        averageRating: Math.round(averageRating * 10) / 10,
-        pendingReplies,
-        recentReviews
-      },
-      filters: {
-        location: locationId
-      }
-    });
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
+    // Add location_name to each review and filter by search if provided
+    let reviewsWithLocation = (reviews || []).map(r => ({
+      ...r,
+      location_name: r.gmb_locations?.location_name
+    }));
+
+    // Client-side search filter (since Supabase text search might be complex)
+    if (search) {
+      const searchLower = search.toLowerCase();
+      reviewsWithLocation = reviewsWithLocation.filter(r => 
+        r.review_text?.toLowerCase().includes(searchLower) ||
+        r.reviewer_name?.toLowerCase().includes(searchLower) ||
+        r.location_name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return NextResponse.json({ reviews: reviewsWithLocation });
   } catch (error) {
-    console.error('Reviews API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
