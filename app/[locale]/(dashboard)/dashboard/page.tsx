@@ -15,13 +15,19 @@ import {
   BarChart3,
   Settings
 } from 'lucide-react';
-import { RefreshButton } from './refresh-button';
-import { TimeFilterButtons } from './time-filter-buttons';
-import { ActiveLocationActions } from './active-location-actions';
-import { QuickActionButtons } from './quick-action-buttons';
-import { WeeklyTasksButton } from './weekly-tasks-button';
-import { ProfileProtectionButton } from './profile-protection-button';
-import { LocationDetailsButton } from './location-details-button';
+import {
+  RefreshButton,
+  SyncButton,
+  DisconnectButton,
+  GenerateTasksButton,
+  QuickActionCard,
+  LocationCard,
+  TimeFilterButtons,
+  ViewDetailsButton,
+  ManageProtectionButton,
+  LastUpdated
+} from './DashboardClient';
+import { PerformanceChart } from './PerformanceChart';
 
 // TypeScript Interfaces
 interface DashboardStats {
@@ -35,7 +41,7 @@ interface DashboardStats {
 }
 
 interface Location {
-  id: string;
+    id: string;
   location_name: string;
   rating: number | null;
   review_count: number | null;
@@ -47,7 +53,7 @@ interface Location {
 
 interface Review {
   id: string;
-  rating: number;
+    rating: number;
   comment: string | null;
   review_reply: string | null;
   status: string | null;
@@ -173,6 +179,79 @@ function getTopLocation(locations: Location[]): Location | null {
   , locations[0]);
 }
 
+// Generate dynamic AI insights
+function generateAIInsights(stats: DashboardStats, reviews: Review[]) {
+  const insights: Array<{
+    type: string;
+    icon: string;
+    title: string;
+    description: string;
+    color: string;
+  }> = [];
+  
+  // Rating trend
+  if (parseFloat(stats.avgRating) >= 4.5) {
+    insights.push({
+      type: 'positive',
+      icon: '📈',
+      title: 'Rating Trending Up',
+      description: `Your ${stats.avgRating} rating is excellent! Keep up the great service.`,
+      color: 'green'
+    });
+  } else if (parseFloat(stats.avgRating) < 3.0) {
+    insights.push({
+      type: 'negative',
+      icon: '📉',
+      title: 'Rating Needs Attention',
+      description: `Your rating of ${stats.avgRating} needs improvement. Focus on customer satisfaction.`,
+      color: 'red'
+    });
+  }
+  
+  // Response rate
+  if (parseFloat(stats.responseRate) < 50) {
+    insights.push({
+      type: 'warning',
+      icon: '⚠️',
+      title: 'Improve Response Rate',
+      description: `${stats.pendingReviews} reviews unanswered. Quick replies increase trust by 78%.`,
+      color: 'orange'
+    });
+  } else if (parseFloat(stats.responseRate) >= 80) {
+    insights.push({
+      type: 'positive',
+      icon: '✅',
+      title: 'Excellent Response Rate',
+      description: `${stats.responseRate}% response rate is outstanding! Customers appreciate your engagement.`,
+      color: 'green'
+    });
+  }
+  
+  // Questions
+  if (stats.pendingQuestions > 0) {
+    insights.push({
+      type: 'urgent',
+      icon: '❓',
+      title: 'Questions Need Answers',
+      description: `${stats.pendingQuestions} customer questions remain. Quick answers can convert by 45%.`,
+      color: 'red'
+    });
+  }
+  
+  // Health score
+  if (stats.healthScore < 50) {
+    insights.push({
+      type: 'warning',
+      icon: '🏥',
+      title: 'Health Score Low',
+      description: `Your health score of ${stats.healthScore}% needs attention. Focus on reviews and responses.`,
+      color: 'orange'
+    });
+  }
+  
+  return insights;
+}
+
 // Main Component
 export default async function DashboardPage() {
   // Fetch all data
@@ -233,40 +312,8 @@ export default async function DashboardPage() {
     });
   }
   
-  // Generate insights based on data
-  const insights: Array<{
-    id: number;
-    title: string;
-    emoji: string;
-    borderColor: string;
-  }> = [];
-  
-  if (parseFloat(avgRating) >= 4.0) {
-    insights.push({
-      id: 1,
-      title: 'Rating Trending Up',
-      emoji: '📈',
-      borderColor: 'green'
-    });
-  }
-  
-  if (parseFloat(responseRate) < 50) {
-    insights.push({
-      id: 2,
-      title: 'Improve Response Rate',
-      emoji: '⚠️',
-      borderColor: 'orange'
-    });
-  }
-  
-  if (pendingQuestions > 0) {
-    insights.push({
-      id: 3,
-      title: 'Questions Need Answers',
-      emoji: '❓',
-      borderColor: 'red'
-    });
-  }
+  // Generate dynamic AI insights
+  const insights = generateAIInsights(stats, reviews);
   
   // Weekly tasks (static for now, can be made dynamic later)
   const weeklyTasks: Array<{
@@ -303,14 +350,14 @@ export default async function DashboardPage() {
     },
   ];
   
-  const lastUpdatedMinutes = 0; // Can be calculated from last sync time
+  const lastUpdatedAt = new Date().toISOString();
 
   return (
     <div className="min-h-screen bg-zinc-950 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
+          <div>
             <h1 className="text-3xl md:text-4xl font-bold text-zinc-100 flex items-center gap-2">
               🤖 AI Command Center
             </h1>
@@ -321,11 +368,8 @@ export default async function DashboardPage() {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <Card className="bg-zinc-900/50 border-orange-500/20 backdrop-blur-sm">
-              <CardContent className="p-3 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-orange-500" />
-                <span className="text-sm text-zinc-300">
-                  Last Updated: {lastUpdatedMinutes === 0 ? 'Just now' : `${lastUpdatedMinutes} minutes ago`}
-                </span>
+              <CardContent className="p-3">
+                <LastUpdated updatedAt={lastUpdatedAt} />
               </CardContent>
             </Card>
             <RefreshButton />
@@ -351,9 +395,14 @@ export default async function DashboardPage() {
                   <Badge className={activeLocation ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-orange-500/20 text-orange-400 border-orange-500/30"}>
                     {activeLocation ? "Connected" : "Disconnected"}
                   </Badge>
-      </div>
-
-                <ActiveLocationActions />
+                </div>
+                
+                {activeLocation && (
+                  <div className="flex gap-2">
+                    <SyncButton locationId={activeLocation.id} />
+                    <DisconnectButton locationId={activeLocation.id} />
+                  </div>
+                )}
                 
                 {activeLocation ? (
                   <div className="bg-zinc-800/50 rounded-lg p-4 space-y-2 border border-zinc-700/50">
@@ -362,7 +411,12 @@ export default async function DashboardPage() {
                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                       <span>{activeLocation.rating?.toFixed(1) || 'N/A'} / 5.0</span>
                     </div>
-                    {activeLocation.id && <LocationDetailsButton locationId={activeLocation.id} />}
+                    {activeLocation.id && (
+                      <LocationCard 
+                        locationName={activeLocation.location_name} 
+                        href={`/locations/${activeLocation.id}`} 
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="text-center text-zinc-500 py-4">
@@ -375,63 +429,32 @@ export default async function DashboardPage() {
             {/* Quick Actions Section */}
             <Card className="bg-zinc-900/50 border-orange-500/20 backdrop-blur-sm hover:border-orange-500/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-zinc-100 flex items-center gap-2">
-                    ⚡ Quick Actions
-                  </CardTitle>
-                  <QuickActionButtons />
-                </div>
+                <CardTitle className="text-zinc-100 flex items-center gap-2">
+                  ⚡ Quick Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Card className="bg-zinc-800/50 border-zinc-700/50 hover:border-orange-500/30 transition-all cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">💬</span>
-                        <div>
-                          <p className="text-zinc-100 font-medium">Reply to Reviews</p>
-                          <p className="text-zinc-400 text-sm">Respond to pending reviews</p>
-                        </div>
-                      </div>
-                      {stats.pendingReviews > 0 && (
-                        <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                          + {stats.pendingReviews} pending
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-zinc-800/50 border-zinc-700/50 hover:border-orange-500/30 transition-all cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">❓</span>
-                        <div>
-                          <p className="text-zinc-100 font-medium">Answer Questions</p>
-                          <p className="text-zinc-400 text-sm">Reply to customer questions</p>
-                        </div>
-                      </div>
-                      {stats.pendingQuestions > 0 && (
-                        <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                          + {stats.pendingQuestions} pending
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-zinc-800/50 border-zinc-700/50 hover:border-orange-500/30 transition-all cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">📝</span>
-                      <div>
-                        <p className="text-zinc-100 font-medium">Create New Post</p>
-                        <p className="text-zinc-400 text-sm">Share updates with customers</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <QuickActionCard
+                  title="Reply to Reviews"
+                  icon="💬"
+                  subtitle="Respond to pending reviews"
+                  pendingCount={stats.pendingReviews}
+                  href="/reviews"
+                />
+                <QuickActionCard
+                  title="Answer Questions"
+                  icon="❓"
+                  subtitle="Reply to customer questions"
+                  pendingCount={stats.pendingQuestions}
+                  href="/questions"
+                />
+                <QuickActionCard
+                  title="Create New Post"
+                  icon="📝"
+                  subtitle="Share updates with customers"
+                  pendingCount={0}
+                  href="/posts"
+                />
               </CardContent>
             </Card>
           </div>
@@ -538,7 +561,7 @@ export default async function DashboardPage() {
                       Generate your personalized recommendations...
                     </p>
                   </div>
-                  <WeeklyTasksButton />
+                  <GenerateTasksButton locationId={activeLocation?.id || null} />
                 </div>
 
                 {/* Recommended Quick Wins */}
@@ -597,7 +620,7 @@ export default async function DashboardPage() {
       )}
                 </div>
 
-                <ProfileProtectionButton />
+                <ManageProtectionButton />
               </CardContent>
             </Card>
           </div>
@@ -608,21 +631,21 @@ export default async function DashboardPage() {
           {/* AI Risk & Opportunity Feed */}
           <Card className="bg-zinc-900/50 border-orange-500/20 backdrop-blur-sm hover:border-orange-500/50 transition-all hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
+      <div className="flex items-center justify-between">
+        <div>
                   <CardTitle className="text-zinc-100 flex items-center gap-2">
                     🎯 AI Risk & Opportunity Feed
                   </CardTitle>
                   <p className="text-zinc-400 text-sm mt-1">
                     Proactive alerts and recommended actions
-                  </p>
-                </div>
+          </p>
+        </div>
                 {alerts.length > 0 && (
                   <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
                     {alerts.length} alerts
                   </Badge>
                 )}
-              </div>
+      </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {alerts.length > 0 ? (
@@ -674,7 +697,7 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">🏆</span>
                     <h4 className="text-zinc-300 font-medium">Top Performer</h4>
-                  </div>
+        </div>
                   <Card className="bg-zinc-800/50 border-zinc-700/50">
                     <CardContent className="p-4 space-y-3">
                       <div>
@@ -692,15 +715,17 @@ export default async function DashboardPage() {
                         </Badge>
                       )}
                       
-                      {topLocation.id && <LocationDetailsButton locationId={topLocation.id} />}
+                      {topLocation.id && (
+                        <ViewDetailsButton href={`/locations/${topLocation.id}`} />
+                      )}
                     </CardContent>
                   </Card>
                 </div>
               ) : (
                 <div className="text-center text-zinc-500 py-8">
                   No locations to display
-                </div>
-              )}
+        </div>
+      )}
             </CardContent>
           </Card>
 
@@ -733,22 +758,19 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-              <div className="bg-zinc-800/50 rounded-lg p-8 border border-zinc-700/50 flex items-center justify-center min-h-[200px]">
-                <div className="text-center space-y-2">
-                  <BarChart3 className="w-12 h-12 text-zinc-600 mx-auto" />
-                  <p className="text-zinc-500 text-sm">📈 Chart Area</p>
-        </div>
-      </div>
+              <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700/50">
+                <PerformanceChart reviews={reviews} />
+              </div>
 
               <div className="flex items-center justify-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                   <span className="text-zinc-400">Questions</span>
-                </div>
+        </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <span className="text-zinc-400">Rating</span>
-                </div>
+      </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   <span className="text-zinc-400">Reviews</span>
@@ -769,26 +791,36 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {insights.length > 0 ? (
-                insights.map((insight) => (
-                  <Card 
-                    key={insight.id}
-                    className={`bg-zinc-800/50 border-l-4 ${
-                      insight.borderColor === "green" ? "border-green-500" :
-                      insight.borderColor === "orange" ? "border-orange-500" :
-                      "border-red-500"
+                insights.map((insight, index) => (
+                  <div 
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      insight.color === 'green' 
+                        ? 'bg-green-950/30 border-green-500/30'
+                        : insight.color === 'red'
+                        ? 'bg-red-950/30 border-red-500/30'
+                        : 'bg-orange-950/30 border-orange-500/30'
                     }`}
                   >
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <span className="text-2xl">{insight.emoji}</span>
-                      <p className="text-zinc-200 text-sm font-medium flex-1">{insight.title}</p>
-                    </CardContent>
-                  </Card>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">{insight.icon}</span>
+                      <div>
+                        <h3 className={`font-medium text-sm mb-2 ${
+                          insight.color === 'green' ? 'text-green-300' :
+                          insight.color === 'red' ? 'text-red-300' : 'text-orange-300'
+                        }`}>
+                          {insight.title}
+                        </h3>
+                        <p className="text-xs text-zinc-400">{insight.description}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))
               ) : (
                 <div className="text-center text-zinc-500 py-4">
                   No insights available
-        </div>
-      )}
+                </div>
+              )}
               <div className="flex items-center gap-2 text-xs text-zinc-500 pt-2 border-t border-zinc-700/50">
                 <Settings className="w-3 h-3" />
                 <span>⚙️ Auto-updated based on latest data</span>
@@ -814,13 +846,13 @@ export default async function DashboardPage() {
                     <span className="text-zinc-400">
                       {achievement.current.toFixed(1)} / {achievement.target}
                     </span>
-                  </div>
+        </div>
                   <div className="relative h-3 bg-zinc-800 rounded-full overflow-hidden">
                     <div 
                       className={`h-full bg-gradient-to-r ${achievement.gradient} transition-all duration-500`}
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     ></div>
-                  </div>
+      </div>
                 </div>
               );
             })}
