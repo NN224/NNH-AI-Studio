@@ -60,9 +60,9 @@ Generate a professional response that:
 
 Important: Write ONLY the response text, no additional commentary or explanations.`;
 
-    // Call Anthropic Claude API
+    // Call Anthropic Claude API with correct model name
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-sonnet-20240229', // Corrected model name - balanced quality and speed
       max_tokens: 200,
       temperature: 0.7,
       messages: [
@@ -86,7 +86,7 @@ Important: Write ONLY the response text, no additional commentary or explanation
       success: true,
       response: responseText.trim(),
       generated_at: new Date().toISOString(),
-      model: 'claude-3-5-sonnet',
+      model: 'claude-3-sonnet-20240229',
       usage: {
         input_tokens: message.usage.input_tokens,
         output_tokens: message.usage.output_tokens
@@ -96,11 +96,24 @@ Important: Write ONLY the response text, no additional commentary or explanation
   } catch (error: any) {
     console.error('AI Generation Error:', error);
     
+    // Better error logging
+    if (error.status) {
+      console.error('API Error Status:', error.status);
+      console.error('API Error Details:', error.message);
+    }
+    
     // Check for specific Anthropic errors
     if (error.status === 401) {
       return NextResponse.json(
         { success: false, error: 'Invalid API key' },
         { status: 401 }
+      );
+    }
+    
+    if (error.status === 404) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid model name. Please contact support.' },
+        { status: 404 }
       );
     }
     
