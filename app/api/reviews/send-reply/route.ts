@@ -192,7 +192,11 @@ export async function POST(request: NextRequest) {
     }
 
     // GMB API v4 endpoint for replying to reviews
+    // The API expects a ReviewReply object with just "comment" field, not nested "reply"
     const gmbApiUrl = `https://mybusiness.googleapis.com/v4/${reviewResourceName}/reply`;
+    
+    console.log('Posting reply to GMB:', gmbApiUrl);
+    console.log('Reply text:', reply_text.trim());
     
     const gmbResponse = await fetch(gmbApiUrl, {
       method: 'PUT',
@@ -201,9 +205,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        reply: {
-          comment: reply_text.trim()
-        }
+        comment: reply_text.trim()
       })
     });
 
