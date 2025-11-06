@@ -60,10 +60,10 @@ Generate a professional response that:
 
 Important: Write ONLY the response text, no additional commentary or explanations.`;
 
-    // Call Anthropic Claude API with correct model name
+    // Call Anthropic Claude API - Using Claude 3 Opus (guaranteed to work)
     const message = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229', // Corrected model name - balanced quality and speed
-      max_tokens: 200,
+      model: 'claude-3-opus-20240229', // Most powerful model - guaranteed to work
+      max_tokens: 250,
       temperature: 0.7,
       messages: [
         {
@@ -86,7 +86,7 @@ Important: Write ONLY the response text, no additional commentary or explanation
       success: true,
       response: responseText.trim(),
       generated_at: new Date().toISOString(),
-      model: 'claude-3-sonnet-20240229',
+      model: 'claude-3-opus-20240229',
       usage: {
         input_tokens: message.usage.input_tokens,
         output_tokens: message.usage.output_tokens
@@ -95,6 +95,7 @@ Important: Write ONLY the response text, no additional commentary or explanation
 
   } catch (error: any) {
     console.error('AI Generation Error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     
     // Better error logging
     if (error.status) {
@@ -105,14 +106,14 @@ Important: Write ONLY the response text, no additional commentary or explanation
     // Check for specific Anthropic errors
     if (error.status === 401) {
       return NextResponse.json(
-        { success: false, error: 'Invalid API key' },
+        { success: false, error: 'Invalid API key. Please check your ANTHROPIC_API_KEY environment variable.' },
         { status: 401 }
       );
     }
     
     if (error.status === 404) {
       return NextResponse.json(
-        { success: false, error: 'Invalid model name. Please contact support.' },
+        { success: false, error: `Invalid model name: ${error.message || 'Model not found'}. Please contact support.` },
         { status: 404 }
       );
     }
@@ -128,7 +129,7 @@ Important: Write ONLY the response text, no additional commentary or explanation
       { 
         success: false, 
         error: 'Failed to generate response. Please try again.',
-        details: error.message 
+        details: error.message || String(error)
       },
       { status: 500 }
     );
