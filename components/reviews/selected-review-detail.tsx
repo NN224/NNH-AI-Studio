@@ -24,10 +24,10 @@ export function SelectedReviewDetail({ review }: SelectedReviewDetailProps) {
       // Validate and prepare data with fallbacks
       const requestData = {
         review_id: review.id,
-        review_text: review.review_text || review.comment || 'No review text provided',
+        review_text: review.review_text || 'No review text provided',
         rating: review.rating || 3,
-        reviewer_name: review.reviewer_name || review.reviewer?.displayName || 'Valued Customer',
-        location_name: review.location_name || review.gmb_locations?.name || 'our business'
+        reviewer_name: review.reviewer_name || 'Valued Customer',
+        location_name: review.location_name || 'our business'
       };
 
       console.log('Generating response with data:', requestData); // Debug log
