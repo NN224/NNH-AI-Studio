@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS public.gmb_posts (
   published_at TIMESTAMPTZ,
   provider_post_id TEXT,
   error_message TEXT,
+  metadata JSONB DEFAULT '{}',
+  post_type TEXT CHECK (post_type IN ('whats_new', 'event', 'offer')) DEFAULT 'whats_new',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -32,8 +34,9 @@ DO $$ BEGIN
     FOR DELETE USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Helpful index
+-- Helpful indexes
 CREATE INDEX IF NOT EXISTS gmb_posts_user_loc_idx ON public.gmb_posts(user_id, location_id, status);
+CREATE INDEX IF NOT EXISTS gmb_posts_post_type_idx ON public.gmb_posts(user_id, post_type);
 
 COMMENT ON TABLE public.gmb_posts IS 'Stores GMB posts for composing and scheduling Business Profile posts';
 
