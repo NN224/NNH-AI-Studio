@@ -26,7 +26,31 @@ export function LocationsListView() {
 
   // Use empty filters like Map View to get all locations
   // Then do client-side filtering for better control
-  const { locations, loading, error, total } = useLocations({});
+  const { locations: rawLocations, loading, error, total } = useLocations({});
+
+  // Ensure locations is always an array
+  const locations = Array.isArray(rawLocations) ? rawLocations : [];
+
+  // Debug logging at component level
+  React.useEffect(() => {
+    console.log('=== LIST VIEW DEBUG ===');
+    console.log('[LocationsListView] useLocations hook result:', {
+      rawLocations,
+      locations,
+      locationsType: typeof locations,
+      isArray: Array.isArray(locations),
+      locationsLength: locations?.length,
+      total,
+      loading,
+      error: error?.message,
+    });
+    if (locations && locations.length > 0) {
+      console.log('[LocationsListView] First location:', locations[0]);
+    } else if (!loading && locations.length === 0) {
+      console.warn('[LocationsListView] ⚠️ No locations found after loading completed');
+    }
+    console.log('=======================');
+  }, [rawLocations, locations, total, loading, error]);
 
   // Get unique categories from locations
   const categories = useMemo(() => {
@@ -41,6 +65,17 @@ export function LocationsListView() {
 
   // Client-side filtering and sorting
   const filteredLocations = useMemo(() => {
+    // Safety check: ensure locations is an array
+    if (!Array.isArray(locations)) {
+      console.warn('[LocationsListView] locations is not an array:', locations);
+      return [];
+    }
+    
+    // If locations is empty, return empty array (this is valid)
+    if (locations.length === 0) {
+      return [];
+    }
+    
     let filtered = [...locations];
 
     // Search filter
