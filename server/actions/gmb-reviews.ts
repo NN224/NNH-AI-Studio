@@ -137,7 +137,16 @@ export async function replyToReview(reviewId: string, replyText: string) {
     }
 
     const location = review.gmb_locations
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
 
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, account.id)
@@ -348,7 +357,16 @@ export async function syncReviews(locationId: string) {
       }
     }
 
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
 
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, account.id)

@@ -251,7 +251,16 @@ export async function replyToReview(reviewId: string, replyText: string) {
     }
 
     const location = review.gmb_locations
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
 
     const accessToken = await getValidAccessToken(supabase, account.id)
 
@@ -400,7 +409,17 @@ export async function updateReply(reviewId: string, newReplyText: string) {
     }
 
     const location = review.gmb_locations
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
+
     const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Call Google API to update reply
@@ -507,7 +526,17 @@ export async function deleteReply(reviewId: string) {
     }
 
     const location = review.gmb_locations
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
+
     const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Call Google API to delete
@@ -704,7 +733,17 @@ export async function syncReviewsFromGoogle(locationId: string) {
       return { success: false, error: "Location not found" }
     }
 
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
+
     const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Fetch reviews from Google

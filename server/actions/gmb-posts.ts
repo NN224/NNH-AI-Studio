@@ -147,7 +147,17 @@ export async function createPost(data: CreatePostData) {
       }
     }
 
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts) 
+      ? location.gmb_accounts[0] 
+      : location.gmb_accounts
+      
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
+
     const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Prepare post data for Google API
@@ -415,7 +425,17 @@ export async function deletePost(postId: string) {
     }
 
     const location = post.gmb_locations
-    const account = location.gmb_accounts
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      }
+    }
+
     const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Delete from Google
