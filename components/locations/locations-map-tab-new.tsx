@@ -233,7 +233,7 @@ export function LocationsMapTab() {
                   <br />• Loading: {loading ? 'Yes' : 'No'}
                   <br />• Locations Count: {locations.length}
                   <br />• Google Maps Loaded: {isLoaded ? 'Yes' : 'No'}
-                  <br />• Google Maps Error: {loadError ? (loadError instanceof Error ? loadError.message : String(loadError)) : 'None'}
+                  <br />• Google Maps Error: {loadError ? String(loadError) : 'None'}
                   <br />• Locations Error: {locationsError ? locationsError.message : 'None'}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -277,7 +277,7 @@ export function LocationsMapTab() {
   if (!isLoaded) {
     console.log('🗺️ [MapView] Google Maps not loaded yet', {
       isLoaded,
-      loadError: loadError instanceof Error ? loadError.message : loadError ? String(loadError) : null,
+      loadError: loadError ? String(loadError) : null,
       locationsCount: locations.length,
       timestamp: new Date().toISOString()
     });
@@ -291,7 +291,7 @@ export function LocationsMapTab() {
             <div className="text-xs text-muted-foreground">
               <p>Locations: {locations.length} found</p>
               {loadError && (
-                <p className="text-destructive mt-2">Error: {loadError instanceof Error ? loadError.message : String(loadError)}</p>
+                <p className="text-destructive mt-2">Error: {String(loadError)}</p>
               )}
             </div>
           </div>
