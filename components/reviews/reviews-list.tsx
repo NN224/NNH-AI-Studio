@@ -338,13 +338,20 @@ export function ReviewsList() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Reviews List - Takes 2/3 of the width */}
           <div className="lg:col-span-2 space-y-4">
-            {filteredReviews.map((review, index) => (
+            {filteredReviews.map((review) => (
               <ReviewCard
                 key={review.id}
                 review={review}
-                index={index}
-                onGenerateResponse={handleGenerateResponse}
-                onReply={handleReply}
+                isSelected={selectedReview?.id === review.id}
+                onClick={() => {
+                  // Check if review needs response
+                  const needsResponse = !review.has_reply && !review.has_response && !review.reply_text && !review.review_reply;
+                  if (needsResponse) {
+                    handleGenerateResponse(review.id);
+                  } else {
+                    handleReply(review.id);
+                  }
+                }}
               />
             ))}
           </div>
