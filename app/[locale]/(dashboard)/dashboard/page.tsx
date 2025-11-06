@@ -545,8 +545,8 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          account_id: gmbAccountId, 
-          sync_type: 'full' 
+          accountId: gmbAccountId, 
+          syncType: 'full' 
         }),
         signal: controller.signal
       });

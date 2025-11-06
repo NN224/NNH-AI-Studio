@@ -291,7 +291,7 @@ export default function OptimizedDashboardPage() {
       const response = await fetch('/api/gmb/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_id: gmbAccountId, sync_type: 'full' }),
+        body: JSON.stringify({ accountId: gmbAccountId, syncType: 'full' }),
       });
 
       if (!response.ok) {

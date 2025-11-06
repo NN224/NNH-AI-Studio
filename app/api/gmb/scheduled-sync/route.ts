@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
         // Create a mock request object for the sync endpoint
         // We'll use the internal sync logic by creating a proper request
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const syncUrl = `${baseUrl}/api/gmb/sync?accountId=${accountId}`;
+        const syncUrl = `${baseUrl}/api/gmb/sync`;
 
         // Make internal HTTP request to sync endpoint
         // Note: This requires proper authentication which cron jobs may not have
@@ -153,7 +153,10 @@ export async function GET(request: NextRequest) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${cronSecret || 'internal-cron'}`,
           },
-          body: JSON.stringify({ syncType: 'full' }),
+          body: JSON.stringify({ 
+            accountId: accountId,
+            syncType: 'full' 
+          }),
         });
 
         if (syncResponse.ok) {

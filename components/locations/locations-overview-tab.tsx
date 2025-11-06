@@ -72,7 +72,7 @@ export function LocationsOverviewTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           accountId: gmbAccountId,
-          sync_type: 'full' 
+          syncType: 'full' 
         }),
       });
 

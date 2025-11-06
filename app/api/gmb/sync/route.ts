@@ -902,14 +902,22 @@ export async function POST(request: NextRequest) {
       console.log('[GMB Sync API] Cron request detected - skipping user auth');
     }
 
-    // Parse request body
-    const body = await request.json();
+    // Parse request body with proper error handling
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error('[GMB Sync API] Invalid JSON in request body:', jsonError);
+      return errorResponse('INVALID_JSON', 'Request body must be valid JSON', 400);
+    }
+
     // Support both naming conventions: account_id/accountId and sync_type/syncType
     const accountId = body.accountId || body.account_id;
     const syncType = body.syncType || body.sync_type || 'full';
 
     if (!accountId) {
-      return errorResponse('MISSING_FIELDS', 'accountId is required', 400);
+      console.error('[GMB Sync API] Missing accountId in request body:', body);
+      return errorResponse('MISSING_FIELDS', 'accountId is required in request body', 400);
     }
 
     console.log(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);

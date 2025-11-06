@@ -110,8 +110,8 @@ export function LocationDetailHeader({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           accountId: accountId,
-          sync_type: 'location',
-          location_id: locationId 
+          syncType: 'location',
+          locationId: locationId 
         }),
       });
 
