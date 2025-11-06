@@ -51,9 +51,9 @@ export function useNavigationShortcuts() {
       description: 'Go to Locations',
     },
     {
-      key: 'r',
+      key: 'v',
       metaKey: true,
-  action: () => router.push('/reviews'),
+      action: () => router.push('/reviews'),
       description: 'Go to Reviews',
     },
     {

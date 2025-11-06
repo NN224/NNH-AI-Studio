@@ -74,7 +74,7 @@ export function KeyboardProvider({ children, onCommandPaletteOpen }: KeyboardPro
     toast.success('Navigated to Locations');
   });
 
-  useSequenceShortcut(['g', 'r'], () => {
+  useSequenceShortcut(['g', 'v'], () => {
     router.push('/reviews');
     toast.success('Navigated to Reviews');
   });
