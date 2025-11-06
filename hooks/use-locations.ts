@@ -63,10 +63,15 @@ export function useLocations(
         setPage(1);
       }
 
+      console.log('🔄 [useLocations] Starting fetch...', { pageNum, reset, timestamp: new Date().toISOString() });
+
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        throw new Error('Authentication required');
+        console.error('❌ [useLocations] Auth error:', authError);
+        throw new Error('Authentication required. Please sign in again.');
       }
+
+      console.log('✅ [useLocations] User authenticated:', { userId: user.id });
 
       // Build query
       let query = supabase
