@@ -14,7 +14,7 @@ async function getCalendarData() {
       return [];
     }
 
-    // Get scheduled posts
+    // Get scheduled posts (exclude failed posts from calendar)
     const { data: posts, error: postsError } = await supabase
       .from('gmb_posts')
       .select(`
@@ -25,6 +25,7 @@ async function getCalendarData() {
       `)
       .eq('user_id', user.id)
       .not('scheduled_at', 'is', null)
+      .neq('status', 'failed') // Exclude failed posts from calendar
       .order('scheduled_at', { ascending: true });
     
     if (postsError) {
@@ -44,27 +45,38 @@ async function getCalendarData() {
     }
     
     // Transform to calendar events
-    const events: CalendarEvent[] = [
-      ...(posts || []).map((post: any) => ({
-        id: post.id,
-        title: post.title || 'GMB Post',
-        description: post.content,
-        date: new Date(post.scheduled_at),
-        type: 'post' as const,
-        status: post.status === 'published' ? 'published' : 'scheduled' as const,
-        location: post.gmb_locations?.location_name,
-        metadata: post
-      })),
-      ...(tasks || []).map((task: any) => ({
+    const postEvents: CalendarEvent[] = (posts || [])
+      .filter((post: any) => post.status !== 'failed') // Additional safety filter
+      .map((post: any): CalendarEvent => {
+        // Map post status to calendar event status with explicit type
+        const eventStatus = (post.status === 'published' ? 'published' : 'scheduled') as 'scheduled' | 'published';
+        
+        return {
+          id: post.id,
+          title: post.title || 'GMB Post',
+          description: post.content,
+          date: new Date(post.scheduled_at),
+          type: 'post' as const,
+          status: eventStatus,
+          location: post.gmb_locations?.location_name,
+          metadata: post
+        };
+      });
+    
+    const taskEvents: CalendarEvent[] = (tasks || []).map((task: any): CalendarEvent => {
+      const taskStatus = (task.status === 'completed' ? 'completed' : 'pending') as 'pending' | 'completed';
+      return {
         id: task.id,
         title: task.title || 'AI Task',
         description: task.description,
         date: new Date(task.week_start_date || task.created_at),
         type: 'task' as const,
-        status: task.status === 'completed' ? 'completed' : 'pending' as const,
+        status: taskStatus,
         metadata: task
-      }))
-    ];
+      };
+    });
+    
+    const events: CalendarEvent[] = [...postEvents, ...taskEvents];
     
     return events;
   } catch (error) {
