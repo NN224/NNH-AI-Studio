@@ -135,11 +135,16 @@ function formatTimeAgo(date: string | undefined | null): string {
     // Force UTC parsing if the date doesn't have timezone info
     // Most database dates are stored in UTC but may not have 'Z' suffix
     let reviewDate: Date;
-    if (date.includes('Z') || date.includes('+') || date.includes('-', 10)) {
+    // Check if date has timezone info (Z, +HH:MM, or -HH:MM pattern)
+    const hasTimezone = date.includes('Z') || 
+                       /[+-]\d{2}:\d{2}$/.test(date) || 
+                       /[+-]\d{4}$/.test(date);
+    
+    if (hasTimezone) {
       // Has timezone info, parse as-is
       reviewDate = new Date(date);
     } else {
-      // No timezone info, assume UTC
+      // No timezone info, assume UTC (add Z suffix)
       reviewDate = new Date(date + 'Z');
     }
     
