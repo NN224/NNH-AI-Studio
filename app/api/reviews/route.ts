@@ -6,26 +6,45 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
+    
+    // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('Fetching reviews for user:', user.id);
 
     const { searchParams } = new URL(request.url);
     const rating = searchParams.get('rating');
     const sentiment = searchParams.get('sentiment');
     const search = searchParams.get('search');
 
-    // Build query - select all fields including comment and review_text
-    // Use * to get all fields, then join with locations
+    // Build query - fetch ALL reviews with proper joins
     let query = supabase
       .from('gmb_reviews')
       .select(`
-        *,
+        id,
+        review_id,
+        reviewer_name,
+        reviewer_profile_photo_url,
+        rating,
+        comment,
+        review_text,
+        reply_text,
+        has_reply,
+        review_date,
+        replied_at,
+        ai_sentiment,
+        location_id,
+        external_review_id,
+        gmb_account_id,
+        created_at,
+        updated_at,
         gmb_locations!inner (
           id,
-          location_name,
           name,
           address,
           user_id
@@ -42,19 +61,32 @@ export async function GET(request: NextRequest) {
       query = query.eq('ai_sentiment', sentiment);
     }
 
-    // Order and limit - increased to 500 to show all reviews
+    // Order and limit
     query = query.order('review_date', { ascending: false, nullsFirst: false }).limit(500);
 
     const { data: reviews, error } = await query;
 
     if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Supabase query error:', error);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
+      
+      return NextResponse.json({ 
+        error: 'Failed to fetch reviews',
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      }, { status: 500 });
     }
 
-    // Transform data properly - use comment field which is the actual review text
-    // Note: gmb_locations is an array from the join, so we access the first element
-    let reviewsWithLocation = (reviews || []).map((r: any) => {
+    console.log(`Found ${reviews?.length || 0} reviews`);
+
+    // Transform data properly - handle both 'comment' and 'review_text' fields
+    const reviewsWithLocation = (reviews || []).map((r: any) => {
       // Handle gmb_locations - it can be an array or single object
       let location = null;
       if (Array.isArray(r.gmb_locations)) {
@@ -64,9 +96,9 @@ export async function GET(request: NextRequest) {
       }
       
       // Extract location name
-      const locationName = location?.location_name || location?.name || 'Unknown Location';
+      const locationName = location?.name || location?.location_name || 'Unknown Location';
       
-      // Get review text - try comment first, then review_text
+      // Get review text - prefer 'comment' field, fallback to 'review_text'
       const reviewText = (r.comment || r.review_text || '').trim();
       
       return {
@@ -74,25 +106,38 @@ export async function GET(request: NextRequest) {
         location_name: locationName,
         // Use 'comment' field which is the actual review text, fallback to review_text
         review_text: reviewText,
+        comment: reviewText, // Keep both for compatibility
         reviewer_name: r.reviewer_name || 'Anonymous',
+        // Ensure has_reply is boolean
+        has_reply: r.has_reply || false,
         // Remove the gmb_locations array from the response to avoid confusion
         gmb_locations: undefined
       };
     });
 
     // Client-side search filter (since Supabase text search might be complex)
+    let filteredReviews = reviewsWithLocation;
     if (search) {
       const searchLower = search.toLowerCase();
-      reviewsWithLocation = reviewsWithLocation.filter(r => 
+      filteredReviews = reviewsWithLocation.filter(r => 
         r.review_text?.toLowerCase().includes(searchLower) ||
         r.reviewer_name?.toLowerCase().includes(searchLower) ||
         r.location_name?.toLowerCase().includes(searchLower)
       );
     }
 
-    return NextResponse.json({ reviews: reviewsWithLocation });
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      reviews: filteredReviews,
+      total: filteredReviews.length
+    });
+
+  } catch (error: any) {
+    console.error('API route error:', error);
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   }
 }
