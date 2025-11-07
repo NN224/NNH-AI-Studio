@@ -10,11 +10,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Save, Bell, Globe, Key, Users, CreditCard, Shield, Link2, Sparkles, Clock, CheckCircle, Unlink, AlertTriangle } from "lucide-react"
+import { Save, Bell, Globe, Key, Users, CreditCard, Shield, Link2, Sparkles, Clock, CheckCircle, Unlink, AlertTriangle, Download, Database } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { disconnectGMBAccount, type DisconnectOption } from "@/server/actions/gmb-account"
+import { DataManagement } from "./data-management"
 
 export function GMBSettings() {
   const supabase = createClient()
@@ -33,6 +46,8 @@ export function GMBSettings() {
   const [syncSettings, setSyncSettings] = useState<any>({})
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
   const [syncingAll, setSyncingAll] = useState(false)
+  const [disconnectOption, setDisconnectOption] = useState<DisconnectOption>('keep')
+  const [isExporting, setIsExporting] = useState(false)
 
   // Check GMB connection status
   useEffect(() => {
@@ -138,41 +153,70 @@ export function GMBSettings() {
   }
 
   const handleDisconnectGMB = async () => {
+    if (!gmbAccounts.length || !gmbAccounts[0]?.id) {
+      toast.error('No account found to disconnect')
+      return
+    }
+
     setDisconnecting(true)
+    setIsExporting(disconnectOption === 'export')
+    
     try {
-      const response = await fetch('/api/gmb/disconnect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to disconnect')
+      const accountId = gmbAccounts.find(acc => acc.is_active)?.id
+      if (!accountId) {
+        throw new Error('No active account found')
       }
 
-      toast.success('Google My Business disconnected successfully')
-      setGmbConnected(false)
-      setShowDisconnectDialog(false)
-      // Refresh accounts list
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: accounts, error: accountsError } = await supabase
-          .from('gmb_accounts')
-          .select('id, account_name, is_active, last_sync')
-          .eq('user_id', user.id)
+      const result = await disconnectGMBAccount(accountId, disconnectOption)
+
+      if (result.success) {
+        // Download exported data if available
+        if (result.exportData) {
+          const blob = new Blob([JSON.stringify(result.exportData, null, 2)], { 
+            type: 'application/json' 
+          })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `gmb-data-export-${new Date().toISOString()}.json`
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }
+
+        toast.success('Success', {
+          description: result.message,
+        })
         
-        if (accountsError) {
-          console.error('Error refreshing accounts:', accountsError)
-        } else {
+        setGmbConnected(false)
+        setShowDisconnectDialog(false)
+        
+        // Refresh accounts list
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: accounts } = await supabase
+            .from('gmb_accounts')
+            .select('id, account_name, is_active, last_sync, settings')
+            .eq('user_id', user.id)
           setGmbAccounts(accounts || [])
         }
+        
+        // Refresh router to update UI
+        router.refresh()
+      } else {
+        toast.error('Disconnect failed', {
+          description: result.error || 'Failed to disconnect account',
+        })
       }
     } catch (error: any) {
       console.error('Error disconnecting GMB:', error)
-      toast.error(error.message || 'Failed to disconnect')
+      toast.error('Error', {
+        description: error.message || 'Failed to disconnect',
+      })
     } finally {
       setDisconnecting(false)
+      setIsExporting(false)
     }
   }
 
@@ -323,10 +367,14 @@ export function GMBSettings() {
 
   {/* Settings Tabs */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-secondary/50">
+        <TabsList className="grid w-full grid-cols-6 bg-secondary/50">
           <TabsTrigger value="general" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <Database className="h-4 w-4" />
+            Data
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Bell className="h-4 w-4" />
@@ -345,6 +393,11 @@ export function GMBSettings() {
             Team
           </TabsTrigger>
         </TabsList>
+
+        {/* Data Management Tab */}
+        <TabsContent value="data" className="space-y-6">
+          <DataManagement accountId={gmbAccounts.find(acc => acc.is_active)?.id} />
+        </TabsContent>
 
         {/* General Settings */}
         <TabsContent value="general" className="space-y-6">
@@ -729,28 +782,87 @@ export function GMBSettings() {
       </div>
 
       {/* Disconnect Confirmation Dialog */}
-      <Dialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Disconnect Google My Business?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disconnect Google My Business? Sync will stop but current data will not be deleted.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDisconnectDialog(false)}
-              disabled={disconnecting}
+      <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-800 max-w-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-zinc-100">
+              <Unlink className="h-5 w-5 text-orange-500" />
+              Disconnect Google My Business?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Choose what happens to your data when you disconnect:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="py-4">
+            <RadioGroup 
+              value={disconnectOption} 
+              onValueChange={(value: string) => setDisconnectOption(value as DisconnectOption)}
+            >
+              <div className="space-y-3">
+                {/* Keep Option */}
+                <div className="flex items-start space-x-3 rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 hover:bg-zinc-800 transition-colors">
+                  <RadioGroupItem value="keep" id="keep" className="mt-1" />
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="keep" className="text-sm font-medium text-zinc-200 cursor-pointer">
+                      Keep historical data (recommended)
+                    </Label>
+                    <p className="text-xs text-zinc-500">
+                      Anonymize and archive your data for historical analysis. Personal information will be removed but statistics will be preserved.
+                    </p>
+                  </div>
+                  <Shield className="h-5 w-5 text-green-500 flex-shrink-0" />
+                </div>
+
+                {/* Export Option */}
+                <div className="flex items-start space-x-3 rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 hover:bg-zinc-800 transition-colors">
+                  <RadioGroupItem value="export" id="export" className="mt-1" />
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="export" className="text-sm font-medium text-zinc-200 cursor-pointer">
+                      Export data then keep archived
+                    </Label>
+                    <p className="text-xs text-zinc-500">
+                      Download all your data as JSON, then anonymize and archive it. You'll get a complete backup.
+                    </p>
+                  </div>
+                  <Download className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                </div>
+
+                {/* Delete Option */}
+                <div className="flex items-start space-x-3 rounded-lg border border-red-500/30 bg-red-500/5 p-4 hover:bg-red-500/10 transition-colors">
+                  <RadioGroupItem value="delete" id="delete" className="mt-1" />
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="delete" className="text-sm font-medium text-red-400 cursor-pointer">
+                      Delete all data immediately
+                    </Label>
+                    <p className="text-xs text-red-300/70">
+                      Permanently delete all locations, reviews, questions, and posts. This cannot be undone!
+                    </p>
+                  </div>
+                  <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={disconnecting || isExporting}
+              className="border-zinc-700"
             >
               Cancel
-            </Button>
-            <Button 
-              variant="destructive"
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleDisconnectGMB}
-              disabled={disconnecting}
+              disabled={disconnecting || isExporting}
+              className="bg-orange-600 hover:bg-orange-700"
             >
-              {disconnecting ? (
+              {isExporting ? (
+                <>
+                  <Download className="h-4 w-4 mr-2 animate-bounce" />
+                  Exporting...
+                </>
+              ) : disconnecting ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-spin" />
                   Disconnecting...
@@ -761,10 +873,10 @@ export function GMBSettings() {
                   Disconnect
                 </>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
