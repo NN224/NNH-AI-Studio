@@ -613,7 +613,7 @@ export default async function DashboardPage() {
                         <div key={idx} className={`p-3 rounded-lg border ${bgColor}`}>
                           <div className="flex items-start gap-2">
                             <span className="text-lg">{insight.icon}</span>
-                            <p className="text-sm text-zinc-200 flex-1">{insight.message}</p>
+                            <p className="text-sm text-zinc-200 flex-1">{insight.description}</p>
                           </div>
                         </div>
                       );

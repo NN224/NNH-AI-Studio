@@ -22,7 +22,7 @@ export interface Task {
   estimated_minutes?: number | null;
   reasoning?: string | null;
   expected_impact?: string | null;
-}
+  }
 
 interface WeeklyTasksListProps {
   locationId?: string;
@@ -102,7 +102,7 @@ export function WeeklyTasksList({ locationId, initialTasks = [] }: WeeklyTasksLi
         description: 'Please try again later',
       });
     } finally {
-      setIsGenerating(false);
+    setIsGenerating(false);
     }
   };
 
@@ -189,28 +189,28 @@ export function WeeklyTasksList({ locationId, initialTasks = [] }: WeeklyTasksLi
             const priorityUpper = task.priority.toUpperCase();
             
             return (
-              <Card
-                key={task.id}
-                className={cn(
-                  'bg-zinc-800/50 border-zinc-700/50 p-3',
-                  'transition-all',
+            <Card
+              key={task.id}
+              className={cn(
+                'bg-zinc-800/50 border-zinc-700/50 p-3',
+                'transition-all',
                   isCompleted && 'opacity-60',
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <Checkbox
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <Checkbox
                     checked={isCompleted}
                     onCheckedChange={() => toggleTask(task.id)}
                     className="border-zinc-600 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600 mt-0.5"
-                  />
-                  <div className="flex-1 min-w-0">
+                />
+                <div className="flex-1 min-w-0">
                     <p
-                      className={cn(
-                        'text-sm text-zinc-200',
+                    className={cn(
+                      'text-sm text-zinc-200',
                         isCompleted && 'line-through text-zinc-500',
-                      )}
-                    >
-                      {task.title}
+                    )}
+                  >
+                    {task.title}
                     </p>
                     {task.description && !isCompleted && (
                       <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{task.description}</p>
@@ -221,20 +221,20 @@ export function WeeklyTasksList({ locationId, initialTasks = [] }: WeeklyTasksLi
                       </p>
                     )}
                   </div>
-                  <Badge
-                    className={cn(
+                    <Badge
+                      className={cn(
                       'text-xs flex-shrink-0',
                       priorityUpper === 'HIGH'
-                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                          ? 'bg-red-500/20 text-red-400 border-red-500/30'
                         : priorityUpper === 'MEDIUM'
                           ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                           : 'bg-green-500/20 text-green-400 border-green-500/30',
-                    )}
-                  >
+                      )}
+                    >
                     {priorityUpper}
-                  </Badge>
-                </div>
-              </Card>
+                    </Badge>
+              </div>
+            </Card>
             );
           })}
         </div>

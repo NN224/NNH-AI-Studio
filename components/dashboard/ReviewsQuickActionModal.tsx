@@ -59,11 +59,11 @@ export function ReviewsQuickActionModal({
         toast.success('Reply posted successfully!', {
           description: 'Your reply is now visible on Google',
         });
-        setReplyText('');
-        setSelectedReview(null);
+    setReplyText('');
+    setSelectedReview(null);
         onSuccess?.();
         router.refresh();
-        onClose();
+    onClose();
       } else {
         toast.error('Failed to post reply', {
           description: result.error || 'Please try again',
@@ -153,7 +153,7 @@ export function ReviewsQuickActionModal({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-zinc-300">Your Reply</label>
+              <label className="text-sm text-zinc-300">Your Reply</label>
                 <span className={`text-xs ${replyText.length > 4000 ? 'text-red-400' : 'text-zinc-500'}`}>
                   {replyText.length} / 4000
                 </span>
