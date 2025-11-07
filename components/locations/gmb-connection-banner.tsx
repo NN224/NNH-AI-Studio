@@ -6,24 +6,13 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
+import GMBConnectionControls from '@/components/gmb/GMBConnectionControls';
 
 // No GMB Account Banner Component
 export const GMBConnectionBanner = () => {
   const t = useTranslations('Locations');
   const router = useRouter();
-  const [isConnecting, setIsConnecting] = React.useState(false);
-
-  const handleConnectGMB = async () => {
-    try {
-      setIsConnecting(true);
-      // Navigate to GMB connect/onboarding route. Adjust path if your app uses a different one.
-      router.push('/api/gmb/connect');
-    } finally {
-      // Keep disabled state only during navigation trigger
-      setIsConnecting(false);
-    }
-  };
-
+  
   return (
     <div className="space-y-6">
       {/* Hero Card */}
@@ -69,17 +58,15 @@ export const GMBConnectionBanner = () => {
               </div>
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA Controls */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto text-base px-8"
-                onClick={handleConnectGMB}
-                disabled={isConnecting}
-              >
-                <Users className="w-5 h-5 mr-2" />
-                {isConnecting ? 'Connecting...' : t('noAccount.connectButton')}
-              </Button>
+              <GMBConnectionControls
+                status={'disconnected'}
+                onConnect={async () => router.push('/api/gmb/connect')}
+                onSync={async () => {/* no-op here in empty state */}}
+                onDisconnect={async () => {/* no-op here in empty state */}}
+                compact
+              />
               <Button 
                 size="lg" 
                 variant="outline"
