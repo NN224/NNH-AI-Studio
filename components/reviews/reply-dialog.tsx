@@ -27,7 +27,7 @@ interface ReplyDialogProps {
 }
 
 export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogProps) {
-  const [reply, setReply] = useState(review?.response || review?.reply_text || "")
+  const [reply, setReply] = useState(review?.reply_text || review?.response_text || review?.review_reply || "")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
@@ -35,7 +35,7 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
   // Update reply when review changes
   useEffect(() => {
     if (review) {
-      setReply(review.response || review.reply_text || "")
+      setReply(review.reply_text || review.response_text || review.review_reply || "")
     } else {
       setReply("")
     }

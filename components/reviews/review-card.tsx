@@ -11,7 +11,7 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardProps) {
-  const needsResponse = !review.has_reply && !review.response;
+  const needsResponse = !review.has_reply && !review.reply_text && !review.response_text;
   const isNegative = review.rating <= 2;
   const isPositive = review.rating >= 4;
 
@@ -119,11 +119,11 @@ export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardP
       </div>
 
       {/* Reply Preview (if exists) */}
-      {(review.response || review.reply_text) && (
+      {(review.reply_text || review.response_text || review.review_reply) && (
         <div className="mt-3 pt-3 border-t border-zinc-700">
           <div className="text-xs text-zinc-400 mb-1">Your Reply:</div>
           <p className="text-sm text-zinc-300 line-clamp-2">
-            {review.response || review.reply_text}
+            {review.reply_text || review.response_text || review.review_reply}
           </p>
         </div>
       )}
