@@ -280,13 +280,14 @@ export default function OptimizedDashboardPage() {
         return;
       }
 
-      // Check GMB connection status
+      // Check GMB connection status - only active accounts
       const { data: gmbAccounts } = await supabase
         .from("gmb_accounts")
         .select("id, is_active, settings, last_sync")
-        .eq("user_id", authUser.id);
+        .eq("user_id", authUser.id)
+        .eq("is_active", true);
 
-      const activeAccount = gmbAccounts?.find(acc => acc.is_active);
+      const activeAccount = gmbAccounts && gmbAccounts.length > 0 ? gmbAccounts[0] : null;
       const hasActiveAccount = !!activeAccount;
       setGmbConnected(hasActiveAccount);
 
