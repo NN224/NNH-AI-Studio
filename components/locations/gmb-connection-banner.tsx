@@ -59,13 +59,15 @@ export const GMBConnectionBanner = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <GMBConnectionActions
-                isConnected={false}
-                size="lg"
-                showActions={["connect"]}
-                layout="horizontal"
-                className="w-full sm:w-auto"
-              />
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto text-base px-8"
+                onClick={handleConnectGMB}
+                disabled={isConnecting}
+              >
+                <Users className="w-5 h-5 mr-2" />
+                {isConnecting ? 'Connecting...' : t('noAccount.connectButton')}
+              </Button>
               <Button 
                 size="lg" 
                 variant="outline"

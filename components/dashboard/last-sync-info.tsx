@@ -98,21 +98,36 @@ export function LastSyncInfo({
           </div>
           
           <div className="flex items-center gap-3 flex-shrink-0">
-            {(onSync || onDisconnect) && (
-              <GMBConnectionActions
-                isConnected={true}
-                isSyncing={isSyncing}
-                isDisconnecting={isDisconnecting}
-                onSync={onSync}
-                onDisconnectComplete={onDisconnect}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {onSync && (
+              <Button
                 size="sm"
                 variant="outline"
-                showActions={[
-                  ...(onSync ? ["sync"] as const : []),
-                  ...(onDisconnect ? ["disconnect"] as const : [])
-                ]}
-                showDisconnectOptions={false}
-              />
+                onClick={onSync}
+                disabled={isSyncing || isDisconnecting}
+                className="flex-shrink-0 whitespace-nowrap"
+              >
+                <RefreshCw className={cn(
+                  "h-4 w-4 mr-2",
+                  isSyncing && "animate-spin"
+                )} />
+                {isSyncing ? "Syncing" : "Sync Now"}
+              </Button>
+            )}
+            {onDisconnect && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onDisconnect}
+                disabled={isSyncing || isDisconnecting}
+                className="flex-shrink-0 whitespace-nowrap bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+              >
+                <Unlink className={cn(
+                  "h-4 w-4 mr-2",
+                  isDisconnecting && "animate-spin"
+                )} />
+                {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+              </Button>
             )}
           </div>
         </div>
