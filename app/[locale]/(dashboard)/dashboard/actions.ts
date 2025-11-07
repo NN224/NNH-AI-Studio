@@ -5,54 +5,62 @@ import { revalidatePath } from 'next/cache';
 
 export async function disconnectLocation(locationId: string) {
   const supabase = await createClient();
-  
+
   try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
+    // التحقق من هوية المستخدم
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'User not authenticated.' };
     }
 
-    // Verify location belongs to user
+    // التحقق من أن الموقع فعلاً تابع للمستخدم
     const { data: location, error: fetchError } = await supabase
       .from('gmb_locations')
       .select('id, location_name')
       .eq('id', locationId)
       .eq('user_id', user.id)
       .single();
-    
+
     if (fetchError || !location) {
-      return { success: false, error: 'Location not found or access denied' };
+      return { success: false, error: 'Location not found or unauthorized.' };
     }
 
-    // Set location to inactive (soft delete)
+    // تعطيل الموقع وحذف الرموز المرتبطة به
     const { error: updateError } = await supabase
       .from('gmb_locations')
-      .update({ 
+      .update({
         is_active: false,
-        updated_at: new Date().toISOString()
+        access_token: null,
+        refresh_token: null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', locationId)
       .eq('user_id', user.id);
 
     if (updateError) {
-      return { 
-        success: false, 
-        error: updateError.message || 'Failed to disconnect location' 
-      };
+      return { success: false, error: updateError.message || 'Failed to disconnect location.' };
     }
 
+    // حذف البيانات المرتبطة بالموقع لتجنب تضارب البيانات
+    await supabase.from('gmb_reviews').delete().eq('location_id', locationId);
+    await supabase.from('gmb_questions').delete().eq('location_id', locationId);
+
+    // إعادة تحديث الصفحات ذات الصلة
     revalidatePath('/dashboard');
     revalidatePath('/locations');
-    
-    return { 
-      success: true, 
-      message: `${location.location_name} has been disconnected successfully` 
+    revalidatePath('/settings');
+
+    // إرجاع استجابة واضحة للواجهة الأمامية لتحديث الحالة فورًا
+    return {
+      success: true,
+      disconnectedId: locationId,
+      message: `${location.location_name} disconnected successfully and associated data cleared.`,
     };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to disconnect location' 
+    console.error('Disconnect error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unexpected disconnect error occurred.',
     };
   }
 }
