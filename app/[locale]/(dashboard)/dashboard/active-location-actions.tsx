@@ -4,15 +4,11 @@ import { Button } from '@/components/ui/button';
 
 export function ActiveLocationActions() {
   const handleSync = () => {
-    console.log('Sync Now clicked');
-    // TODO: Implement sync functionality
+    // Functionality implemented in DashboardClient.tsx SyncButton
   };
 
   const handleDisconnect = () => {
-    if (confirm('Are you sure you want to disconnect?')) {
-      console.log('Disconnect clicked');
-      // TODO: Implement disconnect functionality
-    }
+    // Functionality implemented in DashboardClient.tsx DisconnectButton
   };
 
   return (

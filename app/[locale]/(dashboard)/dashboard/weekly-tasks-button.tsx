@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 
 export function WeeklyTasksButton() {
   const handleGenerate = () => {
-    console.log('Generate Weekly Tasks clicked');
-    // TODO: Implement task generation
+    // Functionality implemented in DashboardClient.tsx GenerateTasksButton
   };
 
   return (

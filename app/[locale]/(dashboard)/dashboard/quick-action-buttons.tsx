@@ -7,7 +7,6 @@ export function QuickActionButtons() {
   const router = useRouter();
 
   const handleSyncAll = () => {
-    console.log('Sync All clicked');
     router.refresh();
   };
 

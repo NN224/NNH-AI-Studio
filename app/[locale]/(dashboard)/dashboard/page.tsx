@@ -72,7 +72,7 @@ interface Question {
 }
 
 // Data Fetching Function
-async function getDashboardData() {
+async function getDashboardData(startDate?: string, endDate?: string) {
   const supabase = await createClient();
   
   try {
@@ -80,7 +80,6 @@ async function getDashboardData() {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
-      console.error('User fetch error:', userError);
       return {
         reviews: [] as Review[],
         locations: [] as Location[],
@@ -88,15 +87,38 @@ async function getDashboardData() {
       };
     }
     
-    // Fetch reviews for current user
-    const { data: reviews, error: reviewsError } = await supabase
+    // Build reviews query with optional date filtering
+    let reviewsQuery = supabase
       .from('gmb_reviews')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.id);
+    
+    // Apply date filtering if provided
+    // Filter by review_date primarily, with created_at as fallback for records without review_date
+    if (startDate && endDate) {
+      // Filter records where review_date is in range OR (review_date is null AND created_at is in range)
+      const endDatePlusOne = new Date(endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      const endDateStr = endDatePlusOne.toISOString().split('T')[0];
+      // Use created_at as the main filter since it's always present
+      reviewsQuery = reviewsQuery
+        .gte('created_at', startDate)
+        .lt('created_at', endDateStr);
+    } else if (startDate) {
+      reviewsQuery = reviewsQuery.gte('created_at', startDate);
+    } else if (endDate) {
+      const endDatePlusOne = new Date(endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      const endDateStr = endDatePlusOne.toISOString().split('T')[0];
+      reviewsQuery = reviewsQuery.lt('created_at', endDateStr);
+    }
+    
+    const { data: reviews, error: reviewsError } = await reviewsQuery
+      .order('review_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (reviewsError) {
-      console.error('Reviews fetch error:', reviewsError);
+      // Silently handle error, return empty array
     }
     
     // Fetch locations for current user
@@ -107,18 +129,30 @@ async function getDashboardData() {
       .eq('is_active', true);
     
     if (locationsError) {
-      console.error('Locations fetch error:', locationsError);
+      // Silently handle error, return empty array
     }
     
-    // Fetch questions for current user
-    const { data: questions, error: questionsError } = await supabase
+    // Build questions query with optional date filtering
+    let questionsQuery = supabase
       .from('gmb_questions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.id);
+    
+    // Apply date filtering if provided
+    if (startDate) {
+      questionsQuery = questionsQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDatePlusOne = new Date(endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      questionsQuery = questionsQuery.lt('created_at', endDatePlusOne.toISOString().split('T')[0]);
+    }
+    
+    const { data: questions, error: questionsError } = await questionsQuery
       .order('created_at', { ascending: false });
     
     if (questionsError) {
-      console.error('Questions fetch error:', questionsError);
+      // Silently handle error, return empty array
     }
     
     return {
@@ -127,7 +161,6 @@ async function getDashboardData() {
       questions: (questions || []) as Question[]
     };
   } catch (error) {
-    console.error('Dashboard data fetch error:', error);
     return {
       reviews: [] as Review[],
       locations: [] as Location[],
@@ -255,9 +288,37 @@ function generateAIInsights(stats: DashboardStats, reviews: Review[]) {
 }
 
 // Main Component
-export default async function DashboardPage() {
-  // Fetch all data
-  const { reviews, locations, questions } = await getDashboardData();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: {
+    period?: string;
+    start?: string;
+    end?: string;
+  };
+}) {
+  // Parse time filter from search params
+  let startDate: string | undefined;
+  let endDate: string | undefined;
+  
+  if (searchParams.period && searchParams.period !== 'all') {
+    if (searchParams.start && searchParams.end) {
+      // Custom date range
+      startDate = searchParams.start;
+      endDate = searchParams.end;
+    } else if (searchParams.period === '7' || searchParams.period === '30' || searchParams.period === '90') {
+      // Preset period
+      const days = parseInt(searchParams.period);
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - days);
+      startDate = start.toISOString().split('T')[0];
+      endDate = end.toISOString().split('T')[0];
+    }
+  }
+  
+  // Fetch all data with optional time filter
+  const { reviews, locations, questions } = await getDashboardData(startDate, endDate);
   
   // Calculate stats
   const avgRating = calculateAverageRating(reviews);

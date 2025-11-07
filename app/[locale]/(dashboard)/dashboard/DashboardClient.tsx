@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { refreshDashboard, syncLocation, generateWeeklyTasks } from './actions';
+import { refreshDashboard, syncLocation, generateWeeklyTasks, disconnectLocation } from './actions';
 import { RefreshCw, Calendar } from 'lucide-react';
 import { ReviewsQuickActionModal } from '@/components/dashboard/ReviewsQuickActionModal';
 import { QuestionsQuickActionModal } from '@/components/dashboard/QuestionsQuickActionModal';
@@ -43,10 +43,19 @@ export function SyncButton({ locationId }: { locationId: string }) {
   
   const handleSync = async () => {
     setLoading(true);
-    await syncLocation(locationId);
-    router.refresh();
-    setLoading(false);
-    toast.success('Location synced successfully!');
+    try {
+      const result = await syncLocation(locationId);
+      if (result.success) {
+        toast.success(result.message || 'Location synced successfully!');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to sync location');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred while syncing');
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -62,6 +71,7 @@ export function SyncButton({ locationId }: { locationId: string }) {
 }
 
 export function DisconnectButton({ locationId }: { locationId: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
@@ -69,10 +79,20 @@ export function DisconnectButton({ locationId }: { locationId: string }) {
   
   const handleDisconnect = async () => {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setOpen(false);
-    toast.success('Location disconnected');
+    try {
+      const result = await disconnectLocation(locationId);
+      if (result.success) {
+        toast.success(result.message || 'Location disconnected successfully');
+        setOpen(false);
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to disconnect location');
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -195,15 +215,37 @@ export function LocationCard({ locationName, href }: { locationName: string; hre
 
 export function TimeFilterButtons() {
   const router = useRouter();
-  const [selected, setSelected] = useState<'7' | '30' | '90' | 'custom'>('30');
+  const searchParams = useSearchParams();
+  const currentFilter = searchParams.get('period') || '30';
+  const [selected, setSelected] = useState<'7' | '30' | '90' | 'custom'>(currentFilter as '7' | '30' | '90' | 'custom' || '30');
   const [customOpen, setCustomOpen] = useState(false);
-  const [start, setStart] = useState<string>('');
-  const [end, setEnd] = useState<string>('');
+  const [start, setStart] = useState<string>(searchParams.get('start') || '');
+  const [end, setEnd] = useState<string>(searchParams.get('end') || '');
+  
+  const updateFilter = (period: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (period === 'all') {
+      params.delete('period');
+      params.delete('start');
+      params.delete('end');
+    } else {
+      params.set('period', period);
+      if (startDate) params.set('start', startDate);
+      if (endDate) params.set('end', endDate);
+      if (!startDate && !endDate) {
+        params.delete('start');
+        params.delete('end');
+      }
+    }
+    router.push(`/dashboard?${params.toString()}`);
+  };
   
   const handleFilter = (days: '7' | '30' | '90') => {
     setSelected(days);
-    // TODO: Implement actual filtering with URL params
-    router.refresh();
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days === '7' ? 7 : days === '30' ? 30 : 90));
+    updateFilter(days, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
   };
   
   return (
@@ -259,7 +301,7 @@ export function TimeFilterButtons() {
         <Button
           onClick={() => {
             setSelected('30');
-            router.refresh();
+            updateFilter('all');
           }}
           variant="ghost"
           size="sm"
@@ -302,10 +344,18 @@ export function TimeFilterButtons() {
             <Button
               size="sm"
               onClick={() => {
+                if (!start || !end) {
+                  toast.error('Please select both start and end dates');
+                  return;
+                }
+                if (new Date(start) > new Date(end)) {
+                  toast.error('Start date must be before end date');
+                  return;
+                }
                 setSelected('custom');
                 setCustomOpen(false);
+                updateFilter('custom', start, end);
                 toast.success('Custom date range applied');
-                router.refresh();
               }}
               className="bg-orange-600 hover:bg-orange-700 text-white"
             >
