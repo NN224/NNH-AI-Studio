@@ -368,6 +368,198 @@
     "column_default": "now()"
   },
   {
+    "table_name": "auto_reply_queue",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "review_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "generated_response",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "response_style",
+    "data_type": "character varying",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "scheduled_send_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "status",
+    "data_type": "character varying",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "'pending'::character varying"
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "retry_count",
+    "data_type": "integer",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "error_message",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "auto_reply_queue",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "enabled",
+    "data_type": "boolean",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "reply_to_positive",
+    "data_type": "boolean",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "reply_to_neutral",
+    "data_type": "boolean",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "reply_to_negative",
+    "data_type": "boolean",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "response_delay_minutes",
+    "data_type": "integer",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "response_style",
+    "data_type": "character varying",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "'professional'::character varying"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "require_approval",
+    "data_type": "boolean",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "language",
+    "data_type": "character varying",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "'en'::character varying"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "auto_reply_settings",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
     "table_name": "autopilot_logs",
     "column_name": "id",
     "data_type": "uuid",
@@ -422,6 +614,14 @@
     "ordinal_position": 7,
     "is_nullable": "YES",
     "column_default": "now()"
+  },
+  {
+    "table_name": "autopilot_logs",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 8,
+    "is_nullable": "NO",
+    "column_default": null
   },
   {
     "table_name": "autopilot_settings",
@@ -664,6 +864,14 @@
     "column_default": "now()"
   },
   {
+    "table_name": "citation_listings",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 14,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
     "table_name": "citation_sources",
     "column_name": "id",
     "data_type": "uuid",
@@ -798,5 +1006,3821 @@
     "ordinal_position": 8,
     "is_nullable": "YES",
     "column_default": "0"
+  },
+  {
+    "table_name": "competitor_tracking",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "competitor_tracking",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "competitor_tracking",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "competitor_tracking",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 12,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "content_type",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "prompt",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "tone",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "provider",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "generated_content",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "content_generation",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "account_name",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "email",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "google_account_id",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "access_token",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "refresh_token",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "token_expires_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "last_sync",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "account_id",
+    "data_type": "text",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "settings",
+    "data_type": "jsonb",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "disconnected_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "data_retention_days",
+    "data_type": "integer",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": "30"
+  },
+  {
+    "table_name": "gmb_accounts",
+    "column_name": "delete_on_disconnect",
+    "data_type": "boolean",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "attribute_name",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "attribute_value",
+    "data_type": "jsonb",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "value_type",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "display_name",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "group_name",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "is_deprecated",
+    "data_type": "boolean",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_attributes",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "platform_name",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "platform_url",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "business_name",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "address",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "phone",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "NO",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "last_checked",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_citations",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_dashboard_reports",
+    "column_name": "id",
+    "data_type": "bigint",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "nextval('gmb_dashboard_reports_id_seq'::regclass)"
+  },
+  {
+    "table_name": "gmb_dashboard_reports",
+    "column_name": "report_type",
+    "data_type": "text",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_dashboard_reports",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_dashboard_reports",
+    "column_name": "stats",
+    "data_type": "jsonb",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_dashboard_reports",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "date",
+    "data_type": "date",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "metric_type",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "metric_value",
+    "data_type": "integer",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "source",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_insights",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "location_name",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "location_id",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "address",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "phone",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "website",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "business_hours",
+    "data_type": "jsonb",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "'{\"friday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false}, \"monday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false}, \"sunday\": {\"open\": \"00:00\", \"close\": \"00:00\", \"closed\": true}, \"tuesday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false}, \"saturday\": {\"open\": \"10:00\", \"close\": \"16:00\", \"closed\": false}, \"thursday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false}, \"wednesday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false}}'::jsonb"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "rating",
+    "data_type": "numeric",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "normalized_location_id",
+    "data_type": "text",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "latitude",
+    "data_type": "double precision",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "longitude",
+    "data_type": "double precision",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "type",
+    "data_type": "text",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "review_count",
+    "data_type": "integer",
+    "ordinal_position": 20,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "response_rate",
+    "data_type": "numeric",
+    "ordinal_position": 21,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "is_syncing",
+    "data_type": "boolean",
+    "ordinal_position": 22,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "ai_insights",
+    "data_type": "text",
+    "ordinal_position": 23,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 24,
+    "is_nullable": "YES",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "latlng",
+    "data_type": "text",
+    "ordinal_position": 25,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "regularhours",
+    "data_type": "jsonb",
+    "ordinal_position": 26,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "account_id",
+    "data_type": "text",
+    "ordinal_position": 27,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "location_id_external",
+    "data_type": "text",
+    "ordinal_position": 28,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "health_score",
+    "data_type": "integer",
+    "ordinal_position": 29,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "last_synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 30,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "is_archived",
+    "data_type": "boolean",
+    "ordinal_position": 31,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_locations",
+    "column_name": "archived_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 32,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "location_id",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "location_name",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "address",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "phone",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "website",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "business_hours",
+    "data_type": "jsonb",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "stored_rating",
+    "data_type": "numeric",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "normalized_location_id",
+    "data_type": "text",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "calculated_rating",
+    "data_type": "numeric",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "reviews_count",
+    "data_type": "integer",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_locations_with_rating",
+    "column_name": "last_review_date",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "external_media_id",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "type",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "url",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "thumbnail_url",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_media",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "metric_type",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "metric_date",
+    "data_type": "date",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "metric_value",
+    "data_type": "bigint",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "sub_entity_type",
+    "data_type": "jsonb",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_performance_metrics",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "content",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "media_url",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "call_to_action",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "call_to_action_url",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "NO",
+    "column_default": "'draft'::text"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "scheduled_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "published_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "provider_post_id",
+    "data_type": "text",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "error_message",
+    "data_type": "text",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "post_type",
+    "data_type": "text",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": "'whats_new'::text"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "post_id",
+    "data_type": "text",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "cta_type",
+    "data_type": "text",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "cta_url",
+    "data_type": "text",
+    "ordinal_position": 20,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "start_date",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 21,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "end_date",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 22,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "is_archived",
+    "data_type": "boolean",
+    "ordinal_position": 23,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_posts",
+    "column_name": "archived_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 24,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "external_question_id",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "question_text",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "author_name",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "author_type",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "answer_text",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "answered_by",
+    "data_type": "text",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "answered_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "answer_status",
+    "data_type": "text",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "ai_suggested_answer",
+    "data_type": "text",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "ai_confidence_score",
+    "data_type": "numeric",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "upvote_count",
+    "data_type": "integer",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "is_featured",
+    "data_type": "boolean",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "is_hidden",
+    "data_type": "boolean",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "language_code",
+    "data_type": "text",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": "'en'::text"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 20,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 21,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 22,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "author_profile_photo_url",
+    "data_type": "text",
+    "ordinal_position": 23,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "question_id",
+    "data_type": "text",
+    "ordinal_position": 24,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "asked_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 25,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "author_display_name",
+    "data_type": "text",
+    "ordinal_position": 26,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "answer_id",
+    "data_type": "text",
+    "ordinal_position": 27,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "total_answer_count",
+    "data_type": "integer",
+    "ordinal_position": 28,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 29,
+    "is_nullable": "YES",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "priority",
+    "data_type": "text",
+    "ordinal_position": 30,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "question_url",
+    "data_type": "text",
+    "ordinal_position": 31,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "google_resource_name",
+    "data_type": "text",
+    "ordinal_position": 32,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "internal_notes",
+    "data_type": "text",
+    "ordinal_position": 33,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "ai_category",
+    "data_type": "text",
+    "ordinal_position": 34,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "ai_answer_generated",
+    "data_type": "boolean",
+    "ordinal_position": 35,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "is_archived",
+    "data_type": "boolean",
+    "ordinal_position": 36,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_questions",
+    "column_name": "archived_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 37,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "keyword",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "current_position",
+    "data_type": "integer",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "previous_position",
+    "data_type": "integer",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "best_position",
+    "data_type": "integer",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "search_volume",
+    "data_type": "integer",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "last_checked",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_rankings",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "external_review_id",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reviewer_name",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "rating",
+    "data_type": "integer",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_text",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_date",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reply_text",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reply_date",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "has_reply",
+    "data_type": "boolean",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_sentiment",
+    "data_type": "text",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_generated_response",
+    "data_type": "text",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_id",
+    "data_type": "text",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "comment",
+    "data_type": "text",
+    "ordinal_position": 18,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_reply",
+    "data_type": "text",
+    "ordinal_position": 19,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "replied_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 20,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_suggested_reply",
+    "data_type": "text",
+    "ordinal_position": 21,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 22,
+    "is_nullable": "YES",
+    "column_default": "'new'::text"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "has_response",
+    "data_type": "boolean",
+    "ordinal_position": 23,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "response_text",
+    "data_type": "text",
+    "ordinal_position": 24,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "responded_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 25,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "auto_reply_enabled",
+    "data_type": "boolean",
+    "ordinal_position": 26,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "auto_reply_status",
+    "data_type": "character varying",
+    "ordinal_position": 27,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_generated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 28,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_sent_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 29,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reviewer_profile_photo_url",
+    "data_type": "text",
+    "ordinal_position": 30,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reply_timestamp",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 31,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_timestamp",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 32,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "account_id",
+    "data_type": "text",
+    "ordinal_position": 33,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "google_my_business_name",
+    "data_type": "text",
+    "ordinal_position": 34,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "review_url",
+    "data_type": "text",
+    "ordinal_position": 35,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "reviewer_display_name",
+    "data_type": "text",
+    "ordinal_position": 36,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "is_verified_purchase",
+    "data_type": "boolean",
+    "ordinal_position": 37,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "response",
+    "data_type": "text",
+    "ordinal_position": 38,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_sentiment_score",
+    "data_type": "numeric",
+    "ordinal_position": 39,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_reply_generated",
+    "data_type": "boolean",
+    "ordinal_position": 40,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "ai_confidence_score",
+    "data_type": "numeric",
+    "ordinal_position": 41,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "response_priority",
+    "data_type": "text",
+    "ordinal_position": 42,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "internal_notes",
+    "data_type": "text",
+    "ordinal_position": 43,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "flagged_reason",
+    "data_type": "text",
+    "ordinal_position": 44,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "tags",
+    "data_type": "ARRAY",
+    "ordinal_position": 45,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 46,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "is_archived",
+    "data_type": "boolean",
+    "ordinal_position": 47,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "archived_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 48,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_reviews",
+    "column_name": "is_anonymized",
+    "data_type": "boolean",
+    "ordinal_position": 49,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "gmb_account_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "search_keyword",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "month_year",
+    "data_type": "date",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "impressions_count",
+    "data_type": "bigint",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "threshold_value",
+    "data_type": "bigint",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "synced_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "gmb_search_keywords",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "id",
+    "data_type": "bigint",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "nextval('jobs_log_id_seq'::regclass)"
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "started_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "finished_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": "'running'::text"
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "source",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "meta",
+    "data_type": "jsonb",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "jobs_log",
+    "column_name": "error",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "keyword",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "search_type",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "position",
+    "data_type": "integer",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "previous_position",
+    "data_type": "integer",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "url",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "search_volume",
+    "data_type": "integer",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "competition",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "date",
+    "data_type": "date",
+    "ordinal_position": 10,
+    "is_nullable": "NO",
+    "column_default": "CURRENT_DATE"
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "keyword_rankings",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "type",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "message",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "link",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "read",
+    "data_type": "boolean",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "notifications",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "provider",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": "'google'::text"
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "event_type",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "reason",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_events",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "state",
+    "data_type": "text",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "expires_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "used",
+    "data_type": "boolean",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "table_name": "oauth_states",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "access_token",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "refresh_token",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "expires_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "provider",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "account_id",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "token_expires_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "oauth_tokens",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "name",
+    "data_type": "text",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "value",
+    "data_type": "numeric",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "unit",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "timestamp",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "performance_metrics",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "email",
+    "data_type": "text",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "full_name",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "avatar_url",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "provider_sub",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "last_login",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "profiles",
+    "column_name": "phone",
+    "data_type": "text",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "question_pattern",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "template_answer",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "usage_count",
+    "data_type": "integer",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "question_templates",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "rate_limit_requests",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "rate_limit_requests",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "rate_limit_requests",
+    "column_name": "action",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "rate_limit_requests",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "review_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "action",
+    "data_type": "character varying",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "details",
+    "data_type": "jsonb",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_activity_log",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "review_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "sentiment",
+    "data_type": "character varying",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "sentiment_score",
+    "data_type": "numeric",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "keywords",
+    "data_type": "ARRAY",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "ai_suggested_response",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "analyzed_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "review_ai_analysis",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "total_reviews",
+    "data_type": "bigint",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "pending_reviews",
+    "data_type": "bigint",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "responded_reviews",
+    "data_type": "bigint",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "response_rate",
+    "data_type": "numeric",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "avg_rating",
+    "data_type": "numeric",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "positive_count",
+    "data_type": "bigint",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "neutral_count",
+    "data_type": "bigint",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "review_stats_view",
+    "column_name": "negative_count",
+    "data_type": "bigint",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "room_members",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "room_members",
+    "column_name": "room_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "room_members",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "secret_keys",
+    "column_name": "id",
+    "data_type": "text",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "secret_keys",
+    "column_name": "key",
+    "data_type": "bytea",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "secret_keys",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "event",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "details",
+    "data_type": "jsonb",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "severity",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": "'medium'::text"
+  },
+  {
+    "table_name": "security_logs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "id",
+    "data_type": "bigint",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "nextval('sync_results_id_seq'::regclass)"
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "run_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "account_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "ok",
+    "data_type": "boolean",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "status",
+    "data_type": "integer",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "error",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_results",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "started_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "finished_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "NO",
+    "column_default": "'running'::text"
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "triggered_by",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "batch_size",
+    "data_type": "integer",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "0"
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "next_cursor",
+    "data_type": "uuid",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "sync_runs",
+    "column_name": "meta",
+    "data_type": "jsonb",
+    "ordinal_position": 9,
+    "is_nullable": "NO",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "owner_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "role",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": "'viewer'::text"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "permissions",
+    "data_type": "jsonb",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "'{}'::jsonb"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "locations_access",
+    "data_type": "jsonb",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "invited_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "joined_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "team_members",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email",
+    "data_type": "text",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "name",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "google_id",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "avatar",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "role",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "'user'::text"
+  },
+  {
+    "table_name": "users",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "'active'::text"
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_login",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "users",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "week_start_date",
+    "data_type": "date",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "week_end_date",
+    "data_type": "date",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "tasks",
+    "data_type": "jsonb",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": "'[]'::jsonb"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "insights",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "description",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "priority",
+    "data_type": "text",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": "'medium'::text"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "effort_level",
+    "data_type": "text",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "'moderate'::text"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "estimated_minutes",
+    "data_type": "integer",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "status",
+    "data_type": "text",
+    "ordinal_position": 14,
+    "is_nullable": "YES",
+    "column_default": "'pending'::text"
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "reasoning",
+    "data_type": "text",
+    "ordinal_position": 15,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "expected_impact",
+    "data_type": "text",
+    "ordinal_position": 16,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_task_recommendations",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 17,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "location_id",
+    "data_type": "uuid",
+    "ordinal_position": 3,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "description",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "priority",
+    "data_type": "text",
+    "ordinal_position": 6,
+    "is_nullable": "NO",
+    "column_default": "'MEDIUM'::text"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "completed",
+    "data_type": "boolean",
+    "ordinal_position": 7,
+    "is_nullable": "NO",
+    "column_default": "false"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "completed_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "due_date",
+    "data_type": "date",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "task_type",
+    "data_type": "text",
+    "ordinal_position": 10,
+    "is_nullable": "NO",
+    "column_default": "'custom'::text"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "weekly_tasks",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "NO",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "description",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "hashtags",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_drafts",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "id",
+    "data_type": "uuid",
+    "ordinal_position": 1,
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "ordinal_position": 2,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "video_id",
+    "data_type": "text",
+    "ordinal_position": 3,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "title",
+    "data_type": "text",
+    "ordinal_position": 4,
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "description",
+    "data_type": "text",
+    "ordinal_position": 5,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "tags",
+    "data_type": "ARRAY",
+    "ordinal_position": 6,
+    "is_nullable": "YES",
+    "column_default": "'{}'::text[]"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "category",
+    "data_type": "text",
+    "ordinal_position": 7,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "language",
+    "data_type": "text",
+    "ordinal_position": 8,
+    "is_nullable": "YES",
+    "column_default": "'en'::text"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "privacy_status",
+    "data_type": "text",
+    "ordinal_position": 9,
+    "is_nullable": "YES",
+    "column_default": "'private'::text"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "thumbnail_url",
+    "data_type": "text",
+    "ordinal_position": 10,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "published_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 11,
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 12,
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "youtube_videos",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "ordinal_position": 13,
+    "is_nullable": "YES",
+    "column_default": "now()"
   }
 ]

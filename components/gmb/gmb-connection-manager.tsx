@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -67,6 +68,7 @@ export function GMBConnectionManager({
 }: GMBConnectionManagerProps) {
   const router = useRouter()
   const supabase = createClient()
+  const isMounted = useRef(true)
   
   // States
   const [loading, setLoading] = useState(true)
@@ -132,7 +134,24 @@ export function GMBConnectionManager({
   }, [supabase])
 
   useEffect(() => {
+    isMounted.current = true
     loadConnectionStatus()
+    
+    // Listen for GMB disconnection and reconnection events
+    const handleConnectionEvent = () => {
+      if (isMounted.current) {
+        loadConnectionStatus()
+      }
+    }
+    
+    window.addEventListener('gmb-disconnected', handleConnectionEvent)
+    window.addEventListener('gmb-reconnected', handleConnectionEvent)
+    
+    return () => {
+      isMounted.current = false
+      window.removeEventListener('gmb-disconnected', handleConnectionEvent)
+      window.removeEventListener('gmb-reconnected', handleConnectionEvent)
+    }
   }, [loadConnectionStatus])
 
   // ربط الحساب
@@ -261,21 +280,28 @@ export function GMBConnectionManager({
             a.click()
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
-            
-            toast.success('تم تصدير البيانات', {
-              description: 'تم حفظ نسخة احتياطية من بياناتك'
-            })
           } catch (exportError) {
             console.error('[GMB Disconnect] Export error:', exportError)
-            toast.error('فشل تصدير البيانات', {
-              description: 'لكن تم قطع الاتصال بنجاح'
-            })
           }
         }
 
-        toast.success('تم قطع الاتصال بنجاح', {
-          description: result.message || 'تم قطع الاتصال من Google My Business',
-        })
+        // Check if component is still mounted before updating state
+        if (!isMounted.current) return
+
+        // Show specific toast based on disconnect option
+        if (disconnectOption === 'keep') {
+          toast.success('Google My Business disconnected', {
+            description: 'Your data remains available locally.'
+          })
+        } else if (disconnectOption === 'export') {
+          toast.success('Google My Business disconnected', {
+            description: 'Data exported successfully.'
+          })
+        } else if (disconnectOption === 'delete') {
+          toast.success('Google My Business disconnected', {
+            description: 'All data was deleted.'
+          })
+        }
         
         setShowDisconnectDialog(false)
         setDisconnectOption('keep') // Reset to default
@@ -283,17 +309,24 @@ export function GMBConnectionManager({
         await loadConnectionStatus()
         onSuccess?.()
         router.refresh()
+        
+        // Dispatch event for dashboard to hide sync button
+        window.dispatchEvent(new Event('gmb-disconnected'))
       } else {
         throw new Error(result.error || 'فشل قطع الاتصال')
       }
     } catch (error: any) {
       console.error('[GMB Disconnect] Error:', error)
-      toast.error('خطأ في قطع الاتصال', {
-        description: error.message || 'حاول مرة أخرى',
-      })
+      if (isMounted.current) {
+        toast.error('خطأ في قطع الاتصال', {
+          description: error.message || 'حاول مرة أخرى',
+        })
+      }
     } finally {
-      setDisconnecting(false)
-      setIsExporting(false)
+      if (isMounted.current) {
+        setDisconnecting(false)
+        setIsExporting(false)
+      }
     }
   }
 
@@ -368,55 +401,72 @@ export function GMBConnectionManager({
             
             {/* الأزرار */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {gmbConnected ? (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleSync}
-                    disabled={syncing || disconnecting}
-                    className="whitespace-nowrap"
+              <AnimatePresence mode="wait">
+                {gmbConnected ? (
+                  <motion.div
+                    key="connected-buttons"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2"
                   >
-                    <RefreshCw className={cn(
-                      "h-4 w-4 mr-2",
-                      syncing && "animate-spin"
-                    )} />
-                    {syncing ? "مزامنة..." : "مزامنة"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDisconnectDialog(true)}
-                    disabled={syncing || disconnecting}
-                    className="whitespace-nowrap bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSync}
+                      disabled={syncing || disconnecting}
+                      className="whitespace-nowrap"
+                    >
+                      <RefreshCw className={cn(
+                        "h-4 w-4 mr-2",
+                        syncing && "animate-spin"
+                      )} />
+                      {syncing ? "مزامنة..." : "مزامنة"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDisconnectDialog(true)}
+                      disabled={syncing || disconnecting}
+                      className="whitespace-nowrap bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                    >
+                      <Unlink className={cn(
+                        "h-4 w-4 mr-2",
+                        disconnecting && "animate-spin"
+                      )} />
+                      {disconnecting ? "قطع..." : "قطع"}
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="connect-button"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <Unlink className={cn(
-                      "h-4 w-4 mr-2",
-                      disconnecting && "animate-spin"
-                    )} />
-                    {disconnecting ? "قطع..." : "قطع"}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={handleConnect}
-                  disabled={connecting}
-                  className="gradient-orange whitespace-nowrap"
-                >
-                  {connecting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      جاري الربط...
-                    </>
-                  ) : (
-                    <>
-                      <Link2 className="h-4 w-4 mr-2" />
-                      ربط GMB
-                    </>
-                  )}
-                </Button>
-              )}
+                    <Button
+                      size="sm"
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      className="gradient-orange whitespace-nowrap"
+                    >
+                      {connecting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          جاري الربط...
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="h-4 w-4 mr-2" />
+                          Connect Google My Business
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </CardContent>
@@ -501,58 +551,76 @@ export function GMBConnectionManager({
 
         {/* الأزرار */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {gmbConnected ? (
-            <>
-              <Button 
-                onClick={handleSync}
-                disabled={syncing || disconnecting}
-                className="sm:w-auto w-full"
-                variant="outline"
+          <AnimatePresence mode="wait">
+            {gmbConnected ? (
+              <motion.div
+                key="connected-buttons-full"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col sm:flex-row gap-3 w-full"
               >
-                {syncing ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" /> جاري المزامنة...
-                  </>
-                ) : (
-                  <>
-                    <Shield className="h-4 w-4 mr-2" /> مزامنة الآن
-                  </>
-                )}
-              </Button>
-              <Button 
-                onClick={handleConnect}
-                disabled={connecting || syncing || disconnecting}
-                className="sm:w-auto w-full"
-                variant="outline"
+                <Button 
+                  onClick={handleSync}
+                  disabled={syncing || disconnecting}
+                  className="sm:w-auto w-full"
+                  variant="outline"
+                >
+                  {syncing ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" /> جاري المزامنة...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4 mr-2" /> مزامنة الآن
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleConnect}
+                  disabled={connecting || syncing || disconnecting}
+                  className="sm:w-auto w-full"
+                  variant="outline"
+                >
+                  <Key className="h-4 w-4 mr-2" /> إعادة المصادقة
+                </Button>
+                <Button 
+                  onClick={() => setShowDisconnectDialog(true)}
+                  disabled={syncing || disconnecting}
+                  className="sm:w-auto w-full"
+                  variant="destructive"
+                >
+                  <Unlink className="h-4 w-4 mr-2" /> قطع الاتصال
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="connect-button-full"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="w-full"
               >
-                <Key className="h-4 w-4 mr-2" /> إعادة المصادقة
-              </Button>
-              <Button 
-                onClick={() => setShowDisconnectDialog(true)}
-                disabled={syncing || disconnecting}
-                className="sm:w-auto w-full"
-                variant="destructive"
-              >
-                <Unlink className="h-4 w-4 mr-2" /> قطع الاتصال
-              </Button>
-            </>
-          ) : (
-            <Button 
-              className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent text-white"
-              onClick={handleConnect}
-              disabled={connecting}
-            >
-              {connecting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> جاري الربط...
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-4 w-4 mr-2" /> ربط Google My Business
-                </>
-              )}
-            </Button>
-          )}
+                <Button 
+                  className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent text-white"
+                  onClick={handleConnect}
+                  disabled={connecting}
+                >
+                  {connecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> جاري الربط...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4 mr-2" /> ربط Google My Business
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {!gmbConnected && (
@@ -596,6 +664,62 @@ function DisconnectDialog({
   isExporting,
   onConfirm
 }: DisconnectDialogProps) {
+  // Get dynamic button label based on selected option
+  const getButtonLabel = () => {
+    if (isExporting) {
+      return {
+        icon: <Download className="h-4 w-4 mr-2 animate-bounce" />,
+        text: "جاري التصدير..."
+      }
+    }
+    if (disconnecting) {
+      return {
+        icon: <Clock className="h-4 w-4 mr-2 animate-spin" />,
+        text: "جاري قطع الاتصال..."
+      }
+    }
+    
+    switch (disconnectOption) {
+      case 'keep':
+        return {
+          icon: <Unlink className="h-4 w-4 mr-2" />,
+          text: "Disconnect (keep data)"
+        }
+      case 'export':
+        return {
+          icon: <Download className="h-4 w-4 mr-2" />,
+          text: "Disconnect (export data)"
+        }
+      case 'delete':
+        return {
+          icon: <AlertTriangle className="h-4 w-4 mr-2" />,
+          text: "Disconnect and delete all data"
+        }
+      default:
+        return {
+          icon: <Unlink className="h-4 w-4 mr-2" />,
+          text: "قطع الاتصال"
+        }
+    }
+  }
+
+  // Get subtext based on selected option
+  const getSubtext = () => {
+    switch (disconnectOption) {
+      case 'keep':
+        return "Your data will remain stored locally."
+      case 'export':
+        return "Your data will be exported as JSON."
+      case 'delete':
+        return "All data will be permanently deleted."
+      default:
+        return ""
+    }
+  }
+
+  const buttonLabel = getButtonLabel()
+  const subtext = getSubtext()
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="bg-zinc-900 border-zinc-800 max-w-xl">
@@ -660,35 +784,33 @@ function DisconnectDialog({
           </RadioGroup>
         </div>
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
           <AlertDialogCancel 
             disabled={disconnecting || isExporting}
             className="border-zinc-700"
           >
             إلغاء
           </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            disabled={disconnecting || isExporting}
-            className="bg-orange-600 hover:bg-orange-700"
-          >
-            {isExporting ? (
-              <>
-                <Download className="h-4 w-4 mr-2 animate-bounce" />
-                جاري التصدير...
-              </>
-            ) : disconnecting ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                جاري قطع الاتصال...
-              </>
-            ) : (
-              <>
-                <Unlink className="h-4 w-4 mr-2" />
-                قطع الاتصال
-              </>
+          <div className="flex flex-col items-end gap-1">
+            <AlertDialogAction
+              onClick={onConfirm}
+              disabled={disconnecting || isExporting}
+              className={cn(
+                "w-full sm:w-auto",
+                disconnectOption === 'delete' 
+                  ? "bg-red-600 hover:bg-red-700" 
+                  : "bg-orange-600 hover:bg-orange-700"
+              )}
+            >
+              {buttonLabel.icon}
+              {buttonLabel.text}
+            </AlertDialogAction>
+            {subtext && !disconnecting && !isExporting && (
+              <p className="text-xs text-zinc-500 italic text-right px-2">
+                {subtext}
+              </p>
             )}
-          </AlertDialogAction>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
