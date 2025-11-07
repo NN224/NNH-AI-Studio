@@ -1,0 +1,1065 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+const GMB_API_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
+
+// Validation schemas
+const AnswerQuestionSchema = z.object({
+  questionId: z.string().uuid(),
+  answerText: z.string().min(1).max(2000),
+});
+
+/**
+ * Get valid access token for a GMB account
+ */
+async function getValidAccessToken(
+  supabase: any,
+  accountId: string
+): Promise<string> {
+  const { data: account, error } = await supabase
+    .from("gmb_accounts")
+    .select("access_token, refresh_token, expires_at")
+    .eq("id", accountId)
+    .single();
+
+  if (error || !account) {
+    throw new Error("GMB account not found");
+  }
+
+  const now = Date.now();
+  const expiresAt = account.expires_at ? new Date(account.expires_at).getTime() : 0;
+
+  if (expiresAt > now + 5 * 60 * 1000) {
+    return account.access_token;
+  }
+
+  // Refresh token
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      refresh_token: account.refresh_token,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh token. Please reconnect your Google account.");
+  }
+
+  const tokens = await response.json();
+  const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+
+  await supabase
+    .from("gmb_accounts")
+    .update({
+      access_token: tokens.access_token,
+      expires_at: newExpiresAt.toISOString(),
+    })
+    .eq("id", accountId);
+
+  return tokens.access_token;
+}
+
+// ============================================
+// 1. GET QUESTIONS WITH FILTERS
+// ============================================
+export async function getQuestions(params: {
+  locationId?: string;
+  status?: 'unanswered' | 'answered' | 'all';
+  priority?: string;
+  searchQuery?: string;
+  sortBy?: 'newest' | 'oldest' | 'most_upvoted' | 'urgent';
+  limit?: number;
+  offset?: number;
+}) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+        data: [],
+        count: 0,
+      };
+    }
+
+    let query = supabase
+      .from("gmb_questions")
+      .select(
+        `
+        *,
+        gmb_locations (
+          id,
+          location_name,
+          address
+        )
+      `,
+        { count: "exact" }
+      )
+      .eq("user_id", user.id);
+
+    // Filter by location
+    if (params.locationId && params.locationId !== "all") {
+      query = query.eq("location_id", params.locationId);
+    }
+
+    // Filter by status
+    if (params.status && params.status !== "all") {
+      if (params.status === "unanswered") {
+        query = query.or("answer_status.eq.unanswered,answer_status.eq.pending");
+      } else if (params.status === "answered") {
+        query = query.eq("answer_status", "answered");
+      }
+    }
+
+    // Filter by priority
+    if (params.priority) {
+      query = query.eq("priority", params.priority);
+    }
+
+    // Search
+    if (params.searchQuery) {
+      query = query.or(
+        `question_text.ilike.%${params.searchQuery}%,answer_text.ilike.%${params.searchQuery}%`
+      );
+    }
+
+    // Sort
+    switch (params.sortBy) {
+      case "newest":
+        query = query.order("asked_at", { ascending: false, nullsFirst: false });
+        break;
+      case "oldest":
+        query = query.order("asked_at", { ascending: true, nullsFirst: false });
+        break;
+      case "most_upvoted":
+        query = query.order("upvote_count", { ascending: false });
+        break;
+      case "urgent":
+        query = query.order("priority", { ascending: false });
+        break;
+      default:
+        query = query.order("created_at", { ascending: false });
+    }
+
+    // Pagination
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("[Questions] Get questions error:", error);
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+        count: 0,
+      };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+      count: count || 0,
+    };
+  } catch (error: any) {
+    console.error("[Questions] Get questions error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to fetch questions",
+      data: [],
+      count: 0,
+    };
+  }
+}
+
+// ============================================
+// 2. ANSWER QUESTION
+// ============================================
+export async function answerQuestion(questionId: string, answerText: string) {
+  try {
+    const supabase = await createClient();
+
+    // Validate
+    if (!answerText || answerText.trim().length === 0) {
+      return {
+        success: false,
+        error: "Answer text cannot be empty",
+      };
+    }
+
+    if (answerText.length > 2000) {
+      return {
+        success: false,
+        error: "Answer is too long (max 2000 characters)",
+      };
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+      };
+    }
+
+    // Get question with location and account
+    const { data: question, error: fetchError } = await supabase
+      .from("gmb_questions")
+      .select(
+        `
+        *,
+        gmb_locations!inner(
+          id,
+          location_id,
+          gmb_account_id,
+          user_id,
+          gmb_accounts!inner(
+            id,
+            account_id,
+            access_token,
+            refresh_token,
+            expires_at
+          )
+        )
+      `
+      )
+      .eq("id", questionId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError || !question) {
+      return {
+        success: false,
+        error: "Question not found or you don't have permission to answer it.",
+      };
+    }
+
+    // Check if already answered
+    if (question.answer_status === "answered" && question.answer_text) {
+      return {
+        success: false,
+        error: "This question has already been answered. Use updateAnswer to modify it.",
+      };
+    }
+
+    const location = question.gmb_locations;
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts;
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      };
+    }
+
+    const accessToken = await getValidAccessToken(supabase, account.id);
+
+    // Get question_id (use question_id or external_question_id)
+    const googleQuestionId = question.question_id || question.external_question_id;
+    if (!googleQuestionId) {
+      return {
+        success: false,
+        error: "Question ID not found. Please sync questions from Google first.",
+      };
+    }
+
+    // Call Google My Business API
+    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers`;
+
+    const response = await fetch(gmbApiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: answerText.trim(),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: "Authentication expired. Please reconnect your Google account.",
+        };
+      } else if (response.status === 403) {
+        return {
+          success: false,
+          error: "Permission denied. You don't have permission to answer this question.",
+        };
+      } else if (response.status === 404) {
+        return {
+          success: false,
+          error: "Question not found on Google.",
+        };
+      } else if (response.status === 429) {
+        return {
+          success: false,
+          error: "Too many requests. Please wait a moment and try again.",
+        };
+      } else {
+        return {
+          success: false,
+          error: errorData.error?.message || `Failed to post answer (${response.status})`,
+        };
+      }
+    }
+
+    const result = await response.json();
+
+    // Extract answer ID from response
+    const answerId = result.name?.split("/").pop() || null;
+
+    // Update database
+    const { error: updateError } = await supabase
+      .from("gmb_questions")
+      .update({
+        answer_text: answerText.trim(),
+        answered_at: new Date().toISOString(),
+        answered_by: user.email || "Business Owner",
+        answer_status: "answered",
+        answer_id: answerId,
+        status: "answered",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", questionId);
+
+    if (updateError) {
+      console.error("[Questions] Database update error:", updateError);
+      // Don't fail if database update fails - answer was posted to Google
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/questions");
+
+    return {
+      success: true,
+      data: result,
+      message: "Answer posted successfully!",
+    };
+  } catch (error: any) {
+    console.error("[Questions] Answer question error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to post answer",
+    };
+  }
+}
+
+// ============================================
+// 3. UPDATE ANSWER
+// ============================================
+export async function updateAnswer(questionId: string, newAnswerText: string) {
+  try {
+    const supabase = await createClient();
+
+    if (!newAnswerText || newAnswerText.trim().length === 0) {
+      return {
+        success: false,
+        error: "Answer text cannot be empty",
+      };
+    }
+
+    if (newAnswerText.length > 2000) {
+      return {
+        success: false,
+        error: "Answer is too long (max 2000 characters)",
+      };
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+      };
+    }
+
+    // Get question
+    const { data: question, error: fetchError } = await supabase
+      .from("gmb_questions")
+      .select(
+        `
+        *,
+        gmb_locations!inner(
+          id,
+          location_id,
+          gmb_account_id,
+          user_id,
+          gmb_accounts!inner(
+            id,
+            account_id,
+            access_token,
+            refresh_token,
+            expires_at
+          )
+        )
+      `
+      )
+      .eq("id", questionId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError || !question) {
+      return {
+        success: false,
+        error: "Question not found",
+      };
+    }
+
+    if (question.answer_status !== "answered" || !question.answer_id) {
+      return {
+        success: false,
+        error: "No answer to update. Use answerQuestion to create a new answer.",
+      };
+    }
+
+    const location = question.gmb_locations;
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts;
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found",
+      };
+    }
+
+    const accessToken = await getValidAccessToken(supabase, account.id);
+
+    const googleQuestionId = question.question_id || question.external_question_id;
+    if (!googleQuestionId) {
+      return {
+        success: false,
+        error: "Question ID not found",
+      };
+    }
+
+    // Call Google API
+    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
+
+    const response = await fetch(gmbApiUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: newAnswerText.trim(),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: "Authentication expired. Please reconnect your Google account.",
+        };
+      } else if (response.status === 404) {
+        return {
+          success: false,
+          error: "Answer not found on Google.",
+        };
+      } else {
+        return {
+          success: false,
+          error: errorData.error?.message || "Failed to update answer",
+        };
+      }
+    }
+
+    const result = await response.json();
+
+    // Update database
+    const { error: updateError } = await supabase
+      .from("gmb_questions")
+      .update({
+        answer_text: newAnswerText.trim(),
+        answered_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", questionId);
+
+    if (updateError) {
+      console.error("[Questions] Database update error:", updateError);
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/questions");
+
+    return {
+      success: true,
+      data: result,
+      message: "Answer updated!",
+    };
+  } catch (error: any) {
+    console.error("[Questions] Update answer error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to update answer",
+    };
+  }
+}
+
+// ============================================
+// 4. DELETE ANSWER
+// ============================================
+export async function deleteAnswer(questionId: string) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+      };
+    }
+
+    // Get question
+    const { data: question, error: fetchError } = await supabase
+      .from("gmb_questions")
+      .select(
+        `
+        *,
+        gmb_locations!inner(
+          id,
+          location_id,
+          gmb_account_id,
+          user_id,
+          gmb_accounts!inner(
+            id,
+            account_id,
+            access_token,
+            refresh_token,
+            expires_at
+          )
+        )
+      `
+      )
+      .eq("id", questionId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError || !question) {
+      return {
+        success: false,
+        error: "Question not found",
+      };
+    }
+
+    if (question.answer_status !== "answered" || !question.answer_id) {
+      return {
+        success: false,
+        error: "No answer to delete",
+      };
+    }
+
+    const location = question.gmb_locations;
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts;
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found",
+      };
+    }
+
+    const accessToken = await getValidAccessToken(supabase, account.id);
+
+    const googleQuestionId = question.question_id || question.external_question_id;
+    if (!googleQuestionId) {
+      return {
+        success: false,
+        error: "Question ID not found",
+      };
+    }
+
+    // Call Google API
+    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
+
+    const response = await fetch(gmbApiUrl, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error?.message || "Failed to delete answer",
+      };
+    }
+
+    // Update database
+    const { error: updateError } = await supabase
+      .from("gmb_questions")
+      .update({
+        answer_text: null,
+        answered_at: null,
+        answer_status: "unanswered",
+        answer_id: null,
+        status: "pending",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", questionId);
+
+    if (updateError) {
+      console.error("[Questions] Database update error:", updateError);
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/questions");
+
+    return {
+      success: true,
+      message: "Answer deleted!",
+    };
+  } catch (error: any) {
+    console.error("[Questions] Delete answer error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to delete answer",
+    };
+  }
+}
+
+// ============================================
+// 5. BULK ANSWER QUESTIONS
+// ============================================
+export async function bulkAnswerQuestions(
+  questionIds: string[],
+  answerTemplate: string
+) {
+  try {
+    if (!questionIds || questionIds.length === 0) {
+      return {
+        success: false,
+        error: "No questions selected",
+      };
+    }
+
+    if (questionIds.length > 20) {
+      return {
+        success: false,
+        error: "Cannot answer more than 20 questions at once",
+      };
+    }
+
+    const results = {
+      success: [] as string[],
+      failed: [] as { id: string; error: string }[],
+    };
+
+    for (const questionId of questionIds) {
+      const result = await answerQuestion(questionId, answerTemplate);
+
+      if (result.success) {
+        results.success.push(questionId);
+      } else {
+        results.failed.push({
+          id: questionId,
+          error: result.error || "Unknown error",
+        });
+      }
+
+      // Rate limit protection - wait 1 second between requests
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    return {
+      success: true,
+      data: results,
+      message: `Answered ${results.success.length} of ${questionIds.length} questions`,
+    };
+  } catch (error: any) {
+    console.error("[Questions] Bulk answer error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to bulk answer questions",
+    };
+  }
+}
+
+// ============================================
+// 6. SYNC QUESTIONS FROM GOOGLE
+// ============================================
+export async function syncQuestionsFromGoogle(locationId: string) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+      };
+    }
+
+    // Get location with account
+    const { data: location, error: locError } = await supabase
+      .from("gmb_locations")
+      .select(
+        `
+        id,
+        location_id,
+        gmb_account_id,
+        user_id,
+        gmb_accounts!inner(
+          id,
+          account_id,
+          access_token,
+          refresh_token,
+          expires_at
+        )
+      `
+      )
+      .eq("id", locationId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (locError || !location) {
+      return {
+        success: false,
+        error: "Location not found",
+      };
+    }
+
+    const account = Array.isArray(location.gmb_accounts)
+      ? location.gmb_accounts[0]
+      : location.gmb_accounts;
+
+    if (!account) {
+      return {
+        success: false,
+        error: "GMB account not found. Please reconnect your Google account.",
+      };
+    }
+
+    const accessToken = await getValidAccessToken(supabase, account.id);
+
+    // Fetch from Google
+    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions`;
+
+    const response = await fetch(endpoint, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: "Authentication expired. Please reconnect your Google account.",
+        };
+      } else if (response.status === 404) {
+        return {
+          success: false,
+          error: "Location not found on Google.",
+        };
+      } else {
+        return {
+          success: false,
+          error: "Failed to fetch questions from Google",
+        };
+      }
+    }
+
+    const data = await response.json();
+    const questions = data.questions || [];
+
+    if (questions.length === 0) {
+      return {
+        success: true,
+        message: "No questions found",
+        data: { synced: 0 },
+      };
+    }
+
+    let synced = 0;
+
+    // Upsert each question
+    for (const googleQuestion of questions) {
+      const questionId = googleQuestion.name?.split("/").pop() || null;
+      const topAnswer = googleQuestion.topAnswers?.[0] || null;
+      const answerId = topAnswer?.name?.split("/").pop() || null;
+
+      const questionData = {
+        user_id: user.id,
+        location_id: locationId,
+        gmb_account_id: account.id,
+        question_id: questionId,
+        external_question_id: questionId, // Keep for backward compatibility
+        question_text: googleQuestion.text || "",
+        asked_at: googleQuestion.createTime || new Date().toISOString(),
+        author_name: googleQuestion.author?.displayName || "Anonymous",
+        author_display_name: googleQuestion.author?.displayName || null,
+        author_profile_photo_url: googleQuestion.author?.profilePhotoUrl || null,
+        author_type: googleQuestion.author?.type || "CUSTOMER",
+        answer_text: topAnswer?.text || null,
+        answered_at: topAnswer?.updateTime || null,
+        answered_by: topAnswer?.author?.displayName || null,
+        answer_status: topAnswer ? "answered" : "unanswered",
+        answer_id: answerId,
+        upvote_count: googleQuestion.upvoteCount || 0,
+        total_answer_count: googleQuestion.totalAnswerCount || 0,
+        google_resource_name: googleQuestion.name || null,
+        status: topAnswer ? "answered" : "pending",
+        synced_at: new Date().toISOString(),
+      };
+
+      const { error: upsertError } = await supabase
+        .from("gmb_questions")
+        .upsert(questionData, {
+          onConflict: "question_id",
+          ignoreDuplicates: false,
+        });
+
+      if (!upsertError) {
+        synced++;
+      } else {
+        console.error("[Questions] Upsert error:", upsertError);
+      }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/questions");
+
+    return {
+      success: true,
+      message: `Synced ${synced} questions`,
+      data: { synced },
+    };
+  } catch (error: any) {
+    console.error("[Questions] Sync questions error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to sync questions",
+    };
+  }
+}
+
+// ============================================
+// 7. GET QUESTION STATISTICS
+// ============================================
+export async function getQuestionStats(locationId?: string) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+        data: null,
+      };
+    }
+
+    let query = supabase
+      .from("gmb_questions")
+      .select("answer_status, upvote_count, ai_category, priority")
+      .eq("user_id", user.id);
+
+    if (locationId && locationId !== "all") {
+      query = query.eq("location_id", locationId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("[Questions] Stats error:", error);
+      return {
+        success: false,
+        error: error.message,
+        data: null,
+      };
+    }
+
+    const stats = {
+      total: data.length,
+      unanswered: data.filter(
+        (q) => q.answer_status === "unanswered" || q.answer_status === "pending"
+      ).length,
+      answered: data.filter((q) => q.answer_status === "answered").length,
+      totalUpvotes: data.reduce((sum, q) => sum + (q.upvote_count || 0), 0),
+      avgUpvotes:
+        data.length > 0
+          ? data.reduce((sum, q) => sum + (q.upvote_count || 0), 0) / data.length
+          : 0,
+      byPriority: {
+        urgent: data.filter((q) => q.priority === "urgent").length,
+        high: data.filter((q) => q.priority === "high").length,
+        medium: data.filter((q) => q.priority === "medium").length,
+        low: data.filter((q) => q.priority === "low").length,
+      },
+      answerRate:
+        (data.filter((q) => q.answer_status === "answered").length /
+          (data.length || 1)) *
+        100,
+    };
+
+    return {
+      success: true,
+      data: stats,
+    };
+  } catch (error: any) {
+    console.error("[Questions] Get stats error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to get statistics",
+      data: null,
+    };
+  }
+}
+
+// ============================================
+// 8. FAQ TEMPLATE MANAGEMENT
+// ============================================
+export async function saveAnswerTemplate(
+  category: string,
+  questionPattern: string,
+  templateAnswer: string
+) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+      };
+    }
+
+    const { error } = await supabase.from("question_templates").insert({
+      user_id: user.id,
+      category,
+      question_pattern: questionPattern.toLowerCase(),
+      template_answer: templateAnswer,
+    });
+
+    if (error) {
+      console.error("[Questions] Save template error:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return {
+      success: true,
+      message: "Template saved!",
+    };
+  } catch (error: any) {
+    console.error("[Questions] Save template error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to save template",
+    };
+  }
+}
+
+export async function getAnswerTemplates(category?: string) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+        data: [],
+      };
+    }
+
+    let query = supabase
+      .from("question_templates")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("usage_count", { ascending: false });
+
+    if (category) {
+      query = query.eq("category", category);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("[Questions] Get templates error:", error);
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+    };
+  } catch (error: any) {
+    console.error("[Questions] Get templates error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to get templates",
+      data: [],
+    };
+  }
+}
+
