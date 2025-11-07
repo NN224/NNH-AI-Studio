@@ -61,21 +61,30 @@ export function ProfileProtectionModal({
               <Button
                 variant="outline"
                 className="justify-start border-zinc-700/50 hover:border-orange-500/50 hover:bg-orange-500/10"
-                onClick={() => router.push('/features')}
+                onClick={() => {
+                  onClose();
+                  router.push('/features');
+                }}
               >
                 Complete GMB Profile
               </Button>
               <Button
                 variant="outline"
                 className="justify-start border-zinc-700/50 hover:border-orange-500/50 hover:bg-orange-500/10"
-                onClick={() => router.push('/media')}
+                onClick={() => {
+                  onClose();
+                  router.push('/media');
+                }}
               >
                 Upload 5 New Photos
               </Button>
               <Button
                 variant="outline"
                 className="justify-start border-zinc-700/50 hover:border-orange-500/50 hover:bg-orange-500/10"
-                onClick={() => router.push('/posts')}
+                onClick={() => {
+                  onClose();
+                  router.push('/posts');
+                }}
               >
                 Create a GMB Post
               </Button>

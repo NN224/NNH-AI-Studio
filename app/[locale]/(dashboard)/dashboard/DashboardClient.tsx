@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -157,7 +157,6 @@ export function QuickActionCard({
   icon, 
   subtitle, 
   pendingCount,
-  href,
   onClick,
   disabled
 }: {
@@ -165,15 +164,15 @@ export function QuickActionCard({
   icon: string;
   subtitle: string;
   pendingCount: number;
-  href: string;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   disabled?: boolean;
 }) {
-  const router = useRouter();
-  
   return (
     <div
-      onClick={() => !disabled && (onClick ? onClick() : router.push(href))}
+      onClick={(e) => {
+        if (disabled) return;
+        if (onClick) return onClick(e as React.MouseEvent);
+      }}
       className={`bg-zinc-800/50 border-zinc-700/50 hover:border-orange-500/30 transition-all rounded-lg ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       }`}
@@ -444,6 +443,7 @@ export function QuickActionsInteractive({
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -453,7 +453,6 @@ export function QuickActionsInteractive({
           icon="💬"
           subtitle="Respond to pending reviews"
           pendingCount={pendingReviews.length}
-          href="/reviews"
           onClick={() => setReviewsOpen(true)}
         />
         <QuickActionCard
@@ -461,7 +460,6 @@ export function QuickActionsInteractive({
           icon="❓"
           subtitle="Reply to customer questions"
           pendingCount={unansweredQuestions.length}
-          href="/questions"
           onClick={() => setQuestionsOpen(true)}
         />
         <QuickActionCard
@@ -469,7 +467,6 @@ export function QuickActionsInteractive({
           icon="📝"
           subtitle="Share updates with customers"
           pendingCount={0}
-          href="/posts"
           onClick={() => setPostOpen(true)}
           disabled={!locationId}
         />
@@ -478,17 +475,29 @@ export function QuickActionsInteractive({
         isOpen={reviewsOpen}
         onClose={() => setReviewsOpen(false)}
         pendingReviews={pendingReviews}
+        onSuccess={() => {
+          router.refresh();
+          setReviewsOpen(false);
+        }}
       />
       <QuestionsQuickActionModal
         isOpen={questionsOpen}
         onClose={() => setQuestionsOpen(false)}
         unansweredQuestions={unansweredQuestions}
+        onSuccess={() => {
+          router.refresh();
+          setQuestionsOpen(false);
+        }}
       />
       {locationId && (
         <CreatePostModal 
           isOpen={postOpen} 
           onClose={() => setPostOpen(false)} 
           locationId={locationId}
+          onSuccess={() => {
+            router.refresh();
+            setPostOpen(false);
+          }}
         />
       )}
     </>

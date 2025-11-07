@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,7 +25,7 @@ interface ReviewsQuickActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   pendingReviews: ReviewItem[];
-  onSuccess?: () => void;
+  onSuccess?: (result?: any) => void;
 }
 
 export function ReviewsQuickActionModal({
@@ -38,6 +38,13 @@ export function ReviewsQuickActionModal({
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handleSendReply = async () => {
     if (!selectedReview || replyText.trim().length === 0) {
@@ -59,11 +66,10 @@ export function ReviewsQuickActionModal({
         toast.success('Reply posted successfully!', {
           description: 'Your reply is now visible on Google',
         });
-    setReplyText('');
-    setSelectedReview(null);
-        onSuccess?.();
-        router.refresh();
-    onClose();
+        setReplyText('');
+        setSelectedReview(null);
+        // Let parent handle navigation and modal close
+        onSuccess?.(result);
       } else {
         toast.error('Failed to post reply', {
           description: result.error || 'Please try again',
@@ -81,7 +87,7 @@ export function ReviewsQuickActionModal({
         description: 'Please try again later',
       });
     } finally {
-      setIsSubmitting(false);
+      if (isMounted.current) setIsSubmitting(false);
     }
   };
 

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +16,7 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   locationId: string;
-  onSuccess?: () => void;
+  onSuccess?: (result?: any) => void;
 }
 
 const CTA_OPTIONS = [
@@ -36,6 +36,13 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
   const [url, setUrl] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const router = useRouter();
+
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handlePublish = async () => {
     // Validation
@@ -70,9 +77,8 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
         toast.success('Post published successfully!', {
           description: 'Your post is now live on Google',
         });
-        onSuccess?.();
-        router.refresh();
-        handleClose();
+        // Let parent handle navigation and modal close
+        onSuccess?.(result);
       } else {
         toast.error('Failed to publish post', {
           description: result.error || 'Please try again',
@@ -90,7 +96,7 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
         description: 'Please try again later',
       });
     } finally {
-    setIsPublishing(false);
+      if (isMounted.current) setIsPublishing(false);
     }
   };
 

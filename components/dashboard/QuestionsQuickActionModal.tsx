@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +24,7 @@ interface QuestionsQuickActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   unansweredQuestions: QuestionItem[];
-  onSuccess?: () => void;
+  onSuccess?: (result?: any) => void;
 }
 
 export function QuestionsQuickActionModal({
@@ -37,6 +37,13 @@ export function QuestionsQuickActionModal({
   const [answerText, setAnswerText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const handlePostAnswer = async () => {
     if (!selectedQuestion || answerText.trim().length === 0) {
@@ -58,11 +65,10 @@ export function QuestionsQuickActionModal({
         toast.success('Answer posted successfully!', {
           description: 'Your answer is now visible on Google',
         });
-    setAnswerText('');
-    setSelectedQuestion(null);
-        onSuccess?.();
-        router.refresh();
-    onClose();
+        setAnswerText('');
+        setSelectedQuestion(null);
+        // Let parent handle navigation and modal close
+        onSuccess?.(result);
       } else {
         toast.error('Failed to post answer', {
           description: result.error || 'Please try again',
@@ -80,7 +86,7 @@ export function QuestionsQuickActionModal({
         description: 'Please try again later',
       });
     } finally {
-      setIsSubmitting(false);
+      if (isMounted.current) setIsSubmitting(false);
     }
   };
 

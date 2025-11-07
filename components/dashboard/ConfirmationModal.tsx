@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -24,6 +25,8 @@ export function ConfirmationModal({
   onConfirm,
   isLoading = false,
 }: ConfirmationModalProps) {
+  const [pending, setPending] = useState(false);
+  const disabled = isLoading || pending;
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : null)}>
       <DialogContent className="max-w-md bg-zinc-900 border-zinc-800">
@@ -36,15 +39,22 @@ export function ConfirmationModal({
             Cancel
           </Button>
           <Button
-            onClick={() => onConfirm()}
-            disabled={isLoading}
+            onClick={async () => {
+              setPending(true);
+              try {
+                await onConfirm();
+              } finally {
+                setPending(false);
+              }
+            }}
+            disabled={disabled}
             className={
               confirmVariant === 'destructive'
                 ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-orange-600 hover:bg-orange-700 text-white'
             }
           >
-            {isLoading ? 'Processing...' : confirmText}
+            {disabled ? 'Processing...' : confirmText}
           </Button>
         </div>
       </DialogContent>
