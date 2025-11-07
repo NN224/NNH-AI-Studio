@@ -1,7 +1,9 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { RefreshCw, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { RefreshCw, Clock, CheckCircle2, AlertCircle, Unlink } from "lucide-react"
+import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
@@ -97,7 +99,6 @@ export function LastSyncInfo({
             </div>
           </div>
           
-          <div className="flex items-center gap-3 flex-shrink-0">
           <div className="flex items-center gap-3 flex-shrink-0">
             {onSync && (
               <Button
