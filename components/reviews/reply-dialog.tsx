@@ -14,29 +14,28 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Sparkles } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { logActivity } from "@/lib/services/activity"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { replyToReview, updateReply } from "@/server/actions/reviews-management"
 import type { GMBReview } from "@/lib/types/database"
 
 interface ReplyDialogProps {
-  review: GMBReview | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onReply?: (reply: string) => Promise<void>
+  review: any | null
+  isOpen: boolean
+  onClose: () => void
+  onSuccess?: () => void
 }
 
-export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialogProps) {
-  const [reply, setReply] = useState(review?.reply_text || review?.review_reply || "")
+export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogProps) {
+  const [reply, setReply] = useState(review?.response || review?.reply_text || "")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
-  // Update reply when review changes (for editing existing replies)
+  // Update reply when review changes
   useEffect(() => {
     if (review) {
-      setReply(review.reply_text || review.review_reply || "")
+      setReply(review.response || review.reply_text || "")
     } else {
       setReply("")
     }
@@ -74,20 +73,10 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
       }
 
       setReply(content)
-
-      // Save AI suggestion to database
-      const { error: updateError } = await supabase
-        .from("gmb_reviews")
-        .update({ 
-          ai_generated_response: content,
-          ai_suggested_reply: content // Keep both for backwards compatibility
-        })
-        .eq("id", review.id)
-
-      if (updateError) {
-        console.error("Error saving AI response:", updateError)
-        // Don't throw - user can still use the generated response
-      }
+      
+      toast.success('AI response generated!', {
+        description: 'Review and edit before sending'
+      })
     } catch (error) {
       console.error("Error generating AI response:", error)
       // Fallback to simple template if AI fails
@@ -104,91 +93,102 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!review) return
+    if (!review || !reply.trim()) {
+      toast.error('Please enter a reply')
+      return
+    }
+
+    if (reply.length > 4096) {
+      toast.error('Reply is too long. Maximum 4096 characters.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      if (onReply) {
-        // Use the provided onReply callback
-        await onReply(reply)
-        setReply("")
+      let result
+
+      // Check if review already has a reply (update) or is new (create)
+      if (review.has_reply) {
+        result = await updateReply(review.id, reply.trim())
       } else {
-        // Fallback to internal handling
-        const {
-          data: { user },
-          error: authError
-        } = await supabase.auth.getUser()
-        if (authError || !user) {
-          throw new Error("Not authenticated")
-        }
-
-        const { error: updateError } = await supabase
-          .from("gmb_reviews")
-          .update({
-            reply_text: reply,
-            review_reply: reply, // Keep both for backwards compatibility
-            reply_date: new Date().toISOString(),
-            has_reply: true,
-            status: "responded",
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", review.id)
-
-        if (updateError) {
-          throw updateError
-        }
-
-        // Log activity (unified)
-        await logActivity({
-          type: "review",
-          message: `Replied to review from ${review.reviewer_name}`,
-          metadata: { reviewId: review.id, rating: review.rating },
-        })
-
-        onOpenChange(false)
-        setReply("")
-        router.refresh()
+        result = await replyToReview(review.id, reply.trim())
       }
-    } catch (error) {
+
+      if (result.success) {
+        toast.success(result.message || 'Reply posted successfully!', {
+          description: 'Your reply is now visible on Google'
+        })
+        setReply("")
+        onClose()
+        onSuccess?.()
+        router.refresh()
+      } else {
+        toast.error('Failed to post reply', {
+          description: result.error,
+          action: result.error?.includes('reconnect') ? {
+            label: 'Settings',
+            onClick: () => router.push('/settings')
+          } : undefined
+        })
+      }
+    } catch (error: any) {
       console.error("Error submitting reply:", error)
+      toast.error('An unexpected error occurred', {
+        description: error.message
+      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-primary/30 text-foreground sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-          <DialogTitle className="text-foreground">
-            {review && (review.reply_text || review.review_reply) ? 'Edit Reply' : 'Reply to Review'}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-zinc-100">
+            {review && review.has_reply ? 'Edit Reply' : 'Reply to Review'}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-zinc-400">
             {review && `Responding to ${review.reviewer_name}'s ${review.rating}-star review`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             {review?.review_text && (
-              <div className="p-3 rounded-lg bg-secondary border border-primary/20">
-                <p className="text-sm text-foreground">{review.review_text}</p>
+              <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-yellow-500">{'⭐'.repeat(review.rating)}</span>
+                  <span className="text-zinc-400 text-sm">{review.reviewer_name}</span>
+                </div>
+                <p className="text-sm text-zinc-300">{review.review_text}</p>
               </div>
             )}
             <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-300">Your Reply</label>
+                <span className={`text-xs ${reply.length > 4096 ? 'text-red-400' : 'text-zinc-500'}`}>
+                  {reply.length} / 4096
+                </span>
+              </div>
               <Textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Write your response..."
-                className="w-full bg-secondary border-primary/30 text-foreground resize-none min-h-[150px] p-3 md:p-2"
+                className="w-full bg-zinc-800 border-zinc-700 text-zinc-100 resize-none min-h-[150px]"
+                maxLength={4200}
                 required
               />
+              {reply.length > 4096 && (
+                <p className="text-xs text-red-400">Reply exceeds the 4096 character limit</p>
+              )}
             </div>
             <Button
               type="button"
               variant="outline"
               onClick={handleGenerateAI}
               disabled={generating}
-              className="w-full border-primary/30 text-foreground hover:bg-primary/20 bg-transparent h-11 md:h-9 min-h-[44px] md:min-h-0"
+              className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
               {generating ? (
                 <>
@@ -203,27 +203,28 @@ export function ReplyDialog({ review, open, onOpenChange, onReply }: ReplyDialog
               )}
             </Button>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2 pb-safe sm:pb-0">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto border-primary/30 text-muted-foreground h-11 md:h-9 min-h-[44px] md:min-h-0"
+              onClick={onClose}
+              disabled={loading}
+              className="w-full sm:w-auto border-zinc-700 text-zinc-300"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={loading || !reply.trim()}
-              className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white h-11 md:h-9 min-h-[44px] md:min-h-0"
+              disabled={loading || !reply.trim() || reply.length > 4096}
+              className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {review && (review.reply_text || review.review_reply) ? 'Updating...' : 'Sending...'}
+                  {review && review.has_reply ? 'Updating...' : 'Posting...'}
                 </>
               ) : (
-                review && (review.reply_text || review.review_reply) ? 'Update Reply' : 'Send Reply'
+                review && review.has_reply ? 'Update Reply' : 'Post Reply'
               )}
             </Button>
           </DialogFooter>

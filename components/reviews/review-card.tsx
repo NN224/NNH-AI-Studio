@@ -6,11 +6,12 @@ import type { GMBReview } from '@/lib/types/database';
 interface ReviewCardProps {
   review: GMBReview & { location_name?: string };
   isSelected?: boolean;
-  onClick: () => void;
+  onClick?: () => void;
+  onReply?: () => void;
 }
 
-export function ReviewCard({ review, isSelected, onClick }: ReviewCardProps) {
-  const needsResponse = !review.has_reply && !review.has_response && !review.reply_text && !review.review_reply;
+export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardProps) {
+  const needsResponse = !review.has_reply && !review.response;
   const isNegative = review.rating <= 2;
   const isPositive = review.rating >= 4;
 
@@ -18,15 +19,16 @@ export function ReviewCard({ review, isSelected, onClick }: ReviewCardProps) {
     <div
       onClick={onClick}
       className={`
-        p-4 rounded-lg border-l-4 cursor-pointer transition-all
+        p-4 rounded-lg border-l-4 transition-all
         ${isSelected 
           ? 'bg-orange-500/10 border-l-orange-500 ring-2 ring-orange-500/50' 
           : needsResponse && isNegative
             ? 'bg-red-950/20 border-l-red-500 hover:bg-red-950/30'
             : needsResponse
               ? 'bg-orange-950/20 border-l-orange-500 hover:bg-orange-950/30'
-              : 'bg-gray-800/50 border-l-green-500 hover:bg-gray-800'
+              : 'bg-zinc-800/50 border-l-green-500 hover:bg-zinc-800'
         }
+        ${onClick ? 'cursor-pointer' : ''}
       `}
     >
       {/* Header */}
@@ -99,24 +101,30 @@ export function ReviewCard({ review, isSelected, onClick }: ReviewCardProps) {
         </div>
 
         {/* Quick Actions */}
-        {needsResponse && (
+        {onReply && (
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              onClick();
+              onReply();
             }}
-            className="px-3 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium transition-colors"
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              needsResponse
+                ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'
+            }`}
           >
-            🤖 Generate Reply
+            {needsResponse ? '💬 Reply' : '✏️ Edit Reply'}
           </button>
         )}
       </div>
 
       {/* Reply Preview (if exists) */}
-      {review.reply_text && (
-        <div className="mt-3 pt-3 border-t border-gray-700">
-          <div className="text-xs text-gray-400 mb-1">Your Reply:</div>
-          <p className="text-sm text-gray-300 line-clamp-2">{review.reply_text}</p>
+      {(review.response || review.reply_text) && (
+        <div className="mt-3 pt-3 border-t border-zinc-700">
+          <div className="text-xs text-zinc-400 mb-1">Your Reply:</div>
+          <p className="text-sm text-zinc-300 line-clamp-2">
+            {review.response || review.reply_text}
+          </p>
         </div>
       )}
     </div>
