@@ -90,7 +90,7 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
         description: 'Please try again later',
       });
     } finally {
-      setIsPublishing(false);
+    setIsPublishing(false);
     }
   };
 

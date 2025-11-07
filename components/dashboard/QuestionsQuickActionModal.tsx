@@ -58,11 +58,11 @@ export function QuestionsQuickActionModal({
         toast.success('Answer posted successfully!', {
           description: 'Your answer is now visible on Google',
         });
-        setAnswerText('');
-        setSelectedQuestion(null);
+    setAnswerText('');
+    setSelectedQuestion(null);
         onSuccess?.();
         router.refresh();
-        onClose();
+    onClose();
       } else {
         toast.error('Failed to post answer', {
           description: result.error || 'Please try again',
@@ -141,7 +141,7 @@ export function QuestionsQuickActionModal({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-zinc-300">Your Answer</label>
+              <label className="text-sm text-zinc-300">Your Answer</label>
                 <span className={`text-xs ${answerText.length > 1500 ? 'text-red-400' : 'text-zinc-500'}`}>
                   {answerText.length} / 1500
                 </span>
