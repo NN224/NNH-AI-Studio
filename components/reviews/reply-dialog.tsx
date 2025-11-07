@@ -20,7 +20,7 @@ import { replyToReview, updateReply } from "@/server/actions/reviews-management"
 import type { GMBReview } from "@/lib/types/database"
 
 interface ReplyDialogProps {
-  review: any | null
+  review: GMBReview | null
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
@@ -132,10 +132,11 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
           } : undefined
         })
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting reply:", error)
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
       toast.error('An unexpected error occurred', {
-        description: error.message
+        description: errorMessage
       })
     } finally {
       setLoading(false)

@@ -375,35 +375,17 @@ export function ReviewsList() {
       {/* Reply Dialog */}
       {selectedReview && (
         <ReplyDialog
-          open={replyDialogOpen}
-          onOpenChange={setReplyDialogOpen}
+          isOpen={replyDialogOpen}
+          onClose={() => {
+            setReplyDialogOpen(false)
+            setSelectedReview(null)
+          }}
           review={selectedReview}
-          onReply={async (reply) => {
-            try {
-              const { error: updateError } = await supabase
-                .from("gmb_reviews")
-                .update({
-                  reply_text: reply,
-                  review_reply: reply, // Keep both for backwards compatibility
-                  reply_date: new Date().toISOString(),
-                  has_reply: true,
-                  status: "responded",
-                  updated_at: new Date().toISOString()
-                })
-                .eq("id", selectedReview.id)
-
-              if (updateError) {
-                throw updateError
-              }
-
-              await fetchReviews()
-              toast.success("Reply posted successfully")
-              setReplyDialogOpen(false)
-              setSelectedReview(null)
-            } catch (err) {
-              console.error("Error posting reply:", err)
-              toast.error("Failed to post reply")
-            }
+          onSuccess={async () => {
+            await fetchReviews()
+            toast.success("Reply posted successfully")
+            setReplyDialogOpen(false)
+            setSelectedReview(null)
           }}
         />
       )}

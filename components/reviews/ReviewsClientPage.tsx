@@ -16,10 +16,19 @@ import { Input } from '@/components/ui/input';
 import { RefreshCw, Search } from 'lucide-react';
 import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
+import type { GMBReview } from '@/lib/types/database';
+
+interface ReviewStats {
+  total: number;
+  pending: number;
+  replied: number;
+  averageRating: number;
+  responseRate: number;
+}
 
 interface ReviewsClientPageProps {
-  initialReviews: any[];
-  stats: any;
+  initialReviews: GMBReview[];
+  stats: ReviewStats | null;
   totalCount: number;
   locations: Array<{ id: string; location_name: string }>;
   currentFilters: {
@@ -38,7 +47,7 @@ export function ReviewsClientPage({
   locations,
   currentFilters,
 }: ReviewsClientPageProps) {
-  const [selectedReview, setSelectedReview] = useState<any>(null);
+  const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const router = useRouter();
@@ -87,7 +96,8 @@ export function ReviewsClientPage({
           description: result.error,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Sync error:', error);
       toast.error('An unexpected error occurred');
     } finally {
       setIsSyncing(false);
@@ -95,7 +105,7 @@ export function ReviewsClientPage({
   };
 
   // Handle reply
-  const handleReply = (review: any) => {
+  const handleReply = (review: GMBReview) => {
     setSelectedReview(review);
     setReplyDialogOpen(true);
   };

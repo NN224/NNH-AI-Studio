@@ -57,9 +57,21 @@ export function ReviewResponseCockpit() {
                 }
                 const result = await response.json();
                 // Transform API response to match Review interface
-                const transformedReviews: Review[] = (result.reviews || []).map((r: any) => ({
+                const transformedReviews: Review[] = (result.reviews || []).map((r: {
+                    id: string;
+                    review_date?: string;
+                    created_at?: string;
+                    reviewer_name?: string;
+                    rating?: number;
+                    review_text?: string;
+                    reply_text?: string;
+                    review_reply?: string | null;
+                    gmb_locations?: { location_name?: string };
+                    location_name?: string;
+                    location_id: string;
+                }) => ({
                     id: r.id,
-                    review_date: r.review_date || r.created_at,
+                    review_date: r.review_date || r.created_at || '',
                     reviewer_name: r.reviewer_name || 'Anonymous',
                     rating: r.rating || 0,
                     review_text: r.review_text || '',
@@ -129,8 +141,8 @@ export function ReviewResponseCockpit() {
                 toast.success("✨ AI response generated!");
             }
 
-        } catch (e: any) {
-            const errorMessage = e.message || "Failed to generate AI response. Please check your API configuration.";
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : "Failed to generate AI response. Please check your API configuration.";
             setAiError(errorMessage);
             
             if (!retry && retryCount < 2) {
@@ -178,8 +190,9 @@ export function ReviewResponseCockpit() {
             setSelectedReview(null);
             setReplyContent('');
 
-        } catch (e: any) {
-            toast.error(e.message);
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred';
+            toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }

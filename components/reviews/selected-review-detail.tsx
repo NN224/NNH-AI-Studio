@@ -50,9 +50,10 @@ export function SelectedReviewDetail({ review }: SelectedReviewDetailProps) {
       }
       
       setGeneratedResponse(data.response || '');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to generate response:', error);
-      setError(error.message || 'Failed to generate response. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate response. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -86,9 +87,10 @@ export function SelectedReviewDetail({ review }: SelectedReviewDetailProps) {
       // Refresh the reviews list
       window.location.reload(); // Or use a better state refresh method
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to send reply:', error);
-      setError(error.message || 'Failed to send reply');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send reply';
+      setError(errorMessage);
     } finally {
       setIsSending(false);
     }
