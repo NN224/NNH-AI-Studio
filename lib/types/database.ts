@@ -168,3 +168,26 @@ export interface GMBQuestion {
   location_name?: string
   location_address?: string
 }
+
+export interface GMBPost {
+  id: string
+  user_id: string
+  location_id: string
+  provider_post_id?: string
+  title?: string
+  content: string
+  media_url?: string
+  call_to_action?: string
+  call_to_action_url?: string
+  post_type: 'whats_new' | 'event' | 'offer' | 'product'
+  status: 'draft' | 'queued' | 'published' | 'failed'
+  scheduled_at?: string
+  published_at?: string
+  error_message?: string
+  metadata?: Record<string, any>
+  created_at: string
+  updated_at: string
+  // Join fields
+  location_name?: string
+  location_address?: string
+}

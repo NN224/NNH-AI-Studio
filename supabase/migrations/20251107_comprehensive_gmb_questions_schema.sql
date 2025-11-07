@@ -178,11 +178,14 @@ CREATE INDEX IF NOT EXISTS idx_question_templates_usage
 -- RLS for question_templates
 ALTER TABLE public.question_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage their own templates"
-  ON public.question_templates
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "Users can manage their own templates"
+    ON public.question_templates
+    FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Trigger for updated_at
 CREATE OR REPLACE FUNCTION public.update_question_templates_updated_at()
