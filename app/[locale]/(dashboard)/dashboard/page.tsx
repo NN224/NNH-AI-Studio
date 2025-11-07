@@ -586,7 +586,7 @@ export default async function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <PerformanceChart />
+                <PerformanceChart reviews={reviews} />
               </CardContent>
             </Card>
 
