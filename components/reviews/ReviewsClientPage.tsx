@@ -13,9 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Search } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { RefreshCw, Search, Bot } from 'lucide-react';
 import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
+import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import type { GMBReview } from '@/lib/types/database';
 
 interface ReviewStats {
@@ -50,6 +52,7 @@ export function ReviewsClientPage({
   const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -125,6 +128,15 @@ export function ReviewsClientPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Mobile AI Assistant Button */}
+          <Button
+            onClick={() => setAiSidebarOpen(true)}
+            variant="outline"
+            className="lg:hidden border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            AI Assistant
+          </Button>
           <Button
             onClick={handleSync}
             disabled={isSyncing || !currentFilters.locationId}
@@ -262,34 +274,50 @@ export function ReviewsClientPage({
         </div>
       </div>
 
-      {/* Reviews List */}
-      <div className="flex-1 p-6 overflow-auto">
-        {isPending && (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
-          </div>
-        )}
+      {/* Main Content - Grid Layout */}
+      <div className="flex-1 flex gap-6 p-6 overflow-hidden">
+        {/* Reviews List - Left Side */}
+        <div className="flex-1 overflow-auto">
+          {isPending && (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
+            </div>
+          )}
 
-        {!isPending && initialReviews.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-zinc-500 text-lg mb-2">No reviews found</p>
-            <p className="text-zinc-600 text-sm">
-              {currentFilters.locationId
-                ? 'Try syncing reviews or adjusting filters'
-                : 'Select a location to view reviews'}
-            </p>
+          {!isPending && initialReviews.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-zinc-500 text-lg mb-2">No reviews found</p>
+              <p className="text-zinc-600 text-sm">
+                {currentFilters.locationId
+                  ? 'Try syncing reviews or adjusting filters'
+                  : 'Select a location to view reviews'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {initialReviews.map((review) => (
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  onClick={() => setSelectedReview(review)}
+                  isSelected={selectedReview?.id === review.id}
+                  onReply={() => handleReply(review)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* AI Assistant Sidebar - Right Side */}
+        <div className="w-80 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-6 h-[calc(100vh-8rem)]">
+            <AIAssistantSidebar
+              selectedReview={selectedReview}
+              pendingReviewsCount={stats?.pending || 0}
+              locationId={currentFilters.locationId}
+            />
           </div>
-        ) : (
-          <div className="space-y-4">
-            {initialReviews.map((review) => (
-              <ReviewCard
-                key={review.id}
-                review={review}
-                onReply={() => handleReply(review)}
-              />
-            ))}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Pagination */}
@@ -335,6 +363,22 @@ export function ReviewsClientPage({
           });
         }}
       />
+
+      {/* Mobile AI Assistant Sheet */}
+      <Sheet open={aiSidebarOpen} onOpenChange={setAiSidebarOpen}>
+        <SheetContent side="right" className="w-full sm:w-96 bg-zinc-950 border-l border-zinc-800 p-0 overflow-y-auto">
+          <SheetHeader className="p-6 border-b border-zinc-800">
+            <SheetTitle className="text-white">AI Assistant</SheetTitle>
+          </SheetHeader>
+          <div className="p-6">
+            <AIAssistantSidebar
+              selectedReview={selectedReview}
+              pendingReviewsCount={stats?.pending || 0}
+              locationId={currentFilters.locationId}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
