@@ -1,19 +1,73 @@
-'use client';
+import { createClient } from '@/lib/supabase/server';
+import { PostsClientPage } from '@/components/posts/PostsClientPage';
+import { getPosts, getPostStats } from '@/server/actions/posts-management';
+import { redirect } from 'next/navigation';
 
-import { GMBPostsSection } from '@/components/dashboard/gmb-posts-section';
+export default async function PostsPage({
+  searchParams,
+}: {
+  searchParams: {
+    location?: string;
+    postType?: string;
+    status?: string;
+    page?: string;
+    search?: string;
+  };
+}) {
+  const supabase = await createClient();
 
-export default function PostsPage() {
+  // Check authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect('/login');
+  }
+
+  // Parse search params
+  const locationId = searchParams.location;
+  const postType = searchParams.postType as 'whats_new' | 'event' | 'offer' | 'product' | 'all' | undefined;
+  const status = searchParams.status as 'draft' | 'queued' | 'published' | 'failed' | 'all' | undefined;
+  const page = searchParams.page ? parseInt(searchParams.page) : 1;
+  const searchQuery = searchParams.search || '';
+  const limit = 50;
+  const offset = (page - 1) * limit;
+
+  // Fetch posts and stats in parallel
+  const [postsResult, statsResult, locationsResult] = await Promise.all([
+    getPosts({
+      locationId,
+      postType: postType === 'all' ? undefined : postType,
+      status: status === 'all' ? undefined : status,
+      searchQuery,
+      sortBy: 'newest',
+      limit,
+      offset,
+    }),
+    getPostStats(locationId),
+    supabase
+      .from('gmb_locations')
+      .select('id, location_name')
+      .eq('user_id', user.id)
+      .eq('is_active', true),
+  ]);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Posts</h1>
-        <p className="text-muted-foreground mt-2">
-          Create and manage your Google Business Profile posts
-        </p>
-      </div>
-
-      <GMBPostsSection />
-    </div>
+    <PostsClientPage
+      initialPosts={postsResult.data || []}
+      stats={statsResult.stats}
+      totalCount={postsResult.count}
+      locations={locationsResult.data || []}
+      currentFilters={{
+        locationId,
+        postType: postType || 'all',
+        status: status || 'all',
+        searchQuery,
+        page,
+      }}
+    />
   );
 }
 
