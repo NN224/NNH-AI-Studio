@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/utils/api-error-handler';
 import { getBaseUrlDynamic } from '@/lib/utils/get-base-url-dynamic';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     console.log('[OAuth Callback] State:', state);
     
     const supabase = await createClient();
+    const adminClient = createAdminClient();
     
     // Verify state and get user ID
     const { data: stateRecord, error: stateError } = await supabase
@@ -150,6 +151,53 @@ export async function GET(request: NextRequest) {
     
     const userInfo = await userInfoResponse.json();
     console.log('[OAuth Callback] User info:', { email: userInfo.email, id: userInfo.id });
+
+    if (!userInfo.email) {
+      console.error('[OAuth Callback] Google user info did not include an email address');
+      return NextResponse.redirect(
+        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Unable to determine Google account email')}`
+      );
+    }
+
+    const { data: existingUser, error: userLookupError } = await adminClient
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userLookupError) {
+      console.error('[OAuth Callback] Failed to verify users record:', userLookupError);
+      return NextResponse.redirect(
+        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to verify user record')}`
+      );
+    }
+
+    if (!existingUser) {
+      const displayName =
+        userInfo.name ||
+        [userInfo.given_name, userInfo.family_name].filter(Boolean).join(' ') ||
+        userInfo.email.split('@')[0] ||
+        'Google User';
+
+      console.log('[OAuth Callback] Creating users record for new user', { userId, email: userInfo.email });
+
+      const { error: createUserError } = await adminClient.from('users').insert({
+        id: userId,
+        email: userInfo.email,
+        name: displayName,
+        google_id: userInfo.id,
+        avatar: userInfo.picture ?? null,
+        status: 'active',
+        last_login: new Date().toISOString(),
+      });
+
+      if (createUserError) {
+        console.error('[OAuth Callback] Failed to create users record:', createUserError);
+        return NextResponse.redirect(
+          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to initialize user record')}`
+        );
+      }
+    }
     
     // Calculate token expiry
     const tokenExpiresAt = new Date();
