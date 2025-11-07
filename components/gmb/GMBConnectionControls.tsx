@@ -121,7 +121,7 @@ export const GMBConnectionControls: React.FC<GMBConnectionControlsProps> = ({
             ) : (
               <Plug className="w-4 h-4 mr-2" />
             )}
-            {status === 'error' && errorContext === 'sync' ? L.syncNow : status === 'error' && errorContext === 'disconnect' ? L.disconnect : status === 'error' ? L.retryConnect : L.connect}
+            {status === 'error' ? L.retryConnect : L.connect}
           </Button>
         )}
 

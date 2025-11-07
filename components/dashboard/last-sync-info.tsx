@@ -90,7 +90,7 @@ export function LastSyncInfo({
                 )}>
                   {isSyncing ? "Syncing..." : getTimeAgo()}
                 </p>
-                {syncSchedule !== 'manual' && (
+                {syncSchedule && syncSchedule !== 'manual' && (
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     • Auto: {syncSchedule}
                   </span>
@@ -99,14 +99,18 @@ export function LastSyncInfo({
             </div>
           </div>
           
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {onSync && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={onSync}
+                onClick={(e) => {
+                  e.preventDefault()
+                  onSync()
+                }}
                 disabled={isSyncing || isDisconnecting}
                 className="flex-shrink-0 whitespace-nowrap"
+                title={isSyncing ? "Syncing in progress..." : "Sync your Google My Business data"}
               >
                 <RefreshCw className={cn(
                   "h-4 w-4 mr-2",
@@ -119,9 +123,13 @@ export function LastSyncInfo({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={onDisconnect}
+                onClick={(e) => {
+                  e.preventDefault()
+                  onDisconnect()
+                }}
                 disabled={isSyncing || isDisconnecting}
                 className="flex-shrink-0 whitespace-nowrap bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                title={isDisconnecting ? "Disconnecting..." : "Disconnect from Google My Business"}
               >
                 <Unlink className={cn(
                   "h-4 w-4 mr-2",

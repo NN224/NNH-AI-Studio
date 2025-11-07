@@ -138,28 +138,36 @@ export function GMBConnectionManager({
   // ربط الحساب
   const handleConnect = async () => {
     setConnecting(true)
+    console.log('[GMB Connect] Starting connection process')
+    
     try {
       const response = await fetch('/api/gmb/create-auth-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create auth URL')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || data.message || `HTTP ${response.status}`)
       }
+
+      const data = await response.json()
+      console.log('[GMB Connect] Auth URL received')
 
       const authUrl = data.authUrl || data.url
-      if (authUrl) {
-        window.location.href = authUrl
-      } else {
-        throw new Error('No authorization URL received')
+      if (!authUrl || typeof authUrl !== 'string') {
+        throw new Error('رابط التفويض غير صالح')
       }
+
+      // Redirect to Google OAuth
+      console.log('[GMB Connect] Redirecting to Google OAuth')
+      window.location.href = authUrl
+      
+      // Note: setConnecting(false) is not needed because we're redirecting
     } catch (error: any) {
-      console.error('Connection error:', error)
+      console.error('[GMB Connect] Error:', error)
       toast.error('فشل الاتصال', {
-        description: error.message || 'حاول مرة أخرى'
+        description: error.message || 'تعذر إنشاء رابط التفويض. حاول مرة أخرى'
       })
       setConnecting(false)
     }
@@ -168,11 +176,15 @@ export function GMBConnectionManager({
   // مزامنة البيانات
   const handleSync = async () => {
     if (!activeAccount) {
-      toast.error('لا يوجد حساب نشط للمزامنة')
+      toast.error('لا يوجد حساب نشط', {
+        description: 'الرجاء الاتصال بحساب Google My Business أولاً'
+      })
       return
     }
 
     setSyncing(true)
+    console.log('[GMB Sync] Starting sync for account:', activeAccount.id)
+    
     try {
       const response = await fetch('/api/gmb/sync', {
         method: 'POST',
@@ -183,19 +195,34 @@ export function GMBConnectionManager({
         })
       })
 
+      const data = await response.json()
+      console.log('[GMB Sync] Response:', data)
+
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'فشلت المزامنة')
+        throw new Error(data.error || data.message || 'فشلت المزامنة')
       }
 
-      toast.success('تمت المزامنة بنجاح')
-      await loadConnectionStatus()
-      onSuccess?.()
-      router.refresh()
+      // Check if sync was successful
+      if (data.success || data.ok) {
+        toast.success('تمت المزامنة بنجاح', {
+          description: data.counts ? 
+            `تم مزامنة ${data.counts.locations || 0} موقع و ${data.counts.reviews || 0} مراجعة` :
+            'تم تحديث البيانات'
+        })
+        
+        await loadConnectionStatus()
+        onSuccess?.()
+        router.refresh()
+        
+        // Dispatch event for other components
+        window.dispatchEvent(new Event('gmb-sync-complete'))
+      } else {
+        throw new Error('فشلت المزامنة - استجابة غير متوقعة')
+      }
     } catch (error: any) {
-      console.error('Sync error:', error)
+      console.error('[GMB Sync] Error:', error)
       toast.error('خطأ في المزامنة', {
-        description: error.message
+        description: error.message || 'حاول مرة أخرى'
       })
     } finally {
       setSyncing(false)
@@ -205,49 +232,64 @@ export function GMBConnectionManager({
   // قطع الاتصال
   const handleDisconnect = async () => {
     if (!activeAccount) {
-      toast.error('لا يوجد حساب متصل')
+      toast.error('لا يوجد حساب متصل', {
+        description: 'لا يمكن قطع الاتصال'
+      })
       return
     }
 
     setDisconnecting(true)
     setIsExporting(disconnectOption === 'export')
+    console.log('[GMB Disconnect] Starting disconnect with option:', disconnectOption)
 
     try {
       const result = await disconnectGMBAccount(activeAccount.id, disconnectOption)
+      console.log('[GMB Disconnect] Result:', result)
 
       if (result.success) {
         // تنزيل البيانات المُصدّرة إن وُجدت
         if (result.exportData) {
-          const blob = new Blob([JSON.stringify(result.exportData, null, 2)], { 
-            type: 'application/json' 
-          })
-          const url = window.URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `gmb-data-export-${new Date().toISOString()}.json`
-          document.body.appendChild(a)
-          a.click()
-          window.URL.revokeObjectURL(url)
-          document.body.removeChild(a)
+          try {
+            const blob = new Blob([JSON.stringify(result.exportData, null, 2)], { 
+              type: 'application/json' 
+            })
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `gmb-data-export-${new Date().toISOString().split('T')[0]}.json`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+            
+            toast.success('تم تصدير البيانات', {
+              description: 'تم حفظ نسخة احتياطية من بياناتك'
+            })
+          } catch (exportError) {
+            console.error('[GMB Disconnect] Export error:', exportError)
+            toast.error('فشل تصدير البيانات', {
+              description: 'لكن تم قطع الاتصال بنجاح'
+            })
+          }
         }
 
         toast.success('تم قطع الاتصال بنجاح', {
-          description: result.message,
+          description: result.message || 'تم قطع الاتصال من Google My Business',
         })
         
         setShowDisconnectDialog(false)
+        setDisconnectOption('keep') // Reset to default
+        
         await loadConnectionStatus()
         onSuccess?.()
         router.refresh()
       } else {
-        toast.error('فشل قطع الاتصال', {
-          description: result.error || 'حاول مرة أخرى',
-        })
+        throw new Error(result.error || 'فشل قطع الاتصال')
       }
     } catch (error: any) {
-      console.error('Disconnect error:', error)
-      toast.error('خطأ', {
-        description: error.message || 'فشل قطع الاتصال',
+      console.error('[GMB Disconnect] Error:', error)
+      toast.error('خطأ في قطع الاتصال', {
+        description: error.message || 'حاول مرة أخرى',
       })
     } finally {
       setDisconnecting(false)
