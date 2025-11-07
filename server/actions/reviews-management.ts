@@ -808,15 +808,41 @@ export async function syncReviewsFromGoogle(locationId: string) {
         synced_at: new Date().toISOString(),
       }
 
-      const { error: upsertError } = await supabase
+      // Check if review already exists
+      const { data: existingReview } = await supabase
+        .from("gmb_reviews")
+        .select("id")
+        .eq("external_review_id", reviewData.external_review_id)
+        .single()
+
+      const isNewReview = !existingReview
+
+      const { error: upsertError, data: upsertedReview } = await supabase
         .from("gmb_reviews")
         .upsert(reviewData, {
           onConflict: "external_review_id",
           ignoreDuplicates: false,
         })
+        .select()
+        .single()
 
       if (!upsertError) {
         synced++
+        
+        // Trigger auto-reply for new reviews (if enabled)
+        if (isNewReview && upsertedReview && !upsertedReview.has_reply) {
+          try {
+            const { processAutoReply } = await import("./auto-reply")
+            // Process auto-reply in background (don't wait for it)
+            processAutoReply(upsertedReview.id).catch((error) => {
+              console.error("[Reviews] Auto-reply error:", error)
+              // Don't fail the sync if auto-reply fails
+            })
+          } catch (error) {
+            console.error("[Reviews] Failed to trigger auto-reply:", error)
+            // Don't fail the sync if auto-reply fails
+          }
+        }
       } else {
         console.error("[Reviews] Upsert error:", upsertError)
       }

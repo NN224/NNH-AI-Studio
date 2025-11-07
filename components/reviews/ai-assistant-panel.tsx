@@ -9,11 +9,13 @@ interface AIAssistantPanelProps {
 }
 
 export function AIAssistantPanel({ selectedReview }: AIAssistantPanelProps) {
+  const locationId = selectedReview?.location_id;
+
   return (
     <div className="flex flex-col h-full bg-gray-900/50 rounded-xl border border-gray-800">
       {/* Auto Reply Settings (Collapsible) */}
       <div className="p-4 border-b border-gray-800">
-        <AutoReplySettings />
+        <AutoReplySettings locationId={locationId} />
       </div>
 
       {/* Selected Review Detail OR Empty State */}

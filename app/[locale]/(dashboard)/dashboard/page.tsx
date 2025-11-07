@@ -323,18 +323,7 @@ export default async function DashboardPage() {
   // Generate dynamic AI insights
   const insights = generateAIInsights(stats, reviews);
   
-  // Weekly tasks (static for now, can be made dynamic later)
-  const weeklyTasks: Array<{
-    id: number;
-    title: string;
-    emoji: string;
-    priority: "HIGH" | "MEDIUM" | "LOW";
-    duration: string;
-  }> = [
-    { id: 1, title: "Complete GMB Profile", emoji: "✅", priority: "MEDIUM", duration: "10 min" },
-    { id: 2, title: "Upload 5 New Photos", emoji: "📸", priority: "MEDIUM", duration: "20 min" },
-    { id: 3, title: "Create a GMB Post", emoji: "📝", priority: "LOW", duration: "15 min" },
-  ];
+  // Weekly tasks are now handled by WeeklyTasksList component with real database data
   
   // Achievements with real data
   const achievements = [
@@ -641,43 +630,7 @@ export default async function DashboardPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <WeeklyTasksList />
-
-                {/* Recommended Quick Wins */}
-                <div className="space-y-3 pt-4 border-t border-zinc-700/50">
-                  <h4 className="text-zinc-300 font-medium text-sm">Recommended Quick Wins</h4>
-                  {weeklyTasks.map((task) => {
-                    const link =
-                      task.title.includes('Profile') ? '/features' :
-                      task.title.includes('Photos') ? '/media' :
-                      task.title.includes('Post') ? '/posts' :
-                      '/dashboard';
-                    return (
-                      <Link key={task.id} href={link} className="block">
-                        <Card className="bg-zinc-800/50 border-zinc-700/50 hover:border-orange-500/50 transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer">
-                          <CardContent className="p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl">{task.emoji}</span>
-                              <div>
-                                <p className="text-zinc-100 text-sm font-medium">{task.title}</p>
-                                <p className="text-zinc-500 text-xs">{task.duration}</p>
-                              </div>
-                            </div>
-                            <Badge 
-                              className={
-                                task.priority === "HIGH" ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                                task.priority === "MEDIUM" ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" :
-                                "bg-green-500/20 text-green-400 border-green-500/30"
-                              }
-                            >
-                              {task.priority}
-                            </Badge>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    )
-                  })}
-                </div>
+                <WeeklyTasksList locationId={activeLocation?.id} />
               </CardContent>
             </Card>
 
