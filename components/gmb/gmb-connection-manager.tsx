@@ -103,35 +103,25 @@ export function GMBConnectionManager({
     window.addEventListener('gmb-sync-complete', handleConnectionEvent)
     return () => {
       isMounted.current = false
-      try { sseRef.current?.close() } catch {}
+      try { 
+        sseRef.current?.close() 
+      } catch (e) {
+        // SSE already closed, ignore
+      }
       window.removeEventListener('gmb-disconnected', handleConnectionEvent)
       window.removeEventListener('gmb-reconnected', handleConnectionEvent)
       window.removeEventListener('gmb-sync-complete', handleConnectionEvent)
     }
   }, [refreshGmbStatus])
 
-  // Explicit refresh handler for refresh button
-  const handleRefresh = async (e?: React.MouseEvent) => {
-    if (e) e.preventDefault()
-    console.log('[GMB Refresh] Manually refreshing GMB status')
-    try {
-      await refreshGmbStatus()
-      router.refresh()
-      toast.success('Refreshed successfully', {
-        description: 'GMB connection status updated'
-      })
-    } catch (error: any) {
-      console.error('[GMB Refresh] Error:', error)
-      toast.error('Refresh failed', {
-        description: error.message || 'Unable to refresh status'
-      })
-    }
-  }
-
   // Close SSE when user hides panel
   useEffect(() => {
     if (!progressOpen) {
-      try { sseRef.current?.close() } catch {}
+      try { 
+        sseRef.current?.close() 
+      } catch (e) {
+        // SSE already closed, ignore
+      }
     }
   }, [progressOpen])
 
@@ -196,7 +186,9 @@ export function GMBConnectionManager({
         setPhases(json.phases || [])
         setEstimateMs(json.estimate_remaining_ms || 0)
       }
-    } catch {}
+    } catch (e) {
+      // Status fetch failed, SSE will still work
+    }
 
     // افتح SSE
     try {
@@ -210,12 +202,20 @@ export function GMBConnectionManager({
           } else if (payload?.type === 'done') {
             es.close()
           }
-        } catch {}
+        } catch (e) {
+          // JSON parse error, skip this message
+        }
       }
       es.onerror = () => {
-        try { es.close() } catch {}
+        try { 
+          es.close() 
+        } catch (e) {
+          // Already closed
+        }
       }
-    } catch {}
+    } catch (e) {
+      // SSE not supported or failed
+    }
   }
 
   const handleSync = async (e?: React.MouseEvent) => {
@@ -278,7 +278,13 @@ export function GMBConnectionManager({
     } finally {
       setSyncing(false)
       // أغلق الـ SSE بعد مهلة قصيرة لإتاحة آخر تحديث
-      setTimeout(() => { try { sseRef.current?.close() } catch {} }, 1500)
+      setTimeout(() => { 
+        try { 
+          sseRef.current?.close() 
+        } catch (e) {
+          // Already closed
+        }
+      }, 1500)
     }
   }
 
