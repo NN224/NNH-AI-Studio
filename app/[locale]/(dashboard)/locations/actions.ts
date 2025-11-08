@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { toast } from 'sonner';
 
 const MAX_RETRIES = 3;
 
@@ -26,7 +25,7 @@ async function withRetry(fn: () => Promise<any>, actionName: string) {
 }
 
 async function logAction(action: string, status: string, details?: any) {
-  const supabase = createClient();
+  const supabase = await createClient();
   try {
     await supabase.from('location_action_logs').insert({
       action,
@@ -56,11 +55,9 @@ export async function syncAllLocations() {
 
     const duration = Date.now() - start;
     revalidatePath('/dashboard/locations');
-    toast.success(`✅ Synced successfully (${duration}ms)`);
     await logAction('syncAllLocations', 'success', result);
     return { success: true, data: result, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Sync failed');
     await logAction('syncAllLocations', 'error', { error });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
@@ -84,11 +81,9 @@ export async function createLocation(payload: Record<string, any>) {
 
     const duration = Date.now() - start;
     revalidatePath('/dashboard/locations');
-    toast.success(`🟢 Location created (${duration}ms)`);
     await logAction('createLocation', 'success', result);
     return { success: true, data: result, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Failed to create location');
     await logAction('createLocation', 'error', { error, payload });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
@@ -112,11 +107,9 @@ export async function updateLocation(id: string, updates: Record<string, any>) {
 
     const duration = Date.now() - start;
     revalidatePath('/dashboard/locations');
-    toast.success(`✏️ Location updated (${duration}ms)`);
     await logAction('updateLocation', 'success', result);
     return { success: true, data: result, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Failed to update location');
     await logAction('updateLocation', 'error', { error, id, updates });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
@@ -136,11 +129,9 @@ export async function deleteLocation(id: string) {
 
     const duration = Date.now() - start;
     revalidatePath('/dashboard/locations');
-    toast.success(`🗑️ Location deleted (${duration}ms)`);
     await logAction('deleteLocation', 'success', result);
     return { success: true, data: result, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Failed to delete location');
     await logAction('deleteLocation', 'error', { error, id });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
@@ -152,24 +143,11 @@ export async function deleteLocation(id: string) {
 export async function exportLocations() {
   const start = Date.now();
   try {
-    await withRetry(async () => {
-      const res = await fetch(`/api/locations/export`, { method: 'GET' });
-      if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `locations-export-${new Date().toISOString().slice(0,10)}.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-    }, 'ExportLocations');
-
+    const downloadUrl = `/api/locations/export?format=csv`;
     const duration = Date.now() - start;
-    toast.success(`📦 Export complete (${duration}ms)`);
-    await logAction('exportLocations', 'success');
-    return { success: true, durationMs: duration, timestamp: new Date().toISOString() };
+    await logAction('exportLocations', 'success', { downloadUrl, duration });
+    return { success: true, downloadUrl, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Export failed');
     await logAction('exportLocations', 'error', { error });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
@@ -188,11 +166,9 @@ export async function getLocationStats() {
     }, 'GetLocationStats');
 
     const duration = Date.now() - start;
-    toast.success(`📊 Stats loaded (${duration}ms)`);
     await logAction('getLocationStats', 'success', result);
     return { success: true, data: result, durationMs: duration, timestamp: new Date().toISOString() };
   } catch (error) {
-    toast.error('❌ Failed to load stats');
     await logAction('getLocationStats', 'error', { error });
     return { success: false, error: String(error), timestamp: new Date().toISOString() };
   }
