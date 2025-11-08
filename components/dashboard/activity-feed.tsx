@@ -167,9 +167,7 @@ export function ActivityFeed() {
               },
             )
             .subscribe((status) => {
-              if (status === 'SUBSCRIBED') {
-                console.log('✅ Activity feed subscribed');
-              } else if (status === 'CHANNEL_ERROR') {
+              if (status === 'CHANNEL_ERROR') {
                 console.error('❌ Activity feed subscription error');
               }
             });

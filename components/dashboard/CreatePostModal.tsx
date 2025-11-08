@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { createPost } from '@/server/actions/gmb-posts';
 import { useRouter } from 'next/navigation';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 type PostType = 'whats_new' | 'event' | 'offer' | 'product';
 
@@ -28,6 +29,9 @@ const CTA_OPTIONS = [
   { value: 'CALL', label: 'Call' },
 ];
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+
 export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: CreatePostModalProps) {
   const [postType, setPostType] = useState<PostType>('whats_new');
   const [title, setTitle] = useState('');
@@ -35,6 +39,11 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
   const [cta, setCta] = useState<string>('');
   const [url, setUrl] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const isMounted = useRef(true);
@@ -43,6 +52,87 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
       isMounted.current = false;
     };
   }, []);
+
+  const handleFileSelect = (file: File) => {
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error('Invalid file type. Please upload an image (JPEG, PNG, WebP, or GIF).');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setMediaFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const removeMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setMediaUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        return data.url;
+      }
+      throw new Error('No URL returned from upload');
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      toast.error(error.message || 'Failed to upload image. Please try again.');
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handlePublish = async () => {
     // Validation
@@ -64,6 +154,17 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
     setIsPublishing(true);
 
     try {
+      // Upload image if selected
+      let uploadedMediaUrl = mediaUrl;
+      if (mediaFile && !mediaUrl) {
+        const uploadedUrl = await uploadImage(mediaFile);
+        if (!uploadedUrl) {
+          setIsPublishing(false);
+          return; // Error already shown in uploadImage
+        }
+        uploadedMediaUrl = uploadedUrl;
+      }
+
       const result = await createPost({
         locationId,
         postType,
@@ -71,6 +172,7 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
         description: description.trim(),
         ctaType: cta ? (cta as any) : undefined,
         ctaUrl: url || undefined,
+        mediaUrl: uploadedMediaUrl || undefined,
       });
 
       if (result.success) {
@@ -106,6 +208,7 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
     setDescription('');
     setCta('');
     setUrl('');
+    removeMedia();
     onClose();
   };
 
@@ -177,8 +280,62 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
 
           <div className="space-y-2">
             <Label className="text-zinc-300">Media</Label>
-            <div className="rounded-md border border-dashed border-zinc-700 bg-zinc-800/50 p-4 text-sm text-zinc-400">
-              File upload coming soon. Drop images here or click to browse.
+            <div
+              className="rounded-md border border-dashed border-zinc-700 bg-zinc-800/50 p-4 text-sm text-zinc-400 relative"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+              
+              {mediaPreview ? (
+                <div className="relative">
+                  <img
+                    src={mediaPreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-md mb-2"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={removeMedia}
+                    className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  {isUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                      <div className="text-white text-sm">Uploading...</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <ImageIcon className="w-12 h-12 text-zinc-500 mb-2" />
+                  <p className="text-zinc-400 mb-2">
+                    Drop an image here or click to browse
+                  </p>
+                  <p className="text-xs text-zinc-500 mb-4">
+                    JPEG, PNG, WebP, or GIF (max 5MB)
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Select Image
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -213,8 +370,12 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
             <Button variant="ghost" onClick={handleClose} className="text-zinc-300 hover:text-zinc-100">
               Cancel
             </Button>
-            <Button onClick={handlePublish} disabled={isPublishing} className="bg-orange-600 hover:bg-orange-700 text-white">
-              {isPublishing ? 'Publishing...' : 'Publish'}
+            <Button 
+              onClick={handlePublish} 
+              disabled={isPublishing || isUploading} 
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isPublishing ? 'Publishing...' : isUploading ? 'Uploading...' : 'Publish'}
             </Button>
           </div>
         </div>

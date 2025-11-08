@@ -12,7 +12,6 @@ export function ProfileProtectionButton() {
       router.push('/settings');
       toast.success('Navigated to Settings successfully!');
       window.dispatchEvent(new Event('dashboard:refresh'));
-      console.log('[ProfileProtectionButton] Manage Protection triggered, dashboard refresh dispatched');
     } catch (error) {
       console.error('[ProfileProtectionButton] Navigation error:', error);
       toast.error('Failed to navigate to Settings. Please try again.');

@@ -15,7 +15,6 @@ export default function GenerateTasksButton({ accountId }: { accountId: string }
         setStatus('success');
         toast.success('Weekly tasks generated successfully!');
         window.dispatchEvent(new Event('dashboard:refresh'));
-        console.log('[GenerateTasksButton] Weekly tasks generated, dashboard refresh dispatched');
       } catch (error) {
         console.error('[GenerateTasksButton] Error generating tasks:', error);
         setStatus('error');

@@ -34,7 +34,6 @@ export default function QuickActionCard({
         router.push(route);
       }
       window.dispatchEvent(new Event('dashboard:refresh'));
-      console.log(`[QuickActionCard] ${title} action triggered, dashboard refresh dispatched`);
     } catch (error) {
       console.error(`[QuickActionCard] Error during ${title} action:`, error);
     } finally {

@@ -14,7 +14,6 @@ export default function DashboardError({
       reset();
       window.dispatchEvent(new Event('dashboard:refresh'));
       toast.success('Dashboard reloaded successfully!');
-      console.log('[DashboardError] Try Again triggered');
     } catch (err) {
       console.error('[DashboardError] Retry failed:', err);
       toast.error('Failed to reload dashboard. Please try again.');

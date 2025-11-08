@@ -5,7 +5,6 @@ import { refreshAccessToken as refreshGoogleAccessToken } from '@/lib/gmb/helper
 import { revalidatePath } from 'next/cache';
 
 export async function disconnectLocation(locationId: string) {
-  console.log('[disconnectLocation] started');
   const supabase = await createClient();
 
   try {
@@ -52,9 +51,6 @@ export async function disconnectLocation(locationId: string) {
     revalidatePath('/locations');
     revalidatePath('/settings');
 
-    // إرجاع استجابة واضحة للواجهة الأمامية لتحديث الحالة فورًا
-    console.log('[disconnectLocation] finished successfully for', locationId);
-
     // إعادة تحديث الكاش العام بعد فصل الاتصال
     await supabase
       .from('gmb_locations')
@@ -74,14 +70,11 @@ export async function disconnectLocation(locationId: string) {
 }
 
 export async function refreshDashboard() {
-  console.log('[refreshDashboard] started');
   revalidatePath('/dashboard');
-  console.log('[refreshDashboard] completed successfully');
   return { success: true, message: 'Dashboard refreshed successfully' };
 }
 
 export async function syncLocation(locationId: string) {
-  console.log('[syncLocation] started for', locationId);
   const supabase = await createClient();
   
   try {
@@ -164,7 +157,6 @@ export async function syncLocation(locationId: string) {
     if (result.success) {
       revalidatePath('/dashboard');
       revalidatePath('/reviews');
-      console.log('[syncLocation] completed successfully');
       return { 
         success: true, 
         message: result.message || 'Location synced successfully' 
@@ -182,7 +174,6 @@ export async function syncLocation(locationId: string) {
 }
 
 export async function generateWeeklyTasks(locationId: string) {
-  console.log('[generateWeeklyTasks] started for', locationId);
   const supabase = await createClient();
   
   try {
@@ -286,7 +277,6 @@ export async function generateWeeklyTasks(locationId: string) {
       });
     }
     
-    console.log('[generateWeeklyTasks] completed successfully with', tasks.length, 'tasks');
     return {
       success: true,
       message: 'Weekly tasks generated successfully',
@@ -305,7 +295,6 @@ export async function getDashboardDataWithFilter(
   startDate?: string,
   endDate?: string
 ) {
-  console.log('[getDashboardDataWithFilter] started');
   const supabase = await createClient();
   
   try {
@@ -341,7 +330,6 @@ export async function getDashboardDataWithFilter(
       .select('*')
       .eq('user_id', user.id);
     
-    console.log('[getDashboardDataWithFilter] completed successfully');
     return {
       success: true,
       data: {

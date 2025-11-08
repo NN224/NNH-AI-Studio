@@ -6,7 +6,6 @@ export function WeeklyTasksButton() {
   const handleGenerate = () => {
     try {
       window.dispatchEvent(new Event('dashboard:refresh'));
-      console.log('[WeeklyTasksButton] Generate Weekly Tasks triggered');
     } catch (error) {
       console.error('[WeeklyTasksButton] Error during generation:', error);
     }

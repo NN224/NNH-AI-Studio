@@ -12,7 +12,6 @@ export function QuickActionButtons() {
       window.dispatchEvent(new Event('dashboard:refresh'));
       router.refresh();
       toast.success('All data synced successfully!');
-      console.log('[QuickActionButtons] Sync All triggered, dashboard refreshed');
     } catch (error) {
       console.error('[QuickActionButtons] Error during Sync All:', error);
       toast.error('Failed to sync data. Please try again.');

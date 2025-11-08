@@ -16,11 +16,9 @@ export function LocationDetailsButton({ locationId }: LocationDetailsButtonProps
       if (locationId) {
         router.push(`/locations/${locationId}`);
         toast.success('Navigated to location details successfully!');
-        console.log('[LocationDetailsButton] View Details triggered');
       } else {
         router.push('/locations');
         toast.success('Navigated to Locations successfully!');
-        console.log('[LocationDetailsButton] View All Locations triggered');
       }
       window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (error) {
