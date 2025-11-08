@@ -67,12 +67,13 @@ export function useGmbStatus(): UseGmbStatusResult {
         return;
       }
 
-      const arr = (accounts as GmbAccountRecord[]) || [];
-      const active = arr.find(a => a.is_active) || arr[0] || null;
+  const arr = (accounts as GmbAccountRecord[]) || [];
+  // Only treat as connected when there's an explicitly active account
+  const active = arr.find(a => a.is_active) || null;
 
       if (!mountedRef.current) return;
-      setActiveAccount(active || null);
-      setConnected(!!active);
+  setActiveAccount(active);
+  setConnected(!!active);
 
       if (active?.last_sync) {
         const d = new Date(active.last_sync);
