@@ -12,6 +12,9 @@ import { AccountConnectionTab } from "./account-connection-tab"
 import { GeneralSettingsTab } from "./general-settings-tab"
 import { AIAutomationTab } from "./ai-automation-tab"
 import { NotificationsTab } from "./notifications-tab"
+import { GMBAuditPanel } from "./gmb-audit-panel"
+import { SettingsTestPanel } from "./settings-test-panel"
+import { SecurityReviewPanel } from "./security-review-panel"
 
 export function GMBSettings() {
   const supabase = createClient()
@@ -241,6 +244,15 @@ export function GMBSettings() {
         {/* Data Management Tab */}
         <TabsContent value="data" className="space-y-6">
           <DataManagement accountId={gmbAccounts.find(acc => acc.is_active)?.id} />
+          
+          {/* Audit Panel */}
+          <GMBAuditPanel />
+          
+          {/* Settings Test Panel */}
+          <SettingsTestPanel />
+          
+          {/* Security Review Panel */}
+          <SecurityReviewPanel />
         </TabsContent>
       </Tabs>
 
