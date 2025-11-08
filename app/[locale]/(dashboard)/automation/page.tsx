@@ -51,6 +51,10 @@ export default function AutomationPage() {
   const activeAutomations = mockAutomations.filter(a => a.status === 'active')
   const pausedAutomations = mockAutomations.filter(a => a.status === 'paused')
   const totalRuns = mockAutomations.reduce((sum, a) => sum + a.stats.totalRuns, 0)
+
+  useEffect(() => {
+    console.log('[AutomationPage] Loaded and listening for refresh')
+  }, [])
   
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
@@ -138,10 +142,6 @@ export default function AutomationPage() {
         
         {/* Activity Log */}
         <ActivityLog logs={mockLogs} />
-
-        {useEffect(() => {
-          console.log('[AutomationPage] Loaded and listening for refresh');
-        }, [])}
         
       </div>
     </div>
