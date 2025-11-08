@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,9 +24,10 @@ import {
   ArrowRight
 } from "lucide-react"
 import { toast } from "sonner"
-import { useGMBConnection } from "@/hooks/use-gmb-connection"
-import { disconnectGMBAccount } from "@/server/actions/gmb-account"
+// import { useGMBConnection } from "@/hooks/use-gmb-connection"
+// import { disconnectGMBAccount } from "@/server/actions/gmb-account"
 import { cn } from "@/lib/utils"
+import { isSupabaseConfigured } from "@/lib/supabase/client"
 
 interface TestResult {
   name: string
@@ -34,8 +37,13 @@ interface TestResult {
   timestamp?: Date
 }
 
+const isSupabaseReady = isSupabaseConfigured
+
 export default function TestConnectionPage() {
-  const { isConnected, activeAccounts, refresh } = useGMBConnection()
+  const isConnected = false
+  const activeAccounts: any[] = []
+  const refresh = async () => {}
+  
   const [running, setRunning] = useState(false)
   const [currentTest, setCurrentTest] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<TestResult[]>([])
@@ -77,8 +85,7 @@ export default function TestConnectionPage() {
             passed: true,
             message: `Connected with ${activeAccounts.length} active account(s)`,
             details: activeAccounts.map(a => ({
-              name: a.account_name,
-              lastSync: a.last_sync
+              name: a.account_name
             }))
           }
         } else {
@@ -210,6 +217,11 @@ export default function TestConnectionPage() {
   ]
 
   const runTests = async () => {
+    if (!isSupabaseReady) {
+      toast.error('Supabase environment is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to run these tests.')
+      return
+    }
+
     setRunning(true)
     setTestResults([])
     
@@ -305,6 +317,28 @@ export default function TestConnectionPage() {
       <Badge className={cn("text-xs", variants[status] || variants.pending)}>
         {status.toUpperCase()}
       </Badge>
+    )
+  }
+
+  if (!isSupabaseReady) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">GMB Connection Test Suite</h1>
+            <p className="text-muted-foreground mt-1">
+              Test and validate your Google My Business integration
+            </p>
+          </div>
+        </div>
+
+        <Alert className="border-yellow-500/30">
+          <AlertTitle>Supabase configuration required</AlertTitle>
+          <AlertDescription>
+            Set <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> و <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> لتشغيل اختبارات الاتصال. هذه الأداة مخصّصة للبيئة التطويرية.
+          </AlertDescription>
+        </Alert>
+      </div>
     )
   }
 

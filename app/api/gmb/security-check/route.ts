@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -18,7 +22,7 @@ export async function GET() {
       httpsOnly: true, // Enforced by Next.js in production
       authRequired: true, // All GMB endpoints require auth
       rateLimiting: true, // Implemented via middleware
-      checks: []
+      checks: [] as any[]
     };
 
     // Check RLS on GMB tables

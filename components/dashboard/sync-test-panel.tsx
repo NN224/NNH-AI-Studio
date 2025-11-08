@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
 import { 
   RefreshCw, 
   Loader2, 
@@ -22,7 +23,7 @@ import {
   Activity
 } from "lucide-react"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
@@ -46,7 +47,8 @@ interface SyncTest {
 }
 
 export function SyncTestPanel() {
-  const supabase = createClient()
+  const isConfigured = isSupabaseConfigured
+  const supabase = isConfigured ? createClient() : null
   const sseRef = useRef<EventSource | null>(null)
   const [testing, setTesting] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -60,6 +62,8 @@ export function SyncTestPanel() {
 
   // Initialize account
   useEffect(() => {
+    if (!supabase) return
+
     const getAccount = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -147,6 +151,11 @@ export function SyncTestPanel() {
   }
 
   const runSyncTests = async () => {
+    if (!isConfigured || !supabase) {
+      toast.error('Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to run sync tests.')
+      return
+    }
+
     if (!accountId) {
       toast.error('No active GMB account found')
       return
@@ -334,6 +343,26 @@ export function SyncTestPanel() {
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />
     }
+  }
+
+  if (!isConfigured) {
+    return (
+      <Card className="bg-card border-primary/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Sync Functionality Test
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert className="border-yellow-500/30">
+            <AlertDescription>
+              Supabase environment variables are not configured. Set <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable sync tests.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

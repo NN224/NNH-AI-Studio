@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // This endpoint is used to test that authentication is properly enforced
 export async function GET() {
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // Check if user is authenticated
   const { data: { user }, error } = await supabase.auth.getUser();
