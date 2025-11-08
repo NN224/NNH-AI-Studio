@@ -431,6 +431,9 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen bg-zinc-950 p-4 md:p-6 lg:p-8">
+      {/* Auto-refresh on custom events */}
+      <RefreshOnEvent eventName="dashboard:refresh" />
+      
       <div className="max-w-7xl mx-auto space-y-6">
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
