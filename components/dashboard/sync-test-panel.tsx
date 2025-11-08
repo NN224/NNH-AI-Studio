@@ -59,6 +59,7 @@ export function SyncTestPanel() {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false)
   const [syncSchedule, setSyncSchedule] = useState('manual')
+  const syncPhasesRef = useRef<SyncPhase[]>([])
 
   // Initialize account
   useEffect(() => {
@@ -115,18 +116,20 @@ export function SyncTestPanel() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
+
           if (data.type === 'summary') {
             const phases = data.phases || []
-            setSyncPhases(phases.map((p: any) => ({
+            const mappedPhases = phases.map((p: any) => ({
               phase: p.phase,
               status: p.status,
               counts: p.last_counts,
               error: p.last_error
-            })))
-            
+            }))
+            syncPhasesRef.current = mappedPhases
+            setSyncPhases(mappedPhases)
+
             // Calculate progress
-            const completed = phases.filter((p: any) => 
+            const completed = phases.filter((p: any) =>
               p.status === 'completed' || p.status === 'skipped'
             ).length
             const total = phases.length
@@ -194,8 +197,9 @@ export function SyncTestPanel() {
       updateTestStatus('manual-sync', 'running')
       setSyncing(true)
       setSyncPhases([])
+      syncPhasesRef.current = []
       setSyncProgress(0)
-      
+
       startProgressStream(accountId)
       
       const syncResponse = await fetch('/api/gmb/sync', {
@@ -220,11 +224,32 @@ export function SyncTestPanel() {
 
       // Test 2: Progress Tracking
       updateTestStatus('progress-tracking', 'running')
-      
-      // Check if we received progress updates
-      if (syncPhases.length > 0) {
+
+      const receivedProgress = await new Promise<boolean>((resolve) => {
+        if (syncPhasesRef.current.length > 0) {
+          resolve(true)
+          return
+        }
+
+        let interval: ReturnType<typeof setInterval>
+
+        const timeout = setTimeout(() => {
+          clearInterval(interval)
+          resolve(false)
+        }, 5000)
+
+        interval = setInterval(() => {
+          if (syncPhasesRef.current.length > 0) {
+            clearTimeout(timeout)
+            clearInterval(interval)
+            resolve(true)
+          }
+        }, 200)
+      })
+
+      if (receivedProgress) {
         updateTestStatus('progress-tracking', 'passed', {
-          phasesTracked: syncPhases.length,
+          phasesTracked: syncPhasesRef.current.length,
           progressUpdates: true
         })
       } else {

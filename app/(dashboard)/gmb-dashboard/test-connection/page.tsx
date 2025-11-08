@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -24,7 +24,7 @@ import {
   ArrowRight
 } from "lucide-react"
 import { toast } from "sonner"
-// import { useGMBConnection } from "@/hooks/use-gmb-connection"
+import { useGMBConnection } from "@/hooks/use-gmb-connection"
 // import { disconnectGMBAccount } from "@/server/actions/gmb-account"
 import { cn } from "@/lib/utils"
 import { isSupabaseConfigured } from "@/lib/supabase/client"
@@ -38,15 +38,30 @@ interface TestResult {
 }
 
 const isSupabaseReady = isSupabaseConfigured
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export default function TestConnectionPage() {
-  const isConnected = false
-  const activeAccounts: any[] = []
-  const refresh = async () => {}
-  
+  const {
+    isConnected,
+    activeAccounts,
+    refresh,
+    isLoading
+  } = useGMBConnection()
+
   const [running, setRunning] = useState(false)
   const [currentTest, setCurrentTest] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<TestResult[]>([])
+
+  const activeAccountsRef = useRef(activeAccounts)
+  const isConnectedRef = useRef(isConnected)
+
+  useEffect(() => {
+    activeAccountsRef.current = activeAccounts
+  }, [activeAccounts])
+
+  useEffect(() => {
+    isConnectedRef.current = isConnected
+  }, [isConnected])
 
   // Test scenarios
   const testScenarios = [
@@ -79,12 +94,16 @@ export default function TestConnectionPage() {
       description: 'Verify current connection state',
       test: async () => {
         await refresh()
-        
-        if (isConnected && activeAccounts.length > 0) {
+        await wait(250)
+
+        const hasConnection = isConnectedRef.current
+        const accounts = activeAccountsRef.current
+
+        if (hasConnection && accounts.length > 0) {
           return {
             passed: true,
-            message: `Connected with ${activeAccounts.length} active account(s)`,
-            details: activeAccounts.map(a => ({
+            message: `Connected with ${accounts.length} active account(s)`,
+            details: accounts.map(a => ({
               name: a.account_name
             }))
           }
@@ -92,7 +111,7 @@ export default function TestConnectionPage() {
           return {
             passed: false,
             message: 'No active GMB connection found',
-            details: { isConnected, accountCount: activeAccounts.length }
+            details: { isConnected: hasConnection, accountCount: accounts.length }
           }
         }
       }
@@ -102,14 +121,16 @@ export default function TestConnectionPage() {
       name: 'Validate Tokens',
       description: 'Check token expiration and refresh capability',
       test: async () => {
-        if (!activeAccounts.length) {
+        const accounts = activeAccountsRef.current
+
+        if (!accounts.length) {
           return {
             passed: false,
             message: 'No active accounts to test'
           }
         }
 
-        const account = activeAccounts[0]
+        const account = accounts[0]
         const response = await fetch('/api/gmb/validate-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -141,14 +162,16 @@ export default function TestConnectionPage() {
       name: 'Test Data Sync',
       description: 'Perform a test sync operation',
       test: async () => {
-        if (!activeAccounts.length) {
+        const accounts = activeAccountsRef.current
+
+        if (!accounts.length) {
           return {
             passed: false,
             message: 'No active accounts to sync'
           }
         }
 
-        const account = activeAccounts[0]
+        const account = accounts[0]
         const response = await fetch('/api/gmb/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -224,59 +247,65 @@ export default function TestConnectionPage() {
 
     setRunning(true)
     setTestResults([])
-    
+
+    const scenarioResults: TestResult[] = []
+
     for (const scenario of testScenarios) {
       setCurrentTest(scenario.id)
-      
+
       // Initialize test result
-      setTestResults(prev => [...prev, {
+      const runningResult: TestResult = {
         name: scenario.name,
         status: 'running',
         timestamp: new Date()
-      }])
-      
+      }
+      scenarioResults.push(runningResult)
+      setTestResults([...scenarioResults])
+
       try {
         // Run the test
         const result = await scenario.test()
-        
+
         // Update result
-        setTestResults(prev => prev.map(r => 
-          r.name === scenario.name 
-            ? {
-                ...r,
-                status: result.passed ? 'passed' : 'failed',
-                message: result.message,
-                details: result.details,
-                timestamp: new Date()
-              }
-            : r
-        ))
-        
+        const updatedResult: TestResult = {
+          ...runningResult,
+          status: result.passed ? 'passed' : 'failed',
+          message: result.message,
+          details: result.details,
+          timestamp: new Date()
+        }
+        const index = scenarioResults.findIndex(r => r.name === scenario.name)
+        if (index !== -1) {
+          scenarioResults[index] = updatedResult
+        }
+        setTestResults([...scenarioResults])
+
         // Small delay between tests
         await new Promise(resolve => setTimeout(resolve, 500))
-        
+
       } catch (error: any) {
         // Handle test error
-        setTestResults(prev => prev.map(r => 
-          r.name === scenario.name 
-            ? {
-                ...r,
-                status: 'failed',
-                message: error.message || 'Test failed',
-                details: { error: error.toString() },
-                timestamp: new Date()
-              }
-            : r
-        ))
+        const failedResult: TestResult = {
+          ...runningResult,
+          status: 'failed',
+          message: error.message || 'Test failed',
+          details: { error: error.toString() },
+          timestamp: new Date()
+        }
+        const index = scenarioResults.findIndex(r => r.name === scenario.name)
+        if (index !== -1) {
+          scenarioResults[index] = failedResult
+        }
+        setTestResults([...scenarioResults])
       }
     }
-    
+
     setCurrentTest(null)
     setRunning(false)
-    
+
     // Show summary
-    const passed = testResults.filter(r => r.status === 'passed').length
-    const failed = testResults.filter(r => r.status === 'failed').length
+    const passed = scenarioResults.filter(r => r.status === 'passed').length
+    const failed = scenarioResults.filter(r => r.status === 'failed').length
     
     if (failed === 0) {
       toast.success('All tests passed!', {
@@ -354,7 +383,7 @@ export default function TestConnectionPage() {
         </div>
         <Button
           onClick={runTests}
-          disabled={running}
+          disabled={running || isLoading}
           size="lg"
           className="gap-2"
         >
