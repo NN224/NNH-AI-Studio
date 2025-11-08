@@ -1,11 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import { Providers } from "./providers"
 import { Toaster } from "sonner"
 import "./globals.css"
-
-const inter = Inter({ subsets: ["latin"] })
 
 const getBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
@@ -42,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html className="dark" lang="en" dir="ltr">
-      <body className={inter.className}>
+      <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>
           {children}
           <Toaster position="top-right" richColors closeButton />
