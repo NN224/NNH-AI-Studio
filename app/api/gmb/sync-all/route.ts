@@ -10,7 +10,7 @@ const SYNC_COOLDOWN_MS = 60000; // 60 seconds between syncs
 
 const GOOGLE_LOCATIONS_ENDPOINT = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const READ_MASK =
-  'name,title,storefrontAddress,phoneNumbers,categories,websiteUri,latlng,metadata';
+  'name,title,storefrontAddress,phoneNumbers,categories,websiteUri,regularHours,profile';
 const PAGE_SIZE = 100;
 
 type GoogleLocation = {
@@ -22,25 +22,25 @@ type GoogleLocation = {
     locality?: string;
     administrativeArea?: string;
     postalCode?: string;
+    regionCode?: string;
+    latlng?: {
+      latitude?: number;
+      longitude?: number;
+    };
   };
   phoneNumbers?: {
     primaryPhone?: string;
+    additionalPhones?: string[];
   };
   categories?: {
     primaryCategory?: {
       displayName?: string;
     };
+    additionalCategories?: { displayName?: string }[];
   };
   websiteUri?: string;
-  latlng?: {
-    latitude?: number;
-    longitude?: number;
-  };
-  metadata?: {
-    averageRating?: number;
-    reviewCount?: number;
-    [key: string]: any;
-  };
+  regularHours?: Record<string, unknown>;
+  profile?: Record<string, unknown>;
   [key: string]: any;
 };
 
@@ -56,6 +56,7 @@ function formatAddress(addr: GoogleLocation['storefrontAddress']) {
     addr.locality,
     addr.administrativeArea,
     addr.postalCode,
+    addr.regionCode,
   ]
     .filter(Boolean)
     .join(', ');
@@ -293,23 +294,40 @@ export async function POST(req: Request) {
       });
     }
 
-    const locationRows = locations.map((loc) => ({
-      gmb_account_id: account.id,
-      user_id: user.id,
-      location_id: loc.name,
-      location_name: loc.title || loc.locationName || 'Unnamed Location',
-      address: formatAddress(loc.storefrontAddress),
-      phone: loc.phoneNumbers?.primaryPhone || null,
-      category: loc.categories?.primaryCategory?.displayName || null,
-      website: loc.websiteUri || null,
-      latitude: loc.latlng?.latitude ?? null,
-      longitude: loc.latlng?.longitude ?? null,
-      rating: loc.metadata?.averageRating ?? null,
-      review_count: loc.metadata?.reviewCount ?? null,
-      is_active: true,
-      metadata: loc,
-      updated_at: new Date().toISOString(),
-    }));
+    const locationRows = locations.map((loc) => {
+      const address = formatAddress(loc.storefrontAddress);
+      const latlng = loc.storefrontAddress?.latlng;
+      const phone =
+        loc.phoneNumbers?.primaryPhone || loc.phoneNumbers?.additionalPhones?.[0] || null;
+      const category =
+        loc.categories?.primaryCategory?.displayName ||
+        loc.categories?.additionalCategories?.[0]?.displayName ||
+        null;
+
+      const metadata = {
+        profile: loc.profile ?? null,
+        categories: loc.categories ?? null,
+        regularHours: loc.regularHours ?? null,
+      };
+
+      return {
+        gmb_account_id: account.id,
+        user_id: user.id,
+        location_id: loc.name,
+        location_name: loc.title || 'Unnamed Location',
+        address,
+        phone,
+        category,
+        website: loc.websiteUri || null,
+        latitude: latlng?.latitude ?? null,
+        longitude: latlng?.longitude ?? null,
+        business_hours: loc.regularHours ? JSON.stringify(loc.regularHours) : null,
+        is_active: true,
+        metadata,
+        updated_at: new Date().toISOString(),
+        last_synced_at: new Date().toISOString(),
+      };
+    });
 
     const chunkSize = 50;
     for (const chunk of chunkArray(locationRows, chunkSize)) {
