@@ -181,8 +181,6 @@ export function GridPointDetails({ gridData }: { gridData: any }) {
   );
 }
 
-'use client';
-
 import { useEffect } from 'react';
 
 export function RankingTrends({ trends }: { trends: { date: string; avg: number }[] }) {
