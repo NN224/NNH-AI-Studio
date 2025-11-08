@@ -4,6 +4,10 @@ import { refreshAccessToken as refreshGoogleAccessToken } from '@/lib/gmb/helper
 
 export const dynamic = 'force-dynamic';
 
+// Rate limiting cache - prevents too frequent syncs
+const lastSyncTimes = new Map<string, number>();
+const SYNC_COOLDOWN_MS = 60000; // 60 seconds between syncs
+
 const GOOGLE_LOCATIONS_ENDPOINT = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const READ_MASK =
   'name,title,storefrontAddress,phoneNumbers,categories,websiteUri,latlng,metadata';
@@ -174,6 +178,28 @@ export async function POST(req: Request) {
         { status: authError?.status || 401 },
       );
     }
+
+    const nowRate = Date.now();
+    const lastSyncTime = lastSyncTimes.get(user.id) || 0;
+    const timeSinceLastSync = nowRate - lastSyncTime;
+
+    if (timeSinceLastSync < SYNC_COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((SYNC_COOLDOWN_MS - timeSinceLastSync) / 1000);
+      console.log(`[GMB Sync-All] Rate limited. User must wait ${remainingSeconds} more seconds`);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Please wait ${remainingSeconds} seconds before syncing again`,
+          cooldownRemaining: remainingSeconds,
+          rateLimited: true,
+        },
+        { status: 429 },
+      );
+    }
+
+    lastSyncTimes.set(user.id, nowRate);
+    console.log(`[GMB Sync-All] Rate limit check passed. Starting sync for user ${user.id}`);
 
     const {
       data: account,

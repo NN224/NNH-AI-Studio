@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { refreshDashboard, syncLocation, generateWeeklyTasks, disconnectLocation } from './actions';
-import { RefreshCw, Calendar } from 'lucide-react';
+import { RefreshCw, Calendar, Clock } from 'lucide-react';
 import { ReviewsQuickActionModal } from '@/components/dashboard/ReviewsQuickActionModal';
 import { QuestionsQuickActionModal } from '@/components/dashboard/QuestionsQuickActionModal';
 import { CreatePostModal } from '@/components/dashboard/CreatePostModal';
@@ -16,93 +16,147 @@ import { toast } from 'sonner';
 export function RefreshButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  
-  const handleRefresh = async () => {
-    setLoading(true);
-    setProgress(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 100);
-    
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(
+        () => setCooldownSeconds((prev) => Math.max(0, prev - 1)),
+        1000,
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownSeconds]);
+
+  const handleRefresh = async () => {
+    if (loading || cooldownSeconds > 0) return;
+
+    setLoading(true);
+
     try {
       await refreshDashboard();
-      setProgress(100);
       toast.success('✅ Dashboard refreshed successfully!');
+
+      setCooldownSeconds(10);
+
       window.dispatchEvent(new Event('dashboard:refresh'));
       router.refresh();
     } catch (error) {
-      console.error('[handleRefresh] Error:', error);
+      console.error('[RefreshButton] Error:', error);
       toast.error('❌ Failed to refresh dashboard');
     } finally {
-      clearInterval(progressInterval);
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 500);
+      setLoading(false);
     }
   };
-  
+
+  const isDisabled = loading || cooldownSeconds > 0;
+
   return (
-    <div className="relative">
-      <Button
-        onClick={handleRefresh}
-        disabled={loading}
-        size="sm"
-        className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 relative overflow-hidden"
-      >
-        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-        {loading ? 'Refreshing...' : 'Refresh Now'}
-        {loading && (
-          <div
-            className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        )}
-      </Button>
-    </div>
+    <Button
+      onClick={handleRefresh}
+      disabled={isDisabled}
+      size="sm"
+      className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {loading ? (
+        <>
+          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          Refreshing...
+        </>
+      ) : cooldownSeconds > 0 ? (
+        <>
+          <Clock className="w-4 h-4 mr-2" />
+          {cooldownSeconds}s
+        </>
+      ) : (
+        <>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh Now
+        </>
+      )}
+    </Button>
   );
 }
 
 export function SyncAllButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds > 0) {
+      const timer = setTimeout(
+        () => setCooldownSeconds((prev) => Math.max(0, prev - 1)),
+        1000,
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownSeconds]);
 
   const handleSyncAll = async () => {
+    if (loading || cooldownSeconds > 0) {
+      return;
+    }
+
     setLoading(true);
+
     try {
       const response = await fetch('/api/gmb/sync-all', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       const data = await response.json();
 
+      if (response.status === 429 && data.rateLimited) {
+        toast.error(`⏳ ${data.error}`);
+        setCooldownSeconds(data.cooldownRemaining || 60);
+        setLoading(false);
+        return;
+      }
+
       if (data.success) {
         toast.success(`✅ ${data.message || 'Locations synced successfully!'}`);
+
+        setCooldownSeconds(60);
+
         window.dispatchEvent(new Event('dashboard:refresh'));
         router.refresh();
       } else {
         toast.error(`❌ ${data.error || 'Failed to sync locations'}`);
       }
     } catch (error) {
-      console.error('[SyncAllButton] Error:', error);
-      toast.error('❌ An error occurred while syncing');
+      console.error('[SyncAllButton] Network error:', error);
+      toast.error('❌ Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
+  const isDisabled = loading || cooldownSeconds > 0;
+
   return (
     <Button
       onClick={handleSyncAll}
-      disabled={loading}
-      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6"
+      disabled={isDisabled}
+      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+      title={
+        cooldownSeconds > 0
+          ? `Wait ${cooldownSeconds} seconds`
+          : 'Sync all locations from Google'
+      }
     >
       {loading ? (
         <>
           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
           Syncing...
+        </>
+      ) : cooldownSeconds > 0 ? (
+        <>
+          <Clock className="w-4 h-4 mr-2" />
+          Wait {cooldownSeconds}s
         </>
       ) : (
         <>
