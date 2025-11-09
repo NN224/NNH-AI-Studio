@@ -742,7 +742,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
     // Fetch all reviews from Google with pagination support
     const allReviews: any[] = []
     let nextPageToken: string | undefined = undefined
-    const pageSize = 50 // Google's recommended page size
+    const pageSize = 50 // Google's recommended page size for reviews API
 
     do {
       // Build endpoint with pagination parameters
