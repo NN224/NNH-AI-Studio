@@ -683,6 +683,7 @@ export async function syncQuestionsFromGoogle(locationId: string) {
         location_id,
         gmb_account_id,
         user_id,
+        metadata,
         gmb_accounts!inner(id, account_id)
       `
       )
@@ -731,9 +732,14 @@ export async function syncQuestionsFromGoogle(locationId: string) {
           error: "Location not found on Google.",
         };
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[Questions] Google API error:", {
+          status: response.status,
+          error: errorData,
+        });
         return {
           success: false,
-          error: "Failed to fetch questions from Google",
+          error: errorData?.error?.message || "Failed to fetch questions from Google",
         };
       }
     }
@@ -742,6 +748,18 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     const questions = data.questions || [];
 
     if (questions.length === 0) {
+      // Update location sync time even if no questions found
+      await supabase
+        .from("gmb_locations")
+        .update({
+          metadata: {
+            ...location.metadata,
+            last_questions_sync: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", locationId);
+
       return {
         success: true,
         message: "No questions found",
@@ -749,22 +767,27 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       };
     }
 
-    let synced = 0;
-
-    // Upsert each question
-    for (const googleQuestion of questions) {
+    // Prepare all questions for batch upsert
+    const syncTime = new Date().toISOString();
+    const questionsToUpsert = questions.map((googleQuestion: any) => {
       const questionId = googleQuestion.name?.split("/").pop() || null;
       const topAnswer = googleQuestion.topAnswers?.[0] || null;
       const answerId = topAnswer?.name?.split("/").pop() || null;
 
-      const questionData = {
+      // Determine status based on answer presence
+      // If there's an answer, status is "answered", otherwise "pending"
+      const hasAnswer = !!topAnswer?.text;
+      const answerStatus = hasAnswer ? "answered" : "unanswered";
+      const status = hasAnswer ? "answered" : "pending";
+
+      return {
         user_id: user.id,
         location_id: locationId,
-        gmb_account_id: location.gmb_account_id,
+        gmb_account_id: location.gmb_account_id, // Always include gmb_account_id
         question_id: questionId,
         external_question_id: questionId, // Keep for backward compatibility
         question_text: googleQuestion.text || "",
-        asked_at: googleQuestion.createTime || new Date().toISOString(),
+        asked_at: googleQuestion.createTime || syncTime,
         author_name: googleQuestion.author?.displayName || "Anonymous",
         author_display_name: googleQuestion.author?.displayName || null,
         author_profile_photo_url: googleQuestion.author?.profilePhotoUrl || null,
@@ -772,35 +795,55 @@ export async function syncQuestionsFromGoogle(locationId: string) {
         answer_text: topAnswer?.text || null,
         answered_at: topAnswer?.updateTime || null,
         answered_by: topAnswer?.author?.displayName || null,
-        answer_status: topAnswer ? "answered" : "unanswered",
+        answer_status: answerStatus,
         answer_id: answerId,
         upvote_count: googleQuestion.upvoteCount || 0,
         total_answer_count: googleQuestion.totalAnswerCount || 0,
         google_resource_name: googleQuestion.name || null,
-        status: topAnswer ? "answered" : "pending",
-        synced_at: new Date().toISOString(),
+        status: status,
+        synced_at: syncTime,
+        updated_at: syncTime,
       };
+    });
 
-      const { error: upsertError } = await supabase
-        .from("gmb_questions")
-        .upsert(questionData, {
-          onConflict: "question_id",
-          ignoreDuplicates: false,
-        });
+    // Batch upsert all questions at once
+    const { data: upsertedData, error: upsertError } = await supabase
+      .from("gmb_questions")
+      .upsert(questionsToUpsert, {
+        onConflict: "question_id",
+        ignoreDuplicates: false,
+      })
+      .select("id");
 
-      if (!upsertError) {
-        synced++;
-      } else {
-        console.error("[Questions] Upsert error:", upsertError);
-      }
+    if (upsertError) {
+      console.error("[Questions] Batch upsert error:", upsertError);
+      return {
+        success: false,
+        error: `Failed to sync questions: ${upsertError.message}`,
+      };
     }
+
+    const synced = upsertedData?.length || questionsToUpsert.length;
+
+    // Update location metadata with sync time
+    await supabase
+      .from("gmb_locations")
+      .update({
+        metadata: {
+          ...location.metadata,
+          last_questions_sync: syncTime,
+          total_questions: synced,
+        },
+        updated_at: syncTime,
+      })
+      .eq("id", locationId);
 
     revalidatePath("/dashboard");
     revalidatePath("/questions");
 
     return {
       success: true,
-      message: `Synced ${synced} questions`,
+      message: `Synced ${synced} questions successfully`,
       data: { synced },
     };
   } catch (error: any) {
