@@ -797,6 +797,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
     const reviewsToUpsert = allReviews.map((googleReview) => ({
       location_id: locationId,
       user_id: user.id,
+      gmb_account_id: location.gmb_account_id,
       external_review_id: googleReview.reviewId || googleReview.name?.split("/").pop(),
       rating:
         googleReview.starRating === "FIVE"
