@@ -181,7 +181,9 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {locations.map((loc) => (
+                {locations
+                  .filter((loc) => loc.id && loc.id.trim() !== '')
+                  .map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.location_name}
                   </SelectItem>

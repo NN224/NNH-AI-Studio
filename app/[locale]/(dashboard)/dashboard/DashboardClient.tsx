@@ -101,7 +101,7 @@ export function SyncAllButton() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/gmb/sync-all', {
+      const response = await fetch('/api/gmb/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

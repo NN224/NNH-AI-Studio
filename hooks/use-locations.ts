@@ -188,8 +188,10 @@ export function useLocations(
         total: count || 0 
       });
 
-      // Transform data to Location type
-      const transformedLocations: Location[] = (data || []).map((loc: any) => ({
+      // Transform data to Location type (skip records without valid IDs)
+      const transformedLocations: Location[] = (data || [])
+        .filter((loc: any) => loc?.id && String(loc.id).trim() !== '')
+        .map((loc: any) => ({
         id: loc.id,
         name: loc.location_name || 'Unnamed Location',
         address: loc.address || undefined,
