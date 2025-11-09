@@ -100,11 +100,12 @@ export function buildLocationResourceName(
   accountId: string,
   locationId: string
 ): string {
+  const cleanAccountId = accountId.replace(/^accounts\//, '');
   // Remove any existing prefix from locationId if present
   const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, '');
   
   // Return full resource path
-  return `accounts/${accountId}/locations/${cleanLocationId}`;
+  return `accounts/${cleanAccountId}/locations/${cleanLocationId}`;
 }
 
 /**
