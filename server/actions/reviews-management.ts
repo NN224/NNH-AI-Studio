@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import {
   buildLocationResourceName,
-  getValidAccessToken as ensureValidToken,
+  getValidAccessToken,
   GMB_CONSTANTS,
 } from "@/lib/gmb/helpers"
 
@@ -213,7 +213,7 @@ export async function replyToReview(reviewId: string, replyText: string) {
       }
     }
 
-    const accessToken = await ensureValidToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Call Google My Business API
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}:reply`
@@ -371,7 +371,7 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       }
     }
 
-    const accessToken = await ensureValidToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, account.id)
 
     // Call Google API to update reply
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`
@@ -695,7 +695,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
       }
     }
 
-    const accessToken = await ensureValidToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, account.id)
 
     const locationResource = buildLocationResourceName(
       account.account_id,
