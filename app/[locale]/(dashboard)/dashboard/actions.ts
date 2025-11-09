@@ -86,56 +86,83 @@ async function fetchLocationForUser(
   return adminLocation as LocationWithAccount;
 }
 
-export async function disconnectLocation(locationId: string) {
+interface DisconnectLocationResult {
+  success: boolean;
+  error?: string;
+  message?: string;
+  data?: {
+    disconnectedId: string;
+    accountId?: string;
+  };
+}
+
+/**
+ * Disconnect GMB location (deprecated - use disconnectGMBAccount instead)
+ * This function now properly disconnects the entire GMB account associated with the location
+ * to ensure complete cleanup of credentials and data.
+ */
+export async function disconnectLocation(locationId: string): Promise<DisconnectLocationResult> {
   const supabase = await createClient();
   const adminClient = createAdminClient();
 
   try {
-    // التحقق من هوية المستخدم
+    // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return { success: false, error: 'User not authenticated.' };
     }
 
+    // Get location and its associated account
     const location = await fetchLocationForUser(supabase, adminClient, locationId, user.id);
     if (!location) {
       return { success: false, error: 'Location not found or unauthorized.' };
     }
 
-    // تعطيل الموقع وحذف الرموز المرتبطة به
-    const { error: updateError } = await supabase
-      .from('gmb_locations')
-      .update({
-        is_active: false,
-        access_token: null,
-        refresh_token: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', locationId)
-      .eq('user_id', user.id);
+    // Get the GMB account ID from the location
+    const accountId = (location as any).account_id || (location as any).gmb_accounts?.id;
+    
+    if (!accountId) {
+      // Fallback: if no account ID, just deactivate the location
+      const { error: updateError } = await supabase
+        .from('gmb_locations')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', locationId)
+        .eq('user_id', user.id);
 
-    if (updateError) {
-      return { success: false, error: updateError.message || 'Failed to disconnect location.' };
+      if (updateError) {
+        return { success: false, error: updateError.message || 'Failed to disconnect location.' };
+      }
+
+      revalidatePath('/dashboard');
+      revalidatePath('/locations');
+      revalidatePath('/settings');
+
+      return { 
+        success: true, 
+        message: 'Location disconnected successfully', 
+        data: { disconnectedId: locationId } 
+      };
     }
 
-    // حذف البيانات المرتبطة بالموقع لتجنب تضارب البيانات
-    await supabase.from('gmb_reviews').delete().eq('location_id', locationId);
-    await supabase.from('gmb_questions').delete().eq('location_id', locationId);
+    // Use the comprehensive disconnectGMBAccount function
+    const { disconnectGMBAccount } = await import('@/server/actions/gmb-account');
+    const result = await disconnectGMBAccount(accountId, 'keep');
+    
+    if (result.success) {
+      return { 
+        success: true, 
+        message: result.message || 'Location and account disconnected successfully',
+        data: { disconnectedId: locationId, accountId }
+      };
+    }
 
-    // إعادة تحديث الصفحات ذات الصلة
-    revalidatePath('/dashboard');
-    revalidatePath('/locations');
-    revalidatePath('/settings');
-
-    // إعادة تحديث الكاش العام بعد فصل الاتصال
-    await supabase
-      .from('gmb_locations')
-      .update({ is_active: false })
-      .eq('id', locationId);
-
-    revalidatePath('/'); // تحديث الكاش العام
-
-    return { success: true, message: `${location.location_name} disconnected successfully`, data: { disconnectedId: locationId } };
+    return { 
+      success: false, 
+      error: result.error || 'Failed to disconnect account'
+    };
   } catch (error) {
     console.error('[disconnectLocation] Error:', error);
     return {
