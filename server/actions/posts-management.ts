@@ -4,8 +4,21 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import type { GMBPost } from "@/lib/types/database"
+import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 
-const GMB_API_BASE = "https://mybusiness.googleapis.com/v4"
+const BUSINESS_INFORMATION_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE
+const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE
+
+function normalizeLocationResource(locationId: string): string {
+  const clean = locationId.replace(/^accounts\/[^/]+\/locations\//, "").replace(/^locations\//, "")
+  return `locations/${clean}`
+}
+
+function buildV4LocationResource(accountId: string, locationId: string): string {
+  const cleanAccountId = accountId.replace(/^accounts\//, "")
+  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "")
+  return `accounts/${cleanAccountId}/locations/${cleanLocationId}`
+}
 
 // Validation schemas
 const CreatePostSchema = z.object({
@@ -40,60 +53,6 @@ const FilterSchema = z.object({
   limit: z.number().min(1).max(100).optional(),
   offset: z.number().min(0).optional(),
 })
-
-/**
- * Get valid access token with refresh logic
- */
-async function getValidAccessToken(
-  supabase: any,
-  accountId: string
-): Promise<string> {
-  const { data: account, error } = await supabase
-    .from("gmb_accounts")
-    .select("access_token, refresh_token, expires_at")
-    .eq("id", accountId)
-    .single()
-
-  if (error || !account) {
-    throw new Error("GMB account not found")
-  }
-
-  const now = Date.now()
-  const expiresAt = account.expires_at ? new Date(account.expires_at).getTime() : 0
-
-  if (expiresAt > now + 5 * 60 * 1000) {
-    return account.access_token
-  }
-
-  // Refresh token
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: account.refresh_token,
-      grant_type: "refresh_token",
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error("Failed to refresh token. Please reconnect your Google account.")
-  }
-
-  const tokens = await response.json()
-  const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000)
-
-  await supabase
-    .from("gmb_accounts")
-    .update({
-      access_token: tokens.access_token,
-      expires_at: newExpiresAt.toISOString(),
-    })
-    .eq("id", accountId)
-
-  return tokens.access_token
-}
 
 /**
  * Map post type to Google's topic type
@@ -258,13 +217,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
         id,
         location_id,
         gmb_account_id,
-        gmb_accounts!inner(
-          id,
-          account_id,
-          access_token,
-          refresh_token,
-          expires_at
-        )
+        gmb_accounts!inner(id, account_id)
       `
       )
       .eq("id", validatedData.locationId)
@@ -278,14 +231,14 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       }
     }
 
-    const account = Array.isArray(location.gmb_accounts) 
-      ? location.gmb_accounts[0] 
-      : location.gmb_accounts
-      
-    if (!account) {
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null
+
+    if (!location.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       }
     }
 
@@ -323,7 +276,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     }
 
     // Publish immediately
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     // Prepare post data for Google API
     const postData: any = {
@@ -394,7 +347,8 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     // Call Google My Business API (only for whats_new posts)
     let googleResult = null
     if (validatedData.postType === "whats_new") {
-      const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/localPosts`
+      const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
+      const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`
 
       const response = await fetch(gmbApiUrl, {
         method: "POST",
@@ -528,13 +482,7 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -578,24 +526,37 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
     }
 
     // If post is published and we're updating content, update on Google too
-    if (post.status === "published" && post.provider_post_id && validatedData.description) {
-      const location = post.gmb_locations
-      const account = Array.isArray(location.gmb_accounts)
-        ? location.gmb_accounts[0]
-        : location.gmb_accounts
+    const shouldSyncToGoogle =
+      post.status === "published" &&
+      post.provider_post_id &&
+      (validatedData.description !== undefined ||
+        validatedData.mediaUrl !== undefined ||
+        validatedData.ctaType !== undefined ||
+        validatedData.ctaUrl !== undefined)
 
-      if (account) {
+    if (shouldSyncToGoogle) {
+      const location = Array.isArray(post.gmb_locations)
+        ? post.gmb_locations[0]
+        : post.gmb_locations
+      const account =
+        (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+        null
+
+      if (location?.gmb_account_id && account?.account_id) {
         try {
-          const accessToken = await getValidAccessToken(supabase, account.id)
-          const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/localPosts/${post.provider_post_id}`
+          const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+          const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
+          const postResourceUrl = new URL(
+            `${GMB_V4_BASE}/${locationResourceV4}/localPosts/${post.provider_post_id}`
+          )
 
           const postData: any = {
             languageCode: "en",
-            summary: validatedData.description,
+            summary: validatedData.description ?? post.content,
             topicType: mapPostType(post.post_type),
           }
 
-          if (validatedData.mediaUrl) {
+          if (validatedData.mediaUrl !== undefined) {
             postData.media = [
               {
                 mediaFormat: "PHOTO",
@@ -611,8 +572,17 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
             }
           }
 
-          const response = await fetch(gmbApiUrl, {
-            method: "PUT",
+          const updateMask: string[] = []
+          if (postData.summary) updateMask.push("summary")
+          if (postData.media) updateMask.push("media")
+          if (postData.callToAction) updateMask.push("callToAction")
+
+          if (updateMask.length > 0) {
+            postResourceUrl.searchParams.set("updateMask", updateMask.join(","))
+          }
+
+          const response = await fetch(postResourceUrl.toString(), {
+            method: "PATCH",
             headers: {
               Authorization: `Bearer ${accessToken}`,
               "Content-Type": "application/json",
@@ -684,13 +654,7 @@ export async function deletePost(postId: string) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -705,16 +669,19 @@ export async function deletePost(postId: string) {
       }
     }
 
-    const location = post.gmb_locations
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const location = Array.isArray(post.gmb_locations)
+      ? post.gmb_locations[0]
+      : post.gmb_locations
+    const account =
+      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+      null
 
     // Delete from Google if published
-    if (post.status === "published" && post.provider_post_id && account) {
+    if (post.status === "published" && post.provider_post_id && location?.gmb_account_id && account?.account_id) {
       try {
-        const accessToken = await getValidAccessToken(supabase, account.id)
-        const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/localPosts/${post.provider_post_id}`
+        const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+        const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
+        const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts/${post.provider_post_id}`
 
         const response = await fetch(gmbApiUrl, {
           method: "DELETE",
@@ -798,13 +765,7 @@ export async function publishPost(postId: string) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -834,19 +795,21 @@ export async function publishPost(postId: string) {
       }
     }
 
-    const location = post.gmb_locations
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const location = Array.isArray(post.gmb_locations)
+      ? post.gmb_locations[0]
+      : post.gmb_locations
+    const account =
+      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+      null
 
-    if (!account) {
+    if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       }
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     // Prepare post data for Google API
     const postData: any = {
@@ -871,8 +834,9 @@ export async function publishPost(postId: string) {
       }
     }
 
-    // Call Google My Business API
-    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/localPosts`
+    // Call Google Business Profile API (Business Information v1)
+    const locationResource = normalizeLocationResource(location.location_id)
+    const gmbApiUrl = `${BUSINESS_INFORMATION_BASE}/${locationResource}/localPosts`
 
     const response = await fetch(gmbApiUrl, {
       method: "POST",
@@ -980,13 +944,7 @@ export async function syncPostsFromGoogle(locationId?: string) {
         id,
         location_id,
         gmb_account_id,
-        gmb_accounts!inner(
-          id,
-          account_id,
-          access_token,
-          refresh_token,
-          expires_at
-        )
+        gmb_accounts!inner(id, account_id)
       `
       )
       .eq("user_id", user.id)
@@ -1009,15 +967,16 @@ export async function syncPostsFromGoogle(locationId?: string) {
     let totalSynced = 0
 
     for (const location of locations) {
-      const account = Array.isArray(location.gmb_accounts)
-        ? location.gmb_accounts[0]
-        : location.gmb_accounts
+      const account =
+        (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+        null
 
-      if (!account) continue
+      if (!location.gmb_account_id || !account?.account_id) continue
 
       try {
-        const accessToken = await getValidAccessToken(supabase, account.id)
-        const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/localPosts`
+        const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+        const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
+        const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`
 
         const response = await fetch(gmbApiUrl, {
           headers: {

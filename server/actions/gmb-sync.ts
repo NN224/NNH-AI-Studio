@@ -2,8 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import { syncReviews } from "./gmb-reviews"
-import { syncQuestions } from "./gmb-questions"
+import { syncReviewsFromGoogle as syncReviews } from "./reviews-management"
+import { syncQuestionsFromGoogle as syncQuestions } from "./questions-management"
 
 /**
  * Comprehensive sync for a location
@@ -48,7 +48,7 @@ export async function syncLocation(locationId: string) {
     // Sync reviews
     const reviewsResult = await syncReviews(locationId)
     if (reviewsResult.success) {
-      results.reviews.synced = reviewsResult.syncedCount || 0
+      results.reviews.synced = reviewsResult.data?.synced ?? 0
     } else {
       results.reviews.error = reviewsResult.error
     }
@@ -56,7 +56,7 @@ export async function syncLocation(locationId: string) {
     // Sync questions
     const questionsResult = await syncQuestions(locationId)
     if (questionsResult.success) {
-      results.questions.synced = questionsResult.syncedCount || 0
+      results.questions.synced = questionsResult.data?.synced ?? 0
     } else {
       results.questions.error = questionsResult.error
     }

@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { replyToReview } from '@/server/actions/gmb-reviews';
+import { replyToReview } from '@/server/actions/reviews-management';
 import { useRouter } from 'next/navigation';
 
 export interface ReviewItem {

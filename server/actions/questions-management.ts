@@ -3,68 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 
-const GMB_API_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
+const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
 
 // Validation schemas
 const AnswerQuestionSchema = z.object({
   questionId: z.string().uuid(),
   answerText: z.string().min(1).max(2000),
 });
-
-/**
- * Get valid access token for a GMB account
- */
-async function getValidAccessToken(
-  supabase: any,
-  accountId: string
-): Promise<string> {
-  const { data: account, error } = await supabase
-    .from("gmb_accounts")
-    .select("access_token, refresh_token, expires_at")
-    .eq("id", accountId)
-    .single();
-
-  if (error || !account) {
-    throw new Error("GMB account not found");
-  }
-
-  const now = Date.now();
-  const expiresAt = account.expires_at ? new Date(account.expires_at).getTime() : 0;
-
-  if (expiresAt > now + 5 * 60 * 1000) {
-    return account.access_token;
-  }
-
-  // Refresh token
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: account.refresh_token,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to refresh token. Please reconnect your Google account.");
-  }
-
-  const tokens = await response.json();
-  const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-
-  await supabase
-    .from("gmb_accounts")
-    .update({
-      access_token: tokens.access_token,
-      expires_at: newExpiresAt.toISOString(),
-    })
-    .eq("id", accountId);
-
-  return tokens.access_token;
-}
 
 // ============================================
 // 1. GET QUESTIONS WITH FILTERS
@@ -232,13 +179,7 @@ export async function answerQuestion(questionId: string, answerText: string) {
           location_id,
           gmb_account_id,
           user_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -261,19 +202,21 @@ export async function answerQuestion(questionId: string, answerText: string) {
       };
     }
 
-    const location = question.gmb_locations;
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts;
+    const location = Array.isArray(question.gmb_locations)
+      ? question.gmb_locations[0]
+      : question.gmb_locations;
+    const account =
+      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+      null;
 
-    if (!account) {
+    if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id);
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
 
     // Get question_id (use question_id or external_question_id)
     const googleQuestionId = question.question_id || question.external_question_id;
@@ -285,7 +228,7 @@ export async function answerQuestion(questionId: string, answerText: string) {
     }
 
     // Call Google My Business API
-    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers`;
+    const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers`;
 
     const response = await fetch(gmbApiUrl, {
       method: "POST",
@@ -414,13 +357,7 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
           location_id,
           gmb_account_id,
           user_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -442,19 +379,21 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       };
     }
 
-    const location = question.gmb_locations;
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts;
+    const location = Array.isArray(question.gmb_locations)
+      ? question.gmb_locations[0]
+      : question.gmb_locations;
+    const account =
+      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+      null;
 
-    if (!account) {
+    if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id);
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
 
     const googleQuestionId = question.question_id || question.external_question_id;
     if (!googleQuestionId) {
@@ -465,7 +404,7 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
     }
 
     // Call Google API
-    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
+    const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
 
     const response = await fetch(gmbApiUrl, {
       method: "PATCH",
@@ -562,13 +501,7 @@ export async function deleteAnswer(questionId: string) {
           location_id,
           gmb_account_id,
           user_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id)
         )
       `
       )
@@ -590,19 +523,21 @@ export async function deleteAnswer(questionId: string) {
       };
     }
 
-    const location = question.gmb_locations;
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts;
+    const location = Array.isArray(question.gmb_locations)
+      ? question.gmb_locations[0]
+      : question.gmb_locations;
+    const account =
+      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
+      null;
 
-    if (!account) {
+    if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found",
+        error: "Linked Google account not found.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id);
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
 
     const googleQuestionId = question.question_id || question.external_question_id;
     if (!googleQuestionId) {
@@ -613,7 +548,7 @@ export async function deleteAnswer(questionId: string) {
     }
 
     // Call Google API
-    const gmbApiUrl = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
+    const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
 
     const response = await fetch(gmbApiUrl, {
       method: "DELETE",
@@ -748,13 +683,7 @@ export async function syncQuestionsFromGoogle(locationId: string) {
         location_id,
         gmb_account_id,
         user_id,
-        gmb_accounts!inner(
-          id,
-          account_id,
-          access_token,
-          refresh_token,
-          expires_at
-        )
+        gmb_accounts!inner(id, account_id)
       `
       )
       .eq("id", locationId)
@@ -768,21 +697,21 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       };
     }
 
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts;
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null;
 
-    if (!account) {
+    if (!location.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id);
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
 
     // Fetch from Google
-    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/questions`;
+    const endpoint = `${GMB_API_BASE}/${location.location_id}/questions`;
 
     const response = await fetch(endpoint, {
       headers: {
@@ -831,7 +760,7 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       const questionData = {
         user_id: user.id,
         location_id: locationId,
-        gmb_account_id: account.id,
+        gmb_account_id: location.gmb_account_id,
         question_id: questionId,
         external_question_id: questionId, // Keep for backward compatibility
         question_text: googleQuestion.text || "",

@@ -41,10 +41,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 }
 
 /**
- * Get a valid access token for a GMB account, refreshing if necessary
- * @param supabase - Supabase client instance
- * @param accountId - The GMB account ID
- * @returns Valid access token
+ * Get a valid access token for a GMB account, refreshing if necessary.
+ * Assumes gmb_accounts schema contains: access_token, refresh_token, token_expires_at.
  */
 export async function getValidAccessToken(
   supabase: any,
@@ -54,65 +52,60 @@ export async function getValidAccessToken(
     .from('gmb_accounts')
     .select('access_token, refresh_token, token_expires_at')
     .eq('id', accountId)
-    .single();
+    .maybeSingle();
 
   if (error || !account) {
     throw new Error('Account not found');
   }
 
-  const now = new Date();
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
+  const now = Date.now();
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
 
-  // Check if token is expired
-  if (!expiresAt || now >= expiresAt) {
-    if (!account.refresh_token) {
-      throw new Error('No refresh token available');
-    }
+  const needsRefresh = !account.access_token || !expiresAt || now >= expiresAt;
 
-    // Refresh the token
-    const tokens = await refreshAccessToken(account.refresh_token);
-    const newExpiresAt = new Date();
-    newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
-
-    // Update the database with new token
-    await supabase
-      .from('gmb_accounts')
-      .update({
-        access_token: tokens.access_token,
-        token_expires_at: newExpiresAt.toISOString(),
-        ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
-      })
-      .eq('id', accountId);
-
-    return tokens.access_token;
+  if (!needsRefresh) {
+    return account.access_token;
   }
 
-  return account.access_token;
+  if (!account.refresh_token) {
+    throw new Error('No refresh token available');
+  }
+
+  const tokens = await refreshAccessToken(account.refresh_token);
+  const newExpiresAt = new Date(now);
+  newExpiresAt.setSeconds(newExpiresAt.getSeconds() + (tokens.expires_in || 0));
+
+  const updatePayload: Record<string, any> = {
+    access_token: tokens.access_token,
+    token_expires_at: newExpiresAt.toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (tokens.refresh_token) {
+    updatePayload.refresh_token = tokens.refresh_token;
+  }
+
+  await supabase
+    .from('gmb_accounts')
+    .update(updatePayload)
+    .eq('id', accountId);
+
+  return tokens.access_token;
 }
 
 /**
  * Build GMB location resource name in format: accounts/{accountId}/locations/{locationId}
- * @param accountId - The GMB account ID (primary_account_id)
- * @param locationId - The location ID
- * @returns Resource name string
  */
-export function buildLocationResourceName(
-  accountId: string,
-  locationId: string
-): string {
-  const cleanAccountId = accountId.replace(/^accounts\//, '');
-  // Remove any existing prefix from locationId if present
-  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, '');
-  
-  // Return full resource path
+export function buildLocationResourceName(accountId: string, locationId: string): string {
+  const cleanAccountId = accountId.replace(/^accounts\//, "");
+  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "");
   return `accounts/${cleanAccountId}/locations/${cleanLocationId}`;
 }
 
-/**
- * Constants for GMB API endpoints
- */
 export const GMB_CONSTANTS = {
+  BUSINESS_INFORMATION_BASE: 'https://mybusinessbusinessinformation.googleapis.com/v1',
   GBP_LOC_BASE: 'https://mybusinessbusinessinformation.googleapis.com/v1',
+  QANDA_BASE: 'https://mybusinessqanda.googleapis.com/v1',
   GMB_V4_BASE: 'https://mybusiness.googleapis.com/v4',
   GOOGLE_TOKEN_URL,
 };

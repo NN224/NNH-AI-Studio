@@ -3,13 +3,15 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import {
-  buildLocationResourceName,
-  getValidAccessToken,
-  GMB_CONSTANTS,
-} from "@/lib/gmb/helpers"
+import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
+
+function buildLocationResourceName(accountId: string, locationId: string): string {
+  const cleanAccountId = accountId.replace(/^accounts\//, "")
+  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "")
+  return `accounts/${cleanAccountId}/locations/${cleanLocationId}`
+}
 
 // Validation schemas
 const ReplySchema = z.object({
@@ -173,13 +175,7 @@ export async function replyToReview(reviewId: string, replyText: string) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id, is_active)
         )
       `
       )
@@ -201,21 +197,51 @@ export async function replyToReview(reviewId: string, replyText: string) {
       }
     }
 
-    const location = review.gmb_locations
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const location = Array.isArray(review.gmb_locations)
+      ? review.gmb_locations[0]
+      : review.gmb_locations
 
-    if (!account) {
+    if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       }
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null
 
-    // Call Google My Business API
+    if (!account?.account_id) {
+      return {
+        success: false,
+        error: "Google account details missing. Please reconnect your Google account.",
+      }
+    }
+
+    if (account.is_active === false) {
+      return {
+        success: false,
+        error: "Linked Google account is inactive. Please reconnect your Google account.",
+      }
+    }
+
+    if (account.is_active === false) {
+      return {
+        success: false,
+        error: "Linked Google account is inactive. Please reconnect your Google account.",
+      }
+    }
+
+    if (account.is_active === false) {
+      return {
+        success: false,
+        error: "Linked Google account is inactive. Please reconnect your Google account.",
+      }
+    }
+
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}:reply`
 
     const response = await fetch(endpoint, {
@@ -334,13 +360,7 @@ export async function updateReply(reviewId: string, newReplyText: string) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id, is_active)
         )
       `
       )
@@ -359,19 +379,36 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       }
     }
 
-    const location = review.gmb_locations
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const location = Array.isArray(review.gmb_locations)
+      ? review.gmb_locations[0]
+      : review.gmb_locations
 
-    if (!account) {
+    if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       }
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null
+
+    if (!account?.account_id) {
+      return {
+        success: false,
+        error: "Google account details missing. Please reconnect your Google account.",
+      }
+    }
+
+    if (account.is_active === false) {
+      return {
+        success: false,
+        error: "Linked Google account is inactive. Please reconnect your Google account.",
+      }
+    }
+
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     // Call Google API to update reply
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`
@@ -454,13 +491,7 @@ export async function deleteReply(reviewId: string) {
           id,
           location_id,
           gmb_account_id,
-          gmb_accounts!inner(
-            id,
-            account_id,
-            access_token,
-            refresh_token,
-            expires_at
-          )
+          gmb_accounts!inner(id, account_id, is_active)
         )
       `
       )
@@ -476,19 +507,29 @@ export async function deleteReply(reviewId: string) {
       return { success: false, error: "No reply to delete" }
     }
 
-    const location = review.gmb_locations
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const location = Array.isArray(review.gmb_locations)
+      ? review.gmb_locations[0]
+      : review.gmb_locations
 
-    if (!account) {
+    if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Linked Google account not found. Please reconnect your Google account.",
       }
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null
+
+    if (!account?.account_id) {
+      return {
+        success: false,
+        error: "Google account details missing. Please reconnect your Google account.",
+      }
+    }
+
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     // Call Google API to delete
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`
@@ -667,13 +708,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
         id,
         location_id,
         gmb_account_id,
-        gmb_accounts!inner(
-          id,
-          account_id,
-          access_token,
-          refresh_token,
-          expires_at
-        )
+        gmb_accounts!inner(id, account_id, is_active)
       `
       )
       .eq("id", locationId)
@@ -684,18 +719,18 @@ export async function syncReviewsFromGoogle(locationId: string) {
       return { success: false, error: "Location not found" }
     }
 
-    const account = Array.isArray(location.gmb_accounts)
-      ? location.gmb_accounts[0]
-      : location.gmb_accounts
+    const account =
+      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
+      null
 
-    if (!account) {
+    if (!account?.account_id) {
       return {
         success: false,
-        error: "GMB account not found. Please reconnect your Google account.",
+        error: "Google account details missing. Please reconnect your Google account.",
       }
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     const locationResource = buildLocationResourceName(
       account.account_id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getValidAccessToken, GMB_CONSTANTS } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,60 +40,26 @@ export async function GET(
       );
     }
 
-    // Get OAuth token for this GMB account
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('oauth_tokens')
-      .select('access_token, refresh_token, expires_at')
-      .eq('user_id', user.id)
-      .eq('provider', 'google')
-      .eq('gmb_account_id', location.gmb_account_id)
-      .single();
-
-    if (tokenError || !tokenData) {
+    if (!location.gmb_account_id) {
       return NextResponse.json(
-        { error: 'No OAuth token found. Please reconnect your GMB account.' },
+        { error: 'No linked Google account found for this location. Please reconnect your Google account.' },
+        { status: 400 }
+      );
+    }
+
+    let accessToken: string;
+    try {
+      accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    } catch (tokenError: any) {
+      console.error('Failed to obtain access token:', tokenError);
+      return NextResponse.json(
+        { error: tokenError.message || 'Failed to obtain Google access token.' },
         { status: 401 }
       );
     }
 
-    // Check if token is expired and refresh if needed
-    let accessToken = tokenData.access_token;
-    const now = new Date();
-    const expiresAt = new Date(tokenData.expires_at);
-
-    if (now >= expiresAt && tokenData.refresh_token) {
-      // Token expired, refresh it
-      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-          refresh_token: tokenData.refresh_token,
-          grant_type: 'refresh_token',
-        }),
-      });
-
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        accessToken = refreshData.access_token;
-
-        // Update token in database
-        const newExpiresAt = new Date(now.getTime() + refreshData.expires_in * 1000);
-        await supabase
-          .from('oauth_tokens')
-          .update({
-            access_token: refreshData.access_token,
-            expires_at: newExpiresAt.toISOString(),
-          })
-          .eq('user_id', user.id)
-          .eq('provider', 'google')
-          .eq('gmb_account_id', location.gmb_account_id);
-      }
-    }
-
     // Fetch media from Google My Business API
-    const mediaUrl = `https://mybusiness.googleapis.com/v4/${location.name}/media`;
+    const mediaUrl = `${GMB_CONSTANTS.GMB_V4_BASE}/${location.name}/media`;
     const mediaResponse = await fetch(mediaUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,

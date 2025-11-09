@@ -1,238 +1,129 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { errorResponse, successResponse } from '@/lib/utils/api-response';
+import { NextRequest } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import { errorResponse, successResponse } from "@/lib/utils/api-response"
+import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic"
 
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-
-// Refresh Google access token
-async function refreshAccessToken(refreshToken: string): Promise<{
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
-}> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing Google OAuth configuration');
-  }
-
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Token refresh failed: ${data.error || 'Unknown error'}`);
-  }
-
-  return data;
-}
-
-// Get valid access token
-async function getValidAccessToken(supabase: any): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: accounts, error } = await supabase
-    .from('gmb_accounts')
-    .select('id, access_token, refresh_token, token_expires_at')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .limit(1);
-
-  if (error || !accounts || accounts.length === 0) {
-    console.warn('[Attributes API] No active GMB account found for user:', user.id);
-    return null;
-  }
-  
-  const account = accounts[0];
-
-  const now = new Date();
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
-
-  if (!expiresAt || now >= expiresAt) {
-    if (!account.refresh_token) {
-      throw new Error('No refresh token available');
-    }
-
-    const tokens = await refreshAccessToken(account.refresh_token);
-    const newExpiresAt = new Date();
-    newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
-
-    await supabase
-      .from('gmb_accounts')
-      .update({
-        access_token: tokens.access_token,
-        token_expires_at: newExpiresAt.toISOString(),
-        ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
-      })
-      .eq('id', account.id);
-
-    return tokens.access_token;
-  }
-
-  return account.access_token;
-}
+const BUSINESS_INFORMATION_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
     if (userError || !user) {
-      return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
+      return errorResponse("UNAUTHORIZED", "Authentication required", 401)
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const categoryName = searchParams.get('categoryName') || undefined;
-    const regionCode = searchParams.get('country') || undefined;
-    const locationId = searchParams.get('locationId') || undefined;
+    const searchParams = request.nextUrl.searchParams
+    const categoryName = searchParams.get("categoryName")
+    const regionCode = searchParams.get("regionCode") || searchParams.get("country") || undefined
+    const languageCode = searchParams.get("languageCode") || undefined
 
-    const accessToken = await getValidAccessToken(supabase);
-    
-    if (!accessToken) {
-      return successResponse({ 
-        attributeMetadata: [],
-        message: 'No GMB account connected' 
-      });
+    if (!categoryName) {
+      return errorResponse("BAD_REQUEST", "categoryName is required", 400)
     }
 
-    // Strategy 1: If we have a locationId, use it to get attributes from that location
-    if (locationId) {
-      const { data: location, error: locationError } = await supabase
-        .from('gmb_locations')
-        .select('location_id')
-        .eq('id', locationId)
-        .eq('user_id', user.id)
-        .single();
+    const { data: account, error: accountError } = await supabase
+      .from("gmb_accounts")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-      if (locationError || !location) {
-        return errorResponse('NOT_FOUND', 'Location not found', 404);
-      }
-
-      // Note: In Google Business Profile API v1, attributes are part of the location object,
-      // not a separate endpoint. We fetch the location with attributes in readMask.
-      const url = new URL(`${GBP_LOC_BASE}/${location.location_id}`);
-      url.searchParams.set('readMask', 'attributes');
-      
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const locationData = await response.json();
-        // Attributes are included in the location object
-        const attributes = locationData.attributes || [];
-        
-        // For attribute metadata, we need to use the v4 attributes.list endpoint
-        // For now, return the actual attributes from the location
-        return successResponse({
-          attributes: attributes,
-          attributeMetadata: attributes.map((attr: any) => ({
-            attributeId: attr.attributeId,
-            valueType: attr.valueType,
-            // Note: displayName may not be in the location attributes, need to get from metadata endpoint
-          })),
-        });
-      }
+    if (accountError) {
+      console.error("[Attributes API] Failed to load Google account:", accountError)
+      return errorResponse("DATABASE_ERROR", "Failed to load Google account", 500, accountError)
     }
 
-    // Strategy 2: Try to find any location and use it as reference to get available attributes
-    // Note: Google API doesn't have a general endpoint for attribute metadata,
-    // so we use an actual location as reference
-    const { data: locations } = await supabase
-      .from('gmb_locations')
-      .select('location_id, category')
-      .eq('user_id', user.id)
-      .limit(1);
+    if (!account) {
+      return successResponse({
+        attributeDefinitions: [],
+        message: "No active Google account connected",
+      })
+    }
 
-    if (locations && locations.length > 0) {
-      const sampleLocation = locations[0];
-      // Note: In Google Business Profile API v1, attributes are part of the location object,
-      // not a separate endpoint. We fetch the location with attributes in readMask.
-      const url = new URL(`${GBP_LOC_BASE}/${sampleLocation.location_id}`);
-      url.searchParams.set('readMask', 'attributes');
-      
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      });
+    const accessToken = await getValidAccessToken(supabase, account.id)
 
-      if (response.ok) {
-        const locationData = await response.json();
-        // Attributes are included in the location object
-        const attributes = locationData.attributes || [];
-        return successResponse({
-          attributes: attributes,
-          attributeMetadata: attributes.map((attr: any) => ({
-            attributeId: attr.attributeId,
-            valueType: attr.valueType,
-            // Note: displayName may not be in the location attributes, need to get from metadata endpoint
-          })),
-        });
-      }
+    const url = new URL(`${BUSINESS_INFORMATION_BASE}/categories/${categoryName}`)
+    url.searchParams.set("readMask", "attributeDefinitions")
+    if (regionCode) {
+      url.searchParams.set("regionCode", regionCode)
+    }
+    if (languageCode) {
+      url.searchParams.set("languageCode", languageCode)
+    }
 
-      // If fetch failed, log the error
-      const errorText = await response.text().catch(() => '');
-      let errorData: any = {};
-      
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "")
+      let errorData: any = {}
       try {
-        errorData = JSON.parse(errorText);
+        errorData = errorText ? JSON.parse(errorText) : {}
       } catch {
-        errorData = { message: errorText || 'Unknown error' };
+        errorData = { message: errorText }
       }
-      
-      console.error('[Attributes API] Failed to fetch attributes from location:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-        url: url.toString()
-      });
-      
+
+      if (response.status === 404) {
+        return successResponse({
+          attributeDefinitions: [],
+          message: "No attribute definitions found for provided category",
+        })
+      }
+
+      if (response.status === 401) {
+        return errorResponse(
+          "AUTH_EXPIRED",
+          "Authentication expired. Please reconnect your Google account.",
+          401,
+          errorData
+        )
+      }
+
       return errorResponse(
-        'API_ERROR',
-        errorData.error?.message || errorData.message || 'Failed to fetch attributes from Google',
+        "GOOGLE_API_ERROR",
+        errorData.error?.message || errorData.message || "Failed to fetch attribute definitions",
         response.status,
         errorData
-      );
+      )
     }
 
-    // If no locations found, return empty attributes
-    return successResponse({ 
-      attributeMetadata: [],
-      message: 'Unable to fetch attributes. Please ensure you have connected locations.' 
-    });
+    const data = await response.json()
+    const attributeDefinitions = Array.isArray(data.attributeDefinitions)
+      ? data.attributeDefinitions
+      : []
+
+    return successResponse({
+      attributeDefinitions,
+      category: data.displayName || categoryName,
+      regionCode: regionCode || null,
+      languageCode: languageCode || null,
+    })
   } catch (error: any) {
-    console.error('[Attributes API] Error:', {
-      message: error?.message || 'Unknown error',
+    console.error("[Attributes API] Error:", {
+      message: error?.message || "Unknown error",
       stack: error?.stack,
-      error: error
-    });
+      error,
+    })
+
     return errorResponse(
-      'INTERNAL_ERROR', 
-      error?.message || 'Failed to fetch attributes', 
+      "INTERNAL_ERROR",
+      error?.message || "Failed to fetch attribute definitions",
       500
-    );
+    )
   }
 }
+

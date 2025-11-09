@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { answerQuestion } from '@/server/actions/gmb-questions';
+import { answerQuestion } from '@/server/actions/questions-management';
 import { useRouter } from 'next/navigation';
 
 export interface QuestionItem {

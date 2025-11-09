@@ -29,3 +29,6 @@ next-env.d.ts
 
 # config files with potential secrets
 .config/
+
+# Local exports
+exports/

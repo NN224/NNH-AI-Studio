@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { createPost } from '@/server/actions/gmb-posts';
+import { createPost } from '@/server/actions/posts-management';
 import { useRouter } from 'next/navigation';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
