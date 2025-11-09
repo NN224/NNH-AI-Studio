@@ -159,40 +159,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: existingUser, error: userLookupError } = await adminClient
-      .from('users')
+    const { data: existingProfile, error: profileLookupError } = await adminClient
+      .from('profiles')
       .select('id')
       .eq('id', userId)
       .maybeSingle();
 
-    if (userLookupError) {
-      console.error('[OAuth Callback] Failed to verify users record:', userLookupError);
+    if (profileLookupError) {
+      console.error('[OAuth Callback] Failed to verify profile record:', profileLookupError);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to verify user record')}`
       );
     }
 
-    if (!existingUser) {
+    if (!existingProfile) {
       const displayName =
         userInfo.name ||
         [userInfo.given_name, userInfo.family_name].filter(Boolean).join(' ') ||
         userInfo.email.split('@')[0] ||
         'Google User';
 
-      console.log('[OAuth Callback] Creating users record for new user', { userId, email: userInfo.email });
+      console.log('[OAuth Callback] Creating profile record for new user', { userId, email: userInfo.email });
 
-      const { error: createUserError } = await adminClient.from('users').insert({
+      const { error: createProfileError } = await adminClient.from('profiles').upsert({
         id: userId,
         email: userInfo.email,
-        name: displayName,
-        google_id: userInfo.id,
-        avatar: userInfo.picture ?? null,
-        status: 'active',
-        last_login: new Date().toISOString(),
-      });
+        full_name: displayName,
+        avatar_url: userInfo.picture ?? null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-      if (createUserError) {
-        console.error('[OAuth Callback] Failed to create users record:', createUserError);
+      if (createProfileError) {
+        console.error('[OAuth Callback] Failed to create profile record:', createProfileError);
         return NextResponse.redirect(
           `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent('Failed to initialize user record')}`
         );
