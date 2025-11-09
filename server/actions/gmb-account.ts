@@ -58,7 +58,8 @@ export async function disconnectGMBAccount(
           disconnected_at: new Date().toISOString(),
           access_token: null,
           refresh_token: null,
-          expires_at: null,
+          token_expires_at: null,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', accountId)
         .eq('user_id', user.id)
