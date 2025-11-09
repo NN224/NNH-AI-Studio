@@ -37,7 +37,7 @@ const rateLimitStore: Map<string, { count: number; resetAt: number }> = g.__rate
 
 // Create next-intl middleware
 const intlMiddleware = createIntlMiddleware({
-  locales: ['en'],
+  locales: ['en', 'ar'],
   defaultLocale: 'en',
   localePrefix: 'as-needed',
 });
@@ -174,7 +174,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
-    '/(en)/:path*',
+    '/(en|ar)/:path*',
     '/((?!_next|_vercel|.*\\..*).*)',
     '/api/:path*'
   ],
