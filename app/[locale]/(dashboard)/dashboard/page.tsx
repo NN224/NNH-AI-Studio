@@ -434,25 +434,26 @@ export default async function DashboardPage({
   const lastUpdatedAt = new Date().toISOString();
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-zinc-950 p-3 sm:p-4 md:p-6 lg:p-8">
       {/* Auto-refresh on custom events */}
       <RefreshOnEvent eventName="dashboard:refresh" />
       
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-zinc-100 flex items-center gap-2">
-              🤖 AI Command Center
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-100 flex items-center gap-2 rtl:flex-row-reverse">
+              <span className="rtl:order-2">🤖</span>
+              <span className="rtl:order-1">AI Command Center</span>
             </h1>
-            <p className="text-zinc-400 mt-2 text-sm md:text-base">
+            <p className="text-zinc-400 mt-1 sm:mt-2 text-xs sm:text-sm md:text-base">
               Proactive risk and growth optimization dashboard
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <Card className="bg-zinc-900/50 border-orange-500/20 backdrop-blur-sm">
-              <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <Card className="bg-zinc-900/50 border-orange-500/20 backdrop-blur-sm flex-1 sm:flex-initial">
+              <CardContent className="p-2 sm:p-3">
                 <LastUpdated updatedAt={lastUpdatedAt} />
               </CardContent>
             </Card>
@@ -466,65 +467,65 @@ export default async function DashboardPage({
         {/* ========================================= */}
         {/* CONNECTION & SYNC STATUS BANNER - START */}
         {/* ========================================= */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-4 sm:mb-6 md:mb-8 space-y-3 sm:space-y-4">
           {/* Case 1: No GMB Account Connected */}
           {!accountId && (
             <Card className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 border-red-500/30 backdrop-blur-sm hover:border-red-500/50 transition-all">
-              <CardContent className="py-8">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <CardContent className="py-4 sm:py-6 md:py-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6">
+                  <div className="flex-shrink-0 mx-auto md:mx-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <svg className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                     </div>
                   </div>
                   
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-zinc-100 mb-2">
+                  <div className="flex-1 w-full">
+                    <h3 className="text-xl sm:text-2xl font-bold text-zinc-100 mb-2 text-center md:text-start rtl:text-right">
                       🔌 Connect Your Google My Business Account
                     </h3>
-                    <p className="text-zinc-300 mb-4 leading-relaxed">
+                    <p className="text-zinc-300 mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base text-center md:text-start rtl:text-right">
                       Start managing your business by connecting your Google My Business account. 
                       You'll be able to manage locations, respond to reviews with AI, track analytics, and more.
                     </p>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 rtl:flex-row-reverse">
                         <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xl">✓</span>
                         </div>
-                        <div>
+                        <div className="rtl:text-right flex-1">
                           <p className="text-sm font-medium text-zinc-200">AI-Powered Replies</p>
                           <p className="text-xs text-zinc-400">Smart review responses</p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 rtl:flex-row-reverse">
                         <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xl">📊</span>
                         </div>
-                        <div>
+                        <div className="rtl:text-right flex-1">
                           <p className="text-sm font-medium text-zinc-200">Real-time Analytics</p>
                           <p className="text-xs text-zinc-400">Track performance</p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 rtl:flex-row-reverse">
                         <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xl">🗺️</span>
                         </div>
-                        <div>
+                        <div className="rtl:text-right flex-1">
                           <p className="text-sm font-medium text-zinc-200">Multi-Location</p>
                           <p className="text-xs text-zinc-400">Manage everything</p>
                         </div>
                       </div>
                     </div>
                     
-                    <Link href="/settings?tab=connections">
-                      <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8 py-6 text-base font-semibold">
+                    <Link href="/settings?tab=connections" className="w-full sm:w-auto inline-block">
+                      <Button className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-semibold">
                         🔗 Connect GMB Account Now
-                        <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="ml-2 rtl:mr-2 rtl:ml-0 rtl:rotate-180 w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                       </Button>
@@ -538,43 +539,43 @@ export default async function DashboardPage({
           {/* Case 2: GMB Connected but No Locations */}
           {accountId && (!locations || locations.length === 0) && (
             <Card className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border-orange-500/30 backdrop-blur-sm hover:border-orange-500/50 transition-all">
-              <CardContent className="py-8">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-20 h-20 rounded-full bg-orange-500/20 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <CardContent className="py-4 sm:py-6 md:py-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6">
+                  <div className="flex-shrink-0 mx-auto md:mx-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <svg className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     </div>
                   </div>
                   
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-zinc-100 mb-2 flex items-center gap-2">
-                      🔄 Sync Your Locations
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                  <div className="flex-1 w-full">
+                    <h3 className="text-xl sm:text-2xl font-bold text-zinc-100 mb-2 flex flex-wrap items-center gap-2 justify-center md:justify-start rtl:md:justify-end">
+                      <span>🔄 Sync Your Locations</span>
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
                         Account Connected ✓
                       </Badge>
                     </h3>
-                    <p className="text-zinc-300 mb-4 leading-relaxed">
+                    <p className="text-zinc-300 mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base text-center md:text-start rtl:text-right">
                       Your Google My Business account is connected successfully! 
                       Now sync your locations to start managing them from this dashboard.
                     </p>
                     
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-zinc-900/50 border border-zinc-800 mb-6">
-                      <div className="text-3xl">💡</div>
-                      <div>
+                    <div className="flex items-start gap-3 p-3 sm:p-4 rounded-lg bg-zinc-900/50 border border-zinc-800 mb-4 sm:mb-6 rtl:flex-row-reverse">
+                      <div className="text-2xl sm:text-3xl flex-shrink-0">💡</div>
+                      <div className="flex-1 rtl:text-right">
                         <p className="text-sm font-medium text-zinc-200">What happens when you sync?</p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-xs text-zinc-400 mt-1">
                           We'll import all your business locations, recent reviews, questions, and performance data from Google.
                           This usually takes 10-30 seconds depending on the number of locations.
                         </p>
                       </div>
                     </div>
                     
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
                       <SyncAllButton />
                       <Link href="/settings?tab=connections">
-                        <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800">
+                        <Button variant="outline" className="w-full sm:w-auto border-zinc-700 hover:bg-zinc-800">
                           ⚙️ Manage Connection
                         </Button>
                       </Link>
@@ -588,26 +589,26 @@ export default async function DashboardPage({
           {/* Case 3: Everything Working - Success Status */}
           {accountId && locations && locations.length > 0 && (
             <Card className="bg-zinc-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all">
-              <CardContent className="py-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <CardContent className="py-3 sm:py-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
                   {/* Left: Status Info */}
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-7 h-7 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto rtl:flex-row-reverse">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
                     
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-base font-semibold text-zinc-100">
+                    <div className="flex-1 rtl:text-right">
+                      <div className="flex flex-wrap items-center gap-2 mb-1 rtl:flex-row-reverse rtl:justify-end">
+                        <p className="text-sm sm:text-base font-semibold text-zinc-100">
                           GMB Account Connected
                         </p>
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
                           Active & Synced
                         </Badge>
                       </div>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-xs sm:text-sm text-zinc-400">
                         {locations.length} location{locations.length !== 1 ? 's' : ''} • 
                         {' '}{stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''} • 
                         {' '}{stats.pendingReviews} pending
@@ -616,21 +617,23 @@ export default async function DashboardPage({
                   </div>
                   
                   {/* Right: Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="text-xs text-zinc-500 flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-end">
+                    <div className="text-xs text-zinc-500 flex items-center gap-2 rtl:flex-row-reverse">
                       <Clock className="w-3 h-3" />
                       <LastUpdated updatedAt={lastUpdatedAt} />
                     </div>
-                    <RefreshButton />
-                    <Link href="/settings?tab=connections">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-zinc-700 hover:bg-zinc-800"
-                      >
-                        ⚙️ Settings
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      <RefreshButton />
+                      <Link href="/settings?tab=connections">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-zinc-700 hover:bg-zinc-800"
+                        >
+                          ⚙️ Settings
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -643,7 +646,7 @@ export default async function DashboardPage({
         {/* ============================================ */}
         {/* ENHANCED STATS CARDS WITH TOOLTIPS - START */}
         {/* ============================================ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <Card
             className={`bg-zinc-900/50 border backdrop-blur-sm hover:shadow-lg transition-all ${
               stats.healthScore >= 70
@@ -653,9 +656,9 @@ export default async function DashboardPage({
                 : 'border-red-500/30 hover:border-red-500/50'
             }`}
           >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-zinc-400">Health Score</p>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2 rtl:flex-row-reverse">
+                <p className="text-xs sm:text-sm font-medium text-zinc-400 rtl:text-right">Health Score</p>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -674,9 +677,9 @@ export default async function DashboardPage({
                 </TooltipProvider>
               </div>
 
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 rtl:flex-row-reverse rtl:justify-end">
                 <p
-                  className={`text-3xl font-bold ${
+                  className={`text-2xl sm:text-3xl font-bold ${
                     stats.healthScore >= 70
                       ? 'text-green-400'
                       : stats.healthScore >= 40
@@ -856,7 +859,7 @@ export default async function DashboardPage({
         )}
 
         {/* MAIN GRID LAYOUT - 3 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* LEFT COLUMN - Location Management */}
           <div className="space-y-4">
             {/* Active Location Card */}

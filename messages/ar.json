@@ -1,0 +1,731 @@
+{
+  "HomePage": {
+    "rating": "4.9 out of 5",
+    "trustedBy": "Trusted by 1,000+ Businesses",
+    "hero": {
+      "title": "Manage Your Google My Business & YouTube Channels Like a Pro",
+      "subtitle": "The ultimate AI-powered platform for managing multiple GMB locations, YouTube channels, responding to reviews with AI, creating content, and growing your online presence all from one dashboard.",
+      "getStarted": "Get Started Free",
+      "signIn": "Sign In"
+    },
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "pricing": "Pricing",
+      "contact": "Contact",
+      "signIn": "Sign In"
+    },
+    "features": {
+      "multiLocation": {
+        "title": "Multi-Location Management",
+        "description": "Manage all your GMB locations from one powerful dashboard"
+      },
+      "youtubeManagement": {
+        "title": "YouTube Management",
+        "description": "Manage your YouTube channel, videos, comments, and analytics from one place"
+      },
+      "aiReviews": {
+        "title": "AI-Powered Reviews",
+        "description": "Generate intelligent responses to reviews with advanced AI"
+      },
+      "analytics": {
+        "title": "Advanced Analytics",
+        "description": "Track performance with detailed insights and reports for both GMB and YouTube"
+      },
+      "videoAnalytics": {
+        "title": "Video Analytics",
+        "description": "Analyze video performance, engagement rates, and audience insights"
+      },
+      "monitoring": {
+        "title": "Real-time Monitoring",
+        "description": "Monitor comments, reviews, and engagement across all platforms in real-time"
+      },
+      "aiStudio": {
+        "title": "AI Content Studio",
+        "description": "Create engaging posts, videos, and content with AI assistance"
+      },
+      "commentManagement": {
+        "title": "Comment Management",
+        "description": "Manage and respond to YouTube comments efficiently with AI-powered tools"
+      }
+    },
+    "trustIndicators": {
+      "moneyBack": "Money back guarantee",
+      "worldwide": "Works in every country",
+      "noCommitment": "No long-term commitment",
+      "trusted": "Trusted by 1,000+ Businesses",
+      "support": "24/7 Support"
+    },
+    "stats": {
+      "title": "OUR PROMISE",
+      "subtitle": "Level up your Local SEO",
+      "storefrontVisits": {
+        "value": "2X",
+        "label": "More Storefront Visits"
+      },
+      "impressions": {
+        "value": "+300%",
+        "label": "Local Impressions"
+      },
+      "phoneCalls": {
+        "value": "+60%",
+        "label": "More Phone Calls"
+      },
+      "reviews": {
+        "value": "+150%",
+        "label": "Reviews Growth"
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Get started in minutes and transform your Google My Business and YouTube management",
+      "step1": {
+        "title": "Connect Your Accounts",
+        "description": "Link your Google My Business accounts and YouTube channels, import all your locations and videos in seconds"
+      },
+      "step2": {
+        "title": "Manage & Respond",
+        "description": "Monitor reviews and comments, respond with AI assistance, manage all locations and YouTube content from one dashboard"
+      },
+      "step3": {
+        "title": "Grow Your Business",
+        "description": "Track analytics, optimize performance, and watch your online presence grow"
+      }
+    },
+    "testimonials": {
+      "title": "CUSTOMER LOVE",
+      "heading": "Our Customers Get Results",
+      "subtitle": "See What Our Customers Have To Say About Us",
+      "testimonial1": {
+        "quote": "NNH AI Studio helped us drastically scale our visibility across search and map listings. With a 900% boost in impressions and a massive rise in website clicks, our local SEO has never been stronger.",
+        "name": "John Smith",
+        "role": "CEO, Local Business Co.",
+        "stat1Label": "Impressions Growth",
+        "stat2Label": "Website Clicks"
+      },
+      "testimonial2": {
+        "quote": "With NNH AI Studio, we enhanced our discoverability for health seekers. The rise in call clicks and impressions directly reflects the platform's efficiency in reaching intent-driven users.",
+        "name": "Sarah Johnson",
+        "role": "Marketing Director, Health Solutions",
+        "stat1Label": "Search Impressions",
+        "stat2Label": "Call Clicks"
+      }
+    },
+    "dashboard": {
+      "title": "Powerful Dashboard",
+      "subtitle": "Everything you need to manage your Google My Business locations and YouTube channels in one beautiful interface",
+      "realTimeAnalytics": "Real-time Analytics"
+    },
+    "freeTools": {
+      "title": "Free Tool Feature",
+      "heading": "Free Google My Business Optimization Tools",
+      "subtitle": "Harness the power of Generative AI to Improve Local SEO of your Google My Business Profile for Free",
+      "profileStrength": {
+        "title": "Profile Strength Calculator",
+        "description": "Analyze your GMB profile strength and get actionable recommendations"
+      },
+      "reviewResponder": {
+        "title": "AI Review Responder",
+        "description": "Generate professional responses to customer reviews instantly"
+      },
+      "postGenerator": {
+        "title": "Post Content Generator",
+        "description": "Create engaging posts for your Google Business Profile with AI"
+      },
+      "keywordTracker": {
+        "title": "Keyword Rank Tracker",
+        "description": "Track your local search rankings for important keywords"
+      }
+    },
+    "pricing": {
+      "title": "PLANS & PRICING",
+      "heading": "Choose Your Perfect Plan",
+      "subtitle": "Transparent pricing for businesses of all sizes",
+      "starter": {
+        "name": "Starter",
+        "price": "$19",
+        "period": "/month",
+        "features": {
+          "locations": "Up to 3 locations",
+          "analytics": "Basic analytics",
+          "reviews": "Review monitoring",
+          "support": "Email support"
+        },
+        "cta": "Get Started"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$49",
+        "period": "/month",
+        "badge": "Most Popular",
+        "features": {
+          "locations": "Up to 25 locations",
+          "analytics": "Advanced analytics",
+          "ai": "AI-powered responses",
+          "support": "Priority support",
+          "reports": "Custom reports"
+        },
+        "cta": "Get Started"
+      },
+      "agency": {
+        "name": "Agency",
+        "price": "$149",
+        "period": "/month",
+        "features": {
+          "locations": "Unlimited locations",
+          "whiteLabel": "White-label solution",
+          "team": "Team collaboration",
+          "manager": "Dedicated account manager",
+          "api": "API access"
+        },
+        "cta": "Contact Sales"
+      }
+    },
+    "solutions": {
+      "title": "MADE FOR ALL",
+      "heading": "Features Designed for teams of every type & size",
+      "subtitle": "NNH AI Studio is designed for every type of team and their needs.",
+      "solo": {
+        "title": "Solo Storefronts",
+        "features": {
+          "audit": "Manage Business Profiles & get Complete Audit",
+          "reviews": "Check Reviews, Sentiment Analysis & set AI Replies",
+          "rank": "Track Rank on Local Keywords & Check Geo Grid Rank",
+          "competitors": "Analyze Local Competitors & check their best practices"
+        },
+        "cta": "Explore Now →"
+      },
+      "agencies": {
+        "title": "Agencies",
+        "badge": "Most Popular",
+        "features": {
+          "multiple": "Connect & manage Multiple Locations on a single dashboard",
+          "whiteLabel": "White-label dashboard as per your needs",
+          "analytics": "Get Advanced Data Analytics & Custom Reporting",
+          "scale": "Manage Locations at scale & publish content with help of AI"
+        },
+        "cta": "Explore Now →"
+      },
+      "multiLocation": {
+        "title": "Multi-Location Brands",
+        "features": {
+          "verification": "Assistance for Google Business Profile Bulk Verification",
+          "team": "Invite Team Members based on roles & share access within the team",
+          "content": "Leverage content library to save evergreen and reusable content",
+          "support": "Get 24 X 7 Support & Custom Pricing Plans"
+        },
+        "cta": "Contact Sales →"
+      }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "heading": "Direct Integration With Directories",
+      "subtitle": "Link your Business Profiles with Multiple Directories, CRMs & more",
+      "more": "+ More"
+    },
+    "faq": {
+      "title": "FAQs",
+      "heading": "Frequently Asked Questions",
+      "questions": {
+        "q1": {
+          "question": "Can NNH AI Studio help me create & verify my Business Location?",
+          "answer": "Yes! NNH AI Studio provides comprehensive assistance for creating, verifying, and managing your Google Business Profile locations. Our platform guides you through the entire process and helps you secure your listings."
+        },
+        "q2": {
+          "question": "Which Directories are synced with NNH AI Studio?",
+          "answer": "NNH AI Studio integrates with major directories including Google My Business, YouTube, Bing, Apple Maps, ChatGPT, Instagram, Facebook, and many more. We continuously add new integrations to ensure maximum visibility."
+        },
+        "q3": {
+          "question": "How can NNH AI Studio help my Business Rank better on Local Search?",
+          "answer": "NNH AI Studio helps improve your local search rankings through AI-powered content optimization, review management, keyword tracking, profile enhancement, and real-time analytics. Our platform provides personalized tasks and recommendations to boost your visibility."
+        },
+        "q4": {
+          "question": "Does NNH AI Studio help with Reviews & Reputation Management?",
+          "answer": "Absolutely! NNH AI Studio offers AI-powered review response generation, sentiment analysis, review monitoring, and automated reply suggestions. Manage all your reviews and maintain a positive online reputation from one dashboard."
+        },
+        "q5": {
+          "question": "Do you have solutions for Brands & Agencies with Multiple Locations?",
+          "answer": "Yes! NNH AI Studio offers specialized solutions for agencies and multi-location brands, including white-label dashboards, bulk verification assistance, team collaboration tools, advanced analytics, and custom pricing plans tailored to your needs."
+        }
+      }
+    },
+    "cta": {
+      "title": "Try NNH AI Studio for Free today",
+      "subtitle": "Find out if NNH AI Studio helps your Local Business Grow with",
+      "trial": "7 Days Free Trial. No Credit Card Required.",
+      "startTrial": "Start Free Trial",
+      "scheduleDemo": "Schedule Demo",
+      "coach": "Dedicated Business Coach",
+      "features": "Access All Features",
+      "support": "24/7 Real Time Support"
+    },
+    "footer": {
+      "description": "The ultimate AI-powered platform for managing Google My Business locations and YouTube channels. Automate reviews, create content, and grow your online presence.",
+      "product": "Product",
+      "pricing": "Pricing",
+      "about": "About Us",
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "resources": "Resources",
+      "contact": "Contact",
+      "faqs": "FAQs",
+      "demo": "Book a Demo",
+      "freeTrial": "Free Trial",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "copyright": "NNH AI Studio. All rights reserved.",
+      "googlePolicy": "NNH AI Studio's use and transfer to any other app of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements."
+    }
+  },
+  "Dashboard": {
+    "title": "GMB Dashboard",
+    "subtitle": "Manage your business",
+    "connectionBanner": {
+      "title": "Connect Your Google My Business Account",
+      "description": "Link your GMB account to unlock powerful features: manage locations, respond to reviews with AI, track analytics, and boost your local SEO—all from one dashboard.",
+      "benefit1": "AI-Powered Review Replies",
+      "benefit2": "Real-time Analytics",
+      "benefit3": "Multi-Location Management",
+      "connectButton": "Connect GMB Account",
+      "learnMore": "Learn More"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "locations": "Locations",
+      "reviews": "Reviews",
+      "questions": "Questions",
+      "gmbPosts": "GMB Posts",
+      "calendar": "Calendar",
+      "media": "Media",
+      "analytics": "Analytics",
+      "gridTracking": "Grid Tracking",
+      "features": "Features",
+      "automation": "Automation",
+      "approvals": "Approvals",
+      "webhooks": "Webhooks",
+      "team": "Team",
+      "youtubePosts": "YouTube Posts",
+      "settings": "Settings"
+    },
+    "stats": {
+      "locations": "Locations",
+      "rating": "Average Rating",
+      "reviews": "Total Reviews",
+      "responseRate": "Response Rate",
+      "healthScore": "Health Score"
+    },
+    "welcome": "Welcome Back",
+    "lastSync": "Last Sync",
+    "syncNow": "Sync Now",
+    "disconnect": "Disconnect",
+    "connectGMB": "Connect GMB Account",
+    "noAccount": "No GMB account connected yet"
+  },
+  "Reviews": {
+    "title": "Reviews Management",
+    "filters": {
+      "all": "All Reviews",
+      "pending": "Pending",
+      "responded": "Responded",
+      "highPriority": "High Priority"
+    },
+    "actions": {
+      "reply": "Reply",
+      "aiGenerate": "Generate with AI",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "empty": "No reviews found",
+    "aiCopilot": "AI Copilot"
+  },
+  "AICockpit": {
+    "title": "AI Review Cockpit",
+    "description": "Manage, analyze, and generate AI responses for customer reviews",
+    "sentimentAnalysis": "Sentiment Analysis",
+    "customerEmotionBreakdown": "Customer emotion breakdown",
+    "positive": "Positive",
+    "neutral": "Neutral",
+    "negative": "Negative",
+    "hotTopics": "Hot Topics:",
+    "pendingResponses": "Pending Responses",
+    "prioritizeReviews": "Prioritize and resolve reviews by impact and sentiment",
+    "aiCopilot": "AI Copilot",
+    "ready": "Ready",
+    "pending": "Pending",
+    "responseRate": "Response Rate",
+    "avgTime": "Avg. Time",
+    "reviewStream": "Review Stream",
+    "prioritySorted": "Priority Sorted",
+    "selectReview": "Select a Review to Begin",
+    "selectReviewDescription": "Choose a review from the stream to generate AI-powered responses in seconds",
+    "daysAgo": "{{count}} days ago",
+    "generateResponse": "Generate Response"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "actions": "Actions"
+  },
+  "Locations": {
+    "title": "Location Management",
+    "subtitle": "Manage and monitor all your business locations",
+    "actions": {
+      "syncAll": "Sync All",
+      "syncing": "Syncing...",
+      "mapView": "Map View",
+      "addLocation": "Add Location",
+      "retry": "Retry",
+      "reviews": "Reviews",
+      "insights": "Insights",
+      "edit": "Edit"
+    },
+    "errors": {
+      "loadFailed": "Failed to load locations"
+    },
+    "stats": {
+      "totalLocations": "Total Locations",
+      "totalViews": "Total Views",
+      "avgRating": "Avg Rating",
+      "avgHealthScore": "Avg Health Score",
+      "acrossPlatforms": "Across all platforms",
+      "last30Days": "Last 30 days",
+      "acrossLocations": "Across all locations",
+      "optimizationScore": "Optimization score"
+    },
+    "filters": {
+      "searchPlaceholder": "Search locations...",
+      "status": "Status",
+      "allStatus": "All Status",
+      "verified": "Verified",
+      "pending": "Pending",
+      "suspended": "Suspended",
+      "category": "Category",
+      "allCategories": "All Categories"
+    },
+    "empty": {
+      "title": "No locations found",
+      "filteredMessage": "Try adjusting your filters or search term",
+      "defaultMessage": "Get started by adding your first business location",
+      "addFirst": "Add Your First Location"
+    },
+    "noAccount": {
+      "title": "Connect Your Google My Business Account",
+      "subtitle": "Start managing your business locations by connecting your GMB account",
+      "benefits": {
+        "title": "What you can do:",
+        "manage": "Manage all your business locations in one place",
+        "respond": "Respond to customer reviews with AI assistance",
+        "track": "Track performance and insights across locations",
+        "optimize": "Optimize your business profiles for better visibility"
+      },
+      "connectButton": "Connect Google My Business",
+      "learnMore": "Learn More"
+    },
+    "labels": {
+      "views": "Views",
+      "clicks": "Clicks",
+      "calls": "Calls",
+      "directions": "Directions",
+      "healthScore": "Health Score",
+      "reviews": "Reviews",
+      "attributesMore": "+{count} more",
+      "lastSync": "Last sync"
+    },
+    "card": {
+      "reviews": "Reviews",
+      "insights": "Insights",
+      "viewInsights": "View Insights",
+      "editLocation": "Edit Location",
+      "healthScore": "Health Score",
+      "views": "Views",
+      "calls": "Calls",
+      "verified": "Verified",
+      "notVerified": "Not Verified"
+    },
+    "healthScore": {
+      "title": "Profile Completeness",
+      "complete": "Complete",
+      "incomplete": "Incomplete",
+      "viewDetails": "View Details",
+      "improve": "Improve Score",
+      "outOf": "{current} out of {total} sections complete",
+      "improveText": "Complete the missing items above to improve your profile visibility and attract more customers.",
+      "items": {
+        "phoneNumber": "Phone Number",
+        "websiteLink": "Website Link",
+        "categories": "Additional Categories",
+        "menuLink": "Menu Link",
+        "menuItems": "Menu Items",
+        "openingDate": "Opening Date",
+        "hours": "Opening Hours",
+        "attributes": "Attributes",
+        "photos": "Photos ({count} Avg)",
+        "videos": "Videos ({count} Avg)",
+        "businessLogo": "Business Logo",
+        "menuPhotos": "Menu Photos ({count} Avg)",
+        "description": "Description",
+        "reviews": "Reviews ({count}/10+)",
+        "posts": "Posts ({count} Avg)",
+        "responses": "Review Responses",
+        "qna": "Q&A",
+        "autoReply": "Auto Reply",
+        "profileProtection": "Profile Protection"
+      },
+      "tips": {
+        "phoneNumber": "Add a phone number so customers can easily contact you",
+        "websiteLink": "Add your website link to drive more traffic",
+        "categories": "Add additional categories to improve discoverability",
+        "menuLink": "Add a link to your menu for food businesses",
+        "menuItems": "Add menu items to showcase your offerings",
+        "openingDate": "Specify when your business started operating",
+        "hours": "Add your business hours to help customers know when you're open",
+        "attributes": "Add attributes like WiFi, Parking, etc. to highlight features",
+        "photos": "Upload at least 5 high-quality photos of your business",
+        "videos": "Add videos to showcase your business dynamically",
+        "businessLogo": "Upload your business logo for brand recognition",
+        "menuPhotos": "Add photos of your menu items to attract customers",
+        "description": "Write a compelling description of your business",
+        "reviews": "Encourage customers to leave reviews",
+        "posts": "Post updates regularly to engage with customers",
+        "responses": "Respond to customer reviews to build trust",
+        "qna": "Enable and answer customer questions",
+        "autoReply": "Set up automatic replies for common inquiries",
+        "profileProtection": "Enable profile protection to prevent unauthorized changes"
+      },
+      "actions": {
+        "addPhone": "Add Phone",
+        "addWebsite": "Add Website",
+        "addCategories": "Add Categories",
+        "addMenu": "Add Menu",
+        "addItems": "Add Items",
+        "setDate": "Set Date",
+        "addHours": "Add Hours",
+        "addAttributes": "Add Attributes",
+        "uploadPhotos": "Upload Photos",
+        "uploadVideos": "Upload Videos",
+        "uploadLogo": "Upload Logo",
+        "uploadMenuPhotos": "Upload Menu Photos",
+        "addDescription": "Add Description",
+        "viewReviews": "View Reviews",
+        "createPost": "Create Post",
+        "enableQA": "Enable Q&A",
+        "setupAutoReply": "Setup Auto Reply",
+        "enableProtection": "Enable Protection"
+      }
+    }
+  },
+  "Approvals": {
+    "title": "Approvals & Location Management",
+    "subtitle": "Create new Google Business locations and manage verification process",
+    "createButton": "Create New Location",
+    "tabs": {
+      "create": "Create Location",
+      "pending": "Pending Verification",
+      "verified": "Verified",
+      "issues": "Issues"
+    },
+    "stats": {
+      "total": "Total Locations",
+      "totalSubtitle": "All locations",
+      "pending": "Pending Verification",
+      "pendingSubtitle": "Awaiting codes",
+      "verified": "Verified",
+      "verifiedSubtitle": "Live on Google",
+      "issues": "Issues",
+      "issuesSubtitle": "Need attention"
+    },
+    "wizard": {
+      "stepOf": "Step {{step}} of {{total}}",
+      "step1": {
+        "title": "Basic Information",
+        "subtitle": "Enter your business details as they should appear on Google",
+        "businessName": "Business Name",
+        "businessNamePlaceholder": "The DXB Night Club - Downtown Branch",
+        "businessNameTip": "Use your official business name as registered",
+        "streetAddress": "Street Address",
+        "streetAddressPlaceholder": "123 Sheikh Zayed Road",
+        "streetAddressTip": "Make sure this address can receive postal mail",
+        "city": "City",
+        "cityPlaceholder": "Dubai",
+        "state": "State/Province",
+        "statePlaceholder": "Dubai",
+        "postalCode": "Postal Code",
+        "postalCodePlaceholder": "00000",
+        "country": "Country",
+        "phone": "Phone Number",
+        "phonePlaceholder": "+971 4 XXX XXXX",
+        "phoneTip": "Include country code",
+        "website": "Website (optional)",
+        "websitePlaceholder": "https://yourwebsite.com",
+        "infoTitle": "Important Information",
+        "infoText": "Make sure your address can receive postal mail. Google will send a verification postcard with a code to this address. The verification process typically takes 5-14 business days.",
+        "nextButton": "Next: Category & Hours"
+      },
+      "step2": {
+        "title": "Category & Hours",
+        "subtitle": "Help customers find your business with the right category",
+        "primaryCategory": "Primary Category",
+        "primaryCategoryTip": "Choose the category that best describes your business",
+        "additionalCategories": "Additional Categories (optional)",
+        "addCategory": "+ Add another category",
+        "businessHours": "Business Hours",
+        "closed": "Closed",
+        "to": "to",
+        "hoursTip": "For businesses open past midnight, use times after 24:00 (e.g., 26:00 for 2 AM)",
+        "backButton": "Back",
+        "nextButton": "Next: Features"
+      },
+      "step3": {
+        "title": "Features & Amenities",
+        "subtitle": "Tell customers what makes your business special",
+        "features": "Business Features (optional)",
+        "featuresTip": "Select all features that apply to your business",
+        "selected": "Selected",
+        "paymentMethods": "Payment Methods (optional)",
+        "paymentMethodsTip": "Let customers know which payment methods you accept",
+        "accepted": "Accepted",
+        "infoTitle": "Optional but Recommended",
+        "infoText": "Adding features and amenities helps customers find your business when searching for specific services. For example, 'Night clubs with parking' or 'Bars with Wi-Fi'.",
+        "backButton": "Back",
+        "nextButton": "Next: Review"
+      },
+      "step4": {
+        "title": "Review Your Location",
+        "subtitle": "Please review all details before submitting to Google",
+        "basicInfo": "Basic Information",
+        "businessName": "Business Name",
+        "address": "Address",
+        "phone": "Phone",
+        "website": "Website",
+        "categoryHours": "Category & Hours",
+        "primaryCategory": "Primary Category",
+        "additionalCategories": "Additional Categories",
+        "businessHours": "Business Hours",
+        "featuresTitle": "Features & Amenities",
+        "features": "Features",
+        "paymentMethods": "Payment Methods",
+        "warningTitle": "Before You Submit",
+        "warningItems": [
+          "Make sure all information is accurate and up-to-date",
+          "Google will send a verification postcard to the address provided",
+          "Verification typically takes 5-14 business days",
+          "You'll be notified when the postcard arrives"
+        ],
+        "backButton": "Back",
+        "submitButton": "Submit to Google"
+      }
+    },
+    "pending": {
+      "title": "Locations Awaiting Verification",
+      "subtitle": "Enter the verification code when you receive it from Google",
+      "empty": {
+        "title": "No Pending Verifications",
+        "message": "Create a new location to start the verification process"
+      },
+      "verificationVia": "Verification via {{method}}",
+      "estimatedTime": "Est. Time: {{time}}",
+      "expected": "Expected: {{date}}",
+      "enterCode": "Enter Verification Code",
+      "codePlaceholder": "Enter 5-6 digit code",
+      "verifyButton": "Verify Location",
+      "cancelButton": "Cancel",
+      "enterCodeButton": "Enter Verification Code",
+      "resendButton": "Resend",
+      "helpText": "Haven't received your code? It can take up to {{time}} to arrive.",
+      "infoTitle": "Verification Process",
+      "infoItems": [
+        "Postcard: Check your mailbox daily. The code expires after 30 days.",
+        "Phone: Answer the call and note down the 6-digit code.",
+        "Email: Check your inbox and spam folder.",
+        "If you don't receive the code within the expected time, you can request a new verification."
+      ]
+    },
+    "verified": {
+      "title": "Successfully Verified Locations",
+      "subtitle": "These locations are now live on Google Business Profile",
+      "empty": {
+        "title": "No Verified Locations Yet",
+        "message": "Complete the verification process to see your locations here"
+      },
+      "verified": "Verified",
+      "verifiedOn": "Verified {{date}}",
+      "successTitle": "Location Successfully Verified",
+      "successText": "Verified via {{method}} on {{date}}",
+      "viewOnGoogle": "View on Google",
+      "editDetails": "Edit Details",
+      "viewAnalytics": "View Analytics",
+      "manageReviews": "Manage Reviews",
+      "created": "Created {{date}}",
+      "congratsTitle": "Congratulations!",
+      "congratsText": "Your verified locations are now live on Google Maps and Search. Customers can find you, see your business hours, leave reviews, and get directions. Monitor your performance in the Analytics section."
+    },
+    "issues": {
+      "title": "Locations With Issues",
+      "subtitle": "These locations need your attention to complete verification",
+      "empty": {
+        "title": "No Issues Found",
+        "message": "All your locations are proceeding smoothly"
+      },
+      "rejected": "Rejected",
+      "rejectedDate": "Rejected {{date}}",
+      "verificationFailed": "Verification Failed",
+      "commonReasons": "Common reasons:",
+      "reasons": [
+        "Address doesn't match official records",
+        "Business name is inconsistent",
+        "Phone number is invalid or unreachable",
+        "Location already claimed by another user",
+        "Business category is incorrect"
+      ],
+      "suggestedActions": "Suggested Actions",
+      "actions": [
+        "Verify your address matches official records (government registration, utility bills)",
+        "Ensure business name is exactly as registered",
+        "Check if the location is already claimed on Google Maps",
+        "Contact Google Business Profile support for manual review"
+      ],
+      "retryButton": "Edit & Retry Verification",
+      "contactSupport": "Contact Support",
+      "viewGuidelines": "View Guidelines",
+      "troubleshooting": "Troubleshooting Guide",
+      "originallyCreated": "Originally created {{date}}",
+      "helpTitle": "Need Help?",
+      "helpText": "If you're having trouble resolving these issues, our support team can help you through the process.",
+      "chatSupport": "Chat with Support",
+      "emailSupport": "Email Support",
+      "helpCenter": "Help Center"
+    },
+    "verificationMethods": {
+      "postcard": {
+        "name": "Postcard",
+        "description": "Google will mail a postcard with a 5-digit code to your business address",
+        "time": "5-14 days"
+      },
+      "phone": {
+        "name": "Phone Call",
+        "description": "Get an automated phone call with a verification code",
+        "time": "Immediate"
+      },
+      "email": {
+        "name": "Email",
+        "description": "Receive verification code via email",
+        "time": "Few minutes"
+      },
+      "instant": {
+        "name": "Instant Verification",
+        "description": "Verify instantly if you have access to existing listing",
+        "time": "Immediate"
+      }
+    }
+  }
+}

@@ -13,17 +13,18 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>
 }>) {
   const { locale } = await params;
-  if (locale !== 'en') {
+  if (locale !== 'en' && locale !== 'ar') {
     notFound();
   }
   const messages = await getMessages();
+  const direction = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div lang="en">
-      <NextIntlClientProvider messages={messages} locale="en">
+    <div lang={locale} dir={direction} className={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <NextIntlClientProvider messages={messages} locale={locale}>
         <Providers>
           {children}
-          <Toaster position="top-right" richColors closeButton />
+          <Toaster position={locale === 'ar' ? 'top-left' : 'top-right'} richColors closeButton />
         </Providers>
       </NextIntlClientProvider>
     </div>
