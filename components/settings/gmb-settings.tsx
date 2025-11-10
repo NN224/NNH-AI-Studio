@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Save, Shield, Globe, Sparkles, Bell, Database, Palette } from "lucide-react"
@@ -42,50 +42,50 @@ export function GMBSettings() {
   const [syncSettings, setSyncSettings] = useState<Record<string, unknown>>({})
 
   // Check GMB connection status
-  useEffect(() => {
-    const checkGMBConnection = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+  const checkGMBConnection = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-        const { data: accounts, error } = await supabase
-          .from('gmb_accounts')
-          .select('id, account_name, is_active, last_sync, settings')
-          .eq('user_id', user.id)
+      const { data: accounts, error } = await supabase
+        .from('gmb_accounts')
+        .select('id, account_name, is_active, last_sync, settings')
+        .eq('user_id', user.id)
 
-        if (error) {
-          console.error('Error fetching GMB accounts:', error)
-          setGmbAccounts([])
-          setLoading(false)
-          return
-        }
-
-        const accountsArray = accounts || []
-        setGmbAccounts(accountsArray)
-        
-        // Load sync settings from first active account
-        const activeAccounts = accountsArray.filter((acc) => acc && acc.is_active) || []
-        if (activeAccounts.length > 0 && activeAccounts[0] && activeAccounts[0].settings) {
-          const settings = activeAccounts[0].settings as Record<string, unknown>
-          if (settings && typeof settings === 'object') {
-            setSyncSettings(settings)
-            setSyncSchedule((settings.syncSchedule as string) || 'manual')
-            setAutoReply((settings.autoReply as boolean) || false)
-            setReviewNotifications((settings.reviewNotifications as boolean) !== false)
-            setEmailDigest((settings.emailDigest as string) || 'daily')
-            setAiResponseTone((settings.aiResponseTone as string) || 'professional')
-            setAutoPublish((settings.autoPublish as boolean) || false)
-          }
-        }
-      } catch (error) {
-        console.error('Error checking GMB connection:', error)
-      } finally {
+      if (error) {
+        console.error('Error fetching GMB accounts:', error)
+        setGmbAccounts([])
         setLoading(false)
+        return
       }
-    }
 
-    checkGMBConnection()
+      const accountsArray = accounts || []
+      setGmbAccounts(accountsArray)
+      
+      // Load sync settings from first active account
+      const activeAccounts = accountsArray.filter((acc) => acc && acc.is_active) || []
+      if (activeAccounts.length > 0 && activeAccounts[0] && activeAccounts[0].settings) {
+        const settings = activeAccounts[0].settings as Record<string, unknown>
+        if (settings && typeof settings === 'object') {
+          setSyncSettings(settings)
+          setSyncSchedule((settings.syncSchedule as string) || 'manual')
+          setAutoReply((settings.autoReply as boolean) || false)
+          setReviewNotifications((settings.reviewNotifications as boolean) !== false)
+          setEmailDigest((settings.emailDigest as string) || 'daily')
+          setAiResponseTone((settings.aiResponseTone as string) || 'professional')
+          setAutoPublish((settings.autoPublish as boolean) || false)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking GMB connection:', error)
+    } finally {
+      setLoading(false)
+    }
   }, [supabase])
+
+  useEffect(() => {
+    checkGMBConnection()
+  }, [checkGMBConnection])
 
   // Save settings
   const handleSave = async () => {

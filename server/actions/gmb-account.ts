@@ -2,14 +2,27 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 export type DisconnectOption = 'keep' | 'delete' | 'export';
+
+// Validation schemas
+const disconnectAccountSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID format'),
+  option: z.enum(['keep', 'delete', 'export']).default('keep'),
+});
+
+const dataRetentionSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID format'),
+  retentionDays: z.number().int().min(1).max(365),
+  deleteOnDisconnect: z.boolean(),
+});
 
 interface DisconnectResult {
   success: boolean;
   error?: string;
   message?: string;
-  exportData?: any;
+  exportData?: Record<string, unknown> | null;
 }
 
 /**
@@ -22,6 +35,15 @@ export async function disconnectGMBAccount(
   const supabase = await createClient();
   
   try {
+    // Validate input
+    const validation = disconnectAccountSchema.safeParse({ accountId, option });
+    if (!validation.success) {
+      return { 
+        success: false, 
+        error: validation.error.errors[0]?.message || 'Invalid input' 
+      };
+    }
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -203,11 +225,12 @@ export async function disconnectGMBAccount(
       message,
       exportData,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error disconnecting GMB account:', error);
+    const err = error as Error;
     return {
       success: false,
-      error: error.message || 'Failed to disconnect account',
+      error: err.message || 'Failed to disconnect account',
     };
   }
 }
@@ -215,7 +238,10 @@ export async function disconnectGMBAccount(
 /**
  * Export account data before disconnect
  */
-async function exportAccountData(accountId: string, userId: string) {
+async function exportAccountData(
+  accountId: string, 
+  userId: string
+): Promise<Record<string, unknown> | null> {
   const supabase = await createClient();
 
   try {
@@ -264,7 +290,7 @@ async function exportAccountData(accountId: string, userId: string) {
       reviews: reviews.data || [],
       questions: questions.data || [],
       posts: posts.data || [],
-    };
+    } as Record<string, unknown>;
   } catch (error) {
     console.error('Error exporting account data:', error);
     return null;
@@ -409,6 +435,20 @@ export async function updateDataRetentionSettings(
   const supabase = await createClient();
   
   try {
+    // Validate input
+    const validation = dataRetentionSchema.safeParse({ 
+      accountId, 
+      retentionDays, 
+      deleteOnDisconnect 
+    });
+    
+    if (!validation.success) {
+      return { 
+        success: false, 
+        error: validation.error.errors[0]?.message || 'Invalid input' 
+      };
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: 'Not authenticated' };
@@ -434,11 +474,12 @@ export async function updateDataRetentionSettings(
       success: true,
       message: 'Data retention settings updated successfully',
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating data retention settings:', error);
+    const err = error as Error;
     return {
       success: false,
-      error: error.message || 'Failed to update settings',
+      error: err.message || 'Failed to update settings',
     };
   }
 }
