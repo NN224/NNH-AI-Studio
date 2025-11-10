@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Save, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
@@ -78,13 +78,11 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
       const fileName = type === 'logo' ? `logo.${extension}` : `cover.${extension}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // Delete existing file if it exists
-      const { error: deleteError } = await supabase.storage
+      // Delete existing file if it exists (ignore errors if file doesn't exist)
+      await supabase.storage
         .from('branding_assets')
         .remove([filePath]);
       
-      // Ignore delete errors (file might not exist)
-
       // Upload new file
       const { error: uploadError } = await supabase.storage
         .from('branding_assets')
@@ -103,7 +101,7 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
         .getPublicUrl(filePath);
 
       return publicUrl;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading file:', error);
       throw error;
     }
@@ -131,9 +129,10 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
       const publicUrl = await uploadFile(file, 'logo');
       setLogoUrl(publicUrl);
       toast.success('Logo uploaded successfully');
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast.error('Failed to upload logo', {
-        description: error.message,
+        description: err.message,
       });
     } finally {
       setUploadingLogo(false);
@@ -162,9 +161,10 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
       const publicUrl = await uploadFile(file, 'cover');
       setCoverImageUrl(publicUrl);
       toast.success('Cover image uploaded successfully');
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast.error('Failed to upload cover image', {
-        description: error.message,
+        description: err.message,
       });
     } finally {
       setUploadingCover(false);
@@ -225,10 +225,11 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
 
       // Trigger page refresh to apply branding
       window.dispatchEvent(new Event('brand-profile-updated'));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving branding:', error);
+      const err = error as Error;
       toast.error('Failed to save branding', {
-        description: error.message,
+        description: err.message,
       });
     } finally {
       setSaving(false);

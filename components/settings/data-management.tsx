@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -80,9 +79,10 @@ export function DataManagement({ accountId }: DataManagementProps) {
           description: result.error || 'Failed to delete archived data',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast.error('Error', {
-        description: error.message || 'An unexpected error occurred',
+        description: err.message || 'An unexpected error occurred',
       });
     } finally {
       setIsDeleting(false);
@@ -113,9 +113,10 @@ export function DataManagement({ accountId }: DataManagementProps) {
           description: result.error || 'Failed to save settings',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast.error('Error', {
-        description: error.message || 'An unexpected error occurred',
+        description: err.message || 'An unexpected error occurred',
       });
     } finally {
       setIsSaving(false);

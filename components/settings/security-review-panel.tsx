@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -18,8 +18,6 @@ import {
   Loader2,
   RefreshCw,
   Database,
-  Eye,
-  EyeOff,
   FileKey,
   UserCheck
 } from "lucide-react"
@@ -33,7 +31,7 @@ interface SecurityCheck {
   category: 'authentication' | 'authorization' | 'encryption' | 'rls' | 'tokens'
   description: string
   status: 'pending' | 'checking' | 'passed' | 'failed' | 'warning'
-  details?: any
+  details?: Record<string, unknown>
   recommendation?: string
 }
 
@@ -160,7 +158,7 @@ export function SecurityReviewPanel() {
         try {
           switch (check.id) {
             // Authentication checks
-            case 'auth-required':
+            case 'auth-required': {
               // Test unauthenticated access
               const publicResponse = await fetch('/api/gmb/public-test')
               updateCheckStatus(check.id, publicResponse.status === 401 ? 'passed' : 'failed', {
@@ -169,8 +167,9 @@ export function SecurityReviewPanel() {
               })
               if (publicResponse.status === 401) passedChecks++
               break
+            }
 
-            case 'user-isolation':
+            case 'user-isolation': {
               // Test user data isolation
               const { data: accounts } = await supabase
                 .from('gmb_accounts')
@@ -183,9 +182,10 @@ export function SecurityReviewPanel() {
               })
               if (isolated) passedChecks++
               break
+            }
 
             // RLS checks
-            case 'rls-enabled':
+            case 'rls-enabled': {
               const rlsResponse = await fetch('/api/gmb/security-check')
               const rlsData = await rlsResponse.json()
               
@@ -197,8 +197,9 @@ export function SecurityReviewPanel() {
               if (rlsEnabled) passedChecks++
               else setCriticalIssues(prev => prev + 1)
               break
+            }
 
-            case 'rls-policies':
+            case 'rls-policies': {
               // Check RLS policy coverage
               const tables = ['gmb_accounts', 'gmb_locations', 'gmb_reviews', 'gmb_questions', 'gmb_posts']
               const policiesOk = true // Assume policies are properly set from migrations
@@ -209,9 +210,10 @@ export function SecurityReviewPanel() {
               })
               if (policiesOk) passedChecks++
               break
+            }
 
             // Token security checks
-            case 'token-encryption':
+            case 'token-encryption': {
               // Supabase encrypts data at rest by default
               updateCheckStatus(check.id, 'passed', {
                 method: 'Supabase encryption at rest',
@@ -219,8 +221,9 @@ export function SecurityReviewPanel() {
               })
               passedChecks++
               break
+            }
 
-            case 'token-expiry':
+            case 'token-expiry': {
               const { data: tokenAccounts } = await supabase
                 .from('gmb_accounts')
                 .select('id, token_expires_at')
@@ -233,8 +236,9 @@ export function SecurityReviewPanel() {
               })
               if (hasExpiry) passedChecks++
               break
+            }
 
-            case 'refresh-token-security':
+            case 'refresh-token-security': {
               // Check if refresh tokens are present but not exposed
               const { data: refreshCheck } = await supabase
                 .from('gmb_accounts')
@@ -249,9 +253,10 @@ export function SecurityReviewPanel() {
               })
               passedChecks++
               break
+            }
 
             // Authorization checks
-            case 'cross-user-access':
+            case 'cross-user-access': {
               // Try to access data with fake user ID
               const { data: crossAccess, error: crossError } = await supabase
                 .from('gmb_accounts')
@@ -266,8 +271,9 @@ export function SecurityReviewPanel() {
               if (blocked) passedChecks++
               else setCriticalIssues(prev => prev + 1)
               break
+            }
 
-            case 'api-permissions':
+            case 'api-permissions': {
               // Check OAuth scopes
               updateCheckStatus(check.id, 'passed', {
                 scopes: [
@@ -279,9 +285,10 @@ export function SecurityReviewPanel() {
               })
               passedChecks++
               break
+            }
 
             // Encryption checks
-            case 'data-encryption':
+            case 'data-encryption': {
               updateCheckStatus(check.id, 'passed', {
                 database: 'Encrypted at rest',
                 storage: 'Encrypted',
@@ -289,8 +296,9 @@ export function SecurityReviewPanel() {
               })
               passedChecks++
               break
+            }
 
-            case 'transport-security':
+            case 'transport-security': {
               const isHttps = window.location.protocol === 'https:'
               updateCheckStatus(check.id, isHttps ? 'passed' : 'warning', {
                 https: isHttps,
@@ -299,8 +307,9 @@ export function SecurityReviewPanel() {
               }, isHttps ? undefined : 'Enable HTTPS in production')
               if (isHttps) passedChecks++
               break
+            }
 
-            case 'pii-protection':
+            case 'pii-protection': {
               // Check PII handling
               updateCheckStatus(check.id, 'passed', {
                 emailsProtected: true,
@@ -309,6 +318,7 @@ export function SecurityReviewPanel() {
               })
               passedChecks++
               break
+            }
 
             default:
               updateCheckStatus(check.id, 'warning', {
