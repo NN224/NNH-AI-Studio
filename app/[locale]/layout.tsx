@@ -20,7 +20,7 @@ export default async function LocaleLayout({
   const direction = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div lang={locale} dir={direction} className={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <div lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <NextIntlClientProvider messages={messages} locale={locale}>
         <Providers>
           {children}
