@@ -153,7 +153,7 @@ function buildLocationResourceName(accountId: string, locationId: string): strin
 
 // Helper function to parse location resource name
 function parseLocationResourceName(resourceName: string): { accountId: string; locationId: string } | null {
-  const match = resourceName.match(/accounts\/([^\/]+)\/locations\/(.+)/);
+  const match = resourceName.match(/accounts\/([^/]+)\/locations\/(.+)/);
   if (!match) return null;
 
   return {
@@ -620,7 +620,7 @@ async function fetchQuestions(
   // Handle different input formats
   if (locationResource.startsWith('accounts/')) {
     // Extract from: accounts/{account}/locations/{location_id}
-    const match = locationResource.match(/accounts\/[^\/]+\/locations\/(.+)$/);
+    const match = locationResource.match(/accounts\/[^/]+\/locations\/(.+)$/);
     if (match) {
       locationId = match[1];
     } else {
@@ -748,7 +748,7 @@ async function fetchDailyMetrics(
     cleanLocationId = locationId.replace(/^locations\//, '');
   } else if (locationId.includes('accounts/')) {
     // Extract location ID from accounts/.../locations/... format
-    const match = locationId.match(/locations\/([^\/]+)/);
+    const match = locationId.match(/locations\/([^/]+)/);
     if (match) {
       cleanLocationId = match[1];
     }
@@ -876,7 +876,7 @@ async function fetchSearchKeywords(
   } else if (locationId.startsWith('locations/')) {
     cleanLocationId = locationId.replace(/^locations\//, '');
   } else if (locationId.includes('accounts/')) {
-    const match = locationId.match(/locations\/([^\/]+)/);
+    const match = locationId.match(/locations\/([^/]+)/);
     if (match) {
       cleanLocationId = match[1];
     }
@@ -1208,10 +1208,14 @@ export async function POST(request: NextRequest) {
               canOperateLodgingData: metadata.canOperateLodgingData,
               canModifyServiceList: metadata.canModifyServiceList,
             };
+            // Generate normalized_location_id as per architecture requirements
+            const normalizedLocationId = location.name.replace(/[^a-zA-Z0-9]/g, '_');
+            
             return {
               gmb_account_id: accountId,
               user_id: userId,
               location_id: location.name,
+              normalized_location_id: normalizedLocationId,
               location_name: location.title || 'Unnamed Location',
               address: addressStr,
               phone: location.phoneNumbers?.primaryPhone || null,
@@ -1222,6 +1226,7 @@ export async function POST(request: NextRequest) {
               longitude: latlng?.longitude ?? null,
               metadata: enhancedMetadata,
               updated_at: new Date().toISOString(),
+              last_synced_at: new Date().toISOString(),
             };
           });
           for (const chunk of chunks(locationRows)) {
@@ -1492,7 +1497,7 @@ export async function POST(request: NextRequest) {
         let locationIdForQandA: string;
         if (fullLocationName.includes('/locations/')) {
           // Extract from: accounts/{account}/locations/{location_id}
-          const match = fullLocationName.match(/locations\/([^\/]+)$/);
+          const match = fullLocationName.match(/locations\/([^/]+)$/);
           locationIdForQandA = match ? match[1] : fullLocationName.split('/').pop() || '';
         } else if (fullLocationName.startsWith('locations/')) {
           locationIdForQandA = fullLocationName.replace(/^locations\//, '');
@@ -1629,7 +1634,7 @@ export async function POST(request: NextRequest) {
         } else if (locationIdForPerformance.startsWith('locations/')) {
           locationIdForPerformance = locationIdForPerformance.replace(/^locations\//, '');
         } else if (locationIdForPerformance.includes('accounts/')) {
-          const match = locationIdForPerformance.match(/locations\/([^\/]+)/);
+          const match = locationIdForPerformance.match(/locations\/([^/]+)/);
           if (match) {
             locationIdForPerformance = match[1];
           }
@@ -1796,6 +1801,8 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch {}
+    } catch {
+      // Best effort lock release - ignore errors
+    }
   }
 }

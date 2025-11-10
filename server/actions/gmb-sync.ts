@@ -7,7 +7,7 @@ import { syncQuestionsFromGoogle as syncQuestions } from "./questions-management
 
 /**
  * Comprehensive sync for a location
- * Syncs reviews, questions, and updates location metadata
+ * Syncs location metadata, reviews, and questions from Google My Business
  */
 export async function syncLocation(locationId: string) {
   try {
@@ -25,10 +25,10 @@ export async function syncLocation(locationId: string) {
       }
     }
 
-    // Verify user owns this location
+    // Verify user owns this location and get GMB account info
     const { data: location, error: locError } = await supabase
       .from("gmb_locations")
-      .select("id")
+      .select("id, gmb_account_id, location_id")
       .eq("id", locationId)
       .eq("user_id", user.id)
       .single()
@@ -37,6 +37,21 @@ export async function syncLocation(locationId: string) {
       return {
         success: false,
         error: "Location not found or you don't have permission to sync it.",
+      }
+    }
+
+    // Verify GMB account is active
+    const { data: gmbAccount, error: accountError } = await supabase
+      .from("gmb_accounts")
+      .select("id, is_active")
+      .eq("id", location.gmb_account_id)
+      .eq("user_id", user.id)
+      .single()
+
+    if (accountError || !gmbAccount || !gmbAccount.is_active) {
+      return {
+        success: false,
+        error: "GMB account is not connected or inactive. Please reconnect your account.",
       }
     }
 
@@ -70,6 +85,7 @@ export async function syncLocation(locationId: string) {
     revalidatePath("/dashboard")
     revalidatePath("/reviews")
     revalidatePath("/questions")
+    revalidatePath("/locations")
 
     // Determine overall success
     const hasError = results.reviews.error || results.questions.error
@@ -107,6 +123,20 @@ export async function syncAllLocations() {
       return {
         success: false,
         error: "Not authenticated",
+      }
+    }
+
+    // Verify user has an active GMB account
+    const { data: activeAccounts, error: accountsError } = await supabase
+      .from("gmb_accounts")
+      .select("id, account_name")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+
+    if (accountsError || !activeAccounts || activeAccounts.length === 0) {
+      return {
+        success: false,
+        error: "No active GMB account found. Please connect your account first.",
       }
     }
 
