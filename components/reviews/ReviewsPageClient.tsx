@@ -25,17 +25,15 @@ interface ReviewStats {
   responseRate: number;
 }
 
-interface ReviewFilters {
-  locationId?: string;
-  rating?: number;
-  status?: string;
-  sentiment?: string;
-  search?: string;
-}
-
 interface ReviewsPageClientProps {
   locations: Array<{ id: string; location_name: string }>;
-  initialFilters?: ReviewFilters;
+  initialFilters?: {
+    locationId?: string;
+    rating?: number;
+    status?: 'pending' | 'replied' | 'responded' | 'flagged' | 'archived';
+    sentiment?: 'positive' | 'neutral' | 'negative';
+    search?: string;
+  };
 }
 
 export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClientProps) {

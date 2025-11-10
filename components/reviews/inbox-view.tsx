@@ -71,7 +71,7 @@ export function InboxView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reviewId: selectedReview.id,
-          reviewText: selectedReview.review_text || selectedReview.comment || '',
+          reviewText: selectedReview.review_text || '',
           rating: selectedReview.rating,
           locationName: selectedReview.location_name || 'our business',
         }),
@@ -268,7 +268,7 @@ export function InboxView({
               {/* Review Text */}
               <div className="bg-zinc-800/50 rounded-lg p-4 mb-4">
                 <p className="text-zinc-200 leading-relaxed">
-                  {selectedReview.review_text || selectedReview.comment || 'No review text'}
+                  {selectedReview.review_text || 'No review text'}
                 </p>
               </div>
 
