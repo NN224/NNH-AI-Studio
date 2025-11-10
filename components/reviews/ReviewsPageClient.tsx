@@ -7,11 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { RefreshCw, Search, Bot, Loader2, CheckSquare, Square } from 'lucide-react';
+import { RefreshCw, Search, Bot, Loader2, CheckSquare, Square, LayoutGrid, Inbox } from 'lucide-react';
 import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import { BulkActionBar } from './bulk-action-bar';
+import { InboxView } from './inbox-view';
 import { useReviews } from '@/hooks/use-reviews';
 import { syncReviewsFromGoogle, getReviewStats } from '@/server/actions/reviews-management';
 import type { GMBReview } from '@/lib/types/database';
@@ -48,6 +49,9 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   // Bulk selection state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedReviewIds, setSelectedReviewIds] = useState<Set<string>>(new Set());
+  
+  // View mode state (grid vs inbox)
+  const [viewMode, setViewMode] = useState<'grid' | 'inbox'>('grid');
 
   // Use infinite scroll by default
   const {
@@ -188,27 +192,51 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Selection Mode Toggle */}
-          <Button
-            onClick={toggleSelectionMode}
-            variant="outline"
-            className={`border-zinc-700 text-zinc-300 hover:bg-zinc-800 ${selectionMode ? 'bg-orange-500/20 border-orange-500/50' : ''}`}
-          >
-            {selectionMode ? (
-              <>
-                <CheckSquare className="w-4 h-4 mr-2" />
-                Exit Selection
-              </>
-            ) : (
-              <>
-                <Square className="w-4 h-4 mr-2" />
-                Select Reviews
-              </>
-            )}
-          </Button>
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg p-1">
+            <Button
+              size="sm"
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              onClick={() => setViewMode('grid')}
+              className={`h-8 ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-zinc-800'}`}
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === 'inbox' ? 'default' : 'ghost'}
+              onClick={() => setViewMode('inbox')}
+              className={`h-8 ${viewMode === 'inbox' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-zinc-800'}`}
+            >
+              <Inbox className="w-4 h-4 mr-2" />
+              Inbox
+            </Button>
+          </div>
+
+          {/* Selection Mode Toggle (only in grid view) */}
+          {viewMode === 'grid' && (
+            <Button
+              onClick={toggleSelectionMode}
+              variant="outline"
+              className={`border-zinc-700 text-zinc-300 hover:bg-zinc-800 ${selectionMode ? 'bg-orange-500/20 border-orange-500/50' : ''}`}
+            >
+              {selectionMode ? (
+                <>
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Exit Selection
+                </>
+              ) : (
+                <>
+                  <Square className="w-4 h-4 mr-2" />
+                  Select Reviews
+                </>
+              )}
+            </Button>
+          )}
 
           {/* Select All (only show in selection mode) */}
-          {selectionMode && reviews.length > 0 && (
+          {selectionMode && reviews.length > 0 && viewMode === 'grid' && (
             <Button
               onClick={selectAll}
               variant="outline"
@@ -218,15 +246,17 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
             </Button>
           )}
 
-          {/* Mobile AI Assistant Button */}
-          <Button
-            onClick={() => setAiSidebarOpen(true)}
-            variant="outline"
-            className="lg:hidden border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-          >
-            <Bot className="w-4 h-4 mr-2" />
-            AI Assistant
-          </Button>
+          {/* Mobile AI Assistant Button (only in grid view) */}
+          {viewMode === 'grid' && (
+            <Button
+              onClick={() => setAiSidebarOpen(true)}
+              variant="outline"
+              className="lg:hidden border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+            >
+              <Bot className="w-4 h-4 mr-2" />
+              AI Assistant
+            </Button>
+          )}
           <Button
             onClick={handleSync}
             disabled={isSyncing || !filters.locationId}
@@ -374,10 +404,44 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
         </div>
       </div>
 
-      {/* Main Content - Grid Layout */}
+      {/* Main Content - Conditional Layout Based on View Mode */}
       <div className="flex-1 flex gap-6 p-6 overflow-hidden">
-        {/* Reviews List - Left Side */}
-        <div className="flex-1 overflow-auto">
+        {viewMode === 'inbox' ? (
+          /* Inbox View */
+          <div className="flex-1">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+                <p className="text-red-400">{error}</p>
+              </div>
+            )}
+
+            {loading && reviews.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-zinc-500 text-lg mb-2">No reviews found</p>
+                <p className="text-zinc-600 text-sm">
+                  {filters.locationId
+                    ? 'Try syncing reviews or adjusting filters'
+                    : 'Select a location to view reviews'}
+                </p>
+              </div>
+            ) : (
+              <InboxView
+                reviews={reviews}
+                selectedReview={selectedReview}
+                onSelectReview={setSelectedReview}
+                onReplySuccess={refresh}
+              />
+            )}
+          </div>
+        ) : (
+          /* Grid View */
+          <>
+            {/* Reviews List - Left Side */}
+            <div className="flex-1 overflow-auto">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
               <p className="text-red-400">{error}</p>
@@ -435,16 +499,20 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
           )}
         </div>
 
-        {/* AI Assistant Sidebar - Right Side */}
-        <div className="w-80 flex-shrink-0 hidden lg:block">
-          <div className="sticky top-6 h-[calc(100vh-8rem)]">
-            <AIAssistantSidebar
-              selectedReview={selectedReview}
-              pendingReviewsCount={stats?.pending || 0}
-              locationId={filters.locationId}
-            />
+        {/* AI Assistant Sidebar - Right Side (only in grid view) */}
+        {viewMode === 'grid' && (
+          <div className="w-80 flex-shrink-0 hidden lg:block">
+            <div className="sticky top-6 h-[calc(100vh-8rem)]">
+              <AIAssistantSidebar
+                selectedReview={selectedReview}
+                pendingReviewsCount={stats?.pending || 0}
+                locationId={filters.locationId}
+              />
+            </div>
           </div>
-        </div>
+        )}
+      </>
+        )}
       </div>
 
       {/* Pagination Info */}
