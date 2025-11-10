@@ -103,7 +103,11 @@ export function GMBConnectionManager({
     window.addEventListener('gmb-sync-complete', handleConnectionEvent)
     return () => {
       isMounted.current = false
-      try { sseRef.current?.close() } catch {}
+      try { 
+        sseRef.current?.close() 
+      } catch (e) {
+        // SSE already closed, ignore
+      }
       window.removeEventListener('gmb-disconnected', handleConnectionEvent)
       window.removeEventListener('gmb-reconnected', handleConnectionEvent)
       window.removeEventListener('gmb-sync-complete', handleConnectionEvent)
@@ -113,12 +117,17 @@ export function GMBConnectionManager({
   // Close SSE when user hides panel
   useEffect(() => {
     if (!progressOpen) {
-      try { sseRef.current?.close() } catch {}
+      try { 
+        sseRef.current?.close() 
+      } catch (e) {
+        // SSE already closed, ignore
+      }
     }
   }, [progressOpen])
 
   // Start OAuth connection flow
-  const handleConnect = async () => {
+  const handleConnect = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
     setConnecting(true)
     console.log('[GMB Connect] Starting connection process')
     
@@ -177,7 +186,9 @@ export function GMBConnectionManager({
         setPhases(json.phases || [])
         setEstimateMs(json.estimate_remaining_ms || 0)
       }
-    } catch {}
+    } catch (e) {
+      // Status fetch failed, SSE will still work
+    }
 
     // افتح SSE
     try {
@@ -191,15 +202,25 @@ export function GMBConnectionManager({
           } else if (payload?.type === 'done') {
             es.close()
           }
-        } catch {}
+        } catch (e) {
+          // JSON parse error, skip this message
+        }
       }
       es.onerror = () => {
-        try { es.close() } catch {}
+        try { 
+          es.close() 
+        } catch (e) {
+          // Already closed
+        }
       }
-    } catch {}
+    } catch (e) {
+      // SSE not supported or failed
+    }
   }
 
-  const handleSync = async () => {
+  const handleSync = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
+    
     if (!activeAccount) {
       toast.error('No active account', {
         description: 'Connect a Google My Business account first.'
@@ -257,12 +278,20 @@ export function GMBConnectionManager({
     } finally {
       setSyncing(false)
       // أغلق الـ SSE بعد مهلة قصيرة لإتاحة آخر تحديث
-      setTimeout(() => { try { sseRef.current?.close() } catch {} }, 1500)
+      setTimeout(() => { 
+        try { 
+          sseRef.current?.close() 
+        } catch (e) {
+          // Already closed
+        }
+      }, 1500)
     }
   }
 
   // Disconnect the active account
-  const handleDisconnect = async () => {
+  const handleDisconnect = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
+    
     if (!activeAccount) {
       toast.error('No connected account', {
         description: 'Nothing to disconnect.'
@@ -319,7 +348,7 @@ export function GMBConnectionManager({
         setShowDisconnectDialog(false)
         setDisconnectOption('keep') // Reset to default
         
-  await refreshGmbStatus()
+        await refreshGmbStatus()
         onSuccess?.()
         router.refresh()
         
@@ -430,6 +459,7 @@ export function GMBConnectionManager({
                       onClick={handleSync}
                       disabled={syncing || disconnecting}
                       className="whitespace-nowrap"
+                      title="Sync your Google My Business data"
                     >
                       <RefreshCw className={cn(
                         "h-4 w-4 mr-2",
@@ -443,6 +473,7 @@ export function GMBConnectionManager({
                       onClick={() => setShowDisconnectDialog(true)}
                       disabled={syncing || disconnecting}
                       className="whitespace-nowrap bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
+                      title="Disconnect from Google My Business"
                     >
                       <Unlink className={cn(
                         "h-4 w-4 mr-2",
@@ -464,6 +495,7 @@ export function GMBConnectionManager({
                       onClick={handleConnect}
                       disabled={connecting}
                       className="gradient-orange whitespace-nowrap"
+                      title="Connect to Google My Business"
                     >
                       {connecting ? (
                         <>
@@ -601,6 +633,7 @@ export function GMBConnectionManager({
                   disabled={syncing || disconnecting}
                   className="sm:w-auto w-full"
                   variant="outline"
+                  title="Sync your Google My Business data"
                 >
                   {syncing ? (
                     <>
@@ -617,6 +650,7 @@ export function GMBConnectionManager({
                   disabled={connecting || syncing || disconnecting}
                   className="sm:w-auto w-full"
                   variant="outline"
+                  title="Re-authenticate with Google My Business"
                 >
                   <Key className="h-4 w-4 mr-2" /> Re-authenticate
                 </Button>
@@ -625,6 +659,7 @@ export function GMBConnectionManager({
                   disabled={syncing || disconnecting}
                   className="sm:w-auto w-full"
                   variant="destructive"
+                  title="Disconnect from Google My Business"
                 >
                   <Unlink className="h-4 w-4 mr-2" /> Disconnect
                 </Button>
@@ -642,6 +677,7 @@ export function GMBConnectionManager({
                   className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent text-white"
                   onClick={handleConnect}
                   disabled={connecting}
+                  title="Connect to Google My Business"
                 >
                   {connecting ? (
                     <>
