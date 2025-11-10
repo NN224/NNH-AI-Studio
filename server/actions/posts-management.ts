@@ -255,9 +255,11 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
  * Builds the Google API request body from post data.
  */
 function buildGooglePostBody(postData: GMBPost | z.infer<typeof CreatePostSchema>): any {
+    const summaryText = 'content' in postData && postData.content ? postData.content : (postData as z.infer<typeof CreatePostSchema>).description;
+
     const body: any = {
         languageCode: "en",
-        summary: postData.content || (postData as z.infer<typeof CreatePostSchema>).description,
+        summary: summaryText,
         topicType: mapPostTypeToGoogle(postData.post_type),
     };
 
@@ -266,35 +268,38 @@ function buildGooglePostBody(postData: GMBPost | z.infer<typeof CreatePostSchema
             title: postData.title,
             schedule: {},
         };
-        if (postData.start_date || (postData as any).startDate) {
-            const startDate = new Date((postData as any).startDate || postData.start_date!);
+        const p = postData as any; // To handle both types
+        if (p.startDate || p.start_date) {
+            const startDate = new Date(p.startDate || p.start_date);
             body.event.schedule.startDate = { year: startDate.getFullYear(), month: startDate.getMonth() + 1, day: startDate.getDate() };
             body.event.schedule.startTime = { hours: startDate.getHours(), minutes: startDate.getMinutes() };
         }
-        if (postData.end_date || (postData as any).endDate) {
-            const endDate = new Date((postData as any).endDate || postData.end_date!);
+        if (p.endDate || p.end_date) {
+            const endDate = new Date(p.endDate || p.end_date);
             body.event.schedule.endDate = { year: endDate.getFullYear(), month: endDate.getMonth() + 1, day: endDate.getDate() };
             body.event.schedule.endTime = { hours: endDate.getHours(), minutes: endDate.getMinutes() };
         }
     }
 
     if (postData.post_type === "offer" && postData.title) {
+        const p = postData as any;
         body.offer = {
             couponCode: postData.title,
-            redeemOnlineUrl: postData.call_to_action_url || (postData as any).ctaUrl || "",
-            termsConditions: postData.content || (postData as any).description,
+            redeemOnlineUrl: p.call_to_action_url || p.ctaUrl || "",
+            termsConditions: summaryText,
         };
     }
-
-    if (postData.media_url || (postData as any).mediaUrl) {
+    
+    const p = postData as any;
+    if (p.media_url || p.mediaUrl) {
         body.media = [{
             mediaFormat: "PHOTO",
-            sourceUrl: postData.media_url || (postData as any).mediaUrl,
+            sourceUrl: p.media_url || p.mediaUrl,
         }];
     }
 
-    const ctaType = postData.call_to_action || (postData as any).ctaType;
-    const ctaUrl = postData.call_to_action_url || (postData as any).ctaUrl;
+    const ctaType = p.call_to_action || p.ctaType;
+    const ctaUrl = p.call_to_action_url || p.ctaUrl;
 
     if (ctaType && ctaUrl) {
         body.callToAction = {
