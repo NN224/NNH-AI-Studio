@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocations } from '@/hooks/use-locations';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { HorizontalLocationCard } from '@/components/locations/horizontal-location-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,13 +27,50 @@ interface LocationsStats {
 
 export function LocationsListView() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'reviews' | 'healthScore'>('name');
-  const [quickFilter, setQuickFilter] = useState<'none' | 'attention' | 'top'>('none');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Initialize state from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchParams.get('search') || '');
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'reviews' | 'healthScore'>(
+    (searchParams.get('sortBy') as any) || 'name'
+  );
+  const [quickFilter, setQuickFilter] = useState<'none' | 'attention' | 'top'>(
+    (searchParams.get('quickFilter') as any) || 'none'
+  );
   const [stats, setStats] = useState<LocationsStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Debounce search input (300ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update URL params when filters change
+  const updateUrlParams = useCallback(() => {
+    const params = new URLSearchParams();
+    
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
+    if (categoryFilter !== 'all') params.set('category', categoryFilter);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    if (sortBy !== 'name') params.set('sortBy', sortBy);
+    if (quickFilter !== 'none') params.set('quickFilter', quickFilter);
+
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.push(newUrl);
+  }, [debouncedSearchQuery, categoryFilter, statusFilter, sortBy, quickFilter, pathname, router]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    updateUrlParams();
+  }, [debouncedSearchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
 
   // Use stable empty filters object to prevent infinite loops
   // Memoize empty object to prevent re-creation on every render
@@ -155,9 +192,9 @@ export function LocationsListView() {
     
     let filtered = [...locationsToFilter];
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Search filter - use debounced search query
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(loc =>
         loc.name.toLowerCase().includes(query) ||
         (loc.address && loc.address.toLowerCase().includes(query))
@@ -202,7 +239,7 @@ export function LocationsListView() {
     });
 
     return filtered;
-  }, [locationsWithStats, searchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
+  }, [locationsWithStats, debouncedSearchQuery, categoryFilter, statusFilter, sortBy, quickFilter]);
 
   // Debug logging (after filteredLocations is declared)
   React.useEffect(() => {
@@ -236,13 +273,15 @@ export function LocationsListView() {
 
   const clearFilters = () => {
     setSearchQuery('');
+    setDebouncedSearchQuery('');
     setCategoryFilter('all');
     setStatusFilter('all');
     setSortBy('name');
     setQuickFilter('none');
+    router.push(pathname); // Clear URL params
   };
 
-  const hasActiveFilters = searchQuery || categoryFilter !== 'all' || statusFilter !== 'all' || quickFilter !== 'none';
+  const hasActiveFilters = debouncedSearchQuery || categoryFilter !== 'all' || statusFilter !== 'all' || quickFilter !== 'none';
 
   if (error) {
     return (

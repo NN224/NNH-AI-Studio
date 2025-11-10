@@ -115,12 +115,48 @@ export async function GET(request: NextRequest) {
     // Add coordinates field to each location (convert latitude/longitude to coordinates object)
     const locationsWithCoordinates = addCoordinatesToLocations(data || []);
 
+    // Calculate aggregations for filter counts (optional - only if aggregations param is set)
+    const includeAggregations = searchParams.get('aggregations') === 'true';
+    let aggregations = undefined;
+
+    if (includeAggregations) {
+      // Fetch all locations for aggregation (not just the current page)
+      const { data: allLocations } = await supabase
+        .from('gmb_locations')
+        .select('status, category')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (allLocations) {
+        // Calculate status counts
+        const statusCounts: Record<string, number> = {};
+        const categoryCounts: Record<string, number> = {};
+
+        allLocations.forEach((loc: any) => {
+          // Count by status
+          const status = loc.status || 'unknown';
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+          // Count by category
+          if (loc.category) {
+            categoryCounts[loc.category] = (categoryCounts[loc.category] || 0) + 1;
+          }
+        });
+
+        aggregations = {
+          statuses: statusCounts,
+          categories: categoryCounts,
+        };
+      }
+    }
+
     return NextResponse.json({
       data: locationsWithCoordinates,
       total: count || 0,
       page,
       pageSize,
       hasMore: (count || 0) > page * pageSize,
+      ...(aggregations && { aggregations }),
     }, {
       headers: responseHeaders
     });
