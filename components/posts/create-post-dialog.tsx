@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { createPost } from '@/server/actions/posts-management';
 import { Loader2, Sparkles } from 'lucide-react';
+import { validatePostForm, CTA_OPTIONS, POST_TYPES, type PostFormData } from './post-form-validation';
 
 type PostType = 'whats_new' | 'event' | 'offer' | 'product';
 
@@ -19,15 +20,6 @@ interface CreatePostDialogProps {
   locations: Array<{ id: string; location_name: string }>;
   onSuccess?: () => void;
 }
-
-const CTA_OPTIONS = [
-  { value: 'BOOK', label: 'Book' },
-  { value: 'ORDER', label: 'Order' },
-  { value: 'LEARN_MORE', label: 'Learn More' },
-  { value: 'SIGN_UP', label: 'Sign Up' },
-  { value: 'CALL', label: 'Call' },
-  { value: 'SHOP', label: 'Shop' },
-];
 
 export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: CreatePostDialogProps) {
   const [postType, setPostType] = useState<PostType>('whats_new');
@@ -41,7 +33,7 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
   const [isPublishing, setIsPublishing] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const handleGenerateAI = async () => {
+  const handleGenerateAI = useCallback(async () => {
     if (!description.trim() && !title.trim()) {
       toast.error('Please enter some content to generate from');
       return;
@@ -78,32 +70,23 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
     } finally {
       setGenerating(false);
     }
-  };
+  }, [description, title]);
 
-  const handlePublish = async () => {
-    // Validation
-    if (!locationId) {
-      toast.error('Please select a location');
-      return;
-    }
+  const handlePublish = useCallback(async () => {
+    // Validation using shared utility
+    const formData: PostFormData = {
+      locationId,
+      title,
+      description,
+      mediaUrl,
+      cta,
+      ctaUrl,
+      scheduledAt,
+    };
 
-    if (description.trim().length === 0) {
-      toast.error('Please enter a description for your post');
-      return;
-    }
-
-    if (description.length > 1500) {
-      toast.error('Description is too long. Maximum 1500 characters.');
-      return;
-    }
-
-    if (cta && !ctaUrl) {
-      toast.error('Please provide a URL for your call-to-action');
-      return;
-    }
-
-    if (ctaUrl && !ctaUrl.match(/^https?:\/\//)) {
-      toast.error('Please enter a valid URL starting with http:// or https://');
+    const validation = validatePostForm(formData);
+    if (!validation.isValid) {
+      toast.error(validation.error);
       return;
     }
 
@@ -148,9 +131,9 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
     } finally {
       setIsPublishing(false);
     }
-  };
+  }, [locationId, postType, title, description, mediaUrl, cta, ctaUrl, scheduledAt, onSuccess]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setPostType('whats_new');
     setLocationId('');
     setTitle('');
@@ -160,7 +143,7 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
     setCtaUrl('');
     setScheduledAt('');
     onClose();
-  };
+  }, [onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (!open ? handleClose() : null)}>
@@ -196,12 +179,7 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
           <div className="space-y-2">
             <Label className="text-zinc-300">Post Type</Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { key: 'whats_new', label: "What's New" },
-                { key: 'event', label: 'Event' },
-                { key: 'offer', label: 'Offer' },
-                { key: 'product', label: 'Product' },
-              ].map((opt) => (
+              {POST_TYPES.map((opt) => (
                 <button
                   key={opt.key}
                   onClick={() => setPostType(opt.key as PostType)}
@@ -210,6 +188,8 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
                       ? 'bg-orange-600 border-orange-600 text-white'
                       : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-orange-500/50 hover:bg-orange-500/10'
                   }`}
+                  aria-pressed={postType === opt.key}
+                  aria-label={`Select ${opt.label} post type`}
                 >
                   {opt.label}
                 </button>

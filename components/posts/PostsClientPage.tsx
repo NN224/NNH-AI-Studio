@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  createPost,
-  updatePost,
   deletePost,
   publishPost,
   syncPostsFromGoogle,
   bulkDeletePosts,
   bulkPublishPosts,
 } from '@/server/actions/posts-management';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { RefreshCw, Search, Bot, Plus, Trash2, Send, Edit } from 'lucide-react';
+import { RefreshCw, Search, Bot, Plus, Trash2, Send } from 'lucide-react';
 import { PostCard } from './post-card';
 import { CreatePostDialog } from './create-post-dialog';
 import { EditPostDialog } from './edit-post-dialog';
@@ -66,9 +63,10 @@ export function PostsClientPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Update filter in URL
-  const updateFilter = (key: string, value: string | null) => {
+  // Memoized update filter function
+  const updateFilter = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
 
     if (value) {
@@ -83,10 +81,10 @@ export function PostsClientPage({
     }
 
     router.push(`/posts?${params.toString()}`);
-  };
+  }, [searchParams, router]);
 
-  // Handle sync
-  const handleSync = async () => {
+  // Handle sync with better error handling
+  const handleSync = useCallback(async () => {
     if (!currentFilters.locationId) {
       toast.error('Please select a location first');
       return;
@@ -125,10 +123,10 @@ export function PostsClientPage({
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [currentFilters.locationId, router]);
 
   // Handle delete with optimistic update
-  const handleDelete = async (postId: string) => {
+  const handleDelete = useCallback(async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return;
 
     // Optimistic update
@@ -177,10 +175,10 @@ export function PostsClientPage({
       });
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [initialPosts, selectedPost, router]);
 
   // Handle publish with optimistic update
-  const handlePublish = async (postId: string) => {
+  const handlePublish = useCallback(async (postId: string) => {
     // Optimistic update
     const postToPublish = initialPosts.find(p => p.id === postId);
     if (postToPublish) {
@@ -234,10 +232,10 @@ export function PostsClientPage({
       });
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [initialPosts, selectedPost, router]);
 
   // Handle bulk delete
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedPosts.size === 0) {
       toast.error('Please select posts to delete');
       return;
@@ -263,10 +261,10 @@ export function PostsClientPage({
       console.error('Bulk delete error:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [selectedPosts, router]);
 
   // Handle bulk publish
-  const handleBulkPublish = async () => {
+  const handleBulkPublish = useCallback(async () => {
     if (selectedPosts.size === 0) {
       toast.error('Please select posts to publish');
       return;
@@ -290,28 +288,58 @@ export function PostsClientPage({
       console.error('Bulk publish error:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  }, [selectedPosts, router]);
 
   // Handle edit
-  const handleEdit = (post: GMBPost) => {
+  const handleEdit = useCallback((post: GMBPost) => {
     setSelectedPost(post);
     setEditDialogOpen(true);
-  };
+  }, []);
 
   // Toggle post selection
-  const togglePostSelection = (postId: string) => {
-    const newSelected = new Set(selectedPosts);
-    if (newSelected.has(postId)) {
-      newSelected.delete(postId);
-    } else {
-      newSelected.add(postId);
+  const togglePostSelection = useCallback((postId: string) => {
+    setSelectedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Debounced search handler
+  const handleSearchChange = useCallback((value: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-    setSelectedPosts(newSelected);
-  };
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      updateFilter('search', value || null);
+    }, 500);
+  }, [updateFilter]);
+
+  // Cleanup search timeout on unmount
+  useMemo(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Pagination
-  const totalPages = Math.ceil(totalCount / 50);
+  const totalPages = useMemo(() => Math.ceil(totalCount / 50), [totalCount]);
   const currentPage = currentFilters.page || 1;
+
+  // Filter clearing check
+  const hasActiveFilters = useMemo(() => (
+    currentFilters.locationId ||
+    currentFilters.postType !== 'all' ||
+    currentFilters.status !== 'all' ||
+    currentFilters.searchQuery
+  ), [currentFilters]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 min-h-screen">
@@ -443,25 +471,21 @@ export function PostsClientPage({
               type="text"
               placeholder="Search posts..."
               defaultValue={currentFilters.searchQuery}
-              onChange={(e) => {
-                const value = e.target.value;
-                const timeoutId = setTimeout(() => {
-                  updateFilter('search', value || null);
-                }, 500);
-                return () => clearTimeout(timeoutId);
-              }}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10 bg-zinc-900 border-zinc-700 text-zinc-100 focus:border-orange-500"
+              aria-label="Search posts"
             />
           </div>
 
           {/* Bulk Actions */}
           {selectedPosts.size > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="group" aria-label="Bulk actions">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPublish}
                 className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                aria-label={`Publish ${selectedPosts.size} selected posts`}
               >
                 <Send className="w-4 h-4 mr-2" />
                 Publish ({selectedPosts.size})
@@ -471,6 +495,7 @@ export function PostsClientPage({
                 size="sm"
                 onClick={handleBulkDelete}
                 className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                aria-label={`Delete ${selectedPosts.size} selected posts`}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete ({selectedPosts.size})
@@ -479,14 +504,12 @@ export function PostsClientPage({
           )}
 
           {/* Clear Filters */}
-          {(currentFilters.locationId ||
-            currentFilters.postType !== 'all' ||
-            currentFilters.status !== 'all' ||
-            currentFilters.searchQuery) && (
+          {hasActiveFilters && (
             <Button
               variant="ghost"
               onClick={() => router.push('/posts')}
               className="text-zinc-400 hover:text-zinc-200"
+              aria-label="Clear all filters"
             >
               Clear Filters
             </Button>

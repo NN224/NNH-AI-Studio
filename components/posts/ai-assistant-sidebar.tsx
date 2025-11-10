@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Settings, Lightbulb, Sparkles, Bot, ChevronRight, Zap, Shield, TrendingUp, FileText, Calendar, Gift } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { Settings, Bot, ChevronRight, FileText, Calendar, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,9 +59,16 @@ const QUICK_TIPS = [
     color: 'from-green-500/20 to-emerald-500/10',
     borderColor: 'border-green-500/30',
   },
-];
+] as const;
 
-export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssistantSidebarProps) {
+const PostTypeIconMap = {
+  whats_new: FileText,
+  event: Calendar,
+  offer: Gift,
+  product: FileText,
+} as const;
+
+export const AIAssistantSidebar = memo(function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssistantSidebarProps) {
   const router = useRouter();
   const [currentTip, setCurrentTip] = useState(0);
 
@@ -73,24 +80,24 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
     return () => clearInterval(interval);
   }, []);
 
-  const handleAISettings = () => {
+  const handleAISettings = useCallback(() => {
     router.push('/settings?tab=ai');
-  };
+  }, [router]);
+
+  const handleViewDrafts = useCallback(() => {
+    router.push('/posts?status=draft');
+  }, [router]);
+
+  const handleViewScheduled = useCallback(() => {
+    router.push('/posts?status=queued');
+  }, [router]);
 
   const tip = QUICK_TIPS[currentTip];
 
-  const getPostTypeIcon = (postType: string) => {
-    switch (postType) {
-      case 'whats_new':
-        return FileText;
-      case 'event':
-        return Calendar;
-      case 'offer':
-        return Gift;
-      default:
-        return FileText;
-    }
-  };
+  const PostTypeIcon = useMemo(() => {
+    if (!selectedPost) return FileText;
+    return PostTypeIconMap[selectedPost.post_type] || FileText;
+  }, [selectedPost]);
 
   return (
     <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-orange-500/20 rounded-xl p-6 flex flex-col gap-6 shadow-2xl">
@@ -100,13 +107,12 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
             <Bot className="w-6 h-6 text-white" />
           </div>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-zinc-900 animate-pulse" />
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-zinc-900 animate-pulse" aria-label="AI online indicator" />
         </div>
         <div className="flex-1">
           <h3 className="text-xl font-bold text-white">AI Assistant</h3>
           <p className="text-xs text-zinc-400 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            Powered by Google Gemini
+            Powered by Multiple AI Providers
           </p>
         </div>
       </div>
@@ -115,7 +121,7 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
       <Card className={`bg-gradient-to-br ${tip.color} border ${tip.borderColor} backdrop-blur-sm transition-all duration-500 hover:scale-[1.02]`}>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <div className="text-2xl">{tip.icon}</div>
+            <div className="text-2xl" aria-hidden="true">{tip.icon}</div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-white mb-1">{tip.title}</h4>
               <p className="text-xs text-zinc-300 leading-relaxed">{tip.message}</p>
@@ -155,10 +161,7 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
         <Card className="bg-zinc-800/50 border-orange-500/30">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
-              {(() => {
-                const Icon = getPostTypeIcon(selectedPost.post_type);
-                return <Icon className="w-4 h-4 text-orange-400" />;
-              })()}
+              <PostTypeIcon className="w-4 h-4 text-orange-400" />
               <h4 className="text-sm font-semibold text-white">Selected Post</h4>
             </div>
             <p className="text-xs text-zinc-400 mb-2 line-clamp-2">
@@ -181,6 +184,7 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
         onClick={handleAISettings}
         variant="outline"
         className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 justify-between"
+        aria-label="Open AI Settings"
       >
         <div className="flex items-center gap-2">
           <Settings className="w-4 h-4" />
@@ -196,7 +200,8 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
           <Button
             variant="ghost"
             className="w-full justify-start text-zinc-300 hover:text-white hover:bg-zinc-800"
-            onClick={() => router.push('/posts?status=draft')}
+            onClick={handleViewDrafts}
+            aria-label="View draft posts"
           >
             <FileText className="w-4 h-4 mr-2" />
             View Drafts
@@ -204,7 +209,8 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
           <Button
             variant="ghost"
             className="w-full justify-start text-zinc-300 hover:text-white hover:bg-zinc-800"
-            onClick={() => router.push('/posts?status=queued')}
+            onClick={handleViewScheduled}
+            aria-label="View scheduled posts"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Scheduled Posts
@@ -213,5 +219,7 @@ export function AIAssistantSidebar({ selectedPost, stats, locationId }: AIAssist
       </div>
     </div>
   );
-}
+});
+
+AIAssistantSidebar.displayName = 'AIAssistantSidebar';
 

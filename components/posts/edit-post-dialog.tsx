@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { updatePost } from '@/server/actions/posts-management';
 import { Loader2 } from 'lucide-react';
 import type { GMBPost } from '@/lib/types/database';
+import { validatePostForm, CTA_OPTIONS, type PostFormData } from './post-form-validation';
 
 interface EditPostDialogProps {
   post: GMBPost;
@@ -18,15 +19,6 @@ interface EditPostDialogProps {
   onClose: () => void;
   onSuccess?: () => void;
 }
-
-const CTA_OPTIONS = [
-  { value: 'BOOK', label: 'Book' },
-  { value: 'ORDER', label: 'Order' },
-  { value: 'LEARN_MORE', label: 'Learn More' },
-  { value: 'SIGN_UP', label: 'Sign Up' },
-  { value: 'CALL', label: 'Call' },
-  { value: 'SHOP', label: 'Shop' },
-];
 
 export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDialogProps) {
   const [title, setTitle] = useState('');
@@ -49,25 +41,20 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
     }
   }, [post]);
 
-  const handleUpdate = async () => {
-    // Validation
-    if (description.trim().length === 0) {
-      toast.error('Please enter a description for your post');
-      return;
-    }
+  const handleUpdate = useCallback(async () => {
+    // Validation using shared utility
+    const formData: PostFormData = {
+      title,
+      description,
+      mediaUrl,
+      cta,
+      ctaUrl,
+      scheduledAt,
+    };
 
-    if (description.length > 1500) {
-      toast.error('Description is too long. Maximum 1500 characters.');
-      return;
-    }
-
-    if (cta && !ctaUrl) {
-      toast.error('Please provide a URL for your call-to-action');
-      return;
-    }
-
-    if (ctaUrl && !ctaUrl.match(/^https?:\/\//)) {
-      toast.error('Please enter a valid URL starting with http:// or https://');
+    const validation = validatePostForm(formData, false);
+    if (!validation.isValid) {
+      toast.error(validation.error);
       return;
     }
 
@@ -101,11 +88,11 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [post.id, title, description, mediaUrl, cta, ctaUrl, scheduledAt, onSuccess]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
-  };
+  }, [onClose]);
 
   const canEdit = post.status === 'draft' || post.status === 'queued';
 

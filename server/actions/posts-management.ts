@@ -9,6 +9,10 @@ import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 const BUSINESS_INFORMATION_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE
 const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE
 
+// Cache for location data to reduce database queries
+const locationCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 function normalizeLocationResource(locationId: string): string {
   const clean = locationId.replace(/^accounts\/[^/]+\/locations\//, "").replace(/^locations\//, "")
   return `locations/${clean}`
@@ -65,6 +69,58 @@ function mapPostType(postType: string): string {
     product: "PRODUCT",
   }
   return mapping[postType] || "STANDARD"
+}
+
+/**
+ * Standardized error response builder
+ */
+function createErrorResponse(error: string, errorCode?: string) {
+  return {
+    success: false as const,
+    error,
+    ...(errorCode && { errorCode }),
+  };
+}
+
+/**
+ * Standardized success response builder
+ */
+function createSuccessResponse(message: string, data?: any) {
+  return {
+    success: true as const,
+    message,
+    ...(data && { data }),
+  };
+}
+
+/**
+ * Get location with caching to reduce DB queries
+ */
+async function getCachedLocation(supabase: any, locationId: string, userId: string) {
+  const cacheKey = `${userId}-${locationId}`;
+  const cached = locationCache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  const { data: location, error: locError } = await supabase
+    .from("gmb_locations")
+    .select(`
+      id,
+      location_id,
+      gmb_account_id,
+      gmb_accounts!inner(id, account_id)
+    `)
+    .eq("id", locationId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!locError && location) {
+    locationCache.set(cacheKey, { data: location, timestamp: Date.now() });
+  }
+
+  return locError ? null : location;
 }
 
 // ============================================
@@ -203,32 +259,14 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return {
-        success: false,
-        error: "Not authenticated",
-      }
+      return createErrorResponse("Not authenticated");
     }
 
-    // Get location details
-    const { data: location, error: locError } = await supabase
-      .from("gmb_locations")
-      .select(
-        `
-        id,
-        location_id,
-        gmb_account_id,
-        gmb_accounts!inner(id, account_id)
-      `
-      )
-      .eq("id", validatedData.locationId)
-      .eq("user_id", user.id)
-      .single()
+    // Get location details with caching
+    const location = await getCachedLocation(supabase, validatedData.locationId, user.id);
 
-    if (locError || !location) {
-      return {
-        success: false,
-        error: "Location not found or you don't have permission to post to it.",
-      }
+    if (!location) {
+      return createErrorResponse("Location not found or you don't have permission to post to it.");
     }
 
     const account =
@@ -236,10 +274,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       null
 
     if (!location.gmb_account_id || !account?.account_id) {
-      return {
-        success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
-      }
+      return createErrorResponse("Linked Google account not found. Please reconnect your Google account.");
     }
 
     // If scheduled, save as draft/queued without publishing to Google
@@ -260,23 +295,26 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
 
       if (insertError) {
         console.error("[Posts] Database insert error:", insertError)
-        return {
-          success: false,
-          error: "Failed to save scheduled post",
-        }
+        return createErrorResponse("Failed to save scheduled post");
       }
 
       revalidatePath("/posts")
       revalidatePath("/dashboard")
 
-      return {
-        success: true,
-        message: "Post scheduled successfully",
-      }
+      return createSuccessResponse("Post scheduled successfully");
     }
 
     // Publish immediately
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+    let accessToken: string;
+    try {
+      accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    } catch (tokenError) {
+      console.error("[Posts] Token error:", tokenError);
+      return createErrorResponse(
+        "Failed to authenticate with Google. Please reconnect your account.",
+        "AUTH_EXPIRED"
+      );
+    }
 
     // Prepare post data for Google API
     const postData: any = {
@@ -293,26 +331,28 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       }
 
       if (validatedData.startDate) {
+        const startDate = new Date(validatedData.startDate);
         postData.event.schedule.startDate = {
-          year: new Date(validatedData.startDate).getFullYear(),
-          month: new Date(validatedData.startDate).getMonth() + 1,
-          day: new Date(validatedData.startDate).getDate(),
+          year: startDate.getFullYear(),
+          month: startDate.getMonth() + 1,
+          day: startDate.getDate(),
         }
         postData.event.schedule.startTime = {
-          hours: new Date(validatedData.startDate).getHours(),
-          minutes: new Date(validatedData.startDate).getMinutes(),
+          hours: startDate.getHours(),
+          minutes: startDate.getMinutes(),
         }
       }
 
       if (validatedData.endDate) {
+        const endDate = new Date(validatedData.endDate);
         postData.event.schedule.endDate = {
-          year: new Date(validatedData.endDate).getFullYear(),
-          month: new Date(validatedData.endDate).getMonth() + 1,
-          day: new Date(validatedData.endDate).getDate(),
+          year: endDate.getFullYear(),
+          month: endDate.getMonth() + 1,
+          day: endDate.getDate(),
         }
         postData.event.schedule.endTime = {
-          hours: new Date(validatedData.endDate).getHours(),
-          minutes: new Date(validatedData.endDate).getMinutes(),
+          hours: endDate.getHours(),
+          minutes: endDate.getMinutes(),
         }
       }
     }
@@ -357,40 +397,35 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(postData),
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
 
         if (response.status === 401) {
-          return {
-            success: false,
-            error: "Authentication expired. Please reconnect your Google account.",
-            errorCode: "AUTH_EXPIRED",
-          }
+          return createErrorResponse(
+            "Authentication expired. Please reconnect your Google account.",
+            "AUTH_EXPIRED"
+          );
         }
 
         if (response.status === 403) {
-          return {
-            success: false,
-            error: "Permission denied. Please check your Google Business Profile permissions.",
-            errorCode: "PERMISSION_DENIED",
-          }
+          return createErrorResponse(
+            "Permission denied. Please check your Google Business Profile permissions.",
+            "PERMISSION_DENIED"
+          );
         }
 
         if (response.status === 429) {
-          return {
-            success: false,
-            error: "Too many requests. Please try again later.",
-            errorCode: "RATE_LIMIT",
-          }
+          return createErrorResponse(
+            "Too many requests. Please try again later.",
+            "RATE_LIMIT"
+          );
         }
 
         console.error("[Posts] API error:", errorData)
-        return {
-          success: false,
-          error: errorData.error?.message || "Failed to create post on Google",
-        }
+        return createErrorResponse(errorData.error?.message || "Failed to create post on Google");
       }
 
       googleResult = await response.json()
@@ -417,38 +452,25 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       console.error("[Posts] Database insert error:", insertError)
       // Don't fail if post was created on Google
       if (googleResult) {
-        return {
-          success: true,
-          message: "Post published on Google but failed to save to database",
-        }
+        return createSuccessResponse("Post published on Google but failed to save to database");
       }
-      return {
-        success: false,
-        error: "Failed to save post",
-      }
+      return createErrorResponse("Failed to save post");
     }
 
     revalidatePath("/posts")
     revalidatePath("/dashboard")
 
-    return {
-      success: true,
-      message: validatedData.postType === "whats_new" ? "Post published successfully" : "Post saved as draft",
-    }
+    return createSuccessResponse(
+      validatedData.postType === "whats_new" ? "Post published successfully" : "Post saved as draft"
+    );
   } catch (error: any) {
     console.error("[Posts] Create post error:", error)
 
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
-      }
+      return createErrorResponse(`Validation error: ${error.errors.map((e) => e.message).join(", ")}`);
     }
 
-    return {
-      success: false,
-      error: error.message || "An unexpected error occurred",
-    }
+    return createErrorResponse(error.message || "An unexpected error occurred");
   }
 }
 
@@ -466,17 +488,13 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return {
-        success: false,
-        error: "Not authenticated",
-      }
+      return createErrorResponse("Not authenticated");
     }
 
     // Get post details
     const { data: post, error: fetchError } = await supabase
       .from("gmb_posts")
-      .select(
-        `
+      .select(`
         *,
         gmb_locations!inner(
           id,
@@ -484,17 +502,13 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
           gmb_account_id,
           gmb_accounts!inner(id, account_id)
         )
-      `
-      )
+      `)
       .eq("id", validatedData.postId)
       .eq("user_id", user.id)
       .single()
 
     if (fetchError || !post) {
-      return {
-        success: false,
-        error: "Post not found",
-      }
+      return createErrorResponse("Post not found");
     }
 
     // Update database

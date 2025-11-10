@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { FileText, Calendar, Gift, Image as ImageIcon, MapPin, Clock, CheckCircle, XCircle, Send, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +37,24 @@ const STATUS_COLORS = {
   draft: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   queued: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   failed: 'bg-red-500/20 text-red-400 border-red-500/30',
-};
+} as const;
 
-export function PostCard({
+function formatTimeAgo(dateString?: string): string {
+  if (!dateString) return 'Unknown';
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  
+  return date.toLocaleDateString();
+}
+
+export const PostCard = memo(function PostCard({
   post,
   isSelected,
   isCheckboxSelected,
@@ -195,20 +211,7 @@ export function PostCard({
       </div>
     </div>
   );
-}
+});
 
-function formatTimeAgo(dateString?: string): string {
-  if (!dateString) return 'Unknown';
-  
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString();
-}
+PostCard.displayName = 'PostCard';
 
