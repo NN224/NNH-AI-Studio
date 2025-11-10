@@ -255,16 +255,16 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
  * Builds the Google API request body from post data.
  */
 function buildGooglePostBody(postData: GMBPost | z.infer<typeof CreatePostSchema>): any {
-    const typedPostData = postData as any;
-    const summaryText = typedPostData.content ?? typedPostData.description ?? '';
+    const summaryText = 'content' in postData && postData.content ? postData.content : (postData as z.infer<typeof CreatePostSchema>).description;
+    const type = 'post_type' in postData ? postData.post_type : (postData as z.infer<typeof CreatePostSchema>).postType;
 
     const body: any = {
         languageCode: "en",
         summary: summaryText,
-        topicType: mapPostTypeToGoogle(postData.post_type),
+        topicType: mapPostTypeToGoogle(type),
     };
 
-    if (postData.post_type === "event" && postData.title) {
+    if (type === "event" && postData.title) {
         body.event = {
             title: postData.title,
             schedule: {},
@@ -282,7 +282,7 @@ function buildGooglePostBody(postData: GMBPost | z.infer<typeof CreatePostSchema
         }
     }
 
-    if (postData.post_type === "offer" && postData.title) {
+    if (type === "offer" && postData.title) {
         const p = postData as any;
         body.offer = {
             couponCode: postData.title,
