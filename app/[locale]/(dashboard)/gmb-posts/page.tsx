@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // Add this line to prevent caching
+
 import { createClient } from '@/lib/supabase/server';
 import { PostsClientPage } from '@/components/posts/PostsClientPage';
 import { getPosts, getPostStats } from '@/server/actions/posts-management';
