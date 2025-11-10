@@ -6,17 +6,14 @@ import { z } from "zod"
 import type { GMBPost } from "@/lib/types/database"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 
-const BUSINESS_INFORMATION_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE
+// Ensures all server actions in this file are dynamically rendered
+export const dynamic = 'force-dynamic';
+
 const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE
 
 // Cache for location data to reduce database queries
 const locationCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-function normalizeLocationResource(locationId: string): string {
-  const clean = locationId.replace(/^accounts\/[^/]+\/locations\//, "").replace(/^locations\//, "")
-  return `locations/${clean}`
-}
 
 function buildV4LocationResource(accountId: string, locationId: string): string {
   const cleanAccountId = accountId.replace(/^accounts\//, "")
@@ -61,15 +58,27 @@ const FilterSchema = z.object({
 /**
  * Map post type to Google's topic type
  */
-function mapPostType(postType: string): string {
-  const mapping: Record<string, string> = {
-    whats_new: "STANDARD",
-    event: "EVENT",
-    offer: "OFFER",
-    product: "PRODUCT",
-  }
-  return mapping[postType] || "STANDARD"
+function mapPostTypeToGoogle(postType: GMBPost["post_type"]): string {
+    const mapping = {
+        whats_new: "STANDARD",
+        event: "EVENT",
+        offer: "OFFER",
+        // 'product' type posts are handled differently in GMB API, often as separate products.
+        // For local posts, 'STANDARD' is a safe fallback.
+        product: "STANDARD",
+    };
+    return mapping[postType] || "STANDARD";
 }
+
+function mapGoogleToPostType(googleTopicType: string): GMBPost["post_type"] {
+    const mapping = {
+        STANDARD: "whats_new",
+        EVENT: "event",
+        OFFER: "offer",
+    };
+    return (mapping as any)[googleTopicType] || "whats_new";
+}
+
 
 /**
  * Standardized error response builder
@@ -245,6 +254,65 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
   }
 }
 
+/**
+ * Builds the Google API request body from post data.
+ */
+function buildGooglePostBody(postData: GMBPost | z.infer<typeof CreatePostSchema>): any {
+    const body: any = {
+        languageCode: "en",
+        summary: postData.content || (postData as z.infer<typeof CreatePostSchema>).description,
+        topicType: mapPostTypeToGoogle(postData.post_type),
+    };
+
+    if (postData.post_type === "event" && postData.title) {
+        body.event = {
+            title: postData.title,
+            schedule: {},
+        };
+        if (postData.start_date || (postData as any).startDate) {
+            const startDate = new Date((postData as any).startDate || postData.start_date!);
+            body.event.schedule.startDate = { year: startDate.getFullYear(), month: startDate.getMonth() + 1, day: startDate.getDate() };
+            body.event.schedule.startTime = { hours: startDate.getHours(), minutes: startDate.getMinutes() };
+        }
+        if (postData.end_date || (postData as any).endDate) {
+            const endDate = new Date((postData as any).endDate || postData.end_date!);
+            body.event.schedule.endDate = { year: endDate.getFullYear(), month: endDate.getMonth() + 1, day: endDate.getDate() };
+            body.event.schedule.endTime = { hours: endDate.getHours(), minutes: endDate.getMinutes() };
+        }
+    }
+
+    if (postData.post_type === "offer" && postData.title) {
+        body.offer = {
+            couponCode: postData.title,
+            redeemOnlineUrl: postData.call_to_action_url || (postData as any).ctaUrl || "",
+            termsConditions: postData.content || (postData as any).description,
+        };
+    }
+
+    if (postData.media_url || (postData as any).mediaUrl) {
+        body.media = [{
+            mediaFormat: "PHOTO",
+            sourceUrl: postData.media_url || (postData as any).mediaUrl,
+        }];
+    }
+
+    const ctaType = postData.call_to_action || (postData as any).ctaType;
+    const ctaUrl = postData.call_to_action_url || (postData as any).ctaUrl;
+
+    if (ctaType && ctaUrl) {
+        body.callToAction = {
+            actionType: ctaType,
+            url: ctaUrl,
+        };
+    } else if (ctaType === 'CALL') {
+        // CALL action does not require a URL
+        body.callToAction = { actionType: ctaType };
+    }
+
+    return body;
+}
+
+
 // ============================================
 // 2. CREATE POST
 // ============================================
@@ -317,119 +385,51 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     }
 
     // Prepare post data for Google API
-    const postData: any = {
-      languageCode: "en",
-      summary: validatedData.description,
-      topicType: mapPostType(validatedData.postType),
-    }
+    const postData = buildGooglePostBody(validatedData);
 
-    // Add event details if it's an event post
-    if (validatedData.postType === "event" && validatedData.title) {
-      postData.event = {
-        title: validatedData.title,
-        schedule: {},
+    const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
+    const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`
+
+    const response = await fetch(gmbApiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(postData),
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      if (response.status === 401) {
+        return createErrorResponse(
+          "Authentication expired. Please reconnect your Google account.",
+          "AUTH_EXPIRED"
+        );
       }
 
-      if (validatedData.startDate) {
-        const startDate = new Date(validatedData.startDate);
-        postData.event.schedule.startDate = {
-          year: startDate.getFullYear(),
-          month: startDate.getMonth() + 1,
-          day: startDate.getDate(),
-        }
-        postData.event.schedule.startTime = {
-          hours: startDate.getHours(),
-          minutes: startDate.getMinutes(),
-        }
+      if (response.status === 403) {
+        return createErrorResponse(
+          "Permission denied. Please check your Google Business Profile permissions.",
+          "PERMISSION_DENIED"
+        );
       }
 
-      if (validatedData.endDate) {
-        const endDate = new Date(validatedData.endDate);
-        postData.event.schedule.endDate = {
-          year: endDate.getFullYear(),
-          month: endDate.getMonth() + 1,
-          day: endDate.getDate(),
-        }
-        postData.event.schedule.endTime = {
-          hours: endDate.getHours(),
-          minutes: endDate.getMinutes(),
-        }
-      }
-    }
-
-    // Add offer details
-    if (validatedData.postType === "offer" && validatedData.title) {
-      postData.offer = {
-        couponCode: "",
-        redeemOnlineUrl: validatedData.ctaUrl || "",
-        termsConditions: validatedData.description,
-      }
-    }
-
-    // Add media if provided
-    if (validatedData.mediaUrl) {
-      postData.media = [
-        {
-          mediaFormat: "PHOTO",
-          sourceUrl: validatedData.mediaUrl,
-        },
-      ]
-    }
-
-    // Add call to action
-    if (validatedData.ctaType && validatedData.ctaUrl) {
-      postData.callToAction = {
-        actionType: validatedData.ctaType,
-        url: validatedData.ctaUrl,
-      }
-    }
-
-    // Call Google My Business API (only for whats_new posts)
-    let googleResult = null
-    if (validatedData.postType === "whats_new") {
-      const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id)
-      const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`
-
-      const response = await fetch(gmbApiUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(postData),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-
-        if (response.status === 401) {
-          return createErrorResponse(
-            "Authentication expired. Please reconnect your Google account.",
-            "AUTH_EXPIRED"
-          );
-        }
-
-        if (response.status === 403) {
-          return createErrorResponse(
-            "Permission denied. Please check your Google Business Profile permissions.",
-            "PERMISSION_DENIED"
-          );
-        }
-
-        if (response.status === 429) {
-          return createErrorResponse(
-            "Too many requests. Please try again later.",
-            "RATE_LIMIT"
-          );
-        }
-
-        console.error("[Posts] API error:", errorData)
-        return createErrorResponse(errorData.error?.message || "Failed to create post on Google");
+      if (response.status === 429) {
+        return createErrorResponse(
+          "Too many requests. Please try again later.",
+          "RATE_LIMIT"
+        );
       }
 
-      googleResult = await response.json()
+      console.error("[Posts] API error:", errorData)
+      return createErrorResponse(errorData.error?.message || "Failed to create post on Google");
     }
+
+    const googleResult = await response.json()
+    
 
     // Save to database
     const { error: insertError } = await supabase.from("gmb_posts").insert({
@@ -444,7 +444,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       call_to_action_url: validatedData.ctaUrl || null,
       scheduled_at: validatedData.scheduledAt || null,
       published_at: googleResult ? new Date().toISOString() : null,
-      status: googleResult ? "published" : "draft",
+      status: "published",
       metadata: googleResult || {},
     })
 
@@ -460,9 +460,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     revalidatePath("/posts")
     revalidatePath("/dashboard")
 
-    return createSuccessResponse(
-      validatedData.postType === "whats_new" ? "Post published successfully" : "Post saved as draft"
-    );
+    return createSuccessResponse("Post published successfully");
   } catch (error: any) {
     console.error("[Posts] Create post error:", error)
 
@@ -564,32 +562,17 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
             `${GMB_V4_BASE}/${locationResourceV4}/localPosts/${post.provider_post_id}`
           )
 
-          const postData: any = {
-            languageCode: "en",
-            summary: validatedData.description ?? post.content,
-            topicType: mapPostType(post.post_type),
-          }
-
-          if (validatedData.mediaUrl !== undefined) {
-            postData.media = [
-              {
-                mediaFormat: "PHOTO",
-                sourceUrl: validatedData.mediaUrl,
-              },
-            ]
-          }
-
-          if (validatedData.ctaType && validatedData.ctaUrl) {
-            postData.callToAction = {
-              actionType: validatedData.ctaType,
-              url: validatedData.ctaUrl,
-            }
-          }
+          const postBody = buildGooglePostBody({ ...post, ...validatedData } as GMBPost);
 
           const updateMask: string[] = []
-          if (postData.summary) updateMask.push("summary")
-          if (postData.media) updateMask.push("media")
-          if (postData.callToAction) updateMask.push("callToAction")
+          if (validatedData.description) updateMask.push("summary")
+          if (validatedData.mediaUrl) updateMask.push("media")
+          if (validatedData.ctaType) updateMask.push("callToAction")
+          if (validatedData.title && (post.post_type === 'event' || post.post_type === 'offer')) {
+              if(post.post_type === 'event') updateMask.push("event");
+              if(post.post_type === 'offer') updateMask.push("offer");
+          }
+
 
           if (updateMask.length > 0) {
             postResourceUrl.searchParams.set("updateMask", updateMask.join(","))
@@ -601,7 +584,7 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
               Authorization: `Bearer ${accessToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(postData),
+            body: JSON.stringify(postBody),
           })
 
           if (!response.ok) {
@@ -794,14 +777,6 @@ export async function publishPost(postId: string) {
       }
     }
 
-    // Only whats_new posts can be published
-    if (post.post_type !== "whats_new") {
-      return {
-        success: false,
-        error: "Only 'What's New' posts can be published to Google",
-      }
-    }
-
     if (post.status === "published") {
       return {
         success: false,
@@ -826,31 +801,12 @@ export async function publishPost(postId: string) {
     const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
 
     // Prepare post data for Google API
-    const postData: any = {
-      languageCode: "en",
-      summary: post.content,
-      topicType: mapPostType(post.post_type),
-    }
+    const postData = buildGooglePostBody(post);
 
-    if (post.media_url) {
-      postData.media = [
-        {
-          mediaFormat: "PHOTO",
-          sourceUrl: post.media_url,
-        },
-      ]
-    }
 
-    if (post.call_to_action && post.call_to_action_url) {
-      postData.callToAction = {
-        actionType: post.call_to_action,
-        url: post.call_to_action_url,
-      }
-    }
-
-    // Call Google Business Profile API (Business Information v1)
-    const locationResource = normalizeLocationResource(location.location_id)
-    const gmbApiUrl = `${BUSINESS_INFORMATION_BASE}/${locationResource}/localPosts`
+    // Call Google Business Profile API
+    const locationResourceV4 = buildV4LocationResource(account.account_id, location.location_id);
+    const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`
 
     const response = await fetch(gmbApiUrl, {
       method: "POST",
@@ -1029,7 +985,7 @@ export async function syncPostsFromGoogle(locationId?: string) {
                 provider_post_id: providerPostId,
                 title: googlePost.summary?.substring(0, 200) || null,
                 content: googlePost.summary || "",
-                post_type: googlePost.topicType === "STANDARD" ? "whats_new" : "whats_new",
+                post_type: mapGoogleToPostType(googlePost.topicType),
                 status: "published",
                 published_at: googlePost.createTime || new Date().toISOString(),
                 metadata: googlePost,
@@ -1251,4 +1207,3 @@ export async function bulkPublishPosts(postIds: string[]) {
     }
   }
 }
-
