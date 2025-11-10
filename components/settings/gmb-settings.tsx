@@ -17,6 +17,14 @@ import { GMBAuditPanel } from "./gmb-audit-panel"
 import { SettingsTestPanel } from "./settings-test-panel"
 import { SecurityReviewPanel } from "./security-review-panel"
 
+interface GMBAccount {
+  id: string;
+  account_name?: string;
+  is_active: boolean;
+  last_sync?: string;
+  settings?: Record<string, unknown>;
+}
+
 export function GMBSettings() {
   const supabase = createClient()
   const router = useRouter()
@@ -28,10 +36,10 @@ export function GMBSettings() {
   const [aiResponseTone, setAiResponseTone] = useState("professional")
   const [autoPublish, setAutoPublish] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [gmbAccounts, setGmbAccounts] = useState<any[]>([])
+  const [gmbAccounts, setGmbAccounts] = useState<GMBAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [syncSchedule, setSyncSchedule] = useState<string>('manual')
-  const [syncSettings, setSyncSettings] = useState<any>({})
+  const [syncSettings, setSyncSettings] = useState<Record<string, unknown>>({})
 
   // Check GMB connection status
   useEffect(() => {
@@ -56,17 +64,17 @@ export function GMBSettings() {
         setGmbAccounts(accountsArray)
         
         // Load sync settings from first active account
-        const activeAccounts = accountsArray.filter((acc: any) => acc && acc.is_active) || []
+        const activeAccounts = accountsArray.filter((acc) => acc && acc.is_active) || []
         if (activeAccounts.length > 0 && activeAccounts[0] && activeAccounts[0].settings) {
-          const settings = activeAccounts[0].settings
+          const settings = activeAccounts[0].settings as Record<string, unknown>
           if (settings && typeof settings === 'object') {
             setSyncSettings(settings)
-            setSyncSchedule(settings.syncSchedule || 'manual')
-            setAutoReply(settings.autoReply || false)
-            setReviewNotifications(settings.reviewNotifications !== false)
-            setEmailDigest(settings.emailDigest || 'daily')
-            setAiResponseTone(settings.aiResponseTone || 'professional')
-            setAutoPublish(settings.autoPublish || false)
+            setSyncSchedule((settings.syncSchedule as string) || 'manual')
+            setAutoReply((settings.autoReply as boolean) || false)
+            setReviewNotifications((settings.reviewNotifications as boolean) !== false)
+            setEmailDigest((settings.emailDigest as string) || 'daily')
+            setAiResponseTone((settings.aiResponseTone as string) || 'professional')
+            setAutoPublish((settings.autoPublish as boolean) || false)
           }
         }
       } catch (error) {
@@ -136,10 +144,11 @@ export function GMBSettings() {
       toast.success("Settings saved successfully!", {
         description: "Your preferences have been updated."
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving settings:', error)
+      const err = error as Error;
       toast.error("Failed to save settings", {
-        description: error.message || 'Please try again'
+        description: err.message || 'Please try again'
       })
     } finally {
       setSaving(false)

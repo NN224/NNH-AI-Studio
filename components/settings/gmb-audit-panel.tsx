@@ -28,7 +28,7 @@ interface AuditResult {
   category: string
   issue: string
   count: number
-  details?: any
+  details?: Record<string, unknown>
 }
 
 interface AuditSummary {
@@ -48,7 +48,6 @@ export function GMBAuditPanel() {
     summary: AuditSummary | null
     results: AuditResult[]
   }>({ summary: null, results: [] })
-  const [lastRun, setLastRun] = useState<Date | null>(null)
 
   const runAudit = async () => {
     setLoading(true)
@@ -61,7 +60,6 @@ export function GMBAuditPanel() {
       }
 
       setAuditData(data)
-      setLastRun(new Date())
       
       if (data.summary.critical_count > 0) {
         toast.error(`Audit found ${data.summary.critical_count} critical issues`, {
@@ -76,9 +74,10 @@ export function GMBAuditPanel() {
           description: 'No critical issues found'
         })
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       toast.error('Audit failed', {
-        description: error.message || 'Please try again'
+        description: err.message || 'Please try again'
       })
     } finally {
       setLoading(false)
@@ -107,19 +106,6 @@ export function GMBAuditPanel() {
     document.body.removeChild(a)
 
     toast.success('Report downloaded')
-  }
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'CRITICAL':
-        return <AlertTriangle className="h-4 w-4" />
-      case 'WARNING':
-        return <Info className="h-4 w-4" />
-      case 'INFO':
-        return <Info className="h-4 w-4" />
-      default:
-        return <CheckCircle className="h-4 w-4" />
-    }
   }
 
   const getSeverityColor = (severity: string) => {
@@ -355,7 +341,7 @@ export function GMBAuditPanel() {
                               {result.details && Array.isArray(result.details) && (
                                 <div className="mt-2 text-xs">
                                   <span className="text-muted-foreground">Details: </span>
-                                  {result.details.slice(0, 3).map((d: any) => d.name || d.id).join(', ')}
+                                  {result.details.slice(0, 3).map((d: { name?: string; id?: string }) => d.name || d.id).join(', ')}
                                   {result.details.length > 3 && ` +${result.details.length - 3} more`}
                                 </div>
                               )}

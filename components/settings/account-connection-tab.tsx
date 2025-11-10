@@ -5,13 +5,20 @@ import { Badge } from "@/components/ui/badge"
 import { GMBConnectionManager } from "@/components/gmb/gmb-connection-manager"
 import { Shield, Database, CheckCircle, AlertTriangle, Clock } from "lucide-react"
 
+interface GMBAccount {
+  id: string;
+  account_name?: string;
+  is_active: boolean;
+  last_sync?: string;
+}
+
 interface AccountConnectionTabProps {
-  gmbAccounts: any[]
+  gmbAccounts: GMBAccount[]
   onSuccess?: () => void
 }
 
 export function AccountConnectionTab({ gmbAccounts, onSuccess }: AccountConnectionTabProps) {
-  const activeAccounts = gmbAccounts?.filter((a: any) => a && a.is_active) || []
+  const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
   const hasActiveConnection = activeAccounts.length > 0
 
   return (
@@ -68,7 +75,7 @@ export function AccountConnectionTab({ gmbAccounts, onSuccess }: AccountConnecti
               <div className="space-y-2 pt-4 border-t border-primary/20">
                 <p className="text-sm font-medium text-foreground">Account Details</p>
                 <div className="space-y-2">
-                  {activeAccounts.map((account: any) => (
+                  {activeAccounts.map((account) => (
                     <div 
                       key={account.id} 
                       className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-primary/20"

@@ -9,12 +9,19 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Clock, CheckCircle, Globe } from "lucide-react"
 
+interface GMBAccount {
+  id: string;
+  account_name?: string;
+  is_active: boolean;
+  last_sync?: string;
+}
+
 interface GeneralSettingsTabProps {
   syncSchedule: string
   setSyncSchedule: (value: string) => void
   autoPublish: boolean
   setAutoPublish: (value: boolean) => void
-  gmbAccounts: any[]
+  gmbAccounts: GMBAccount[]
 }
 
 export function GeneralSettingsTab({
@@ -24,7 +31,7 @@ export function GeneralSettingsTab({
   setAutoPublish,
   gmbAccounts
 }: GeneralSettingsTabProps) {
-  const activeAccounts = gmbAccounts?.filter((a: any) => a && a.is_active) || []
+  const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
 
   return (
     <div className="space-y-6">
@@ -201,7 +208,7 @@ export function GeneralSettingsTab({
             <div className="space-y-2 pt-4 border-t border-primary/20">
               <Label className="text-sm font-medium">Recent Sync Activity</Label>
               <div className="space-y-2">
-                {activeAccounts.map((account: any) => (
+                {activeAccounts.map((account) => (
                   <div key={account.id} className="flex items-center justify-between text-sm p-2 bg-secondary/30 rounded">
                     <span className="text-muted-foreground">
                       {account.account_name || 'GMB Account'}
