@@ -1156,8 +1156,117 @@ export async function bulkDeletePosts(postIds: string[]) {
 }
 
 // ============================================
-// 9. BULK PUBLISH POSTS
+// 10. ARCHIVE POST (soft delete)
 // ============================================
+export async function archivePost(postId: string) {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return createErrorResponse("Not authenticated");
+    }
+
+    // Get post details
+    const { data: post, error: fetchError } = await supabase
+      .from("gmb_posts")
+      .select("*")
+      .eq("id", postId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (fetchError || !post) {
+      return createErrorResponse("Post not found");
+    }
+
+    // Archive by updating status to a metadata field
+    const { error: updateError } = await supabase
+      .from("gmb_posts")
+      .update({
+        status: "draft",
+        metadata: {
+          ...post.metadata,
+          archived: true,
+          archivedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", postId)
+
+    if (updateError) {
+      console.error("[Posts] Archive error:", updateError)
+      return createErrorResponse("Failed to archive post");
+    }
+
+    revalidatePath("/posts")
+    revalidatePath("/dashboard")
+
+    return createSuccessResponse("Post archived successfully");
+  } catch (error: any) {
+    console.error("[Posts] Archive error:", error)
+    return createErrorResponse(error.message || "Failed to archive post");
+  }
+}
+
+// ============================================
+// 11. BULK ARCHIVE POSTS
+// ============================================
+export async function bulkArchivePosts(postIds: string[]) {
+  try {
+    if (!postIds || postIds.length === 0) {
+      return {
+        success: false,
+        error: "No posts selected",
+        archived: 0,
+      }
+    }
+
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "Not authenticated",
+        archived: 0,
+      }
+    }
+
+    let archived = 0
+    const errors: string[] = []
+
+    for (const postId of postIds) {
+      const result = await archivePost(postId)
+      if (result.success) {
+        archived++
+      } else {
+        errors.push(result.error || "Unknown error")
+      }
+    }
+
+    return {
+      success: archived > 0,
+      message: `Archived ${archived} of ${postIds.length} posts`,
+      archived,
+      errors: errors.length > 0 ? errors : undefined,
+    }
+  } catch (error: any) {
+    console.error("[Posts] Bulk archive error:", error)
+    return {
+      success: false,
+      error: error.message || "Failed to archive posts",
+      archived: 0,
+    }
+  }
+}
 export async function bulkPublishPosts(postIds: string[]) {
   try {
     if (!postIds || postIds.length === 0) {

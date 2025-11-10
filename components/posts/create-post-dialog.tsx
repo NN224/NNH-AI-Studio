@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createPost } from '@/server/actions/posts-management';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { validatePostForm, CTA_OPTIONS, POST_TYPES, type PostFormData } from './post-form-validation';
 
 type PostType = 'whats_new' | 'event' | 'offer' | 'product';
@@ -32,6 +32,76 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
   const [scheduledAt, setScheduledAt] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type', {
+        description: 'Please upload a JPG, PNG, GIF, or WebP image',
+      });
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large', {
+        description: 'Maximum file size is 10MB',
+      });
+      return;
+    }
+
+    if (!locationId) {
+      toast.error('Please select a location first');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('locationId', locationId);
+
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        setMediaUrl(data.url);
+        setUploadedFile(file);
+        toast.success('Image uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
+    } finally {
+      setUploading(false);
+    }
+  }, [locationId]);
+
+  const handleRemoveMedia = useCallback(() => {
+    setMediaUrl('');
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
 
   const handleGenerateAI = useCallback(async () => {
     if (!description.trim() && !title.trim()) {
@@ -142,6 +212,10 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
     setCta('');
     setCtaUrl('');
     setScheduledAt('');
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     onClose();
   }, [onClose]);
 
@@ -253,16 +327,106 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
             )}
           </div>
 
-          {/* Media URL */}
+          {/* Media Upload */}
           <div className="space-y-2">
-            <Label htmlFor="media" className="text-zinc-300">Media URL (optional)</Label>
-            <Input
-              id="media"
-              value={mediaUrl}
-              onChange={(e) => setMediaUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="bg-zinc-800 border-zinc-700 text-zinc-100"
-            />
+            <Label className="text-zinc-300">Media (optional)</Label>
+            
+            {!mediaUrl ? (
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="media-upload"
+                  disabled={!locationId || uploading}
+                />
+                <label htmlFor="media-upload">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                    disabled={!locationId || uploading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </>
+                    )}
+                  </Button>
+                </label>
+                {!locationId && (
+                  <p className="text-xs text-yellow-400">Select a location first to upload media</p>
+                )}
+                <p className="text-xs text-zinc-500">
+                  Or enter a URL below (max 10MB, JPG/PNG/GIF/WebP)
+                </p>
+                <Input
+                  id="media-url"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                />
+              </div>
+            ) : (
+              <div className="relative border border-zinc-700 rounded-lg p-4 bg-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <ImageIcon className="w-8 h-8 text-zinc-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-zinc-300 truncate">
+                      {uploadedFile?.name || 'Media URL'}
+                    </p>
+                    <p className="text-xs text-zinc-500 truncate">{mediaUrl}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveMedia}
+                    className="flex-shrink-0 text-zinc-400 hover:text-red-400"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                {mediaUrl && !uploadedFile && (() => {
+                  // Sanitize URL to prevent XSS
+                  try {
+                    const url = new URL(mediaUrl);
+                    // Only allow http/https protocols
+                    if (url.protocol === 'http:' || url.protocol === 'https:') {
+                      return (
+                        <img
+                          src={url.href}
+                          alt="Preview"
+                          className="mt-2 max-h-40 rounded-md object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      );
+                    }
+                  } catch {
+                    // Invalid URL, don't render
+                    return null;
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* CTA */}
@@ -291,7 +455,7 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
                 onChange={(e) => setCtaUrl(e.target.value)}
                 placeholder="https://example.com"
                 className="bg-zinc-800 border-zinc-700 text-zinc-100"
-                disabled={!cta}
+                disabled={!cta || cta === 'CALL'}
               />
             </div>
           </div>
@@ -305,7 +469,13 @@ export function CreatePostDialog({ isOpen, onClose, locations, onSuccess }: Crea
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               className="bg-zinc-800 border-zinc-700 text-zinc-100"
+              min={new Date().toISOString().slice(0, 16)}
             />
+            {scheduledAt && (
+              <p className="text-xs text-zinc-500">
+                Post will be saved as scheduled and published at the specified time
+              </p>
+            )}
           </div>
         </div>
 

@@ -41,8 +41,8 @@ export function validatePostForm(data: PostFormData, requireLocation = true): Va
     };
   }
 
-  // CTA validation
-  if (data.cta && !data.ctaUrl) {
+  // CTA validation - CALL doesn't require URL
+  if (data.cta && data.cta !== 'CALL' && !data.ctaUrl) {
     return {
       isValid: false,
       error: 'Please provide a URL for your call-to-action',
@@ -50,18 +50,38 @@ export function validatePostForm(data: PostFormData, requireLocation = true): Va
   }
 
   // URL validation
-  if (data.ctaUrl && !data.ctaUrl.match(/^https?:\/\//)) {
+  if (data.ctaUrl && !data.ctaUrl.trim().match(/^https?:\/\/.+/)) {
     return {
       isValid: false,
       error: 'Please enter a valid URL starting with http:// or https://',
     };
   }
 
-  if (data.mediaUrl && !data.mediaUrl.match(/^https?:\/\//)) {
+  if (data.mediaUrl && !data.mediaUrl.trim().match(/^https?:\/\/.+/)) {
     return {
       isValid: false,
       error: 'Please enter a valid media URL starting with http:// or https://',
     };
+  }
+
+  // Schedule validation
+  if (data.scheduledAt) {
+    const scheduledDate = new Date(data.scheduledAt);
+    const now = new Date();
+    
+    if (isNaN(scheduledDate.getTime())) {
+      return {
+        isValid: false,
+        error: 'Invalid schedule date format',
+      };
+    }
+
+    if (scheduledDate <= now) {
+      return {
+        isValid: false,
+        error: 'Scheduled time must be in the future',
+      };
+    }
   }
 
   return {
