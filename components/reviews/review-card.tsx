@@ -1,6 +1,7 @@
 'use client';
 
 import { Star, MapPin, Clock } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { GMBReview } from '@/lib/types/database';
 
 interface ReviewCardProps {
@@ -8,9 +9,20 @@ interface ReviewCardProps {
   isSelected?: boolean;
   onClick?: () => void;
   onReply?: () => void;
+  showCheckbox?: boolean;
+  isChecked?: boolean;
+  onCheckChange?: (checked: boolean) => void;
 }
 
-export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardProps) {
+export function ReviewCard({ 
+  review, 
+  isSelected, 
+  onClick, 
+  onReply,
+  showCheckbox = false,
+  isChecked = false,
+  onCheckChange,
+}: ReviewCardProps) {
   const needsResponse = !review.has_reply && !review.reply_text && !review.response_text;
   const isNegative = review.rating <= 2;
   const isPositive = review.rating >= 4;
@@ -19,7 +31,7 @@ export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardP
     <div
       onClick={onClick}
       className={`
-        p-4 rounded-lg border-l-4 transition-all
+        relative p-4 rounded-lg border-l-4 transition-all
         ${isSelected 
           ? 'bg-orange-500/10 border-l-orange-500 ring-2 ring-orange-500/50' 
           : needsResponse && isNegative
@@ -29,10 +41,25 @@ export function ReviewCard({ review, isSelected, onClick, onReply }: ReviewCardP
               : 'bg-zinc-800/50 border-l-green-500 hover:bg-zinc-800'
         }
         ${onClick ? 'cursor-pointer' : ''}
+        ${isChecked ? 'ring-2 ring-orange-500/70' : ''}
       `}
     >
+      {/* Checkbox (absolute positioned in top-left) */}
+      {showCheckbox && (
+        <div 
+          className="absolute top-3 left-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={(checked) => onCheckChange?.(checked === true)}
+            className="border-zinc-600 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+          />
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className={`flex items-start justify-between mb-3 ${showCheckbox ? 'ml-8' : ''}`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white font-bold">
             {review.reviewer_name?.[0]?.toUpperCase() || '?'}

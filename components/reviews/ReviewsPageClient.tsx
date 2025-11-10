@@ -7,10 +7,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { RefreshCw, Search, Bot, Loader2 } from 'lucide-react';
+import { RefreshCw, Search, Bot, Loader2, CheckSquare, Square } from 'lucide-react';
 import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
+import { BulkActionBar } from './bulk-action-bar';
 import { useReviews } from '@/hooks/use-reviews';
 import { syncReviewsFromGoogle, getReviewStats } from '@/server/actions/reviews-management';
 import type { GMBReview } from '@/lib/types/database';
@@ -43,6 +44,10 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [searchInput, setSearchInput] = useState(initialFilters?.search || '');
+  
+  // Bulk selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedReviewIds, setSelectedReviewIds] = useState<Set<string>>(new Set());
 
   // Use infinite scroll by default
   const {
@@ -132,6 +137,46 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
     setReplyDialogOpen(true);
   };
 
+  // Handle checkbox change
+  const handleCheckChange = (reviewId: string, checked: boolean) => {
+    setSelectedReviewIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(reviewId);
+      } else {
+        newSet.delete(reviewId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      setSelectedReviewIds(new Set());
+    }
+  };
+
+  // Select all visible reviews
+  const selectAll = () => {
+    setSelectedReviewIds(new Set(reviews.map(r => r.id)));
+  };
+
+  // Clear all selections
+  const clearSelection = () => {
+    setSelectedReviewIds(new Set());
+  };
+
+  // Get selected review objects
+  const selectedReviews = reviews.filter(r => selectedReviewIds.has(r.id));
+
+  // Handle bulk action complete
+  const handleBulkActionComplete = () => {
+    clearSelection();
+    refresh();
+  };
+
   return (
     <div className="flex flex-col h-full bg-zinc-950 min-h-screen">
       {/* Header */}
@@ -143,6 +188,36 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Selection Mode Toggle */}
+          <Button
+            onClick={toggleSelectionMode}
+            variant="outline"
+            className={`border-zinc-700 text-zinc-300 hover:bg-zinc-800 ${selectionMode ? 'bg-orange-500/20 border-orange-500/50' : ''}`}
+          >
+            {selectionMode ? (
+              <>
+                <CheckSquare className="w-4 h-4 mr-2" />
+                Exit Selection
+              </>
+            ) : (
+              <>
+                <Square className="w-4 h-4 mr-2" />
+                Select Reviews
+              </>
+            )}
+          </Button>
+
+          {/* Select All (only show in selection mode) */}
+          {selectionMode && reviews.length > 0 && (
+            <Button
+              onClick={selectAll}
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
+              Select All ({reviews.length})
+            </Button>
+          )}
+
           {/* Mobile AI Assistant Button */}
           <Button
             onClick={() => setAiSidebarOpen(true)}
@@ -329,9 +404,12 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
                   <ReviewCard
                     key={review.id}
                     review={review}
-                    onClick={() => setSelectedReview(review)}
+                    onClick={() => !selectionMode && setSelectedReview(review)}
                     isSelected={selectedReview?.id === review.id}
                     onReply={() => handleReply(review)}
+                    showCheckbox={selectionMode}
+                    isChecked={selectedReviewIds.has(review.id)}
+                    onCheckChange={(checked) => handleCheckChange(review.id, checked)}
                   />
                 ))}
               </div>
@@ -409,6 +487,13 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedReviews={selectedReviews}
+        onClearSelection={clearSelection}
+        onActionComplete={handleBulkActionComplete}
+      />
     </div>
   );
 }
