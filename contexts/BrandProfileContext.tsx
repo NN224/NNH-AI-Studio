@@ -1,0 +1,80 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { ClientProfile } from '@/lib/types/database';
+
+interface BrandProfileContextType {
+  profile: ClientProfile | null;
+  loading: boolean;
+  refetchProfile: () => Promise<void>;
+}
+
+const BrandProfileContext = createContext<BrandProfileContextType | undefined>(undefined);
+
+interface BrandProfileProviderProps {
+  children: ReactNode;
+}
+
+export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
+  const [profile, setProfile] = useState<ClientProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('client_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No profile found, use defaults
+          setProfile(null);
+        } else {
+          console.error('Error fetching client profile:', error);
+          setProfile(null);
+        }
+      } else {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const refetchProfile = async () => {
+    await fetchProfile();
+  };
+
+  return (
+    <BrandProfileContext.Provider value={{ profile, loading, refetchProfile }}>
+      {children}
+    </BrandProfileContext.Provider>
+  );
+}
+
+export function useBrandProfile() {
+  const context = useContext(BrandProfileContext);
+  if (context === undefined) {
+    throw new Error('useBrandProfile must be used within a BrandProfileProvider');
+  }
+  return context;
+}

@@ -75,6 +75,10 @@
   
   /* Radius */
   --radius: 0.75rem;
+
+  /* Brand Colors - Default fallbacks, overridden by DynamicThemeProvider */
+  --brand-primary: #FFA500;
+  --brand-secondary: #1A1A1A;
 }
 
 .dark {

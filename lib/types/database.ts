@@ -111,6 +111,18 @@ export interface Profile {
   updated_at: string
 }
 
+export interface ClientProfile {
+  id: string
+  user_id: string
+  brand_name?: string
+  logo_url?: string
+  cover_image_url?: string
+  primary_color: string
+  secondary_color: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ActivityLog {
   id: string
   user_id: string

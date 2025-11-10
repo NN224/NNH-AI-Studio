@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/lib/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image, Calendar, Webhook, CheckSquare, Grid3x3, MessageSquare, Layers, Youtube } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, Calendar, Webhook, CheckSquare, Grid3x3, MessageSquare, Layers, Youtube } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserButton } from '@/components/auth/user-button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
+import { useBrandProfile } from '@/contexts/BrandProfileContext';
+import Image from 'next/image';
 
 interface UserProfile {
   name: string | null;
@@ -32,6 +34,7 @@ interface NavigationItem {
 export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations('Dashboard');
+  const { profile: brandProfile, loading: brandLoading } = useBrandProfile();
   
   const navigation: NavigationItem[] = [
     {
@@ -67,7 +70,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
     {
       nameKey: 'nav.media',
       href: '/media',
-      icon: Image,
+      icon: ImageIcon,
     },
     {
       nameKey: 'nav.analytics',
@@ -150,11 +153,24 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center gap-3 border-b px-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MapPin className="h-6 w-6" />
-            </div>
+            {brandProfile?.logo_url ? (
+              <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+                <Image
+                  src={brandProfile.logo_url}
+                  alt="Brand Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <MapPin className="h-6 w-6" />
+              </div>
+            )}
             <div className="flex flex-col">
-              <span className="text-lg font-bold">{t('title')}</span>
+              <span className="text-lg font-bold">
+                {brandProfile?.brand_name || t('title')}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {t('subtitle')}
               </span>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, Shield, Globe, Sparkles, Bell, Database } from "lucide-react"
+import { Save, Shield, Globe, Sparkles, Bell, Database, Palette } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -12,6 +12,7 @@ import { AccountConnectionTab } from "./account-connection-tab"
 import { GeneralSettingsTab } from "./general-settings-tab"
 import { AIAutomationTab } from "./ai-automation-tab"
 import { NotificationsTab } from "./notifications-tab"
+import { BrandingTab } from "./branding-tab"
 import { GMBAuditPanel } from "./gmb-audit-panel"
 import { SettingsTestPanel } from "./settings-test-panel"
 import { SecurityReviewPanel } from "./security-review-panel"
@@ -179,10 +180,14 @@ export function GMBSettings() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="account" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-secondary/50">
+        <TabsList className="grid w-full grid-cols-6 bg-secondary/50">
           <TabsTrigger value="account" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Account</span>
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Branding</span>
           </TabsTrigger>
           <TabsTrigger value="general" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" />
@@ -208,6 +213,15 @@ export function GMBSettings() {
             gmbAccounts={gmbAccounts}
             onSuccess={handleGMBSuccess}
           />
+        </TabsContent>
+
+        {/* Branding Tab */}
+        <TabsContent value="branding" className="space-y-6">
+          <BrandingTab onSave={() => {
+            // Trigger brand profile refresh
+            window.dispatchEvent(new Event('brand-profile-updated'));
+            router.refresh();
+          }} />
         </TabsContent>
 
         {/* General Settings Tab */}
