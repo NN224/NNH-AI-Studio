@@ -18,13 +18,26 @@ export async function GET(request: NextRequest) {
     console.log('Fetching reviews for user:', user.id);
 
     const { searchParams } = new URL(request.url);
+    
+    // Parse filter parameters
     const rating = searchParams.get('rating');
     const sentiment = searchParams.get('sentiment');
-    const search = searchParams.get('search');
+    const status = searchParams.get('status');
+    const locationId = searchParams.get('locationId');
+    const searchQuery = searchParams.get('search');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    
+    // Parse pagination parameters
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    
+    // Validate pagination parameters
+    const validPage = Math.max(1, page);
+    const validPageSize = Math.min(Math.max(1, pageSize), 100); // Max 100 items per page
+    const offset = (validPage - 1) * validPageSize;
 
-    // Build query - fetch ALL reviews with proper joins
-    // CORRECTED: Use proper Supabase join syntax (remove !inner to avoid _1 suffix issue)
-    // Removed reviewer_profile_photo_url (column doesn't exist)
+    // Build query with count for pagination
     let query = supabase
       .from('gmb_reviews')
       .select(`
@@ -42,6 +55,7 @@ export async function GET(request: NextRequest) {
         location_id,
         external_review_id,
         gmb_account_id,
+        status,
         created_at,
         updated_at,
         gmb_locations (
@@ -50,11 +64,11 @@ export async function GET(request: NextRequest) {
           address,
           user_id
         )
-      `)
+      `, { count: 'exact' })
       .not('gmb_locations.user_id', 'is', null)
       .eq('gmb_locations.user_id', user.id);
 
-    // Apply filters
+    // Apply server-side filters
     if (rating) {
       query = query.eq('rating', parseInt(rating));
     }
@@ -62,11 +76,43 @@ export async function GET(request: NextRequest) {
     if (sentiment) {
       query = query.eq('ai_sentiment', sentiment);
     }
+    
+    if (status) {
+      // Map status to database conditions
+      if (status === 'pending') {
+        query = query.or('has_reply.is.null,has_reply.eq.false');
+      } else if (status === 'replied') {
+        query = query.eq('has_reply', true);
+      } else {
+        query = query.eq('status', status);
+      }
+    }
+    
+    if (locationId) {
+      query = query.eq('location_id', locationId);
+    }
+    
+    // Date range filtering
+    if (dateFrom) {
+      query = query.gte('review_date', dateFrom);
+    }
+    
+    if (dateTo) {
+      query = query.lte('review_date', dateTo);
+    }
+    
+    // Server-side search filtering (if supported by your database)
+    if (searchQuery) {
+      query = query.or(`review_text.ilike.%${searchQuery}%,comment.ilike.%${searchQuery}%,reviewer_name.ilike.%${searchQuery}%`);
+    }
 
-    // Order and limit
-    query = query.order('review_date', { ascending: false, nullsFirst: false }).limit(500);
+    // Order by review date (newest first)
+    query = query.order('review_date', { ascending: false, nullsFirst: false });
+    
+    // Apply pagination with range
+    query = query.range(offset, offset + validPageSize - 1);
 
-    const { data: reviews, error } = await query;
+    const { data: reviews, error, count } = await query;
 
     if (error) {
       console.error('Supabase query error:', error);
@@ -85,7 +131,12 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`Found ${reviews?.length || 0} reviews`);
+    const totalCount = count || 0;
+    const totalPages = Math.ceil(totalCount / validPageSize);
+    const hasNextPage = validPage < totalPages;
+    const hasPreviousPage = validPage > 1;
+
+    console.log(`Found ${reviews?.length || 0} reviews (page ${validPage} of ${totalPages}, total: ${totalCount})`);
 
     // Transform data properly - handle both 'comment' and 'review_text' fields
     const transformedReviews = (reviews || []).map((r: any) => {
@@ -103,20 +154,6 @@ export async function GET(request: NextRequest) {
       // Get review text - prefer 'comment' field, fallback to 'review_text'
       const reviewText = (r.comment || r.review_text || '').trim();
       
-      // DEBUG: Log date fields to help diagnose date issues
-      if (process.env.NODE_ENV === 'development' && Math.random() < 0.1) {
-        // Log 10% of reviews to avoid spam
-        console.log('[Reviews API] Review dates:', {
-          id: r.id,
-          reviewer: r.reviewer_name,
-          review_date: r.review_date,
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-          review_date_type: typeof r.review_date,
-          created_at_type: typeof r.created_at
-        });
-      }
-      
       return {
         id: r.id,
         review_id: r.review_id,
@@ -126,32 +163,29 @@ export async function GET(request: NextRequest) {
         review_text: reviewText,
         reply_text: r.reply_text || '',
         has_reply: Boolean(r.reply_text || r.has_reply),
-        review_date: r.review_date, // Use review_date (from GMB API) - this is the actual review date
-        created_at: r.created_at, // Keep created_at for fallback
+        review_date: r.review_date,
+        created_at: r.created_at,
         replied_at: r.replied_at,
         ai_sentiment: r.ai_sentiment,
         location_id: r.location_id,
         external_review_id: r.external_review_id,
         gmb_account_id: r.gmb_account_id,
+        status: r.status,
         updated_at: r.updated_at,
         location_name: locationName
       };
     });
 
-    // Client-side search filter (since Supabase text search might be complex)
-    let filteredReviews = transformedReviews;
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredReviews = transformedReviews.filter(r => 
-        r.review_text?.toLowerCase().includes(searchLower) ||
-        r.reviewer_name?.toLowerCase().includes(searchLower) ||
-        r.location_name?.toLowerCase().includes(searchLower)
-      );
-    }
-
     return NextResponse.json({ 
-      reviews: filteredReviews,
-      total: filteredReviews.length
+      reviews: transformedReviews,
+      pagination: {
+        total: totalCount,
+        page: validPage,
+        pageSize: validPageSize,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage
+      }
     });
 
   } catch (error: any) {

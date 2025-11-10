@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { ReviewsClientPage } from '@/components/reviews/ReviewsClientPage';
-import { getReviews, getReviewStats } from '@/server/actions/reviews-management';
 import { redirect } from 'next/navigation';
+import { ReviewsPageClient } from '@/components/reviews/ReviewsPageClient';
 
 export default async function ReviewsPage({
   searchParams,
@@ -10,6 +9,7 @@ export default async function ReviewsPage({
     location?: string;
     rating?: string;
     status?: string;
+    sentiment?: string;
     page?: string;
     search?: string;
   };
@@ -26,51 +26,26 @@ export default async function ReviewsPage({
     redirect('/login');
   }
 
-  // Parse search params
-  const locationId = searchParams.location;
-  const rating = searchParams.rating ? parseInt(searchParams.rating) : undefined;
-  const status = searchParams.status as 'pending' | 'replied' | 'responded' | 'flagged' | 'archived' | undefined;
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const searchQuery = searchParams.search || '';
-  const limit = 50;
-  const offset = (page - 1) * limit;
+  // Fetch locations for the filter dropdown
+  const { data: locations } = await supabase
+    .from('gmb_locations')
+    .select('id, location_name')
+    .eq('user_id', user.id)
+    .eq('is_active', true);
 
-  // Fetch reviews and stats in parallel
-  const [reviewsResult, statsResult, locationsResult] = await Promise.all([
-    getReviews({
-      locationId,
-      rating,
-      status,
-      searchQuery,
-      sortBy: 'newest',
-      limit,
-      offset,
-    }),
-    getReviewStats(locationId),
-    supabase
-      .from('gmb_locations')
-      .select('id, location_name')
-      .eq('user_id', user.id)
-      .eq('is_active', true),
-  ]);
+  // Pass initial filters from URL search params
+  const initialFilters = {
+    locationId: searchParams.location,
+    rating: searchParams.rating ? parseInt(searchParams.rating) : undefined,
+    status: searchParams.status as 'pending' | 'replied' | 'responded' | 'flagged' | 'archived' | undefined,
+    sentiment: searchParams.sentiment as 'positive' | 'neutral' | 'negative' | undefined,
+    search: searchParams.search,
+  };
 
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('dashboard:refresh'));
-    console.log('[ReviewsPage] Reviews data loaded, dashboard refresh triggered');
-  }
   return (
-    <ReviewsClientPage
-      initialReviews={reviewsResult.data || []}
-      stats={statsResult.data}
-      totalCount={reviewsResult.count}
-      locations={locationsResult.data || []}
-      currentFilters={{
-        locationId,
-        rating,
-        status,
-        searchQuery,
-        page,
-      }}
+    <ReviewsPageClient
+      locations={locations || []}
+      initialFilters={initialFilters}
     />
   );
 }
