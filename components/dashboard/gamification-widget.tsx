@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Trophy, Flame, Star, Target, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -158,16 +157,20 @@ export function GamificationWidget({ stats }: GamificationWidgetProps) {
             )}
           </div>
         </div>
-        <Progress
-          value={progress}
-          className={cn(
-            'h-2',
-            isReached && 'bg-success/20'
-          )}
-          indicatorClassName={cn(
-            isReached && 'bg-success'
-          )}
-        />
+        <div className={cn(
+          'relative h-2 w-full overflow-hidden rounded-full',
+          isReached ? 'bg-success/20' : 'bg-secondary'
+        )}>
+          <motion.div
+            className={cn(
+              'h-full transition-all',
+              isReached ? 'bg-success' : 'bg-primary'
+            )}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        </div>
         {isReached && (
           <motion.p
             initial={{ opacity: 0, y: -10 }}
@@ -240,7 +243,14 @@ export function GamificationWidget({ stats }: GamificationWidgetProps) {
               {stats.totalReviews} / {nextReviewsMilestone}
             </span>
           </div>
-          <Progress value={reviewsProgress} className="h-2" />
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+            <motion.div
+              className="h-full bg-primary transition-all"
+              initial={{ width: 0 }}
+              animate={{ width: `${reviewsProgress}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            />
+          </div>
         </motion.div>
 
         {/* Badges */}
