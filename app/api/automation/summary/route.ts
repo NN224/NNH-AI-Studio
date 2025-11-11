@@ -3,8 +3,15 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+interface LocationRecord {
+  id: string;
+  location_name?: string | null;
+  location_alias?: string | null;
+}
+
 interface ApiAutomationSettings {
   id: string;
+  user_id: string;
   location_id: string;
   is_enabled: boolean;
   auto_reply_enabled: boolean;
@@ -12,19 +19,14 @@ interface ApiAutomationSettings {
   reply_tone: string | null;
   smart_posting_enabled: boolean;
   post_frequency: number | null;
-  post_days: any;
-  post_times: any;
+  post_days: unknown;
+  post_times: unknown;
   content_preferences: Record<string, unknown> | null;
   competitor_monitoring_enabled: boolean;
   insights_reports_enabled: boolean;
   report_frequency: string | null;
   created_at: string;
   updated_at: string;
-  gmb_locations?: {
-    id: string;
-    location_name?: string | null;
-    location_alias?: string | null;
-  } | null;
 }
 
 interface ApiAutomationLog {
@@ -35,11 +37,6 @@ interface ApiAutomationLog {
   details: Record<string, unknown> | null;
   error_message: string | null;
   created_at: string;
-  gmb_locations?: {
-    id: string;
-    location_name?: string | null;
-    location_alias?: string | null;
-  } | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -56,11 +53,43 @@ export async function GET(request: NextRequest) {
 
     const locationId = request.nextUrl.searchParams.get('locationId');
 
+    const locationsQuery = supabase
+      .from('gmb_locations')
+      .select('id, location_name, location_alias')
+      .eq('user_id', user.id)
+      .order('location_name', { ascending: true });
+
+    if (locationId) {
+      locationsQuery.eq('id', locationId);
+    }
+
+    const { data: locationsData, error: locationsError } = await locationsQuery;
+
+    if (locationsError) {
+      console.error('[Automation Summary API] Failed to load locations', locationsError);
+      return NextResponse.json(
+        { error: 'Failed to load automation locations' },
+        { status: 500 }
+      );
+    }
+
+    const locationMap = new Map<string, LocationRecord>();
+    const locationIds: string[] = [];
+    (locationsData || []).forEach((loc) => {
+      locationMap.set(loc.id, loc);
+      locationIds.push(loc.id);
+    });
+
+    if (locationId && locationIds.length === 0) {
+      return NextResponse.json({ settings: [], logs: [] });
+    }
+
     const settingsQuery = supabase
       .from('autopilot_settings')
       .select(
         `
         id,
+        user_id,
         location_id,
         is_enabled,
         auto_reply_enabled,
@@ -75,20 +104,14 @@ export async function GET(request: NextRequest) {
         insights_reports_enabled,
         report_frequency,
         created_at,
-        updated_at,
-        gmb_locations!inner(
-          id,
-          location_name,
-          location_alias,
-          user_id
-        )
+        updated_at
       `
       )
-      .order('updated_at', { ascending: false })
-      .eq('gmb_locations.user_id', user.id);
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
 
-    if (locationId) {
-      settingsQuery.eq('location_id', locationId);
+    if (locationIds.length > 0) {
+      settingsQuery.in('location_id', locationIds);
     }
 
     const { data: settingsData, error: settingsError } = await settingsQuery;
@@ -101,51 +124,41 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const logsQuery = supabase
-      .from('autopilot_logs')
-      .select(
-        `
-        id,
-        location_id,
-        action_type,
-        status,
-        details,
-        error_message,
-        created_at,
-        gmb_locations!inner(
+    let logsData: ApiAutomationLog[] | null = [];
+    if (locationIds.length > 0) {
+      const logsQuery = supabase
+        .from('autopilot_logs')
+        .select(
+          `
           id,
-          location_name,
-          location_alias,
-          user_id
+          location_id,
+          action_type,
+          status,
+          details,
+          error_message,
+          created_at
+        `
         )
-      `
-      )
-      .order('created_at', { ascending: false })
-      .eq('gmb_locations.user_id', user.id)
-      .limit(100);
+        .in('location_id', locationIds)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    if (locationId) {
-      logsQuery.eq('location_id', locationId);
-    }
+      const { data, error: logsError } = await logsQuery;
 
-    const { data: logsData, error: logsError } = await logsQuery;
+      if (logsError) {
+        console.error('[Automation Summary API] Failed to load logs', logsError);
+        return NextResponse.json(
+          { error: 'Failed to load automation logs' },
+          { status: 500 }
+        );
+      }
 
-    if (logsError) {
-      console.error('[Automation Summary API] Failed to load logs', logsError);
-      return NextResponse.json(
-        { error: 'Failed to load automation logs' },
-        { status: 500 }
-      );
+      logsData = data;
     }
 
     const settings = (settingsData || []).map((item) => {
-      const typed = item as unknown as ApiAutomationSettings & {
-        gmb_locations?: ApiAutomationSettings['gmb_locations'] | Array<ApiAutomationSettings['gmb_locations']>;
-      };
-
-      const locationDetails = Array.isArray(typed.gmb_locations)
-        ? typed.gmb_locations[0]
-        : typed.gmb_locations;
+      const typed = item as ApiAutomationSettings;
+      const locationDetails = locationMap.get(typed.location_id);
 
       return {
         id: typed.id,
@@ -167,18 +180,13 @@ export async function GET(request: NextRequest) {
         locationName:
           locationDetails?.location_name ??
           locationDetails?.location_alias ??
-          'Unknown location',
+          'Unassigned location',
       };
     });
 
     const logs = (logsData || []).map((item) => {
-      const typed = item as unknown as ApiAutomationLog & {
-        gmb_locations?: ApiAutomationLog['gmb_locations'] | Array<ApiAutomationLog['gmb_locations']>;
-      };
-
-      const locationDetails = Array.isArray(typed.gmb_locations)
-        ? typed.gmb_locations[0]
-        : typed.gmb_locations;
+      const typed = item as ApiAutomationLog;
+      const locationDetails = typed.location_id ? locationMap.get(typed.location_id) : undefined;
 
       return {
         id: typed.id,
