@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { PostsClientPage } from '@/components/posts/PostsClientPage';
-import { getPosts, getPostStats } from '@/server/actions/posts-management';
+import { getPosts } from '@/server/actions/posts-management';
 import { redirect } from 'next/navigation';
 
 export default async function PostsPage({
@@ -36,7 +36,7 @@ export default async function PostsPage({
   const offset = (page - 1) * limit;
 
   // Fetch posts and stats in parallel
-  const [postsResult, statsResult, locationsResult] = await Promise.all([
+  const [postsResult, locationsResult] = await Promise.all([
     getPosts({
       locationId,
       postType: postType === 'all' ? undefined : postType,
@@ -46,7 +46,6 @@ export default async function PostsPage({
       limit,
       offset,
     }),
-    getPostStats(locationId),
     supabase
       .from('gmb_locations')
       .select('id, location_name')
@@ -57,7 +56,6 @@ export default async function PostsPage({
   return (
     <PostsClientPage
       initialPosts={postsResult.data || []}
-      stats={statsResult.stats}
       totalCount={postsResult.count}
       locations={locationsResult.data || []}
       currentFilters={{

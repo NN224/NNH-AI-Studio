@@ -14,7 +14,8 @@ import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import { BulkActionBar } from './bulk-action-bar';
 import { InboxView } from './inbox-view';
 import { useReviews } from '@/hooks/use-reviews';
-import { syncReviewsFromGoogle, getReviewStats } from '@/server/actions/reviews-management';
+import { syncReviewsFromGoogle } from '@/server/actions/reviews-management';
+import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import type { GMBReview } from '@/lib/types/database';
 
 interface ReviewStats {
@@ -47,7 +48,6 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
-  const [stats, setStats] = useState<ReviewStats | null>(null);
   const [searchInput, setSearchInput] = useState(initialFilters?.search || '');
   
   // Bulk selection state
@@ -56,6 +56,19 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   
   // View mode state (grid vs inbox)
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  const { data: dashboardSnapshot } = useDashboardSnapshot();
+  const reviewStatsSummary: ReviewStats | null = useMemo(() => {
+    const reviewStats = dashboardSnapshot?.reviewStats;
+    if (!reviewStats) return null;
+    return {
+      total: reviewStats.totals.total ?? 0,
+      pending: reviewStats.totals.pending ?? 0,
+      replied: reviewStats.totals.replied ?? 0,
+      averageRating: reviewStats.averageRating ?? 0,
+      responseRate: reviewStats.responseRate ?? 0,
+    };
+  }, [dashboardSnapshot?.reviewStats]);
 
   // Use infinite scroll by default
   const {
@@ -87,17 +100,6 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       loadMore();
     }
   }, [inView, hasNextPage, isLoadingMore, loading, loadMore]);
-
-  // Fetch stats when location filter changes
-  useEffect(() => {
-    const fetchStats = async () => {
-      const result = await getReviewStats(filters.locationId);
-      if (result.success && result.data) {
-        setStats(result.data);
-      }
-    };
-    fetchStats();
-  }, [filters.locationId]);
 
   // Debounced search
   useEffect(() => {
@@ -222,7 +224,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
         showSelectionControls={viewMode === 'grid'}
       />
 
-      <ReviewsStatsSection stats={stats} />
+      <ReviewsStatsSection stats={reviewStatsSummary} />
 
       <ReviewsFiltersSection
         locations={locations}
@@ -267,7 +269,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
             hasNextPage={hasNextPage}
             infiniteScrollRef={infiniteScrollRef}
             isLoadingMore={isLoadingMore}
-            stats={stats}
+            stats={reviewStatsSummary}
           />
         )}
       </div>
@@ -296,7 +298,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
           <div className="p-6">
             <AIAssistantSidebar
               selectedReview={selectedReview}
-              pendingReviewsCount={stats?.pending || 0}
+              pendingReviewsCount={reviewStatsSummary?.pending || 0}
               locationId={filters.locationId}
             />
           </div>

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'; // Add this line to prevent caching
 
 import { createClient } from '@/lib/supabase/server';
 import { PostsClientPage } from '@/components/posts/PostsClientPage';
-import { getPosts, getPostStats } from '@/server/actions/posts-management';
+import { getPosts } from '@/server/actions/posts-management';
 import { redirect } from 'next/navigation';
 
 export default async function GMBPostsPage({
@@ -38,7 +38,7 @@ export default async function GMBPostsPage({
   const offset = (page - 1) * limit;
 
   // Fetch posts and stats in parallel
-  const [postsResult, statsResult, locationsResult] = await Promise.all([
+  const [postsResult, locationsResult] = await Promise.all([
     getPosts({
       locationId,
       postType: postType === 'all' ? undefined : postType,
@@ -48,7 +48,6 @@ export default async function GMBPostsPage({
       limit,
       offset,
     }),
-    getPostStats(locationId),
     supabase
       .from('gmb_locations')
       .select('id, location_name')
@@ -59,7 +58,6 @@ export default async function GMBPostsPage({
   return (
     <PostsClientPage
       initialPosts={postsResult.data || []}
-      stats={statsResult.stats}
       totalCount={postsResult.count}
       locations={locationsResult.data || []}
       currentFilters={{

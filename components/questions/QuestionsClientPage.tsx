@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -18,6 +18,7 @@ import { QuestionCard } from './question-card';
 import { AnswerDialog } from './answer-dialog';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 
 interface QuestionStats {
   total: number;
@@ -36,7 +37,6 @@ interface QuestionStats {
 
 interface QuestionsClientPageProps {
   initialQuestions: any[];
-  stats: QuestionStats | null;
   totalCount: number;
   locations: Array<{ id: string; location_name: string }>;
   currentFilters: {
@@ -51,7 +51,6 @@ interface QuestionsClientPageProps {
 
 export function QuestionsClientPage({
   initialQuestions,
-  stats,
   totalCount,
   locations,
   currentFilters,
@@ -63,6 +62,31 @@ export function QuestionsClientPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { data: dashboardSnapshot } = useDashboardSnapshot();
+  const stats = useMemo<QuestionStats | null>(() => {
+    const questionStats = dashboardSnapshot?.questionStats;
+    if (!questionStats) return null;
+
+    const recent = questionStats.recentQuestions ?? [];
+    const totalUpvotes = recent.reduce((acc, q) => acc + (q.upvoteCount || 0), 0);
+    const averageUpvotes = recent.length > 0 ? totalUpvotes / recent.length : 0;
+    const byPriority = questionStats.byPriority ?? {
+      urgent: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+    };
+
+    return {
+      total: questionStats.totals.total ?? 0,
+      unanswered: questionStats.totals.unanswered ?? 0,
+      answered: questionStats.totals.answered ?? 0,
+      totalUpvotes,
+      avgUpvotes: averageUpvotes,
+      byPriority,
+      answerRate: questionStats.answerRate ?? 0,
+    };
+  }, [dashboardSnapshot?.questionStats]);
 
   // Update filter in URL
   const updateFilter = (key: string, value: string | null) => {

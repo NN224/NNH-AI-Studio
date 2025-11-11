@@ -19,6 +19,7 @@ import { PostCard } from './post-card';
 import { CreatePostDialog } from './create-post-dialog';
 import { EditPostDialog } from './edit-post-dialog';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
+import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import type { GMBPost } from '@/lib/types/database';
 
 interface PostStats {
@@ -35,7 +36,6 @@ interface PostStats {
 
 interface PostsClientPageProps {
   initialPosts: GMBPost[];
-  stats: PostStats | null;
   totalCount: number;
   locations: Array<{ id: string; location_name: string }>;
   currentFilters: {
@@ -49,7 +49,6 @@ interface PostsClientPageProps {
 
 export function PostsClientPage({
   initialPosts,
-  stats,
   totalCount,
   locations,
   currentFilters,
@@ -64,6 +63,24 @@ export function PostsClientPage({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const { data: dashboardSnapshot } = useDashboardSnapshot();
+  const stats = useMemo<PostStats | null>(() => {
+    const postStats = dashboardSnapshot?.postStats;
+    if (!postStats) return null;
+
+    return {
+      total: postStats.totals.total ?? 0,
+      published: postStats.totals.published ?? 0,
+      drafts: postStats.totals.drafts ?? 0,
+      scheduled: postStats.totals.scheduled ?? 0,
+      failed: postStats.totals.failed ?? 0,
+      whatsNew: postStats.byType.whats_new ?? 0,
+      events: postStats.byType.event ?? 0,
+      offers: postStats.byType.offer ?? 0,
+      thisWeek: postStats.thisWeek ?? 0,
+    };
+  }, [dashboardSnapshot?.postStats]);
 
   // Memoized update filter function
   const updateFilter = useCallback((key: string, value: string | null) => {

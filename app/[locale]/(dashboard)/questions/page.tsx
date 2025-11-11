@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { QuestionsClientPage } from '@/components/questions/QuestionsClientPage';
-import { getQuestions, getQuestionStats } from '@/server/actions/questions-management';
+import { getQuestions } from '@/server/actions/questions-management';
 
 export default async function QuestionsPage({
   searchParams,
@@ -38,7 +38,7 @@ export default async function QuestionsPage({
   const offset = (page - 1) * limit;
 
   // Fetch questions and stats in parallel
-  const [questionsResult, statsResult, locationsResult] = await Promise.all([
+  const [questionsResult, locationsResult] = await Promise.all([
     getQuestions({
       locationId,
       status,
@@ -48,7 +48,6 @@ export default async function QuestionsPage({
       limit,
       offset,
     }),
-    getQuestionStats(locationId),
     supabase
       .from('gmb_locations')
       .select('id, location_name')
@@ -64,7 +63,6 @@ export default async function QuestionsPage({
   return (
     <QuestionsClientPage
       initialQuestions={questionsResult.data || []}
-      stats={statsResult.data}
       totalCount={questionsResult.count}
       locations={locationsResult.data || []}
       currentFilters={{
