@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Location } from '@/components/locations/location-types';
 import { getHealthScoreColor, formatLargeNumber } from '@/components/locations/location-types';
-import { Phone, MapPin, Eye, Settings, ChevronDown, ChevronUp } from 'lucide-react';
-import { LocationMiniDashboard } from './location-mini-dashboard';
+import { Phone, MapPin, Eye, Settings } from 'lucide-react';
 
 interface HorizontalLocationCardProps {
   location: Location;
@@ -15,8 +14,6 @@ interface HorizontalLocationCardProps {
 }
 
 export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLocationCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
   if (!location) {
     return (
       <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-4 text-red-400">
@@ -83,6 +80,16 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
     getNumericValue((location as any).totalReviews) ??
     undefined;
 
+  const responseRate = Number(location.responseRate ?? location.insights?.responseRate ?? 0);
+  const views = Number(location.insights?.views ?? 0);
+  const pendingReviews = Number(location.insights?.pendingReviews ?? 0);
+  const ratingValue =
+    rating != null
+      ? rating.toFixed(1)
+      : location.rating != null
+      ? location.rating.toFixed(1)
+      : '—';
+
   const coverImageUrl =
     location.coverImageUrl ??
     (location.metadata?.profile?.coverPhotoUrl as string | undefined) ??
@@ -94,31 +101,6 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
 
   const hasCover = Boolean(coverImageUrl);
   const hasLogo = Boolean(logoImageUrl);
-
-  const ratingValue = rating != null ? rating.toFixed(1) : location.rating != null ? location.rating.toFixed(1) : '—';
-  const ratingTrend = location.ratingTrend ?? 0;
-  const viewsThisMonth = Number(location.insights?.views ?? 0);
-  const responseRate = Number(location.responseRate ?? location.insights?.responseRate ?? 0);
-  const pendingReviews = Number(location.insights?.pendingReviews ?? 0);
-  const healthComposite = Number(location.healthScore ?? 0);
-
-  const statChips = [
-    {
-      label: 'Rating Trend (30d)',
-      value: ratingValue,
-      delta: `${ratingTrend >= 0 ? '+' : ''}${ratingTrend.toFixed(1)} vs last month`,
-    },
-    {
-      label: 'Views This Month',
-      value: viewsThisMonth.toLocaleString(),
-      delta: `${Math.round(responseRate)}% response rate`,
-    },
-    {
-      label: 'Pending Reviews',
-      value: pendingReviews.toString(),
-      delta: 'Reviews need response',
-    },
-  ];
 
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/45 backdrop-blur-lg shadow-lg">
@@ -164,16 +146,13 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-2xl font-semibold text-white">{location.name || 'Unnamed Location'}</h3>
             {location.status === 'verified' && (
-              <Badge className="border border-emerald-500/40 bg-emerald-500/15 text-xs text-emerald-300">
-                ✓ Verified
-              </Badge>
+              <Badge className="border border-emerald-500/40 bg-emerald-500/15 text-xs text-emerald-300">✓ Verified</Badge>
             )}
             {location.category && (
               <Badge variant="outline" className="text-xs">
                 {location.category}
               </Badge>
             )}
-
             {!hasCover && (
               <Badge
                 variant="outline"
@@ -202,13 +181,23 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
           )}
 
           <div className="grid gap-3 text-sm md:grid-cols-3">
-            {statChips.map((chip) => (
-              <div key={chip.label} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white/80">
-                <div className="text-xs uppercase tracking-wide text-white/50">{chip.label}</div>
-                <div className="mt-2 text-2xl font-semibold text-white">{chip.value}</div>
-                <div className="mt-1 text-xs text-emerald-300">{chip.delta}</div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs uppercase tracking-wide text-white/50">Average Rating</div>
+              <div className="mt-2 text-2xl font-semibold text-white">{ratingValue ?? '—'} </div>
+              <div className="text-xs text-white/60">
+                {reviewCount ? `${formatLargeNumber(reviewCount)} reviews` : 'No reviews yet'}
               </div>
-            ))}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs uppercase tracking-wide text-white/50">Views This Month</div>
+              <div className="mt-2 text-2xl font-semibold text-white">{views.toLocaleString()}</div>
+              <div className="text-xs text-white/60">Response rate {Math.round(responseRate)}%</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="text-xs uppercase tracking-wide text-white/50">Pending Reviews</div>
+              <div className="mt-2 text-2xl font-semibold text-white">{pendingReviews}</div>
+              <div className="text-xs text-white/60">Need your response</div>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -252,36 +241,16 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="ml-auto text-xs text-white/70 hover:text-white"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="mr-1 h-3.5 w-3.5" /> Hide insights
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="mr-1 h-3.5 w-3.5" /> Show insights
-                </>
-              )}
-            </Button>
           </div>
+
+          {healthScore != null && healthScore > 0 && (
+            <div className="mt-2 flex items-center gap-2 text-sm">
+              <span className="text-white/60">Health score</span>
+              <span className={getHealthScoreColor(healthScore)}>{healthScore}%</span>
+            </div>
+          )}
         </div>
       </div>
-
-      {isExpanded && (
-        <div className="border-t border-white/10 bg-black/35 px-6 pb-6 pt-4 md:px-8">
-          <LocationMiniDashboard
-            location={location}
-            isExpanded={isExpanded}
-            onToggle={() => setIsExpanded(!isExpanded)}
-            metrics={undefined}
-          />
-        </div>
-      )}
     </div>
   );
 }
