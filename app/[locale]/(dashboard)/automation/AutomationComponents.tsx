@@ -1,62 +1,58 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
-// Types
-interface Automation {
+export interface AutomationSettingsSummary {
   id: string
-  name: string
-  description: string
-  type: 'auto_reply' | 'auto_answer' | 'scheduled_post' | 'alert' | 'report'
-  status: 'active' | 'paused' | 'draft'
-  icon: string
-  trigger: {
-    type: string
-    description: string
-    config: any
-  }
-  action: {
-    type: string
-    description: string
-    config: any
-  }
-  stats: {
-    lastRun?: string
-    nextRun?: string
-    totalRuns: number
-    successRate: number
-  }
-  created_at: string
+  locationId: string
+  locationName: string
+  isEnabled: boolean
+  autoReplyEnabled: boolean
+  autoReplyMinRating: number | null
+  replyTone: string | null
+  smartPostingEnabled: boolean
+  postFrequency: number | null
+  postDays: unknown
+  postTimes: unknown
+  contentPreferences: Record<string, unknown> | null
+  competitorMonitoringEnabled: boolean
+  insightsReportsEnabled: boolean
+  reportFrequency: string | null
+  createdAt: string
+  updatedAt: string
 }
 
-interface AutomationLog {
+export interface AutomationLogEntry {
   id: string
-  automation_id: string
-  automation_name: string
-  status: 'success' | 'failure'
-  message: string
-  executed_at: string
+  locationId: string | null
+  locationName: string
+  actionType: string | null
+  status: string | null
+  details: Record<string, unknown> | null
+  errorMessage: string | null
+  createdAt: string
 }
 
-// Stats Card Component
-export function AutomationStatsCard({ 
-  title, 
-  value, 
-  icon, 
-  color 
-}: { 
+type AutomationStatsCardProps = Readonly<{
   title: string
   value: string | number
   icon: string
   color: 'green' | 'orange' | 'blue' | 'purple'
-}) {
+}>
+
+export function AutomationStatsCard({
+  title,
+  value,
+  icon,
+  color
+}: AutomationStatsCardProps) {
   const colorClasses = {
     green: 'bg-green-500/10 border-green-500/30 text-green-400',
     orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400',
     blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
     purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400'
   }
-  
+
   return (
     <div className={`bg-zinc-900/50 border rounded-xl p-6 ${colorClasses[color]}`}>
       <div className="flex items-center justify-between mb-2">
@@ -68,9 +64,15 @@ export function AutomationStatsCard({
   )
 }
 
-// Automation Templates Component
+type Template = Readonly<{
+  name: string
+  description: string
+  icon: string
+  type: 'auto_reply' | 'auto_answer' | 'scheduled_post' | 'alert' | 'report'
+}>
+
 export function AutomationTemplates() {
-  const templates = [
+  const templates: ReadonlyArray<Template> = [
     {
       name: 'Auto-Reply to Reviews',
       description: 'Automatically respond to customer reviews',
@@ -102,7 +104,7 @@ export function AutomationTemplates() {
       type: 'report'
     }
   ]
-  
+
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
       <h2 className="text-xl font-bold text-white mb-4">
@@ -111,11 +113,11 @@ export function AutomationTemplates() {
       <p className="text-sm text-zinc-400 mb-4">
         Get started quickly with pre-configured automation templates
       </p>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        {templates.map((template, index) => (
+        {templates.map((template) => (
           <button
-            key={index}
+            key={template.type}
             className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4 hover:border-orange-500 hover:bg-zinc-800 transition text-left group"
           >
             <div className="text-2xl mb-2">{template.icon}</div>
@@ -132,151 +134,140 @@ export function AutomationTemplates() {
   )
 }
 
-// Automation Card Component
-export function AutomationCard({ automation }: { automation: Automation }) {
+interface AutomationLocationCardProps {
+  settings: AutomationSettingsSummary
+  logs: ReadonlyArray<AutomationLogEntry>
+}
+
+export function AutomationLocationCard({ settings, logs }: AutomationLocationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  
-  const getStatusColor = () => {
-    if (automation.status === 'active') return 'bg-green-500/20 text-green-400 border-green-500/30'
-    if (automation.status === 'paused') return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-    return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
-  }
-  
-  const getStatusIcon = () => {
-    if (automation.status === 'active') return '●'
-    if (automation.status === 'paused') return '⏸'
-    return '○'
-  }
-  
+
+  const { totalRuns, successRate, lastRun } = useMemo(() => {
+    const total = logs.length
+    const successes = logs.filter((log) => log.status === 'success').length
+    const last = logs[0]?.createdAt ? new Date(logs[0].createdAt).toLocaleString() : null
+    return {
+      totalRuns: total,
+      successRate: total > 0 ? Math.round((successes / total) * 100) : null,
+      lastRun: last
+    }
+  }, [logs])
+
+  const modules = useMemo(
+    () => [
+      { label: 'Auto reply', enabled: settings.autoReplyEnabled, icon: '🤖' },
+      { label: 'Smart posting', enabled: settings.smartPostingEnabled, icon: '📝' },
+      { label: 'Competitor monitor', enabled: settings.competitorMonitoringEnabled, icon: '📈' },
+      { label: 'Insights reports', enabled: settings.insightsReportsEnabled, icon: '📊' }
+    ],
+    [settings]
+  )
+
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-4 flex-1">
-            <div className="text-4xl">{automation.icon}</div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-bold text-white">
-                  {automation.name}
-                </h3>
-                <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor()}`}>
-                  {getStatusIcon()} {automation.status.charAt(0).toUpperCase() + automation.status.slice(1)}
+      <div className="p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="text-3xl">{settings.isEnabled ? '⚡️' : '⏸️'}</div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-white">{settings.locationName}</h3>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    settings.isEnabled
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/20'
+                      : 'bg-orange-500/20 text-orange-400 border border-orange-500/20'
+                  }`}
+                >
+                  {settings.isEnabled ? 'Active' : 'Paused'}
                 </span>
               </div>
-              <p className="text-sm text-zinc-400 mb-3">
-                {automation.description}
+              <p className="text-xs text-zinc-500">
+                Updated {new Date(settings.updatedAt).toLocaleString()}
               </p>
-              
-              {/* Stats */}
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500">Last Run:</span>
-                  <span className="text-white">{automation.stats.lastRun || 'Never'}</span>
-                </div>
-                {automation.stats.nextRun && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-zinc-500">Next Run:</span>
-                    <span className="text-white">{automation.stats.nextRun}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500">Total Runs:</span>
-                  <span className="text-white">{automation.stats.totalRuns.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500">Success Rate:</span>
-                  <span className="text-green-400">{automation.stats.successRate}%</span>
-                </div>
-              </div>
             </div>
           </div>
-          
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white"
+          >
+            {isExpanded ? 'Hide details' : 'Show details'}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white"
-            >
-              {isExpanded ? '▼ Hide Details' : '▶ Show Details'}
-            </button>
-            <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white">
-              ⚙️ Edit
-            </button>
+            <span>Last run:</span>
+            <span className="text-white">{lastRun ?? 'Never'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Total runs:</span>
+            <span className="text-white">{totalRuns}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Success rate:</span>
+            <span className="text-white">
+              {successRate !== null ? `${successRate}%` : 'n/a'}
+            </span>
           </div>
         </div>
-        
-        {/* Expanded Details */}
+
+        <div className="flex flex-wrap gap-2">
+          {modules.map((module) => (
+            <span
+              key={module.label}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                module.enabled
+                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+              }`}
+            >
+              <span>{module.icon}</span>
+              <span>{module.label}</span>
+            </span>
+          ))}
+        </div>
+
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-zinc-800 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Trigger */}
-              <div className="bg-zinc-800/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">🎯</span>
-                  <h4 className="font-medium text-white">Trigger</h4>
-                </div>
-                <p className="text-sm text-zinc-400 mb-2">
-                  {automation.trigger.description}
-                </p>
-                <div className="text-xs text-zinc-500">
-                  Type: <span className="text-zinc-400">{automation.trigger.type}</span>
-                </div>
-              </div>
-              
-              {/* Action */}
-              <div className="bg-zinc-800/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">⚡</span>
-                  <h4 className="font-medium text-white">Action</h4>
-                </div>
-                <p className="text-sm text-zinc-400 mb-2">
-                  {automation.action.description}
-                </p>
-                <div className="text-xs text-zinc-500">
-                  Type: <span className="text-zinc-400">{automation.action.type}</span>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
+              <h4 className="font-medium text-white flex items-center gap-2 text-sm">
+                🤖 Auto replies
+              </h4>
+              <p>Status: {settings.autoReplyEnabled ? 'Enabled' : 'Disabled'}</p>
+              <p>Min rating: {settings.autoReplyMinRating ?? 'not set'}</p>
+              <p>Tone: {settings.replyTone ?? 'default'}</p>
             </div>
-            
-            {/* Configuration Details */}
-            <div className="bg-zinc-800/30 rounded-lg p-4">
-              <h4 className="font-medium text-white mb-2">Configuration</h4>
-              <div className="text-xs text-zinc-400 space-y-3">
-                <div>
-                  <span className="text-zinc-500 block mb-1">Trigger Config:</span>
-                  <pre className="bg-zinc-900/50 p-2 rounded border border-zinc-700 overflow-x-auto">
-                    <code className="text-orange-400">
-                      {JSON.stringify(automation.trigger.config, null, 2)}
-                    </code>
-                  </pre>
-                </div>
-                <div>
-                  <span className="text-zinc-500 block mb-1">Action Config:</span>
-                  <pre className="bg-zinc-900/50 p-2 rounded border border-zinc-700 overflow-x-auto">
-                    <code className="text-orange-400">
-                      {JSON.stringify(automation.action.config, null, 2)}
-                    </code>
-                  </pre>
-                </div>
-              </div>
+            <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
+              <h4 className="font-medium text-white flex items-center gap-2 text-sm">
+                📝 Smart posting
+              </h4>
+              <p>Status: {settings.smartPostingEnabled ? 'Enabled' : 'Disabled'}</p>
+              <p>Frequency: {settings.postFrequency ?? 'not set'}</p>
             </div>
-            
-            {/* Actions */}
-            <div className="flex gap-2">
-              {automation.status === 'active' ? (
-                <button className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm font-medium transition text-white">
-                  ⏸️ Pause
-                </button>
-              ) : (
-                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition text-white">
-                  ▶️ Resume
-                </button>
-              )}
-              <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white">
-                📋 Duplicate
-              </button>
-              <button className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 rounded-lg text-sm font-medium transition text-red-400">
-                🗑️ Delete
-              </button>
+            <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
+              <h4 className="font-medium text-white flex items-center gap-2 text-sm">
+                📊 Insights & monitoring
+              </h4>
+              <p>
+                Competitor monitoring:{' '}
+                {settings.competitorMonitoringEnabled ? 'Enabled' : 'Disabled'}
+              </p>
+              <p>
+                Insights reports:{' '}
+                {settings.insightsReportsEnabled ? 'Enabled' : 'Disabled'}
+              </p>
+              <p>Report cadence: {settings.reportFrequency ?? 'weekly'}</p>
+            </div>
+            <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
+              <h4 className="font-medium text-white flex items-center gap-2 text-sm">
+                ⚙️ Configuration
+              </h4>
+              <p>
+                Detailed scheduling and content preferences will appear once backend APIs
+                are connected. Use the automation settings modal to update these values.
+              </p>
             </div>
           </div>
         )}
@@ -285,21 +276,25 @@ export function AutomationCard({ automation }: { automation: Automation }) {
   )
 }
 
-// Activity Log Component
-export function ActivityLog({ logs }: { logs: AutomationLog[] }) {
+export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationLogEntry> }>) {
   const [filter, setFilter] = useState<'all' | 'success' | 'failure'>('all')
-  
-  const filteredLogs = filter === 'all' 
-    ? logs 
-    : logs.filter(log => log.status === filter)
-  
+
+  const filteredLogs = useMemo(() => {
+    if (filter === 'all') return logs
+    return logs.filter((log) =>
+      filter === 'success'
+        ? log.status === 'success'
+        : log.status && log.status !== 'success'
+    )
+  }, [filter, logs])
+
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-white">
           📋 Activity Log
         </h2>
-        
+
         <div className="flex gap-2">
           <button
             onClick={() => setFilter('all')}
@@ -333,7 +328,7 @@ export function ActivityLog({ logs }: { logs: AutomationLog[] }) {
           </button>
         </div>
       </div>
-      
+
       <div className="space-y-2">
         {filteredLogs.length === 0 ? (
           <div className="text-center py-8 text-zinc-500">
@@ -352,32 +347,33 @@ export function ActivityLog({ logs }: { logs: AutomationLog[] }) {
               <div className={`text-xl ${log.status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
                 {log.status === 'success' ? '✓' : '✗'}
               </div>
-              
+
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-white text-sm">
-                    {log.automation_name}
+                    {log.locationName}
                   </span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     log.status === 'success'
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-red-500/20 text-red-400'
                   }`}>
-                    {log.status}
+                    {log.status ?? 'unknown'}
                   </span>
                 </div>
                 <p className="text-sm text-zinc-400 mb-1">
-                  {log.message}
+                  {log.actionType ?? 'Automation event'}
+                  {log.errorMessage ? ` — ${log.errorMessage}` : ''}
                 </p>
                 <p className="text-xs text-zinc-500">
-                  {log.executed_at}
+                  {new Date(log.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>
           ))
         )}
       </div>
-      
+
       {logs.length > 10 && (
         <div className="mt-4 text-center">
           <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white">

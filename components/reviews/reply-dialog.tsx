@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useId } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,17 +20,23 @@ import { replyToReview, updateReply } from "@/server/actions/reviews-management"
 import type { GMBReview } from "@/lib/types/database"
 
 interface ReplyDialogProps {
-  review: GMBReview | null
-  isOpen: boolean
-  onClose: () => void
-  onSuccess?: () => void
+  readonly review: GMBReview | null
+  readonly isOpen: boolean
+  readonly onClose: () => void
+  readonly onSuccess?: () => void
 }
 
-export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogProps) {
+export function ReplyDialog({
+  review,
+  isOpen,
+  onClose,
+  onSuccess,
+}: Readonly<ReplyDialogProps>) {
   const [reply, setReply] = useState(review?.reply_text || review?.response_text || review?.review_reply || "")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
+  const textareaId = useId()
 
   // Update reply when review changes
   useEffect(() => {
@@ -53,12 +59,12 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
         body: JSON.stringify({
           type: "review_response",
           context: {
-            reviewText: review.review_text || '',
+            reviewText: review.review_text || "",
             rating: review.rating,
             reviewerName: review.reviewer_name,
             sentiment: review.ai_sentiment,
-          }
-        })
+          },
+        }),
       })
 
       if (!response.ok) {
@@ -68,19 +74,19 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
 
       const { content } = await response.json()
 
-      if (!content || typeof content !== 'string') {
-        throw new Error('Invalid response from AI service')
+      if (!content || typeof content !== "string") {
+        throw new Error("Invalid response from AI service")
       }
 
       setReply(content)
-      
-      toast.success('AI response generated!', {
-        description: 'Review and edit before sending'
+
+      toast.success("AI response generated!", {
+        description: "Review and edit before sending",
       })
     } catch (error) {
       console.error("Error generating AI response:", error)
       // Fallback to simple template if AI fails
-      const fallbackResponse = `Thank you for your ${review.rating}-star review, ${review.reviewer_name}! ${
+      const fallbackResponse = `Thank you for your ${review.rating}-star review, ${review.reviewer_name ?? "customer"}! ${
         review.rating >= 4
           ? "We're thrilled to hear you had a great experience with us. Your feedback means a lot to our team!"
           : "We appreciate your feedback and apologize for any inconvenience. We'd love to make things right - please reach out to us directly so we can address your concerns."
@@ -91,15 +97,15 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!review || !reply.trim()) {
-      toast.error('Please enter a reply')
+      toast.error("Please enter a reply")
       return
     }
 
     if (reply.length > 4096) {
-      toast.error('Reply is too long. Maximum 4096 characters.')
+      toast.error("Reply is too long. Maximum 4096 characters.")
       return
     }
 
@@ -116,27 +122,29 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
       }
 
       if (result.success) {
-        toast.success(result.message || 'Reply posted successfully!', {
-          description: 'Your reply is now visible on Google'
+        toast.success(result.message || "Reply posted successfully!", {
+          description: "Your reply is now visible on Google",
         })
         setReply("")
         onClose()
         onSuccess?.()
         router.refresh()
       } else {
-        toast.error('Failed to post reply', {
+        toast.error("Failed to post reply", {
           description: result.error,
-          action: result.error?.includes('reconnect') ? {
-            label: 'Settings',
-            onClick: () => router.push('/settings')
-          } : undefined
+          action: result.error?.includes("reconnect")
+            ? {
+                label: "Settings",
+                onClick: () => router.push("/settings"),
+              }
+            : undefined,
         })
       }
     } catch (error) {
       console.error("Error submitting reply:", error)
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-      toast.error('An unexpected error occurred', {
-        description: errorMessage
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      toast.error("An unexpected error occurred", {
+        description: errorMessage,
       })
     } finally {
       setLoading(false)
@@ -144,14 +152,21 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose()
+        }
+      }}
+    >
       <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">
-            {review && review.has_reply ? 'Edit Reply' : 'Reply to Review'}
+            {review?.has_reply ? "Edit Reply" : "Reply to Review"}
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            {review && `Responding to ${review.reviewer_name}'s ${review.rating}-star review`}
+            {review ? `Responding to ${review.reviewer_name}'s ${review.rating}-star review` : null}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -159,7 +174,7 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
             {review?.review_text && (
               <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-yellow-500">{'⭐'.repeat(review.rating)}</span>
+                  <span className="text-yellow-500">{"⭐".repeat(review.rating)}</span>
                   <span className="text-zinc-400 text-sm">{review.reviewer_name}</span>
                 </div>
                 <p className="text-sm text-zinc-300">{review.review_text}</p>
@@ -167,12 +182,15 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
             )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-300">Your Reply</label>
-                <span className={`text-xs ${reply.length > 4096 ? 'text-red-400' : 'text-zinc-500'}`}>
+                <label htmlFor={textareaId} className="text-sm font-medium text-zinc-300">
+                  Your Reply
+                </label>
+                <span className={`text-xs ${reply.length > 4096 ? "text-red-400" : "text-zinc-500"}`}>
                   {reply.length} / 4096
                 </span>
               </div>
               <Textarea
+                id={textareaId}
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Write your response..."
@@ -222,10 +240,10 @@ export function ReplyDialog({ review, isOpen, onClose, onSuccess }: ReplyDialogP
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {review && review.has_reply ? 'Updating...' : 'Posting...'}
+                  {review?.has_reply ? "Updating..." : "Posting..."}
                 </>
               ) : (
-                review && review.has_reply ? 'Update Reply' : 'Post Reply'
+                review?.has_reply ? "Update Reply" : "Post Reply"
               )}
             </Button>
           </DialogFooter>

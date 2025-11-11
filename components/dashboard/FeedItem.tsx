@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface FeedItemProps {
-  priority: 'HIGH' | 'MEDIUM';
-  title: string;
-  description: string;
-  actionText: string;
-  actionLink: string;
-  isExpanded: boolean;
-  onToggle: () => void;
+  readonly priority: 'HIGH' | 'MEDIUM';
+  readonly title: string;
+  readonly description: string;
+  readonly actionText: string;
+  readonly actionLink: string;
+  readonly isExpanded: boolean;
+  readonly onToggle: () => void;
 }
 
 export function FeedItem({
@@ -24,7 +24,7 @@ export function FeedItem({
   actionLink,
   isExpanded,
   onToggle,
-}: FeedItemProps) {
+}: Readonly<FeedItemProps>) {
   const router = useRouter();
 
   return (
@@ -34,10 +34,10 @@ export function FeedItem({
         priority === 'HIGH' ? 'border-red-500' : 'border-yellow-500'
       )}
     >
-      <div
-        className="p-4 cursor-pointer select-none"
+      <button
+        type="button"
+        className="p-4 cursor-pointer select-none w-full text-left"
         onClick={onToggle}
-        role="button"
         aria-expanded={isExpanded}
       >
         <div className="flex items-start justify-between gap-3">
@@ -75,7 +75,7 @@ export function FeedItem({
             </Button>
           </div>
         )}
-      </div>
+      </button>
     </Card>
   );
 }

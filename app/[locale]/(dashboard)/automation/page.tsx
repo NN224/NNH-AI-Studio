@@ -1,148 +1,186 @@
 'use client'
 
-import { useEffect } from 'react'
-import { AutomationStatsCard, AutomationTemplates, AutomationCard, ActivityLog } from './AutomationComponents'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ActivityLog,
+  AutomationLogEntry,
+  AutomationLocationCard,
+  AutomationSettingsSummary,
+  AutomationStatsCard,
+  AutomationTemplates
+} from './AutomationComponents'
 
-// Types
-interface Automation {
-  id: string
-  name: string
-  description: string
-  type: 'auto_reply' | 'auto_answer' | 'scheduled_post' | 'alert' | 'report'
-  status: 'active' | 'paused' | 'draft'
-  icon: string
-  
-  trigger: {
-    type: string
-    description: string
-    config: any
-  }
-  
-  action: {
-    type: string
-    description: string
-    config: any
-  }
-  
-  stats: {
-    lastRun?: string
-    nextRun?: string
-    totalRuns: number
-    successRate: number
-  }
-  
-  created_at: string
-}
-
-interface AutomationLog {
-  id: string
-  automation_id: string
-  automation_name: string
-  status: 'success' | 'failure'
-  message: string
-  executed_at: string
+interface AutomationSummaryResponse {
+  settings: AutomationSettingsSummary[]
+  logs: AutomationLogEntry[]
 }
 
 export default function AutomationPage() {
-  // Since mock data removed, define empty arrays or default values
-  const mockAutomations: Automation[] = []
-  const mockLogs: AutomationLog[] = []
-
-  const activeAutomations = mockAutomations.filter(a => a.status === 'active')
-  const pausedAutomations = mockAutomations.filter(a => a.status === 'paused')
-  const totalRuns = mockAutomations.reduce((sum, a) => sum + a.stats.totalRuns, 0)
+  const [settings, setSettings] = useState<AutomationSettingsSummary[]>([])
+  const [logs, setLogs] = useState<AutomationLogEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log('[AutomationPage] Loaded and listening for refresh')
+    let cancelled = false
+
+    async function loadAutomationSummary() {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch('/api/automation/summary', {
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          throw new Error(body.error || 'Failed to load automation data')
+        }
+
+        const payload = (await response.json()) as AutomationSummaryResponse
+        if (!cancelled) {
+          setSettings(payload.settings ?? [])
+          setLogs(payload.logs ?? [])
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          console.error('[AutomationPage] Failed to load summary', fetchError)
+          setError(fetchError instanceof Error ? fetchError.message : 'Failed to load automation data')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadAutomationSummary()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
-  
+
+  const stats = useMemo(() => {
+    const activeCount = settings.filter((item) => item.isEnabled).length
+    const pausedCount = settings.length - activeCount
+    const autoReplyEnabledCount = settings.filter((item) => item.autoReplyEnabled).length
+    const totalRuns = logs.length
+    const successRate =
+      logs.length > 0
+        ? Math.round((logs.filter((log) => log.status === 'success').length / logs.length) * 100)
+        : null
+
+    return {
+      activeCount,
+      pausedCount,
+      autoReplyEnabledCount,
+      totalRuns,
+      successRate
+    }
+  }, [logs, settings])
+
+  const logsByLocation = useMemo(() => {
+    const map = new Map<string, AutomationLogEntry[]>()
+    logs.forEach((log) => {
+      const key = log.locationId ?? 'unknown'
+      const current = map.get(key) ?? []
+      current.push(log)
+      map.set(key, current)
+    })
+    // ensure logs sorted by createdAt desc
+    map.forEach((entries) =>
+      entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    )
+    return map
+  }, [logs])
+
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
       <div className="max-w-[1800px] mx-auto space-y-6">
-        
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">
               🤖 Automation Center
             </h1>
             <p className="text-zinc-400">
-              Set up automated workflows to save time and improve efficiency
+              Manage auto-reply, smart posting, and insights workflows across your locations
             </p>
           </div>
-          
+
           <button
             onClick={() => {
-              window.dispatchEvent(new Event('dashboard:refresh'));
-              console.log('[AutomationPage] Create Automation clicked, dashboard refresh triggered');
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('dashboard:refresh'))
+                console.log('[AutomationPage] Create Automation clicked, dashboard refresh triggered')
+              }
             }}
             className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition flex items-center gap-2 text-white"
           >
             ➕ Create Automation
           </button>
         </div>
-        
-        {/* API Notice */}
-        <div className="bg-orange-950/20 border border-orange-500/30 rounded-xl p-4 flex items-start gap-3">
-          <span className="text-2xl">🚧</span>
-          <div className="flex-1">
-            <div className="font-medium text-orange-400 mb-1">
-              Demo Mode - Automation Execution Coming in Phase 3
-            </div>
-            <div className="text-sm text-orange-300/70">
-              This page shows the automation interface and configuration options. Actual execution of automated workflows will be available once backend integration is complete in Phase 3.
-            </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl p-4 text-sm">
+            {error}
           </div>
-        </div>
-        
-        {/* Stats Cards */}
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <AutomationStatsCard
-            title="Active Automations"
-            value={activeAutomations.length}
+            title="Active automations"
+            value={stats.activeCount}
             icon="⚡"
             color="green"
           />
           <AutomationStatsCard
             title="Paused"
-            value={pausedAutomations.length}
+            value={stats.pausedCount}
             icon="⏸️"
             color="orange"
           />
           <AutomationStatsCard
-            title="Total Runs"
-            value={totalRuns.toLocaleString()}
-            icon="📊"
+            title="Auto reply enabled"
+            value={stats.autoReplyEnabledCount}
+            icon="🤖"
             color="blue"
           />
           <AutomationStatsCard
-            title="Success Rate"
-            value="97%"
+            title="Success rate"
+            value={stats.successRate !== null ? `${stats.successRate}%` : 'n/a'}
             icon="✅"
             color="purple"
           />
         </div>
-        
-        {/* Quick Templates */}
+
         <AutomationTemplates />
-        
-        {/* Active Automations */}
+
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white">
-            Active Automations
-          </h2>
-          
-          {mockAutomations.map((automation) => (
-            <AutomationCard
-              key={automation.id}
-              automation={automation}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">
+              Location automations
+            </h2>
+            {loading && <span className="text-xs text-zinc-500">Loading…</span>}
+          </div>
+
+          {!loading && settings.length === 0 && (
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 text-sm text-zinc-400">
+              No automation settings found yet. Connect a Google Business Profile location and enable
+              autopilot features to see them listed here.
+            </div>
+          )}
+
+          {settings.map((item) => (
+            <AutomationLocationCard
+              key={item.id}
+              settings={item}
+              logs={logsByLocation.get(item.locationId) ?? []}
             />
           ))}
         </div>
-        
-        {/* Activity Log */}
-        <ActivityLog logs={mockLogs} />
-        
+
+        <ActivityLog logs={logs} />
       </div>
     </div>
   )

@@ -7,10 +7,10 @@ import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 
 interface ProfileProtectionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  protectionScore: number; // 0..1
-  issues: string[];
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly protectionScore: number; // 0..1
+  readonly issues: ReadonlyArray<string>;
 }
 
 export function ProfileProtectionModal({
@@ -18,12 +18,20 @@ export function ProfileProtectionModal({
   onClose,
   protectionScore,
   issues,
-}: ProfileProtectionModalProps) {
+}: Readonly<ProfileProtectionModalProps>) {
   const router = useRouter();
   const scorePercent = Math.round((protectionScore ?? 0) * 100);
+  const issueItems = Array.from(issues);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-xl bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">Profile Protection</DialogTitle>
@@ -41,12 +49,12 @@ export function ProfileProtectionModal({
 
           <div className="space-y-2">
             <h4 className="text-sm text-zinc-300 font-medium">Issues</h4>
-            {issues.length === 0 ? (
+            {issueItems.length === 0 ? (
               <div className="text-sm text-zinc-500">No issues detected.</div>
             ) : (
               <ul className="list-disc pl-5 space-y-1 text-sm text-zinc-300">
-                {issues.map((issue, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
+                {issueItems.map((issue) => (
+                  <li key={issue} className="flex items-start gap-2">
                     <span className="text-yellow-400">⚠️</span>
                     <span>{issue}</span>
                   </li>

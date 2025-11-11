@@ -1,21 +1,34 @@
-'use client'
+"use client"
 
 /**
  * Step 2: Category & Business Hours
  * Select business category and set operating hours
  */
 
-import { BUSINESS_CATEGORIES, DAYS_OF_WEEK } from '@/lib/types/location-creation'
+import { BUSINESS_CATEGORIES, DAYS_OF_WEEK } from "@/lib/types/location-creation"
+import { Dispatch, SetStateAction, useId } from "react"
+import type { CreateLocationFormData } from "../CreateLocationTab"
+
+type BusinessHours = CreateLocationFormData["business_hours"]
+type DayKey = keyof BusinessHours
 
 interface Step2Props {
-  formData: any
-  setFormData: (data: any) => void
-  onNext: () => void
-  onBack: () => void
+  readonly formData: CreateLocationFormData
+  readonly setFormData: Dispatch<SetStateAction<CreateLocationFormData>>
+  readonly onNext: () => void
+  readonly onBack: () => void
 }
 
-export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: Step2Props) {
-  const toggleDay = (day: string) => {
+export function Step2CategoryHours({
+  formData,
+  setFormData,
+  onNext,
+  onBack,
+}: Readonly<Step2Props>) {
+  const primaryCategoryId = useId()
+  const addCategorySelectId = useId()
+
+  const toggleDay = (day: DayKey) => {
     setFormData({
       ...formData,
       business_hours: {
@@ -28,7 +41,7 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
     })
   }
   
-  const updateHours = (day: string, field: 'open' | 'close', value: string) => {
+  const updateHours = (day: DayKey, field: "open" | "close", value: string) => {
     setFormData({
       ...formData,
       business_hours: {
@@ -45,7 +58,7 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
     if (!formData.additional_categories.includes(category)) {
       setFormData({
         ...formData,
-        additional_categories: [...formData.additional_categories, category]
+        additional_categories: [...formData.additional_categories, category],
       })
     }
   }
@@ -53,7 +66,7 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
   const removeCategory = (category: string) => {
     setFormData({
       ...formData,
-      additional_categories: formData.additional_categories.filter((c: string) => c !== category)
+      additional_categories: formData.additional_categories.filter((c) => c !== category),
     })
   }
   
@@ -71,16 +84,19 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
       
       {/* Primary Category */}
       <div>
-        <label className="block text-sm font-medium text-white mb-2">
+        <label htmlFor={primaryCategoryId} className="block text-sm font-medium text-white mb-2">
           Primary Category <span className="text-orange-500">*</span>
         </label>
         <select
+          id={primaryCategoryId}
           value={formData.primary_category}
           onChange={(e) => setFormData({ ...formData, primary_category: e.target.value })}
           className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:border-orange-500 focus:outline-none transition"
         >
-          {BUSINESS_CATEGORIES.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+          {BUSINESS_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
           ))}
         </select>
         <p className="text-xs text-zinc-500 mt-1">
@@ -101,8 +117,10 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
             >
               {cat}
               <button
+                type="button"
                 onClick={() => removeCategory(cat)}
                 className="hover:text-orange-300"
+                aria-label={`Remove category ${cat}`}
               >
                 ✕
               </button>
@@ -110,10 +128,11 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
           ))}
         </div>
         <select
+          id={addCategorySelectId}
           onChange={(e) => {
             if (e.target.value) {
               addCategory(e.target.value)
-              e.target.value = ''
+              e.target.value = ""
             }
           }}
           className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:border-orange-500 focus:outline-none transition"
@@ -121,9 +140,14 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
         >
           <option value="">+ Add another category</option>
           {BUSINESS_CATEGORIES
-            .filter(cat => cat !== formData.primary_category && !formData.additional_categories.includes(cat))
-            .map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            .filter(
+              (category) =>
+                category !== formData.primary_category && !formData.additional_categories.includes(category)
+            )
+            .map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
         </select>
       </div>
@@ -134,41 +158,62 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
           Business Hours <span className="text-orange-500">*</span>
         </label>
         <div className="space-y-2">
-          {DAYS_OF_WEEK.map(day => (
-            <div key={day} className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+          {(DAYS_OF_WEEK as DayKey[]).map((day) => {
+            const checkboxId = `${day}-open-toggle`
+            const openId = `${day}-open-time`
+            const closeId = `${day}-close-time`
+            return (
+              <div
+                key={day}
+                className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-lg p-3"
+              >
               <div className="flex items-center gap-2 w-32">
                 <input
+                  id={checkboxId}
                   type="checkbox"
                   checked={!formData.business_hours[day].closed}
                   onChange={() => toggleDay(day)}
                   className="w-4 h-4 rounded border-zinc-700 text-orange-600 focus:ring-orange-500"
                 />
-                <span className="text-white capitalize font-medium">
+                <label htmlFor={checkboxId} className="text-white capitalize font-medium">
                   {day}
-                </span>
+                </label>
               </div>
               
               {formData.business_hours[day].closed ? (
                 <span className="text-zinc-500 italic">Closed</span>
               ) : (
                 <div className="flex items-center gap-2">
-                  <input
-                    type="time"
-                    value={formData.business_hours[day].open}
-                    onChange={(e) => updateHours(day, 'open', e.target.value)}
-                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded text-white focus:border-orange-500 focus:outline-none"
-                  />
+                  <div className="flex flex-col">
+                    <label htmlFor={openId} className="sr-only">
+                      {day} opening time
+                    </label>
+                    <input
+                      id={openId}
+                      type="time"
+                      value={formData.business_hours[day].open}
+                      onChange={(e) => updateHours(day, "open", e.target.value)}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded text-white focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
                   <span className="text-zinc-500">to</span>
-                  <input
-                    type="time"
-                    value={formData.business_hours[day].close}
-                    onChange={(e) => updateHours(day, 'close', e.target.value)}
-                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded text-white focus:border-orange-500 focus:outline-none"
-                  />
+                  <div className="flex flex-col">
+                    <label htmlFor={closeId} className="sr-only">
+                      {day} closing time
+                    </label>
+                    <input
+                      id={closeId}
+                      type="time"
+                      value={formData.business_hours[day].close}
+                      onChange={(e) => updateHours(day, "close", e.target.value)}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded text-white focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
         <p className="text-xs text-zinc-500 mt-2">
           ⏰ For businesses open past midnight, use times after 24:00 (e.g., 26:00 for 2 AM)
@@ -179,14 +224,17 @@ export function Step2CategoryHours({ formData, setFormData, onNext, onBack }: St
       <div className="flex justify-between gap-3 pt-6 border-t border-zinc-800">
         <button
           onClick={onBack}
+          type="button"
           className="px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition"
         >
           ← Back
         </button>
         <button
+          type="button"
           onClick={() => {
-            window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[Step2CategoryHours] Category & Hours completed, dashboard refresh triggered');
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("dashboard:refresh"))
+            }
             onNext();
           }}
           className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition hover:scale-105"

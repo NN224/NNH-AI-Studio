@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,10 +21,10 @@ export interface QuestionItem {
 }
 
 interface QuestionsQuickActionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  unansweredQuestions: QuestionItem[];
-  onSuccess?: (result?: any) => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly unansweredQuestions: ReadonlyArray<QuestionItem>;
+  readonly onSuccess?: (result?: unknown) => void;
 }
 
 export function QuestionsQuickActionModal({
@@ -32,11 +32,12 @@ export function QuestionsQuickActionModal({
   onClose,
   unansweredQuestions,
   onSuccess,
-}: QuestionsQuickActionModalProps) {
+}: Readonly<QuestionsQuickActionModalProps>) {
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const answerTextareaId = useId();
 
   const isMounted = useRef(true);
   useEffect(() => {
@@ -97,7 +98,14 @@ export function QuestionsQuickActionModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? closeAndReset() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          closeAndReset();
+        }
+      }}
+    >
       <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">Answer Questions</DialogTitle>
@@ -106,7 +114,7 @@ export function QuestionsQuickActionModal({
           </DialogDescription>
         </DialogHeader>
 
-        {!selectedQuestion ? (
+        {selectedQuestion === null ? (
           <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
             {unansweredQuestions.length === 0 ? (
               <div className="text-center text-zinc-500 py-8">No unanswered questions 🎉</div>
@@ -147,12 +155,15 @@ export function QuestionsQuickActionModal({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-              <label className="text-sm text-zinc-300">Your Answer</label>
+                <label htmlFor={answerTextareaId} className="text-sm text-zinc-300">
+                  Your Answer
+                </label>
                 <span className={`text-xs ${answerText.length > 1500 ? 'text-red-400' : 'text-zinc-500'}`}>
                   {answerText.length} / 1500
                 </span>
               </div>
               <Textarea
+                id={answerTextareaId}
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 placeholder="Type your answer..."

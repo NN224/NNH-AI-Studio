@@ -3,15 +3,9 @@
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import {
-  replyToReview,
-  updateReply,
-  deleteReply,
-  syncReviewsFromGoogle,
-} from '@/server/actions/reviews-management';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { syncReviewsFromGoogle } from '@/server/actions/reviews-management';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { RefreshCw, Search, Bot } from 'lucide-react';
@@ -21,24 +15,24 @@ import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import type { GMBReview } from '@/lib/types/database';
 
 interface ReviewStats {
-  total: number;
-  pending: number;
-  replied: number;
-  averageRating: number;
-  responseRate: number;
+  readonly total: number;
+  readonly pending: number;
+  readonly replied: number;
+  readonly averageRating: number;
+  readonly responseRate: number;
 }
 
 interface ReviewsClientPageProps {
-  initialReviews: GMBReview[];
-  stats: ReviewStats | null;
-  totalCount: number;
-  locations: Array<{ id: string; location_name: string }>;
-  currentFilters: {
-    locationId?: string;
-    rating?: number;
-    status?: string;
-    searchQuery?: string;
-    page?: number;
+  readonly initialReviews: ReadonlyArray<GMBReview>;
+  readonly stats: ReviewStats | null;
+  readonly totalCount: number;
+  readonly locations: ReadonlyArray<{ id: string; location_name: string }>;
+  readonly currentFilters: {
+    readonly locationId?: string;
+    readonly rating?: number;
+    readonly status?: string;
+    readonly searchQuery?: string;
+    readonly page?: number;
   };
 }
 
@@ -48,7 +42,7 @@ export function ReviewsClientPage({
   totalCount,
   locations,
   currentFilters,
-}: ReviewsClientPageProps) {
+}: Readonly<ReviewsClientPageProps>) {
   const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);

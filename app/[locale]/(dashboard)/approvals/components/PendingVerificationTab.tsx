@@ -5,17 +5,18 @@
  * Manage locations awaiting verification and enter verification codes
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { LocationCreationRequest, VERIFICATION_METHODS } from '@/lib/types/location-creation'
 
 interface PendingVerificationTabProps {
-  locations: LocationCreationRequest[]
-  onVerificationComplete: (locationId: string, code: string) => void
+  readonly locations: ReadonlyArray<LocationCreationRequest>
+  readonly onVerificationComplete: (locationId: string, code: string) => void
 }
 
 export function PendingVerificationTab({ locations, onVerificationComplete }: PendingVerificationTabProps) {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [verificationCode, setVerificationCode] = useState('')
+  const codeInputId = useId()
   
   if (locations.length === 0) {
     return (
@@ -34,8 +35,10 @@ export function PendingVerificationTab({ locations, onVerificationComplete }: Pe
   const handleVerify = (locationId: string) => {
     if (verificationCode.trim().length >= 5) {
       onVerificationComplete(locationId, verificationCode)
-      window.dispatchEvent(new Event('dashboard:refresh'));
-      console.log('[PendingVerificationTab] Verification completed, dashboard refresh dispatched');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('dashboard:refresh'));
+        console.log('[PendingVerificationTab] Verification completed, dashboard refresh dispatched');
+      }
       setVerificationCode('')
       setSelectedLocation(null)
     }
@@ -123,10 +126,11 @@ export function PendingVerificationTab({ locations, onVerificationComplete }: Pe
               {isSelected ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
+                    <label className="block text-sm font-medium text-white mb-2" htmlFor={codeInputId}>
                       Enter Verification Code
                     </label>
                     <input
+                      id={codeInputId}
                       type="text"
                       value={verificationCode}
                       onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}

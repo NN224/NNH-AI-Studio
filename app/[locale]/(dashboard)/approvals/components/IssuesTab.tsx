@@ -8,8 +8,8 @@
 import { LocationCreationRequest } from '@/lib/types/location-creation'
 
 interface IssuesTabProps {
-  locations: LocationCreationRequest[]
-  onRetry: (locationId: string) => void
+  readonly locations: ReadonlyArray<LocationCreationRequest>
+  readonly onRetry: (locationId: string) => void
 }
 
 export function IssuesTab({ locations, onRetry }: IssuesTabProps) {
@@ -131,8 +131,10 @@ export function IssuesTab({ locations, onRetry }: IssuesTabProps) {
               <button 
                 onClick={() => {
                   onRetry(location.id);
-                  window.dispatchEvent(new Event('dashboard:refresh'));
-                  console.log('[IssuesTab] Retry clicked, dashboard refresh dispatched');
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('dashboard:refresh'));
+                    console.log('[IssuesTab] Retry clicked, dashboard refresh dispatched');
+                  }
                 }}
                 className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
               >

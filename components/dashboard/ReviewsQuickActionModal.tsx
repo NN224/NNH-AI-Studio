@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, AlertCircle } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { replyToReview } from '@/server/actions/reviews-management';
 import { useRouter } from 'next/navigation';
@@ -22,10 +22,10 @@ export interface ReviewItem {
 }
 
 interface ReviewsQuickActionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  pendingReviews: ReviewItem[];
-  onSuccess?: (result?: any) => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly pendingReviews: ReadonlyArray<ReviewItem>;
+  readonly onSuccess?: (result?: unknown) => void;
 }
 
 export function ReviewsQuickActionModal({
@@ -33,11 +33,12 @@ export function ReviewsQuickActionModal({
   onClose,
   pendingReviews,
   onSuccess,
-}: ReviewsQuickActionModalProps) {
+}: Readonly<ReviewsQuickActionModalProps>) {
   const [selectedReview, setSelectedReview] = useState<ReviewItem | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const replyTextareaId = useId();
 
   const isMounted = useRef(true);
   useEffect(() => {
@@ -98,7 +99,14 @@ export function ReviewsQuickActionModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? closeAndReset() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          closeAndReset();
+        }
+      }}
+    >
       <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">Reply to Reviews</DialogTitle>
@@ -107,7 +115,7 @@ export function ReviewsQuickActionModal({
           </DialogDescription>
         </DialogHeader>
 
-        {!selectedReview ? (
+        {selectedReview === null ? (
           <div className="space-y-3 max-h-[60vh] overflow-auto pr-1">
             {pendingReviews.length === 0 ? (
               <div className="text-center text-zinc-500 py-8">No pending reviews 🎉</div>
@@ -159,12 +167,15 @@ export function ReviewsQuickActionModal({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-              <label className="text-sm text-zinc-300">Your Reply</label>
+                <label htmlFor={replyTextareaId} className="text-sm text-zinc-300">
+                  Your Reply
+                </label>
                 <span className={`text-xs ${replyText.length > 4000 ? 'text-red-400' : 'text-zinc-500'}`}>
                   {replyText.length} / 4000
                 </span>
               </div>
               <Textarea
+                id={replyTextareaId}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Type your reply..."

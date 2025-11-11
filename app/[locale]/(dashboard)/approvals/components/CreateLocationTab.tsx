@@ -5,42 +5,46 @@
  * Google-like location creation experience
  */
 
-import { useState } from 'react'
-import { LocationCreationRequest } from '@/lib/types/location-creation'
-import { Step1BasicInfo } from './wizard/Step1BasicInfo'
-import { Step2CategoryHours } from './wizard/Step2CategoryHours'
-import { Step3Features } from './wizard/Step3Features'
-import { Step4Review } from './wizard/Step4Review'
+import { useState } from "react"
+import { LocationCreationRequest } from "@/lib/types/location-creation"
+import { Step1BasicInfo } from "./wizard/Step1BasicInfo"
+import { Step2CategoryHours } from "./wizard/Step2CategoryHours"
+import { Step3Features } from "./wizard/Step3Features"
+import { Step4Review } from "./wizard/Step4Review"
 
 interface CreateLocationTabProps {
-  onLocationCreated: (location: LocationCreationRequest) => void
+  readonly onLocationCreated: (location: LocationCreationRequest) => void
 }
+
+const createInitialFormState = () => ({
+  business_name: "",
+  street: "",
+  city: "",
+  state: "",
+  postal_code: "",
+  country: "AE",
+  phone: "",
+  website: "",
+  primary_category: "Night club",
+  additional_categories: [] as string[],
+  business_hours: {
+    monday: { open: "", close: "", closed: true },
+    tuesday: { open: "", close: "", closed: true },
+    wednesday: { open: "", close: "", closed: true },
+    thursday: { open: "22:00", close: "04:00", closed: false },
+    friday: { open: "22:00", close: "04:00", closed: false },
+    saturday: { open: "22:00", close: "04:00", closed: false },
+    sunday: { open: "", close: "", closed: true },
+  },
+  features: [] as string[],
+  payment_methods: [] as string[],
+})
+
+export type CreateLocationFormData = ReturnType<typeof createInitialFormState>
 
 export function CreateLocationTab({ onLocationCreated }: CreateLocationTabProps) {
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({
-    business_name: '',
-    street: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: 'AE',
-    phone: '',
-    website: '',
-    primary_category: 'Night club',
-    additional_categories: [] as string[],
-    business_hours: {
-      monday: { open: '', close: '', closed: true },
-      tuesday: { open: '', close: '', closed: true },
-      wednesday: { open: '', close: '', closed: true },
-      thursday: { open: '22:00', close: '04:00', closed: false },
-      friday: { open: '22:00', close: '04:00', closed: false },
-      saturday: { open: '22:00', close: '04:00', closed: false },
-      sunday: { open: '', close: '', closed: true }
-    },
-    features: [] as string[],
-    payment_methods: [] as string[]
-  })
+  const [formData, setFormData] = useState<CreateLocationFormData>(() => createInitialFormState())
   
   const totalSteps = 4
   
@@ -65,7 +69,7 @@ export function CreateLocationTab({ onLocationCreated }: CreateLocationTabProps)
       features: formData.features,
       payment_methods: formData.payment_methods,
       status: 'pending_verification',
-      google_location_id: `ChIJ${Math.random().toString(36).substr(2, 9)}`,
+      google_location_id: `ChIJ${Math.random().toString(36).slice(2, 11)}`,
       verification: {
         method: 'POSTCARD',
         verification_id: `verify-${Date.now()}`,
@@ -77,34 +81,14 @@ export function CreateLocationTab({ onLocationCreated }: CreateLocationTabProps)
     }
     
     onLocationCreated(newLocation)
-    window.dispatchEvent(new Event('dashboard:refresh'));
-    console.log('[CreateLocationTab] New location created, dashboard refresh triggered');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('dashboard:refresh'));
+      console.log('[CreateLocationTab] New location created, dashboard refresh triggered');
+    }
     
     // Reset form
     setStep(1)
-    setFormData({
-      business_name: '',
-      street: '',
-      city: '',
-      state: '',
-      postal_code: '',
-      country: 'AE',
-      phone: '',
-      website: '',
-      primary_category: 'Night club',
-      additional_categories: [],
-      business_hours: {
-        monday: { open: '', close: '', closed: true },
-        tuesday: { open: '', close: '', closed: true },
-        wednesday: { open: '', close: '', closed: true },
-        thursday: { open: '22:00', close: '04:00', closed: false },
-        friday: { open: '22:00', close: '04:00', closed: false },
-        saturday: { open: '22:00', close: '04:00', closed: false },
-        sunday: { open: '', close: '', closed: true }
-      },
-      features: [],
-      payment_methods: []
-    })
+    setFormData(createInitialFormState())
   }
   
   return (

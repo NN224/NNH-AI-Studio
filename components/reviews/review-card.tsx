@@ -4,6 +4,7 @@ import { Star, MapPin, Clock } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { GMBReview } from '@/lib/types/database';
 import { useCallback } from 'react';
+import { cn } from '@/lib/utils';
 
 interface ReviewCardProps {
   readonly review: GMBReview & { location_name?: string };
@@ -26,8 +27,13 @@ export function ReviewCard({
 }: ReviewCardProps) {
   const needsResponse = !review.has_reply && !review.reply_text && !review.response_text;
   const isNegative = review.rating <= 2;
-  const isPositive = review.rating >= 4;
   const isInteractive = Boolean(onClick);
+  const cardStateClasses = getReviewCardStateClass({
+    isSelected: Boolean(isSelected),
+    needsResponse,
+    isNegative,
+  });
+  const actionButtonClasses = getActionButtonClass(needsResponse);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -47,19 +53,12 @@ export function ReviewCard({
     <div
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`
-        relative p-4 rounded-lg border-l-4 transition-all
-        ${isSelected 
-          ? 'bg-orange-500/10 border-l-orange-500 ring-2 ring-orange-500/50' 
-          : needsResponse && isNegative
-            ? 'bg-red-950/20 border-l-red-500 hover:bg-red-950/30'
-            : needsResponse
-              ? 'bg-orange-950/20 border-l-orange-500 hover:bg-orange-950/30'
-              : 'bg-zinc-800/50 border-l-green-500 hover:bg-zinc-800'
-        }
-        ${onClick ? 'cursor-pointer' : ''}
-        ${isChecked ? 'ring-2 ring-orange-500/70' : ''}
-      `}
+      className={cn(
+        'relative p-4 rounded-lg border-l-4 transition-all',
+        cardStateClasses,
+        onClick ? 'cursor-pointer' : undefined,
+        isChecked ? 'ring-2 ring-orange-500/70' : undefined
+      )}
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       aria-pressed={isInteractive ? Boolean(isSelected) : undefined}
@@ -157,11 +156,10 @@ export function ReviewCard({
               onReply();
             }}
             type="button"
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-              needsResponse
-                ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300'
-            }`}
+            className={cn(
+              'px-3 py-1 rounded-lg text-xs font-medium transition-colors',
+              actionButtonClasses
+            )}
           >
             {needsResponse ? '💬 Reply' : '✏️ Edit Reply'}
           </button>
@@ -232,4 +230,34 @@ function formatTimeAgo(date: string | undefined | null): string {
   } catch (error) {
     return 'Unknown';
   }
+}
+
+function getReviewCardStateClass({
+  isSelected,
+  needsResponse,
+  isNegative,
+}: {
+  isSelected: boolean;
+  needsResponse: boolean;
+  isNegative: boolean;
+}) {
+  if (isSelected) {
+    return 'bg-orange-500/10 border-l-orange-500 ring-2 ring-orange-500/50';
+  }
+
+  if (needsResponse && isNegative) {
+    return 'bg-red-950/20 border-l-red-500 hover:bg-red-950/30';
+  }
+
+  if (needsResponse) {
+    return 'bg-orange-950/20 border-l-orange-500 hover:bg-orange-950/30';
+  }
+
+  return 'bg-zinc-800/50 border-l-green-500 hover:bg-zinc-800';
+}
+
+function getActionButtonClass(needsResponse: boolean) {
+  return needsResponse
+    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+    : 'bg-zinc-700 hover:bg-zinc-600 text-zinc-300';
 }

@@ -14,10 +14,10 @@ import { Upload, X, Image as ImageIcon } from 'lucide-react';
 type PostType = 'whats_new' | 'event' | 'offer' | 'product';
 
 interface CreatePostModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  locationId: string;
-  onSuccess?: (result?: any) => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly locationId: string;
+  readonly onSuccess?: (result?: unknown) => void;
 }
 
 const CTA_OPTIONS = [
@@ -32,7 +32,12 @@ const CTA_OPTIONS = [
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
-export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: CreatePostModalProps) {
+export function CreatePostModal({
+  isOpen,
+  onClose,
+  locationId,
+  onSuccess,
+}: Readonly<CreatePostModalProps>) {
   const [postType, setPostType] = useState<PostType>('whats_new');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -213,7 +218,14 @@ export function CreatePostModal({ isOpen, onClose, locationId, onSuccess }: Crea
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? handleClose() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">Create New Post</DialogTitle>

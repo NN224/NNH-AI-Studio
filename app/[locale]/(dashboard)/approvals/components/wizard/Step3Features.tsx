@@ -5,16 +5,20 @@
  * Select business features and payment methods
  */
 
+import { useId } from 'react'
 import { FEATURES, PAYMENT_METHODS } from '@/lib/types/location-creation'
+import type { CreateLocationFormData } from '../CreateLocationTab'
 
 interface Step3Props {
-  formData: any
-  setFormData: (data: any) => void
-  onNext: () => void
-  onBack: () => void
+  readonly formData: CreateLocationFormData
+  readonly setFormData: (data: CreateLocationFormData) => void
+  readonly onNext: () => void
+  readonly onBack: () => void
 }
 
 export function Step3Features({ formData, setFormData, onNext, onBack }: Step3Props) {
+  const featuresGroupLabelId = useId()
+  const paymentGroupLabelId = useId()
   const toggleFeature = (featureId: string) => {
     const features = formData.features.includes(featureId)
       ? formData.features.filter((f: string) => f !== featureId)
@@ -43,10 +47,14 @@ export function Step3Features({ formData, setFormData, onNext, onBack }: Step3Pr
       
       {/* Features */}
       <div>
-        <label className="block text-sm font-medium text-white mb-3">
+        <p className="block text-sm font-medium text-white mb-3" id={featuresGroupLabelId}>
           Business Features (optional)
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        </p>
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          role="group"
+          aria-labelledby={featuresGroupLabelId}
+        >
           {FEATURES.map(feature => (
             <button
               key={feature.id}
@@ -80,10 +88,14 @@ export function Step3Features({ formData, setFormData, onNext, onBack }: Step3Pr
       
       {/* Payment Methods */}
       <div>
-        <label className="block text-sm font-medium text-white mb-3">
+        <p className="block text-sm font-medium text-white mb-3" id={paymentGroupLabelId}>
           Payment Methods (optional)
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        </p>
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+          role="group"
+          aria-labelledby={paymentGroupLabelId}
+        >
           {PAYMENT_METHODS.map(method => (
             <button
               key={method.id}
@@ -139,8 +151,10 @@ export function Step3Features({ formData, setFormData, onNext, onBack }: Step3Pr
         </button>
         <button
           onClick={() => {
-            window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[Step3Features] Features completed, dashboard refresh triggered');
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('dashboard:refresh'));
+              console.log('[Step3Features] Features completed, dashboard refresh triggered');
+            }
             onNext();
           }}
           className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition hover:scale-105"

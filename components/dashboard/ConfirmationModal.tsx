@@ -5,14 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 
 interface ConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  confirmText?: string;
-  confirmVariant?: 'default' | 'destructive';
-  onConfirm: () => Promise<void> | void;
-  isLoading?: boolean;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly title: string;
+  readonly message: string;
+  readonly confirmText?: string;
+  readonly confirmVariant?: 'default' | 'destructive';
+  readonly onConfirm: () => Promise<void> | void;
+  readonly isLoading?: boolean;
 }
 
 export function ConfirmationModal({
@@ -24,11 +24,18 @@ export function ConfirmationModal({
   confirmVariant = 'default',
   onConfirm,
   isLoading = false,
-}: ConfirmationModalProps) {
+}: Readonly<ConfirmationModalProps>) {
   const [pending, setPending] = useState(false);
   const disabled = isLoading || pending;
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-md bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">{title}</DialogTitle>

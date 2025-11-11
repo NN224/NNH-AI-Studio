@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { FeedItem } from '@/components/dashboard/FeedItem';
 
-type Alert = {
+type Alert = Readonly<{
   priority: 'HIGH' | 'MEDIUM';
   message: string;
   type: string;
   icon: string;
-};
+}>;
 
-export function ExpandableFeed({ alerts }: { alerts: Alert[] }) {
+export function ExpandableFeed({ alerts }: Readonly<{ alerts: ReadonlyArray<Alert> }>) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const getAction = (type: string) => {
@@ -22,19 +22,19 @@ export function ExpandableFeed({ alerts }: { alerts: Alert[] }) {
 
   return (
     <div className="space-y-3">
-      {alerts.map((a, idx) => {
-        const action = getAction(a.type);
-        const key = `${a.type}-${idx}`;
+      {alerts.map((alert) => {
+        const uniqueKey = `${alert.type}-${alert.message}`;
+        const action = getAction(alert.type);
         return (
           <FeedItem
-            key={key}
-            priority={a.priority}
-            title={a.message}
+            key={uniqueKey}
+            priority={alert.priority}
+            title={alert.message}
             description={action.description}
             actionText={action.text}
             actionLink={action.link}
-            isExpanded={expanded === key}
-            onToggle={() => setExpanded((prev) => (prev === key ? null : key))}
+            isExpanded={expanded === uniqueKey}
+            onToggle={() => setExpanded((prev) => (prev === uniqueKey ? null : uniqueKey))}
           />
         );
       })}

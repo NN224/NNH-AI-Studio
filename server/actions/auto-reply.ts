@@ -160,6 +160,125 @@ export async function getAutoReplySettings(locationId?: string) {
   }
 }
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+interface ReviewRecord {
+  id: string;
+  rating: number;
+  location_id: string | null;
+  review_text: string | null;
+  has_reply: boolean;
+  reply_text: string | null;
+  status: string | null;
+}
+
+const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+async function fetchReviewRecord(
+  supabase: SupabaseClient,
+  reviewId: string,
+  userId: string
+): Promise<{ success: true; review: ReviewRecord } | { success: false; error: string }> {
+  const { data: review, error: reviewError } = await supabase
+    .from("gmb_reviews")
+    .select("*")
+    .eq("id", reviewId)
+    .eq("user_id", userId)
+    .single();
+
+  if (reviewError || !review) {
+    return { success: false, error: "Review not found" };
+  }
+
+  return { success: true, review: review as ReviewRecord };
+}
+
+function evaluateAutoReplyEligibility(
+  review: ReviewRecord,
+  settings: AutoReplySettings
+): { allowed: boolean; reason?: string } {
+  if (review.has_reply || review.reply_text) {
+    return { allowed: false, reason: "Review already has a reply" };
+  }
+
+  if (!settings.enabled) {
+    return { allowed: false, reason: "Auto-reply is disabled" };
+  }
+
+  const matchesRating =
+    (review.rating >= 4 && settings.replyToPositive) ||
+    (review.rating === 3 && settings.replyToNeutral) ||
+    (review.rating <= 2 && settings.replyToNegative);
+
+  if (!matchesRating) {
+    return { allowed: false, reason: "Review rating doesn't match auto-reply criteria" };
+  }
+
+  if (review.rating < settings.minRating) {
+    return { allowed: false, reason: "Review rating is below minimum threshold" };
+  }
+
+  return { allowed: true };
+}
+
+async function generateReviewReply(
+  review: ReviewRecord,
+  settings: AutoReplySettings
+): Promise<{ success: true; reply: string } | { success: false; error: string }> {
+  try {
+    const aiResponse = await fetch(`${DEFAULT_APP_URL}/api/ai/generate-review-reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reviewText: review.review_text || "",
+        rating: review.rating,
+        tone: settings.tone,
+        locationName: "Business",
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      return { success: false, error: "Failed to generate AI response" };
+    }
+
+    const { response: generatedReply } = await aiResponse.json();
+    if (!generatedReply) {
+      return { success: false, error: "No response generated" };
+    }
+
+    return { success: true, reply: generatedReply as string };
+  } catch (error) {
+    console.error("Error generating review reply:", error);
+    return { success: false, error: "Failed to generate AI response" };
+  }
+}
+
+async function persistApprovalDraft(
+  supabase: SupabaseClient,
+  reviewId: string,
+  reply: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { error: updateError } = await supabase
+    .from("gmb_reviews")
+    .update({
+      ai_suggested_reply: reply,
+      ai_generated_response: reply,
+      status: "in_progress",
+    })
+    .eq("id", reviewId);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  return { success: true };
+}
+
+async function dispatchAutoReply(reviewId: string, reply: string) {
+  const { replyToReview } = await import("./reviews-management");
+  return replyToReview(reviewId, reply);
+}
+
 /**
  * Process auto-reply for a new review
  * This should be called when a new review is detected
@@ -179,31 +298,14 @@ export async function processAutoReply(reviewId: string) {
   }
 
   try {
-    // Get the review
-    const { data: review, error: reviewError } = await supabase
-      .from("gmb_reviews")
-      .select("*")
-      .eq("id", reviewId)
-      .eq("user_id", user.id)
-      .single();
+    const reviewResult = await fetchReviewRecord(supabase, reviewId, user.id);
 
-    if (reviewError || !review) {
-      return {
-        success: false,
-        error: "Review not found",
-      };
+    if (!reviewResult.success) {
+      return reviewResult;
     }
 
-    // Check if review already has a reply
-    if (review.has_reply || review.reply_text) {
-      return {
-        success: false,
-        error: "Review already has a reply",
-      };
-    }
-
-    // Get auto-reply settings
-    const settingsResult = await getAutoReplySettings(review.location_id);
+    const review = reviewResult.review;
+    const settingsResult = await getAutoReplySettings(review.location_id || undefined);
     if (!settingsResult.success || !settingsResult.data) {
       return {
         success: false,
@@ -212,85 +314,26 @@ export async function processAutoReply(reviewId: string) {
     }
 
     const settings = settingsResult.data;
+    const eligibility = evaluateAutoReplyEligibility(review, settings);
 
-    // Check if auto-reply is enabled
-    if (!settings.enabled) {
+    if (!eligibility.allowed) {
       return {
         success: false,
-        error: "Auto-reply is disabled",
+        error: eligibility.reason || "Review is not eligible for auto-reply",
       };
     }
 
-    // Check rating requirements
-    const shouldReply =
-      (review.rating >= 4 && settings.replyToPositive) ||
-      (review.rating === 3 && settings.replyToNeutral) ||
-      (review.rating <= 2 && settings.replyToNegative);
-
-    if (!shouldReply) {
-      return {
-        success: false,
-        error: "Review rating doesn't match auto-reply criteria",
-      };
+    const generationResult = await generateReviewReply(review, settings);
+    if (!generationResult.success) {
+      return generationResult;
     }
 
-    // Check minimum rating
-    if (review.rating < settings.minRating) {
-      return {
-        success: false,
-        error: "Review rating is below minimum threshold",
-      };
-    }
+    const generatedReply = generationResult.reply;
 
-    // Generate AI response
-    const aiResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/ai/generate-review-reply`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reviewText: review.review_text || "",
-          rating: review.rating,
-          tone: settings.tone,
-          locationName: "Business", // You can get this from location
-        }),
-      }
-    );
-
-    if (!aiResponse.ok) {
-      return {
-        success: false,
-        error: "Failed to generate AI response",
-      };
-    }
-
-    const { response: generatedReply } = await aiResponse.json();
-
-    if (!generatedReply) {
-      return {
-        success: false,
-        error: "No response generated",
-      };
-    }
-
-    // If approval is required, save as draft
     if (settings.requireApproval) {
-      const { error: updateError } = await supabase
-        .from("gmb_reviews")
-        .update({
-          ai_suggested_reply: generatedReply,
-          ai_generated_response: generatedReply,
-          status: "in_progress",
-        })
-        .eq("id", reviewId);
-
-      if (updateError) {
-        return {
-          success: false,
-          error: updateError.message,
-        };
+      const draftResult = await persistApprovalDraft(supabase, reviewId, generatedReply);
+      if (!draftResult.success) {
+        return draftResult;
       }
 
       return {
@@ -301,9 +344,7 @@ export async function processAutoReply(reviewId: string) {
       };
     }
 
-    // Auto-send the reply
-    const { replyToReview } = await import("./reviews-management");
-    const replyResult = await replyToReview(reviewId, generatedReply);
+    const replyResult = await dispatchAutoReply(reviewId, generatedReply);
 
     if (replyResult.success) {
       return {

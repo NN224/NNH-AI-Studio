@@ -8,7 +8,7 @@
 import { LocationCreationRequest } from '@/lib/types/location-creation'
 
 interface VerifiedLocationsTabProps {
-  locations: LocationCreationRequest[]
+  readonly locations: ReadonlyArray<LocationCreationRequest>
 }
 
 export function VerifiedLocationsTab({ locations }: VerifiedLocationsTabProps) {
@@ -116,9 +116,11 @@ export function VerifiedLocationsTab({ locations }: VerifiedLocationsTabProps) {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.business_name)}`, '_blank');
-                  window.dispatchEvent(new Event('dashboard:refresh'));
-                  console.log('[VerifiedLocationsTab] View on Google clicked, dashboard refresh dispatched');
+                  if (typeof window !== 'undefined') {
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.business_name)}`, '_blank');
+                    window.dispatchEvent(new Event('dashboard:refresh'));
+                    console.log('[VerifiedLocationsTab] View on Google clicked, dashboard refresh dispatched');
+                  }
                 }}
                 className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
@@ -129,7 +131,9 @@ export function VerifiedLocationsTab({ locations }: VerifiedLocationsTabProps) {
               <button
                 onClick={() => {
                   console.log('[VerifiedLocationsTab] Edit Details clicked');
-                  window.dispatchEvent(new Event('dashboard:refresh'));
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('dashboard:refresh'));
+                  }
                 }}
                 className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
@@ -140,7 +144,9 @@ export function VerifiedLocationsTab({ locations }: VerifiedLocationsTabProps) {
               <button
                 onClick={() => {
                   console.log('[VerifiedLocationsTab] More options clicked');
-                  window.dispatchEvent(new Event('dashboard:refresh'));
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('dashboard:refresh'));
+                  }
                 }}
                 className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition"
                 title="More options"

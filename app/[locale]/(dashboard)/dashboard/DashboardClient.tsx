@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -339,7 +339,10 @@ export function QuickActionCard({
   );
 }
 
-export function LocationCard({ locationName, href }: { locationName: string; href: string }) {
+export function LocationCard({
+  locationName,
+  href,
+}: Readonly<{ locationName: string; href: string }>) {
   const router = useRouter();
   
   return (
@@ -362,6 +365,8 @@ export function TimeFilterButtons() {
   const [customOpen, setCustomOpen] = useState(false);
   const [start, setStart] = useState<string>(searchParams.get('start') || '');
   const [end, setEnd] = useState<string>(searchParams.get('end') || '');
+  const startInputId = useId();
+  const endInputId = useId();
   
   const updateFilter = (period: string, startDate?: string, endDate?: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -455,8 +460,11 @@ export function TimeFilterButtons() {
         <div className="mt-3 rounded-lg border border-zinc-700/50 bg-zinc-900 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-zinc-400">Start</label>
+              <label className="text-xs text-zinc-400" htmlFor={startInputId}>
+                Start
+              </label>
               <input
+                id={startInputId}
                 type="date"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
@@ -464,8 +472,11 @@ export function TimeFilterButtons() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-zinc-400">End</label>
+              <label className="text-xs text-zinc-400" htmlFor={endInputId}>
+                End
+              </label>
               <input
+                id={endInputId}
                 type="date"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
@@ -509,7 +520,7 @@ export function TimeFilterButtons() {
   );
 }
 
-export function ViewDetailsButton({ href }: { href: string }) {
+export function ViewDetailsButton({ href }: Readonly<{ href: string }>) {
   const router = useRouter();
   
   return (
@@ -524,13 +535,15 @@ export function ViewDetailsButton({ href }: { href: string }) {
   );
 }
 
+interface ManageProtectionButtonProps {
+  readonly protectionScore?: number;
+  readonly issues?: ReadonlyArray<string>;
+}
+
 export function ManageProtectionButton({
   protectionScore = 0,
   issues = ['Improve health score to activate', '2 pending items need attention'],
-}: {
-  protectionScore?: number;
-  issues?: string[];
-}) {
+}: Readonly<ManageProtectionButtonProps>) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -544,13 +557,13 @@ export function ManageProtectionButton({
         isOpen={open}
         onClose={() => setOpen(false)}
         protectionScore={protectionScore}
-        issues={issues}
+        issues={issues.slice()}
       />
     </>
   );
 }
 
-export function LastUpdated({ updatedAt }: { updatedAt: string }) {
+export function LastUpdated({ updatedAt }: Readonly<{ updatedAt: string }>) {
   const getTimeAgo = (date: string) => {
     const now = new Date();
     const updated = new Date(date);
@@ -573,15 +586,22 @@ export function LastUpdated({ updatedAt }: { updatedAt: string }) {
 }
 
 // Interactive Quick Actions with Modals
+interface QuickActionsInteractiveProps {
+  readonly pendingReviews: ReadonlyArray<{ id: string; rating: number; comment: string | null; created_at: string }>;
+  readonly unansweredQuestions: ReadonlyArray<{
+    id: string;
+    question_text: string;
+    created_at: string;
+    upvotes?: number | null;
+  }>;
+  readonly locationId?: string;
+}
+
 export function QuickActionsInteractive({
   pendingReviews,
   unansweredQuestions,
   locationId,
-}: {
-  pendingReviews: Array<{ id: string; rating: number; comment: string | null; created_at: string }>;
-  unansweredQuestions: Array<{ id: string; question_text: string; created_at: string; upvotes?: number | null }>;
-  locationId?: string;
-}) {
+}: Readonly<QuickActionsInteractiveProps>) {
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);

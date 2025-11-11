@@ -1,12 +1,14 @@
 'use client'
 
+interface AutomationErrorProps {
+  readonly error: Error
+  readonly reset: () => void
+}
+
 export default function AutomationError({
   error,
   reset,
-}: {
-  error: Error
-  reset: () => void
-}) {
+}: AutomationErrorProps) {
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-8">
       <div className="max-w-md text-center">
@@ -18,8 +20,10 @@ export default function AutomationError({
         <button
           onClick={() => {
             reset();
-            window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[AutomationError] Try Again triggered, dashboard refresh dispatched');
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('dashboard:refresh'));
+              console.log('[AutomationError] Try Again triggered, dashboard refresh dispatched');
+            }
           }}
           className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition text-white"
         >

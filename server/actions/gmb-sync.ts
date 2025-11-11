@@ -88,14 +88,16 @@ export async function syncLocation(locationId: string) {
     revalidatePath("/locations")
 
     // Determine overall success
-    const hasError = results.reviews.error || results.questions.error
-    const hasSomeSuccess = results.reviews.synced > 0 || results.questions.synced > 0
+    const errorMessage = results.reviews.error ?? results.questions.error
+    const hasError = Boolean(errorMessage)
+    const hasSomeSuccess =
+      (results.reviews.synced ?? 0) > 0 || (results.questions.synced ?? 0) > 0
 
     return {
       success: hasSomeSuccess || !hasError,
       results,
       message: hasError
-        ? `Partial sync completed. Some items may have failed: ${results.reviews.error || results.questions.error}`
+        ? `Partial sync completed. Some items may have failed: ${errorMessage}`
         : `Synced ${results.reviews.synced} reviews and ${results.questions.synced} questions`,
     }
   } catch (error: any) {

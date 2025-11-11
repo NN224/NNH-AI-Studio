@@ -6,6 +6,20 @@ import { z } from "zod"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
+const STAR_RATING_TO_SCORE: Record<string, number> = {
+  FIVE: 5,
+  FOUR: 4,
+  THREE: 3,
+  TWO: 2,
+  ONE: 1,
+}
+
+function mapStarRating(value?: string | null): number {
+  if (!value) {
+    return 1
+  }
+  return STAR_RATING_TO_SCORE[value as keyof typeof STAR_RATING_TO_SCORE] ?? 1
+}
 
 function buildLocationResourceName(accountId: string, locationId: string): string {
   const cleanAccountId = accountId.replace(/^accounts\//, "")
@@ -799,16 +813,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
       user_id: user.id,
       gmb_account_id: location.gmb_account_id,
       external_review_id: googleReview.reviewId || googleReview.name?.split("/").pop(),
-      rating:
-        googleReview.starRating === "FIVE"
-          ? 5
-          : googleReview.starRating === "FOUR"
-          ? 4
-          : googleReview.starRating === "THREE"
-          ? 3
-          : googleReview.starRating === "TWO"
-          ? 2
-          : 1,
+      rating: mapStarRating(googleReview.starRating),
       review_text: googleReview.comment || null,
       review_date: googleReview.createTime || new Date().toISOString(),
       reviewer_name: googleReview.reviewer?.displayName || "Anonymous",

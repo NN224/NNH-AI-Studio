@@ -1,21 +1,33 @@
-'use client'
+"use client"
 
 /**
  * Step 1: Basic Information
  * Business name, address, contact details
  */
 
+import { Dispatch, SetStateAction, useId } from "react"
+import type { CreateLocationFormData } from "../CreateLocationTab"
+
 interface Step1Props {
-  formData: any
-  setFormData: (data: any) => void
-  onNext: () => void
+  readonly formData: CreateLocationFormData
+  readonly setFormData: Dispatch<SetStateAction<CreateLocationFormData>>
+  readonly onNext: () => void
 }
 
-export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
-  const isValid = 
-    formData.business_name.trim() && 
-    formData.street.trim() && 
-    formData.city.trim() && 
+export function Step1BasicInfo({ formData, setFormData, onNext }: Readonly<Step1Props>) {
+  const businessNameId = useId()
+  const streetId = useId()
+  const cityId = useId()
+  const stateId = useId()
+  const postalCodeId = useId()
+  const countryId = useId()
+  const phoneId = useId()
+  const websiteId = useId()
+
+  const isValid =
+    formData.business_name.trim() &&
+    formData.street.trim() &&
+    formData.city.trim() &&
     formData.phone.trim()
   
   return (
@@ -32,10 +44,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       
       {/* Business Name */}
       <div>
-        <label className="block text-sm font-medium text-white mb-2">
+        <label htmlFor={businessNameId} className="block text-sm font-medium text-white mb-2">
           Business Name <span className="text-orange-500">*</span>
         </label>
         <input
+          id={businessNameId}
           type="text"
           value={formData.business_name}
           onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
@@ -49,10 +62,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       
       {/* Address */}
       <div>
-        <label className="block text-sm font-medium text-white mb-2">
+        <label htmlFor={streetId} className="block text-sm font-medium text-white mb-2">
           Street Address <span className="text-orange-500">*</span>
         </label>
         <input
+          id={streetId}
           type="text"
           value={formData.street}
           onChange={(e) => setFormData({ ...formData, street: e.target.value })}
@@ -66,10 +80,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={cityId} className="block text-sm font-medium text-white mb-2">
             City <span className="text-orange-500">*</span>
           </label>
           <input
+            id={cityId}
             type="text"
             value={formData.city}
             onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -78,10 +93,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={stateId} className="block text-sm font-medium text-white mb-2">
             State/Province
           </label>
           <input
+            id={stateId}
             type="text"
             value={formData.state}
             onChange={(e) => setFormData({ ...formData, state: e.target.value })}
@@ -93,10 +109,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={postalCodeId} className="block text-sm font-medium text-white mb-2">
             Postal Code
           </label>
           <input
+            id={postalCodeId}
             type="text"
             value={formData.postal_code}
             onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
@@ -105,10 +122,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={countryId} className="block text-sm font-medium text-white mb-2">
             Country <span className="text-orange-500">*</span>
           </label>
           <select
+            id={countryId}
             value={formData.country}
             onChange={(e) => setFormData({ ...formData, country: e.target.value })}
             className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:border-orange-500 focus:outline-none transition"
@@ -126,10 +144,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       {/* Contact */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={phoneId} className="block text-sm font-medium text-white mb-2">
             Phone Number <span className="text-orange-500">*</span>
           </label>
           <input
+            id={phoneId}
             type="tel"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -141,10 +160,11 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
           </p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-white mb-2">
+          <label htmlFor={websiteId} className="block text-sm font-medium text-white mb-2">
             Website (optional)
           </label>
           <input
+            id={websiteId}
             type="url"
             value={formData.website}
             onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -172,8 +192,9 @@ export function Step1BasicInfo({ formData, setFormData, onNext }: Step1Props) {
       <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">
         <button
           onClick={() => {
-            window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[Step1BasicInfo] Basic info completed, dashboard refresh triggered');
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("dashboard:refresh"))
+            }
             onNext();
           }}
           disabled={!isValid}

@@ -6,16 +6,20 @@
  */
 
 import { FEATURES, PAYMENT_METHODS } from '@/lib/types/location-creation'
+import type { CreateLocationFormData } from '../CreateLocationTab'
 
 interface Step4Props {
-  formData: any
-  onSubmit: () => void
-  onBack: () => void
+  readonly formData: CreateLocationFormData
+  readonly onSubmit: () => void
+  readonly onBack: () => void
 }
 
 export function Step4Review({ formData, onSubmit, onBack }: Step4Props) {
   const getFeatureLabel = (id: string) => FEATURES.find(f => f.id === id)?.label || id
   const getPaymentLabel = (id: string) => PAYMENT_METHODS.find(p => p.id === id)?.label || id
+  const cityState = [formData.city, formData.state].filter(Boolean).join(', ')
+  const postalCountry = [formData.postal_code, formData.country].filter(Boolean).join(' ')
+  const formattedAddress = [formData.street, cityState || undefined, postalCountry || undefined].filter(Boolean).join(', ')
   
   return (
     <div className="space-y-6">
@@ -40,7 +44,7 @@ export function Step4Review({ formData, onSubmit, onBack }: Step4Props) {
           <ReviewItem label="Business Name" value={formData.business_name} />
           <ReviewItem 
             label="Address" 
-            value={`${formData.street}, ${formData.city}${formData.state ? `, ${formData.state}` : ''}${formData.postal_code ? ` ${formData.postal_code}` : ''}, ${formData.country}`} 
+            value={formattedAddress} 
           />
           <ReviewItem label="Phone" value={formData.phone} />
           {formData.website && <ReviewItem label="Website" value={formData.website} />}
@@ -143,8 +147,10 @@ export function Step4Review({ formData, onSubmit, onBack }: Step4Props) {
         </button>
         <button
           onClick={() => {
-            window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[Step4Review] Location submitted to Google, dashboard refresh triggered');
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('dashboard:refresh'));
+              console.log('[Step4Review] Location submitted to Google, dashboard refresh triggered');
+            }
             onSubmit();
           }}
           className="px-8 py-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white rounded-lg font-medium transition hover:scale-105 flex items-center gap-2"
