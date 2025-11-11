@@ -39,6 +39,14 @@ export default function LocationsPage() {
   const gmbAccountId = activeAccount?.id || null;
   const { data: overviewSnapshot } = useDashboardSnapshot();
   const recentHighlights = overviewSnapshot?.reviewStats?.recentHighlights ?? [];
+ 
+  const formatHighlightDate = (value?: string | null) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString();
+  };
+
   const router = useRouter();
 
   useEffect(() => {
@@ -365,7 +373,7 @@ export default function LocationsPage() {
                         <div key={highlight.reviewId} className="rounded-xl border border-white/10 bg-black/40 p-3">
                           <div className="text-sm text-white">{highlight.reviewer}</div>
                           <div className="text-xs text-white/60">
-                            {new Date(highlight.createdAt).toLocaleString()}
+                            {formatHighlightDate(highlight.createdAt)}
                           </div>
                           <p className="mt-2 line-clamp-3 text-sm text-white/80">{highlight.locationId}</p>
                         </div>
