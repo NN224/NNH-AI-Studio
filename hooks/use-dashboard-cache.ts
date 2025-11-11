@@ -200,3 +200,25 @@ export function useCacheStatus() {
     clearCache: cacheUtils.clear,
   };
 }
+
+export const getLocationMetricsFromSnapshot = (
+  snapshot: DashboardSnapshot | undefined,
+  locationId: string | undefined,
+) => {
+  if (!snapshot || !locationId) {
+    return null;
+  }
+
+  const highlight = snapshot.reviewStats.recentHighlights.find(
+    (item) => item.locationId === locationId,
+  );
+
+  return {
+    ratingTrend: snapshot.kpis.ratingTrendPct ?? 0,
+    viewsThisMonth: snapshot.postStats.thisWeek ?? 0,
+    responseRate: snapshot.reviewStats.responseRate ?? 0,
+    pendingReviews: snapshot.reviewStats.totals.pending ?? 0,
+    healthScore: snapshot.kpis.healthScore ?? 0,
+    highlight,
+  };
+};

@@ -12,11 +12,24 @@ interface LocationMiniDashboardProps {
   location: Location;
   isExpanded: boolean;
   onToggle: () => void;
+  metrics?: {
+    ratingTrend: number;
+    viewsThisMonth: number;
+    responseRate: number;
+    pendingReviews: number;
+    healthScore: number;
+  };
 }
 
-export function LocationMiniDashboard({ location, isExpanded, onToggle }: LocationMiniDashboardProps) {
+export function LocationMiniDashboard({ location, isExpanded, onToggle, metrics }: LocationMiniDashboardProps) {
   const metadata = location.metadata ?? {};
-  const insights: Partial<LocationInsights> = location.insights ?? {};
+  const insights = location.insights ?? {};
+
+  const ratingTrendValue = metrics?.ratingTrend ?? location.ratingTrend ?? 0;
+  const viewsThisMonth = metrics?.viewsThisMonth ?? insights.views ?? 0;
+  const responseRateValue = metrics?.responseRate ?? location.responseRate ?? insights.responseRate ?? 0;
+  const pendingReviewsValue = metrics?.pendingReviews ?? insights.pendingReviews ?? 0;
+  const healthScoreValue = metrics?.healthScore ?? location.healthScore ?? 0;
 
   const coerceNumber = (value: unknown, defaultValue = 0): number =>
     typeof value === 'number'
@@ -25,9 +38,6 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
       ? Number(value) || defaultValue
       : defaultValue;
 
-  const viewsThisMonth =
-    coerceNumber(insights.views, 0) ??
-    coerceNumber(metadata.viewsThisMonth, 0);
   const viewsTrend =
     coerceNumber(insights.viewsTrend, 0) ??
     coerceNumber(metadata.viewsTrend, 0);
@@ -46,8 +56,6 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
         metadata.response_rate,
       0
     );
-
-  const ratingTrendValue = location.ratingTrend ?? 0;
 
   const ratingHistoryRaw =
     metadata.ratingHistory ??
@@ -73,10 +81,7 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
     ratingHistory && ratingHistory.length >= 2
       ? ratingHistory
       : (() => {
-          const baseline = coerceNumber(location.rating, 0);
-          if (ratingTrendValue === 0) {
-            return [baseline, baseline];
-          }
+          const baseline = typeof location.rating === 'number' ? location.rating : 0;
           const trailing = baseline - ratingTrendValue;
           return [Math.max(trailing, 0), baseline];
         })();
@@ -172,95 +177,39 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
 
   return (
     <div className="animate-in slide-in-from-top-2 duration-300">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Rating Trend */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-muted-foreground">Rating Trend (30d)</h4>
               <Star className="w-4 h-4 text-yellow-500" />
             </div>
-            <div className="flex items-end gap-3">
-              <div>
-                <div className="text-2xl font-bold">
-                  {typeof location.rating === 'number'
-                    ? location.rating.toFixed(1)
-                    : 'N/A'}
-                </div>
-                <div
-                  className={`flex items-center text-xs ${
-                    ratingTrendValue >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}
-                >
-                  {ratingTrendValue >= 0 ? (
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 mr-1" />
-                  )}
-                  {ratingTrendValue >= 0 ? '+' : ''}
-                  {ratingTrendValue.toFixed(1)} vs last month
-                </div>
-              </div>
-              <div className="flex-1 flex items-end justify-end">
-                <Sparkline data={sparklineData} />
-              </div>
+            <div className="text-3xl font-bold text-white">{typeof location.rating === 'number' ? location.rating.toFixed(1) : '—'}</div>
+            <div className="flex items-center text-xs text-emerald-400 mt-2">
+              {ratingTrendValue.toFixed(1)} vs last month
             </div>
           </CardContent>
         </Card>
 
-        {/* Views & Engagement */}
         <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-muted-foreground">Views This Month</h4>
               <Eye className="w-4 h-4 text-purple-500" />
             </div>
-            <div>
-              <div className="text-2xl font-bold">{viewsThisMonth.toLocaleString()}</div>
-              <div
-                className={`flex items-center text-xs ${
-                  viewsTrend >= 0 ? 'text-green-500' : 'text-red-500'
-                }`}
-              >
-                {viewsTrend >= 0 ? (
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 mr-1" />
-                )}
-                {viewsTrend >= 0 ? '+' : ''}
-                {viewsTrend.toFixed(1)}% vs last month
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <div className="text-xs text-muted-foreground">Response Rate</div>
-              <div className="text-lg font-semibold">
-                {Math.max(0, Math.min(100, Math.round(responseRate)))}%
-              </div>
-            </div>
+            <div className="text-3xl font-bold text-white">{viewsThisMonth.toLocaleString()}</div>
+            <div className="text-xs text-emerald-400 mt-2">Response Rate {Math.round(responseRateValue)}%</div>
           </CardContent>
         </Card>
 
-        {/* Pending Reviews & Alerts */}
         <Card className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-muted-foreground">Pending Reviews</h4>
               <AlertCircle className="w-4 h-4 text-orange-500" />
             </div>
-            <div>
-              <div className="text-2xl font-bold">{pendingReviews}</div>
-              <div className="text-xs text-muted-foreground">
-                {pendingReviews === 1 ? 'Review needs reply' : 'Reviews need response'}
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <div className="flex items-start gap-2">
-                <div className="w-2 h-2 rounded-full bg-orange-500 mt-1 flex-shrink-0" />
-                <div className="text-xs text-muted-foreground">
-                  Stay responsive to keep your review score healthy.
-                </div>
-              </div>
-            </div>
+            <div className="text-3xl font-bold text-white">{pendingReviewsValue}</div>
+            <div className="text-xs text-orange-300 mt-2">Reviews need response</div>
           </CardContent>
         </Card>
       </div>
@@ -269,18 +218,18 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
       <div className="mt-4 p-4 rounded-lg bg-muted/30 border border-border/50">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground">Location Health Score</span>
-          <span className="text-lg font-bold">{location.healthScore || 0}%</span>
+          <span className="text-lg font-bold text-white">{Math.round(healthScoreValue)}%</span>
         </div>
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${
-              (location.healthScore || 0) >= 80
+              healthScoreValue >= 80
                 ? 'bg-green-500'
-                : (location.healthScore || 0) >= 60
+                : healthScoreValue >= 60
                 ? 'bg-yellow-500'
                 : 'bg-red-500'
             }`}
-            style={{ width: `${location.healthScore || 0}%` }}
+            style={{ width: `${Math.max(0, Math.min(100, healthScoreValue))}%` }}
           />
         </div>
         <div className="mt-2 text-xs text-muted-foreground">

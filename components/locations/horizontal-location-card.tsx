@@ -8,6 +8,7 @@ import { Location } from '@/components/locations/location-types';
 import { getHealthScoreColor, formatLargeNumber } from '@/components/locations/location-types';
 import { Phone, MapPin, Eye, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { LocationMiniDashboard } from './location-mini-dashboard';
+import { useDashboardSnapshot, getLocationMetricsFromSnapshot } from '@/hooks/use-dashboard-cache';
 
 interface HorizontalLocationCardProps {
   location: Location;
@@ -95,6 +96,33 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
   const hasCover = Boolean(coverImageUrl);
   const hasLogo = Boolean(logoImageUrl);
 
+  const { data: snapshot } = useDashboardSnapshot();
+  const metrics = getLocationMetricsFromSnapshot(snapshot, location.id);
+
+  const ratingTrend = metrics?.ratingTrend ?? 0;
+  const viewsThisMonth = metrics?.viewsThisMonth ?? 0;
+  const responseRate = metrics?.responseRate ?? 0;
+  const pendingReviews = metrics?.pendingReviews ?? 0;
+  const effectiveHealthScore = metrics?.healthScore ?? healthScore ?? 0;
+
+  const statChips = [
+    {
+      label: 'Rating Trend (30d)',
+      value: rating?.toFixed(1) ?? '—',
+      delta: `${ratingTrend >= 0 ? '+' : ''}${ratingTrend.toFixed(1)} vs last month`,
+    },
+    {
+      label: 'Views This Month',
+      value: viewsThisMonth.toLocaleString(),
+      delta: `${responseRate.toFixed(0)}% response rate`,
+    },
+    {
+      label: 'Pending Reviews',
+      value: pendingReviews.toString(),
+      delta: 'Reviews need response',
+    },
+  ];
+
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/45 backdrop-blur-lg shadow-lg">
       <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)]">
@@ -176,16 +204,14 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
-            {rating != null && rating > 0 && (
-              <span>
-                ⭐ {typeof rating === 'number' ? rating.toFixed(1) : rating}
-                {reviewCount ? ` (${formatLargeNumber(reviewCount)} reviews)` : ''}
-              </span>
-            )}
-            {healthScore != null && healthScore > 0 && (
-              <span className={getHealthScoreColor(healthScore)}>Health {healthScore}%</span>
-            )}
+          <div className="grid gap-3 text-sm md:grid-cols-3">
+            {statChips.map((chip) => (
+              <div key={chip.label} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white/80">
+                <div className="text-xs uppercase tracking-wide text-white/50">{chip.label}</div>
+                <div className="mt-2 text-2xl font-semibold text-white">{chip.value}</div>
+                <div className="mt-1 text-xs text-emerald-300">{chip.delta}</div>
+              </div>
+            ))}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -255,6 +281,7 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
             location={location}
             isExpanded={isExpanded}
             onToggle={() => setIsExpanded(!isExpanded)}
+            metrics={metrics ?? undefined}
           />
         </div>
       )}
