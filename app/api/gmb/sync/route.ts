@@ -1800,7 +1800,7 @@ export async function POST(request: NextRequest) {
 interface ReleaseLockParams {
   acquiredLock: boolean
   request: Request
-  redis: typeof redis | null
+  redis: Redis | null
   usingRedis: boolean
   syncLocks: Map<string, number>
 }
