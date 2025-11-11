@@ -62,6 +62,22 @@ const coerceString = (value: unknown): string | undefined => {
   return undefined;
 };
 
+function parseMetadata(metadata: unknown): Record<string, any> {
+  if (!metadata) return {};
+  if (typeof metadata === 'object') return metadata as Record<string, any>;
+  if (typeof metadata === 'string') {
+    try {
+      const parsed = JSON.parse(metadata);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, any>;
+      }
+    } catch (error) {
+      console.warn('[useLocations] Failed to parse metadata JSON', { metadata, error });
+    }
+  }
+  return {};
+}
+
 function extractImageFromMetadata(
   metadata: Record<string, any>,
   preferredKeys: string[]
@@ -271,11 +287,8 @@ export function useLocations(
       const transformedLocations: Location[] = (data || [])
         .filter((loc: any) => loc?.id && String(loc.id).trim() !== '')
         .map((loc: any) => {
-          const metadata =
-            loc && typeof loc.metadata === 'object' && loc.metadata !== null
-              ? (loc.metadata as Record<string, any>)
-              : {};
-          const profile = (metadata.profile as Record<string, any>) || {};
+          const metadata = parseMetadata(loc.metadata);
+          const profile = parseMetadata(metadata.profile);
 
           const rating =
             coerceNumber(loc.rating) ?? coerceNumber(metadata.rating);
