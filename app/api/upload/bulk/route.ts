@@ -123,7 +123,7 @@ async function handleFileUpload(file: File, context: UploadContext): Promise<Upl
 
   try {
     const paths = buildFilePaths(file, context)
-    let buffer = Buffer.from(await file.arrayBuffer())
+    let buffer: Buffer = Buffer.from(await file.arrayBuffer()) as Buffer
     let metadata = createBaseMetadata(file)
 
     let thumbnailUrl: string | undefined
@@ -220,7 +220,7 @@ function createBaseMetadata(file: File): Record<string, unknown> {
 async function processImageAsset(params: ProcessImageParams): Promise<ProcessImageResult> {
   const { buffer, supabase, thumbnailPath } = params
   const metadata = { ...params.metadata }
-  let workingBuffer = buffer
+  let workingBuffer: Buffer = buffer
 
   try {
     const imageMetadata = await sharp(buffer).metadata()

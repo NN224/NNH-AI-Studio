@@ -107,7 +107,7 @@ async function extractRequestPayload(formData: FormData): Promise<{
 async function processSingleUpload(file: File, context: UploadContext) {
   try {
     const paths = buildUploadPaths(file, context)
-    let buffer = Buffer.from(await file.arrayBuffer())
+    let buffer: Buffer = Buffer.from(await file.arrayBuffer()) as Buffer
     let metadata = buildBaseMetadata(file)
     let thumbnailUrl: string | undefined
 
@@ -211,7 +211,7 @@ async function processImageAsset(params: {
 }> {
   const { buffer, paths, supabase } = params
   const metadata = { ...params.metadata }
-  let workingBuffer = buffer
+  let workingBuffer: Buffer = buffer
 
   try {
     const imageMetadata = await sharp(buffer).metadata()
