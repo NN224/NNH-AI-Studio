@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LocationsMapTab } from '@/components/locations/locations-map-tab-new';
@@ -12,15 +12,23 @@ import { toast } from 'sonner';
 import { LocationFormDialog } from '@/components/locations/location-form-dialog';
 import { GMBConnectionBanner } from '@/components/locations/gmb-connection-banner';
 import { useGmbStatus } from '@/hooks/use-gmb-status';
+import { useIsMobile } from '@/components/locations/responsive-locations-layout';
 
 export default function LocationsPage() {
   const t = useTranslations('Locations');
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const isMobile = useIsMobile();
+  const [activePanel, setActivePanel] = useState<'map' | 'list'>('map');
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { connected, activeAccount } = useGmbStatus();
   const gmbAccountId = activeAccount?.id || null;
+
+  useEffect(() => {
+    if (!isMobile) {
+      setActivePanel('map');
+    }
+  }, [isMobile]);
 
   const handleSync = async () => {
     // Check if account ID is available
@@ -229,28 +237,30 @@ export default function LocationsPage() {
           </div>
           
           {/* Action Bar */}
-          <div className="flex items-center gap-2">
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 border border-primary/20">
-              <Button
-                variant={viewMode === 'map' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('map')}
-                className={`gap-2 ${viewMode === 'map' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <MapPin className="w-4 h-4" />
-                Map View
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className={`gap-2 ${viewMode === 'list' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <List className="w-4 h-4" />
-                List View
-              </Button>
-            </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Mobile View Toggle */}
+            {isMobile && (
+              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 border border-primary/20">
+                <Button
+                  variant={activePanel === 'map' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActivePanel('map')}
+                  className={`gap-2 ${activePanel === 'map' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <MapPin className="w-4 h-4" />
+                  Map
+                </Button>
+                <Button
+                  variant={activePanel === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActivePanel('list')}
+                  className={`gap-2 ${activePanel === 'list' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <List className="w-4 h-4" />
+                  List
+                </Button>
+              </div>
+            )}
             
             {/* Sync Button */}
             <Button
@@ -298,10 +308,21 @@ export default function LocationsPage() {
         <LocationsStatsCardsAPI />
 
         {/* Main Content Area */}
-        {viewMode === 'map' ? (
-          <LocationsMapTab />
+        {isMobile ? (
+          activePanel === 'map' ? (
+            <LocationsMapTab />
+          ) : (
+            <LocationsListView />
+          )
         ) : (
-          <LocationsListView />
+          <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-6">
+            <div className="relative min-h-[620px] overflow-hidden rounded-2xl border border-primary/10 bg-background/40 shadow-sm">
+              <LocationsMapTab />
+            </div>
+            <div className="space-y-4">
+              <LocationsListView />
+            </div>
+          </div>
         )}
 
         {/* Add Location Dialog */}

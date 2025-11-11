@@ -40,6 +40,9 @@ export interface Location {
   visibility?: number;
   lastSync?: Date | string | null;
   insights?: LocationInsights;
+  responseRate?: number;
+  ratingTrend?: number;
+  metadata?: Record<string, any>;
   // Extended fields for comprehensive health score
   additionalCategories?: string[];
   menuLink?: string;
@@ -73,6 +76,8 @@ export interface LocationInsights {
   directions: number;
   directionsTrend: number;
   weeklyGrowth: number;
+  pendingReviews?: number;
+  responseRate?: number;
 }
 
 // Helper functions

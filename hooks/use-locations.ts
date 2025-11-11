@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Location } from '@/components/locations/location-types';
+import { mapLocationCoordinates } from '@/lib/utils/location-coordinates';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface LocationFilters {
@@ -31,6 +32,27 @@ export interface UseLocationsResult {
   refetch: () => Promise<void>;
   hasMore: boolean;
   loadMore: () => Promise<void>;
+}
+
+function normalizeLocationStatus(status: unknown): Location['status'] {
+  const value = (status ?? '').toString().toLowerCase();
+  if (value.includes('suspend')) return 'suspended';
+  if (value.includes('verify') || value.includes('active') || value.includes('published')) {
+    return 'verified';
+  }
+  return 'pending';
+}
+
+function coerceNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
 }
 
 export function useLocations(
@@ -191,36 +213,136 @@ export function useLocations(
       // Transform data to Location type (skip records without valid IDs)
       const transformedLocations: Location[] = (data || [])
         .filter((loc: any) => loc?.id && String(loc.id).trim() !== '')
-        .map((loc: any) => ({
-        id: loc.id,
-        name: loc.location_name || 'Unnamed Location',
-        address: loc.address || undefined,
-        phone: loc.phone || undefined,
-        website: loc.website || undefined,
-        // Preserve actual values - only default to 0 if truly null/undefined
-        rating: loc.rating != null ? loc.rating : undefined,
-        reviewCount: loc.review_count != null ? loc.review_count : undefined,
-        status: 'verified' as const,
-        category: loc.category || undefined,
-        coordinates: loc.latitude && loc.longitude ? {
-          lat: loc.latitude,
-          lng: loc.longitude
-        } : undefined,
-        // Preserve actual health_score value
-        healthScore: loc.health_score != null ? loc.health_score : undefined,
-        lastSync: loc.last_sync || null,
-        insights: {
-          views: 0,
-          viewsTrend: 0,
-          clicks: 0,
-          clicksTrend: 0,
-          calls: 0,
-          callsTrend: 0,
-          directions: 0,
-          directionsTrend: 0,
-          weeklyGrowth: 0,
-        },
-      }));
+        .map((loc: any) => {
+          const metadata =
+            loc && typeof loc.metadata === 'object' && loc.metadata !== null
+              ? (loc.metadata as Record<string, any>)
+              : {};
+
+          const rating =
+            coerceNumber(loc.rating) ?? coerceNumber(metadata.rating);
+
+          const reviewCount =
+            coerceNumber(loc.review_count) ??
+            coerceNumber(metadata.reviewCount) ??
+            0;
+
+          const healthScore =
+            coerceNumber(loc.health_score) ??
+            coerceNumber(metadata.healthScore) ??
+            coerceNumber(metadata.health_score);
+
+          const coordinates = mapLocationCoordinates(loc);
+
+          const rawInsights =
+            (metadata.insights_json ||
+              metadata.insights ||
+              {}) as Record<string, unknown>;
+
+          const insights = {
+            views: coerceNumber(rawInsights.views) ?? 0,
+            viewsTrend: coerceNumber(rawInsights.viewsTrend) ?? 0,
+            clicks: coerceNumber(rawInsights.clicks) ?? 0,
+            clicksTrend: coerceNumber(rawInsights.clicksTrend) ?? 0,
+            calls: coerceNumber(rawInsights.calls) ?? 0,
+            callsTrend: coerceNumber(rawInsights.callsTrend) ?? 0,
+            directions: coerceNumber(rawInsights.directions) ?? 0,
+            directionsTrend: coerceNumber(rawInsights.directionsTrend) ?? 0,
+            weeklyGrowth: coerceNumber(rawInsights.weeklyGrowth) ?? 0,
+            pendingReviews: coerceNumber(rawInsights.pendingReviews),
+            responseRate: coerceNumber(rawInsights.responseRate),
+          };
+
+          const photos =
+            coerceNumber(metadata.mediaCount) ??
+            coerceNumber(metadata.photos) ??
+            undefined;
+
+          const posts =
+            coerceNumber(metadata.postsCount) ??
+            coerceNumber(metadata.posts) ??
+            undefined;
+
+          const rawAttributes =
+            Array.isArray(metadata.serviceItems) && metadata.serviceItems.length > 0
+              ? metadata.serviceItems
+              : Array.isArray(metadata.attributes)
+              ? metadata.attributes
+              : [];
+
+          const attributes = Array.isArray(rawAttributes)
+            ? rawAttributes
+                .map((item: any) => {
+                  if (typeof item === 'string') {
+                    return item;
+                  }
+                  if (item && typeof item === 'object') {
+                    return (
+                      item.name ??
+                      item.label ??
+                      item.value ??
+                      item.description ??
+                      null
+                    );
+                  }
+                  return null;
+                })
+                .filter((value): value is string => Boolean(value))
+            : [];
+
+          const responseRate =
+            coerceNumber(loc.response_rate) ??
+            coerceNumber(metadata.responseRate) ??
+            coerceNumber(metadata.response_rate) ??
+            insights.responseRate;
+
+          const ratingTrend =
+            coerceNumber(metadata.ratingTrend) ??
+            coerceNumber(metadata.rating_trend);
+
+          const lastSync =
+            loc.last_sync ||
+            metadata.last_sync ||
+            metadata.lastSync ||
+            metadata.lastSyncedAt ||
+            loc.updated_at ||
+            null;
+
+          return {
+            id: loc.id,
+            name: loc.location_name || 'Unnamed Location',
+            address: loc.address || undefined,
+            phone: loc.phone || undefined,
+            website: loc.website || undefined,
+            rating,
+            reviewCount,
+            status: normalizeLocationStatus(loc.status),
+            category: loc.category || undefined,
+            coordinates,
+            healthScore: healthScore ?? undefined,
+            photos,
+            posts,
+            visibility: coerceNumber(metadata.visibilityScore) ?? undefined,
+            lastSync,
+            insights,
+            responseRate: responseRate ?? undefined,
+            ratingTrend: ratingTrend ?? undefined,
+            metadata,
+            attributes,
+            autoReplyEnabled:
+              typeof metadata.autoReplyEnabled === 'boolean'
+                ? metadata.autoReplyEnabled
+                : undefined,
+            qnaEnabled:
+              typeof metadata.qnaEnabled === 'boolean'
+                ? metadata.qnaEnabled
+                : undefined,
+            profileProtection:
+              typeof metadata.profileProtection === 'boolean'
+                ? metadata.profileProtection
+                : undefined,
+          };
+        });
 
       if (reset) {
         setLocations(transformedLocations);

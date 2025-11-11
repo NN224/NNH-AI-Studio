@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Eye, AlertCircle, Star } from 'lucide-react';
 import { Location } from '@/components/locations/location-types';
+import { formatDistanceToNow } from 'date-fns';
 
 interface LocationMiniDashboardProps {
   location: Location;
@@ -14,16 +15,95 @@ interface LocationMiniDashboardProps {
 }
 
 export function LocationMiniDashboard({ location, isExpanded, onToggle }: LocationMiniDashboardProps) {
-  // Mock data for demonstration - in production, this would come from an API
-  const mockKPIs = {
-    viewsThisMonth: 1234,
-    viewsTrend: 15.2,
-    pendingReviews: 3,
-    responseRate: 87,
-    lastUpdated: '2 hours ago',
-  };
+  const metadata = location.metadata ?? {};
+  const insights = location.insights ?? {};
 
-  const mockRatingTrend = [4.2, 4.3, 4.4, 4.3, 4.5, 4.5, 4.6]; // Last 7 data points
+  const coerceNumber = (value: unknown, defaultValue = 0): number =>
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+      ? Number(value) || defaultValue
+      : defaultValue;
+
+  const viewsThisMonth =
+    coerceNumber(insights.views, 0) ??
+    coerceNumber(metadata.viewsThisMonth, 0);
+  const viewsTrend =
+    coerceNumber(insights.viewsTrend, 0) ??
+    coerceNumber(metadata.viewsTrend, 0);
+  const pendingReviews =
+    coerceNumber(
+      insights.pendingReviews ??
+        metadata.pendingReviews ??
+        metadata.pending_reviews,
+      0
+    );
+  const responseRate =
+    location.responseRate ??
+    coerceNumber(
+      insights.responseRate ??
+        metadata.responseRate ??
+        metadata.response_rate,
+      0
+    );
+
+  const ratingTrendValue = location.ratingTrend ?? 0;
+
+  const ratingHistoryRaw =
+    metadata.ratingHistory ??
+    metadata.rating_history ??
+    metadata.ratingTrendHistory ??
+    metadata.rating_trend_history;
+
+  const ratingHistory =
+    Array.isArray(ratingHistoryRaw) && ratingHistoryRaw.length > 0
+      ? ratingHistoryRaw
+          .map((value: unknown) => {
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') {
+              const parsed = Number(value);
+              return Number.isFinite(parsed) ? parsed : null;
+            }
+            return null;
+          })
+          .filter((value): value is number => value !== null)
+      : null;
+
+  const sparklineData =
+    ratingHistory && ratingHistory.length >= 2
+      ? ratingHistory
+      : (() => {
+          const baseline = coerceNumber(location.rating, 0);
+          if (ratingTrendValue === 0) {
+            return [baseline, baseline];
+          }
+          const trailing = baseline - ratingTrendValue;
+          return [Math.max(trailing, 0), baseline];
+        })();
+
+  const lastUpdatedRaw =
+    location.lastSync ??
+    metadata.last_sync ??
+    metadata.lastSync ??
+    metadata.updatedAt ??
+    metadata.updated_at ??
+    null;
+
+  const lastUpdatedLabel =
+    lastUpdatedRaw != null
+      ? (() => {
+          try {
+            const date =
+              lastUpdatedRaw instanceof Date
+                ? lastUpdatedRaw
+                : new Date(lastUpdatedRaw);
+            if (Number.isNaN(date.getTime())) return 'Not synced yet';
+            return formatDistanceToNow(date, { addSuffix: true });
+          } catch {
+            return 'Not synced yet';
+          }
+        })()
+      : 'Not synced yet';
 
   // Simple sparkline chart component
   const Sparkline = ({ data }: { data: number[] }) => {
@@ -35,7 +115,8 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
 
     const width = 100;
     const height = 30;
-    const pointSpacing = width / (data.length - 1);
+    const pointSpacing =
+      data.length > 1 ? width / (data.length - 1) : width / 2;
 
     const points = data.map((value, index) => {
       const x = index * pointSpacing;
@@ -54,23 +135,35 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
         className="inline-block"
         viewBox={`0 0 ${width} ${height}`}
       >
-        <path
-          d={pathData}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-primary"
-        />
-        {points.map((point, index) => (
+        {data.length > 1 ? (
+          <>
+            <path
+              d={pathData}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-primary"
+            />
+            {points.map((point, index) => (
+              <circle
+                key={index}
+                cx={point.x}
+                cy={point.y}
+                r="2"
+                fill="currentColor"
+                className="text-primary"
+              />
+            ))}
+          </>
+        ) : (
           <circle
-            key={index}
-            cx={point.x}
-            cy={point.y}
-            r="2"
+            cx={points[0].x}
+            cy={height / 2}
+            r="3"
             fill="currentColor"
             className="text-primary"
           />
-        ))}
+        )}
       </svg>
     );
   };
@@ -89,14 +182,27 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
             </div>
             <div className="flex items-end gap-3">
               <div>
-                <div className="text-2xl font-bold">{location.rating?.toFixed(1) || 'N/A'}</div>
-                <div className="flex items-center text-xs text-green-500">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  +0.3 vs last month
+                <div className="text-2xl font-bold">
+                  {typeof location.rating === 'number'
+                    ? location.rating.toFixed(1)
+                    : 'N/A'}
+                </div>
+                <div
+                  className={`flex items-center text-xs ${
+                    ratingTrendValue >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}
+                >
+                  {ratingTrendValue >= 0 ? (
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 mr-1" />
+                  )}
+                  {ratingTrendValue >= 0 ? '+' : ''}
+                  {ratingTrendValue.toFixed(1)} vs last month
                 </div>
               </div>
               <div className="flex-1 flex items-end justify-end">
-                <Sparkline data={mockRatingTrend} />
+                <Sparkline data={sparklineData} />
               </div>
             </div>
           </CardContent>
@@ -110,15 +216,26 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
               <Eye className="w-4 h-4 text-purple-500" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{mockKPIs.viewsThisMonth.toLocaleString()}</div>
-              <div className="flex items-center text-xs text-green-500">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                +{mockKPIs.viewsTrend}% vs last month
+              <div className="text-2xl font-bold">{viewsThisMonth.toLocaleString()}</div>
+              <div
+                className={`flex items-center text-xs ${
+                  viewsTrend >= 0 ? 'text-green-500' : 'text-red-500'
+                }`}
+              >
+                {viewsTrend >= 0 ? (
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 mr-1" />
+                )}
+                {viewsTrend >= 0 ? '+' : ''}
+                {viewsTrend.toFixed(1)}% vs last month
               </div>
             </div>
             <div className="mt-3 pt-3 border-t border-border/50">
               <div className="text-xs text-muted-foreground">Response Rate</div>
-              <div className="text-lg font-semibold">{mockKPIs.responseRate}%</div>
+              <div className="text-lg font-semibold">
+                {Math.max(0, Math.min(100, Math.round(responseRate)))}%
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -131,14 +248,16 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
               <AlertCircle className="w-4 h-4 text-orange-500" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{mockKPIs.pendingReviews}</div>
-              <div className="text-xs text-muted-foreground">Need response</div>
+              <div className="text-2xl font-bold">{pendingReviews}</div>
+              <div className="text-xs text-muted-foreground">
+                {pendingReviews === 1 ? 'Review needs reply' : 'Reviews need response'}
+              </div>
             </div>
             <div className="mt-3 pt-3 border-t border-border/50">
               <div className="flex items-start gap-2">
                 <div className="w-2 h-2 rounded-full bg-orange-500 mt-1 flex-shrink-0" />
                 <div className="text-xs text-muted-foreground">
-                  Latest: Low rating review needs attention
+                  Stay responsive to keep your review score healthy.
                 </div>
               </div>
             </div>
@@ -165,7 +284,7 @@ export function LocationMiniDashboard({ location, isExpanded, onToggle }: Locati
           />
         </div>
         <div className="mt-2 text-xs text-muted-foreground">
-          Last updated: {mockKPIs.lastUpdated}
+          Last updated: {lastUpdatedLabel}
         </div>
       </div>
     </div>

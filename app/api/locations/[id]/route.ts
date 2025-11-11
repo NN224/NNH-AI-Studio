@@ -179,3 +179,160 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { locationId: string } }
+) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { locationId } = params;
+    if (!locationId) {
+      return NextResponse.json(
+        { error: 'Location ID required' },
+        { status: 400 }
+      );
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid request body. Expected JSON payload.' },
+        { status: 400 }
+      );
+    }
+
+    const updateData: Record<string, unknown> = {};
+
+    if (typeof payload.name === 'string') {
+      updateData.location_name = payload.name.trim();
+    }
+    if (typeof payload.address === 'string') {
+      updateData.address = payload.address.trim();
+    }
+    if (payload.phone === null || typeof payload.phone === 'string') {
+      updateData.phone =
+        payload.phone === null ? null : payload.phone.trim();
+    }
+    if (payload.website === null || typeof payload.website === 'string') {
+      updateData.website =
+        payload.website === null ? null : payload.website.trim();
+    }
+    if (payload.category === null || typeof payload.category === 'string') {
+      updateData.category =
+        payload.category === null ? null : payload.category.trim();
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'No valid fields provided. Expected one of: name, address, phone, website, category.',
+        },
+        { status: 400 }
+      );
+    }
+
+    updateData.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('gmb_locations')
+      .update(updateData)
+      .eq('id', locationId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[PUT /api/locations/:id] Update error:', error);
+      return NextResponse.json(
+        { error: 'Failed to update location' },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Location not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      data,
+      message: 'Location updated successfully',
+    });
+  } catch (error) {
+    console.error('[PUT /api/locations/:id] Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { locationId: string } }
+) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { locationId } = params;
+    if (!locationId) {
+      return NextResponse.json(
+        { error: 'Location ID required' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('gmb_locations')
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', locationId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[DELETE /api/locations/:id] Delete error:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete location' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Location deleted successfully',
+    });
+  } catch (error) {
+    console.error('[DELETE /api/locations/:id] Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
