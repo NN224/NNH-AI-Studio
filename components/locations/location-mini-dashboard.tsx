@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Eye, AlertCircle, Star } from 'lucide-react';
-import { Location } from '@/components/locations/location-types';
+import { Location, LocationInsights } from '@/components/locations/location-types';
 import { formatDistanceToNow } from 'date-fns';
 
 interface LocationMiniDashboardProps {
@@ -16,7 +16,7 @@ interface LocationMiniDashboardProps {
 
 export function LocationMiniDashboard({ location, isExpanded, onToggle }: LocationMiniDashboardProps) {
   const metadata = location.metadata ?? {};
-  const insights = location.insights ?? {};
+  const insights: Partial<LocationInsights> = location.insights ?? {};
 
   const coerceNumber = (value: unknown, defaultValue = 0): number =>
     typeof value === 'number'
