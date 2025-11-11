@@ -201,23 +201,16 @@ export function useCacheStatus() {
   };
 }
 
-export interface SnapshotLocationLike {
-  id?: string;
-  rating?: number | null;
-  ratingTrend?: number | null;
-  responseRate?: number | null;
-  healthScore?: number | null;
-  insights?: {
-    views?: number;
-    responseRate?: number;
-    pendingReviews?: number;
-  };
-}
-
 export const getLocationMetricsFromSnapshot = (
   snapshot: DashboardSnapshot | null | undefined,
   locationId: string | undefined,
-  location?: SnapshotLocationLike
+  location?: {
+    rating?: number | null;
+    ratingTrend?: number | null;
+    responseRate?: number | null;
+    healthScore?: number | null;
+    insights?: { [key: string]: unknown };
+  }
 ) => {
   if (!locationId) {
     return null;

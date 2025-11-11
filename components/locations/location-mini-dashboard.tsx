@@ -13,23 +13,23 @@ interface LocationMiniDashboardProps {
   isExpanded: boolean;
   onToggle: () => void;
   metrics?: {
-    ratingTrend: number;
-    viewsThisMonth: number;
-    responseRate: number;
-    pendingReviews: number;
-    healthScore: number;
+    ratingTrend?: number;
+    viewsThisMonth?: number;
+    responseRate?: number;
+    pendingReviews?: number;
+    healthScore?: number;
   };
 }
 
 export function LocationMiniDashboard({ location, isExpanded, onToggle, metrics }: LocationMiniDashboardProps) {
-  const metadata = location.metadata ?? {};
+  const metadata = (location.metadata as Record<string, unknown> | undefined) ?? {};
   const insights = (location.insights as Record<string, unknown> | undefined) ?? {};
 
-  const ratingTrendValue = metrics?.ratingTrend ?? location.ratingTrend ?? 0;
-  const viewsThisMonth = metrics?.viewsThisMonth ?? Number(insights.views ?? 0);
-  const responseRateValue = metrics?.responseRate ?? Number(location.responseRate ?? insights.responseRate ?? 0);
-  const pendingReviewsValue = metrics?.pendingReviews ?? Number(insights.pendingReviews ?? 0);
-  const healthScoreValue = metrics?.healthScore ?? Number(location.healthScore ?? 0);
+  const ratingTrendValue = (metrics?.ratingTrend ?? location.ratingTrend ?? 0);
+  const viewsThisMonth = Number(metrics?.viewsThisMonth ?? insights.views ?? 0);
+  const responseRateValue = Number(metrics?.responseRate ?? location.responseRate ?? insights.responseRate ?? 0);
+  const pendingReviewsValue = Number(metrics?.pendingReviews ?? insights.pendingReviews ?? 0);
+  const healthScoreValue = Number(metrics?.healthScore ?? location.healthScore ?? 0);
 
   const coerceNumber = (value: unknown, defaultValue = 0): number =>
     typeof value === 'number'

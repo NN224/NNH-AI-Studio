@@ -25,7 +25,7 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       if (snapshot) {
         setStats({
           totalLocations: snapshot.locationSummary.totalLocations ?? 0,
-          avgRating: snapshot.kpis.ratingTrendPct ?? 0,
+          avgRating: snapshot.reviewStats.averageRating ?? 0,
           totalReviews: snapshot.reviewStats.totals.total ?? 0,
           avgHealthScore: snapshot.kpis.healthScore ?? 0,
         });

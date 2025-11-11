@@ -8,7 +8,6 @@ import { Location } from '@/components/locations/location-types';
 import { getHealthScoreColor, formatLargeNumber } from '@/components/locations/location-types';
 import { Phone, MapPin, Eye, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { LocationMiniDashboard } from './location-mini-dashboard';
-import { useDashboardSnapshot, getLocationMetricsFromSnapshot } from '@/hooks/use-dashboard-cache';
 
 interface HorizontalLocationCardProps {
   location: Location;
@@ -96,22 +95,12 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
   const hasCover = Boolean(coverImageUrl);
   const hasLogo = Boolean(logoImageUrl);
 
-  const { data: snapshot } = useDashboardSnapshot();
-  const metrics = getLocationMetricsFromSnapshot(snapshot, location.id, {
-    id: location.id,
-    rating: location.rating,
-    ratingTrend: location.ratingTrend,
-    responseRate: location.responseRate,
-    healthScore: location.healthScore,
-    insights: location.insights,
-  });
-
   const ratingValue = rating != null ? rating.toFixed(1) : location.rating != null ? location.rating.toFixed(1) : '—';
-  const ratingTrend = metrics?.ratingTrend ?? location.ratingTrend ?? 0;
-  const viewsThisMonth = metrics?.viewsThisMonth ?? Number(location.insights?.views ?? 0);
-  const responseRate = metrics?.responseRate ?? Number(location.responseRate ?? location.insights?.responseRate ?? 0);
-  const pendingReviews = metrics?.pendingReviews ?? Number(location.insights?.pendingReviews ?? 0);
-  const healthComposite = metrics?.healthScore ?? Number(location.healthScore ?? 0);
+  const ratingTrend = location.ratingTrend ?? 0;
+  const viewsThisMonth = Number(location.insights?.views ?? 0);
+  const responseRate = Number(location.responseRate ?? location.insights?.responseRate ?? 0);
+  const pendingReviews = Number(location.insights?.pendingReviews ?? 0);
+  const healthComposite = Number(location.healthScore ?? 0);
 
   const statChips = [
     {
@@ -289,7 +278,7 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
             location={location}
             isExpanded={isExpanded}
             onToggle={() => setIsExpanded(!isExpanded)}
-            metrics={metrics ?? undefined}
+            metrics={undefined}
           />
         </div>
       )}
