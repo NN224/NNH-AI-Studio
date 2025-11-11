@@ -14,6 +14,85 @@ import { ProfileProtectionModal } from '@/components/dashboard/ProfileProtection
 import { toast } from 'sonner';
 import { cacheUtils } from '@/hooks/use-dashboard-cache';
 
+type SyncAllResult = {
+  success: boolean;
+  message?: string;
+  rateLimited?: boolean;
+  cooldownRemaining?: number;
+  error?: string;
+};
+
+async function fetchActiveGmbAccountId(): Promise<string | null> {
+  const response = await fetch('/api/gmb/accounts', {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Failed to load accounts');
+    throw new Error(errorText || 'Failed to load accounts');
+  }
+
+  const accounts: Array<{ id?: string; is_active?: boolean | null }> = await response.json().catch(() => []);
+  if (!Array.isArray(accounts)) {
+    throw new Error('Invalid accounts response');
+  }
+
+  const activeAccount = accounts.find((account) => account && account.is_active !== false && account.id);
+  if (activeAccount?.id) {
+    return activeAccount.id;
+  }
+
+  const fallbackAccount = accounts.find((account) => account?.id);
+  return fallbackAccount?.id ?? null;
+}
+
+export async function syncAllGmbData(syncType: 'full' | 'reviews' | 'locations' = 'full'): Promise<SyncAllResult> {
+  try {
+    const accountId = await fetchActiveGmbAccountId();
+    if (!accountId) {
+      return { success: false, error: 'No connected Google Business account found.' };
+    }
+
+    const response = await fetch('/api/gmb/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ accountId, syncType }),
+    });
+
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch (_error) {
+      data = null;
+    }
+
+    if (response.status === 429) {
+      return {
+        success: false,
+        rateLimited: true,
+        cooldownRemaining: data?.cooldownRemaining,
+        error: data?.error || 'Sync rate limited. Please wait and try again.',
+      };
+    }
+
+    if (!response.ok || data?.success === false) {
+      const errorMessage = data?.error || 'Failed to sync locations';
+      return { success: false, error: errorMessage };
+    }
+
+    const message = data?.message || 'Locations synced successfully!';
+    return { success: true, message, cooldownRemaining: data?.cooldownRemaining };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || 'Unexpected error during sync',
+    };
+  }
+}
+
 export function RefreshButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -106,25 +185,16 @@ export function SyncAllButton() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/gmb/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await syncAllGmbData('full');
 
-      const data = await response.json();
-
-      if (response.status === 429 && data.rateLimited) {
-        toast.error(`⏳ ${data.error}`);
-        setCooldownSeconds(data.cooldownRemaining || 60);
-        setLoading(false);
+      if (result.rateLimited) {
+        toast.error(`⏳ ${result.error || 'Sync temporarily limited. Try again shortly.'}`);
+        setCooldownSeconds(result.cooldownRemaining || 60);
         return;
       }
 
-      if (data.success) {
-        toast.success(`✅ ${data.message || 'Locations synced successfully!'}`);
-
+      if (result.success) {
+        toast.success(`✅ ${result.message || 'Locations synced successfully!'}`);
         setCooldownSeconds(60);
 
         cacheUtils.invalidateOverview();
@@ -134,11 +204,11 @@ export function SyncAllButton() {
         }
         router.refresh();
       } else {
-        toast.error(`❌ ${data.error || 'Failed to sync locations'}`);
+        toast.error(`❌ ${result.error || 'Failed to sync locations'}`);
       }
     } catch (error) {
-      console.error('[SyncAllButton] Network error:', error);
-      toast.error('❌ Network error. Please check your connection.');
+      console.error('[SyncAllButton] Sync error:', error);
+      toast.error('❌ Failed to sync locations. Please try again.');
     } finally {
       setLoading(false);
     }

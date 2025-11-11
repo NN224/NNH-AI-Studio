@@ -3,18 +3,43 @@
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { syncAllGmbData } from '@/app/[locale]/(dashboard)/dashboard/DashboardClient';
+import { cacheUtils } from '@/hooks/use-dashboard-cache';
 
 export function QuickActionButtons() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const handleSyncAll = () => {
+  const handleSyncAll = async () => {
+    if (loading) return;
+    setLoading(true);
+
     try {
-      window.dispatchEvent(new Event('dashboard:refresh'));
-      router.refresh();
-      toast.success('All data synced successfully!');
+      const result = await syncAllGmbData('full');
+
+      if (result.rateLimited) {
+        toast.error(`⏳ ${result.error || 'Sync temporarily limited. Try again shortly.'}`);
+        return;
+      }
+
+      if (result.success) {
+        toast.success(result.message || 'All data synced successfully!');
+        cacheUtils.invalidateOverview();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('gmb-sync-complete'));
+          window.dispatchEvent(new Event('dashboard:refresh'));
+        }
+        router.refresh();
+      } else {
+        toast.error(`❌ ${result.error || 'Failed to sync data. Please try again.'}`);
+      }
     } catch (error) {
       console.error('[QuickActionButtons] Error during Sync All:', error);
       toast.error('Failed to sync data. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -24,8 +49,16 @@ export function QuickActionButtons() {
       size="sm"
       className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 transition-all duration-300 ease-in-out"
       onClick={handleSyncAll}
+      disabled={loading}
     >
-      🔄 Sync All
+      {loading ? (
+        <span className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Syncing...
+        </span>
+      ) : (
+        '🔄 Sync All'
+      )}
     </Button>
   );
 }
