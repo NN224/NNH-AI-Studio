@@ -353,12 +353,7 @@ export function LocationsMapTab() {
                     totalReviews={stats.reviewCount}
                     healthScore={stats.healthScore}
                   />
-                  <LocationDetailsCard
-                    location={selectedLocation}
-                    healthScore={stats.healthScore}
-                    rating={stats.avgRating}
-                    ratingTrend={stats.ratingTrend}
-                  />
+                  <LocationDetailsCard location={selectedLocation} />
                   <ActivityFeedCard locationId={selectedLocationId} />
                   <QuickActionsCard locationId={selectedLocationId} />
                 </>
