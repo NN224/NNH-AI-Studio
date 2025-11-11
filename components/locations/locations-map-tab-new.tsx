@@ -371,9 +371,6 @@ export function LocationsMapTab() {
                   />
                   <LocationDetailsCard
                     location={selectedLocation}
-                    healthScore={stats.healthScore}
-                    rating={stats.avgRating}
-                    ratingTrend={stats.ratingTrend}
                   />
                   
                   {/* Bottom cards */}
@@ -386,8 +383,6 @@ export function LocationsMapTab() {
             // Error state - show at least location details even if stats fail
             <LocationDetailsCard
               location={selectedLocation}
-              healthScore={selectedLocation.healthScore || 0}
-              rating={selectedLocation.rating}
             />
           )}
         </>
