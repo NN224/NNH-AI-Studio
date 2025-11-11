@@ -28,6 +28,8 @@ export function LocationDetailsCard({
   const [healthBarWidth, setHealthBarWidth] = useState('0%');
   const coverImageUrl = location?.coverImageUrl || (location?.metadata?.profile?.coverPhotoUrl as string | undefined);
   const logoImageUrl = location?.logoImageUrl || (location?.metadata?.profile?.logoUrl as string | undefined);
+  const hasCover = Boolean(coverImageUrl);
+  const hasLogo = Boolean(logoImageUrl);
 
   // Animate health bar after component mounts
   useEffect(() => {
@@ -85,33 +87,50 @@ export function LocationDetailsCard({
   return (
     <FloatingCard position="top-right" delay={0.2} mobilePosition="top" className="w-full md:w-[400px]">
       <div className="space-y-4">
-        {coverImageUrl && (
-          <div className="relative h-32 w-full overflow-hidden rounded-2xl border border-white/5 bg-black/30">
-            <img
-              src={coverImageUrl}
-              alt={`${location.name} cover`}
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="flex items-start gap-3">
-          {logoImageUrl ? (
-            <div className="h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-black/40">
+        <div className="relative h-32 w-full overflow-hidden rounded-2xl border border-white/5 bg-black/30">
+          {hasCover ? (
+            <>
               <img
-                src={logoImageUrl}
-                alt={`${location.name} logo`}
+                src={coverImageUrl!}
+                alt={`${location.name} cover`}
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            </>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-black shadow-lg hover:bg-white"
+                onClick={() => router.push('/settings/branding')}
+              >
+                Add cover photo
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          {hasLogo ? (
+            <div className="h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-black/40">
+              <img
+                src={logoImageUrl!}
+                alt={`${location.name} logo`}
+                loading="lazy"
+                className="h-full w.full object-cover"
+              />
             </div>
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-bold text-white">
-              {getInitials(location.name)}
-            </div>
+            <button
+              type="button"
+              onClick={() => router.push('/settings/branding')}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent px-2 text-center text-xs font-semibold text-white hover:opacity-90"
+            >
+              Add logo
+            </button>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-white text-lg truncate">

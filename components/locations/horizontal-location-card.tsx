@@ -131,6 +131,7 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
     null;
 
   const hasImage = Boolean(coverImageUrl);
+  const hasLogo = Boolean(logoImageUrl);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40 backdrop-blur-lg shadow-[0_16px_40px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:-translate-y-1">
@@ -152,19 +153,36 @@ export function HorizontalLocationCard({ location, onViewDetails }: HorizontalLo
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
+          {!hasImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-black shadow-lg hover:bg-white"
+                onClick={() => router.push('/settings/branding')}
+              >
+                Add cover photo
+              </Button>
+            </div>
+          )}
+
           <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3">
             <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-white/60 bg-black/60 shadow-lg">
-              {logoImageUrl ? (
+              {hasLogo ? (
                 <img
-                  src={logoImageUrl}
+                  src={logoImageUrl!}
                   alt={`${location.name} logo`}
                   loading="lazy"
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-accent text-2xl font-semibold text-white">
-                  {location.name[0]?.toUpperCase() || '—'}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/settings/branding')}
+                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-accent px-3 text-center text-sm font-semibold text-white hover:opacity-90"
+                >
+                  Add logo
+                </button>
               )}
             </div>
           </div>

@@ -183,6 +183,24 @@ export function useLocations(
 
       console.log('✅ [useLocations] User authenticated:', { userId: user.id });
 
+    const [{ data: brandingData }, { data: profileData }] = await Promise.all([
+      supabase
+        .from('branding_settings')
+        .select('logo_url, cover_image_url')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ]);
+
+    const fallbackLogoUrl =
+      coerceString(brandingData?.logo_url) ??
+      coerceString(profileData?.avatar_url);
+    const fallbackCoverUrl = coerceString(brandingData?.cover_image_url);
+
       // Build query
       let query = supabase
         .from('gmb_locations')
@@ -444,8 +462,8 @@ export function useLocations(
               typeof metadata.profileProtection === 'boolean'
                 ? metadata.profileProtection
                 : undefined,
-            coverImageUrl: coverImageUrl ?? null,
-            logoImageUrl: logoImageUrl ?? null,
+            coverImageUrl: coverImageUrl ?? fallbackCoverUrl ?? null,
+            logoImageUrl: logoImageUrl ?? fallbackLogoUrl ?? null,
           };
         });
 
