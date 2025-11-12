@@ -421,7 +421,7 @@ export function LocationsMapTab() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)]">
         <section className="rounded-[24px] border border-white/15 bg-black/40 p-6 backdrop-blur">
           {selectedLocation ? (
             <div className="space-y-6">
@@ -511,26 +511,26 @@ export function LocationsMapTab() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="border-white/10 bg-white/5 text-white">
                   <CardContent className="p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Avg rating</p>
-                    <p className="mt-2 text-2xl font-semibold">{locationSnapshotStats.rating ? locationSnapshotStats.rating.toFixed(1) : '—'}</p>
+                    <p className="text-[0.7rem] font-medium text-white/60">Average rating</p>
+                    <p className="mt-3 text-2xl font-semibold text-white">{locationSnapshotStats.rating ? locationSnapshotStats.rating.toFixed(1) : '—'}</p>
                   </CardContent>
                 </Card>
                 <Card className="border-white/10 bg-white/5 text-white">
                   <CardContent className="p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Total reviews</p>
-                    <p className="mt-2 text-2xl font-semibold">{locationSnapshotStats.reviewCount}</p>
+                    <p className="text-[0.7rem] font-medium text-white/60">Total reviews</p>
+                    <p className="mt-3 text-2xl font-semibold text-white">{locationSnapshotStats.reviewCount}</p>
                   </CardContent>
                 </Card>
                 <Card className="border-white/10 bg-white/5 text-white">
                   <CardContent className="p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Health score</p>
-                    <p className="mt-2 text-2xl font-semibold">{Math.round(locationSnapshotStats.healthScore || 0)}%</p>
+                    <p className="text-[0.7rem] font-medium text-white/60">Health score</p>
+                    <p className="mt-3 text-2xl font-semibold text-white">{Math.round(locationSnapshotStats.healthScore || 0)}%</p>
                   </CardContent>
                 </Card>
                 <Card className="border-white/10 bg-white/5 text-white">
                   <CardContent className="p-4">
-                    <p className="text-xs uppercase tracking-wide text-white/50">Response rate</p>
-                    <p className="mt-2 text-2xl font-semibold">{Math.round(locationSnapshotStats.responseRate || 0)}%</p>
+                    <p className="text-[0.7rem] font-medium text-white/60">Response rate</p>
+                    <p className="mt-3 text-2xl font-semibold text-white">{Math.round(locationSnapshotStats.responseRate || 0)}%</p>
                   </CardContent>
                 </Card>
               </div>
@@ -561,37 +561,8 @@ export function LocationsMapTab() {
 
         <div className="space-y-4">
           <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
-            <h3 className="text-sm font-semibold text-white/90">At a glance</h3>
-            <p className="mb-4 text-xs text-white/60">Snapshot of your account-wide performance.</p>
-            {aggregatedStats ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-                  <p className="text-xs uppercase tracking-wide text-white/50">Total locations</p>
-                  <p className="mt-2 text-2xl font-semibold">{Math.max(aggregatedStats.totalLocations, locations.length)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-                  <p className="text-xs uppercase tracking-wide text-white/50">Average rating</p>
-                  <p className="mt-2 text-2xl font-semibold">{aggregatedStats.avgRating.toFixed(1)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-                  <p className="text-xs uppercase tracking-wide text-white/50">Total reviews</p>
-                  <p className="mt-2 text-2xl font-semibold">{aggregatedStats.totalReviews}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-                  <p className="text-xs uppercase tracking-wide text-white/50">Avg health score</p>
-                  <p className="mt-2 text-2xl font-semibold">{Math.round(aggregatedStats.healthScore)}%</p>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/60">
-                Aggregated stats will appear after your first sync.
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
-            <h3 className="text-sm font-semibold text-white/90">Quick actions</h3>
-            <p className="mb-4 text-xs text-white/60">Jump straight into location-specific tasks.</p>
+            <h3 className="text-sm font-semibold text-white/90">Location quick actions</h3>
+            <p className="mb-4 text-xs text-white/60">Workflows open with the currently selected location.</p>
             <div className="space-y-2">
               <Button
                 variant="outline"
@@ -628,7 +599,7 @@ export function LocationsMapTab() {
               </Button>
             </div>
             {quickActionDisabled && (
-              <p className="mt-3 text-xs text-white/45">Select a location on the map to enable actions.</p>
+              <p className="mt-3 text-xs text-white/45">Select a location on the map to enable these actions.</p>
             )}
           </section>
         </div>
