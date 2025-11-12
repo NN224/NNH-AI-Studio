@@ -206,8 +206,7 @@ export function useLocations(
       let query = supabase
         .from('gmb_locations')
         .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('user_id', user.id);
 
       // Apply filters (using currentFilters from ref)
       if (currentFilters.search) {
@@ -222,7 +221,11 @@ export function useLocations(
       }
 
       if (currentFilters.status && currentFilters.status !== 'all') {
-        query = query.eq('status', currentFilters.status);
+        if (currentFilters.status === 'active') {
+          query = query.eq('is_active', true);
+        } else if (currentFilters.status === 'inactive') {
+          query = query.eq('is_active', false);
+        }
       }
 
       // Rating range filter
@@ -380,6 +383,18 @@ export function useLocations(
                 .filter((value): value is string => Boolean(value))
             : [];
 
+          const pendingReviewsCount =
+            coerceNumber(loc.pending_reviews) ??
+            coerceNumber(metadata.pendingReviews) ??
+            coerceNumber(metadata.pending_review_count) ??
+            insights.pendingReviews ?? 0;
+
+          const pendingQuestionsCount =
+            coerceNumber(loc.pending_questions) ??
+            coerceNumber(metadata.pendingQuestions) ??
+            coerceNumber(metadata.pending_question_count) ??
+            coerceNumber(metadata.unansweredQuestions) ?? 0;
+
           const responseRate =
             coerceNumber(loc.response_rate) ??
             coerceNumber(metadata.responseRate) ??
@@ -465,16 +480,34 @@ export function useLocations(
             extractFirstMediaUrl(metadata) ??
             fallbackCoverUrl;
 
+          const isActive =
+            typeof loc.is_active === 'boolean'
+              ? loc.is_active
+              : metadata.is_active !== false;
+
+          const hasIssues = (pendingReviewsCount ?? 0) > 0 || (pendingQuestionsCount ?? 0) > 0;
+
+          const lastReviewAt =
+            loc.last_review_at ||
+            metadata.lastReviewAt ||
+            metadata.reviews?.lastReviewAt ||
+            null;
+
           return {
-            id: loc.id,
-            name: loc.location_name || 'Unnamed Location',
-            address: loc.address || undefined,
-            phone: loc.phone || undefined,
-            website: loc.website || undefined,
+        id: loc.id,
+        name: loc.location_name || 'Unnamed Location',
+        address: loc.address || undefined,
+        phone: loc.phone || undefined,
+        website: loc.website || undefined,
             rating,
             reviewCount,
             status: normalizeLocationStatus(loc.status),
-            category: loc.category || undefined,
+            isActive,
+            hasIssues,
+            pendingReviews: pendingReviewsCount ?? 0,
+            pendingQuestions: pendingQuestionsCount ?? 0,
+            lastReviewAt,
+        category: loc.category || undefined,
             coordinates,
             healthScore: healthScore ?? undefined,
             photos,
@@ -503,10 +536,16 @@ export function useLocations(
           };
         });
 
+      let finalLocations = transformedLocations;
+
+      if (currentFilters.status === 'needs_attention') {
+        finalLocations = transformedLocations.filter((location) => location.hasIssues);
+      }
+
       if (reset) {
-        setLocations(transformedLocations);
+        setLocations(finalLocations);
       } else {
-        setLocations(prev => [...prev, ...transformedLocations]);
+        setLocations(prev => [...prev, ...finalLocations]);
       }
 
       setTotal(count || 0);

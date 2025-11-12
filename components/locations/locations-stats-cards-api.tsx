@@ -67,6 +67,20 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
   }, [refreshKey, snapshot]);
 
   const loadingState = loading || snapshotLoading;
+  const monthlyComparison = snapshot?.monthlyComparison ?? null;
+  const locationsCurrent = stats?.totalLocations ?? 0;
+  const locationsPrevious = locationsCurrent; // No historical data yet
+  const reviewsCurrent = monthlyComparison?.current?.reviews ?? stats?.totalReviews ?? 0;
+  const reviewsPrevious = monthlyComparison?.previous?.reviews ?? reviewsCurrent;
+  const ratingCurrent = monthlyComparison?.current?.rating ?? stats?.avgRating ?? 0;
+  const ratingPrevious = monthlyComparison?.previous?.rating ?? ratingCurrent;
+  const healthScoreValue = stats?.avgHealthScore ?? 0;
+  const healthPrevious = snapshot?.locationSummary?.profileCompletenessAverage ?? healthScoreValue;
+  const locationTrendPct = calculateTrend(locationsCurrent, locationsPrevious);
+  const reviewTrendPct = calculateTrend(reviewsCurrent, reviewsPrevious);
+  const ratingTrendPct = calculateTrend(ratingCurrent, ratingPrevious);
+  const healthTrendPct = calculateTrend(healthScoreValue, healthPrevious);
+  const healthBorderClass = getHealthBorderClass(healthScoreValue);
 
   const statsConfig = [
     {
@@ -75,6 +89,8 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       icon: MapPin,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
+      trendPct: locationTrendPct,
+      borderClass: 'border border-primary/20',
     },
     {
       label: 'Average Rating',
@@ -82,6 +98,8 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       icon: Star,
       color: 'text-yellow-500',
       bgColor: 'bg-yellow-500/10',
+      trendPct: ratingTrendPct,
+      borderClass: 'border border-primary/20',
     },
     {
       label: 'Total Reviews',
@@ -89,6 +107,8 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       icon: TrendingUp,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
+      trendPct: reviewTrendPct,
+      borderClass: 'border border-primary/20',
     },
     {
       label: 'Avg Health Score',
@@ -96,6 +116,8 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       icon: Eye,
       color: 'text-purple-500',
       bgColor: 'bg-purple-500/10',
+      trendPct: healthTrendPct,
+      borderClass: `border ${healthBorderClass}`,
     },
   ];
 
@@ -151,7 +173,7 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       {statsConfig.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={index} className="border-primary/20">
+          <Card key={index} className={stat.borderClass}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
               <div className={`rounded-lg p-2 ${stat.bgColor}`}>
@@ -160,11 +182,46 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                {renderTrend(stat.trendPct)}
+                <span>vs last month</span>
+              </div>
             </CardContent>
           </Card>
         );
       })}
     </div>
   );
+}
+
+function renderTrend(trendPct: number) {
+  if (trendPct > 0) {
+    return <span className="text-green-500">↑ +{Math.round(trendPct)}%</span>;
+  }
+
+  if (trendPct < 0) {
+    return <span className="text-red-500">↓ {Math.round(trendPct)}%</span>;
+  }
+
+  return <span className="text-gray-400">→ 0%</span>;
+}
+
+function getHealthBorderClass(score: number) {
+  if (score >= 80) return 'border-green-500/30';
+  if (score >= 60) return 'border-yellow-500/30';
+  return 'border-red-500/30';
+}
+
+function calculateTrend(current: number, previous: number) {
+  if (!Number.isFinite(current)) {
+    return 0;
+  }
+
+  if (!Number.isFinite(previous) || previous === 0) {
+    return current > 0 ? 100 : 0;
+  }
+
+  const delta = current - previous;
+  return (delta / Math.abs(previous)) * 100;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LocationsMapTab } from '@/components/locations/locations-map-tab-new';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Download, Plus, Loader2, MessageSquare, FilePlus2, BarChart3, RefreshCw as RefreshIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { LocationFormDialog } from '@/components/locations/location-form-dialog';
+import { Location } from '@/components/locations/location-types';
 import { GMBConnectionBanner } from '@/components/locations/gmb-connection-banner';
 import { useGmbStatus } from '@/hooks/use-gmb-status';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,8 @@ export default function LocationsPage() {
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+  const [editingLocationData, setEditingLocationData] = useState<Partial<Location> | null>(null);
   const { connected, activeAccount } = useGmbStatus();
   const gmbAccountId = activeAccount?.id || null;
   const { data: overviewSnapshot } = useDashboardSnapshot();
@@ -56,6 +59,29 @@ export default function LocationsPage() {
   };
 
   const router = useRouter();
+
+  useEffect(() => {
+    const handleLocationEdit = (event: Event) => {
+      const customEvent = event as CustomEvent<{ id?: string; location?: Partial<Location> }>;
+      const nextId = customEvent.detail?.id;
+      if (!nextId) return;
+
+      setEditingLocationId(nextId);
+      setEditingLocationData(customEvent.detail?.location ?? null);
+      setShowAddDialog(true);
+    };
+
+    window.addEventListener('location:edit', handleLocationEdit as EventListener);
+    return () => {
+      window.removeEventListener('location:edit', handleLocationEdit as EventListener);
+    };
+  }, []);
+
+  const handleAddLocationClick = useCallback(() => {
+    setEditingLocationId(null);
+    setEditingLocationData(null);
+    setShowAddDialog(true);
+  }, []);
 
   const handleSync = async () => {
     // Check if account ID is available
@@ -299,7 +325,7 @@ export default function LocationsPage() {
             
             {/* Add Location Button */}
             <Button
-              onClick={() => setShowAddDialog(true)}
+              onClick={handleAddLocationClick}
               size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -413,14 +439,23 @@ export default function LocationsPage() {
         {/* Add Location Dialog */}
         <LocationFormDialog
           open={showAddDialog}
-          onOpenChange={setShowAddDialog}
+          onOpenChange={(open) => {
+            setShowAddDialog(open);
+            if (!open) {
+              setEditingLocationId(null);
+              setEditingLocationData(null);
+            }
+          }}
           onSuccess={() => {
             setShowAddDialog(false);
-            // Refresh the page to update stats
+            setEditingLocationId(null);
+            setEditingLocationData(null);
             window.location.reload();
             window.dispatchEvent(new Event('dashboard:refresh'));
             console.log('[LocationsPage] Location added, dashboard refresh triggered');
           }}
+          locationId={editingLocationId}
+          initialData={editingLocationData}
         />
       </div>
     </ErrorBoundary>

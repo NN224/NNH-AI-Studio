@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { bulkSyncLocations } from '@/server/actions/locations'
 
 export const dynamic = 'force-dynamic';
 

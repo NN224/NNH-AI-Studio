@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,28 +15,66 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, MapPin, Phone, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { Location } from '@/components/locations/location-types';
 
 interface LocationFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  locationId?: string;
+  locationId?: string | null;
+  initialData?: Partial<Location> | null;
 }
+
+const defaultFormState = {
+  name: '',
+  address: '',
+  phone: '',
+  website: '',
+  category: '',
+};
 
 export function LocationFormDialog({ 
   open, 
   onOpenChange, 
   onSuccess,
-  locationId 
+  locationId,
+  initialData,
 }: LocationFormDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
-    website: '',
-    category: '',
-  });
+  const [formData, setFormData] = useState(defaultFormState);
+
+  const derivedInitialData = useMemo(() => {
+    if (!initialData) return null;
+
+    const metadata = initialData.metadata ?? {};
+    const primaryCategory = metadata.categories?.primaryCategory?.displayName ?? metadata.category ?? null;
+
+    return {
+      name: initialData.name ?? '',
+      address: initialData.address ?? '',
+      phone: initialData.phone ?? '',
+      website: initialData.website ?? '',
+      category: initialData.category ?? primaryCategory ?? '',
+    };
+  }, [initialData]);
+
+  useEffect(() => {
+    if (open && (locationId || derivedInitialData)) {
+      setFormData({
+        name: derivedInitialData?.name ?? initialData?.name ?? '',
+        address: derivedInitialData?.address ?? initialData?.address ?? '',
+        phone: derivedInitialData?.phone ?? initialData?.phone ?? '',
+        website: derivedInitialData?.website ?? initialData?.website ?? '',
+        category: derivedInitialData?.category ?? '',
+      });
+    } else if (open && !locationId) {
+      setFormData(defaultFormState);
+    }
+
+    if (!open && !locationId) {
+      setFormData(defaultFormState);
+    }
+  }, [open, locationId, derivedInitialData, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

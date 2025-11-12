@@ -5,6 +5,14 @@ import { revalidatePath } from "next/cache"
 import { LocationSchema, UpdateLocationSchema } from "@/lib/validations/dashboard"
 import { z } from "zod"
 
+interface LocationStatsData {
+  pendingReviews: number
+  pendingQuestions: number
+  lastReviewAt: string | null
+  reviewTrendPct: number
+  questionTrendPct: number
+}
+
 /**
  * Helper function to validate GMB connection for location operations
  */
@@ -329,4 +337,195 @@ export async function validateLocationForGMBOperations(locationId: string) {
 
   const connectionValidation = await validateGMBConnection(supabase, user.id, locationId)
   return connectionValidation
+}
+
+export async function getLocationStats(locationId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  const [{ data: reviews, error: reviewsError }, { data: questions, error: questionsError }] = await Promise.all([
+    supabase
+      .from('gmb_reviews')
+      .select('id,status,created_at')
+      .eq('user_id', user.id)
+      .eq('location_id', locationId),
+    supabase
+      .from('gmb_questions')
+      .select('id,answer_status,created_at')
+      .eq('user_id', user.id)
+      .eq('location_id', locationId)
+  ])
+
+  if (reviewsError) {
+    throw new Error(reviewsError.message)
+  }
+
+  if (questionsError) {
+    throw new Error(questionsError.message)
+  }
+
+  const pendingReviews = (reviews ?? []).filter((review) => {
+    const status = (review.status ?? '').toString().toLowerCase()
+    return status === 'pending' || status === 'new'
+  }).length
+
+  const pendingQuestions = (questions ?? []).filter((question) => {
+    const answerStatus = (question.answer_status ?? '').toString().toLowerCase()
+    return answerStatus === 'pending' || answerStatus === ''
+  }).length
+
+  const lastReviewAt = (reviews ?? []).reduce<string | null>((latest, review) => {
+    if (!review.created_at) return latest
+    if (!latest) return review.created_at
+    return new Date(review.created_at) > new Date(latest) ? review.created_at : latest
+  }, null)
+
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now)
+  thirtyDaysAgo.setDate(now.getDate() - 30)
+  const sixtyDaysAgo = new Date(thirtyDaysAgo)
+  sixtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const currentReviewWindow = (reviews ?? []).filter((review) => {
+    if (!review.created_at) return false
+    const created = new Date(review.created_at)
+    return created >= thirtyDaysAgo
+  }).length
+
+  const previousReviewWindow = (reviews ?? []).filter((review) => {
+    if (!review.created_at) return false
+    const created = new Date(review.created_at)
+    return created >= sixtyDaysAgo && created < thirtyDaysAgo
+  }).length
+
+  const currentQuestionWindow = (questions ?? []).filter((question) => {
+    if (!question.created_at) return false
+    const created = new Date(question.created_at)
+    return created >= thirtyDaysAgo
+  }).length
+
+  const previousQuestionWindow = (questions ?? []).filter((question) => {
+    if (!question.created_at) return false
+    const created = new Date(question.created_at)
+    return created >= sixtyDaysAgo && created < thirtyDaysAgo
+  }).length
+
+  const reviewTrendPct = calculateTrend(currentReviewWindow, previousReviewWindow)
+  const questionTrendPct = calculateTrend(currentQuestionWindow, previousQuestionWindow)
+
+  const data: LocationStatsData = {
+    pendingReviews,
+    pendingQuestions,
+    lastReviewAt,
+    reviewTrendPct,
+    questionTrendPct,
+  }
+
+  return { data }
+}
+
+export async function bulkSyncLocations(locationIds: string[]) {
+  if (!Array.isArray(locationIds) || locationIds.length === 0) {
+    throw new Error('No locations provided for sync')
+  }
+
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  const { data: locationRow, error: locationError } = await supabase
+    .from('gmb_locations')
+    .select('account_id')
+    .eq('user_id', user.id)
+    .in('id', locationIds)
+    .not('account_id', 'is', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (locationError) {
+    throw new Error(locationError.message)
+  }
+
+  const accountId = locationRow?.account_id as string | null
+  if (!accountId) {
+    throw new Error('No Google Business account found for the selected locations')
+  }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+  const response = await fetch(`${baseUrl}/api/gmb/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accountId,
+      syncType: 'full',
+      locationIds,
+    }),
+    cache: 'no-store',
+  })
+
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to initiate sync')
+  }
+
+  return payload
+}
+
+export async function getCompetitors({ lat, lng }: { lat: number; lng: number }) {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+  if (!apiKey) {
+    return { competitors: [], error: 'Google Maps API key not configured' }
+  }
+
+  const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
+  url.searchParams.set('location', `${lat},${lng}`)
+  url.searchParams.set('radius', '3000')
+  url.searchParams.set('type', 'point_of_interest')
+  url.searchParams.set('key', apiKey)
+
+  const response = await fetch(url.toString(), { cache: 'no-store' })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch competitor data')
+  }
+
+  const data = await response.json()
+
+  if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+    throw new Error(data.error_message || `Google Places returned status ${data.status}`)
+  }
+
+  const competitors = (data.results ?? []).map((result: any) => ({
+    placeId: result.place_id,
+    name: result.name,
+    rating: result.rating ?? null,
+    userRatingsTotal: result.user_ratings_total ?? 0,
+    address: result.vicinity ?? result.formatted_address ?? null,
+    location: result.geometry?.location ?? null,
+    businessStatus: result.business_status ?? null,
+    openNow: result.opening_hours?.open_now ?? null,
+  }))
+
+  return { competitors }
+}
+
+function calculateTrend(current: number, previous: number) {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0
+  }
+
+  return Math.round(((current - previous) / Math.abs(previous)) * 100)
 }

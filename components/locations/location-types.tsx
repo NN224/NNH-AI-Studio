@@ -30,6 +30,11 @@ export interface Location {
   rating?: number;
   reviewCount?: number;
   status: 'verified' | 'pending' | 'suspended';
+  isActive?: boolean;
+  hasIssues?: boolean;
+  pendingReviews?: number;
+  pendingQuestions?: number;
+  lastReviewAt?: string | null;
   category?: string;
   coordinates?: { lat: number; lng: number };
   hours?: BusinessHours;
