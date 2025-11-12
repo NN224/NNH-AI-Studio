@@ -33,64 +33,73 @@ export async function saveAutoReplySettings(
   }
 
   try {
-    // Check if settings already exist
-    const { data: existing } = await supabase
-      .from("gmb_locations")
+    const targetLocationId = settings.locationId ?? null;
+
+    const existingQuery = supabase
+      .from("auto_reply_settings")
       .select("id")
       .eq("user_id", user.id)
-      .eq("id", settings.locationId || "")
-      .single();
+      .order("updated_at", { ascending: false })
+      .limit(1);
 
-    if (settings.locationId && !existing) {
+    if (targetLocationId) {
+      existingQuery.eq("location_id", targetLocationId);
+    } else {
+      existingQuery.is("location_id", null);
+    }
+
+    const { data: existingRow, error: existingError } = await existingQuery.maybeSingle();
+
+    if (existingError && existingError.code !== "PGRST116") {
+      console.error("[AutoReply] Failed to fetch existing settings:", existingError);
       return {
         success: false,
-        error: "Location not found",
+        error: existingError.message,
       };
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("settings")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error fetching profile settings:", profileError);
-      return {
-        success: false,
-        error: profileError.message,
-      };
-    }
-
-    const existingSettings = (profileData?.settings as Record<string, any>) || {};
-
-    const updatedSettings = {
-      ...existingSettings,
-      auto_reply: {
-        enabled: settings.enabled,
-        min_rating: settings.minRating,
-        reply_to_positive: settings.replyToPositive,
-        reply_to_neutral: settings.replyToNeutral,
-        reply_to_negative: settings.replyToNegative,
-        require_approval: settings.requireApproval,
-        tone: settings.tone,
-        location_id: settings.locationId || null,
-      },
+    const payload = {
+      user_id: user.id,
+      location_id: targetLocationId,
+      enabled: settings.enabled,
+      reply_to_positive: settings.replyToPositive,
+      reply_to_neutral: settings.replyToNeutral,
+      reply_to_negative: settings.replyToNegative,
+      require_approval: settings.requireApproval,
+      response_style: settings.tone,
+      response_delay_minutes: settings.minRating,
+      language: "en",
+      updated_at: new Date().toISOString(),
     };
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        settings: updatedSettings,
-      })
-      .eq("id", user.id);
+    if (existingRow?.id) {
+      const { error: updateError } = await supabase
+        .from("auto_reply_settings")
+        .update(payload)
+        .eq("id", existingRow.id);
 
-    if (updateError) {
-      console.error("Error saving auto-reply settings:", updateError);
-      return {
-        success: false,
-        error: updateError.message,
-      };
+      if (updateError) {
+        console.error("[AutoReply] Failed to update settings:", updateError);
+        return {
+          success: false,
+          error: updateError.message,
+        };
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from("auto_reply_settings")
+        .insert({
+          ...payload,
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error("[AutoReply] Failed to insert settings:", insertError);
+        return {
+          success: false,
+          error: insertError.message,
+        };
+      }
     }
 
     return {
@@ -125,30 +134,8 @@ export async function getAutoReplySettings(locationId?: string) {
   }
 
   try {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("settings")
-      .eq("id", user.id)
-      .single();
+    const targetLocationId = locationId ?? null;
 
-    if (profileError) {
-      return {
-        success: true,
-        data: {
-          enabled: false,
-          minRating: 4,
-          replyToPositive: true,
-          replyToNeutral: false,
-          replyToNegative: false,
-          requireApproval: true,
-          tone: "friendly" as const,
-          locationId: locationId || undefined,
-        } as AutoReplySettings,
-      };
-    }
-
-    const rawAutoReplySettings =
-      (profile?.settings?.auto_reply as Record<string, any>) || {};
     const defaultSettings: AutoReplySettings = {
       enabled: false,
       minRating: 4,
@@ -159,12 +146,6 @@ export async function getAutoReplySettings(locationId?: string) {
       tone: "friendly",
       locationId: locationId || undefined,
     };
-    const toneCandidate =
-      typeof rawAutoReplySettings.tone === "string"
-        ? rawAutoReplySettings.tone
-        : typeof rawAutoReplySettings.tone_preference === "string"
-          ? rawAutoReplySettings.tone_preference
-          : undefined;
 
     const allowedTones: AutoReplySettings["tone"][] = [
       "friendly",
@@ -173,54 +154,69 @@ export async function getAutoReplySettings(locationId?: string) {
       "marketing",
     ];
 
-    const normalizedSettings: Partial<AutoReplySettings> = {
-      enabled: typeof rawAutoReplySettings.enabled === "boolean" ? rawAutoReplySettings.enabled : defaultSettings.enabled,
-      minRating:
-        typeof rawAutoReplySettings.min_rating === "number"
-          ? rawAutoReplySettings.min_rating
-          : (typeof rawAutoReplySettings.minRating === "number"
-              ? rawAutoReplySettings.minRating
-              : defaultSettings.minRating),
-      replyToPositive:
-        typeof rawAutoReplySettings.reply_to_positive === "boolean"
-          ? rawAutoReplySettings.reply_to_positive
-          : (typeof rawAutoReplySettings.replyToPositive === "boolean"
-              ? rawAutoReplySettings.replyToPositive
-              : defaultSettings.replyToPositive),
-      replyToNeutral:
-        typeof rawAutoReplySettings.reply_to_neutral === "boolean"
-          ? rawAutoReplySettings.reply_to_neutral
-          : (typeof rawAutoReplySettings.replyToNeutral === "boolean"
-              ? rawAutoReplySettings.replyToNeutral
-              : defaultSettings.replyToNeutral),
-      replyToNegative:
-        typeof rawAutoReplySettings.reply_to_negative === "boolean"
-          ? rawAutoReplySettings.reply_to_negative
-          : (typeof rawAutoReplySettings.replyToNegative === "boolean"
-              ? rawAutoReplySettings.replyToNegative
-              : defaultSettings.replyToNegative),
-      requireApproval:
-        typeof rawAutoReplySettings.require_approval === "boolean"
-          ? rawAutoReplySettings.require_approval
-          : (typeof rawAutoReplySettings.requireApproval === "boolean"
-              ? rawAutoReplySettings.requireApproval
-              : defaultSettings.requireApproval),
-      tone:
-        toneCandidate && allowedTones.includes(toneCandidate as AutoReplySettings["tone"])
-          ? (toneCandidate as AutoReplySettings["tone"])
-          : defaultSettings.tone,
-      locationId:
-        locationId ||
-        rawAutoReplySettings.location_id ||
-        rawAutoReplySettings.locationId ||
-        defaultSettings.locationId,
-    };
+    const query = supabase
+      .from("auto_reply_settings")
+      .select(
+        `
+          enabled,
+          reply_to_positive,
+          reply_to_neutral,
+          reply_to_negative,
+          require_approval,
+          response_style,
+          response_delay_minutes
+        `
+      )
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (targetLocationId) {
+      query.eq("location_id", targetLocationId);
+    } else {
+      query.is("location_id", null);
+    }
+
+    const { data: row, error: fetchError } = await query.maybeSingle();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("[AutoReply] Failed to load settings:", fetchError);
+      return {
+        success: false,
+        error: fetchError.message,
+        data: null,
+      };
+    }
+
+    if (!row) {
+      return {
+        success: true,
+        data: defaultSettings,
+      };
+    }
+
+    const resolvedTone =
+      typeof row.response_style === "string" && allowedTones.includes(row.response_style as AutoReplySettings["tone"])
+        ? (row.response_style as AutoReplySettings["tone"])
+        : defaultSettings.tone;
+
+    const resolvedMinRating =
+      typeof row.response_delay_minutes === "number"
+        ? Math.min(5, Math.max(1, Math.round(row.response_delay_minutes)))
+        : defaultSettings.minRating;
+
     return {
       success: true,
       data: {
-        ...defaultSettings,
-        ...normalizedSettings,
-      } as AutoReplySettings,
+        enabled: row.enabled ?? defaultSettings.enabled,
+        minRating: resolvedMinRating,
+        replyToPositive: row.reply_to_positive ?? defaultSettings.replyToPositive,
+        replyToNeutral: row.reply_to_neutral ?? defaultSettings.replyToNeutral,
+        replyToNegative: row.reply_to_negative ?? defaultSettings.replyToNegative,
+        requireApproval: row.require_approval ?? defaultSettings.requireApproval,
+        tone: resolvedTone,
+        locationId: locationId || undefined,
+      },
     };
   } catch (error) {
     console.error("Error in getAutoReplySettings:", error);
