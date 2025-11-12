@@ -8,6 +8,7 @@ export interface DashboardSnapshot {
     activeLocations: number;
     inactiveLocations: number;
     lastGlobalSync: string | null;
+    profileCompletenessAverage: number | null;
     locations: Array<{
       id: string;
       name: string;
@@ -15,6 +16,7 @@ export interface DashboardSnapshot {
       status: LocationStatus;
       rating: number | null;
       reviewCount: number;
+      profileCompleteness?: number | null;
       lastSync: {
         reviews: string | null;
         posts: string | null;

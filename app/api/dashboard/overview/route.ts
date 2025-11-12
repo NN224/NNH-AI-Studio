@@ -167,7 +167,7 @@ export async function GET(request: Request) {
         supabase
           .from('gmb_locations')
           .select(
-            'id, location_name, gmb_account_id, is_active, is_archived, last_synced_at, metadata',
+            'id, location_name, gmb_account_id, is_active, is_archived, last_synced_at, metadata, profile_completeness',
           )
           .eq('user_id', user.id),
       ]);
@@ -183,6 +183,15 @@ export async function GET(request: Request) {
     const locationSummaries =
       locationsData?.map((loc) => {
         const metadata = parseMetadata((loc as any).metadata);
+        const profileCompletenessFromColumn = typeof (loc as any).profile_completeness === 'number'
+          ? (loc as any).profile_completeness
+          : null;
+        const profileCompletenessFromMetadata = typeof metadata.profileCompleteness === 'number'
+          ? metadata.profileCompleteness
+          : typeof metadata.profile_completeness === 'number'
+          ? metadata.profile_completeness
+          : null;
+        const profileCompleteness = profileCompletenessFromColumn ?? profileCompletenessFromMetadata;
 
         const status: LocationStatus = loc.is_archived
           ? 'archived'
@@ -228,6 +237,7 @@ export async function GET(request: Request) {
           status,
           rating,
           reviewCount,
+          profileCompleteness,
           lastSync: {
             reviews: reviewsSync ?? coerceIso(loc.last_synced_at),
             posts: postsSync,
@@ -236,6 +246,16 @@ export async function GET(request: Request) {
           },
         };
       }) ?? [];
+
+    const profileCompletenessValues = locationSummaries
+      .map((loc) => (typeof loc.profileCompleteness === 'number' ? loc.profileCompleteness : null))
+      .filter((value): value is number => value !== null && !Number.isNaN(value));
+    const profileCompletenessAverage = profileCompletenessValues.length > 0
+      ? Math.round(
+          profileCompletenessValues.reduce((sum, value) => sum + value, 0) /
+            profileCompletenessValues.length,
+        )
+      : null;
 
     const totalLocations = locationSummaries.length;
     const activeLocations = locationSummaries.filter((loc) => loc.status === 'active').length;
@@ -621,6 +641,7 @@ export async function GET(request: Request) {
         activeLocations,
         inactiveLocations,
         lastGlobalSync,
+        profileCompletenessAverage,
         locations: locationSummaries,
       },
       kpis: {

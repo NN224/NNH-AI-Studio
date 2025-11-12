@@ -127,6 +127,21 @@ export default function DashboardPage() {
     ];
   }, [snapshotData]);
 
+  const quickActionInsights = useMemo(() => {
+    const totalLocations = snapshotData?.locationSummary.totalLocations ?? 0;
+    const profileCompletenessAverage = snapshotData?.locationSummary.profileCompletenessAverage ?? null;
+    const incompleteProfiles = (snapshotData?.locationSummary.locations ?? []).filter((location) => {
+      if (typeof location.profileCompleteness !== 'number') return false;
+      return location.profileCompleteness < 100;
+    }).length;
+
+    return {
+      totalLocations,
+      profileCompletenessAverage,
+      incompleteProfiles,
+    };
+  }, [snapshotData]);
+
   // Default stats في حالة عدم وجود بيانات
   const defaultStats: DashboardStats = {
     totalLocations: 0,
@@ -293,6 +308,9 @@ export default function DashboardPage() {
             <QuickActionsBar 
               pendingReviews={currentStats.pendingReviews}
               unansweredQuestions={currentStats.unansweredQuestions}
+              totalLocations={quickActionInsights.totalLocations}
+              profileCompletenessAverage={quickActionInsights.profileCompletenessAverage}
+              incompleteProfiles={quickActionInsights.incompleteProfiles}
             />
           </DashboardSection>
         </>
