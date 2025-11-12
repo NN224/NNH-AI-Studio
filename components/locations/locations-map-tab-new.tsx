@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useLocations } from '@/hooks/use-locations';
 import { Location } from '@/components/locations/location-types';
 import { MapView } from '@/components/locations/map-view';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
 import { useLocationMapData } from '@/hooks/use-location-map-data';
 import { useIsMobile } from '@/components/locations/responsive-locations-layout';
-import { Loader2, MapPin, Phone, Settings, Eye, Navigation, MessageSquare, FileText, BarChart3 } from 'lucide-react';
+import { Loader2, MapPin, Phone, Settings, Eye, Navigation, MessageSquare, FileText, BarChart3, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,10 +40,12 @@ function usePrevious<T>(value: T): T | undefined {
  * - Real-time data from APIs
  * - Glassmorphism UI effects
  */
+type BrandingVariant = 'cover' | 'logo'
+
 export function LocationsMapTab() {
   // Use stable empty filters object to prevent infinite loops
   const emptyFilters = useMemo(() => ({}), []);
-  const { locations, loading, error: locationsError } = useLocations(emptyFilters);
+  const { locations, loading, error: locationsError, refetch } = useLocations(emptyFilters);
   const { isLoaded, loadError } = useGoogleMaps();
   const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -52,7 +55,10 @@ export function LocationsMapTab() {
   
   // Store locations in ref to avoid re-renders
   const locationsRef = useRef<Location[]>([]);
+  const brandingFileInputRef = useRef<HTMLInputElement | null>(null);
   const prevLocationCount = usePrevious(locations.length);
+  const [pendingVariant, setPendingVariant] = useState<BrandingVariant | null>(null);
+  const [uploadingVariant, setBrandingUploadVariant] = useState<BrandingVariant | null>(null);
   
   // Update ref when locations change
   useEffect(() => {
@@ -261,6 +267,49 @@ export function LocationsMapTab() {
     }
   };
 
+  const handlePickBrandingFile = (variant: BrandingVariant) => {
+    setPendingVariant(variant);
+    brandingFileInputRef.current?.click();
+  };
+
+  const handleBrandingFileChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+    const file = event.target.files?.[0];
+    const variant = pendingVariant;
+
+    if (!file || !variant || !selectedLocation) {
+      event.target.value = '';
+      return;
+    }
+
+    setBrandingUploadVariant(variant);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('variant', variant);
+
+      const response = await fetch(`/api/locations/${selectedLocation.id}/branding`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Failed to upload branding image');
+      }
+
+      toast.success(variant === 'cover' ? 'Cover photo updated' : 'Logo updated');
+      await refetch();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to upload image');
+    } finally {
+      setBrandingUploadVariant(null);
+      setPendingVariant(null);
+      event.target.value = '';
+    }
+  };
+
   // Handle locations error
   if (locationsError) {
     return (
@@ -397,6 +446,13 @@ export function LocationsMapTab() {
 
   return (
     <div className="space-y-6">
+      <input
+        ref={brandingFileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        onChange={handleBrandingFileChange}
+        className="hidden"
+      />
       <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35">
         <div className="h-[360px] md:h-[480px]">
       <MapView
@@ -440,8 +496,24 @@ export function LocationsMapTab() {
                     No cover photo — add one in Branding settings
                   </div>
                 )}
-                {selectedLocation.logoImageUrl && (
-                  <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg">
+                <div className="absolute top-4 right-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 bg-black/60 text-white hover:bg-black/80"
+                    onClick={() => handlePickBrandingFile('cover')}
+                    disabled={uploadingVariant === 'cover'}
+                  >
+                    {uploadingVariant === 'cover' ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-3.5 w-3.5" />
+                    )}
+                    {selectedLocation.coverImageUrl ? 'Change cover' : 'Upload cover'}
+                  </Button>
+                </div>
+                <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg flex items-center justify-center">
+                  {selectedLocation.logoImageUrl ? (
                     <Image
                       src={selectedLocation.logoImageUrl}
                       alt={`${selectedLocation.name} logo`}
@@ -449,8 +521,26 @@ export function LocationsMapTab() {
                       className="object-cover"
                       sizes="64px"
                     />
-                  </div>
-                )}
+                  ) : (
+                    <span className="text-[10px] font-medium text-white/70">No logo</span>
+                  )}
+                </div>
+                <div className="absolute bottom-[-45px] left-[95px]">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 bg-black/70 text-white hover:bg-black/80"
+                    onClick={() => handlePickBrandingFile('logo')}
+                    disabled={uploadingVariant === 'logo'}
+                  >
+                    {uploadingVariant === 'logo' ? (
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Upload className="mr-1.5 h-3 w-3" />
+                    )}
+                    {selectedLocation.logoImageUrl ? 'Change logo' : 'Upload logo'}
+                  </Button>
+                </div>
               </div>
 
               <div className="pt-4">

@@ -421,6 +421,10 @@ export function useLocations(
             'profile.logo.src',
             'profile.logoImageUrl',
             'profile.branding.logoUrl',
+            'customBranding.logoImageUrl',
+            'customBranding.logoUrl',
+            'customBranding.logo.url',
+            'customBranding.logo_src',
           ];
 
           const coverCandidates = [
@@ -448,6 +452,10 @@ export function useLocations(
             'branding.hero_image_url',
             'branding.hero.url',
             'branding.hero.src',
+            'customBranding.coverImageUrl',
+            'customBranding.coverUrl',
+            'customBranding.cover.url',
+            'customBranding.cover_src',
           ];
 
           const logoImageUrl =
