@@ -83,7 +83,13 @@ function extractImageFromMetadata(
   preferredKeys: string[]
 ): string | undefined {
   for (const key of preferredKeys) {
-    const value = metadata?.[key];
+    const segments = key.split('.');
+    let value: any = metadata;
+    for (const segment of segments) {
+      if (value == null) break;
+      value = value?.[segment];
+    }
+
     const url =
       typeof value === 'string'
         ? value
@@ -398,36 +404,61 @@ export function useLocations(
             null;
 
           const logoCandidates = [
-            coerceString(profile.logoUrl),
-            coerceString(profile.logo_url),
-            coerceString(profile.logo?.url),
-            coerceString(profile.iconUrl),
-            coerceString(profile.profilePhotoUrl),
-            coerceString(metadata.logoUrl),
-            coerceString(metadata.logo_url),
+            'logoImageUrl',
+            'logo_image_url',
+            'logoUrl',
+            'logo.url',
+            'logo.src',
+            'logo.value',
+            'branding.logoUrl',
+            'branding.logo.url',
+            'branding.logo.src',
+            'brandLogo',
+            'brand_logo',
+            'profile.logoUrl',
+            'profile.logo_url',
+            'profile.logo.url',
+            'profile.logo.src',
+            'profile.logoImageUrl',
+            'profile.branding.logoUrl',
           ];
 
           const coverCandidates = [
-            coerceString(profile.coverPhotoUrl),
-            coerceString(profile.cover_photo_url),
-            coerceString(profile.coverPhoto?.url),
-            coerceString(metadata.coverPhotoUrl),
-            coerceString(metadata.cover_photo_url),
-            coerceString(metadata.heroImageUrl),
-            coerceString(metadata.hero_image_url),
+            'coverImageUrl',
+            'cover_image_url',
+            'coverPhotoUrl',
+            'cover_photo_url',
+            'coverPhoto',
+            'cover_photo',
+            'coverPhoto.url',
+            'coverPhoto.src',
+            'cover.url',
+            'cover.src',
+            'profile.coverPhotoUrl',
+            'profile.cover_photo_url',
+            'profile.coverPhoto.url',
+            'profile.coverPhoto.src',
+            'profile.cover.url',
+            'profile.cover.src',
+            'branding.coverImageUrl',
+            'branding.cover_url',
+            'branding.cover.url',
+            'branding.cover.src',
+            'branding.heroImageUrl',
+            'branding.hero_image_url',
+            'branding.hero.url',
+            'branding.hero.src',
           ];
 
           const logoImageUrl =
-            logoCandidates.find(Boolean) ??
-            extractImageFromMetadata(metadata, ['logo', 'brandLogo']) ??
-            extractFirstMediaUrl(
-              (profile as Record<string, any>) ?? {}
-            );
+            extractImageFromMetadata(metadata, logoCandidates) ??
+            extractFirstMediaUrl(metadata) ??
+            fallbackLogoUrl;
 
           const coverImageUrl =
-            coverCandidates.find(Boolean) ??
-            extractImageFromMetadata(metadata, ['coverPhoto', 'cover', 'heroImage']) ??
-            extractFirstMediaUrl(metadata);
+            extractImageFromMetadata(metadata, coverCandidates) ??
+            extractFirstMediaUrl(metadata) ??
+            fallbackCoverUrl;
 
           return {
             id: loc.id,

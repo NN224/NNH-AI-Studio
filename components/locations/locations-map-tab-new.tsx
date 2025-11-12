@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useLocations } from '@/hooks/use-locations';
 import { Location } from '@/components/locations/location-types';
 import { MapView } from '@/components/locations/map-view';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
 import { useLocationMapData } from '@/hooks/use-location-map-data';
 import { useIsMobile } from '@/components/locations/responsive-locations-layout';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, Phone, Settings, Eye, Navigation, MessageSquare, FileText, BarChart3 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { StatsOverviewCard, LocationDetailsCard, FloatingCard } from '@/components/locations/map-cards';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 
 /**
@@ -45,6 +48,7 @@ export function LocationsMapTab() {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const isMobile = useIsMobile();
   const { data: snapshot } = useDashboardSnapshot();
+  const router = useRouter();
   
   // Store locations in ref to avoid re-renders
   const locationsRef = useRef<Location[]>([]);
@@ -216,6 +220,47 @@ export function LocationsMapTab() {
     return null;
   }, [stats, snapshot, selectedLocation, locations.length]);
 
+  const locationSnapshotStats = useMemo(() => {
+    if (!selectedLocation && !aggregatedStats) {
+      return { rating: 0, reviewCount: 0, healthScore: 0, responseRate: 0 };
+    }
+
+    const rating = stats?.avgRating ?? (typeof selectedLocation?.rating === 'number' ? selectedLocation.rating : aggregatedStats?.avgRating ?? 0);
+    const reviewCount = stats?.reviewCount ?? selectedLocation?.reviewCount ?? aggregatedStats?.totalReviews ?? 0;
+    const healthScore = stats?.healthScore ?? selectedLocation?.healthScore ?? aggregatedStats?.healthScore ?? 0;
+    const responseRate = selectedLocation?.responseRate ?? selectedLocation?.insights?.responseRate ?? snapshot?.reviewStats.responseRate ?? 0;
+
+    return {
+      rating,
+      reviewCount,
+      healthScore,
+      responseRate,
+    };
+  }, [stats, selectedLocation, aggregatedStats, snapshot]);
+
+  const quickActionDisabled = !selectedLocation;
+
+  const handleCall = () => {
+    if (selectedLocation?.phone) {
+      window.location.href = `tel:${selectedLocation.phone}`;
+    }
+  };
+
+  const handleDirections = () => {
+    if (selectedLocation?.coordinates) {
+      const { lat, lng } = selectedLocation.coordinates;
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+      return;
+    }
+
+    if (selectedLocation?.address) {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedLocation.address)}`,
+        '_blank'
+      );
+    }
+  };
+
   // Handle locations error
   if (locationsError) {
     return (
@@ -351,8 +396,9 @@ export function LocationsMapTab() {
   }
 
   return (
-    <div className="relative w-full h-[calc(100vh-200px)] min-h-[600px] md:min-h-[700px]">
-      {/* Map View */}
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35">
+        <div className="h-[360px] md:h-[480px]">
       <MapView
         locations={locationsWithCoords}
         selectedLocationId={selectedLocationId}
@@ -360,54 +406,233 @@ export function LocationsMapTab() {
         center={mapCenter || undefined}
         className="absolute inset-0"
       />
+              </div>
 
-      {/* Floating Cards */}
-      {selectedLocation && (
-        <>
-          {aggregatedStats ? (
-            <StatsOverviewCard
-              totalLocations={Math.max(aggregatedStats.totalLocations, locations.length)}
-              avgRating={aggregatedStats.avgRating}
-              totalReviews={Math.max(aggregatedStats.totalReviews, 0)}
-              healthScore={Math.max(aggregatedStats.healthScore, 0)}
-            />
+        {!selectedLocation && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="rounded-2xl border border-white/15 bg-black/80 px-6 py-4 text-center">
+              <MapPin className="mx-auto mb-3 h-6 w-6 text-white/70" />
+              <h3 className="text-base font-semibold text-white">Select a location</h3>
+              <p className="mt-1 text-xs text-white/60">
+                Tap any pin on the map to preview details, metrics, and quick actions.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <section className="rounded-[24px] border border-white/15 bg-black/40 p-6 backdrop-blur">
+          {selectedLocation ? (
+            <div className="space-y-6">
+              <div className="relative h-48 w-full overflow-hidden rounded-[20px] border border-white/10 bg-black/30">
+                {selectedLocation.coverImageUrl ? (
+                  <Image
+                    src={selectedLocation.coverImageUrl}
+                    alt={`${selectedLocation.name} cover`}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 700px, 100vw"
+                    priority={false}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
+                    No cover photo — add one in Branding settings
+                  </div>
+                )}
+                {selectedLocation.logoImageUrl && (
+                  <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg">
+                    <Image
+                      src={selectedLocation.logoImageUrl}
+                      alt={`${selectedLocation.name} logo`}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-2xl font-semibold text-white">{selectedLocation.name}</h2>
+                      {selectedLocation.status === 'verified' && (
+                        <Badge className="border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
+                          ✓ Verified
+                        </Badge>
+                      )}
+                      {selectedLocation.category && (
+                        <Badge variant="outline" className="border-white/20 text-white/80">
+                          {selectedLocation.category}
+                        </Badge>
+                      )}
+                    </div>
+                    {selectedLocation.address && (
+                      <p className="mt-2 flex items-start gap-2 text-sm text-white/70">
+                        <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-white/40" />
+                        <span>{selectedLocation.address}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleCall} disabled={!selectedLocation.phone}>
+                      <Phone className="mr-2 h-4 w-4" />
+                      Call
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleDirections} disabled={!selectedLocation.address && !selectedLocation.coordinates}>
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Directions
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/20 bg-primary/20 text-white hover:border-white/40 hover:bg-primary/30"
+                      onClick={() => router.push(`/locations/${selectedLocation.id}`)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10"
+                      onClick={() => router.push(`/locations/${selectedLocation.id}/edit`)}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="border-white/10 bg-white/5 text-white">
+                  <CardContent className="p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/50">Avg rating</p>
+                    <p className="mt-2 text-2xl font-semibold">{locationSnapshotStats.rating ? locationSnapshotStats.rating.toFixed(1) : '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-white/10 bg-white/5 text-white">
+                  <CardContent className="p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/50">Total reviews</p>
+                    <p className="mt-2 text-2xl font-semibold">{locationSnapshotStats.reviewCount}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-white/10 bg-white/5 text-white">
+                  <CardContent className="p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/50">Health score</p>
+                    <p className="mt-2 text-2xl font-semibold">{Math.round(locationSnapshotStats.healthScore || 0)}%</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-white/10 bg-white/5 text-white">
+                  <CardContent className="p-4">
+                    <p className="text-xs uppercase tracking-wide text-white/50">Response rate</p>
+                    <p className="mt-2 text-2xl font-semibold">{Math.round(locationSnapshotStats.responseRate || 0)}%</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {statsLoading && (
+                <div className="flex items-center gap-2 text-xs text-white/60">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  Updating live stats…
+                </div>
+              )}
+
+              {statsError && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                  Couldn’t refresh live stats. Showing cached dashboard numbers instead.
+                </div>
+              )}
+            </div>
           ) : (
-            <FloatingCard
-              position="top-left"
-              delay={0.1}
-              mobilePosition="top"
-              className="bg-destructive/10 border-destructive/20 text-destructive"
-            >
-              <p className="text-sm font-medium">No statistics available for this location.</p>
-            </FloatingCard>
+            <div className="flex min-h-[260px] flex-col items-center justify-center text-center text-white/60">
+              <MapPin className="mb-3 h-8 w-8" />
+              <h3 className="text-lg font-semibold text-white">No location selected</h3>
+              <p className="mt-2 max-w-sm text-sm">
+                Choose a pin on the map to preview branding, contact information, and performance metrics.
+              </p>
+            </div>
           )}
+        </section>
 
-          <LocationDetailsCard location={selectedLocation} />
+        <div className="space-y-4">
+          <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
+            <h3 className="text-sm font-semibold text-white/90">At a glance</h3>
+            <p className="mb-4 text-xs text-white/60">Snapshot of your account-wide performance.</p>
+            {aggregatedStats ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+                  <p className="text-xs uppercase tracking-wide text-white/50">Total locations</p>
+                  <p className="mt-2 text-2xl font-semibold">{Math.max(aggregatedStats.totalLocations, locations.length)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+                  <p className="text-xs uppercase tracking-wide text-white/50">Average rating</p>
+                  <p className="mt-2 text-2xl font-semibold">{aggregatedStats.avgRating.toFixed(1)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+                  <p className="text-xs uppercase tracking-wide text-white/50">Total reviews</p>
+                  <p className="mt-2 text-2xl font-semibold">{aggregatedStats.totalReviews}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+                  <p className="text-xs uppercase tracking-wide text-white/50">Avg health score</p>
+                  <p className="mt-2 text-2xl font-semibold">{Math.round(aggregatedStats.healthScore)}%</p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/60">
+                Aggregated stats will appear after your first sync.
+              </div>
+            )}
+          </section>
 
-          {statsLoading && !stats && (
-            <FloatingCard
-              position="bottom-left"
-              delay={0.3}
-              mobilePosition="bottom"
-              className="flex items-center gap-3"
-            >
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Refreshing location insight…</span>
-            </FloatingCard>
-          )}
-
-          {statsError && (
-            <FloatingCard
-              position="bottom-left"
-              delay={0.4}
-              mobilePosition="bottom"
-              className="bg-destructive/10 border-destructive/20 text-destructive"
-            >
-              <p className="text-sm font-medium">Couldn’t load live stats. Showing cached dashboard totals.</p>
-            </FloatingCard>
-          )}
-        </>
-      )}
+          <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
+            <h3 className="text-sm font-semibold text-white/90">Quick actions</h3>
+            <p className="mb-4 text-xs text-white/60">Jump straight into location-specific tasks.</p>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
+                onClick={() => selectedLocation && router.push(`/reviews?location=${selectedLocation.id}`)}
+                disabled={quickActionDisabled}
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <MessageSquare className="h-4 w-4" /> Reply to reviews
+                </span>
+                <span className="text-xs text-white/50">Open reviews tab</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
+                onClick={() => selectedLocation && router.push(`/posts?location=${selectedLocation.id}`)}
+                disabled={quickActionDisabled}
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4" /> Create post
+                </span>
+                <span className="text-xs text-white/50">Launch composer</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
+                onClick={() => selectedLocation && router.push(`/analytics?location=${selectedLocation.id}`)}
+                disabled={quickActionDisabled}
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <BarChart3 className="h-4 w-4" /> View analytics
+                </span>
+                <span className="text-xs text-white/50">Deep dive on performance</span>
+              </Button>
+            </div>
+            {quickActionDisabled && (
+              <p className="mt-3 text-xs text-white/45">Select a location on the map to enable actions.</p>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
