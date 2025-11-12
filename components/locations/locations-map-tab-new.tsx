@@ -9,12 +9,12 @@ import { Location } from '@/components/locations/location-types';
 import { MapView } from '@/components/locations/map-view';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
 import { useLocationMapData } from '@/hooks/use-location-map-data';
-import { useIsMobile } from '@/components/locations/responsive-locations-layout';
-import { Loader2, MapPin, Phone, Settings, Eye, Navigation, MessageSquare, FileText, BarChart3, Upload } from 'lucide-react';
+import { Loader2, MapPin, Phone, Settings, Eye, Navigation, MessageSquare, FileText, BarChart3, Upload, Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
+import { cn } from '@/lib/utils';
 
 /**
  * Custom hook to track previous value
@@ -49,7 +49,6 @@ export function LocationsMapTab() {
   const { isLoaded, loadError } = useGoogleMaps();
   const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const isMobile = useIsMobile();
   const { data: snapshot } = useDashboardSnapshot();
   const router = useRouter();
   
@@ -468,8 +467,11 @@ export function LocationsMapTab() {
         onChange={handleBrandingFileChange}
         className="hidden"
       />
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35">
-        <div className="h-[360px] md:h-[480px]">
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/35">
+            <div className="h-[360px] md:h-[480px]">
       <MapView
         locations={locationsWithCoords}
         selectedLocationId={selectedLocationId}
@@ -477,238 +479,289 @@ export function LocationsMapTab() {
         center={mapCenter || undefined}
         className="absolute inset-0"
       />
-              </div>
-
-        {!selectedLocation && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
-            <div className="rounded-2xl border border-white/15 bg-black/80 px-6 py-4 text-center">
-              <MapPin className="mx-auto mb-3 h-6 w-6 text-white/70" />
-              <h3 className="text-base font-semibold text-white">Select a location</h3>
-              <p className="mt-1 text-xs text-white/60">
-                Tap any pin on the map to preview details, metrics, and quick actions.
-              </p>
             </div>
-          </div>
-        )}
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,0.9fr)]">
-        <section className="rounded-[24px] border border-white/15 bg-black/40 p-6 backdrop-blur">
-          {selectedLocation ? (
-            <div className="space-y-6">
-              <div className="relative h-48 w-full overflow-hidden rounded-[20px] border border-white/10 bg-black/30">
-                {selectedLocation.coverImageUrl ? (
-                  <Image
-                    src={selectedLocation.coverImageUrl}
-                    alt={`${selectedLocation.name} cover`}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 1024px) 700px, 100vw"
-                    priority={false}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
-                    No cover photo — add one in Branding settings
-                  </div>
-                )}
-                <div className="absolute top-4 right-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-white/20 bg-black/60 text-white hover:bg-black/80"
-                    onClick={() => handlePickBrandingFile('cover')}
-                    disabled={uploadingVariant === 'cover'}
-                  >
-                    {uploadingVariant === 'cover' ? (
-                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-3.5 w-3.5" />
-                    )}
-                    {selectedLocation.coverImageUrl ? 'Change cover' : 'Upload cover'}
-                  </Button>
+            {!selectedLocation && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="rounded-2xl border border-white/15 bg-black/80 px-6 py-4 text-center">
+                  <MapPin className="mx-auto mb-3 h-6 w-6 text-white/70" />
+                  <h3 className="text-base font-semibold text-white">Select a location</h3>
+                  <p className="mt-1 text-xs text-white/60">
+                    Tap any pin on the map to preview details, metrics, and quick actions.
+                  </p>
                 </div>
-                <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg flex items-center justify-center">
-                  {selectedLocation.logoImageUrl ? (
+              </div>
+            )}
+            </div>
+
+          <section className="rounded-[24px] border border-white/15 bg-black/40 p-6 backdrop-blur">
+            {selectedLocation ? (
+              <div className="space-y-6">
+                <div className="relative h-48 w-full overflow-hidden rounded-[20px] border border-white/10 bg-black/30">
+                  {selectedLocation.coverImageUrl ? (
                     <Image
-                      src={selectedLocation.logoImageUrl}
-                      alt={`${selectedLocation.name} logo`}
+                      src={selectedLocation.coverImageUrl}
+                      alt={`${selectedLocation.name} cover`}
                       fill
                       className="object-cover"
-                      sizes="64px"
+                      sizes="(min-width: 1024px) 700px, 100vw"
+                      priority={false}
                     />
                   ) : (
-                    <span className="text-[10px] font-medium text-white/70">No logo</span>
+                    <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
+                      No cover photo — add one in Branding settings
+                    </div>
                   )}
-                </div>
-                <div className="absolute bottom-[-45px] left-[95px]">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-white/20 bg-black/70 text-white hover:bg-black/80"
-                    onClick={() => handlePickBrandingFile('logo')}
-                    disabled={uploadingVariant === 'logo'}
-                  >
-                    {uploadingVariant === 'logo' ? (
-                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                    ) : (
-                      <Upload className="mr-1.5 h-3 w-3" />
-                    )}
-                    {selectedLocation.logoImageUrl ? 'Change logo' : 'Upload logo'}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-2xl font-semibold text-white">{selectedLocation.name}</h2>
-                      {selectedLocation.status === 'verified' && (
-                        <Badge className="border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
-                          ✓ Verified
-                        </Badge>
+                  <div className="absolute top-4 right-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 bg-black/60 text-white hover:bg-black/80"
+                      onClick={() => handlePickBrandingFile('cover')}
+                      disabled={uploadingVariant === 'cover'}
+                    >
+                      {uploadingVariant === 'cover' ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-3.5 w-3.5" />
                       )}
-                      {selectedLocation.category && (
-                        <Badge variant="outline" className="border-white/20 text-white/80">
-                          {selectedLocation.category}
-                        </Badge>
+                      {selectedLocation.coverImageUrl ? 'Change cover' : 'Upload cover'}
+                    </Button>
+                  </div>
+                  <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg flex items-center justify-center">
+                    {selectedLocation.logoImageUrl ? (
+                      <Image
+                        src={selectedLocation.logoImageUrl}
+                        alt={`${selectedLocation.name} logo`}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <span className="text-[10px] font-medium text-white/70">No logo</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-2xl font-semibold text-white">{selectedLocation.name}</h2>
+                        {selectedLocation.status === 'verified' && (
+                          <Badge className="border-emerald-400/30 bg-emerald-500/10 text-emerald-200">
+                            ✓ Verified
+                          </Badge>
+                        )}
+                        {selectedLocation.category && (
+                          <Badge variant="outline" className="border-white/20 text-white/80">
+                            {selectedLocation.category}
+                          </Badge>
+                        )}
+                      </div>
+                      {selectedLocation.address && (
+                        <p className="mt-2 flex items-start gap-2 text-sm text-white/70">
+                          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-white/40" />
+                          <span>{selectedLocation.address}</span>
+                        </p>
                       )}
                     </div>
-                    {selectedLocation.address && (
-                      <p className="mt-2 flex items-start gap-2 text-sm text-white/70">
-                        <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-white/40" />
-                        <span>{selectedLocation.address}</span>
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleCall} disabled={!selectedLocation.phone}>
-                      <Phone className="mr-2 h-4 w-4" />
-                      Call
-                    </Button>
-                    <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleDirections} disabled={!selectedLocation.address && !selectedLocation.coordinates}>
-                      <Navigation className="mr-2 h-4 w-4" />
-                      Directions
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-white/20 bg-primary/20 text-white hover:border-white/40 hover:bg-primary/30"
-                      onClick={() => router.push(`/locations/${selectedLocation.id}`)}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      View details
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10"
-                      onClick={() => router.push(`/locations/${selectedLocation.id}/edit`)}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleCall} disabled={!selectedLocation.phone}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        Call
+                      </Button>
+                      <Button variant="outline" size="sm" className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10" onClick={handleDirections} disabled={!selectedLocation.address && !selectedLocation.coordinates}>
+                        <Navigation className="mr-2 h-4 w-4" />
+                        Directions
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/20 bg-primary/20 text-white hover:border-white/40 hover:bg-primary/30"
+                        onClick={() => router.push(`/locations/${selectedLocation.id}`)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10"
+                        onClick={() => router.push(`/locations/${selectedLocation.id}/edit`)}
+                      >
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                {statsLoading && (
+                  <div className="flex items-center gap-2 text-xs text-white/60">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    Updating live stats…
+                  </div>
+                )}
+
+                {statsError && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    Couldn’t refresh live stats. Showing cached dashboard numbers instead.
+                  </div>
+                )}
               </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardContent className="p-4">
-                    <p className="text-[0.7rem] font-medium text-white/60">Average rating</p>
-                    <p className="mt-3 text-2xl font-semibold text-white">{locationSnapshotStats.rating ? locationSnapshotStats.rating.toFixed(1) : '—'}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardContent className="p-4">
-                    <p className="text-[0.7rem] font-medium text-white/60">Total reviews</p>
-                    <p className="mt-3 text-2xl font-semibold text-white">{locationSnapshotStats.reviewCount}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardContent className="p-4">
-                    <p className="text-[0.7rem] font-medium text-white/60">Health score</p>
-                    <p className="mt-3 text-2xl font-semibold text-white">{Math.round(locationSnapshotStats.healthScore || 0)}%</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardContent className="p-4">
-                    <p className="text-[0.7rem] font-medium text-white/60">Response rate</p>
-                    <p className="mt-3 text-2xl font-semibold text-white">{Math.round(locationSnapshotStats.responseRate || 0)}%</p>
-                  </CardContent>
-                </Card>
+            ) : (
+              <div className="flex min-h-[200px] flex-col items-center justify-center text-center text-white/60">
+                <MapPin className="mb-3 h-8 w-8" />
+                <h3 className="text-lg font-semibold text-white">No location selected</h3>
+                <p className="mt-2 max-w-sm text-sm">Choose a pin on the map to preview branding and performance details.</p>
               </div>
-
-              {statsLoading && (
-                <div className="flex items-center gap-2 text-xs text-white/60">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Updating live stats…
-                </div>
-              )}
-
-              {statsError && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-                  Couldn’t refresh live stats. Showing cached dashboard numbers instead.
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex min-h-[260px] flex-col items-center justify-center text-center text-white/60">
-              <MapPin className="mb-3 h-8 w-8" />
-              <h3 className="text-lg font-semibold text-white">No location selected</h3>
-              <p className="mt-2 max-w-sm text-sm">
-                Choose a pin on the map to preview branding, contact information, and performance metrics.
-              </p>
-            </div>
-          )}
-        </section>
-
-        <div className="space-y-4">
-          <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
-            <h3 className="text-sm font-semibold text-white/90">Location quick actions</h3>
-            <p className="mb-4 text-xs text-white/60">Workflows open with the currently selected location.</p>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
-                onClick={() => selectedLocation && router.push(`/reviews?location=${selectedLocation.id}`)}
-                disabled={quickActionDisabled}
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <MessageSquare className="h-4 w-4" /> Reply to reviews
-                </span>
-                <span className="text-xs text-white/50">Open reviews tab</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
-                onClick={() => selectedLocation && router.push(`/posts?location=${selectedLocation.id}`)}
-                disabled={quickActionDisabled}
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <FileText className="h-4 w-4" /> Create post
-                </span>
-                <span className="text-xs text-white/50">Launch composer</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
-                onClick={() => selectedLocation && router.push(`/analytics?location=${selectedLocation.id}`)}
-                disabled={quickActionDisabled}
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <BarChart3 className="h-4 w-4" /> View analytics
-                </span>
-                <span className="text-xs text-white/50">Deep dive on performance</span>
-              </Button>
-            </div>
-            {quickActionDisabled && (
-              <p className="mt-3 text-xs text-white/45">Select a location on the map to enable these actions.</p>
             )}
           </section>
         </div>
+
+        <aside className="flex h-full flex-col rounded-[24px] border border-white/15 bg-black/40 p-5 backdrop-blur">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white/90">Locations</h3>
+            <span className="text-xs text-white/50">{locations.length} total</span>
+          </div>
+          <div className="space-y-3 overflow-y-auto pr-1" style={{ maxHeight: '480px' }}>
+            {locations.map((location) => {
+              const rating = location.rating != null ? location.rating.toFixed(1) : '—';
+              const reviewCount = location.reviewCount ?? 0;
+              const responseRate = location.responseRate ?? location.insights?.responseRate ?? null;
+              const isSelected = selectedLocationId === location.id;
+
+              return (
+                <div
+                  key={location.id}
+                  className={cn(
+                    'rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white transition-colors',
+                    isSelected && 'border-primary/50 bg-primary/10'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{location.name}</p>
+                      {location.address && (
+                        <p className="mt-1 line-clamp-2 text-xs text-white/60">{location.address}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className={cn('text-xs', badgeTone(location.status))}>
+                      {location.status === 'verified' ? 'Active' : location.status === 'suspended' ? 'Suspended' : 'Pending'}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-white/60">
+                    <span className="flex items-center gap-1"><Star className="h-3 w-3" /> {rating}</span>
+                    <span>{reviewCount} reviews</span>
+                    {responseRate != null && <span>{Math.round(Number(responseRate))}% response rate</span>}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={isSelected ? 'default' : 'ghost'}
+                      className="text-white/80 hover:text-white"
+                      onClick={() => setSelectedLocationId(location.id)}
+                    >
+                      {isSelected ? 'Selected' : 'Focus on map'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                      onClick={() => router.push(`/locations/${location.id}`)}
+                    >
+                      View details
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
+          <h3 className="text-sm font-semibold text-white/90">Location quick actions</h3>
+          <p className="mb-4 text-xs text-white/60">Workflows open with the currently selected location.</p>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
+              onClick={() => selectedLocation && router.push(`/reviews?location=${selectedLocation.id}`)}
+              disabled={quickActionDisabled}
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <MessageSquare className="h-4 w-4" /> Reply to reviews
+              </span>
+              <span className="text-xs text-white/50">Open reviews tab</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover:border-white/25 hover:bg-white/10"
+              onClick={() => selectedLocation && router.push(`/posts?location=${selectedLocation.id}`)}
+              disabled={quickActionDisabled}
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4" /> Create post
+              </span>
+              <span className="text-xs text-white/50">Launch composer</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex w-full items-center justify-between border-white/10 bg-white/5 text-white hover-border-white/25 hover:bg-white/10"
+              onClick={() => selectedLocation && router.push(`/analytics?location=${selectedLocation.id}`)}
+              disabled={quickActionDisabled}
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <BarChart3 className="h-4 w-4" /> View analytics
+              </span>
+              <span className="text-xs text-white/50">Deep dive on performance</span>
+            </Button>
+          </div>
+          {quickActionDisabled && (
+            <p className="mt-3 text-xs text-white/45">Select a location on the map to enable these actions.</p>
+          )}
+        </section>
+
+        <section className="rounded-[24px] border border-white/15 bg-black/35 p-5 backdrop-blur">
+          <h3 className="text-sm font-semibold text-white/90">Location stats snapshot</h3>
+          <p className="mb-4 text-xs text-white/60">Overview of performance across your locations.</p>
+          <div className="grid grid-cols-2 gap-3 text-sm text-white">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase text-white/50">Total locations</p>
+              <p className="mt-2 text-xl font-semibold">{aggregatedStats?.totalLocations ?? locations.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase text-white/50">Average rating</p>
+              <p className="mt-2 text-xl font-semibold">{aggregatedStats ? aggregatedStats.avgRating.toFixed(1) : '—'}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase text-white/50">Total reviews</p>
+              <p className="mt-2 text-xl font-semibold">{aggregatedStats?.totalReviews ?? 0}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase text-white/50">Avg health score</p>
+              <p className="mt-2 text-xl font-semibold">{aggregatedStats ? Math.round(aggregatedStats.healthScore) : 0}%</p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
+}
+
+function badgeTone(status: Location['status']) {
+  switch (status) {
+    case 'verified':
+      return 'border-emerald-500/30 text-emerald-200';
+    case 'suspended':
+      return 'border-destructive/30 text-destructive';
+    default:
+      return 'border-amber-400/30 text-amber-300';
+  }
 }

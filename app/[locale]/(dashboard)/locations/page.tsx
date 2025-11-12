@@ -5,14 +5,12 @@ import { useTranslations } from 'next-intl';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LocationsMapTab } from '@/components/locations/locations-map-tab-new';
 import { LocationsStatsCardsAPI } from '@/components/locations/locations-stats-cards-api';
-import { LocationsListView } from '@/components/locations/locations-list-view';
 import { Button } from '@/components/ui/button';
-import { MapPin, List, RefreshCw, Download, Plus, Loader2, MessageSquare, FilePlus2, BarChart3, RefreshCw as RefreshIcon } from 'lucide-react';
+import { RefreshCw, Download, Plus, Loader2, MessageSquare, FilePlus2, BarChart3, RefreshCw as RefreshIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { LocationFormDialog } from '@/components/locations/location-form-dialog';
 import { GMBConnectionBanner } from '@/components/locations/gmb-connection-banner';
 import { useGmbStatus } from '@/hooks/use-gmb-status';
-import { useIsMobile } from '@/components/locations/responsive-locations-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import { useRouter } from 'next/navigation';
@@ -30,8 +28,6 @@ const QuickActionButton = ({ icon: Icon, label, onClick }: { icon: React.ReactNo
 
 export default function LocationsPage() {
   const t = useTranslations('Locations');
-  const isMobile = useIsMobile();
-  const [activePanel, setActivePanel] = useState<'map' | 'list'>('map');
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -60,12 +56,6 @@ export default function LocationsPage() {
   };
 
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isMobile) {
-      setActivePanel('map');
-    }
-  }, [isMobile]);
 
   const handleSync = async () => {
     // Check if account ID is available
@@ -275,29 +265,6 @@ export default function LocationsPage() {
           
           {/* Action Bar */}
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Mobile View Toggle */}
-            {isMobile && (
-              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 border border-primary/20">
-                <Button
-                  variant={activePanel === 'map' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActivePanel('map')}
-                  className={`gap-2 ${activePanel === 'map' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <MapPin className="w-4 h-4" />
-                  Map
-                </Button>
-                <Button
-                  variant={activePanel === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActivePanel('list')}
-                  className={`gap-2 ${activePanel === 'list' ? 'bg-gradient-to-r from-primary to-accent text-white' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <List className="w-4 h-4" />
-                  List
-                </Button>
-              </div>
-            )}
             
             {/* Sync Button */}
             <Button
@@ -345,120 +312,103 @@ export default function LocationsPage() {
         <LocationsStatsCardsAPI />
 
         {/* Main Content Area */}
-        {isMobile ? (
-          activePanel === 'map' ? (
-            <LocationsMapTab />
-          ) : (
-            <LocationsListView />
-          )
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-            <div className="space-y-4">
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-background/40 shadow">
-                <LocationsMapTab />
-              </div>
+        <div className="space-y-6">
+          <LocationsMapTab />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                <CardDescription className="text-xs text-white/60">
+                  Latest highlights from synced reviews.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs text-white/80">
+                {recentHighlights.length === 0 ? (
+                  <>
+                    <p>No recent highlights yet.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-dashed border-white/20 text-white hover:border-white/40 hover:bg-white/10"
+                      onClick={handleSync}
+                    >
+                      <RefreshIcon className="mr-2 h-4 w-4" />
+                      Run sync
+                    </Button>
+                  </>
+                ) : (
+                  recentHighlights.slice(0, 3).map((highlight) => {
+                    const locationName = locationNameMap.get(highlight.locationId) ?? 'Unknown location';
+                    const ratingValue = typeof highlight.rating === 'number' ? highlight.rating.toFixed(1) : null;
+                    const reviewerName = highlight.reviewer || 'Recent review';
+                    const isPositive = typeof highlight.rating === 'number' ? highlight.rating >= 4 : true;
+                    const message = isPositive
+                      ? 'Great feedback! Reply to keep the momentum going.'
+                      : 'Review needs attention. Consider replying soon.';
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-                    <CardDescription className="text-xs text-white/60">
-                      Latest highlights from synced reviews.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-xs text-white/80">
-                    {recentHighlights.length === 0 ? (
-                      <>
-                        <p>No recent highlights yet.</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-dashed border-white/20 text-white hover:border-white/40 hover:bg-white/10"
-                          onClick={handleSync}
-                        >
-                          <RefreshIcon className="mr-2 h-4 w-4" />
-                          Run sync
-                        </Button>
-                      </>
-                    ) : (
-                      recentHighlights.slice(0, 3).map((highlight) => {
-                        const locationName = locationNameMap.get(highlight.locationId) ?? 'Unknown location';
-                        const ratingValue = typeof highlight.rating === 'number' ? highlight.rating.toFixed(1) : null;
-                        const reviewerName = highlight.reviewer || 'Recent review';
-                        const isPositive = typeof highlight.rating === 'number' ? highlight.rating >= 4 : true;
-                        const message = isPositive
-                          ? 'Great feedback! Reply to keep the momentum going.'
-                          : 'Review needs attention. Consider replying soon.';
-
-                        return (
-                          <div
-                            key={highlight.reviewId}
-                            className="rounded-xl border border-white/10 bg-black/40 p-3"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-semibold text-white line-clamp-1" title={locationName}>
-                                {locationName}
-                              </div>
-                              {ratingValue && (
-                                <span className="flex items-center gap-1 text-xs text-yellow-400">
-                                  <span>⭐</span>
-                                  {ratingValue}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 text-xs text-white/60">
-                              by {reviewerName} · {formatHighlightDate(highlight.createdAt)}
-                            </div>
-                            <p className="mt-2 text-xs text-white/70">{message}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-3 h-8 w-full justify-start border border-white/10 bg-white/5 text-xs text-white hover:border-white/20 hover:bg-white/10"
-                              onClick={() => router.push(`/reviews?location=${highlight.locationId}`)}
-                            >
-                              <MessageSquare className="mr-2 h-3.5 w-3.5" />
-                              Open in Reviews
-                            </Button>
+                    return (
+                      <div
+                        key={highlight.reviewId}
+                        className="rounded-xl border border-white/10 bg-black/40 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-semibold text-white line-clamp-1" title={locationName}>
+                            {locationName}
                           </div>
-                        );
-                      })
-                    )}
-                  </CardContent>
-                </Card>
+                          {ratingValue && (
+                            <span className="flex items-center gap-1 text-xs text-yellow-400">
+                              <span>⭐</span>
+                              {ratingValue}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-white/60">
+                          by {reviewerName} · {formatHighlightDate(highlight.createdAt)}
+                        </div>
+                        <p className="mt-2 text-xs text-white/70">{message}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-3 h-8 w-full justify-start border border-white/10 bg-white/5 text-xs text-white hover:border-white/20 hover:bg-white/10"
+                          onClick={() => router.push(`/reviews?location=${highlight.locationId}`)}
+                        >
+                          <MessageSquare className="mr-2 h-3.5 w-3.5" />
+                          Open in Reviews
+                        </Button>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
 
-                <Card className="border-white/10 bg-white/5 text-white">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-                    <CardDescription className="text-xs text-white/60">
-                      Jump into everyday workflows.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <QuickActionButton
-                      icon={<MessageSquare className="h-4 w-4" />}
-                      label="Reply to Reviews"
-                      onClick={() => router.push('/reviews')}
-                    />
-                    <QuickActionButton
-                      icon={<FilePlus2 className="h-4 w-4" />}
-                      label="Create Post"
-                      onClick={() => router.push('/posts')}
-                    />
-                    <QuickActionButton
-                      icon={<BarChart3 className="h-4 w-4" />}
-                      label="View Analytics"
-                      onClick={() => router.push('/analytics')}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            <div>
-              <LocationsListView variant="compact" />
-            </div>
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+                <CardDescription className="text-xs text-white/60">
+                  Jump into everyday workflows.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <QuickActionButton
+                  icon={<MessageSquare className="h-4 w-4" />}
+                  label="Reply to Reviews"
+                  onClick={() => router.push('/reviews')}
+                />
+                <QuickActionButton
+                  icon={<FilePlus2 className="h-4 w-4" />}
+                  label="Create Post"
+                  onClick={() => router.push('/posts')}
+                />
+                <QuickActionButton
+                  icon={<BarChart3 className="h-4 w-4" />}
+                  label="View Analytics"
+                  onClick={() => router.push('/analytics')}
+                />
+              </CardContent>
+            </Card>
           </div>
-        )}
+        </div>
 
         {/* Add Location Dialog */}
         <LocationFormDialog
