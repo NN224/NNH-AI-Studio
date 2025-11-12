@@ -451,11 +451,13 @@ export function useLocations(
           ];
 
           const logoImageUrl =
+            coerceString(loc.logo_image_url ?? loc.logoImageUrl) ??
             extractImageFromMetadata(metadata, logoCandidates) ??
             extractFirstMediaUrl(metadata) ??
             fallbackLogoUrl;
 
           const coverImageUrl =
+            coerceString(loc.cover_image_url ?? loc.coverImageUrl) ??
             extractImageFromMetadata(metadata, coverCandidates) ??
             extractFirstMediaUrl(metadata) ??
             fallbackCoverUrl;
