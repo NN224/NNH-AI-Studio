@@ -832,14 +832,14 @@ function QuestionsFeedSection({
   return (
     <section className="space-y-4">
       {normalizedQuestions.map((question) => (
-        <QuestionCard
-          key={question.id}
-          question={question}
-          isSelected={selectedQuestion?.id === question.id}
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  isSelected={selectedQuestion?.id === question.id}
           onClick={() => onSelectQuestion(question)}
           onAnswer={() => onAnswer(question)}
-        />
-      ))}
+                />
+              ))}
     </section>
   );
 }
@@ -1161,7 +1161,7 @@ function QuestionsPagination({ currentPage, totalPages, onPageChange }: Question
   );
 }
 
-function normalizeQuestionEntity(question: QuestionEntity): GMBQuestion {
+function normalizeQuestionEntity(question: QuestionEntity | GMBQuestion): GMBQuestion {
   return {
     id: question.id,
     location_id: question.location_id ?? question.locationId ?? '',
@@ -1169,7 +1169,7 @@ function normalizeQuestionEntity(question: QuestionEntity): GMBQuestion {
     gmb_account_id: question.gmb_account_id,
     question_id: question.question_id,
     external_question_id: question.external_question_id,
-    question_text: question.question_text ?? (question as any).questionText ?? '',
+    question_text: (question as any).question_text ?? (question as any).questionText ?? '',
     asked_at: question.asked_at ?? (question as any).createdAt ?? null,
     author_name: question.author_name,
     author_display_name: question.author_display_name,
