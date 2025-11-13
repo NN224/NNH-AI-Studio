@@ -520,7 +520,7 @@ export function useLocations(
             fallbackLogoUrl;
 
           const coverImageUrl =
-            coerceString(loc.cover_image_url ?? loc.coverImageUrl) ??
+            coerceString(loc.cover_photo_url ?? loc.cover_image_url ?? loc.coverImageUrl) ??
             extractImageFromMetadata(metadata, coverCandidates) ??
             extractFirstMediaUrl(metadata) ??
             fallbackCoverUrl;

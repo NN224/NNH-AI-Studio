@@ -137,14 +137,26 @@ export function LocationsMapTab() {
   const resolvedCoverImage = useMemo(() => {
     if (!selectedLocation) return null;
     const metadata = selectedLocation.metadata ?? {};
+    const locationRecord = selectedLocation as Record<string, any>;
+
     const candidates = [
       selectedLocation.coverImageUrl,
+      locationRecord.cover_photo_url,
+      locationRecord.coverPhotoUrl,
+      locationRecord.cover_image_url,
+      locationRecord.coverImageUrl,
+      metadata.cover_photo_url,
+      metadata.coverPhotoUrl,
       metadata.cover_image_url,
       metadata.coverImageUrl,
       metadata.customBranding?.coverImageUrl,
       metadata.customBranding?.coverUrl,
       metadata.profile?.coverPhotoUrl,
       metadata.profile?.cover_photo_url,
+      metadata.profile?.cover?.url,
+      metadata.profile?.cover?.src,
+      metadata.cover?.url,
+      metadata.cover?.src,
     ];
 
     return (candidates.find((value) => typeof value === 'string' && value.length > 0) as string | undefined) ?? null;
@@ -169,62 +181,111 @@ export function LocationsMapTab() {
     },
   });
 
+  const buildCompetitorSearchParams = useCallback((context: Location) => {
+    const params = new URLSearchParams();
+    const coordinates = context?.coordinates;
+
+    if (!coordinates) {
+      return params;
+    }
+
+    params.set('lat', coordinates.lat.toString());
+    params.set('lng', coordinates.lng.toString());
+
+    const metadata = (context.metadata ?? {}) as Record<string, any>;
+    const categories = metadata?.categories ?? {};
+    const primaryCategory = categories?.primaryCategory ?? null;
+    const additionalCategories: Array<{ displayName?: string | null }> = Array.isArray(
+      categories?.additionalCategories,
+    )
+      ? categories.additionalCategories
+      : [];
+
+    if (primaryCategory?.name) {
+      params.set('categoryId', String(primaryCategory.name));
+    }
+
+    const categoryLabel =
+      (typeof primaryCategory?.displayName === 'string' && primaryCategory.displayName) ??
+      (typeof context.category === 'string' && context.category.length > 0 ? context.category : null);
+    if (categoryLabel) {
+      params.set('categoryName', categoryLabel);
+    }
+
+    const keywordSet = new Set<string>();
+
+    const safeAddKeyword = (value: unknown) => {
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed.length > 0) {
+          keywordSet.add(trimmed);
+        }
+      }
+    };
+
+    safeAddKeyword(primaryCategory?.displayName);
+
+    additionalCategories.forEach((item) => {
+      safeAddKeyword(item?.displayName);
+    });
+
+    safeAddKeyword(context.category);
+
+    const metadataKeywords: unknown = metadata?.keywords ?? metadata?.topKeywords ?? metadata?.tags;
+    if (Array.isArray(metadataKeywords)) {
+      metadataKeywords.forEach((entry) => safeAddKeyword(entry));
+    } else if (typeof metadataKeywords === 'string') {
+      metadataKeywords
+        .split(',')
+        .map((token) => token.trim())
+        .forEach((token) => safeAddKeyword(token));
+    }
+
+    if (keywordSet.size > 0) {
+      params.set('keywords', Array.from(keywordSet).slice(0, 5).join(','));
+    }
+
+    return params;
+  }, []);
+
+  const fetchCompetitorsForLocation = useCallback(
+    async (context: Location | null | undefined) => {
+      if (!context?.coordinates) {
+        return { competitors: [] };
+      }
+
+      const params = buildCompetitorSearchParams(context);
+      const response = await fetch(`/api/locations/competitors?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message =
+          typeof payload?.error === 'string' && payload.error.length > 0
+            ? payload.error
+            : 'Failed to load competitors';
+        throw new Error(message);
+      }
+
+      if (Array.isArray(payload)) {
+        return { competitors: payload };
+      }
+
+      return payload;
+    },
+    [buildCompetitorSearchParams],
+  );
+
   const {
     data: competitorsResponse,
     isFetching: competitorsLoading,
     refetch: refetchCompetitors,
   } = useQuery({
     queryKey: ['competitors', aiContextLocation?.id],
-    queryFn: async () => {
-      if (!aiContextLocation?.coordinates) {
-        return { competitors: [] };
-      }
-
-      const { lat, lng } = aiContextLocation.coordinates;
-      const params = new URLSearchParams({
-        lat: lat.toString(),
-        lng: lng.toString(),
-      });
-
-      const primaryCategory = aiContextLocation?.metadata?.categories?.primaryCategory;
-      const additionalCategories: Array<{ displayName?: string | null }> = Array.isArray(
-        aiContextLocation?.metadata?.categories?.additionalCategories
-      )
-        ? aiContextLocation?.metadata?.categories?.additionalCategories
-        : [];
-
-      if (primaryCategory?.name) {
-        params.set('categoryId', String(primaryCategory.name));
-      }
-
-      const categoryLabel = primaryCategory?.displayName ?? aiContextLocation?.category;
-      if (categoryLabel) {
-        params.set('categoryName', categoryLabel);
-      }
-
-      const keywordSet = new Set<string>();
-      if (primaryCategory?.displayName) keywordSet.add(primaryCategory.displayName);
-      additionalCategories.forEach((item) => {
-        if (item?.displayName) keywordSet.add(item.displayName);
-      });
-      if (aiContextLocation?.category) keywordSet.add(aiContextLocation.category);
-
-      if (keywordSet.size > 0) {
-        params.set('keywords', Array.from(keywordSet).slice(0, 5).join(','));
-      }
-
-      const response = await fetch(`/api/locations/competitors?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.error || 'Failed to load competitors');
-      }
-
-      return response.json();
-    },
+    queryFn: () => fetchCompetitorsForLocation(aiContextLocation),
     enabled: aiPanelOpen && aiView === 'competitors' && Boolean(aiContextLocation?.coordinates),
     staleTime: 1000 * 60 * 5,
   });
@@ -235,6 +296,32 @@ export function LocationsMapTab() {
     }
     return (competitorsResponse.competitors as Array<Record<string, any>>) ?? [];
   }, [competitorsResponse]);
+
+  const {
+    data: previewCompetitorsResponse,
+    isFetching: previewCompetitorsLoading,
+    error: previewCompetitorsError,
+  } = useQuery({
+    queryKey: [
+      'location-competitors-preview',
+      selectedLocation?.id ?? null,
+      selectedLocation?.coordinates?.lat ?? null,
+      selectedLocation?.coordinates?.lng ?? null,
+    ],
+    queryFn: () => fetchCompetitorsForLocation(selectedLocation),
+    enabled: Boolean(selectedLocation?.coordinates),
+    staleTime: 1000 * 60 * 10,
+    cacheTime: 1000 * 60 * 30,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
+  });
+
+  const previewCompetitors = useMemo(() => {
+    if (!previewCompetitorsResponse || Array.isArray(previewCompetitorsResponse)) {
+      return previewCompetitorsResponse ?? [];
+    }
+    return (previewCompetitorsResponse.competitors as Array<Record<string, any>>) ?? [];
+  }, [previewCompetitorsResponse]);
 
   const aggregatedStats = useMemo(() => {
     if (stats) {
@@ -288,6 +375,105 @@ export function LocationsMapTab() {
       responseRate,
     };
   }, [stats, selectedLocation, aggregatedStats, snapshot]);
+
+  const locationsAggregateOverview = useMemo(() => {
+    const totalLocations = locations.length;
+    if (totalLocations === 0) {
+      return {
+        totalLocations: 0,
+        avgRating: null,
+        totalReviews: 0,
+        avgHealthScore: null,
+      };
+    }
+
+    let ratingSum = 0;
+    let ratedCount = 0;
+    let healthScoreSum = 0;
+    let healthScoreCount = 0;
+    let reviewTotal = 0;
+
+    for (const loc of locations) {
+      const rating = typeof loc.rating === 'number' && Number.isFinite(loc.rating) ? loc.rating : null;
+      if (rating !== null) {
+        ratingSum += rating;
+        ratedCount += 1;
+      }
+
+      const healthScore =
+        typeof loc.healthScore === 'number' && Number.isFinite(loc.healthScore) ? loc.healthScore : null;
+      if (healthScore !== null) {
+        healthScoreSum += healthScore;
+        healthScoreCount += 1;
+      }
+
+      const reviews =
+        typeof loc.reviewCount === 'number' && Number.isFinite(loc.reviewCount) ? loc.reviewCount : 0;
+      reviewTotal += reviews;
+    }
+
+    return {
+      totalLocations,
+      avgRating: ratedCount > 0 ? ratingSum / ratedCount : null,
+      totalReviews: reviewTotal,
+      avgHealthScore: healthScoreCount > 0 ? healthScoreSum / healthScoreCount : null,
+    };
+  }, [locations]);
+
+  const statsOverview = useMemo(() => {
+    if (!aggregatedStats) return locationsAggregateOverview;
+
+    const totalLocations =
+      typeof aggregatedStats.totalLocations === 'number' && aggregatedStats.totalLocations > 0
+        ? aggregatedStats.totalLocations
+        : locationsAggregateOverview.totalLocations;
+
+    const avgRating =
+      typeof aggregatedStats.avgRating === 'number' && Number.isFinite(aggregatedStats.avgRating)
+        ? aggregatedStats.avgRating
+        : locationsAggregateOverview.avgRating;
+
+    const totalReviews =
+      typeof aggregatedStats.totalReviews === 'number' && aggregatedStats.totalReviews >= 0
+        ? aggregatedStats.totalReviews
+        : locationsAggregateOverview.totalReviews;
+
+    const avgHealthScore =
+      typeof aggregatedStats.healthScore === 'number' && Number.isFinite(aggregatedStats.healthScore)
+        ? aggregatedStats.healthScore
+        : locationsAggregateOverview.avgHealthScore;
+
+    return {
+      totalLocations,
+      avgRating,
+      totalReviews,
+      avgHealthScore,
+    };
+  }, [aggregatedStats, locationsAggregateOverview]);
+
+  const statsOverviewDisplays = useMemo(() => {
+    const avgRating =
+      typeof statsOverview.avgRating === 'number' && Number.isFinite(statsOverview.avgRating)
+        ? statsOverview.avgRating.toFixed(1)
+        : '—';
+
+    const totalReviews =
+      typeof statsOverview.totalReviews === 'number'
+        ? statsOverview.totalReviews.toLocaleString()
+        : '0';
+
+    const avgHealthScore =
+      typeof statsOverview.avgHealthScore === 'number' && Number.isFinite(statsOverview.avgHealthScore)
+        ? `${Math.round(statsOverview.avgHealthScore)}%`
+        : '—';
+
+    return {
+      totalLocations: statsOverview.totalLocations,
+      avgRating,
+      totalReviews,
+      avgHealthScore,
+    };
+  }, [statsOverview]);
 
   // Filter locations with coordinates - calculate directly, no useMemo
   const locationsWithCoords = locations.filter(loc => 
@@ -1086,6 +1272,125 @@ export function LocationsMapTab() {
               );
             })}
           </div>
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h4 className="text-sm font-semibold text-white/90">Nearby competitors</h4>
+                <p className="text-xs text-white/60">Auto-discovered using the selected location.</p>
+              </div>
+              {selectedLocation ? (
+                <div className="flex items-center gap-2">
+                  {selectedLocation.coordinates && previewCompetitorsLoading && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-purple-300 hover:text-purple-200"
+                    onClick={() => openAiPanel(selectedLocation, 'competitors')}
+                    disabled={!selectedLocation.coordinates}
+                  >
+                    View all
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-3 space-y-3 text-xs text-white/70">
+              {!selectedLocation && (
+                <p className="text-white/60">Select a location to surface nearby competitors automatically.</p>
+              )}
+
+              {selectedLocation && !selectedLocation.coordinates && (
+                <div className="space-y-2">
+                  <p className="text-white/60">
+                    Add a precise address or map pin so we can locate competitors around this business.
+                  </p>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="border-white/20 bg-transparent text-white/80 hover:bg-white/10"
+                    onClick={() => handleEditLocation(selectedLocation)}
+                  >
+                    Update location info
+                  </Button>
+                </div>
+              )}
+
+              {selectedLocation && selectedLocation.coordinates && (
+                <>
+                  {previewCompetitorsLoading && previewCompetitors.length === 0 && (
+                    <div className="flex items-center gap-2 text-white/60">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      Fetching nearby competitors…
+                    </div>
+                  )}
+
+                  {previewCompetitorsError && (
+                    <p className="text-red-300">
+                      {previewCompetitorsError instanceof Error
+                        ? previewCompetitorsError.message
+                        : 'Unable to fetch competitors right now.'}
+                    </p>
+                  )}
+
+                  {!previewCompetitorsError && previewCompetitors.length > 0 && (
+                    <div className="space-y-2">
+                      {previewCompetitors.slice(0, 3).map((competitor: any) => (
+                        <div
+                          key={competitor.placeId ?? competitor.name}
+                          className="rounded-xl border border-white/10 bg-black/40 p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-white">{competitor.name}</p>
+                              <p className="text-xs text-white/60">
+                                {competitor.address ?? competitor.vicinity ?? 'No address provided'}
+                              </p>
+                            </div>
+                            <div className="text-right text-xs text-white/70">
+                              <p>⭐ {competitor.rating ?? '—'}</p>
+                              <p>{competitor.userRatingsTotal ?? 0} reviews</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-white/60">
+                            <span>Status: {competitor.businessStatus ?? 'Unknown'}</span>
+                            {competitor.openNow != null && (
+                              <span>{competitor.openNow ? '🟢 Open now' : '🔴 Closed'}</span>
+                            )}
+                            {competitor.placeId && (
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                className="px-2 text-xs text-white hover:bg-white/10"
+                                onClick={() =>
+                                  window.open(
+                                    `https://www.google.com/maps/place/?q=place_id:${competitor.placeId}`,
+                                    '_blank'
+                                  )
+                                }
+                              >
+                                View on Maps
+                                <ExternalLink className="ml-1 h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!previewCompetitorsError &&
+                    !previewCompetitorsLoading &&
+                    previewCompetitors.length === 0 && (
+                      <p className="text-white/60">
+                        No competitors detected within the default search radius yet.
+                      </p>
+                    )}
+                </>
+              )}
+            </div>
+          </div>
         </aside>
       </div>
 
@@ -1139,19 +1444,19 @@ export function LocationsMapTab() {
           <div className="grid grid-cols-2 gap-3 text-sm text-white">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase text-white/50">Total locations</p>
-              <p className="mt-2 text-xl font-semibold">{locations.length}</p>
+              <p className="mt-2 text-xl font-semibold">{statsOverviewDisplays.totalLocations}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase text-white/50">Average rating</p>
-              <p className="mt-2 text-xl font-semibold">{selectedLocation?.rating?.toFixed(1) ?? '—'}</p>
+              <p className="mt-2 text-xl font-semibold">{statsOverviewDisplays.avgRating}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase text-white/50">Total reviews</p>
-              <p className="mt-2 text-xl font-semibold">{selectedLocation?.reviewCount ?? 0}</p>
+              <p className="mt-2 text-xl font-semibold">{statsOverviewDisplays.totalReviews}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase text-white/50">Avg health score</p>
-              <p className="mt-2 text-xl font-semibold">{selectedLocation?.healthScore ?? 0}%</p>
+              <p className="mt-2 text-xl font-semibold">{statsOverviewDisplays.avgHealthScore}</p>
             </div>
           </div>
         </section>
