@@ -311,7 +311,7 @@ export function LocationsMapTab() {
     queryFn: () => fetchCompetitorsForLocation(selectedLocation),
     enabled: Boolean(selectedLocation?.coordinates),
     staleTime: 1000 * 60 * 10,
-    cacheTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 30,
     keepPreviousData: true,
     refetchOnWindowFocus: false,
   });
