@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import type { BusinessProfile, FeatureCategoryKey, FeatureSelection, SpecialLinks } from '@/types/features'
+import type { BusinessProfile, BusinessProfilePayload, FeatureCategoryKey, FeatureSelection, SpecialLinks } from '@/types/features'
 import { FEATURE_CATALOG } from '@/lib/features/feature-definitions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -44,16 +44,16 @@ const FROM_BUSINESS_OPTIONS: readonly { key: string; label: string; icon: string
 ]
 
 interface TabComponentProps {
-  readonly profile: BusinessProfile
-  readonly onChange: (next: BusinessProfile) => void
+  readonly profile: BusinessProfilePayload
+  readonly onChange: (next: BusinessProfilePayload) => void
   readonly onDirty: () => void
 }
 
 function withUpdatedFeatures(
-  profile: BusinessProfile,
+  profile: BusinessProfilePayload,
   category: FeatureCategoryKey,
   updater: (current: readonly string[]) => readonly string[],
-): BusinessProfile {
+): BusinessProfilePayload {
   const nextFeatures: FeatureSelection = {
     ...DEFAULT_FEATURES,
     ...profile.features,
@@ -66,7 +66,7 @@ function withUpdatedFeatures(
   }
 }
 
-function withUpdatedLinks(profile: BusinessProfile, updater: (current: SpecialLinks) => SpecialLinks): BusinessProfile {
+function withUpdatedLinks(profile: BusinessProfilePayload, updater: (current: SpecialLinks) => SpecialLinks): BusinessProfilePayload {
   return {
     ...profile,
     specialLinks: updater(profile.specialLinks ?? {}),
@@ -306,7 +306,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty }: TabComponentProp
   }, [profile.description, profile.locationName])
 
   const commitProfile = useCallback(
-    (next: BusinessProfile, message?: string) => {
+    (next: BusinessProfilePayload, message?: string) => {
       onChange(next)
       onDirty()
       window.dispatchEvent(new Event('dashboard:refresh'))
@@ -318,8 +318,8 @@ export function BusinessInfoTab({ profile, onChange, onDirty }: TabComponentProp
   )
 
   const updateProfile = useCallback(
-    (partial: Partial<BusinessProfile>, message?: string) => {
-      const next: BusinessProfile = {
+    (partial: Partial<BusinessProfilePayload>, message?: string) => {
+      const next: BusinessProfilePayload = {
         ...profile,
         ...partial,
       }
@@ -332,8 +332,8 @@ export function BusinessInfoTab({ profile, onChange, onDirty }: TabComponentProp
     updateProfile({ description: event.target.value }, undefined)
   }
 
-  const handleInputChange = (field: keyof Pick<BusinessProfile, 'locationName' | 'shortDescription' | 'phone' | 'website'>, value: string) => {
-    updateProfile({ [field]: value } as Partial<BusinessProfile>)
+  const handleInputChange = (field: keyof Pick<BusinessProfilePayload, 'locationName' | 'shortDescription' | 'phone' | 'website'>, value: string) => {
+    updateProfile({ [field]: value } as Partial<BusinessProfilePayload>)
   }
 
   const toggleFeature = useCallback(
@@ -852,7 +852,7 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
       return
     }
 
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       additionalCategories: [...profile.additionalCategories, category],
     }
@@ -864,7 +864,7 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
   }
 
   const removeCategory = (category: string) => {
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       additionalCategories: profile.additionalCategories.filter((item) => item !== category),
     }
@@ -886,7 +886,7 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
   }, [searchQuery, profile.primaryCategory, profile.additionalCategories])
 
   const updatePrimaryCategory = (value: string) => {
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       primaryCategory: value,
     }
@@ -1104,7 +1104,7 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
       set.add(key)
     }
 
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       fromTheBusiness: Array.from(set),
     }
@@ -1116,7 +1116,7 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
   }
 
   const updateOpeningDate = (value: string) => {
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       openingDate: value || null,
     }
@@ -1128,7 +1128,7 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
   }
 
   const updateServiceArea = (checked: boolean) => {
-    const next: BusinessProfile = {
+    const next: BusinessProfilePayload = {
       ...profile,
       serviceAreaEnabled: checked,
     }

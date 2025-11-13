@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { FeaturesTab, BusinessInfoTab, CategoriesTab, LinksTab, MoreTab } from './TabComponents'
 import { ProfileCompletenessCard } from './ProfileCompletenessCard'
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache'
-import type { BusinessProfile, BusinessProfilePayload } from '@/types/features'
+import type { BusinessProfilePayload } from '@/types/features'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface TabDefinition {
@@ -24,7 +24,7 @@ const TABS: readonly TabDefinition[] = [
   { id: 'more', name: 'More Details', icon: '📋' },
 ]
 
-function fingerprint(profile: BusinessProfile | null): string {
+function fingerprint(profile: BusinessProfilePayload | null): string {
   return profile ? JSON.stringify(profile) : ''
 }
 
@@ -103,7 +103,7 @@ export default function BusinessProfilePage() {
     return fingerprint(profile) !== fingerprint(initialProfile)
   }, [profile, initialProfile])
 
-  const handleProfileChange = (next: BusinessProfile) => {
+  const handleProfileChange = (next: BusinessProfilePayload) => {
     setProfile((prev) => {
       if (!prev) {
         return { ...next }
