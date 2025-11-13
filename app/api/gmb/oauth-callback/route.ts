@@ -342,11 +342,11 @@ export async function GET(request: NextRequest) {
           };
 
           // Use UPSERT to insert or update the location in a single query
-          // The unique constraint on location_id will handle the conflict
+          // The unique constraint on (gmb_account_id, location_id) will handle the conflict
           const { error: upsertLocationError } = await supabase
             .from('gmb_locations')
             .upsert(locationData, {
-              onConflict: 'location_id',
+              onConflict: 'gmb_account_id,location_id',
               ignoreDuplicates: false,
             });
 
