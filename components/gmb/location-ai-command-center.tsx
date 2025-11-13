@@ -167,11 +167,16 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
       ? "warning"
       : "danger";
 
-  const getMetric = (value: unknown, fallback: NumericMetric = 0) =>
-    toNumber(typeof value === "number" || typeof value === "string" ? value : fallback);
+  const asNumericMetric = (value: unknown): NumericMetric => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number.parseFloat(value);
+    return null;
+  };
 
-  const getNullableMetric = (value: unknown) =>
-    toNullableNumber(typeof value === "number" || typeof value === "string" ? value : null);
+  const getMetric = (value: unknown, fallback: NumericMetric = 0) =>
+    toNumber(asNumericMetric(value) ?? fallback);
+
+  const getNullableMetric = (value: unknown) => toNullableNumber(asNumericMetric(value));
 
   const derivedInsights = {
     views: getMetric(insightsSource.views, engagement.views),
