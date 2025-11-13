@@ -312,7 +312,7 @@ export function LocationsMapTab() {
     enabled: Boolean(selectedLocation?.coordinates),
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData ?? [],
     refetchOnWindowFocus: false,
   });
 
@@ -1307,9 +1307,9 @@ export function LocationsMapTab() {
                     Add a precise address or map pin so we can locate competitors around this business.
                   </p>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
-                    className="border-white/20 bg-transparent text-white/80 hover:bg-white/10"
+                    className="h-7 px-2 border-white/20 bg-transparent text-white/80 hover:bg-white/10"
                     onClick={() => handleEditLocation(selectedLocation)}
                   >
                     Update location info
@@ -1360,9 +1360,9 @@ export function LocationsMapTab() {
                             )}
                             {competitor.placeId && (
                               <Button
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
-                                className="px-2 text-xs text-white hover:bg-white/10"
+                                className="h-7 px-2 text-xs text-white hover:bg-white/10"
                                 onClick={() =>
                                   window.open(
                                     `https://www.google.com/maps/place/?q=place_id:${competitor.placeId}`,
