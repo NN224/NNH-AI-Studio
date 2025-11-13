@@ -34,6 +34,9 @@ export interface UseLocationsResult {
   loadMore: () => Promise<void>;
 }
 
+// Only emit verbose logs in non‑production builds
+const __DEV__ = process.env.NODE_ENV !== 'production';
+
 function normalizeLocationStatus(status: unknown): Location['status'] {
   const value = (status ?? '').toString().toLowerCase();
   if (value.includes('suspend')) return 'suspended';
@@ -179,15 +182,25 @@ export function useLocations(
       // Use filters from ref to avoid dependency issues
       const currentFilters = filtersRef.current;
 
-      console.log('🔄 [useLocations] Starting fetch...', { pageNum, reset, timestamp: new Date().toISOString() });
+      if (__DEV__) {
+        console.log('🔄 [useLocations] Starting fetch...', {
+          pageNum,
+          reset,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error('❌ [useLocations] Auth error:', authError);
+        if (__DEV__) {
+          console.error('❌ [useLocations] Auth error:', authError);
+        }
         throw new Error('Authentication required. Please sign in again.');
       }
 
-      console.log('✅ [useLocations] User authenticated:', { userId: user.id });
+      if (__DEV__) {
+        console.log('✅ [useLocations] User authenticated:', { userId: user.id });
+      }
 
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -195,7 +208,7 @@ export function useLocations(
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profileError && profileError.code !== 'PGRST116') {
+    if (profileError && profileError.code !== 'PGRST116' && __DEV__) {
       console.warn('[useLocations] profiles lookup error:', profileError);
     }
 
@@ -277,33 +290,41 @@ export function useLocations(
       const to = from + pageSize - 1;
       query = query.range(from, to);
 
-      console.log('📊 [useLocations] Executing query...', { 
-        filters: Object.keys(currentFilters).length,
-        pageNum,
-        pageSize 
-      });
+      if (__DEV__) {
+        console.log('📊 [useLocations] Executing query...', {
+          filters: Object.keys(currentFilters).length,
+          pageNum,
+          pageSize,
+        });
+      }
 
       const { data, error: queryError, count } = await query;
 
       if (controller.signal.aborted) {
-        console.log('⏹️ [useLocations] Request aborted');
+        if (__DEV__) {
+          console.log('⏹️ [useLocations] Request aborted');
+        }
         return;
       }
 
       if (queryError) {
-        console.error('❌ [useLocations] Query error:', {
-          message: queryError.message,
-          code: queryError.code,
-          details: queryError.details,
-          hint: queryError.hint
-        });
+        if (__DEV__) {
+          console.error('❌ [useLocations] Query error:', {
+            message: queryError.message,
+            code: queryError.code,
+            details: queryError.details,
+            hint: queryError.hint,
+          });
+        }
         throw queryError;
       }
 
-      console.log('✅ [useLocations] Query successful:', { 
-        count: data?.length || 0, 
-        total: count || 0 
-      });
+      if (__DEV__) {
+        console.log('✅ [useLocations] Query successful:', {
+          count: data?.length || 0,
+          total: count || 0,
+        });
+      }
 
       const locationIds: string[] =
         data?.map((loc: any) => (loc?.id ? String(loc.id) : null)).filter((id): id is string => Boolean(id)) ?? [];
@@ -328,7 +349,9 @@ export function useLocations(
         ]);
 
         if (pendingReviewsResult.error) {
-          console.warn('[useLocations] pending reviews lookup failed:', pendingReviewsResult.error);
+          if (__DEV__) {
+            console.warn('[useLocations] pending reviews lookup failed:', pendingReviewsResult.error);
+          }
         } else {
           for (const review of pendingReviewsResult.data ?? []) {
             const locationId = review?.location_id;
@@ -338,7 +361,9 @@ export function useLocations(
         }
 
         if (pendingQuestionsResult.error) {
-          console.warn('[useLocations] pending questions lookup failed:', pendingQuestionsResult.error);
+          if (__DEV__) {
+            console.warn('[useLocations] pending questions lookup failed:', pendingQuestionsResult.error);
+          }
         } else {
           for (const question of pendingQuestionsResult.data ?? []) {
             const locationId = question?.location_id;
@@ -597,31 +622,39 @@ export function useLocations(
       setHasMore((count || 0) > pageNum * pageSize);
       setError(null);
       
-      console.log('✅ [useLocations] Locations set:', { 
-        locationsCount: transformedLocations.length,
-        total,
-        hasMore 
-      });
+      if (__DEV__) {
+        console.log('✅ [useLocations] Locations set:', {
+          locationsCount: transformedLocations.length,
+          total,
+          hasMore,
+        });
+      }
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
         const errorMessage = err.message || 'Unknown error occurred';
         const errorName = err.name || 'Error';
         
-        console.error('❌ [useLocations] Fetch error:', {
-          name: errorName,
-          message: errorMessage,
-          stack: err.stack,
-          timestamp: new Date().toISOString()
-        });
+        if (__DEV__) {
+          console.error('❌ [useLocations] Fetch error:', {
+            name: errorName,
+            message: errorMessage,
+            stack: err.stack,
+            timestamp: new Date().toISOString(),
+          });
+        }
         
         setError(err);
       } else if (err instanceof Error && err.name === 'AbortError') {
-        console.log('⏹️ [useLocations] Request aborted (expected)');
+        if (__DEV__) {
+          console.log('⏹️ [useLocations] Request aborted (expected)');
+        }
       }
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
-        console.log('🏁 [useLocations] Loading complete');
+        if (__DEV__) {
+          console.log('🏁 [useLocations] Loading complete');
+        }
       }
     }
   }, [supabase, pageSize]); // Removed filters from dependencies - using ref instead
@@ -693,8 +726,9 @@ export function useLocations(
               filter: `user_id=eq.${userId}`,
             },
             (payload) => {
-              console.log('📡 Location changed:', payload.eventType, payload);
-              
+              if (__DEV__) {
+                console.log('📡 Location changed:', payload.eventType, payload);
+              }
               if (!isMountedRef.current) return;
 
               // Refetch locations when changes occur - use ref to avoid dependency
@@ -734,26 +768,37 @@ export function useLocations(
             if (status === 'SUBSCRIBED') {
               console.log('✅ Locations realtime subscribed');
             } else if (status === 'CHANNEL_ERROR') {
-              console.error('❌ Locations realtime subscription error:', err);
-              
+              if (__DEV__) {
+                console.error('❌ Locations realtime subscription error:', err);
+              }
               // Log detailed error for debugging
               if (err) {
                 const errorMessage = err?.message || JSON.stringify(err);
                 if (errorMessage.includes('Realtime is enabled') || 
                     errorMessage.includes('Unable to subscribe')) {
-                  console.warn('⚠️ Realtime subscription failed - Realtime may not be enabled for gmb_locations table in Supabase. The app will continue to work, but without real-time updates.');
+                  if (__DEV__) {
+                    console.warn(
+                      '⚠️ Realtime subscription failed - Realtime may not be enabled for gmb_locations table in Supabase. The app will continue to work, but without real-time updates.',
+                    );
+                  }
                 }
               }
             } else if (status === 'TIMED_OUT') {
-              console.warn('⏱️ Locations realtime subscription timed out');
+              if (__DEV__) {
+                console.warn('⏱️ Locations realtime subscription timed out');
+              }
             } else if (status === 'CLOSED') {
-              console.log('🔌 Locations realtime subscription closed');
+              if (__DEV__) {
+                console.log('🔌 Locations realtime subscription closed');
+              }
             }
           });
 
         channelRef.current = channel;
       } catch (err) {
-        console.error('Error setting up realtime:', err);
+        if (__DEV__) {
+          console.error('Error setting up realtime:', err);
+        }
       }
     };
 

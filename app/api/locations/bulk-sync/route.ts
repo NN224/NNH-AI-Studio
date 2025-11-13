@@ -4,13 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { bulkSyncLocations } from '@/server/actions/locations'
 
 export const dynamic = 'force-dynamic';
-
-// Google My Business API base URL
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GBP_PERF_BASE = 'https://mybusinessperformance.googleapis.com/v1';
 
 /**
  * Get valid access token for a GMB account
@@ -21,7 +16,7 @@ async function getValidAccessToken(
 ): Promise<string> {
   const { data: account, error } = await supabase
     .from('gmb_accounts')
-    .select('access_token, refresh_token, expires_at, account_id')
+    .select('access_token, refresh_token, token_expires_at, expires_at, account_id')
     .eq('id', accountId)
     .single();
 
@@ -29,11 +24,16 @@ async function getValidAccessToken(
     throw new Error(`Account not found: ${accountId}`);
   }
 
-  // Check if token is expired
+  // Check if token is expired (prefer token_expires_at but fall back to legacy expires_at)
   const now = Date.now();
-  const expiresAt = account.expires_at ? new Date(account.expires_at).getTime() : 0;
+  const expiresAt =
+    account.token_expires_at
+      ? new Date(account.token_expires_at).getTime()
+      : account.expires_at
+      ? new Date(account.expires_at).getTime()
+      : 0;
 
-  if (expiresAt > now) {
+  if (expiresAt && expiresAt > now) {
     return account.access_token;
   }
 
@@ -64,6 +64,8 @@ async function getValidAccessToken(
     .from('gmb_accounts')
     .update({
       access_token: tokens.access_token,
+      token_expires_at: newExpiresAt.toISOString(),
+      // keep legacy column in sync if it still exists
       expires_at: newExpiresAt.toISOString(),
     })
     .eq('id', accountId);

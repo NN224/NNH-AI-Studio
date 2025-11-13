@@ -242,16 +242,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account not found' }, { status: 404 });
     }
 
-    // Trigger sync by calling the sync API
-    const syncUrl = new URL(request.url);
-    syncUrl.pathname = '/api/gmb/sync';
-    syncUrl.searchParams.set('accountId', accountId);
+    // Trigger sync by calling the sync API as the current user
+    const syncUrl = new URL('/api/gmb/sync', request.url);
+    const cookieHeader = request.headers.get('cookie') ?? '';
 
-    // In a real implementation, you would call the sync function directly
-    // For now, we'll return a success message
+    const syncResponse = await fetch(syncUrl.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward authentication cookies so /api/gmb/sync sees the same user
+        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+      },
+      body: JSON.stringify({
+        accountId,
+        syncType: 'full',
+      }),
+    });
+
+    const payload = await syncResponse.json().catch(() => ({}));
+
+    if (!syncResponse.ok) {
+      return NextResponse.json(
+        {
+          error: payload?.error || 'Failed to trigger sync',
+          message: payload?.message,
+          status: syncResponse.status,
+        },
+        { status: syncResponse.status },
+      );
+    }
+
     return NextResponse.json({
       message: 'Sync triggered successfully',
       accountId,
+      result: payload,
     });
 
   } catch (error: any) {

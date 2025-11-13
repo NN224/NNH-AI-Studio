@@ -102,7 +102,7 @@ export function LocationsList() {
           // Extract location ID number from formats like:
           // - "locations/11247391224469965786"
           // - "accounts/101323766532690204511/locations/11247391224469965786"
-          const match = locationId.match(/locations\/([^\/]+)$/)
+          const match = locationId.match(/locations\/([^/]+)$/)
           return match ? match[1] : locationId
         }
 

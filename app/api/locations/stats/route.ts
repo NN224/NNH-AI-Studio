@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // Get locations with all necessary fields for calculations
     const { data: locations, error: locationsError } = await supabase
       .from('gmb_locations')
-      .select('id, rating, review_count, category, metadata, phone, website, address, business_hours')
+      .select('id, rating, review_count, category, status, metadata, phone, website, address, business_hours')
       .eq('user_id', user.id)
       .in('gmb_account_id', accountIds)
       .eq('is_active', true);
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         totalReviews: 0,
         avgHealthScore: 0,
         locationsByCategory: {},
+        locationsByStatus: {},
       });
     }
 
@@ -253,11 +254,15 @@ export async function GET(request: NextRequest) {
       reviewsCount: allReviews?.length || 0,
     });
 
-    // Group by category
+    // Group by category and status
     const locationsByCategory: Record<string, number> = {};
+    const locationsByStatus: Record<string, number> = {};
     locations?.forEach(loc => {
       const category = loc.category || 'Uncategorized';
       locationsByCategory[category] = (locationsByCategory[category] || 0) + 1;
+
+      const statusKey = (loc.status || 'unknown').toString();
+      locationsByStatus[statusKey] = (locationsByStatus[statusKey] || 0) + 1;
     });
 
     const response = {
@@ -266,6 +271,7 @@ export async function GET(request: NextRequest) {
       totalReviews,
       avgHealthScore: Math.round(avgHealthScore),
       locationsByCategory,
+      locationsByStatus,
     };
 
     console.log('[GET /api/locations/stats] Returning response:', response);

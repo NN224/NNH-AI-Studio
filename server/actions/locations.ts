@@ -442,10 +442,10 @@ export async function bulkSyncLocations(locationIds: string[]) {
 
   const { data: locationRow, error: locationError } = await supabase
     .from('gmb_locations')
-    .select('account_id')
+    .select('gmb_account_id')
     .eq('user_id', user.id)
     .in('id', locationIds)
-    .not('account_id', 'is', null)
+    .not('gmb_account_id', 'is', null)
     .limit(1)
     .maybeSingle()
 
@@ -453,7 +453,7 @@ export async function bulkSyncLocations(locationIds: string[]) {
     throw new Error(locationError.message)
   }
 
-  const accountId = locationRow?.account_id as string | null
+  const accountId = locationRow?.gmb_account_id as string | null
   if (!accountId) {
     throw new Error('No Google Business account found for the selected locations')
   }

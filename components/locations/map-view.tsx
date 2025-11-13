@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useRef, useEffect } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker, MarkerClustererF } from '@react-google-maps/api';
 import { Location } from '@/components/locations/location-types';
 import { getMarkerIcon, MAP_CONTAINER_STYLE, DEFAULT_MAP_OPTIONS } from '@/utils/map-styles';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
@@ -218,23 +218,28 @@ export function MapView({
         onLoad={onMapLoad}
         onUnmount={onMapUnmount}
       >
-        {locationsWithCoords.map((location) => {
-          const isSelected = location.id === selectedLocationId;
-          return (
-            <Marker
-              key={location.id}
-              position={{
-                lat: location.coordinates!.lat,
-                lng: location.coordinates!.lng,
-              }}
-              icon={getMarkerIcon(isSelected)}
-              title={location.name}
-              onClick={() => handleMarkerClick(location)}
-              onLoad={handleMarkerLoad}
-              aria-label={`${location.name}, ${location.address || 'No address'}`}
-            />
-          );
-        })}
+        <MarkerClustererF>
+          {(clusterer) =>
+            locationsWithCoords.map((location) => {
+              const isSelected = location.id === selectedLocationId;
+              return (
+                <Marker
+                  key={location.id}
+                  position={{
+                    lat: location.coordinates!.lat,
+                    lng: location.coordinates!.lng,
+                  }}
+                  icon={getMarkerIcon(isSelected)}
+                  title={location.name}
+                  onClick={() => handleMarkerClick(location)}
+                  onLoad={handleMarkerLoad}
+                  clusterer={clusterer}
+                  aria-label={`${location.name}, ${location.address || 'No address'}`}
+                />
+              );
+            })
+          }
+        </MarkerClustererF>
       </GoogleMap>
     </div>
   );

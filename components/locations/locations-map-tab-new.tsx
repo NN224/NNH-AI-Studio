@@ -61,6 +61,9 @@ function usePrevious<T>(value: T): T | undefined {
  */
 type BrandingVariant = 'cover' | 'logo'
 
+// Limit verbose logging to non‑production builds
+const __DEV__ = process.env.NODE_ENV !== 'production';
+
 export function LocationsMapTab() {
   // Use stable empty filters object to prevent infinite loops
   const emptyFilters = useMemo(() => ({}), []);
@@ -616,14 +619,16 @@ export function LocationsMapTab() {
 
   // Map View specific logging
   useEffect(() => {
-    console.log('🗺️ [MapView] Component state:', {
-      loading,
-      locationsCount: locations.length,
-      isLoaded,
-      loadError: loadError?.message,
-      locationsError: locationsError?.message,
-      timestamp: new Date().toISOString()
-    });
+    if (__DEV__) {
+      console.log('🗺️ [MapView] Component state:', {
+        loading,
+        locationsCount: locations.length,
+        isLoaded,
+        loadError: loadError?.message,
+        locationsError: locationsError?.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }, [loading, locations.length, isLoaded, loadError, locationsError]);
 
   // Timeout for loading state (10 seconds)
@@ -631,14 +636,16 @@ export function LocationsMapTab() {
     if (loading) {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true);
-        console.error('❌ [MapView] Locations loading timeout - taking longer than expected', {
-          loading,
-          locationsCount: locations.length,
-          isLoaded,
-          loadError: loadError?.message,
-          locationsError: locationsError?.message,
-          timestamp: new Date().toISOString()
-        });
+        if (__DEV__) {
+          console.error('❌ [MapView] Locations loading timeout - taking longer than expected', {
+            loading,
+            locationsCount: locations.length,
+            isLoaded,
+            loadError: loadError?.message,
+            locationsError: locationsError?.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }, 10000); // 10 seconds
 
       return () => clearTimeout(timeout);
@@ -650,36 +657,46 @@ export function LocationsMapTab() {
   // Debug logging
   useEffect(() => {
     if (loading) {
-      console.log('🔄 [MapView] Loading locations...', { 
-        timestamp: new Date().toISOString(),
-        hasError: !!locationsError,
-        isLoaded,
-        loadError: loadError?.message
-      });
+      if (__DEV__) {
+        console.log('🔄 [MapView] Loading locations...', {
+          timestamp: new Date().toISOString(),
+          hasError: !!locationsError,
+          isLoaded,
+          loadError: loadError?.message,
+        });
+      }
     } else if (locationsError) {
-      console.error('❌ [MapView] Locations error:', {
-        message: locationsError.message,
-        name: locationsError.name,
-        stack: locationsError.stack,
-        timestamp: new Date().toISOString()
-      });
+      if (__DEV__) {
+        console.error('❌ [MapView] Locations error:', {
+          message: locationsError.message,
+          name: locationsError.name,
+          stack: locationsError.stack,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } else if (loadError) {
-      console.error('❌ [MapView] Google Maps error:', {
-        message: loadError.message,
-        timestamp: new Date().toISOString()
-      });
+      if (__DEV__) {
+        console.error('❌ [MapView] Google Maps error:', {
+          message: loadError.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } else if (locations.length > 0) {
-      console.log('✅ [MapView] Locations loaded:', {
-        count: locations.length,
-        isLoaded,
-        timestamp: new Date().toISOString()
-      });
+      if (__DEV__) {
+        console.log('✅ [MapView] Locations loaded:', {
+          count: locations.length,
+          isLoaded,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } else {
-      console.log('ℹ️ [MapView] No locations found', {
-        loading,
-        isLoaded,
-        timestamp: new Date().toISOString()
-      });
+      if (__DEV__) {
+        console.log('ℹ️ [MapView] No locations found', {
+          loading,
+          isLoaded,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }, [loading, locationsError, locations.length, isLoaded, loadError]);
 
@@ -810,12 +827,14 @@ export function LocationsMapTab() {
 
   // Google Maps not loaded
   if (!isLoaded) {
-    console.log('🗺️ [MapView] Google Maps not loaded yet', {
-      isLoaded,
-      loadError: loadError ? String(loadError) : null,
-      locationsCount: locations.length,
-      timestamp: new Date().toISOString()
-    });
+    if (__DEV__) {
+      console.log('🗺️ [MapView] Google Maps not loaded yet', {
+        isLoaded,
+        loadError: loadError ? String(loadError) : null,
+        locationsCount: locations.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
     
     return (
       <Card>

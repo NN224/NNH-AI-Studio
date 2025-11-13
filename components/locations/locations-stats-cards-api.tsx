@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Star, Eye, TrendingUp, Loader2 } from 'lucide-react';
+import { MapPin, Star, Eye, TrendingUp } from 'lucide-react';
 import { formatLargeNumber } from '@/components/locations/location-types';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 
@@ -141,7 +141,7 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
 
   if (error) {
     return (
-      <div className="grid.gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-destructive md:col-span-2 lg:col-span-4">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
