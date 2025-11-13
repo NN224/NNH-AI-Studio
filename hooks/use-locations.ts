@@ -315,10 +315,10 @@ export function useLocations(
         const [pendingReviewsResult, pendingQuestionsResult] = await Promise.all([
           supabase
             .from('gmb_reviews')
-            .select('location_id, review_reply, has_reply')
+            .select('location_id, has_reply')
             .eq('user_id', user.id)
             .in('location_id', locationIds)
-            .or('review_reply.is.null,has_reply.eq.false'),
+            .or('has_reply.eq.false,has_reply.is.null'),
           supabase
             .from('gmb_questions')
             .select('location_id, answer_status')
