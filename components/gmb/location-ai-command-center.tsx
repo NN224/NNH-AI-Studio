@@ -167,21 +167,31 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
       ? "warning"
       : "danger";
 
+  const getMetric = (value: unknown, fallback: NumericMetric = 0) =>
+    toNumber(typeof value === "number" || typeof value === "string" ? value : fallback);
+
+  const getNullableMetric = (value: unknown) =>
+    toNullableNumber(typeof value === "number" || typeof value === "string" ? value : null);
+
   const derivedInsights = {
-    views: toNumber(insightsSource.views ?? engagement.views),
-    viewsTrend: toNullableNumber(insightsSource.viewsTrend ?? engagement.viewsTrend),
-    clicks: toNumber(
+    views: getMetric(insightsSource.views, engagement.views),
+    viewsTrend: getNullableMetric(insightsSource.viewsTrend ?? engagement.viewsTrend),
+    clicks: getMetric(
       insightsSource.clicks ?? insightsSource.websiteClicks ?? engagement.clicks ?? engagement.websiteClicks,
     ),
-    clicksTrend: toNullableNumber(
+    clicksTrend: getNullableMetric(
       insightsSource.clicksTrend ?? insightsSource.websiteClicksTrend ?? engagement.clicksTrend,
     ),
-    calls: toNumber(insightsSource.calls ?? engagement.calls),
-    callsTrend: toNullableNumber(insightsSource.callsTrend ?? engagement.callsTrend),
-    directions: toNumber(insightsSource.directions ?? engagement.directions),
-    directionsTrend: toNullableNumber(insightsSource.directionsTrend ?? engagement.directionsTrend),
-    website: toNumber(insightsSource.websiteClicks ?? engagement.websiteClicks),
-    websiteTrend: toNullableNumber(insightsSource.websiteClicksTrend ?? engagement.websiteClicksTrend),
+    calls: getMetric(insightsSource.calls, engagement.calls),
+    callsTrend: getNullableMetric(insightsSource.callsTrend ?? engagement.callsTrend),
+    directions: getMetric(insightsSource.directions, engagement.directions),
+    directionsTrend: getNullableMetric(
+      insightsSource.directionsTrend ?? engagement.directionsTrend ?? engagement.directionsTrend,
+    ),
+    website: getMetric(insightsSource.websiteClicks, engagement.websiteClicks),
+    websiteTrend: getNullableMetric(
+      insightsSource.websiteClicksTrend ?? engagement.websiteClicksTrend ?? engagement.websiteClicksTrend,
+    ),
   };
 
   const aiInsights =
