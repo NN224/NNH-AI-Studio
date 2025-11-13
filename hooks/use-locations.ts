@@ -305,6 +305,49 @@ export function useLocations(
         total: count || 0 
       });
 
+      const locationIds: string[] =
+        data?.map((loc: any) => (loc?.id ? String(loc.id) : null)).filter((id): id is string => Boolean(id)) ?? [];
+
+      const pendingReviewsMap = new Map<string, number>();
+      const pendingQuestionsMap = new Map<string, number>();
+
+      if (locationIds.length > 0) {
+        const [pendingReviewsResult, pendingQuestionsResult] = await Promise.all([
+          supabase
+            .from('gmb_reviews')
+            .select('location_id, review_reply, has_reply')
+            .eq('user_id', user.id)
+            .in('location_id', locationIds)
+            .or('review_reply.is.null,has_reply.eq.false'),
+          supabase
+            .from('gmb_questions')
+            .select('location_id, answer_status')
+            .eq('user_id', user.id)
+            .in('location_id', locationIds)
+            .in('answer_status', ['pending', 'unanswered']),
+        ]);
+
+        if (pendingReviewsResult.error) {
+          console.warn('[useLocations] pending reviews lookup failed:', pendingReviewsResult.error);
+        } else {
+          for (const review of pendingReviewsResult.data ?? []) {
+            const locationId = review?.location_id;
+            if (!locationId) continue;
+            pendingReviewsMap.set(locationId, (pendingReviewsMap.get(locationId) ?? 0) + 1);
+          }
+        }
+
+        if (pendingQuestionsResult.error) {
+          console.warn('[useLocations] pending questions lookup failed:', pendingQuestionsResult.error);
+        } else {
+          for (const question of pendingQuestionsResult.data ?? []) {
+            const locationId = question?.location_id;
+            if (!locationId) continue;
+            pendingQuestionsMap.set(locationId, (pendingQuestionsMap.get(locationId) ?? 0) + 1);
+          }
+        }
+      }
+
       // Transform data to Location type (skip records without valid IDs)
       const transformedLocations: Location[] = (data || [])
         .filter((loc: any) => loc?.id && String(loc.id).trim() !== '')
@@ -384,12 +427,14 @@ export function useLocations(
             : [];
 
           const pendingReviewsCount =
+            pendingReviewsMap.get(loc.id) ??
             coerceNumber(loc.pending_reviews) ??
             coerceNumber(metadata.pendingReviews) ??
             coerceNumber(metadata.pending_review_count) ??
             insights.pendingReviews ?? 0;
 
           const pendingQuestionsCount =
+            pendingQuestionsMap.get(loc.id) ??
             coerceNumber(loc.pending_questions) ??
             coerceNumber(metadata.pendingQuestions) ??
             coerceNumber(metadata.pending_question_count) ??
