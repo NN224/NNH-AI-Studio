@@ -99,7 +99,7 @@ export function QuestionsClientPage({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const [isPending, startTransition] = useTransition();
-  const [selectedQuestion, setSelectedQuestion] = useState<GMBQuestion | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionEntity | null>(null);
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -329,7 +329,7 @@ export function QuestionsClientPage({
     }
   }, [currentFilters.locationId, refreshData]);
 
-  const handleAnswer = useCallback((question: GMBQuestion) => {
+  const handleAnswer = useCallback((question: QuestionEntity) => {
     setSelectedQuestion(question);
     setAnswerDialogOpen(true);
   }, []);
