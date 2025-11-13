@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { GMB_CONSTANTS } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ async function fetchReviews(
   accountResource: string,
   pageToken?: string
 ): Promise<{ reviews: any[]; nextPageToken?: string }> {
-  const url = new URL(`${GBP_LOC_BASE}/${locationResource}/reviews`);
+  const url = new URL(`${GMB_CONSTANTS.GBP_LOC_BASE}/${locationResource}/reviews`);
   url.searchParams.set('pageSize', '50');
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
@@ -116,7 +117,7 @@ async function fetchMedia(
   accountResource: string,
   pageToken?: string
 ): Promise<{ media: any[]; nextPageToken?: string }> {
-  const url = new URL(`${GBP_LOC_BASE}/${locationResource}/media`);
+  const url = new URL(`${GMB_CONSTANTS.GBP_LOC_BASE}/${locationResource}/media`);
   url.searchParams.set('pageSize', '50');
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);

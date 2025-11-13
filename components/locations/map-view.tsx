@@ -219,26 +219,28 @@ export function MapView({
         onUnmount={onMapUnmount}
       >
         <MarkerClustererF>
-          {(clusterer) =>
-            locationsWithCoords.map((location) => {
-              const isSelected = location.id === selectedLocationId;
-              return (
-                <Marker
-                  key={location.id}
-                  position={{
-                    lat: location.coordinates!.lat,
-                    lng: location.coordinates!.lng,
-                  }}
-                  icon={getMarkerIcon(isSelected)}
-                  title={location.name}
-                  onClick={() => handleMarkerClick(location)}
-                  onLoad={handleMarkerLoad}
-                  clusterer={clusterer}
-                  aria-label={`${location.name}, ${location.address || 'No address'}`}
-                />
-              );
-            })
-          }
+          {(clusterer) => (
+            <>
+              {locationsWithCoords.map((location) => {
+                const isSelected = location.id === selectedLocationId;
+                return (
+                  <Marker
+                    key={location.id}
+                    position={{
+                      lat: location.coordinates!.lat,
+                      lng: location.coordinates!.lng,
+                    }}
+                    icon={getMarkerIcon(isSelected)}
+                    title={location.name}
+                    onClick={() => handleMarkerClick(location)}
+                    onLoad={handleMarkerLoad}
+                    clusterer={clusterer}
+                    aria-label={`${location.name}, ${location.address || 'No address'}`}
+                  />
+                );
+              })}
+            </>
+          )}
         </MarkerClustererF>
       </GoogleMap>
     </div>
