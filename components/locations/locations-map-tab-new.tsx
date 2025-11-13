@@ -368,39 +368,10 @@ export function LocationsMapTab() {
   }, [locations]);
 
   const statsOverview = useMemo(() => {
-    const fallback = locationsAggregateOverview;
-
-    if (snapshot) {
-      const totalLocations =
-        typeof snapshot.locationSummary?.totalLocations === 'number' && snapshot.locationSummary.totalLocations > 0
-          ? snapshot.locationSummary.totalLocations
-          : fallback.totalLocations;
-
-      const avgRating =
-        typeof snapshot.reviewStats?.averageRating === 'number' && Number.isFinite(snapshot.reviewStats.averageRating)
-          ? snapshot.reviewStats.averageRating
-          : fallback.avgRating;
-
-      const totalReviews =
-        typeof snapshot.reviewStats?.totals?.total === 'number' && snapshot.reviewStats.totals.total >= 0
-          ? snapshot.reviewStats.totals.total
-          : fallback.totalReviews;
-
-      const avgHealthScore =
-        typeof snapshot.kpis?.healthScore === 'number' && Number.isFinite(snapshot.kpis.healthScore)
-          ? snapshot.kpis.healthScore
-          : fallback.avgHealthScore;
-
-      return {
-        totalLocations,
-        avgRating,
-        totalReviews,
-        avgHealthScore,
-      };
-    }
-
-    return fallback;
-  }, [snapshot, locationsAggregateOverview]);
+    // Always use locationsAggregateOverview as the primary source
+    // This ensures the snapshot card always shows aggregated data from loaded locations
+    return locationsAggregateOverview;
+  }, [locationsAggregateOverview]);
 
   const statsOverviewDisplays = useMemo(() => {
     const avgRating =
