@@ -1175,7 +1175,7 @@ function normalizeQuestionEntity(questionInput: Partial<GMBQuestion> & Record<st
     question_id: q.question_id ?? undefined,
     external_question_id: q.external_question_id ?? undefined,
     question_text: questionText,
-    asked_at: createdAt,
+    asked_at: createdAt ?? undefined,
     author_name: q.author_name ?? undefined,
     author_display_name: q.author_display_name ?? undefined,
     author_profile_photo_url: q.author_profile_photo_url ?? undefined,
