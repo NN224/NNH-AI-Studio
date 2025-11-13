@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { useLocations } from '@/hooks/use-locations';
 import { Location } from '@/components/locations/location-types';
@@ -312,7 +312,7 @@ export function LocationsMapTab() {
     enabled: Boolean(selectedLocation?.coordinates),
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
-    placeholderData: (previousData) => previousData ?? [],
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 
