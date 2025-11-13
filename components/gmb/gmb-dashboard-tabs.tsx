@@ -6,6 +6,7 @@ import LocationInsightsCard from "./location-insights-card";
 import ReviewManagementCard from "../reviews/review-management-card";
 import PostManagementCard from "../posts/post-management-card";
 import QAManagementCard from "../questions/qa-management-card";
+import LocationAICommandCenter from "./location-ai-command-center";
 
 interface GMBTabsProps {
   location: GMBLocation;
@@ -13,14 +14,19 @@ interface GMBTabsProps {
 
 const GMBTabs = ({ location }: GMBTabsProps) => {
   return (
-    <Tabs defaultValue="insights" className="w-full">
+    <Tabs defaultValue="command-center" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="command-center">AI Command Center</TabsTrigger>
         <TabsTrigger value="insights">Insights</TabsTrigger>
         <TabsTrigger value="reviews">Reviews</TabsTrigger>
         <TabsTrigger value="posts">Posts</TabsTrigger>
         <TabsTrigger value="qa">Q&A</TabsTrigger>
       </TabsList>
-      
+
+      <TabsContent value="command-center" className="mt-6">
+        <LocationAICommandCenter location={location} />
+      </TabsContent>
+
       <TabsContent value="insights" className="mt-6">
         <LocationInsightsCard location={location} />
       </TabsContent>

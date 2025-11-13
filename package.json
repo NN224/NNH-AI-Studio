@@ -6,7 +6,7 @@
   "homepage": "https://www.nnh.ae",
   "repository": {
     "type": "git",
-   "url": "https://github.com/NN224/NNH-AI-Studio.git"
+    "url": "https://github.com/NN224/NNH-AI-Studio.git"
   },
   "private": true,
   "scripts": {
@@ -21,6 +21,7 @@
     "@anthropic-ai/sdk": "^0.68.0",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.10.0",
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -51,7 +52,7 @@
     "@react-google-maps/api": "^2.20.7",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
+    "@supabase/supabase-js": "^2.81.1",
     "@tanstack/react-query": "^5.90.6",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/nodemailer": "^7.0.3",
