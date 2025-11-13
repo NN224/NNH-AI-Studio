@@ -829,15 +829,18 @@ function QuestionsFeedSection({
 
   return (
     <section className="space-y-4">
-      {questions.map((question) => (
-                <QuestionCard
-                  key={question.id}
-                  question={question}
-                  isSelected={selectedQuestion?.id === question.id}
-          onClick={() => onSelectQuestion(question)}
-          onAnswer={() => onAnswer(question)}
-                />
-              ))}
+      {questions.map((question) => {
+        const normalized = normalizeQuestionEntity(question);
+        return (
+          <QuestionCard
+            key={question.id}
+            question={normalized}
+            isSelected={selectedQuestion?.id === question.id}
+            onClick={() => onSelectQuestion(normalized)}
+            onAnswer={() => onAnswer(normalized)}
+          />
+        );
+      })}
     </section>
   );
 }
