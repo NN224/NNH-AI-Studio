@@ -163,12 +163,56 @@ export function useDashboardStats(dateRange?: any) {
 }
 
 export function useDashboardSnapshot() {
-  return useCachedFetch<DashboardSnapshot>(
+  const {
+    data,
+    loading,
+    error,
+    fetchData,
+    invalidate,
+    refetch,
+  } = useCachedFetch<DashboardSnapshot>(
     '/api/dashboard/overview',
     undefined,
     'dashboard-overview',
     3 * 60 * 1000,
   );
+
+  // Trigger initial fetch on first mount if no cached data yet
+  useEffect(() => {
+    if (!data && !loading) {
+      fetchData().catch(() => {
+        // Errors are already handled inside useCachedFetch
+      });
+    }
+  }, [data, loading, fetchData]);
+
+  // Listen to global dashboard refresh events (e.g. after GMB sync)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleRefresh = () => {
+      refetch().catch(() => {
+        // ignore errors here; UI will surface via state
+      });
+    };
+
+    window.addEventListener('dashboard:refresh', handleRefresh);
+    window.addEventListener('gmb-sync-complete', handleRefresh);
+
+    return () => {
+      window.removeEventListener('dashboard:refresh', handleRefresh);
+      window.removeEventListener('gmb-sync-complete', handleRefresh);
+    };
+  }, [refetch]);
+
+  return {
+    data,
+    loading,
+    error,
+    fetchData,
+    invalidate,
+    refetch,
+  };
 }
 
 // Cache management utilities
