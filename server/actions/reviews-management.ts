@@ -305,16 +305,26 @@ export async function replyToReview(reviewId: string, replyText: string) {
 
     const result = await response.json()
 
-    // Update database
+    // Update database – keep legacy and new reply fields in sync
+    const replyValue = validatedData.replyText.trim()
+    const nowIso = new Date().toISOString()
+
     const { error: updateError } = await supabase
       .from("gmb_reviews")
       .update({
-        response: validatedData.replyText.trim(),
-        reply_date: new Date().toISOString(),
-        responded_at: new Date().toISOString(),
+        // New/AI-friendly columns
+        reply_text: replyValue,
+        review_reply: replyValue,
+        response_text: replyValue,
         has_reply: true,
+        has_response: true,
+        // Legacy column for backwards compatibility
+        response: replyValue,
+        // Timestamps & status
+        reply_date: nowIso,
+        responded_at: nowIso,
         status: "replied",
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
       .eq("id", validatedData.reviewId)
 
@@ -450,13 +460,20 @@ export async function updateReply(reviewId: string, newReplyText: string) {
 
     const result = await response.json()
 
-    // Update database
+    // Update database – keep reply fields in sync
+    const replyValue = validatedData.replyText.trim()
+    const nowIso = new Date().toISOString()
+
     const { error: updateError } = await supabase
       .from("gmb_reviews")
       .update({
-        response: validatedData.replyText.trim(),
-        reply_date: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        reply_text: replyValue,
+        review_reply: replyValue,
+        response_text: replyValue,
+        response: replyValue,
+        reply_date: nowIso,
+        responded_at: nowIso,
+        updated_at: nowIso,
       })
       .eq("id", validatedData.reviewId)
 
@@ -564,16 +581,22 @@ export async function deleteReply(reviewId: string) {
       }
     }
 
-    // Update database
+    // Update database – clear all reply-related fields
+    const nowIso = new Date().toISOString()
+
     const { error: updateError } = await supabase
       .from("gmb_reviews")
       .update({
+        reply_text: null,
+        review_reply: null,
+        response_text: null,
         response: null,
         reply_date: null,
         responded_at: null,
         has_reply: false,
+        has_response: false,
         status: "pending",
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
       .eq("id", reviewId)
 
