@@ -1,19 +1,14 @@
-'use client';
+import { ComingSoon } from '@/components/common/coming-soon';
 
 export default function TeamPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Team</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your team members
-        </p>
-      </div>
-
-      <div className="flex items-center justify-center py-16 text-center border rounded-lg">
-        <div>
-          <p className="text-muted-foreground">Team management coming soon</p>
-        </div>
+    <div className="min-h-screen bg-zinc-950 p-6">
+      <div className="mx-auto max-w-4xl">
+        <ComingSoon
+          title="Team Workspace"
+          description="Role-based access, approvals, and collaborative AI copilots are nearly done. Soon you'll manage every teammate and permission from one secure hub."
+          icon="👥"
+        />
       </div>
     </div>
   );
