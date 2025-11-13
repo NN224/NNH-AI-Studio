@@ -48,6 +48,11 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       icon: MapPin,
     },
     {
+      nameKey: 'nav.features',
+      href: '/features',
+      icon: Layers,
+    },
+    {
       nameKey: 'nav.reviews',
       href: '/reviews',
       icon: Star,
@@ -81,11 +86,6 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       nameKey: 'nav.gridTracking',
       href: '/grid-tracking',
       icon: Grid3x3,
-    },
-    {
-      nameKey: 'nav.features',
-      href: '/features',
-      icon: Layers,
     },
     {
       nameKey: 'nav.automation',

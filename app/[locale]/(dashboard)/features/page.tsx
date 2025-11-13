@@ -158,9 +158,13 @@ export default function BusinessProfilePage() {
       <div className="max-w-[1800px] mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Profile Command Center</h1>
-            <p className="text-zinc-400">Manage all your business information and attributes in one hub</p>
-            {snapshotError && <p className="mt-2 text-sm text-red-400">Failed to load dashboard data. Some information may be incomplete.</p>}
+            <h1 className="text-3xl font-bold text-white mb-2">Business Profile</h1>
+            <p className="text-zinc-400">Manage and optimize your Google Business Profile details and attributes in one place</p>
+            {snapshotError && (
+              <p className="mt-2 text-sm text-red-400">
+                Failed to load dashboard data. Some information may be incomplete.
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3 flex-wrap justify-end">

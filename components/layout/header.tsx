@@ -66,22 +66,22 @@ created_at: string;
 }
 
 const routeNames: Record<string, string> = {
-'/dashboard': 'Dashboard',
-'/locations': 'Locations',
-'/reviews': 'Reviews',
-'/questions': 'Questions',
-'/youtube-posts': 'YouTube Posts',
-'/posts': 'GMB Posts',
-'/calendar': 'Calendar',
-'/media': 'Media',
-'/analytics': 'Analytics',
-'/grid-tracking': 'Grid Tracking',
-'/features': 'Features',
-'/automation': 'Automation',
-'/approvals': 'Approvals',
-'/webhooks': 'Webhooks',
-'/team': 'Team',
-'/settings': 'Settings',
+  '/dashboard': 'Dashboard',
+  '/locations': 'Locations',
+  '/reviews': 'Reviews',
+  '/questions': 'Questions',
+  '/youtube-posts': 'YouTube Posts',
+  '/posts': 'GMB Posts',
+  '/calendar': 'Calendar',
+  '/media': 'Media',
+  '/analytics': 'Analytics',
+  '/grid-tracking': 'Grid Tracking',
+  '/features': 'Profile',
+  '/automation': 'Automation',
+  '/approvals': 'Approvals',
+  '/webhooks': 'Webhooks',
+  '/team': 'Team',
+  '/settings': 'Settings',
 };
 
 // ⭐️ دالة مساعدة للحروف الأولى

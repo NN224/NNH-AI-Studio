@@ -73,10 +73,10 @@ export function StatsCards() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="p-6 rounded-xl border bg-gray-900/50 border-gray-800 animate-pulse">
-            <div className="h-8 bg-gray-700 rounded mb-3"></div>
-            <div className="h-12 bg-gray-700 rounded mb-2"></div>
-            <div className="h-4 bg-gray-700 rounded"></div>
+          <div key={i} className="p-6 rounded-xl border bg-zinc-900/50 border-zinc-800 animate-pulse">
+            <div className="h-8 bg-zinc-700 rounded mb-3"></div>
+            <div className="h-12 bg-zinc-700 rounded mb-2"></div>
+            <div className="h-4 bg-zinc-700 rounded"></div>
           </div>
         ))}
       </div>
@@ -90,9 +90,9 @@ export function StatsCards() {
           key={i}
           className={`
             p-6 rounded-xl border transition-all hover:scale-105 cursor-pointer
-            ${card.urgent 
-              ? 'bg-red-950/20 border-red-500/50' 
-              : 'bg-gray-900/50 border-gray-800 hover:border-orange-500/50'
+            ${card.urgent
+              ? 'bg-red-950/20 border-red-500/50'
+              : 'bg-zinc-900/50 border-zinc-800 hover:border-orange-500/50'
             }
           `}
         >
@@ -106,8 +106,8 @@ export function StatsCards() {
             )}
           </div>
           <div className="text-3xl font-bold text-white mb-1">{card.value}</div>
-          <div className="text-sm text-gray-400">{card.label}</div>
-          <div className="text-xs text-gray-500 mt-2">{card.subtitle}</div>
+          <div className="text-sm text-zinc-400">{card.label}</div>
+          <div className="text-xs text-zinc-500 mt-2">{card.subtitle}</div>
         </div>
       ))}
     </div>

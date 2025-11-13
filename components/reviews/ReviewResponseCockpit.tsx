@@ -230,21 +230,21 @@ export function ReviewResponseCockpit() {
                                     {aiLoading ? 'Generating...' : 'Ready'}
                                 </span>
                             </h3>
-                            <p className="text-sm text-gray-400">Powered by Aurora AI • Generate replies in seconds</p>
+                            <p className="text-sm text-zinc-400">Powered by Aurora AI • Generate replies in seconds</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
                         <div className="text-center">
                             <div className="text-2xl font-bold text-[#FF6B00]">{reviews.length}</div>
-                            <div className="text-xs text-gray-400">Pending</div>
+                            <div className="text-xs text-zinc-400">Pending</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-success">-</div>
-                            <div className="text-xs text-gray-400">Response Rate</div>
+                            <div className="text-xs text-zinc-400">Response Rate</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-info">-</div>
-                            <div className="text-xs text-gray-400">Avg. Time</div>
+                            <div className="text-xs text-zinc-400">Avg. Time</div>
                         </div>
                     </div>
                 </div>
@@ -255,8 +255,8 @@ export function ReviewResponseCockpit() {
                 {/* LEFT: Review Stream */}
                 <div className="lg:col-span-4 flex flex-col min-h-0">
                     <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Review Stream</h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Review Stream</h3>
+                        <div className="flex items-center gap-2 text-xs text-zinc-500">
                             <TrendingUp className="w-3 h-3" />
                             <span>Priority Sorted</span>
                         </div>
@@ -264,14 +264,14 @@ export function ReviewResponseCockpit() {
                     
                     <div className="flex-1 space-y-3 overflow-y-auto pr-2 min-h-0">
                         {loading ? (
-                            <Card className="p-8 text-center border-dashed border-gray-700">
-                                <Loader2 className="w-12 h-12 mx-auto mb-3 text-gray-600 animate-spin" />
-                                <p className="text-gray-400">Loading reviews...</p>
+                            <Card className="p-8 text-center border-dashed border-zinc-700">
+                                <Loader2 className="w-12 h-12 mx-auto mb-3 text-zinc-600 animate-spin" />
+                                <p className="text-zinc-400">Loading reviews...</p>
                             </Card>
                         ) : reviews.length === 0 ? (
-                            <Card className="p-8 text-center border-dashed border-gray-700">
-                                <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                                <p className="text-gray-400">No pending reviews</p>
+                            <Card className="p-8 text-center border-dashed border-zinc-700">
+                                <MessageSquare className="w-12 h-12 mx-auto mb-3 text-zinc-600" />
+                                <p className="text-zinc-400">No pending reviews</p>
                             </Card>
                         ) : (
                             reviews.map(review => (
@@ -292,21 +292,21 @@ export function ReviewResponseCockpit() {
                                                 <span className="text-2xl">{getSentimentIcon(review.rating)}</span>
                                                 <div>
                                                     <h4 className="font-semibold text-sm text-white">{review.reviewer_name}</h4>
-                                                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                                                    <div className="flex items-center gap-1 text-xs text-zinc-400">
                                                         {Array.from({ length: review.rating }).map((_, i) => (
                                                             <Star key={i} className="w-3 h-3 fill-warning text-warning" aria-hidden="true" />
                                                         ))}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Clock className="w-4 h-4 text-gray-500" />
+                                            <Clock className="w-4 h-4 text-zinc-500" />
                                         </div>
                                         
-                                        <p className="text-xs text-gray-300 line-clamp-2 mb-3">
+                                        <p className="text-xs text-zinc-300 line-clamp-2 mb-3">
                                             {review.review_text}
                                         </p>
                                         
-                                        <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <div className="flex items-center justify-between text-xs text-zinc-500">
                                             <span className="truncate">{review.location_name}</span>
                                             <span>{formatDistanceToNow(new Date(review.review_date), { addSuffix: true })}</span>
                                         </div>
@@ -326,13 +326,13 @@ export function ReviewResponseCockpit() {
                 {/* RIGHT: AI Studio Panel */}
                 <div className="lg:col-span-8 flex flex-col min-h-0">
                     {!selectedReview ? (
-                        <Card className="flex-1 flex flex-col items-center justify-center border-dashed border-gray-700 bg-black/30">
+                        <Card className="flex-1 flex flex-col items-center justify-center border-dashed border-zinc-700 bg-black/30">
                             <div className="relative">
                                 <div className="absolute -inset-4 bg-[#FF6B00]/20 rounded-full blur-2xl" />
                                 <Sparkles className="relative w-16 h-16 text-[#FF6B00] mb-4" />
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Select a Review to Begin</h3>
-                            <p className="text-gray-400 text-center max-w-md">
+                            <p className="text-zinc-400 text-center max-w-md">
                                 Choose a review from the stream to generate AI-powered responses in seconds
                             </p>
                         </Card>
@@ -351,11 +351,11 @@ export function ReviewResponseCockpit() {
                                                         {selectedReview.rating} ★
                                                     </span>
                                                 </h4>
-                                                <p className="text-xs text-gray-400">{selectedReview.location_name} • {formatDistanceToNow(new Date(selectedReview.review_date), { addSuffix: true })}</p>
+                                                <p className="text-xs text-zinc-400">{selectedReview.location_name} • {formatDistanceToNow(new Date(selectedReview.review_date), { addSuffix: true })}</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                    <p className="text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed">
                                         {selectedReview.review_text}
                                     </p>
                                 </div>
@@ -363,7 +363,7 @@ export function ReviewResponseCockpit() {
 
                             {/* Tone Selector */}
                             <div>
-                                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
+                                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 block">
                                     Response Tone
                                 </label>
                                 <div className="grid grid-cols-4 gap-2">
@@ -377,7 +377,7 @@ export function ReviewResponseCockpit() {
                                                 "hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed",
                                                 tone === opt.value
                                                     ? `border-[#FF6B00] bg-gradient-to-br ${opt.color} shadow-lg`
-                                                    : "border-gray-700 bg-black/50 hover:border-gray-600"
+                                                    : "border-zinc-700 bg-black/50 hover:border-zinc-600"
                                             )}
                                         >
                                             <div className="text-center">
@@ -443,11 +443,11 @@ export function ReviewResponseCockpit() {
                             {/* Response Preview Area */}
                             <div className="flex-1 flex flex-col min-h-0">
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                                         Your Response
                                     </label>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-zinc-500">
                                             {replyContent.length} chars
                                         </span>
                                         {replyContent && (
@@ -469,13 +469,13 @@ export function ReviewResponseCockpit() {
                                         onChange={(e) => setReplyContent(e.target.value)}
                                         placeholder="✨ Click 'Generate with AI' to create a response, or write your own..."
                                         disabled={aiLoading || isSubmitting}
-                                        className="h-full resize-none bg-black/50 border-gray-700 focus:border-[#FF6B00] focus:ring-[#FF6B00] text-white placeholder:text-gray-600"
+                                        className="h-full resize-none bg-black/50 border-zinc-700 focus:border-[#FF6B00] focus:ring-[#FF6B00] text-white placeholder:text-zinc-600"
                                     />
                                     {!replyContent && !aiLoading && (
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                             <div className="text-center">
-                                                <Lightbulb className="w-12 h-12 text-gray-700 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-600">AI response will appear here</p>
+                                                <Lightbulb className="w-12 h-12 text-zinc-700 mx-auto mb-2" />
+                                                <p className="text-sm text-zinc-600">AI response will appear here</p>
                                             </div>
                                         </div>
                                     )}
@@ -491,7 +491,7 @@ export function ReviewResponseCockpit() {
                                         setReplyContent('');
                                     }}
                                     disabled={isSubmitting}
-                                    className="flex-1 border-gray-700 hover:bg-gray-800"
+                                    className="flex-1 border-zinc-700 hover:bg-zinc-800"
                                 >
                                     Cancel
                                 </Button>

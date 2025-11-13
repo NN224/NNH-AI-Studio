@@ -86,7 +86,7 @@ export function ReviewCard({
           </div>
           <div>
             <div className="font-semibold text-white">{review.reviewer_name || 'Anonymous'}</div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
               <MapPin size={12} />
               <span>{review.location_name || 'Unknown Location'}</span>
               <Clock size={12} className="ml-2" />
@@ -106,7 +106,7 @@ export function ReviewCard({
             <Star
               key={star}
               size={16}
-              className={star <= review.rating ? 'fill-yellow-500 text-yellow-500' : 'text-gray-600'}
+              className={star <= review.rating ? 'fill-yellow-500 text-yellow-500' : 'text-zinc-600'}
               aria-hidden="true"
             />
           ))}
@@ -115,7 +115,7 @@ export function ReviewCard({
 
       {/* Review Text */}
       {review.review_text && (
-        <p className="text-sm text-gray-300 mb-3 line-clamp-2">
+        <p className="text-sm text-zinc-300 mb-3 line-clamp-2">
           {review.review_text}
         </p>
       )}

@@ -51,6 +51,8 @@ const FROM_BUSINESS_OPTIONS: readonly { key: string; label: string; icon: string
   { key: 'family_owned', label: 'Family-owned', icon: '👨‍👩‍👧‍👦' },
 ]
 
+const __DEV__ = process.env.NODE_ENV !== 'production'
+
 interface TabComponentProps {
   readonly profile: BusinessProfilePayload
   readonly onChange: (next: BusinessProfilePayload) => void
@@ -110,7 +112,9 @@ export function FeaturesTab({ profile, onChange, onDirty }: TabComponentProps) {
     onChange(nextProfile)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[FeaturesTab] Feature toggled, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[FeaturesTab] Feature toggled, dashboard refresh triggered')
+    }
   }
   
   return (
@@ -860,7 +864,9 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[CategoriesTab] Category added, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[CategoriesTab] Category added, dashboard refresh triggered')
+    }
   }
   
   const removeCategory = (category: string) => {
@@ -872,7 +878,9 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[CategoriesTab] Category removed, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[CategoriesTab] Category removed, dashboard refresh triggered')
+    }
   }
 
   const filteredCategories = useMemo(() => {
@@ -893,7 +901,9 @@ export function CategoriesTab({ profile, onChange, onDirty }: TabComponentProps)
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[CategoriesTab] Primary category updated, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[CategoriesTab] Primary category updated, dashboard refresh triggered')
+    }
   }
   
   return (
@@ -997,7 +1007,9 @@ export function LinksTab({ profile, onChange, onDirty }: TabComponentProps) {
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[LinksTab] Link updated, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[LinksTab] Link updated, dashboard refresh triggered')
+    }
   }
 
   const links: readonly { key: keyof SpecialLinks; label: string; icon: string; placeholder: string; description: string }[] = [
@@ -1112,7 +1124,9 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[MoreTab] Attribute toggled, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[MoreTab] Attribute toggled, dashboard refresh triggered')
+    }
   }
 
   const updateOpeningDate = (value: string) => {
@@ -1124,7 +1138,9 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[MoreTab] Opening date updated, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[MoreTab] Opening date updated, dashboard refresh triggered')
+    }
   }
 
   const updateServiceArea = (checked: boolean) => {
@@ -1136,7 +1152,9 @@ export function MoreTab({ profile, onChange, onDirty }: TabComponentProps) {
     onChange(next)
     onDirty()
     window.dispatchEvent(new Event('dashboard:refresh'))
-    console.log('[MoreTab] Service area toggled, dashboard refresh triggered')
+    if (__DEV__) {
+      console.log('[MoreTab] Service area toggled, dashboard refresh triggered')
+    }
   }
   
   return (
