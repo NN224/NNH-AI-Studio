@@ -94,7 +94,7 @@ export function QuestionsClientPage({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const [isPending, startTransition] = useTransition();
-  const [selectedQuestion, setSelectedQuestion] = useState<QuestionEntity | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<GMBQuestion | null>(null);
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -333,7 +333,7 @@ export function QuestionsClientPage({
     }
   }, [currentFilters.locationId, refreshData]);
 
-  const handleAnswer = useCallback((question: QuestionEntity) => {
+  const handleAnswer = useCallback((question: GMBQuestion) => {
     setSelectedQuestion(question);
     setAnswerDialogOpen(true);
   }, []);
@@ -793,9 +793,9 @@ function FilterChip({
 interface QuestionsFeedSectionProps {
   questions: QuestionEntity[];
   isPending: boolean;
-  selectedQuestion: QuestionEntity | null;
-  onSelectQuestion: (question: QuestionEntity) => void;
-  onAnswer: (question: QuestionEntity) => void;
+  selectedQuestion: GMBQuestion | null;
+  onSelectQuestion: (question: GMBQuestion) => void;
+  onAnswer: (question: GMBQuestion) => void;
 }
 
 function QuestionsFeedSection({
@@ -827,27 +827,26 @@ function QuestionsFeedSection({
     );
   }
 
+  const normalizedQuestions = questions.map((question) => normalizeQuestionEntity(question));
+
   return (
     <section className="space-y-4">
-      {questions.map((question) => {
-        const normalized = normalizeQuestionEntity(question);
-        return (
-          <QuestionCard
-            key={question.id}
-            question={normalized}
-            isSelected={selectedQuestion?.id === question.id}
-            onClick={() => onSelectQuestion(normalized)}
-            onAnswer={() => onAnswer(normalized)}
-          />
-        );
-      })}
+      {normalizedQuestions.map((question) => (
+        <QuestionCard
+          key={question.id}
+          question={question}
+          isSelected={selectedQuestion?.id === question.id}
+          onClick={() => onSelectQuestion(question)}
+          onAnswer={() => onAnswer(question)}
+        />
+      ))}
     </section>
   );
 }
 
 interface AutoAnswerSidebarProps {
   pendingCount: number;
-  selectedQuestion: QuestionEntity | null;
+  selectedQuestion: GMBQuestion | null;
   autoAnswerEnabled: boolean;
   autoAnswerLoading: boolean;
   onToggleAutoAnswer: (enabled: boolean) => void;
