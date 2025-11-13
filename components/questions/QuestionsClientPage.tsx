@@ -31,8 +31,10 @@ import { AnswerDialog } from './answer-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import type { GMBQuestion } from '@/lib/types/database';
+import type { DashboardSnapshot } from '@/types/dashboard';
 
-type QuestionEntity = GMBQuestion & Record<string, any>;
+type SnapshotQuestion = DashboardSnapshot['questionStats']['recentQuestions'][number];
+type QuestionEntity = SnapshotQuestion & Partial<GMBQuestion> & Record<string, any>;
 
 interface QuestionStatsSnapshot {
   total: number;
