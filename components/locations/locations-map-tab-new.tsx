@@ -323,59 +323,6 @@ export function LocationsMapTab() {
     return (previewCompetitorsResponse.competitors as Array<Record<string, any>>) ?? [];
   }, [previewCompetitorsResponse]);
 
-  const aggregatedStats = useMemo(() => {
-    if (stats) {
-      return {
-        totalLocations: typeof stats.totalLocations === 'number' ? stats.totalLocations : locations.length,
-        avgRating: typeof stats.avgRating === 'number' ? stats.avgRating : 0,
-        totalReviews: typeof stats.reviewCount === 'number' ? stats.reviewCount : 0,
-        healthScore: typeof stats.healthScore === 'number' ? stats.healthScore : 0,
-      };
-    }
-
-    if (snapshot) {
-      return {
-        totalLocations: snapshot.locationSummary.totalLocations ?? locations.length,
-        avgRating: snapshot.reviewStats.averageRating ?? 0,
-        totalReviews: snapshot.reviewStats.totals.total ?? 0,
-        healthScore: snapshot.kpis.healthScore ?? 0,
-      };
-    }
-
-    if (selectedLocation) {
-      const rating = typeof selectedLocation.rating === 'number' ? selectedLocation.rating : 0;
-      const reviewCount = typeof selectedLocation.reviewCount === 'number' ? selectedLocation.reviewCount : 0;
-      const healthScore = typeof selectedLocation.healthScore === 'number' ? selectedLocation.healthScore : 0;
-
-      return {
-        totalLocations: locations.length,
-        avgRating: rating,
-        totalReviews: reviewCount,
-        healthScore,
-      };
-    }
-
-    return null;
-  }, [stats, snapshot, selectedLocation, locations.length]);
-
-  const locationSnapshotStats = useMemo(() => {
-    if (!selectedLocation && !aggregatedStats) {
-      return { rating: 0, reviewCount: 0, healthScore: 0, responseRate: 0 };
-    }
-
-    const rating = stats?.avgRating ?? (typeof selectedLocation?.rating === 'number' ? selectedLocation.rating : aggregatedStats?.avgRating ?? 0);
-    const reviewCount = stats?.reviewCount ?? selectedLocation?.reviewCount ?? aggregatedStats?.totalReviews ?? 0;
-    const healthScore = stats?.healthScore ?? selectedLocation?.healthScore ?? aggregatedStats?.healthScore ?? 0;
-    const responseRate = selectedLocation?.responseRate ?? selectedLocation?.insights?.responseRate ?? snapshot?.reviewStats.responseRate ?? 0;
-
-    return {
-      rating,
-      reviewCount,
-      healthScore,
-      responseRate,
-    };
-  }, [stats, selectedLocation, aggregatedStats, snapshot]);
-
   const locationsAggregateOverview = useMemo(() => {
     const totalLocations = locations.length;
     if (totalLocations === 0) {
@@ -421,35 +368,39 @@ export function LocationsMapTab() {
   }, [locations]);
 
   const statsOverview = useMemo(() => {
-    if (!aggregatedStats) return locationsAggregateOverview;
+    const fallback = locationsAggregateOverview;
 
-    const totalLocations =
-      typeof aggregatedStats.totalLocations === 'number' && aggregatedStats.totalLocations > 0
-        ? aggregatedStats.totalLocations
-        : locationsAggregateOverview.totalLocations;
+    if (snapshot) {
+      const totalLocations =
+        typeof snapshot.locationSummary?.totalLocations === 'number' && snapshot.locationSummary.totalLocations > 0
+          ? snapshot.locationSummary.totalLocations
+          : fallback.totalLocations;
 
-    const avgRating =
-      typeof aggregatedStats.avgRating === 'number' && Number.isFinite(aggregatedStats.avgRating)
-        ? aggregatedStats.avgRating
-        : locationsAggregateOverview.avgRating;
+      const avgRating =
+        typeof snapshot.reviewStats?.averageRating === 'number' && Number.isFinite(snapshot.reviewStats.averageRating)
+          ? snapshot.reviewStats.averageRating
+          : fallback.avgRating;
 
-    const totalReviews =
-      typeof aggregatedStats.totalReviews === 'number' && aggregatedStats.totalReviews >= 0
-        ? aggregatedStats.totalReviews
-        : locationsAggregateOverview.totalReviews;
+      const totalReviews =
+        typeof snapshot.reviewStats?.totals?.total === 'number' && snapshot.reviewStats.totals.total >= 0
+          ? snapshot.reviewStats.totals.total
+          : fallback.totalReviews;
 
-    const avgHealthScore =
-      typeof aggregatedStats.healthScore === 'number' && Number.isFinite(aggregatedStats.healthScore)
-        ? aggregatedStats.healthScore
-        : locationsAggregateOverview.avgHealthScore;
+      const avgHealthScore =
+        typeof snapshot.kpis?.healthScore === 'number' && Number.isFinite(snapshot.kpis.healthScore)
+          ? snapshot.kpis.healthScore
+          : fallback.avgHealthScore;
 
-    return {
-      totalLocations,
-      avgRating,
-      totalReviews,
-      avgHealthScore,
-    };
-  }, [aggregatedStats, locationsAggregateOverview]);
+      return {
+        totalLocations,
+        avgRating,
+        totalReviews,
+        avgHealthScore,
+      };
+    }
+
+    return fallback;
+  }, [snapshot, locationsAggregateOverview]);
 
   const statsOverviewDisplays = useMemo(() => {
     const avgRating =
@@ -1060,17 +1011,17 @@ export function LocationsMapTab() {
                       {resolvedCoverImage ? 'Change cover' : 'Upload cover'}
                     </Button>
                   </div>
-                  <div className="absolute bottom-[-30px] left-6 h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 bg-black/70 shadow-lg flex items-center justify-center">
+                  <div className="absolute -bottom-10 left-1/2 h-20 w-20 -translate-x-1/2 overflow-hidden rounded-full border-2 border-white/60 bg-black/80 shadow-lg flex items-center justify-center">
                     {selectedLocation.logoImageUrl ? (
                       <Image
                         src={selectedLocation.logoImageUrl}
                         alt={`${selectedLocation.name} logo`}
                         fill
                         className="object-cover"
-                        sizes="64px"
+                        sizes="80px"
                       />
                     ) : (
-                      <span className="text-[10px] font-medium text-white/70">No logo</span>
+                      <span className="text-xs font-medium text-white/70">No logo</span>
                     )}
                   </div>
                 </div>
