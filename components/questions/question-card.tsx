@@ -41,7 +41,9 @@ interface QuestionMetadata {
   flagged_reason?: string;
 }
 
-type QuestionType = GMBQuestion & { 
+type QuestionType = GMBQuestion & {
+  flagged?: boolean;
+  language?: string;
   location_name?: string;
   gmb_locations?: { location_name?: string };
   metadata?: QuestionMetadata | null;

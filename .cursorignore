@@ -1,0 +1,39 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+# Ignore environment files (don't index secrets)
+.env.local
+.env.*
+
+# Ignore local Cursor settings (avoid indexing local cursor files)
+.cursor/environment.json
+
+# Node modules and caches
+node_modules/
+.cache/
+.pnpm-store/
+pnpm-lock.yaml
+
+# Next/Build artifacts
+.next/
+dist/
+build/
+out/
+
+# Editor and OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs, temp files and coverage
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+tmp/
+.temp/
+*.sqlite3
+
+# Uploaded or generated user content
+public/uploads/
+uploads/
