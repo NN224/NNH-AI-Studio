@@ -173,8 +173,13 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
     return null;
   };
 
-  const getMetric = (value: unknown, fallback: NumericMetric = 0) =>
-    toNumber(asNumericMetric(value) ?? fallback);
+  const getMetric = (value: unknown, fallback: NumericMetric = 0) => {
+    const primary = asNumericMetric(value);
+    if (primary !== null && primary !== undefined) {
+      return toNumber(primary, 0);
+    }
+    return toNumber(asNumericMetric(fallback) ?? 0, 0);
+  };
 
   const getNullableMetric = (value: unknown) => toNullableNumber(asNumericMetric(value));
 
