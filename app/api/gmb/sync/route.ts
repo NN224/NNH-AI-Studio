@@ -1049,7 +1049,7 @@ export async function POST(request: NextRequest) {
 
     // Acquire lock (Redis preferred)
     const lockKey = `gmb:sync:${accountId}`;
-    const LOCK_TTL_SEC = 60 * 5; // 5 minutes
+    const LOCK_TTL_SEC = 60 * 15; // 15 minutes (increased to handle longer syncs)
     if (usingRedis && redis) {
       const ok = await redis.set(lockKey, '1', { nx: true, ex: LOCK_TTL_SEC });
       if (ok !== 'OK') {
