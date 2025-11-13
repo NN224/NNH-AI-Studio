@@ -233,20 +233,23 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
         : "غير متصل",
     statusTone,
     isActive: location.is_active,
-    rating: toNullableNumber(location.rating ?? metadata.rating),
-    reviewCount: toNumber(location.review_count ?? metadata.review_count),
-    responseRate: toNullableNumber(location.response_rate ?? metadata.responseRate ?? metadata.response_rate),
-    pendingReviews: toNullableNumber(
+    rating: getNullableMetric(location.rating, metadata.rating),
+    reviewCount: getMetric(location.review_count, metadata.review_count),
+    responseRate: getNullableMetric(
+      location.response_rate,
+      metadata.responseRate ?? metadata.response_rate ?? engagement.responseRate,
+    ),
+    pendingReviews: getNullableMetric(
       metadata.pending_reviews ??
         metadata.pending_review_count ??
         metadata.pendingReviews ??
         insightsSource.pendingReviews,
     ),
-    pendingQuestions: toNullableNumber(
+    pendingQuestions: getNullableMetric(
       metadata.pending_questions ?? metadata.pendingQuestions ?? insightsSource.pendingQuestions,
     ),
-    healthScore: toNullableNumber(metadata.health_score ?? metadata.healthScore),
-    weeklyGrowth: toNullableNumber(insightsSource.weeklyGrowth ?? engagement.weeklyGrowth),
+    healthScore: getNullableMetric(metadata.health_score ?? metadata.healthScore ?? engagement.healthScore),
+    weeklyGrowth: getNullableMetric(insightsSource.weeklyGrowth, engagement.weeklyGrowth),
     lastSync: fallbackLastSync,
     lastSyncRelative: getRelativeTime(fallbackLastSync),
     insights: derivedInsights,
