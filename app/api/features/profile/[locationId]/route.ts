@@ -131,7 +131,9 @@ function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): 
 
 function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayload {
   const metadata = parseRecord(row.metadata)
-  const profileMetadata = parseRecord(metadata.profile)
+  // enhancedMetadata contains the full location object, so profile is at metadata.profile
+  // But also check if metadata itself is the profile object (legacy format)
+  const profileMetadata = parseRecord(metadata.profile ?? metadata)
 
   const baseProfile: BusinessProfile = {
     id: String(row.id ?? row.location_id ?? ''),
@@ -217,9 +219,53 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
     })(),
     features: normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {}),
     specialLinks: buildSpecialLinks(metadata, row),
-    fromTheBusiness: ensureStringArray(row.from_the_business ?? metadata.from_the_business ?? metadata.fromBusiness),
-    openingDate: row.opening_date ?? metadata.opening_date ?? null,
-    serviceAreaEnabled: normalizeBoolean(row.service_area_enabled ?? metadata.service_area_enabled, false),
+    fromTheBusiness: (() => {
+      // Priority 1: Direct column
+      if (row.from_the_business) {
+        return ensureStringArray(row.from_the_business)
+      }
+      // Priority 2: Metadata from_the_business
+      if (metadata.from_the_business) {
+        return ensureStringArray(metadata.from_the_business)
+      }
+      // Priority 3: Metadata fromBusiness
+      if (metadata.fromBusiness) {
+        return ensureStringArray(metadata.fromBusiness)
+      }
+      // Priority 4: Metadata profile.fromTheBusiness
+      if (profileMetadata.fromTheBusiness) {
+        return ensureStringArray(profileMetadata.fromTheBusiness)
+      }
+      // Priority 5: Metadata profile.attributes (if it's an array of strings)
+      if (profileMetadata.attributes && Array.isArray(profileMetadata.attributes)) {
+        return ensureStringArray(profileMetadata.attributes)
+      }
+      return []
+    })(),
+    openingDate: (() => {
+      // Priority 1: Direct column
+      if (row.opening_date) return String(row.opening_date).trim() || null
+      // Priority 2: Metadata opening_date
+      if (metadata.opening_date) return String(metadata.opening_date).trim() || null
+      // Priority 3: Metadata profile.openingDate
+      if (profileMetadata.openingDate) return String(profileMetadata.openingDate).trim() || null
+      return null
+    })(),
+    serviceAreaEnabled: (() => {
+      // Priority 1: Direct column
+      if (row.service_area_enabled !== undefined && row.service_area_enabled !== null) {
+        return normalizeBoolean(row.service_area_enabled, false)
+      }
+      // Priority 2: Metadata service_area_enabled
+      if (metadata.service_area_enabled !== undefined && metadata.service_area_enabled !== null) {
+        return normalizeBoolean(metadata.service_area_enabled, false)
+      }
+      // Priority 3: Metadata serviceAreaEnabled
+      if (metadata.serviceAreaEnabled !== undefined && metadata.serviceAreaEnabled !== null) {
+        return normalizeBoolean(metadata.serviceAreaEnabled, false)
+      }
+      return false
+    })(),
     profileCompleteness: Number(row.profile_completeness ?? metadata.profileCompleteness ?? 0) || 0,
   }
 
@@ -301,7 +347,40 @@ export async function GET(
     }
 
     const row = await getAuthorizedLocation(supabase, user.id, locationId)
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[GET /api/features/profile] Row data:', {
+        id: row.id,
+        location_name: row.location_name,
+        description: row.description,
+        additional_categories: row.additional_categories,
+        phone: row.phone,
+        website: row.website,
+        category: row.category,
+        has_metadata: !!row.metadata,
+        metadata_keys: row.metadata ? Object.keys(parseRecord(row.metadata)) : [],
+      })
+    }
+    
     const profile = normalizeBusinessProfile(row)
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[GET /api/features/profile] Normalized profile:', {
+        locationName: profile.locationName,
+        description: profile.description,
+        additionalCategories: profile.additionalCategories,
+        phone: profile.phone,
+        website: profile.website,
+        primaryCategory: profile.primaryCategory,
+        features: profile.features,
+        specialLinks: profile.specialLinks,
+        fromTheBusiness: profile.fromTheBusiness,
+        openingDate: profile.openingDate,
+        serviceAreaEnabled: profile.serviceAreaEnabled,
+      })
+    }
 
     return NextResponse.json(profile)
   } catch (error: unknown) {
