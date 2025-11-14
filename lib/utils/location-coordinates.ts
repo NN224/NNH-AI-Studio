@@ -8,10 +8,14 @@
  * Also checks metadata.latlng as fallback
  */
 export function mapLocationCoordinates(location: any): { lat: number; lng: number } | undefined {
-  // Priority 1: Direct latitude/longitude fields
-  if (location.latitude && location.longitude) {
-    const lat = parseFloat(location.latitude);
-    const lng = parseFloat(location.longitude);
+  // Priority 1: Direct latitude/longitude fields stored on the row
+  if (location.latitude != null && location.longitude != null) {
+    const lat = typeof location.latitude === 'number'
+      ? location.latitude
+      : parseFloat(location.latitude);
+    const lng = typeof location.longitude === 'number'
+      ? location.longitude
+      : parseFloat(location.longitude);
     
     // Validate coordinates are within valid ranges
     if (!isNaN(lat) && !isNaN(lng) && 
@@ -21,7 +25,44 @@ export function mapLocationCoordinates(location: any): { lat: number; lng: numbe
     }
   }
 
-  // Priority 2: Check metadata.latlng
+  // Priority 2: Top-level latlng column (JSON from database)
+  if (location.latlng) {
+    const latlng = location.latlng;
+    // Shape: { latitude, longitude }
+    if (typeof latlng === 'object' && latlng.latitude != null && latlng.longitude != null) {
+      const lat = typeof latlng.latitude === 'number'
+        ? latlng.latitude
+        : parseFloat(latlng.latitude);
+      const lng = typeof latlng.longitude === 'number'
+        ? latlng.longitude
+        : parseFloat(latlng.longitude);
+
+      if (!isNaN(lat) &&
+          !isNaN(lng) &&
+          lat >= -90 && lat <= 90 &&
+          lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
+    // Shape: { lat, lng }
+    if (typeof latlng === 'object' && latlng.lat != null && latlng.lng != null) {
+      const lat = typeof latlng.lat === 'number'
+        ? latlng.lat
+        : parseFloat(latlng.lat);
+      const lng = typeof latlng.lng === 'number'
+        ? latlng.lng
+        : parseFloat(latlng.lng);
+
+      if (!isNaN(lat) &&
+          !isNaN(lng) &&
+          lat >= -90 && lat <= 90 &&
+          lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
+  }
+
+  // Priority 3: Check metadata.latlng
   const metadata = location.metadata || {};
   if (metadata.latlng) {
     const latlng = metadata.latlng;
@@ -48,10 +89,14 @@ export function mapLocationCoordinates(location: any): { lat: number; lng: numbe
     }
   }
 
-  // Priority 3: Check metadata for lat/lng directly
-  if (metadata.latitude && metadata.longitude) {
-    const lat = parseFloat(metadata.latitude);
-    const lng = parseFloat(metadata.longitude);
+  // Priority 4: Check metadata for lat/lng directly
+  if (metadata.latitude != null && metadata.longitude != null) {
+    const lat = typeof metadata.latitude === 'number'
+      ? metadata.latitude
+      : parseFloat(metadata.latitude);
+    const lng = typeof metadata.longitude === 'number'
+      ? metadata.longitude
+      : parseFloat(metadata.longitude);
     
     if (!isNaN(lat) && !isNaN(lng) && 
         lat >= -90 && lat <= 90 && 
