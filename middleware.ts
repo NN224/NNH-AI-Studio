@@ -90,10 +90,11 @@ export async function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
-  // CSRF protection for API routes (exclude OAuth and webhook routes)
+  // CSRF protection for API routes (exclude OAuth, webhook, and sync routes)
   const isOAuthRoute = request.nextUrl.pathname.includes('/oauth') || 
                        request.nextUrl.pathname.includes('/create-auth-url') ||
-                       request.nextUrl.pathname.includes('/webhook');
+                       request.nextUrl.pathname.includes('/webhook') ||
+                       request.nextUrl.pathname.includes('/gmb/sync');
   
   let csrfToken: string | null = null;
   if (!isOAuthRoute) {
