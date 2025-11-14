@@ -40,6 +40,8 @@ const intlMiddleware = createIntlMiddleware({
   locales: ['en', 'ar'],
   defaultLocale: 'en',
   localePrefix: 'as-needed',
+  // Disable automatic locale detection to prevent redirects when switching to default locale
+  localeDetection: false,
 });
 
 function extractUserId(request: NextRequest): string {
