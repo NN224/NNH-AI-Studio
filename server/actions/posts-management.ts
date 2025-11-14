@@ -1112,27 +1112,36 @@ export async function syncPostsFromGoogle(locationId?: string) {
 // ============================================
 // 7. GET POST STATISTICS
 // ============================================
-export async function getPostStats(locationId?: string) {
+type PostStatsContext = {
+  supabase?: Awaited<ReturnType<typeof createClient>>
+  userId?: string
+}
+
+export async function getPostStats(locationId?: string, context?: PostStatsContext) {
   try {
-    const supabase = await createClient()
+    const supabase = context?.supabase ?? (await createClient())
+    let resolvedUserId = context?.userId
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      return {
-        success: false,
-        error: "Not authenticated",
-        stats: null,
+      if (authError || !user) {
+        return {
+          success: false,
+          error: "Not authenticated",
+          stats: null,
+        }
       }
+      resolvedUserId = user.id
     }
 
     let query = supabase
       .from("gmb_posts")
       .select("status, post_type, published_at, scheduled_at", { count: "exact" })
-      .eq("user_id", user.id)
+      .eq("user_id", resolvedUserId)
 
     if (locationId && locationId !== "all") {
       query = query.eq("location_id", locationId)

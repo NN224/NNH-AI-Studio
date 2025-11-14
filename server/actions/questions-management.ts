@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import type { QuestionData } from "@/lib/gmb/sync-types";
 import type { QuestionData } from "@/lib/gmb/sync-types";
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 
 const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
 
@@ -397,6 +398,8 @@ export async function answerQuestion(questionId: string, answerText: string) {
     revalidatePath("/dashboard");
     revalidatePath("/questions");
 
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
+
     return {
       success: true,
       data: result,
@@ -555,6 +558,8 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
     revalidatePath("/dashboard");
     revalidatePath("/questions");
 
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
+
     return {
       success: true,
       data: result,
@@ -682,6 +687,8 @@ export async function deleteAnswer(questionId: string) {
 
     revalidatePath("/dashboard");
     revalidatePath("/questions");
+
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
 
     return {
       success: true,
@@ -898,6 +905,8 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     revalidatePath("/dashboard");
     revalidatePath("/questions");
 
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
+
     return {
       success: true,
       message: `Synced ${synced} questions successfully`,
@@ -915,27 +924,36 @@ export async function syncQuestionsFromGoogle(locationId: string) {
 // ============================================
 // 7. GET QUESTION STATISTICS
 // ============================================
-export async function getQuestionStats(locationId?: string) {
+type QuestionStatsContext = {
+  supabase?: Awaited<ReturnType<typeof createClient>>
+  userId?: string
+}
+
+export async function getQuestionStats(locationId?: string, context?: QuestionStatsContext) {
   try {
-    const supabase = await createClient();
+    const supabase = context?.supabase ?? (await createClient());
+    let resolvedUserId = context?.userId;
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return {
-        success: false,
-        error: "Not authenticated",
-        data: null,
-      };
+      if (authError || !user) {
+        return {
+          success: false,
+          error: "Not authenticated",
+          data: null,
+        };
+      }
+      resolvedUserId = user.id;
     }
 
     let query = supabase
       .from("gmb_questions")
       .select("answer_status, upvote_count, ai_category, priority")
-      .eq("user_id", user.id);
+      .eq("user_id", resolvedUserId);
 
     if (locationId && locationId !== "all") {
       query = query.eq("location_id", locationId);

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getValidAccessToken, buildLocationResourceName, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 import type { LocationData, ReviewData, QuestionData } from "@/lib/gmb/sync-types"
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions"
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager"
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE
 const REVIEWS_BASE = GMB_CONSTANTS.GMB_V4_BASE
@@ -334,6 +335,8 @@ export async function performTransactionalSync(accountId: string, includeQuestio
     },
     3
   )
+
+  await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
 
   return {
     success: true,

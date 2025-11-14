@@ -76,19 +76,28 @@ export async function getActivityLogs(limit: number = 10) {
   return { activities: data || [], error: null }
 }
 
-export async function getMonthlyStats() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return { data: [], error: "Not authenticated" }
+type MonthlyStatsContext = {
+  supabase?: Awaited<ReturnType<typeof createClient>>
+  userId?: string
+}
+
+export async function getMonthlyStats(context?: MonthlyStatsContext) {
+  const supabase = context?.supabase ?? (await createClient())
+  let resolvedUserId = context?.userId
+
+  if (!resolvedUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { data: [], error: "Not authenticated" }
+    }
+    resolvedUserId = user.id
   }
 
   // First get active GMB account IDs
   const { data: activeAccounts } = await supabase
     .from("gmb_accounts")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", resolvedUserId)
     .eq("is_active", true)
 
   const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
@@ -101,7 +110,7 @@ export async function getMonthlyStats() {
   const { data: activeLocations } = await supabase
     .from("gmb_locations")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", resolvedUserId)
     .in("gmb_account_id", activeAccountIds)
 
   const activeLocationIds = activeLocations?.map(loc => loc.id) || []
@@ -114,7 +123,7 @@ export async function getMonthlyStats() {
   const { data: reviews, error } = await supabase
     .from("gmb_reviews")
     .select("rating, review_date, created_at")
-    .eq("user_id", user.id)
+    .eq("user_id", resolvedUserId)
     .in("location_id", activeLocationIds)
     .order("review_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true })

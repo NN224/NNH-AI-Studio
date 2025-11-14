@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getReviewStats } from '@/server/actions/reviews-management';
 import { getPostStats } from '@/server/actions/posts-management';
 import { getQuestionStats } from '@/server/actions/questions-management';
 import { getMonthlyStats } from '@/server/actions/dashboard';
 import type { DashboardSnapshot, LocationStatus } from '@/types/dashboard';
+import { CacheBucket, getCacheValue, registerCacheWarmer, setCacheValue } from '@/lib/cache/cache-manager';
 
 export const dynamic = 'force-dynamic';
+const DASHBOARD_CACHE_BUCKET = CacheBucket.DASHBOARD_OVERVIEW;
+const CACHE_CONTROL_VALUE = 'private, max-age=300, stale-while-revalidate=60';
+
+function cacheHeaders(cacheState: 'HIT' | 'MISS' | 'BYPASS'): HeadersInit {
+  return {
+    'Cache-Control': CACHE_CONTROL_VALUE,
+    'X-Cache': cacheState,
+  };
+}
 
 function parseMetadata(raw: unknown): Record<string, any> {
   if (!raw) {
@@ -125,35 +135,67 @@ function calculatePercentChange(current: number, previous: number): number {
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const warmToken = request.headers.get('x-cache-warm-token');
+    const warmUserId = request.headers.get('x-cache-warm-user');
+    const warmSecret = process.env.CACHE_WARMER_TOKEN;
+    const isWarmRequest =
+      Boolean(warmSecret && warmToken && warmUserId && warmToken === warmSecret);
 
-    if (authError || !user) {
+    const supabase = isWarmRequest ? createAdminClient() : await createClient();
+    let resolvedUserId: string | null = isWarmRequest ? warmUserId ?? null : null;
+
+    if (!isWarmRequest) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        return NextResponse.json(
+          {
+            error: 'Unauthorized',
+            message: 'Authentication required. Please sign in again.',
+          },
+          { status: 401 },
+        );
+      }
+      const sessionUserId = user.id;
+      resolvedUserId = sessionUserId;
+
+      const { success: rateLimitOK, headers } = await checkRateLimit(sessionUserId);
+      if (!rateLimitOK) {
+        return NextResponse.json(
+          {
+            error: 'Too many requests',
+            message: 'Rate limit exceeded. Please try again later.',
+            retry_after: headers['X-RateLimit-Reset'],
+          },
+          {
+            status: 429,
+            headers: headers as HeadersInit,
+          },
+        );
+      }
+    } else if (!resolvedUserId) {
       return NextResponse.json(
         {
-          error: 'Unauthorized',
-          message: 'Authentication required. Please sign in again.',
+          error: 'Missing user context for cache warming',
         },
-        { status: 401 },
+        { status: 400 },
       );
     }
 
-    const { success: rateLimitOK, headers } = await checkRateLimit(user.id);
-    if (!rateLimitOK) {
-      return NextResponse.json(
-        {
-          error: 'Too many requests',
-          message: 'Rate limit exceeded. Please try again later.',
-          retry_after: headers['X-RateLimit-Reset'],
-        },
-        {
-          status: 429,
-          headers: headers as HeadersInit,
-        },
+    const userId = resolvedUserId!;
+    const cacheKey = `${userId}:overview`;
+
+    if (!isWarmRequest) {
+      const cachedSnapshot = await getCacheValue<DashboardSnapshot>(
+        DASHBOARD_CACHE_BUCKET,
+        cacheKey,
       );
+      if (cachedSnapshot) {
+        return NextResponse.json(cachedSnapshot, { headers: cacheHeaders('HIT') });
+      }
     }
 
     const now = new Date();
@@ -163,13 +205,13 @@ export async function GET(request: Request) {
         supabase
           .from('gmb_accounts')
           .select('id, is_active, last_sync')
-          .eq('user_id', user.id),
+          .eq('user_id', userId),
         supabase
           .from('gmb_locations')
           .select(
             'id, location_name, gmb_account_id, is_active, is_archived, last_synced_at, metadata, profile_completeness',
           )
-          .eq('user_id', user.id),
+          .eq('user_id', userId),
       ]);
 
     if (locationsError) {
@@ -309,9 +351,9 @@ export async function GET(request: Request) {
     }).length;
 
     const [reviewStatsResult, postStatsResult, questionStatsResult] = await Promise.all([
-      getReviewStats(),
-      getPostStats(),
-      getQuestionStats(),
+      getReviewStats(undefined, { supabase, userId }),
+      getPostStats(undefined, { supabase, userId }),
+      getQuestionStats(undefined, { supabase, userId }),
     ]);
 
     const reviewStatsData = reviewStatsResult.success ? reviewStatsResult.data : null;
@@ -412,7 +454,7 @@ export async function GET(request: Request) {
       recentQuestions: [],
     };
 
-    const monthlyStatsResult = await getMonthlyStats();
+    const monthlyStatsResult = await getMonthlyStats({ supabase, userId });
     const monthlyData = monthlyStatsResult.data ?? [];
 
     let monthlyComparison: DashboardSnapshot['monthlyComparison'] = null;
@@ -497,19 +539,19 @@ export async function GET(request: Request) {
       supabase
         .from('gmb_reviews')
         .select('id, location_id, reviewer_name, rating, review_date')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('review_date', { ascending: false, nullsFirst: false })
         .limit(5),
       supabase
         .from('gmb_posts')
         .select('id, location_id, status, published_at, title, user_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5),
       supabase
         .from('gmb_questions')
         .select('id, location_id, question_text, created_at, answer_status, upvote_count, user_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5),
     ]);
@@ -551,7 +593,7 @@ export async function GET(request: Request) {
         .select(
           'id, location_id, is_enabled, auto_reply_enabled, smart_posting_enabled, updated_at, user_id',
         )
-        .eq('user_id', user.id),
+        .eq('user_id', userId),
       locationSummaries.length > 0
         ? supabase
             .from('autopilot_logs')
@@ -615,7 +657,7 @@ export async function GET(request: Request) {
       const { data: tasksData, error: tasksError } = await supabase
         .from('weekly_task_recommendations')
         .select('status, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('week_start_date', { ascending: false })
         .limit(100);
 
@@ -659,7 +701,7 @@ export async function GET(request: Request) {
 
     const snapshot: DashboardSnapshot = {
       generatedAt: now.toISOString(),
-      userId: user.id,
+      userId,
       locationSummary: {
         totalLocations,
         activeLocations,
@@ -688,7 +730,10 @@ export async function GET(request: Request) {
       bottlenecks: computedBottlenecks,
     };
 
-    return NextResponse.json(snapshot);
+    await setCacheValue(DASHBOARD_CACHE_BUCKET, cacheKey, snapshot);
+    return NextResponse.json(snapshot, {
+      headers: cacheHeaders(isWarmRequest ? 'BYPASS' : 'MISS'),
+    });
   } catch (error) {
     console.error('[Dashboard Overview] Unexpected error', error);
     return NextResponse.json(
@@ -698,5 +743,34 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+const warmBaseUrl =
+  process.env.INTERNAL_CACHE_BASE_URL ||
+  process.env.APP_URL ||
+  process.env.NEXT_PUBLIC_APP_URL;
+
+if (process.env.CACHE_WARMER_TOKEN && warmBaseUrl) {
+  const normalizedBase = warmBaseUrl.replace(/\/$/, '');
+  registerCacheWarmer(DASHBOARD_CACHE_BUCKET, async (userId) => {
+    try {
+      const response = await fetch(`${normalizedBase}/api/dashboard/overview`, {
+        headers: {
+          'x-cache-warm-token': process.env.CACHE_WARMER_TOKEN as string,
+          'x-cache-warm-user': userId,
+        },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Cache] Dashboard warm request failed', error);
+      }
+      return null;
+    }
+  });
 }
 

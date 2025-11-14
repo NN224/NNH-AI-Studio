@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 import type { ReviewData } from "@/lib/gmb/sync-types"
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager"
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
 const STAR_RATING_TO_SCORE: Record<string, number> = {
@@ -430,6 +431,8 @@ export async function replyToReview(reviewId: string, replyText: string) {
 
     revalidatePath("/dashboard")
     revalidatePath("/reviews")
+
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
 
     return {
       success: true,
@@ -992,23 +995,32 @@ export async function syncReviewsFromGoogle(locationId: string) {
 /**
  * 8. GET REVIEW STATISTICS
  */
-export async function getReviewStats(locationId?: string) {
+type StatsContext = {
+  supabase?: Awaited<ReturnType<typeof createClient>>
+  userId?: string
+}
+
+export async function getReviewStats(locationId?: string, context?: StatsContext) {
   try {
-    const supabase = await createClient()
+    const supabase = context?.supabase ?? (await createClient())
+    let resolvedUserId = context?.userId
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    if (!resolvedUserId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      return { success: false, error: "Not authenticated", data: null }
+      if (authError || !user) {
+        return { success: false, error: "Not authenticated", data: null }
+      }
+      resolvedUserId = user.id
     }
 
     let query = supabase
       .from("gmb_reviews")
       .select("rating, has_reply, status, ai_sentiment")
-      .eq("user_id", user.id)
+      .eq("user_id", resolvedUserId)
 
     if (locationId && locationId !== "all") {
       query = query.eq("location_id", locationId)
