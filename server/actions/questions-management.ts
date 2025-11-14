@@ -1,38 +1,27 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import type { QuestionData } from "@/lib/gmb/sync-types";
+import type { QuestionData } from "@/lib/gmb/sync-types";
 
 const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
 
-type QuestionLocationRecord = {
-  id: string;
-  user_id: string;
-  gmb_account_id: string;
-  location_id: string;
-  metadata?: Record<string, any> | null;
-  gmb_accounts?: Array<{ account_id: string }> | { account_id: string } | null;
-};
-
-function resolveAccountId(record: QuestionLocationRecord): string | null {
-  const relation = Array.isArray(record.gmb_accounts)
-    ? record.gmb_accounts[0]
-    : record.gmb_accounts;
-  return relation?.account_id ?? null;
+interface QuestionFetchContext {
+  userId: string;
+  accountId: string;
+  googleLocationId: string;
+  accessToken: string;
+  internalLocationId?: string;
 }
 
-async function buildQuestionDataset(
-  location: QuestionLocationRecord,
-  accountResource: string,
-  accessToken: string
-): Promise<QuestionData[]> {
-  const endpoint = `${GMB_API_BASE}/${location.location_id}/questions`;
+async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promise<QuestionData[]> {
+  const endpoint = `${GMB_API_BASE}/${context.googleLocationId}/questions`;
   const response = await fetch(endpoint, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${context.accessToken}`,
       Accept: "application/json",
     },
   });
@@ -64,12 +53,13 @@ async function buildQuestionDataset(
     const topAnswer = googleQuestion.topAnswers?.[0] || null;
     const answerId = topAnswer?.name?.split("/").pop() || null;
     const hasAnswer = !!topAnswer?.text;
-    const status = hasAnswer ? "answered" : "pending";
+    const status = hasAnswer ? "answered" : "unanswered";
 
     payload.push({
-      user_id: location.user_id,
-      location_id: location.id,
-      gmb_account_id: location.gmb_account_id,
+      user_id: context.userId,
+      location_id: context.internalLocationId,
+      google_location_id: context.googleLocationId,
+      gmb_account_id: context.accountId,
       question_id: questionId,
       author_name: googleQuestion.author?.displayName || "Anonymous",
       author_display_name: googleQuestion.author?.displayName || null,
@@ -80,7 +70,7 @@ async function buildQuestionDataset(
       answer_text: topAnswer?.text || null,
       answer_date: topAnswer?.updateTime || null,
       answer_author: topAnswer?.author?.displayName || null,
-      answer_id: answerId,
+      answer_id,
       upvote_count: googleQuestion.upvoteCount || 0,
       total_answer_count: googleQuestion.totalAnswerCount || 0,
       status,
@@ -91,34 +81,28 @@ async function buildQuestionDataset(
   return payload;
 }
 
-async function loadQuestionLocationAdmin(
-  locationId: string
-): Promise<QuestionLocationRecord & { account_resource: string }> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("gmb_locations")
-    .select("id, user_id, gmb_account_id, location_id, metadata, gmb_accounts!inner(account_id)")
-    .eq("id", locationId)
-    .single();
-
-  if (error || !data) {
-    throw new Error("Location not found");
-  }
-
-  const accountId = resolveAccountId(data as QuestionLocationRecord);
-  if (!accountId) {
-    throw new Error("Google account details missing. Please reconnect your Google account.");
-  }
-
-  return { ...(data as QuestionLocationRecord), account_resource: accountId };
-}
-
 export async function fetchQuestionsFromGoogle(
   locationId: string,
   accessToken: string
 ): Promise<QuestionData[]> {
-  const context = await loadQuestionLocationAdmin(locationId);
-  return buildQuestionDataset(context, context.account_resource, accessToken);
+  const supabase = await createClient();
+  const { data: location, error } = await supabase
+    .from("gmb_locations")
+    .select("id, location_id, gmb_account_id, user_id")
+    .eq("id", locationId)
+    .single();
+
+  if (error || !location) {
+    throw new Error("Location not found");
+  }
+
+  return collectQuestionsFromGoogle({
+    userId: location.user_id,
+    accountId: location.gmb_account_id,
+    googleLocationId: location.location_id,
+    accessToken,
+    internalLocationId: location.id,
+  });
 }
 
 // Validation schemas
@@ -824,11 +808,13 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     }
 
     const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
-    const questionDataset = await buildQuestionDataset(
-      location as QuestionLocationRecord,
-      account.account_id,
-      accessToken
-    );
+    const questionDataset = await collectQuestionsFromGoogle({
+      userId: user.id,
+      accountId: location.gmb_account_id,
+      googleLocationId: location.location_id,
+      accessToken,
+      internalLocationId: location.id,
+    });
 
     if (questionDataset.length === 0) {
       // Update location sync time even if no questions found
@@ -854,7 +840,7 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     const syncTime = new Date().toISOString();
     const questionsToUpsert = questionDataset.map((question) => ({
       user_id: question.user_id,
-      location_id: question.location_id,
+      location_id: question.location_id ?? locationId,
       gmb_account_id: question.gmb_account_id || location.gmb_account_id,
       question_id: question.question_id,
       external_question_id: question.question_id,

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { ApiError, errorResponse } from '@/utils/api-error';
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
 import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
+import { runSyncTransactionWithRetry } from '@/lib/supabase/transactions';
+import type { LocationData, ReviewData, QuestionData } from '@/lib/gmb/sync-types';
 
 export const dynamic = 'force-dynamic';
 

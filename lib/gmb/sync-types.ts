@@ -21,7 +21,8 @@ export interface LocationData {
 
 export interface ReviewData {
   user_id: string
-  location_id: string
+  location_id?: string
+  google_location_id: string
   gmb_account_id?: string
   review_id: string
   reviewer_name?: string | null
@@ -41,7 +42,8 @@ export interface ReviewData {
 
 export interface QuestionData {
   user_id: string
-  location_id: string
+  location_id?: string
+  google_location_id: string
   gmb_account_id?: string
   question_id: string
   author_name?: string | null

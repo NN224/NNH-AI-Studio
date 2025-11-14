@@ -112,8 +112,8 @@ begin
       last_synced_at
     )
     select
-      nullif(elem->>'gmb_account_id', '')::uuid,
-      nullif(elem->>'user_id', '')::uuid,
+      coalesce(nullif(elem->>'gmb_account_id', '')::uuid, p_account_id),
+      v_user_id,
       elem->>'location_id',
       elem->>'normalized_location_id',
       elem->>'location_name',
@@ -173,9 +173,9 @@ begin
       ai_sentiment
     )
     select
-      nullif(elem->>'user_id', '')::uuid,
-      nullif(elem->>'location_id', '')::uuid,
-      nullif(elem->>'gmb_account_id', '')::uuid,
+      v_user_id,
+      loc.id,
+      loc.gmb_account_id,
       elem->>'review_id',
       nullif(elem->>'rating', '')::int,
       elem->>'review_text',
@@ -193,6 +193,9 @@ begin
       now(),
       elem->>'sentiment'
     from jsonb_array_elements(coalesce(p_reviews, '[]'::jsonb)) elem
+    join public.gmb_locations loc
+      on loc.location_id = elem->>'google_location_id'
+     and loc.gmb_account_id = p_account_id
     on conflict (external_review_id) do update set
       reviewer_name = excluded.reviewer_name,
       reviewer_display_name = excluded.reviewer_display_name,
@@ -236,9 +239,9 @@ begin
       synced_at
     )
     select
-      nullif(elem->>'user_id', '')::uuid,
-      nullif(elem->>'location_id', '')::uuid,
-      nullif(elem->>'gmb_account_id', '')::uuid,
+      v_user_id,
+      loc.id,
+      loc.gmb_account_id,
       elem->>'question_id',
       elem->>'question_id',
       elem->>'question_text',
@@ -258,6 +261,9 @@ begin
       elem->>'google_resource_name',
       now()
     from jsonb_array_elements(coalesce(p_questions, '[]'::jsonb)) elem
+    join public.gmb_locations loc
+      on loc.location_id = elem->>'google_location_id'
+     and loc.gmb_account_id = p_account_id
     on conflict (question_id) do update set
       author_name = excluded.author_name,
       author_display_name = excluded.author_display_name,
@@ -309,6 +315,7 @@ exception
       error_message = SQLERRM,
       error_details = jsonb_build_object(
         'error_code', SQLSTATE,
+        'error_message', SQLERRM,
         'stack_trace', pg_catalog.pg_backtrace()
       ),
       completed_at = now()

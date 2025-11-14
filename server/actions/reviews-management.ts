@@ -31,14 +31,15 @@ function buildLocationResourceName(accountId: string, locationId: string): strin
 interface ReviewFetchContext {
   userId: string
   accountId: string
-  locationResource: string
+  googleLocationId: string
   accessToken: string
+  internalLocationId?: string
 }
 
 async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<ReviewData[]> {
-  const locationResource = context.locationResource.startsWith('accounts/')
-    ? context.locationResource
-    : buildLocationResourceName(context.accountId, context.locationResource)
+  const locationResource = context.googleLocationId.startsWith('accounts/')
+    ? context.googleLocationId
+    : buildLocationResourceName(context.accountId, context.googleLocationId)
   const reviews: ReviewData[] = []
   let nextPageToken: string | undefined = undefined
 
@@ -71,7 +72,8 @@ async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<Re
 
       reviews.push({
         user_id: context.userId,
-        location_id: locationResource,
+        location_id: context.internalLocationId,
+        google_location_id: locationResource,
         gmb_account_id: context.accountId,
         review_id: reviewId,
         reviewer_name: googleReview.reviewer?.displayName || "Anonymous",
@@ -118,7 +120,7 @@ export async function fetchReviewsFromGoogle(locationId: string, accessToken: st
   const supabase = await createClient()
   const { data: location, error } = await supabase
     .from("gmb_locations")
-    .select("location_id, gmb_account_id, user_id")
+    .select("id, location_id, gmb_account_id, user_id")
     .eq("id", locationId)
     .single()
 
@@ -129,8 +131,9 @@ export async function fetchReviewsFromGoogle(locationId: string, accessToken: st
   return collectReviewsFromGoogle({
     userId: location.user_id,
     accountId: location.gmb_account_id,
-    locationResource: location.location_id,
+    googleLocationId: location.location_id,
     accessToken,
+    internalLocationId: location.id,
   })
 }
 
@@ -868,8 +871,9 @@ export async function syncReviewsFromGoogle(locationId: string) {
     const reviewsPayload = await collectReviewsFromGoogle({
       userId: user.id,
       accountId: location.gmb_account_id,
-      locationResource: location.location_id,
+      googleLocationId: location.location_id,
       accessToken,
+      internalLocationId: location.id,
     })
 
     if (reviewsPayload.length === 0) {
@@ -889,7 +893,7 @@ export async function syncReviewsFromGoogle(locationId: string) {
     // Prepare all review data for batch upsert
     const nowIso = new Date().toISOString()
     const reviewsToUpsert = reviewsPayload.map((review) => ({
-      location_id: locationId,
+      location_id: review.location_id ?? locationId,
       user_id: review.user_id,
       gmb_account_id: location.gmb_account_id,
       external_review_id: review.review_id,
