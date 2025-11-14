@@ -40,6 +40,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 // ⭐️ واجهة بيانات المستخدم (مطابقة لما تم إنشاؤه في layout.tsx)
 interface UserProfileData {
@@ -65,23 +66,35 @@ read: boolean;
 created_at: string;
 }
 
-const routeNames: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/locations': 'Locations',
-  '/reviews': 'Reviews',
-  '/questions': 'Questions',
-  '/youtube-posts': 'YouTube Posts',
-  '/posts': 'GMB Posts',
-  '/calendar': 'Calendar',
-  '/media': 'Media',
-  '/analytics': 'Analytics',
-  '/grid-tracking': 'Grid Tracking',
-  '/features': 'Profile',
-  '/automation': 'Automation',
-  '/approvals': 'Approvals',
-  '/webhooks': 'Webhooks',
-  '/team': 'Team',
-  '/settings': 'Settings',
+// Route names will be translated using Dashboard.nav keys
+const getRouteName = (path: string, t: any): string => {
+  const routeMap: Record<string, string> = {
+    '/dashboard': 'nav.dashboard',
+    '/locations': 'nav.locations',
+    '/reviews': 'nav.reviews',
+    '/questions': 'nav.questions',
+    '/youtube-posts': 'nav.youtubePosts',
+    '/posts': 'nav.gmbPosts',
+    '/calendar': 'nav.calendar',
+    '/media': 'nav.media',
+    '/analytics': 'nav.analytics',
+    '/grid-tracking': 'nav.gridTracking',
+    '/features': 'nav.features',
+    '/automation': 'nav.automation',
+    '/approvals': 'nav.approvals',
+    '/webhooks': 'nav.webhooks',
+    '/team': 'nav.team',
+    '/settings': 'nav.settings',
+  };
+  const key = routeMap[path];
+  if (key) {
+    try {
+      return t(key);
+    } catch {
+      return path.split('/').pop() || path;
+    }
+  }
+  return path.split('/').pop() || path;
 };
 
 // ⭐️ دالة مساعدة للحروف الأولى
@@ -96,6 +109,7 @@ const getInitials = (nameOrEmail?: string | null) => {
 
 
 export function Header({ onMenuClick, onCommandPaletteOpen, userProfile }: HeaderProps) {
+const t = useTranslations('Dashboard');
 const pathname = usePathname();
 const { theme, setTheme } = useTheme();
 const { showShortcutsModal } = useKeyboard();
@@ -173,7 +187,7 @@ const pathSegments = safePath.split('/').filter(Boolean);
 const breadcrumbs = pathSegments.map((segment, index) => {
   const path = `/${pathSegments.slice(0, index + 1).join('/')}`;
   return {
-    name: routeNames[path] || segment.charAt(0).toUpperCase() + segment.slice(1),
+    name: getRouteName(path, t) || segment.charAt(0).toUpperCase() + segment.slice(1),
     path,
   };
 });
@@ -283,12 +297,12 @@ className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center r
 </Button>
 </DropdownMenuTrigger>
 <DropdownMenuContent align="end" className="w-80">
-<DropdownMenuLabel className="flex items-center justify-between">
-<span>Notifications</span>
-{unreadCount > 0 && (
-<Badge variant="secondary">{unreadCount} new</Badge>
-)}
-</DropdownMenuLabel>
+        <DropdownMenuLabel className="flex items-center justify-between">
+          <span>{t('notifications.title')}</span>
+          {unreadCount > 0 && (
+            <Badge variant="secondary">{unreadCount} {t('notifications.new')}</Badge>
+          )}
+        </DropdownMenuLabel>
 <DropdownMenuSeparator />
 <ScrollArea className="max-h-[400px]">
 {loadingNotifications ? (
@@ -298,7 +312,7 @@ className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center r
 ) : notifications.length === 0 ? (
 <div className="flex flex-col items-center justify-center py-8 text-center">
 <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
-<p className="text-sm text-muted-foreground">No notifications</p>
+            <p className="text-sm text-muted-foreground">{t('notifications.empty')}</p>
 </div>
 ) : (
 notifications.map((notification) => (
@@ -356,7 +370,7 @@ console.error('Failed to mark all as read:', error);
 }
 }}
 >
-Mark all as read
+            {t('notifications.markAllRead')}
 </DropdownMenuItem>
 </>
 )}
@@ -389,7 +403,7 @@ Mark all as read
                     <Link href="/settings" passHref>
                         <DropdownMenuItem className="cursor-pointer">
                             <Settings className="mr-2 h-4 w-4" />
-                            <span>Settings</span>
+                            <span>{t('nav.settings')}</span>
                         </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator />
@@ -398,7 +412,7 @@ Mark all as read
                         className="cursor-pointer text-red-500 focus:text-red-600"
                     >
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>Sign Out</span>
+                        <span>{t('auth.signOut')}</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Clock, CheckCircle, Globe } from "lucide-react"
+import { useTranslations } from 'next-intl'
 
 interface GMBAccount {
   id: string;
@@ -59,6 +60,7 @@ export function GeneralSettingsTab({
   setLanguage,
   gmbAccounts
 }: GeneralSettingsTabProps) {
+  const t = useTranslations('Settings.general')
   const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
 
   return (
@@ -77,23 +79,23 @@ export function GeneralSettingsTab({
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="business-name">Business Name</Label>
+              <Label htmlFor="business-name">{t('businessName')}</Label>
               <Input 
                 id="business-name" 
-                placeholder="Your Business Name" 
+                placeholder={t('businessInfo.namePlaceholder')} 
                 className="bg-secondary border-primary/30"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                This will be used as the default name across the platform
+                {t('businessInfo.nameHint')}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="primary-category">Primary Category</Label>
+              <Label htmlFor="primary-category">{t('primaryCategory')}</Label>
               <Select value={primaryCategory} onValueChange={setPrimaryCategory}>
                 <SelectTrigger className="bg-secondary border-primary/30">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t('businessInfo.categoryPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="restaurant">Restaurant</SelectItem>
@@ -110,36 +112,36 @@ export function GeneralSettingsTab({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="business-desc">Business Description</Label>
+            <Label htmlFor="business-desc">{t('businessDescription')}</Label>
             <Textarea 
               id="business-desc"
-              placeholder="Describe your business in a few sentences..."
+              placeholder={t('businessInfo.descriptionPlaceholder')}
               className="bg-secondary border-primary/30 min-h-[80px]"
               value={businessDescription}
               onChange={(e) => setBusinessDescription(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              This helps AI generate better content tailored to your business
+              {t('businessInfo.descriptionHint')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="default-reply">Default Reply Template</Label>
+            <Label htmlFor="default-reply">{t('defaultReplyTemplate')}</Label>
             <Textarea 
               id="default-reply"
-              placeholder="Thank you for your review! We appreciate your feedback and hope to serve you again soon."
+              placeholder={t('businessInfo.replyPlaceholder')}
               className="bg-secondary border-primary/30 min-h-[100px]"
               value={defaultReplyTemplate}
               onChange={(e) => setDefaultReplyTemplate(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              This template will be used as a starting point for AI-generated responses
+              {t('businessInfo.replyHint')}
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone">{t('timezone')}</Label>
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue />
@@ -156,7 +158,7 @@ export function GeneralSettingsTab({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="language">Default Language</Label>
+              <Label htmlFor="language">{t('language')}</Label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue />
@@ -186,41 +188,41 @@ export function GeneralSettingsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            Auto-Sync Scheduling
+            {t('syncSchedule.title')}
           </CardTitle>
           <CardDescription>
-            Configure automatic synchronization of your Google My Business data
+            {t('syncSchedule.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="sync-schedule">Sync Frequency</Label>
+            <Label htmlFor="sync-schedule">{t('syncSchedule.frequency')}</Label>
             <Select value={syncSchedule} onValueChange={setSyncSchedule}>
               <SelectTrigger className="bg-secondary border-primary/30">
-                <SelectValue placeholder="Select sync frequency" />
+                <SelectValue placeholder={t('syncSchedule.placeholder')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="manual">
                   <div className="flex items-center justify-between w-full">
-                    <span>Manual Only</span>
-                    <Badge variant="secondary" className="ml-2 text-xs">Recommended</Badge>
+                    <span>{t('syncSchedule.manual')}</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">{t('syncSchedule.recommended')}</Badge>
                   </div>
                 </SelectItem>
-                <SelectItem value="hourly">Every Hour</SelectItem>
-                <SelectItem value="daily">Daily (Midnight UTC)</SelectItem>
-                <SelectItem value="twice-daily">Twice Daily (9 AM & 6 PM UTC)</SelectItem>
-                <SelectItem value="weekly">Weekly (Mondays)</SelectItem>
+                <SelectItem value="hourly">{t('syncSchedule.hourly')}</SelectItem>
+                <SelectItem value="daily">{t('syncSchedule.daily')}</SelectItem>
+                <SelectItem value="twice-daily">{t('syncSchedule.twiceDaily')}</SelectItem>
+                <SelectItem value="weekly">{t('syncSchedule.weekly')}</SelectItem>
               </SelectContent>
             </Select>
 
             {/* Sync Description */}
             <div className="p-3 bg-secondary/50 rounded-lg border border-primary/20">
               <p className="text-sm text-muted-foreground">
-                {syncSchedule === 'manual' && '✓ You control when to sync. Click "Sync Now" button on the dashboard.'}
-                {syncSchedule === 'hourly' && '⚡ Your data syncs automatically every hour. Good for high-traffic businesses.'}
-                {syncSchedule === 'daily' && '📅 Your data syncs once per day at midnight UTC. Balanced approach.'}
-                {syncSchedule === 'twice-daily' && '🕐 Your data syncs twice daily at 9 AM and 6 PM UTC. Good for active businesses.'}
-                {syncSchedule === 'weekly' && '📆 Your data syncs every Monday at midnight UTC. Light usage.'}
+                {syncSchedule === 'manual' && t('syncSchedule.descriptions.manual')}
+                {syncSchedule === 'hourly' && t('syncSchedule.descriptions.hourly')}
+                {syncSchedule === 'daily' && t('syncSchedule.descriptions.daily')}
+                {syncSchedule === 'twice-daily' && t('syncSchedule.descriptions.twiceDaily')}
+                {syncSchedule === 'weekly' && t('syncSchedule.descriptions.weekly')}
               </p>
             </div>
           </div>
@@ -229,10 +231,10 @@ export function GeneralSettingsTab({
             <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-foreground">Auto-sync enabled</span>
+                <span className="text-sm font-medium text-foreground">{t('syncSchedule.autoSyncEnabled')}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Your Google My Business data will be synchronized automatically. You can still manually sync anytime from the dashboard.
+                {t('syncSchedule.autoSyncDescription')}
               </p>
             </div>
           )}
@@ -240,17 +242,17 @@ export function GeneralSettingsTab({
           {/* Last Sync Status */}
           {activeAccounts.length > 0 && (
             <div className="space-y-2 pt-4 border-t border-primary/20">
-              <Label className="text-sm font-medium">Recent Sync Activity</Label>
+              <Label className="text-sm font-medium">{t('syncSchedule.recentActivity')}</Label>
               <div className="space-y-2">
                 {activeAccounts.map((account) => (
                   <div key={account.id} className="flex items-center justify-between text-sm p-2 bg-secondary/30 rounded">
                     <span className="text-muted-foreground">
-                      {account.account_name || 'GMB Account'}
+                      {account.account_name || t('syncSchedule.gmbAccount')}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {account.last_sync 
                         ? new Date(account.last_sync).toLocaleString() 
-                        : 'Never synced'}
+                        : t('syncSchedule.neverSynced')}
                     </span>
                   </div>
                 ))}
@@ -263,17 +265,17 @@ export function GeneralSettingsTab({
       {/* Publishing Settings */}
       <Card className="bg-card border-primary/30">
         <CardHeader>
-          <CardTitle>Publishing & Automation</CardTitle>
+          <CardTitle>{t('publishing.title')}</CardTitle>
           <CardDescription>
-            Control how content is published to your GMB profile
+            {t('publishing.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="auto-publish">Auto-publish Updates</Label>
+              <Label htmlFor="auto-publish">{t('autoPublish')}</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically publish approved content to Google My Business
+                {t('publishing.autoPublishDescription')}
               </p>
             </div>
             <Switch 
@@ -286,7 +288,7 @@ export function GeneralSettingsTab({
           {autoPublish && (
             <div className="p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
               <p className="text-xs text-yellow-600 dark:text-yellow-500">
-                ⚠️ Content will be published automatically after AI generation. Make sure to review AI settings carefully.
+                {t('publishing.warning')}
               </p>
             </div>
           )}

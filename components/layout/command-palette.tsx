@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   CommandDialog,
   CommandEmpty,
@@ -33,108 +34,9 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const navigationCommands = [
-  {
-    icon: LayoutDashboard,
-    label: 'Dashboard',
-    action: '/dashboard',
-    shortcut: 'G D',
-  },
-  {
-    icon: MapPin,
-    label: 'Locations',
-    action: '/locations',
-    shortcut: 'G L',
-  },
-  {
-    icon: Star,
-    label: 'Reviews',
-    action: '/reviews',
-    shortcut: 'G R',
-  },
-  {
-    icon: MessageSquare,
-    label: 'Questions',
-    action: '/questions',
-  },
-  {
-    icon: FileText,
-    label: 'GMB Posts',
-    action: '/posts',
-    shortcut: 'G P',
-  },
-  {
-    icon: FileText,
-    label: 'YouTube Posts',
-    action: '/youtube-posts',
-  },
-  {
-    icon: BarChart3,
-    label: 'Analytics',
-    action: '/analytics',
-    shortcut: 'G A',
-  },
-  {
-    icon: Zap,
-    label: 'Automation',
-    action: '/automation',
-  },
-  {
-    icon: Users,
-    label: 'Team',
-    action: '/team',
-  },
-  {
-    icon: Settings,
-    label: 'Settings',
-    action: '/settings',
-    shortcut: 'G S',
-  },
-];
-
-const actionCommands = [
-  {
-    icon: Plus,
-    label: 'Create GMB Post',
-    action: '/posts',
-  },
-  {
-    icon: Plus,
-    label: 'Create YouTube Post',
-    action: '/youtube-posts',
-  },
-  {
-    icon: Download,
-    label: 'Export Data',
-    action: 'export',
-  },
-  {
-    icon: Upload,
-    label: 'Import Locations',
-    action: 'import',
-  },
-];
-
-const searchCommands = [
-  {
-    icon: Search,
-    label: 'Search Locations',
-    action: 'search-locations',
-  },
-  {
-    icon: Search,
-    label: 'Search Reviews',
-    action: 'search-reviews',
-  },
-  {
-    icon: Search,
-    label: 'Search Posts',
-    action: 'search-posts',
-  },
-];
-
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
+  const t = useTranslations('CommandPalette');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -142,6 +44,106 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, []);
 
   if (!mounted) return null;
+
+  const navigationCommands = [
+    {
+      icon: LayoutDashboard,
+      label: t('commands.dashboard'),
+      action: '/dashboard',
+      shortcut: 'G D',
+    },
+    {
+      icon: MapPin,
+      label: t('commands.locations'),
+      action: '/locations',
+      shortcut: 'G L',
+    },
+    {
+      icon: Star,
+      label: t('commands.reviews'),
+      action: '/reviews',
+      shortcut: 'G R',
+    },
+    {
+      icon: MessageSquare,
+      label: t('commands.questions'),
+      action: '/questions',
+    },
+    {
+      icon: FileText,
+      label: t('commands.gmbPosts'),
+      action: '/posts',
+      shortcut: 'G P',
+    },
+    {
+      icon: FileText,
+      label: t('commands.youtubePosts'),
+      action: '/youtube-posts',
+    },
+    {
+      icon: BarChart3,
+      label: t('commands.analytics'),
+      action: '/analytics',
+      shortcut: 'G A',
+    },
+    {
+      icon: Zap,
+      label: t('commands.automation'),
+      action: '/automation',
+    },
+    {
+      icon: Users,
+      label: t('commands.team'),
+      action: '/team',
+    },
+    {
+      icon: Settings,
+      label: t('commands.settings'),
+      action: '/settings',
+      shortcut: 'G S',
+    },
+  ];
+
+  const actionCommands = [
+    {
+      icon: Plus,
+      label: t('commands.createGmbPost'),
+      action: '/posts',
+    },
+    {
+      icon: Plus,
+      label: t('commands.createYoutubePost'),
+      action: '/youtube-posts',
+    },
+    {
+      icon: Download,
+      label: t('commands.exportData'),
+      action: 'export',
+    },
+    {
+      icon: Upload,
+      label: t('commands.importLocations'),
+      action: 'import',
+    },
+  ];
+
+  const searchCommands = [
+    {
+      icon: Search,
+      label: t('commands.searchLocations'),
+      action: 'search-locations',
+    },
+    {
+      icon: Search,
+      label: t('commands.searchReviews'),
+      action: 'search-reviews',
+    },
+    {
+      icon: Search,
+      label: t('commands.searchPosts'),
+      action: 'search-posts',
+    },
+  ];
 
   const handleSelect = (action: string) => {
     onOpenChange(false);
@@ -155,11 +157,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput placeholder={t('placeholder')} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t('empty')}</CommandEmpty>
 
-        <CommandGroup heading="Navigation">
+        <CommandGroup heading={t('navigation')}>
           {navigationCommands.map((command) => {
             const Icon = command.icon;
             return (
@@ -184,7 +186,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandSeparator />
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={t('actions')}>
           {actionCommands.map((command) => {
             const Icon = command.icon;
             return (
@@ -202,7 +204,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandSeparator />
 
-        <CommandGroup heading="Search">
+        <CommandGroup heading={t('search')}>
           {searchCommands.map((command) => {
             const Icon = command.icon;
             return (

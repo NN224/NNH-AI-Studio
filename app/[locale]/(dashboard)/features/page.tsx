@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Lock, Unlock, Shield, FileText, Sparkles, RotateCcw, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 
 interface TabDefinition {
   readonly id: TabKey
@@ -37,6 +38,7 @@ function cloneProfilePayload(payload: BusinessProfilePayload): BusinessProfilePa
 }
 
 export default function BusinessProfilePage() {
+  const t = useTranslations('BusinessProfile')
   const { data: snapshot, loading: snapshotLoading, error: snapshotError } = useDashboardSnapshot()
 
   const locations = useMemo(() => snapshot?.locationSummary?.locations ?? [], [snapshot?.locationSummary?.locations])
@@ -173,7 +175,7 @@ export default function BusinessProfilePage() {
     }
 
     if (isLocked) {
-      toast.error('Profile is locked. Please unlock to save changes.')
+      toast.error(t('profileLockedSave'))
       return
     }
 
@@ -194,11 +196,11 @@ export default function BusinessProfilePage() {
       const payload: BusinessProfilePayload = await response.json()
       setProfile(payload)
       setInitialProfile(payload)
-      toast.success('Profile updated successfully')
+      toast.success(t('saved'))
       window.dispatchEvent(new Event('dashboard:refresh'))
     } catch (error: unknown) {
       const isError = error instanceof Error
-      const message = isError ? error.message : 'Failed to save profile changes'
+      const message = isError ? error.message : t('saveError')
       toast.error(message)
     } finally {
       setSaveLoading(false)
@@ -267,8 +269,8 @@ export default function BusinessProfilePage() {
       <div className="max-w-[1800px] mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Business Profile</h1>
-            <p className="text-zinc-400">Manage and optimize your Google Business Profile details and attributes in one place</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('title')}</h1>
+            <p className="text-zinc-400">{t('subtitle')}</p>
             {snapshotError && (
               <p className="mt-2 text-sm text-red-400">
                 Failed to load dashboard data. Some information may be incomplete.
@@ -281,7 +283,7 @@ export default function BusinessProfilePage() {
               type="button"
               onClick={() => {
                 if (isLocked) {
-                  toast.error('Profile is locked. Please unlock to reset changes.')
+                  toast.error(t('profileLocked'))
                   return
                 }
                 if (initialProfile) {
@@ -293,7 +295,7 @@ export default function BusinessProfilePage() {
               disabled={profileLoading || !initialProfile || !hasChanges || isLocked}
             >
               <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
+              {t('reset')}
             </button>
             <button
               type="button"
@@ -308,12 +310,12 @@ export default function BusinessProfilePage() {
               {saveLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                  Saving...
+                  {t('saving')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {t('saveChanges')}
                 </>
               )}
             </button>
@@ -337,7 +339,7 @@ export default function BusinessProfilePage() {
               ))}
             </select>
           )}
-          <p className="text-xs text-zinc-500 mt-2">Currently editing: {selectedLocationName}</p>
+          <p className="text-xs text-zinc-500 mt-2">{t('currentlyEditing')}: {selectedLocationName}</p>
         </div>
 
         {/* Profile Protection Card */}
@@ -346,7 +348,7 @@ export default function BusinessProfilePage() {
             <CardHeader>
               <CardTitle className="text-zinc-100 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-orange-400" />
-                Profile Protection
+                {t('protection.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -354,15 +356,13 @@ export default function BusinessProfilePage() {
                 <div className="flex-1">
                   <p className="text-sm text-zinc-300 mb-2">
                     {isLocked 
-                      ? 'Profile is currently locked. No changes can be made to the data.'
-                      : 'Profile is unlocked. You can make changes freely.'}
+                      ? t('protection.locked')
+                      : t('protection.unlocked')}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-zinc-400">
                     <Lock className="w-3 h-3" />
                     <span>
-                      {isLocked 
-                        ? 'Protects your profile from unwanted changes and accidental modifications'
-                        : 'Lock your profile to protect it from unwanted changes'}
+                      {t('protection.lockDescription')}
                     </span>
                   </div>
                 </div>
@@ -383,12 +383,12 @@ export default function BusinessProfilePage() {
                   ) : isLocked ? (
                     <>
                       <Unlock className="w-4 h-4" />
-                      <span>Unlock Profile</span>
+                      <span>{t('protection.unlockButton')}</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>Lock Profile</span>
+                      <span>{t('protection.lockButton')}</span>
                     </>
                   )}
                 </Button>
@@ -424,7 +424,7 @@ export default function BusinessProfilePage() {
               >
                 {tab.icon === 'FileText' && <FileText className="w-5 h-5" />}
                 {tab.icon === 'Sparkles' && <Sparkles className="w-5 h-5" />}
-                <span>{tab.name}</span>
+                <span>{tab.id === 'info' ? t('tabs.basicInfo') : t('tabs.features')}</span>
               </button>
             ))}
           </div>
@@ -436,9 +436,9 @@ export default function BusinessProfilePage() {
                   <div className="mb-6 p-4 rounded-lg border border-orange-500/30 bg-orange-500/10 flex items-center gap-3">
                     <Lock className="w-5 h-5 text-orange-400" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-orange-200">Profile is Locked</p>
+                      <p className="text-sm font-medium text-orange-200">{t('protection.locked')}</p>
                       <p className="text-xs text-orange-300/80 mt-1">
-                        No changes can be made. Please unlock the profile from the "Profile Protection" section above.
+                        No changes can be made. Please unlock the profile from the "{t('protection.title')}" section above.
                       </p>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import { Save, Shield, Globe, Sparkles, Bell, Database, Palette } from "lucide-r
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useTranslations } from 'next-intl'
 import { DataManagement } from "./data-management"
 import { AccountConnectionTab } from "./account-connection-tab"
 import { GeneralSettingsTab } from "./general-settings-tab"
@@ -26,6 +27,7 @@ interface GMBAccount {
 }
 
 export function GMBSettings() {
+  const t = useTranslations('Settings')
   const supabase = createClient()
   const router = useRouter()
 
@@ -249,7 +251,7 @@ export function GMBSettings() {
         throw new Error(error.error || 'Failed to save settings')
       }
 
-      toast.success("Settings saved successfully!", {
+      toast.success(t('saved'), {
         description: "All your preferences have been updated."
       })
 
@@ -258,7 +260,7 @@ export function GMBSettings() {
     } catch (error) {
       console.error('Error saving settings:', error)
       const err = error as Error;
-      toast.error("Failed to save settings", {
+      toast.error(t('saveError'), {
         description: err.message || 'Please try again'
       })
     } finally {
@@ -295,27 +297,27 @@ export function GMBSettings() {
             disabled={!hasAccounts}
           >
             <Shield className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Account</span>
+            <span className="hidden sm:inline">{t('general.account')}</span>
           </TabsTrigger>
           <TabsTrigger value="branding" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Palette className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Branding</span>
+            <span className="hidden sm:inline">{t('branding.title')}</span>
           </TabsTrigger>
           <TabsTrigger value="general" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">General</span>
+            <span className="hidden sm:inline">{t('general.title')}</span>
           </TabsTrigger>
           <TabsTrigger value="ai" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Sparkles className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">AI & Auto</span>
+            <span className="hidden sm:inline">{t('ai.title')}</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Bell className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Alerts</span>
+            <span className="hidden sm:inline">{t('notifications.title')}</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Database className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Data</span>
+            <span className="hidden sm:inline">{t('data.title')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -444,7 +446,7 @@ export function GMBSettings() {
             className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg"
           >
             <Save className={`h-4 w-4 ${saving ? "animate-spin" : ""}`} />
-            {saving ? "Saving..." : "Save All Changes"}
+            {saving ? t('saving') : t('saveAllChanges')}
           </Button>
         </div>
       </div>

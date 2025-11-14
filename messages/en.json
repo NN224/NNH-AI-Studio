@@ -281,6 +281,17 @@
   "Dashboard": {
     "title": "GMB Dashboard",
     "subtitle": "Manage your business",
+    "header": {
+      "title": "AI Command Center",
+      "subtitle": "Here is your AI-powered brief.",
+      "description": "Proactive risk and growth orchestration dashboard",
+      "customize": "Customize Dashboard"
+    },
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
     "connectionBanner": {
       "title": "Connect Your Google My Business Account",
       "description": "Link your GMB account to unlock powerful features: manage locations, respond to reviews with AI, track analytics, and boost your local SEO—all from one dashboard.",
@@ -726,6 +737,482 @@
         "description": "Verify instantly if you have access to existing listing",
         "time": "Immediate"
       }
+    }
+  },
+  "Settings": {
+    "title": "Settings",
+    "subtitle": "Manage your Google My Business integration and platform preferences",
+    "saveAllChanges": "Save All Changes",
+    "saving": "Saving...",
+    "saved": "Settings saved successfully!",
+    "saveError": "Failed to save settings",
+    "general": {
+      "title": "General Settings",
+      "account": "Account",
+      "autoPublish": "Auto Publish",
+      "businessName": "Business Name",
+      "primaryCategory": "Primary Category",
+      "businessDescription": "Business Description",
+      "defaultReplyTemplate": "Default Reply Template",
+      "timezone": "Timezone",
+      "language": "Default Language",
+      "businessInfo": {
+        "title": "Business Information",
+        "description": "Update your business details and preferences",
+        "namePlaceholder": "Your Business Name",
+        "nameHint": "This will be used as the default name across the platform",
+        "categoryPlaceholder": "Select category",
+        "descriptionPlaceholder": "Describe your business in a few sentences...",
+        "descriptionHint": "This helps AI generate better content tailored to your business",
+        "replyPlaceholder": "Thank you for your review! We appreciate your feedback and hope to serve you again soon.",
+        "replyHint": "This template will be used as a starting point for AI-generated responses"
+      },
+      "syncSchedule": {
+        "title": "Auto-Sync Scheduling",
+        "description": "Configure automatic synchronization of your Google My Business data",
+        "frequency": "Sync Frequency",
+        "placeholder": "Select sync frequency",
+        "manual": "Manual Only",
+        "recommended": "Recommended",
+        "hourly": "Every Hour",
+        "daily": "Daily (Midnight UTC)",
+        "twiceDaily": "Twice Daily (9 AM & 6 PM UTC)",
+        "weekly": "Weekly (Mondays)",
+        "descriptions": {
+          "manual": "✓ You control when to sync. Click \"Sync Now\" button on the dashboard.",
+          "hourly": "⚡ Your data syncs automatically every hour. Good for high-traffic businesses.",
+          "daily": "📅 Your data syncs once per day at midnight UTC. Balanced approach.",
+          "twiceDaily": "🕐 Your data syncs twice daily at 9 AM and 6 PM UTC. Good for active businesses.",
+          "weekly": "📆 Your data syncs every Monday at midnight UTC. Light usage."
+        },
+        "autoSyncEnabled": "Auto-sync enabled",
+        "autoSyncDescription": "Your Google My Business data will be synchronized automatically. You can still manually sync anytime from the dashboard.",
+        "recentActivity": "Recent Sync Activity",
+        "gmbAccount": "GMB Account",
+        "neverSynced": "Never synced"
+      },
+      "publishing": {
+        "title": "Publishing & Automation",
+        "description": "Control how content is published to your GMB profile",
+        "autoPublishDescription": "Automatically publish approved content to Google My Business",
+        "warning": "⚠️ Content will be published automatically after AI generation. Make sure to review AI settings carefully."
+      }
+    },
+    "ai": {
+      "title": "AI & Automation",
+      "autoReply": "Auto-reply to Reviews",
+      "responseTone": "Response Tone & Style",
+      "responseLength": "Response Length Preference",
+      "creativityLevel": "AI Creativity Level",
+      "responseGeneration": {
+        "title": "AI Response Generation",
+        "description": "Customize how AI generates responses for your business",
+        "autoReplyTooltip": "AI will automatically generate and send replies to new reviews based on your settings",
+        "autoReplyEnabled": "💡 Auto-reply is enabled. AI will respond to new reviews within 5 minutes using your configured tone and settings.",
+        "tonePlaceholder": "Select tone",
+        "recommended": "Recommended",
+        "tones": {
+          "professional": "Professional",
+          "friendly": "Friendly",
+          "casual": "Casual",
+          "formal": "Formal",
+          "empathetic": "Empathetic"
+        },
+        "toneDescriptions": {
+          "professional": "🎯 Balanced, courteous, and business-appropriate responses",
+          "friendly": "😊 Warm, approachable, and conversational responses",
+          "casual": "👋 Relaxed, informal, and personable responses",
+          "formal": "🎩 Polished, respectful, and traditional responses",
+          "empathetic": "❤️ Understanding, caring, and emotionally aware responses"
+        },
+        "lengths": {
+          "brief": "Brief (1-2 sentences)",
+          "medium": "Medium (2-4 sentences)",
+          "detailed": "Detailed (4-6 sentences)"
+        },
+        "creativityLevels": {
+          "low": "Low (More consistent)",
+          "medium": "Medium (Balanced)",
+          "high": "High (More creative)"
+        },
+        "creativityHint": "Lower values = More consistent. Higher values = More creative & varied responses."
+      },
+      "features": {
+        "title": "AI Features & Capabilities",
+        "description": "Currently active AI-powered features",
+        "active": "Active",
+        "comingSoon": "Coming Soon",
+        "smartReview": "Smart Review Response Generation",
+        "smartReviewDesc": "Context-aware responses tailored to each review's sentiment and content",
+        "sentimentAnalysis": "Sentiment Analysis",
+        "sentimentAnalysisDesc": "Automatic detection of positive, neutral, and negative sentiments",
+        "contentOptimization": "Content Optimization",
+        "contentOptimizationDesc": "AI suggestions to improve your posts and responses for better engagement",
+        "postScheduling": "Post Auto-Scheduling",
+        "postSchedulingDesc": "Intelligent scheduling based on optimal posting times",
+        "predictiveInsights": "Predictive Insights",
+        "predictiveInsightsDesc": "Forecasting trends and suggesting proactive actions"
+      },
+      "provider": {
+        "title": "AI Provider & Performance",
+        "description": "Multi-provider AI system for reliability",
+        "activeProviders": "Active Providers (Fallback Chain)",
+        "primary": "Primary",
+        "fallback": "Fallback",
+        "hint": "System automatically tries providers in order until successful. This ensures 99.9% uptime."
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "emailDeliveryTime": "Email Delivery Time",
+      "negativePriority": "Priority Alerts for Negative Reviews",
+      "replyReminders": "Reply Reminders",
+      "browserNotifications": "Browser Notifications",
+      "soundAlerts": "Sound Alerts",
+      "quietHoursStart": "Start Time",
+      "quietHoursEnd": "End Time",
+      "notifyReviews": "New Reviews",
+      "notifyQuestions": "New Questions",
+      "notifyMessages": "Direct Messages",
+      "notifyMentions": "Profile Updates",
+      "notifyInsights": "Weekly Insights Report",
+      "notifyTips": "Tips & Recommendations",
+      "reviewNotifications": {
+        "title": "Review Notifications",
+        "description": "Get notified when you receive new reviews",
+        "newAlerts": "New Review Alerts",
+        "newAlertsDesc": "Instant notification when a customer leaves a review",
+        "negativePriorityDesc": "High-priority notifications for reviews with 3 stars or less",
+        "replyRemindersDesc": "Remind me to reply to reviews after 24 hours"
+      },
+      "emailDigest": {
+        "title": "Email Digest",
+        "description": "Receive summary emails of your GMB activity",
+        "frequency": "Digest Frequency",
+        "placeholder": "Select frequency",
+        "recommended": "Recommended",
+        "options": {
+          "realtime": "Real-time (Instant emails)",
+          "daily": "Daily Summary",
+          "weekly": "Weekly Summary",
+          "monthly": "Monthly Summary",
+          "never": "Never (Disable emails)"
+        },
+        "descriptions": {
+          "realtime": "📧 You'll receive an email immediately for each new activity",
+          "daily": "📅 You'll receive one email per day with a summary of all activity",
+          "weekly": "📆 You'll receive one email per week with a summary of all activity",
+          "monthly": "📊 You'll receive one email per month with a comprehensive report",
+          "never": "🔕 Email notifications are disabled. You can still see activity in the dashboard."
+        }
+      },
+      "pushNotifications": {
+        "title": "Push Notifications",
+        "description": "Browser notifications for real-time updates",
+        "browserDesc": "Show notifications in your browser",
+        "soundDesc": "Play a sound with notifications",
+        "hint": "💡 Enable browser notifications to get instant alerts even when the app is in the background"
+      },
+      "preferences": {
+        "title": "What to Notify About",
+        "description": "Choose which events trigger notifications"
+      },
+      "quietHours": {
+        "title": "Quiet Hours",
+        "description": "Pause notifications during specific times",
+        "enable": "Enable Quiet Hours",
+        "enableDesc": "No notifications during your rest time"
+      }
+    },
+    "data": {
+      "title": "Data Management",
+      "retentionDays": "Data Retention Period",
+      "deleteOnDisconnect": "Delete all data on disconnect",
+      "archivedData": {
+        "title": "Retained Historical Data",
+        "description": "Data preserved after account disconnect (anonymized for privacy)",
+        "alert": "You have archived data from disconnected accounts. This data is anonymized and stored for historical purposes.",
+        "locations": "Archived Locations",
+        "reviews": "Archived Reviews",
+        "anonymized": "(anonymized)",
+        "export": "Export Data",
+        "exportComingSoon": "Export feature coming soon",
+        "deletePermanently": "Delete Permanently",
+        "empty": "No archived data found",
+        "emptyDescription": "Data from disconnected accounts will appear here"
+      },
+      "retention": {
+        "title": "Data Retention Policy",
+        "description": "Control how your data is handled when you disconnect an account",
+        "deleteOnDisconnectDesc": "Immediately delete all data when you disconnect (cannot be undone)",
+        "periodDescription": "Keep anonymized data for this many days before automatic deletion",
+        "days": "days",
+        "anonymizationNote": "Personal data is anonymized immediately on disconnect. Only statistical data is retained.",
+        "saveHint": "💡 Changes will be saved when you click \"Save All Changes\" at the bottom of the page.",
+        "saving": "Saving...",
+        "saveButton": "Save Retention Settings"
+      },
+      "deleteDialog": {
+        "title": "Permanently Delete All Archived Data?",
+        "description": "This will permanently delete:",
+        "locations": "archived locations",
+        "reviews": "archived reviews",
+        "associatedData": "All associated questions and posts",
+        "warning": "This action cannot be undone!",
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "confirm": "Delete Permanently"
+      },
+      "toast": {
+        "success": "Success",
+        "error": "Error",
+        "deleteFailed": "Failed to delete archived data",
+        "unexpectedError": "An unexpected error occurred",
+        "noAccount": "No account found",
+        "settingsWillBeSaved": "Settings will be saved with other changes",
+        "clickSaveAllChanges": "Click \"Save All Changes\" button at the bottom to save.",
+        "settingsSaved": "Settings saved",
+        "saveFailed": "Failed to save settings"
+      }
+    },
+    "branding": {
+      "title": "Brand Identity",
+      "description": "Customize your platform with your brand's identity",
+      "brandName": "Brand Name",
+      "brandNamePlaceholder": "Enter your brand name",
+      "logo": "Logo",
+      "coverImage": "Cover Image",
+      "primaryColor": "Primary Color",
+      "secondaryColor": "Secondary Color",
+      "uploading": "Uploading...",
+      "uploadLogo": "Upload Logo",
+      "uploadCover": "Upload Cover",
+      "logoHint": "Recommended: Square image, max 2MB (PNG, JPG, SVG)",
+      "coverHint": "Recommended: 16:9 aspect ratio, max 5MB (PNG, JPG)",
+      "primaryColorHint": "Main brand color used throughout the platform",
+      "secondaryColorHint": "Secondary color for accents and backgrounds",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "saveHint": "💡 Changes will be saved when you click \"Save All Changes\" at the bottom of the page.",
+      "toast": {
+        "invalidImageFile": "Please upload an image file",
+        "logoSizeError": "Image size must be less than 2MB",
+        "coverSizeError": "Image size must be less than 5MB",
+        "logoUploaded": "Logo uploaded successfully",
+        "coverUploaded": "Cover image uploaded successfully",
+        "logoUploadFailed": "Failed to upload logo",
+        "coverUploadFailed": "Failed to upload cover image",
+        "saved": "Branding saved successfully!",
+        "savedDescription": "Your changes have been applied.",
+        "saveFailed": "Failed to save branding"
+      }
+    }
+  },
+  "BusinessProfile": {
+    "title": "Business Profile",
+    "subtitle": "Manage and optimize your Google Business Profile details and attributes in one place",
+    "saveChanges": "Save Changes",
+    "reset": "Reset",
+    "saving": "Saving...",
+    "saved": "Profile updated successfully",
+    "saveError": "Failed to save profile changes",
+    "profileLocked": "Profile is locked. Please unlock to reset changes.",
+    "profileLockedSave": "Profile is locked. Please unlock to save changes.",
+    "currentlyEditing": "Currently editing",
+    "protection": {
+      "title": "Profile Protection",
+      "unlocked": "Profile is unlocked. You can make changes freely.",
+      "locked": "Profile is currently locked. No changes can be made to the data.",
+      "lockButton": "Lock Profile",
+      "unlockButton": "Unlock Profile",
+      "lockDescription": "Lock your profile to protect it from unwanted changes"
+    },
+    "completeness": {
+      "title": "Profile Completeness",
+      "low": "Low completion. Add more information to improve visibility",
+      "basicInfo": "Basic Info Complete",
+      "categoriesSet": "Categories Set",
+      "featuresAdded": "Features Added",
+      "linksAdded": "Action Links Added"
+    },
+    "tabs": {
+      "basicInfo": "Basic Info",
+      "features": "Features"
+    }
+  },
+  "Questions": {
+    "title": "Questions Management",
+    "subtitle": "Manage and respond to customer questions",
+    "sync": "Sync Questions",
+    "syncing": "Syncing...",
+    "searchPlaceholder": "Search questions...",
+    "filters": {
+      "all": "All Questions",
+      "unanswered": "Unanswered",
+      "answered": "Answered",
+      "urgent": "Urgent",
+      "high": "High Priority",
+      "medium": "Medium Priority",
+      "low": "Low Priority"
+    },
+    "stats": {
+      "total": "Total Questions",
+      "unanswered": "Unanswered",
+      "answered": "Answered",
+      "answerRate": "Answer Rate",
+      "totalUpvotes": "Total Upvotes",
+      "avgUpvotes": "Avg Upvotes"
+    },
+    "empty": "No questions found",
+    "actions": {
+      "answer": "Answer",
+      "aiGenerate": "Generate with AI",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  },
+  "Automation": {
+    "title": "Automation",
+    "subtitle": "Automate your business operations",
+    "stats": {
+      "active": "Active Automations",
+      "paused": "Paused",
+      "autoReplyEnabled": "Auto-Reply Enabled",
+      "totalRuns": "Total Runs",
+      "successRate": "Success Rate"
+    },
+    "templates": {
+      "title": "Quick Start Templates",
+      "description": "Get started quickly with pre-configured automation templates",
+      "autoReply": "Auto-Reply to Reviews",
+      "autoReplyDesc": "Automatically respond to customer reviews",
+      "negativeAlert": "Negative Review Alert",
+      "negativeAlertDesc": "Get notified about low-rated reviews",
+      "autoAnswer": "Auto-Answer Questions",
+      "autoAnswerDesc": "Automatically answer common questions",
+      "scheduledPosts": "Scheduled Posts",
+      "scheduledPostsDesc": "Automatically publish posts on schedule",
+      "weeklyReports": "Weekly Reports",
+      "weeklyReportsDesc": "Receive automated performance reports"
+    },
+    "locationCard": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "totalRuns": "Total Runs",
+      "successRate": "Success Rate",
+      "lastRun": "Last Run",
+      "viewLogs": "View Logs",
+      "configure": "Configure",
+      "active": "Active",
+      "paused": "Paused",
+      "never": "Never",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details",
+      "updated": "Updated",
+      "autoReply": "Auto reply",
+      "smartPosting": "Smart posting",
+      "competitorMonitor": "Competitor monitor",
+      "insightsReports": "Insights reports",
+      "autoReplies": "Auto replies",
+      "status": "Status:",
+      "minRating": "Min rating:",
+      "tone": "Tone:",
+      "frequency": "Frequency:",
+      "insightsMonitoring": "Insights & monitoring",
+      "competitorMonitoring": "Competitor monitoring:",
+      "reportCadence": "Report cadence:",
+      "configuration": "Configuration",
+      "configDescription": "Detailed scheduling and content preferences will appear once backend APIs are connected. Use the automation settings modal to update these values.",
+      "notSet": "not set",
+      "default": "default"
+    },
+    "activityLog": {
+      "title": "Activity Log",
+      "description": "Recent automation activity across all locations",
+      "noLogs": "No activity logs found",
+      "success": "Success",
+      "error": "Error",
+      "pending": "Pending",
+      "all": "All",
+      "failures": "Failures",
+      "noLogsForFilter": "No logs found for this filter",
+      "loadMore": "Load More Logs"
+    },
+    "page": {
+      "title": "Automation Center",
+      "subtitle": "Manage auto-reply, smart posting, and insights workflows across your locations",
+      "createAutomation": "Create Automation",
+      "activeAutomations": "Active automations",
+      "autoReplyEnabled": "Auto reply enabled",
+      "locationAutomations": "Location automations",
+      "loading": "Loading…",
+      "noSettings": "No automation settings found yet. Connect a Google Business Profile location and enable autopilot features to see them listed here."
+    }
+  },
+  "CommandPalette": {
+    "placeholder": "Type a command or search...",
+    "empty": "No results found.",
+    "navigation": "Navigation",
+    "actions": "Actions",
+    "search": "Search",
+    "commands": {
+      "dashboard": "Dashboard",
+      "locations": "Locations",
+      "reviews": "Reviews",
+      "questions": "Questions",
+      "gmbPosts": "GMB Posts",
+      "youtubePosts": "YouTube Posts",
+      "analytics": "Analytics",
+      "automation": "Automation",
+      "team": "Team",
+      "settings": "Settings",
+      "createGmbPost": "Create GMB Post",
+      "createYoutubePost": "Create YouTube Post",
+      "exportData": "Export Data",
+      "importLocations": "Import Locations",
+      "searchLocations": "Search Locations",
+      "searchReviews": "Search Reviews",
+      "searchPosts": "Search Posts"
+    }
+  },
+  "ComingSoon": {
+    "badge": "Coming Soon",
+    "defaultDescription": "This module is currently under construction. Stay tuned for the rollout.",
+    "posts": {
+      "title": "Posts Command Center",
+      "description": "We're finishing up the new publishing workflow with AI-assisted drafting, scheduling, and bulk actions. Check back soon to manage all posts from one place."
+    },
+    "media": {
+      "title": "Media Library",
+      "description": "Centralized asset management, AI tagging, and brand-safe automation are almost here. Soon you'll curate every visual from one smart library."
+    },
+    "calendar": {
+      "title": "Content Calendar",
+      "description": "Unified scheduling, AI playbooks, and automated post orchestration are coming soon. You'll plan campaigns, tasks, and reviews from one intelligent timeline."
+    },
+    "analytics": {
+      "title": "Analytics Command Center",
+      "description": "Deep performance dashboards, AI benchmarking, and cross-channel intelligence are nearly ready. Soon you'll get unified analytics purpose-built for AI growth."
+    },
+    "approvals": {
+      "title": "Approvals Workflow",
+      "description": "Centralized content approvals, AI guardrails, and compliance controls are nearly complete. Soon you'll manage every review cycle from a single command center."
+    },
+    "webhooks": {
+      "title": "Webhook Automations",
+      "description": "Event-driven triggers, AI filters, and low-code integrations are on the roadmap. Soon you'll connect NNH AI Studio to every workflow in minutes."
+    },
+    "team": {
+      "title": "Team Workspace",
+      "description": "Role-based access, approvals, and collaborative AI copilots are nearly done. Soon you'll manage every teammate and permission from one secure hub."
+    },
+    "youtubePosts": {
+      "title": "YouTube Shorts Automation",
+      "description": "Auto-generated shorts, scheduled uploads, and multi-location reporting are almost ready. Soon you'll orchestrate every YouTube touchpoint with AI."
+    },
+    "gridTracking": {
+      "title": "Local Grid Tracking",
+      "description": "Hyper-local rank tracking with AI diagnostics and competitive overlays is on the way. Soon you'll monitor SERP positions across every grid point in seconds."
     }
   }
 }

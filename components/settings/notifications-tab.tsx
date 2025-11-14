@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Mail, MessageSquare, Smartphone, Clock } from "lucide-react"
+import { useTranslations } from 'next-intl'
 
 interface NotificationsTabProps {
   reviewNotifications: boolean
@@ -76,6 +77,7 @@ export function NotificationsTab({
   notifyTips,
   setNotifyTips
 }: NotificationsTabProps) {
+  const t = useTranslations('Settings.notifications')
   return (
     <div className="space-y-6">
       {/* Review Notifications */}
@@ -83,10 +85,10 @@ export function NotificationsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
-            Review Notifications
+            {t('reviewNotifications.title')}
           </CardTitle>
           <CardDescription>
-            Get notified when you receive new reviews
+            {t('reviewNotifications.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -94,10 +96,10 @@ export function NotificationsTab({
             <div className="space-y-0.5">
               <Label htmlFor="review-notifications" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                New Review Alerts
+                {t('reviewNotifications.newAlerts')}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Instant notification when a customer leaves a review
+                {t('reviewNotifications.newAlertsDesc')}
               </p>
             </div>
             <Switch 
@@ -109,9 +111,9 @@ export function NotificationsTab({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="negative-priority">Priority Alerts for Negative Reviews</Label>
+              <Label htmlFor="negative-priority">{t('negativePriority')}</Label>
               <p className="text-sm text-muted-foreground">
-                High-priority notifications for reviews with 3 stars or less
+                {t('reviewNotifications.negativePriorityDesc')}
               </p>
             </div>
             <Switch 
@@ -123,9 +125,9 @@ export function NotificationsTab({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="reply-reminders">Reply Reminders</Label>
+              <Label htmlFor="reply-reminders">{t('replyReminders')}</Label>
               <p className="text-sm text-muted-foreground">
-                Remind me to reply to reviews after 24 hours
+                {t('reviewNotifications.replyRemindersDesc')}
               </p>
             </div>
             <Switch 
@@ -142,48 +144,48 @@ export function NotificationsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            Email Digest
+            {t('emailDigest.title')}
           </CardTitle>
           <CardDescription>
-            Receive summary emails of your GMB activity
+            {t('emailDigest.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email-digest">Digest Frequency</Label>
+            <Label htmlFor="email-digest">{t('emailDigest.frequency')}</Label>
             <Select value={emailDigest} onValueChange={setEmailDigest}>
               <SelectTrigger className="bg-secondary border-primary/30">
-                <SelectValue placeholder="Select frequency" />
+                <SelectValue placeholder={t('emailDigest.placeholder')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="realtime">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                    <span>Real-time (Instant emails)</span>
+                    <span>{t('emailDigest.options.realtime')}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="daily">
                   <div className="flex items-center gap-2">
                     <Clock className="h-3 w-3" />
-                    <span>Daily Summary</span>
-                    <Badge variant="secondary" className="ml-2 text-xs">Recommended</Badge>
+                    <span>{t('emailDigest.options.daily')}</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">{t('emailDigest.recommended')}</Badge>
                   </div>
                 </SelectItem>
                 <SelectItem value="weekly">
                   <div className="flex items-center gap-2">
                     <Clock className="h-3 w-3" />
-                    <span>Weekly Summary</span>
+                    <span>{t('emailDigest.options.weekly')}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="monthly">
                   <div className="flex items-center gap-2">
                     <Clock className="h-3 w-3" />
-                    <span>Monthly Summary</span>
+                    <span>{t('emailDigest.options.monthly')}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="never">
                   <div className="flex items-center gap-2">
-                    <span>Never (Disable emails)</span>
+                    <span>{t('emailDigest.options.never')}</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -191,25 +193,25 @@ export function NotificationsTab({
 
             <div className="p-3 bg-secondary/50 rounded-lg border border-primary/20">
               <p className="text-sm text-muted-foreground">
-                {emailDigest === 'realtime' && '📧 You\'ll receive an email immediately for each new activity'}
-                {emailDigest === 'daily' && '📅 You\'ll receive one email per day with a summary of all activity'}
-                {emailDigest === 'weekly' && '📆 You\'ll receive one email per week with a summary of all activity'}
-                {emailDigest === 'monthly' && '📊 You\'ll receive one email per month with a comprehensive report'}
-                {emailDigest === 'never' && '🔕 Email notifications are disabled. You can still see activity in the dashboard.'}
+                {emailDigest === 'realtime' && t('emailDigest.descriptions.realtime')}
+                {emailDigest === 'daily' && t('emailDigest.descriptions.daily')}
+                {emailDigest === 'weekly' && t('emailDigest.descriptions.weekly')}
+                {emailDigest === 'monthly' && t('emailDigest.descriptions.monthly')}
+                {emailDigest === 'never' && t('emailDigest.descriptions.never')}
               </p>
             </div>
           </div>
 
           {emailDigest !== 'never' && emailDigest !== 'realtime' && (
             <div className="space-y-2">
-              <Label>Email Delivery Time</Label>
+              <Label>{t('emailDeliveryTime')}</Label>
               <Select value={emailDeliveryTime} onValueChange={setEmailDeliveryTime}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="06:00">6:00 AM</SelectItem>
-                  <SelectItem value="09:00">9:00 AM (Recommended)</SelectItem>
+                  <SelectItem value="09:00">9:00 AM ({t('emailDigest.recommended')})</SelectItem>
                   <SelectItem value="12:00">12:00 PM</SelectItem>
                   <SelectItem value="18:00">6:00 PM</SelectItem>
                   <SelectItem value="21:00">9:00 PM</SelectItem>
@@ -225,18 +227,18 @@ export function NotificationsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Smartphone className="h-5 w-5 text-primary" />
-            Push Notifications
+            {t('pushNotifications.title')}
           </CardTitle>
           <CardDescription>
-            Browser notifications for real-time updates
+            {t('pushNotifications.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="browser-notifications">Browser Notifications</Label>
+              <Label htmlFor="browser-notifications">{t('browserNotifications')}</Label>
               <p className="text-sm text-muted-foreground">
-                Show notifications in your browser
+                {t('pushNotifications.browserDesc')}
               </p>
             </div>
             <Switch 
@@ -248,9 +250,9 @@ export function NotificationsTab({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="sound-alerts">Sound Alerts</Label>
+              <Label htmlFor="sound-alerts">{t('soundAlerts')}</Label>
               <p className="text-sm text-muted-foreground">
-                Play a sound with notifications
+                {t('pushNotifications.soundDesc')}
               </p>
             </div>
             <Switch 
@@ -262,7 +264,7 @@ export function NotificationsTab({
 
           <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              💡 Enable browser notifications to get instant alerts even when the app is in the background
+              {t('pushNotifications.hint')}
             </p>
           </div>
         </CardContent>
@@ -271,14 +273,14 @@ export function NotificationsTab({
       {/* Notification Preferences */}
       <Card className="bg-card border-primary/30">
         <CardHeader>
-          <CardTitle>What to Notify About</CardTitle>
+          <CardTitle>{t('preferences.title')}</CardTitle>
           <CardDescription>
-            Choose which events trigger notifications
+            {t('preferences.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-reviews">New Reviews</Label>
+            <Label htmlFor="notify-reviews">{t('notifyReviews')}</Label>
             <Switch 
               id="notify-reviews" 
               checked={notifyReviews}
@@ -286,7 +288,7 @@ export function NotificationsTab({
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-questions">New Questions</Label>
+            <Label htmlFor="notify-questions">{t('notifyQuestions')}</Label>
             <Switch 
               id="notify-questions" 
               checked={notifyQuestions}
@@ -294,7 +296,7 @@ export function NotificationsTab({
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-messages">Direct Messages</Label>
+            <Label htmlFor="notify-messages">{t('notifyMessages')}</Label>
             <Switch 
               id="notify-messages" 
               checked={notifyMessages}
@@ -302,7 +304,7 @@ export function NotificationsTab({
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-mentions">Profile Updates</Label>
+            <Label htmlFor="notify-mentions">{t('notifyMentions')}</Label>
             <Switch 
               id="notify-mentions" 
               checked={notifyMentions}
@@ -310,7 +312,7 @@ export function NotificationsTab({
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-insights">Weekly Insights Report</Label>
+            <Label htmlFor="notify-insights">{t('notifyInsights')}</Label>
             <Switch 
               id="notify-insights" 
               checked={notifyInsights}
@@ -318,7 +320,7 @@ export function NotificationsTab({
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="notify-tips">Tips & Recommendations</Label>
+            <Label htmlFor="notify-tips">{t('notifyTips')}</Label>
             <Switch 
               id="notify-tips" 
               checked={notifyTips}
@@ -333,18 +335,18 @@ export function NotificationsTab({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            Quiet Hours
+            {t('quietHours.title')}
           </CardTitle>
           <CardDescription>
-            Pause notifications during specific times
+            {t('quietHours.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="quiet-hours">Enable Quiet Hours</Label>
+              <Label htmlFor="quiet-hours">{t('quietHours.enable')}</Label>
               <p className="text-sm text-muted-foreground">
-                No notifications during your rest time
+                {t('quietHours.enableDesc')}
               </p>
             </div>
             <Switch 
@@ -357,7 +359,7 @@ export function NotificationsTab({
           {quietHours && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="quiet-start">Start Time</Label>
+                <Label htmlFor="quiet-start">{t('quietHoursStart')}</Label>
                 <Select value={quietHoursStart} onValueChange={setQuietHoursStart}>
                   <SelectTrigger className="bg-secondary border-primary/30">
                     <SelectValue />
@@ -370,7 +372,7 @@ export function NotificationsTab({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quiet-end">End Time</Label>
+                <Label htmlFor="quiet-end">{t('quietHoursEnd')}</Label>
                 <Select value={quietHoursEnd} onValueChange={setQuietHoursEnd}>
                   <SelectTrigger className="bg-secondary border-primary/30">
                     <SelectValue />

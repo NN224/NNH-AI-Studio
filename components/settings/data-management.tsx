@@ -32,6 +32,7 @@ import {
   permanentlyDeleteArchivedData,
   updateDataRetentionSettings,
 } from '@/server/actions/gmb-account';
+import { useTranslations } from 'next-intl';
 
 interface DataManagementProps {
   accountId?: string;
@@ -48,6 +49,7 @@ export function DataManagement({
   deleteOnDisconnect: deleteOnDisconnectProp,
   setDeleteOnDisconnect: setDeleteOnDisconnectProp
 }: DataManagementProps) {
+  const t = useTranslations('Settings.data')
   const {
     hasArchivedData,
     archivedLocationsCount,
@@ -86,20 +88,20 @@ export function DataManagement({
       const result = await permanentlyDeleteArchivedData();
       
       if (result.success) {
-        toast.success('Success', {
+        toast.success(t('toast.success'), {
           description: result.message,
         });
         setShowDeleteDialog(false);
         refresh();
       } else {
-        toast.error('Error', {
-          description: result.error || 'Failed to delete archived data',
+        toast.error(t('toast.error'), {
+          description: result.error || t('toast.deleteFailed'),
         });
       }
     } catch (error) {
       const err = error as Error;
-      toast.error('Error', {
-        description: err.message || 'An unexpected error occurred',
+      toast.error(t('toast.error'), {
+        description: err.message || t('toast.unexpectedError'),
       });
     } finally {
       setIsDeleting(false);
@@ -108,7 +110,7 @@ export function DataManagement({
 
   const handleSaveSettings = async () => {
     if (!currentAccountId) {
-      toast.error('No account found');
+      toast.error(t('toast.noAccount'));
       return;
     }
 
@@ -117,8 +119,8 @@ export function DataManagement({
       // If settings are managed by parent, just show success
       // The parent will handle saving via unified API
       if (setRetentionDaysProp && setDeleteOnDisconnectProp) {
-        toast.success('Settings will be saved with other changes', {
-          description: 'Click "Save All Changes" button at the bottom to save.',
+        toast.success(t('toast.settingsWillBeSaved'), {
+          description: t('toast.clickSaveAllChanges'),
         });
         setIsSaving(false);
         return;
@@ -132,19 +134,19 @@ export function DataManagement({
       );
 
       if (result.success) {
-        toast.success('Settings saved', {
+        toast.success(t('toast.settingsSaved'), {
           description: result.message,
         });
         refresh();
       } else {
-        toast.error('Error', {
-          description: result.error || 'Failed to save settings',
+        toast.error(t('toast.error'), {
+          description: result.error || t('toast.saveFailed'),
         });
       }
     } catch (error) {
       const err = error as Error;
-      toast.error('Error', {
-        description: err.message || 'An unexpected error occurred',
+      toast.error(t('toast.error'), {
+        description: err.message || t('toast.unexpectedError'),
       });
     } finally {
       setIsSaving(false);
@@ -158,7 +160,7 @@ export function DataManagement({
         <Alert className="border-orange-500/30 bg-orange-500/10">
           <Info className="h-4 w-4 text-orange-500" />
           <AlertDescription className="text-orange-200">
-            You have archived data from disconnected accounts. This data is anonymized and stored for historical purposes.
+            {t('archivedData.alert')}
           </AlertDescription>
         </Alert>
       )}
@@ -168,10 +170,10 @@ export function DataManagement({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-zinc-100">
             <Archive className="h-5 w-5 text-orange-500" />
-            Retained Historical Data
+            {t('archivedData.title')}
           </CardTitle>
           <CardDescription className="text-zinc-400">
-            Data preserved after account disconnect (anonymized for privacy)
+            {t('archivedData.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -181,7 +183,7 @@ export function DataManagement({
                 <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-sm text-zinc-400">Archived Locations</Label>
+                      <Label className="text-sm text-zinc-400">{t('archivedData.locations')}</Label>
                       <p className="text-2xl font-bold text-zinc-100">{archivedLocationsCount}</p>
                     </div>
                     <Database className="h-8 w-8 text-blue-500/50" />
@@ -191,9 +193,9 @@ export function DataManagement({
                 <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-sm text-zinc-400">Archived Reviews</Label>
+                      <Label className="text-sm text-zinc-400">{t('archivedData.reviews')}</Label>
                       <p className="text-2xl font-bold text-zinc-100">{archivedReviewsCount}</p>
-                      <p className="text-xs text-zinc-500 mt-1">(anonymized)</p>
+                      <p className="text-xs text-zinc-500 mt-1">{t('archivedData.anonymized')}</p>
                     </div>
                     <Shield className="h-8 w-8 text-green-500/50" />
                   </div>
@@ -206,11 +208,11 @@ export function DataManagement({
                   className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
                   onClick={() => {
                     // TODO: Implement export functionality
-                    toast.info('Export feature coming soon');
+                    toast.info(t('archivedData.exportComingSoon'));
                   }}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export Data
+                  {t('archivedData.export')}
                 </Button>
 
                 <Button
@@ -219,16 +221,16 @@ export function DataManagement({
                   onClick={() => setShowDeleteDialog(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Permanently
+                  {t('archivedData.deletePermanently')}
                 </Button>
               </div>
             </>
           ) : (
             <div className="text-center py-8">
               <Database className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-              <p className="text-sm text-zinc-500">No archived data found</p>
+              <p className="text-sm text-zinc-500">{t('archivedData.empty')}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                Data from disconnected accounts will appear here
+                {t('archivedData.emptyDescription')}
               </p>
             </div>
           )}
@@ -240,10 +242,10 @@ export function DataManagement({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-zinc-100">
             <Clock className="h-5 w-5 text-orange-500" />
-            Data Retention Policy
+            {t('retention.title')}
           </CardTitle>
           <CardDescription className="text-zinc-400">
-            Control how your data is handled when you disconnect an account
+            {t('retention.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -251,10 +253,10 @@ export function DataManagement({
             <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium text-zinc-200">
-                  Delete all data on disconnect
+                  {t('deleteOnDisconnect')}
                 </Label>
                 <p className="text-xs text-zinc-500">
-                  Immediately delete all data when you disconnect (cannot be undone)
+                  {t('retention.deleteOnDisconnectDesc')}
                 </p>
               </div>
               <Switch
@@ -268,10 +270,10 @@ export function DataManagement({
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-zinc-200">
-                    Data retention period
+                    {t('retentionDays')}
                   </Label>
                   <p className="text-xs text-zinc-500">
-                    Keep anonymized data for this many days before automatic deletion
+                    {t('retention.periodDescription')}
                   </p>
                 </div>
 
@@ -288,7 +290,7 @@ export function DataManagement({
                           : 'border-zinc-700'
                       }
                     >
-                      {days} days
+                      {days} {t('retention.days')}
                     </Button>
                   ))}
                 </div>
@@ -296,7 +298,7 @@ export function DataManagement({
                 <Alert className="border-zinc-700 bg-zinc-800/50">
                   <Shield className="h-4 w-4 text-blue-400" />
                   <AlertDescription className="text-xs text-zinc-400">
-                    Personal data is anonymized immediately on disconnect. Only statistical data is retained.
+                    {t('retention.anonymizationNote')}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -306,7 +308,7 @@ export function DataManagement({
           {setRetentionDaysProp && setDeleteOnDisconnectProp ? (
             <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
               <p className="text-xs text-blue-600 dark:text-blue-400">
-                💡 Changes will be saved when you click "Save All Changes" at the bottom of the page.
+                {t('retention.saveHint')}
               </p>
             </div>
           ) : (
@@ -315,7 +317,7 @@ export function DataManagement({
               disabled={isSaving || !currentAccountId}
               className="w-full bg-orange-600 hover:bg-orange-700"
             >
-              {isSaving ? 'Saving...' : 'Save Retention Settings'}
+              {isSaving ? t('retention.saving') : t('retention.saveButton')}
             </Button>
           )}
         </CardContent>
@@ -327,28 +329,28 @@ export function DataManagement({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-zinc-100">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              Permanently Delete All Archived Data?
+              {t('deleteDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-400">
-              This will permanently delete:
+              {t('deleteDialog.description')}
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>{archivedLocationsCount} archived locations</li>
-                <li>{archivedReviewsCount} archived reviews</li>
-                <li>All associated questions and posts</li>
+                <li>{archivedLocationsCount} {t('deleteDialog.locations')}</li>
+                <li>{archivedReviewsCount} {t('deleteDialog.reviews')}</li>
+                <li>{t('deleteDialog.associatedData')}</li>
               </ul>
               <p className="mt-4 text-red-400 font-medium">
-                This action cannot be undone!
+                {t('deleteDialog.warning')}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-zinc-700">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-zinc-700">{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePermanentDelete}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+              {isDeleting ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

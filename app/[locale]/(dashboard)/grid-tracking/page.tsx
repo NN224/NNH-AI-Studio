@@ -1,12 +1,16 @@
+'use client';
+
 import { ComingSoon } from '@/components/common/coming-soon';
+import { useTranslations } from 'next-intl';
 
 export default function GridTrackingPage() {
+  const t = useTranslations('ComingSoon.gridTracking');
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
       <div className="mx-auto max-w-4xl">
         <ComingSoon
-          title="Local Grid Tracking"
-          description="Hyper-local rank tracking with AI diagnostics and competitive overlays is on the way. Soon you'll monitor SERP positions across every grid point in seconds."
+          title={t('title')}
+          description={t('description')}
             icon="🗺️"
         />
       </div>

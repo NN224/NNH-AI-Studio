@@ -1,12 +1,16 @@
+'use client';
+
 import { ComingSoon } from '@/components/common/coming-soon';
+import { useTranslations } from 'next-intl';
 
 export default function CalendarPage() {
+  const t = useTranslations('ComingSoon.calendar');
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
       <div className="mx-auto max-w-4xl">
         <ComingSoon
-          title="Content Calendar"
-          description="Unified scheduling, AI playbooks, and automated post orchestration are coming soon. You’ll plan campaigns, tasks, and reviews from one intelligent timeline."
+          title={t('title')}
+          description={t('description')}
           icon="📅"
         />
       </div>

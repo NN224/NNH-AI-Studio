@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   ActivityLog,
   AutomationLogEntry,
@@ -16,6 +17,8 @@ interface AutomationSummaryResponse {
 }
 
 export default function AutomationPage() {
+  const t = useTranslations('Automation.page');
+  const tStats = useTranslations('Automation.stats');
   const [settings, setSettings] = useState<AutomationSettingsSummary[]>([])
   const [logs, setLogs] = useState<AutomationLogEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,10 +104,10 @@ export default function AutomationPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              🤖 Automation Center
+              🤖 {t('title')}
             </h1>
             <p className="text-zinc-400">
-              Manage auto-reply, smart posting, and insights workflows across your locations
+              {t('subtitle')}
             </p>
           </div>
 
@@ -117,7 +120,7 @@ export default function AutomationPage() {
             }}
             className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition flex items-center gap-2 text-white"
           >
-            ➕ Create Automation
+            ➕ {t('createAutomation')}
           </button>
         </div>
 
@@ -129,25 +132,25 @@ export default function AutomationPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <AutomationStatsCard
-            title="Active automations"
+            title={t('activeAutomations')}
             value={stats.activeCount}
             icon="⚡"
             color="green"
           />
           <AutomationStatsCard
-            title="Paused"
+            title={tStats('paused')}
             value={stats.pausedCount}
             icon="⏸️"
             color="orange"
           />
           <AutomationStatsCard
-            title="Auto reply enabled"
+            title={t('autoReplyEnabled')}
             value={stats.autoReplyEnabledCount}
             icon="🤖"
             color="blue"
           />
           <AutomationStatsCard
-            title="Success rate"
+            title={tStats('successRate')}
             value={stats.successRate !== null ? `${stats.successRate}%` : 'n/a'}
             icon="✅"
             color="purple"
@@ -159,15 +162,14 @@ export default function AutomationPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">
-              Location automations
+              {t('locationAutomations')}
             </h2>
-            {loading && <span className="text-xs text-zinc-500">Loading…</span>}
+            {loading && <span className="text-xs text-zinc-500">{t('loading')}</span>}
           </div>
 
           {!loading && settings.length === 0 && (
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 text-sm text-zinc-400">
-              No automation settings found yet. Connect a Google Business Profile location and enable
-              autopilot features to see them listed here.
+              {t('noSettings')}
             </div>
           )}
 

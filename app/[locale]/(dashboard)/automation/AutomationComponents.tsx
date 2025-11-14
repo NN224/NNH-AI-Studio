@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 export interface AutomationSettingsSummary {
   id: string
@@ -72,34 +73,35 @@ type Template = Readonly<{
 }>
 
 export function AutomationTemplates() {
+  const t = useTranslations('Automation.templates');
   const templates: ReadonlyArray<Template> = [
     {
-      name: 'Auto-Reply to Reviews',
-      description: 'Automatically respond to customer reviews',
+      name: t('autoReply'),
+      description: t('autoReplyDesc'),
       icon: '⭐',
       type: 'auto_reply'
     },
     {
-      name: 'Negative Review Alert',
-      description: 'Get notified about low-rated reviews',
+      name: t('negativeAlert'),
+      description: t('negativeAlertDesc'),
       icon: '🔔',
       type: 'alert'
     },
     {
-      name: 'Auto-Answer Questions',
-      description: 'Automatically answer common questions',
+      name: t('autoAnswer'),
+      description: t('autoAnswerDesc'),
       icon: '❓',
       type: 'auto_answer'
     },
     {
-      name: 'Scheduled Posts',
-      description: 'Automatically publish posts on schedule',
+      name: t('scheduledPosts'),
+      description: t('scheduledPostsDesc'),
       icon: '📝',
       type: 'scheduled_post'
     },
     {
-      name: 'Weekly Reports',
-      description: 'Receive automated performance reports',
+      name: t('weeklyReports'),
+      description: t('weeklyReportsDesc'),
       icon: '📊',
       type: 'report'
     }
@@ -108,10 +110,10 @@ export function AutomationTemplates() {
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
       <h2 className="text-xl font-bold text-white mb-4">
-        🚀 Quick Start Templates
+        🚀 {t('title')}
       </h2>
       <p className="text-sm text-zinc-400 mb-4">
-        Get started quickly with pre-configured automation templates
+        {t('description')}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -140,6 +142,7 @@ interface AutomationLocationCardProps {
 }
 
 export function AutomationLocationCard({ settings, logs }: AutomationLocationCardProps) {
+  const t = useTranslations('Automation.locationCard');
   const [isExpanded, setIsExpanded] = useState(false)
 
   const { totalRuns, successRate, lastRun } = useMemo(() => {
@@ -155,12 +158,12 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
 
   const modules = useMemo(
     () => [
-      { label: 'Auto reply', enabled: settings.autoReplyEnabled, icon: '🤖' },
-      { label: 'Smart posting', enabled: settings.smartPostingEnabled, icon: '📝' },
-      { label: 'Competitor monitor', enabled: settings.competitorMonitoringEnabled, icon: '📈' },
-      { label: 'Insights reports', enabled: settings.insightsReportsEnabled, icon: '📊' }
+      { label: t('autoReply'), enabled: settings.autoReplyEnabled, icon: '🤖' },
+      { label: t('smartPosting'), enabled: settings.smartPostingEnabled, icon: '📝' },
+      { label: t('competitorMonitor'), enabled: settings.competitorMonitoringEnabled, icon: '📈' },
+      { label: t('insightsReports'), enabled: settings.insightsReportsEnabled, icon: '📊' }
     ],
-    [settings]
+    [settings, t]
   )
 
   return (
@@ -179,11 +182,11 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
                       : 'bg-orange-500/20 text-orange-400 border border-orange-500/20'
                   }`}
                 >
-                  {settings.isEnabled ? 'Active' : 'Paused'}
+                  {settings.isEnabled ? t('active') : t('paused')}
                 </span>
               </div>
               <p className="text-xs text-zinc-500">
-                Updated {new Date(settings.updatedAt).toLocaleString()}
+                {t('updated')} {new Date(settings.updatedAt).toLocaleString()}
               </p>
             </div>
           </div>
@@ -192,21 +195,21 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
             onClick={() => setIsExpanded((prev) => !prev)}
             className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white"
           >
-            {isExpanded ? 'Hide details' : 'Show details'}
+            {isExpanded ? t('hideDetails') : t('showDetails')}
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
           <div className="flex items-center gap-2">
-            <span>Last run:</span>
-            <span className="text-white">{lastRun ?? 'Never'}</span>
+            <span>{t('lastRun')}</span>
+            <span className="text-white">{lastRun ?? t('never')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span>Total runs:</span>
+            <span>{t('totalRuns')}</span>
             <span className="text-white">{totalRuns}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span>Success rate:</span>
+            <span>{t('successRate')}</span>
             <span className="text-white">
               {successRate !== null ? `${successRate}%` : 'n/a'}
             </span>
@@ -233,40 +236,39 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
               <h4 className="font-medium text-white flex items-center gap-2 text-sm">
-                🤖 Auto replies
+                🤖 {t('autoReplies')}
               </h4>
-              <p>Status: {settings.autoReplyEnabled ? 'Enabled' : 'Disabled'}</p>
-              <p>Min rating: {settings.autoReplyMinRating ?? 'not set'}</p>
-              <p>Tone: {settings.replyTone ?? 'default'}</p>
+              <p>{t('status')} {settings.autoReplyEnabled ? t('enabled') : t('disabled')}</p>
+              <p>{t('minRating')} {settings.autoReplyMinRating ?? t('notSet')}</p>
+              <p>{t('tone')} {settings.replyTone ?? t('default')}</p>
             </div>
             <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
               <h4 className="font-medium text-white flex items-center gap-2 text-sm">
-                📝 Smart posting
+                📝 {t('smartPosting')}
               </h4>
-              <p>Status: {settings.smartPostingEnabled ? 'Enabled' : 'Disabled'}</p>
-              <p>Frequency: {settings.postFrequency ?? 'not set'}</p>
+              <p>{t('status')} {settings.smartPostingEnabled ? t('enabled') : t('disabled')}</p>
+              <p>{t('frequency')} {settings.postFrequency ?? t('notSet')}</p>
             </div>
             <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
               <h4 className="font-medium text-white flex items-center gap-2 text-sm">
-                📊 Insights & monitoring
+                📊 {t('insightsMonitoring')}
               </h4>
               <p>
-                Competitor monitoring:{' '}
-                {settings.competitorMonitoringEnabled ? 'Enabled' : 'Disabled'}
+                {t('competitorMonitoring')}{' '}
+                {settings.competitorMonitoringEnabled ? t('enabled') : t('disabled')}
               </p>
               <p>
-                Insights reports:{' '}
-                {settings.insightsReportsEnabled ? 'Enabled' : 'Disabled'}
+                {t('insightsReports')}:{' '}
+                {settings.insightsReportsEnabled ? t('enabled') : t('disabled')}
               </p>
-              <p>Report cadence: {settings.reportFrequency ?? 'weekly'}</p>
+              <p>{t('reportCadence')} {settings.reportFrequency ?? 'weekly'}</p>
             </div>
             <div className="bg-zinc-800/30 rounded-lg p-4 space-y-2 text-xs text-zinc-400">
               <h4 className="font-medium text-white flex items-center gap-2 text-sm">
-                ⚙️ Configuration
+                ⚙️ {t('configuration')}
               </h4>
               <p>
-                Detailed scheduling and content preferences will appear once backend APIs
-                are connected. Use the automation settings modal to update these values.
+                {t('configDescription')}
               </p>
             </div>
           </div>
@@ -277,6 +279,7 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
 }
 
 export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationLogEntry> }>) {
+  const t = useTranslations('Automation.activityLog');
   const [filter, setFilter] = useState<'all' | 'success' | 'failure'>('all')
 
   const filteredLogs = useMemo(() => {
@@ -292,7 +295,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-white">
-          📋 Activity Log
+          📋 {t('title')}
         </h2>
 
         <div className="flex gap-2">
@@ -304,7 +307,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
             }`}
           >
-            All
+            {t('all')}
           </button>
           <button
             onClick={() => setFilter('success')}
@@ -314,7 +317,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
             }`}
           >
-            Success
+            {t('success')}
           </button>
           <button
             onClick={() => setFilter('failure')}
@@ -324,7 +327,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
             }`}
           >
-            Failures
+            {t('failures')}
           </button>
         </div>
       </div>
@@ -332,7 +335,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
       <div className="space-y-2">
         {filteredLogs.length === 0 ? (
           <div className="text-center py-8 text-zinc-500">
-            No logs found for this filter
+            {t('noLogsForFilter')}
           </div>
         ) : (
           filteredLogs.map((log) => (
@@ -377,7 +380,7 @@ export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationL
       {logs.length > 10 && (
         <div className="mt-4 text-center">
           <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-sm font-medium transition text-white">
-            Load More Logs
+            {t('loadMore')}
           </button>
         </div>
       )}

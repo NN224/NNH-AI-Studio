@@ -9,6 +9,7 @@ import { Upload, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface BrandingTabProps {
   readonly onSave?: () => void;
@@ -38,6 +39,7 @@ export function BrandingTab({
   coverImageUrl: coverImageUrlProp,
   setCoverImageUrl: setCoverImageUrlProp
 }: BrandingTabProps) {
+  const t = useTranslations('Settings.branding')
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -157,13 +159,13 @@ export function BrandingTab({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
+      toast.error(t('toast.invalidImageFile'));
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image size must be less than 2MB');
+      toast.error(t('toast.logoSizeError'));
       return;
     }
 
@@ -171,10 +173,10 @@ export function BrandingTab({
       setUploadingLogo(true);
       const publicUrl = await uploadFile(file, 'logo');
       setLogoUrl(publicUrl);
-      toast.success('Logo uploaded successfully');
+      toast.success(t('toast.logoUploaded'));
     } catch (error) {
       const err = error as Error;
-      toast.error('Failed to upload logo', {
+      toast.error(t('toast.logoUploadFailed'), {
         description: err.message,
       });
     } finally {
@@ -189,13 +191,13 @@ export function BrandingTab({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
+      toast.error(t('toast.invalidImageFile'));
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      toast.error(t('toast.coverSizeError'));
       return;
     }
 
@@ -203,10 +205,10 @@ export function BrandingTab({
       setUploadingCover(true);
       const publicUrl = await uploadFile(file, 'cover');
       setCoverImageUrl(publicUrl);
-      toast.success('Cover image uploaded successfully');
+      toast.success(t('toast.coverUploaded'));
     } catch (error) {
       const err = error as Error;
-      toast.error('Failed to upload cover image', {
+      toast.error(t('toast.coverUploadFailed'), {
         description: err.message,
       });
     } finally {
@@ -257,8 +259,8 @@ export function BrandingTab({
         if (error) throw error;
       }
 
-      toast.success('Branding saved successfully!', {
-        description: 'Your changes have been applied.',
+      toast.success(t('toast.saved'), {
+        description: t('toast.savedDescription'),
       });
 
       // Trigger refresh in parent if callback provided
@@ -272,7 +274,7 @@ export function BrandingTab({
     } catch (error) {
       console.error('Error saving branding:', error);
       const err = error as Error;
-      toast.error('Failed to save branding', {
+      toast.error(t('toast.saveFailed'), {
         description: err.message,
       });
     } finally {
@@ -292,18 +294,18 @@ export function BrandingTab({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Brand Identity</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
-            Customize your platform with your brand's identity
+            {t('description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Brand Name */}
           <div className="space-y-2">
-            <Label htmlFor="brandName">Brand Name</Label>
+            <Label htmlFor="brandName">{t('brandName')}</Label>
             <Input
               id="brandName"
-              placeholder="Enter your brand name"
+              placeholder={t('brandNamePlaceholder')}
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
             />
@@ -311,7 +313,7 @@ export function BrandingTab({
 
           {/* Logo Upload */}
           <div className="space-y-2">
-            <Label>Logo</Label>
+            <Label>{t('logo')}</Label>
             <div className="flex flex-col gap-4">
               {logoUrl && (
                 <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden bg-muted">
@@ -340,17 +342,17 @@ export function BrandingTab({
                   {uploadingLogo ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
+                      {t('uploading')}
                     </>
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Logo
+                      {t('uploadLogo')}
                     </>
                   )}
                 </Button>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Recommended: Square image, max 2MB (PNG, JPG, SVG)
+                  {t('logoHint')}
                 </p>
               </div>
             </div>
@@ -358,7 +360,7 @@ export function BrandingTab({
 
           {/* Cover Image Upload */}
           <div className="space-y-2">
-            <Label>Cover Image</Label>
+            <Label>{t('coverImage')}</Label>
             <div className="flex flex-col gap-4">
               {coverImageUrl && (
                 <div className="relative w-full h-40 rounded-lg border border-border overflow-hidden bg-muted">
@@ -387,17 +389,17 @@ export function BrandingTab({
                   {uploadingCover ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
+                      {t('uploading')}
                     </>
                   ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Cover
+                      {t('uploadCover')}
                     </>
                   )}
                 </Button>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Recommended: 16:9 aspect ratio, max 5MB (PNG, JPG)
+                  {t('coverHint')}
                 </p>
               </div>
             </div>
@@ -406,7 +408,7 @@ export function BrandingTab({
           {/* Color Pickers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="primaryColor">Primary Color</Label>
+              <Label htmlFor="primaryColor">{t('primaryColor')}</Label>
               <div className="flex gap-2 items-center">
                 <input
                   id="primaryColor"
@@ -422,10 +424,13 @@ export function BrandingTab({
                   className="flex-1"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t('primaryColorHint')}
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="secondaryColor">Secondary Color</Label>
+              <Label htmlFor="secondaryColor">{t('secondaryColor')}</Label>
               <div className="flex gap-2 items-center">
                 <input
                   id="secondaryColor"
@@ -441,6 +446,9 @@ export function BrandingTab({
                   className="flex-1"
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t('secondaryColorHint')}
+              </p>
             </div>
           </div>
 
@@ -456,12 +464,12 @@ export function BrandingTab({
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
+                    {t('saving')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
-                    Save Changes
+                    {t('saveChanges')}
                   </>
                 )}
               </Button>
@@ -471,7 +479,7 @@ export function BrandingTab({
           {setBrandNameProp && (
             <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg mt-4">
               <p className="text-xs text-blue-600 dark:text-blue-400">
-                💡 Changes will be saved when you click "Save All Changes" at the bottom of the page.
+                {t('saveHint')}
               </p>
             </div>
           )}
