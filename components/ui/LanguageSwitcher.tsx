@@ -2,24 +2,22 @@
 
 import { Globe } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { usePathname } from '@/lib/navigation';
+import { usePathname, useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const pathname = usePathname();
-  const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const switchLocale = (newLocale: string) => {
     if (isPending || newLocale === locale) return;
     
-    setIsPending(true);
-    
     try {
       // usePathname from next-intl already returns pathname without locale prefix
-      // So we can use it directly
       const pathWithoutLocale = pathname || '/';
       
       // Get current search params
@@ -40,7 +38,7 @@ export default function LanguageSwitcher() {
       const fullPath = newPath + searchParams;
       
       // Debug logging
-      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      if (typeof window !== 'undefined') {
         console.log('[LanguageSwitcher] Switching locale:', {
           from: locale,
           to: newLocale,
@@ -48,16 +46,20 @@ export default function LanguageSwitcher() {
           pathWithoutLocale,
           newPath,
           fullPath,
+          windowPathname: window.location.pathname,
         });
       }
       
-      // Use window.location.href for full page reload to ensure locale change
-      if (typeof window !== 'undefined') {
-        window.location.href = fullPath;
-      }
+      // Use startTransition for better UX and then navigate
+      startTransition(() => {
+        // Use window.location.href for full page reload to ensure locale change
+        // This is necessary because next-intl needs a full reload to change locale
+        if (typeof window !== 'undefined') {
+          window.location.href = fullPath;
+        }
+      });
     } catch (error) {
-      console.error('Error switching locale:', error);
-      setIsPending(false);
+      console.error('[LanguageSwitcher] Error switching locale:', error);
     }
   };
 
