@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { applySafeSearchFilter } from '@/lib/utils/secure-search';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,9 +104,16 @@ export async function GET(request: NextRequest) {
       query = query.lte('review_date', dateTo);
     }
     
-    // Server-side search filtering (if supported by your database)
+    // Server-side search filtering with secure implementation
     if (searchQuery) {
-      query = query.or(`review_text.ilike.%${searchQuery}%,comment.ilike.%${searchQuery}%,reviewer_name.ilike.%${searchQuery}%`);
+      try {
+        // Use the secure search filter utility that validates and escapes input
+        query = applySafeSearchFilter(query, searchQuery, ['review_text', 'comment', 'reviewer_name']);
+      } catch (error) {
+        // If search validation fails, log and continue without search filter
+        console.warn('Invalid search input detected:', error);
+        // Continue without applying search to prevent breaking the query
+      }
     }
 
     // Order by review date (newest first)

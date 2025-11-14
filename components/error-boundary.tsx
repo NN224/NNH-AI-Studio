@@ -4,6 +4,7 @@ import { Component, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { errorLogger } from '@/lib/services/error-logger';
 
 interface Props {
   children: ReactNode;
@@ -34,6 +35,16 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
       timestamp: new Date().toISOString(),
       userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+    });
+    
+    // Log error using centralized error logger
+    errorLogger.logError(error, {
+      component: 'ErrorBoundary',
+      action: 'componentDidCatch',
+      metadata: {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: 'root',
+      }
     });
     
     // Send to monitoring service (e.g., Sentry)

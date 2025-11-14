@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/auth-middleware'
 import { createClient } from '@/lib/supabase/server'
+import { applySafeSearchFilter } from '@/lib/utils/secure-search'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,15 +74,16 @@ async function handler(request: Request, user: any): Promise<Response> {
     .eq('user_id', user.id)
     .in('gmb_account_id', activeAccountIds)
 
-  // ✅ SECURITY: Fix SQL injection - use parameterized query instead of string interpolation
-  // Apply filters with proper escaping
+  // ✅ SECURITY: Fixed SQL injection - using secure search utility
+  // Apply search filters safely without any string interpolation vulnerability
   if (search) {
-    // ✅ Sanitize search input and use parameterized query
-    const sanitizedSearch = search.trim().slice(0, 100).replace(/%/g, '\\%').replace(/_/g, '\\_');
-    if (sanitizedSearch) {
-      query = query.or(
-        `location_name.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
-      );
+    try {
+      // Use the secure search filter utility that validates and escapes input
+      query = applySafeSearchFilter(query, search, ['location_name', 'address']);
+    } catch (error) {
+      // If search validation fails, log and continue without search filter
+      console.warn('Invalid search input detected:', error);
+      // Continue without applying search to prevent breaking the query
     }
   }
   

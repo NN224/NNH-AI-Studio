@@ -1,6 +1,7 @@
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { validateCSRF } from '@/lib/security/csrf';
 
 // Upstash Ratelimit configuration with fallback to in-memory
 import { Ratelimit } from '@upstash/ratelimit';
@@ -87,6 +88,24 @@ export async function middleware(request: NextRequest) {
   // Handle i18n routing for non-API routes
   if (!request.nextUrl.pathname.startsWith('/api/')) {
     return intlMiddleware(request);
+  }
+
+  // CSRF protection for API routes
+  const { valid: csrfValid, token: csrfToken } = await validateCSRF(request);
+  if (!csrfValid && request.method !== 'GET') {
+    return NextResponse.json(
+      { 
+        error: 'Invalid CSRF token',
+        message: 'CSRF token validation failed. Please refresh and try again.',
+        csrfToken // Provide token for first-time requests
+      },
+      { 
+        status: 403,
+        headers: {
+          'X-CSRF-Token': csrfToken || ''
+        }
+      }
+    );
   }
 
   // Rate limit API routes only

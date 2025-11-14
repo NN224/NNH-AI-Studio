@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 import { AIReviewService } from '@/lib/services/ai-review-service';
+import { mlSentimentService, MLSentimentService } from '@/lib/services/ml-sentiment-service';
 
 
 
@@ -114,9 +115,77 @@ export async function GET(request: NextRequest) {
 
 
 
-    const sentimentData = AIReviewService.calculateSentimentData(reviews);
-
-    const hotTopics = AIReviewService.extractKeywords(reviews);
+    // Use ML-based sentiment analysis
+    let sentimentData;
+    let hotTopics;
+    
+    try {
+      // Analyze sentiment for each review using ML
+      const reviewsForAnalysis = reviews.map(review => ({
+        id: review.id,
+        text: review.review_text || review.comment || '',
+        rating: review.rating
+      }));
+      
+      const mlResults = await mlSentimentService.analyzeBatch(reviewsForAnalysis);
+      
+      // Convert results to array for stats calculation
+      const resultsArray = Array.from(mlResults.values());
+      
+      // Calculate aggregate stats
+      const stats = MLSentimentService.calculateStats(resultsArray);
+      
+      sentimentData = {
+        positive: stats.positive,
+        neutral: stats.neutral,
+        negative: stats.negative,
+        mixed: stats.mixed,
+        total: reviews.length,
+        averageScore: stats.averageScore,
+        topPositiveAspects: stats.topPositiveAspects,
+        topNegativeAspects: stats.topNegativeAspects,
+        emotions: stats.emotionBreakdown
+      };
+      
+      // Extract hot topics from ML analysis
+      const allTopics = new Map<string, { count: number; sentiment: string }>();
+      resultsArray.forEach(result => {
+        result.topics.forEach(topic => {
+          const existing = allTopics.get(topic.topic);
+          if (existing) {
+            existing.count++;
+          } else {
+            allTopics.set(topic.topic, { count: 1, sentiment: topic.sentiment });
+          }
+        });
+      });
+      
+      hotTopics = Array.from(allTopics.entries())
+        .map(([topic, data]) => ({ topic, count: data.count, sentiment: data.sentiment }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+        
+      // Update reviews in database with ML sentiment
+      const updatePromises = Array.from(mlResults.entries()).map(([reviewId, result]) => 
+        supabase
+          .from('gmb_reviews')
+          .update({ 
+            ai_sentiment: result.sentiment,
+            ai_sentiment_score: result.score,
+            ai_sentiment_analysis: result // Store full analysis
+          })
+          .eq('id', reviewId)
+      );
+      
+      await Promise.all(updatePromises);
+      
+    } catch (mlError) {
+      console.error('ML sentiment analysis failed, using fallback:', mlError);
+      
+      // Fall back to basic keyword analysis
+      sentimentData = AIReviewService.calculateSentimentData(reviews);
+      hotTopics = AIReviewService.extractKeywords(reviews);
+    }
 
 
 

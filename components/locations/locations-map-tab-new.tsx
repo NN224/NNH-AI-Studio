@@ -10,6 +10,7 @@ import { useLocations } from '@/hooks/use-locations';
 import { Location } from '@/components/locations/location-types';
 import { MapView } from '@/components/locations/map-view';
 import { useGoogleMaps } from '@/hooks/use-google-maps';
+import { googleMapsService } from '@/lib/services/google-maps-service';
 import { useLocationMapData } from '@/hooks/use-location-map-data';
 import {
   Loader2,
@@ -63,8 +64,7 @@ type BrandingVariant = 'cover' | 'logo'
 
 // Limit verbose logging to non‑production builds
 const __DEV__ = process.env.NODE_ENV !== 'production';
-// Public key (browser) – used فقط كـ fallback للـ geocoding لما الإحداثيات تكون ناقصة
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+// API key removed - now using secure server-side proxy for geocoding
 
 export function LocationsMapTab() {
   // Use stable empty filters object to prevent infinite loops
@@ -207,20 +207,18 @@ export function LocationsMapTab() {
         if (cancelled) return null;
 
         try {
-          const encodedAddress = encodeURIComponent(loc.address);
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`;
-          const response = await fetch(url);
-          const data = await response.json().catch(() => null);
+          // Use secure server-side geocoding service
+          const geocodeResult = await googleMapsService.geocodeAddress(loc.address);
 
           if (cancelled) return null;
 
           if (
-            data &&
-            data.status === 'OK' &&
-            Array.isArray(data.results) &&
-            data.results[0]?.geometry?.location
+            geocodeResult &&
+            geocodeResult.status === 'OK' &&
+            Array.isArray(geocodeResult.results) &&
+            geocodeResult.results[0]?.geometry?.location
           ) {
-            const { lat, lng } = data.results[0].geometry.location;
+            const { lat, lng } = geocodeResult.results[0].geometry.location;
             if (
               typeof lat === 'number' &&
               typeof lng === 'number' &&

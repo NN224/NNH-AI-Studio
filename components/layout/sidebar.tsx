@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/lib/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, Calendar, Webhook, CheckSquare, Grid3x3, MessageSquare, Layers, Youtube } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, Calendar, Webhook, CheckSquare, Grid3x3, MessageSquare, Layers, Youtube, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserButton } from '@/components/auth/user-button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -81,6 +81,11 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       nameKey: 'nav.analytics',
       href: '/analytics',
       icon: BarChart3,
+    },
+    {
+      nameKey: 'nav.monitoring',
+      href: '/monitoring',
+      icon: Activity,
     },
     {
       nameKey: 'nav.gridTracking',

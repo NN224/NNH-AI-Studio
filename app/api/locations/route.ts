@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { addCoordinatesToLocations } from '@/lib/utils/location-coordinates';
+import { applySafeSearchFilter } from '@/lib/utils/secure-search';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,12 +59,15 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('is_active', true);
 
-    // ✅ SECURITY: Apply filters with input sanitization
+    // ✅ SECURITY: Apply filters with secure search utility
     if (search) {
-      // Sanitize search input (limit length, escape special characters)
-      const sanitizedSearch = search.trim().slice(0, 100).replace(/%/g, '\\%').replace(/_/g, '\\_');
-      if (sanitizedSearch) {
-        query = query.or(`location_name.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`);
+      try {
+        // Use the secure search filter utility that validates and escapes input
+        query = applySafeSearchFilter(query, search, ['location_name', 'address']);
+      } catch (error) {
+        // If search validation fails, log and continue without search filter
+        console.warn('Invalid search input detected:', error);
+        // Continue without applying search to prevent breaking the query
       }
     }
 

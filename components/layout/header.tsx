@@ -41,6 +41,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useSafeState, useAsyncEffect } from '@/hooks/use-safe-fetch';
 
 // ⭐️ واجهة بيانات المستخدم (مطابقة لما تم إنشاؤه في layout.tsx)
 interface UserProfileData {
@@ -113,9 +114,9 @@ const t = useTranslations('Dashboard');
 const pathname = usePathname();
 const { theme, setTheme } = useTheme();
 const { showShortcutsModal } = useKeyboard();
-const [notifications, setNotifications] = useState<Notification[]>([]);
-const [unreadCount, setUnreadCount] = useState(0);
-const [loadingNotifications, setLoadingNotifications] = useState(true);
+const [notifications, setNotifications] = useSafeState<Notification[]>([]);
+const [unreadCount, setUnreadCount] = useSafeState(0);
+const [loadingNotifications, setLoadingNotifications] = useSafeState(true);
 const supabase = createClient();
 const router = useRouter(); 
 
@@ -127,34 +128,48 @@ router.push("/auth/login");
 
 
 // Fetch notifications
-useEffect(() => {
+useAsyncEffect(async (signal) => {
 const fetchNotifications = async () => {
+if (signal.aborted) return;
+  
 try {
 const { data: { user } } = await supabase.auth.getUser();
-if (!user) {
+if (!user || signal.aborted) {
 setLoadingNotifications(false);
 return;
 }
 
-const response = await fetch('/api/notifications?limit=10');
-if (response.ok) {
+const response = await fetch('/api/notifications?limit=10', { signal });
+if (response.ok && !signal.aborted) {
 const data = await response.json();
 setNotifications(data.notifications || []);
 setUnreadCount(data.unreadCount || 0);
 }
-} catch (error) {
+} catch (error: any) {
+if (error.name !== 'AbortError') {
 console.error('Failed to fetch notifications:', error);
+}
 } finally {
+if (!signal.aborted) {
 setLoadingNotifications(false);
+}
 }
 };
 
-fetchNotifications();
+await fetchNotifications();
 
 // Refresh every 30 seconds
-const interval = setInterval(fetchNotifications, 30000);
-return () => clearInterval(interval);
-}, [supabase]);
+const interval = setInterval(() => {
+if (!signal.aborted) {
+fetchNotifications();
+}
+}, 30000);
+
+// Cleanup function
+signal.addEventListener('abort', () => {
+clearInterval(interval);
+});
+}, [supabase, setLoadingNotifications, setNotifications, setUnreadCount]);
 
 const markAsRead = async (notificationId: string) => {
 try {

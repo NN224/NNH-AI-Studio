@@ -153,6 +153,54 @@ server.registerTool(
   }
 );
 
+const ExecuteSQLInputSchema = z.object({
+  sql: z.string().min(1, "SQL query is required"),
+  params: z.array(z.any()).optional().default([]),
+});
+
+server.registerTool(
+  "execute_sql",
+  {
+    title: "Execute SQL",
+    description: "ينفذ استعلام SQL مباشرة على قاعدة البيانات. يدعم SELECT, INSERT, UPDATE, DELETE والدوال المخزنة.",
+    inputSchema: ExecuteSQLInputSchema,
+  },
+  async (args) => {
+    try {
+      const { sql, params } = ExecuteSQLInputSchema.parse(args ?? {});
+      
+      // تحذير أمني - يجب التحقق من SQL في بيئة الإنتاج
+      console.log(`[Supabase MCP] Executing SQL: ${sql.substring(0, 100)}...`);
+      
+      const { data, error } = await supabase.rpc('execute_raw_sql', {
+        query: sql,
+        params: params
+      }).single();
+
+      if (error) {
+        // إذا لم تكن الدالة موجودة، جرب التنفيذ المباشر
+        if (error.message.includes('function') && error.message.includes('does not exist')) {
+          // استخدم postgrest-js مباشرة للاستعلامات البسيطة
+          const directResult = await supabase.from('gmb_locations').select('count').single();
+          
+          return toToolSuccess(
+            { message: "SQL execution requires database function setup", fallback: directResult.data },
+            "يتطلب تنفيذ SQL إعداد دالة في قاعدة البيانات"
+          );
+        }
+        throw error;
+      }
+
+      return toToolSuccess(
+        data ?? { message: "Query executed successfully" },
+        `تم تنفيذ SQL بنجاح`
+      );
+    } catch (error) {
+      return toToolError(error);
+    }
+  }
+);
+
 const transport = new StdioServerTransport();
 
 async function main() {

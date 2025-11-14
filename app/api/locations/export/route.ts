@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/auth-middleware';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { applySafeSearchFilter } from '@/lib/utils/secure-search';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,13 +95,15 @@ async function handler(request: Request, user: any): Promise<Response> {
       }
     }
 
-    // Apply filters (same logic as list-data)
+    // Apply filters with secure search implementation
     if (search) {
-      const sanitizedSearch = search.trim().slice(0, 100).replace(/%/g, '\\%').replace(/_/g, '\\_');
-      if (sanitizedSearch) {
-        query = query.or(
-          `location_name.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%`
-        );
+      try {
+        // Use the secure search filter utility that validates and escapes input
+        query = applySafeSearchFilter(query, search, ['location_name', 'address']);
+      } catch (error) {
+        // If search validation fails, log and continue without search filter
+        console.warn('Invalid search input detected:', error);
+        // Continue without applying search to prevent breaking the query
       }
     }
 
