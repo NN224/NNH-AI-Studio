@@ -94,13 +94,19 @@ export function LocationsMapTab() {
       return locations;
     }
     return locations.map((loc) => {
+      // If location already has coordinates, use them
+      if (loc.coordinates?.lat && loc.coordinates?.lng) {
+        return loc;
+      }
+      // Otherwise, check geocoding cache
       const cached = geoCache[loc.id];
-      if (!loc.coordinates && cached) {
+      if (cached && cached.lat && cached.lng) {
         return {
           ...loc,
           coordinates: cached,
         };
       }
+      // No coordinates available
       return loc;
     });
   }, [locations, geoCache]);
@@ -163,6 +169,9 @@ export function LocationsMapTab() {
   // Fallback geocoding: إذا الموقع ما عنده coordinates لكن عنده address، نجيب lat/lng من Google مرة واحدة
   useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY) {
+      if (__DEV__) {
+        console.warn('[LocationsMapTab] Google Maps API key missing for geocoding fallback');
+      }
       return;
     }
     if (!locations || locations.length === 0) {
@@ -170,14 +179,32 @@ export function LocationsMapTab() {
     }
 
     let cancelled = false;
+    const locationsToGeocode: Array<{ id: string; address: string }> = [];
 
-    const geocodeMissing = async () => {
-      for (const loc of locations) {
-        if (cancelled) break;
-        // إذا الإحداثيات موجودة أو ما في عنوان، ما نعمل شيء
-        if (loc.coordinates || !loc.address) continue;
-        // لو مأخوذة من قبل في cache، كمان نتجاهل
-        if (geoCache[loc.id]) continue;
+    // Collect locations that need geocoding
+    for (const loc of locations) {
+      // Skip if already has coordinates
+      if (loc.coordinates?.lat && loc.coordinates?.lng) continue;
+      // Skip if no address
+      if (!loc.address || loc.address.trim() === '') continue;
+      // Skip if already in cache
+      if (geoCache[loc.id]) continue;
+      
+      locationsToGeocode.push({ id: loc.id, address: loc.address });
+    }
+
+    if (locationsToGeocode.length === 0) {
+      return; // Nothing to geocode
+    }
+
+    if (__DEV__) {
+      console.log(`[LocationsMapTab] Geocoding ${locationsToGeocode.length} location(s) without coordinates`);
+    }
+
+    // Geocode all locations in parallel (with rate limiting)
+    const geocodeAll = async () => {
+      const geocodePromises = locationsToGeocode.map(async (loc) => {
+        if (cancelled) return null;
 
         try {
           const encodedAddress = encodeURIComponent(loc.address);
@@ -185,8 +212,9 @@ export function LocationsMapTab() {
           const response = await fetch(url);
           const data = await response.json().catch(() => null);
 
+          if (cancelled) return null;
+
           if (
-            !cancelled &&
             data &&
             data.status === 'OK' &&
             Array.isArray(data.results) &&
@@ -197,28 +225,52 @@ export function LocationsMapTab() {
               typeof lat === 'number' &&
               typeof lng === 'number' &&
               !Number.isNaN(lat) &&
-              !Number.isNaN(lng)
+              !Number.isNaN(lng) &&
+              lat >= -90 && lat <= 90 &&
+              lng >= -180 && lng <= 180
             ) {
-              setGeoCache((prev) => ({
-                ...prev,
-                [loc.id]: { lat, lng },
-              }));
+              return { id: loc.id, coordinates: { lat, lng } };
             }
+          } else if (__DEV__) {
+            console.warn(`[LocationsMapTab] Geocoding failed for "${loc.address}": ${data?.status || 'Unknown error'}`);
           }
         } catch (error) {
-          if (__DEV__) {
-            console.error('[LocationsMapTab] Geocoding failed for location', loc.id, error);
+          if (__DEV__ && !cancelled) {
+            console.error(`[LocationsMapTab] Geocoding error for location ${loc.id}:`, error);
           }
+        }
+        return null;
+      });
+
+      const results = await Promise.all(geocodePromises);
+      
+      if (cancelled) return;
+
+      // Update cache with all successful results at once
+      const updates: Record<string, { lat: number; lng: number }> = {};
+      for (const result of results) {
+        if (result) {
+          updates[result.id] = result.coordinates;
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setGeoCache((prev) => ({
+          ...prev,
+          ...updates,
+        }));
+        if (__DEV__) {
+          console.log(`[LocationsMapTab] Geocoded ${Object.keys(updates).length} location(s) successfully`);
         }
       }
     };
 
-    geocodeMissing();
+    geocodeAll();
 
     return () => {
       cancelled = true;
     };
-  }, [locations, geoCache]);
+  }, [locations]); // Remove geoCache from dependencies to avoid infinite loop
 
   const resolvedCoverImage = useMemo(() => {
     if (!selectedLocation) return null;
@@ -483,42 +535,61 @@ export function LocationsMapTab() {
     };
   }, [statsOverview]);
 
-  // Filter locations with coordinates - calculate directly, no useMemo
-  const locationsWithCoords = locations.filter(loc => 
-    loc.coordinates?.lat && 
-    loc.coordinates?.lng &&
-    !isNaN(loc.coordinates.lat) &&
-    !isNaN(loc.coordinates.lng)
-  );
+  // Filter locations with coordinates from locationsWithGeo (includes geocoded fallback)
+  const locationsWithCoords = useMemo(() => {
+    const filtered = locationsWithGeo.filter(loc => {
+      if (!loc.coordinates) {
+        if (__DEV__ && loc.address) {
+          console.log(`[LocationsMapTab] Location "${loc.name}" missing coordinates, has address: "${loc.address}"`);
+        }
+        return false;
+      }
+      const { lat, lng } = loc.coordinates;
+      const isValid = (
+        typeof lat === 'number' &&
+        typeof lng === 'number' &&
+        !isNaN(lat) &&
+        !isNaN(lng) &&
+        lat >= -90 && lat <= 90 &&
+        lng >= -180 && lng <= 180
+      );
+      if (__DEV__ && isValid) {
+        console.log(`[LocationsMapTab] Location "${loc.name}" has valid coordinates:`, { lat, lng });
+      }
+      return isValid;
+    });
+    if (__DEV__) {
+      console.log(`[LocationsMapTab] Filtered ${filtered.length} locations with coordinates out of ${locationsWithGeo.length} total`);
+    }
+    return filtered;
+  }, [locationsWithGeo]);
 
-  // Calculate map center - simple calculation, no useMemo
-  const mapCenter = (() => {
+  // Calculate map center - use locationsWithCoords for accurate center
+  const mapCenter = useMemo(() => {
     if (selectedLocation?.coordinates) {
-      return {
-        lat: selectedLocation.coordinates.lat,
-        lng: selectedLocation.coordinates.lng,
-      };
+      const { lat, lng } = selectedLocation.coordinates;
+      if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng };
+      }
     }
 
     if (locationsWithCoords.length === 0) {
-      return null; // No mock coordinates - return null if no valid coordinates
+      return null; // No valid coordinates - return null
     }
 
     if (locationsWithCoords.length === 1) {
-      return {
-        lat: locationsWithCoords[0].coordinates!.lat,
-        lng: locationsWithCoords[0].coordinates!.lng,
-      };
+      const coords = locationsWithCoords[0].coordinates!;
+      return { lat: coords.lat, lng: coords.lng };
     }
 
-    // Calculate center point
+    // Calculate center point from all locations with coordinates
     const avgLat = locationsWithCoords.reduce((sum, loc) => 
       sum + loc.coordinates!.lat, 0) / locationsWithCoords.length;
     const avgLng = locationsWithCoords.reduce((sum, loc) => 
       sum + loc.coordinates!.lng, 0) / locationsWithCoords.length;
 
     return { lat: avgLat, lng: avgLng };
-  })();
+  }, [selectedLocation, locationsWithCoords]);
 
   // Handle marker click - stable callback with empty deps
   const handleMarkerClick = useCallback((location: Location) => {

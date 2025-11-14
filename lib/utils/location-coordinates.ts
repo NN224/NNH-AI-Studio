@@ -62,13 +62,19 @@ export function mapLocationCoordinates(location: any): { lat: number; lng: numbe
     }
   }
 
-  // Priority 3: Check metadata.latlng
+  // Priority 3: Check metadata.latlng (most common source from Google API)
   const metadata = location.metadata || {};
   if (metadata.latlng) {
     const latlng = metadata.latlng;
-    if (typeof latlng === 'object' && latlng.latitude && latlng.longitude) {
-      const lat = parseFloat(latlng.latitude);
-      const lng = parseFloat(latlng.longitude);
+    
+    // Handle { latitude, longitude } format (Google API format)
+    if (typeof latlng === 'object' && latlng.latitude != null && latlng.longitude != null) {
+      const lat = typeof latlng.latitude === 'number'
+        ? latlng.latitude
+        : parseFloat(latlng.latitude);
+      const lng = typeof latlng.longitude === 'number'
+        ? latlng.longitude
+        : parseFloat(latlng.longitude);
       
       if (!isNaN(lat) && !isNaN(lng) && 
           lat >= -90 && lat <= 90 && 
@@ -76,15 +82,34 @@ export function mapLocationCoordinates(location: any): { lat: number; lng: numbe
         return { lat, lng };
       }
     }
-    // Also check if latlng is in { lat, lng } format
-    if (typeof latlng === 'object' && latlng.lat && latlng.lng) {
-      const lat = parseFloat(latlng.lat);
-      const lng = parseFloat(latlng.lng);
+    
+    // Handle { lat, lng } format (alternative format)
+    if (typeof latlng === 'object' && latlng.lat != null && latlng.lng != null) {
+      const lat = typeof latlng.lat === 'number'
+        ? latlng.lat
+        : parseFloat(latlng.lat);
+      const lng = typeof latlng.lng === 'number'
+        ? latlng.lng
+        : parseFloat(latlng.lng);
       
       if (!isNaN(lat) && !isNaN(lng) && 
           lat >= -90 && lat <= 90 && 
           lng >= -180 && lng <= 180) {
         return { lat, lng };
+      }
+    }
+    
+    // Handle string format (e.g., "25.2048,55.2708")
+    if (typeof latlng === 'string') {
+      const parts = latlng.split(',');
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lng) && 
+            lat >= -90 && lat <= 90 && 
+            lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
       }
     }
   }
