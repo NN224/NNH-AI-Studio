@@ -1,6 +1,23 @@
-import { randomBytes } from 'crypto';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+
+// Use crypto from web API instead of Node.js crypto
+const getRandomToken = () => {
+  if (typeof window === 'undefined' && global.crypto) {
+    // Server-side: use Web Crypto API
+    const buffer = new Uint8Array(32);
+    global.crypto.getRandomValues(buffer);
+    return Array.from(buffer, b => b.toString(16).padStart(2, '0')).join('');
+  } else if (typeof window !== 'undefined' && window.crypto) {
+    // Client-side: use Web Crypto API
+    const buffer = new Uint8Array(32);
+    window.crypto.getRandomValues(buffer);
+    return Array.from(buffer, b => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    // Fallback
+    return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  }
+};
 
 // CSRF token configuration
 const CSRF_TOKEN_LENGTH = 32;
@@ -21,7 +38,7 @@ const EXCLUDED_PATHS = [
  * Generate a cryptographically secure CSRF token
  */
 export function generateCSRFToken(): string {
-  return randomBytes(CSRF_TOKEN_LENGTH).toString('hex');
+  return getRandomToken();
 }
 
 /**
