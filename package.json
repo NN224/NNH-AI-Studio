@@ -80,6 +80,7 @@
     "framer-motion": "latest",
     "html2canvas": "^1.4.1",
     "input-otp": "1.4.1",
+    "ioredis": "^5.8.2",
     "jest-axe": "^10.0.0",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.454.0",

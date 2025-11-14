@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiError, errorResponse } from '@/utils/api-error';
-import { Redis } from '@upstash/redis';
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
+import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +19,56 @@ const VALID_SYNC_TYPES = [
   'performance',
   'keywords'
 ];
+
+type SyncStatusState = 'running' | 'success' | 'failed'
+
+async function createSyncStatusRecord(supabase: any, userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('sync_status')
+      .insert({
+        user_id: userId,
+        status: 'running',
+        started_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      console.warn('[GMB Sync API] Failed to create sync status record', error)
+      return null
+    }
+
+    return data?.id || null
+  } catch (error) {
+    console.warn('[GMB Sync API] Exception while creating sync status record', error)
+    return null
+  }
+}
+
+async function finalizeSyncStatusRecord(
+  supabase: any,
+  statusId: string | null,
+  state: SyncStatusState,
+  errorMessage?: string | null
+) {
+  if (!statusId) {
+    return
+  }
+
+  try {
+    await supabase
+      .from('sync_status')
+      .update({
+        status: state,
+        completed_at: new Date().toISOString(),
+        error: errorMessage || null,
+      })
+      .eq('id', statusId)
+  } catch (error) {
+    console.warn('[GMB Sync API] Failed to finalize sync status record', error)
+  }
+}
 
 // Phase logging helpers (minimal; replaces later with structured service)
 async function startPhaseLog(supabase: any, accountId: string, userId: string, phase: string) {
@@ -1044,26 +1094,17 @@ export async function POST(request: NextRequest) {
     console.log('[GMB Sync API] Sync request received');
   }
   const started = Date.now();
-
-  // Try distributed lock via Upstash Redis when env is present; fallback to in-memory lock
-  const g: any = globalThis as any;
-  if (!g.__gmbSyncLocks) g.__gmbSyncLocks = new Map<string, number>();
-  const syncLocks: Map<string, number> = g.__gmbSyncLocks;
-  let resolvedAccountId: string | null = null;
-  let acquiredLock = false;
-  let usingRedis = false;
-  let redis: Redis | null = null;
-  try {
-    // fromEnv reads UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
-    redis = Redis.fromEnv();
-    usingRedis = true;
-  } catch {
-    usingRedis = false;
-    redis = null;
-  }
+  const supabase = await createClient();
+  const LOCK_TTL_SEC = 60 * 5;
+  const LOCK_REFRESH_INTERVAL_MS = Math.max(60_000, (LOCK_TTL_SEC - 60) * 1000);
+  let lockKey: string | null = null;
+  let lockToken: string | null = null;
+  let lockRefreshTimer: NodeJS.Timeout | null = null;
+  let syncStatusId: string | null = null;
+  let syncStatusState: SyncStatusState = 'failed';
+  let syncStatusError: string | null = null;
 
   try {
-    const supabase = await createClient();
 
     // Check if this is an internal cron request (for scheduled syncs)
     const authHeader = request.headers.get('authorization');
@@ -1101,7 +1142,6 @@ export async function POST(request: NextRequest) {
 
     // Support both naming conventions: account_id/accountId and sync_type/syncType
     const accountId = body.accountId || body.account_id;
-    resolvedAccountId = accountId ?? null;
     const syncType = (body.syncType || body.sync_type || 'full').toLowerCase();
 
     if (!VALID_SYNC_TYPES.includes(syncType)) {
@@ -1118,27 +1158,20 @@ export async function POST(request: NextRequest) {
       console.log(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
     }
 
-    // Acquire lock (Redis preferred)
-    const lockKey = `gmb:sync:${accountId}`;
-    const LOCK_TTL_SEC = 60 * 15; // 15 minutes (increased to handle longer syncs)
-    if (usingRedis && redis) {
-      const ok = await redis.set(lockKey, '1', { nx: true, ex: LOCK_TTL_SEC });
-      if (ok !== 'OK') {
-        console.warn('[GMB Sync API] Redis lock already held for account', accountId);
-        return errorResponse(new ApiError('A sync is already running for this account', 409));
-      }
-      acquiredLock = true;
-    } else {
-      const nowTs = Date.now();
-      const existingExpiry = syncLocks.get(lockKey);
-      const LOCK_TTL_MS = LOCK_TTL_SEC * 1000;
-      if (existingExpiry && existingExpiry > nowTs) {
-        console.warn('[GMB Sync API] In-memory lock already held for account', accountId);
-        return errorResponse(new ApiError('A sync is already running for this account', 409));
-      }
-      syncLocks.set(lockKey, nowTs + LOCK_TTL_MS);
-      acquiredLock = true;
+    lockKey = `locks:gmb:sync:${accountId}`;
+    lockToken = await acquireLock(lockKey, LOCK_TTL_SEC);
+    if (!lockToken) {
+      const conflictMessage = 'Sync already running. المزامنة قيد التنفيذ حالياً.';
+      return errorResponse(new ApiError(conflictMessage, 409));
     }
+
+    lockRefreshTimer = setInterval(() => {
+      if (!lockKey || !lockToken) return;
+      extendLock(lockKey, lockToken, LOCK_TTL_SEC).catch((error) => {
+        console.warn('[GMB Sync API] Failed to extend sync lock', error);
+      });
+    }, LOCK_REFRESH_INTERVAL_MS);
+    lockRefreshTimer.unref?.();
 
     // Get account details
     const accountQuery = supabase
@@ -1169,6 +1202,8 @@ export async function POST(request: NextRequest) {
       console.error('[GMB Sync API] Cannot determine user_id');
       return errorResponse(new ApiError('Cannot determine user_id', 400));
     }
+
+    syncStatusId = await createSyncStatusRecord(supabase, userId);
 
     // Get Google account resource name if not stored
     let accountResource = account.account_id;
@@ -2045,77 +2080,35 @@ export async function POST(request: NextRequest) {
       took_ms: took,
     };
 
-    if (acquiredLock) {
-      const lockKey = `gmb:sync:${accountId}`;
-      if (usingRedis && redis) {
-        await redis.del(lockKey).catch(() => {});
-      } else {
-        syncLocks.delete(lockKey);
-      }
-    }
-
+    syncStatusState = 'success';
+    syncStatusError = null;
     return NextResponse.json(successPayload);
 
   } catch (error: any) {
     const took = Date.now() - started;
     console.error('[GMB Sync API] Sync failed:', error);
+    const baseMessage = error instanceof Error ? error.message : 'Sync failed';
+    syncStatusError = `${baseMessage} / فشلت عملية المزامنة.`;
     return errorResponse(error);
   } finally {
-    await releaseSyncLock({
-      acquiredLock,
-      request,
-      redis,
-      usingRedis,
-      syncLocks,
-      accountId: resolvedAccountId,
-    });
-  }
-}
-
-interface ReleaseLockParams {
-  acquiredLock: boolean
-  request: Request
-  redis: Redis | null
-  usingRedis: boolean
-  syncLocks: Map<string, number>
-  accountId?: string | null
-}
-
-async function releaseSyncLock({
-  acquiredLock,
-  request,
-  redis,
-  usingRedis,
-  syncLocks,
-  accountId: accountIdFromContext,
-}: ReleaseLockParams) {
-  if (!acquiredLock) {
-    return
-  }
-
-  try {
-    let accountId = accountIdFromContext || null
-
-    if (!accountId) {
-      const clonedBody = await request
-        .clone()
-        .json()
-        .catch(() => ({} as any))
-      accountId = clonedBody?.accountId || clonedBody?.account_id || null
+    if (lockRefreshTimer) {
+      clearInterval(lockRefreshTimer);
     }
 
-    if (!accountId) {
-      return
+    if (syncStatusId) {
+      const statusErrorMessage =
+        syncStatusState === 'failed'
+          ? syncStatusError || 'Sync failed. فشلت عملية المزامنة.'
+          : null
+      await finalizeSyncStatusRecord(supabase, syncStatusId, syncStatusState, statusErrorMessage);
     }
 
-    const lockKey = `gmb:sync:${accountId}`
-
-    if (usingRedis && redis) {
-      await redis.del(lockKey).catch(() => {})
-    } else {
-      syncLocks.delete(lockKey)
+    if (lockKey && lockToken) {
+      try {
+        await releaseLock(lockKey, lockToken);
+      } catch (releaseError) {
+        console.warn('[GMB Sync API] Failed to release sync lock', releaseError);
+      }
     }
-  } catch (error) {
-    console.warn('[GMB Sync API] Failed to release sync lock', error)
   }
 }
