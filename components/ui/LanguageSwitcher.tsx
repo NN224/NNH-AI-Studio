@@ -46,9 +46,10 @@ export default function LanguageSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="flex items-center gap-2 bg-black/40 border-primary/20 backdrop-blur-sm hover:bg-black/60"
+          disabled={isPending}
+          className="flex items-center gap-2 bg-black/40 border-primary/20 backdrop-blur-sm hover:bg-black/60 disabled:opacity-50"
         >
-          <Globe className="w-4 h-4 text-primary" />
+          <Globe className={`w-4 h-4 text-primary ${isPending ? 'animate-spin' : ''}`} />
           <span className="text-sm font-medium">
             {locale === 'ar' ? 'العربية' : 'English'}
           </span>
