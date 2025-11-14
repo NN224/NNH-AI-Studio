@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { mlQuestionsService } from '@/lib/services/ml-questions-service';
 import { z } from 'zod';
+import { validateBody } from '@/middleware/validate-request';
+import { sanitizeHtml } from '@/lib/security/sanitize-html';
 
 const BulkActionSchema = z.object({
   action: z.enum(['analyze', 'answer', 'approve', 'reject', 'delete']),
@@ -24,15 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse request
-    const body = await request.json();
-    const validation = BulkActionSchema.safeParse(body);
-    
+    const validation = await validateBody(request, BulkActionSchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.issues },
-        { status: 400 }
-      );
+      return validation.response;
     }
 
     const { action, questionIds, options } = validation.data;
@@ -119,7 +115,7 @@ export async function POST(request: NextRequest) {
       case 'answer': {
         // Bulk answer with optional auto-generation
         for (const question of questions) {
-          let answerText = options?.answer || '';
+          let answerText = options?.answer ? sanitizeHtml(options.answer) : '';
 
           // Generate answer if auto-answer enabled and no answer provided
           if (options?.autoAnswer && !answerText) {
@@ -135,10 +131,12 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
+          const safeAnswer = sanitizeHtml(answerText);
+
           const { error } = await supabase
             .from('gmb_questions')
             .update({
-              answer_text: answerText,
+              answer_text: safeAnswer,
               answer_status: 'answered',
               answered_at: new Date().toISOString(),
               answered_by: user.id

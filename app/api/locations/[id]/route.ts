@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateBody } from '@/middleware/validate-request';
+import { locationUpdateSchema } from '@/lib/validations/schemas';
 import { getValidAccessToken } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
@@ -128,35 +130,28 @@ export async function PUT(
       );
     }
 
-    let payload: Record<string, unknown>;
-    try {
-      payload = await request.json();
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid request body. Expected JSON payload.' },
-        { status: 400 }
-      );
+    const bodyResult = await validateBody(request, locationUpdateSchema);
+    if (!bodyResult.success) {
+      return bodyResult.response;
     }
+    const payload = bodyResult.data;
 
     const updateData: Record<string, unknown> = {};
 
-    if (typeof payload.name === 'string') {
-      updateData.location_name = payload.name.trim();
+    if (payload.name !== undefined) {
+      updateData.location_name = payload.name;
     }
-    if (typeof payload.address === 'string') {
-      updateData.address = payload.address.trim();
+    if (payload.address !== undefined) {
+      updateData.address = payload.address;
     }
-    if (payload.phone === null || typeof payload.phone === 'string') {
-      updateData.phone =
-        payload.phone === null ? null : payload.phone.trim();
+    if (payload.phone !== undefined) {
+      updateData.phone = payload.phone;
     }
-    if (payload.website === null || typeof payload.website === 'string') {
-      updateData.website =
-        payload.website === null ? null : payload.website.trim();
+    if (payload.website !== undefined) {
+      updateData.website = payload.website;
     }
-    if (payload.category === null || typeof payload.category === 'string') {
-      updateData.category =
-        payload.category === null ? null : payload.category.trim();
+    if (payload.category !== undefined) {
+      updateData.category = payload.category;
     }
 
     if (Object.keys(updateData).length === 0) {

@@ -1,10 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getValidAccessToken } from '@/lib/gmb/helpers';
+import { validateBody } from '@/middleware/validate-request';
+import { searchSchema } from '@/lib/validations/schemas';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+
+const searchRequestSchema = searchSchema
+  .extend({
+    location: z
+      .object({
+        latitude: z.number().optional(),
+        longitude: z.number().optional(),
+        radiusMeters: z.number().min(1).max(50000).optional(),
+      })
+      .partial()
+      .optional(),
+    pageSize: z.coerce.number().int().min(1).max(10).optional(),
+  })
+  .refine((data) => Boolean(data.query) || Boolean(data.location), {
+    message: 'Either query or location is required',
+    path: ['query'],
+  });
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,15 +35,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { query, location, pageSize = 10 } = body;
-
-    if (!query && !location) {
-      return NextResponse.json(
-        { error: 'Either query or location is required' },
-        { status: 400 }
-      );
+    const validation = await validateBody(request, searchRequestSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { query, location, pageSize = 10 } = validation.data;
 
     const { data: account, error: accountError } = await supabase
       .from('gmb_accounts')

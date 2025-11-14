@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { errorResponse, successResponse } from '@/lib/utils/api-response';
 import { unstable_cache } from 'next/cache';
+import { validateQuery } from '@/middleware/validate-request';
+import { questionFilterSchema } from '@/lib/validations/schemas';
+import { sanitizeHtml } from '@/lib/security/sanitize-html';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +22,13 @@ export async function GET(request: NextRequest) {
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
 
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const locationId = searchParams.get('locationId');
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const queryValidation = validateQuery(request, questionFilterSchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const { locationId, status, page, limit, search } = queryValidation.data;
+    const offset = (page - 1) * limit;
 
     // First get active GMB account IDs
     const { data: activeAccounts, error: accountsError } = await supabase
@@ -112,6 +116,9 @@ export async function GET(request: NextRequest) {
     if (status) {
       query = query.eq('answer_status', status);
     }
+    if (search) {
+      query = query.ilike('question_text', `%${search}%`);
+    }
 
     const { data: questions, error: questionsError } = await query;
 
@@ -167,9 +174,18 @@ export async function GET(request: NextRequest) {
       draft: draftCount,
     };
 
+    const sanitizedQuestions = (questions || []).map((question) => ({
+      ...question,
+      question_text: question.question_text ? sanitizeHtml(question.question_text) : question.question_text,
+      answer_text: question.answer_text ? sanitizeHtml(question.answer_text) : question.answer_text,
+      ai_suggested_answer: question.ai_suggested_answer
+        ? sanitizeHtml(question.ai_suggested_answer)
+        : question.ai_suggested_answer,
+    }));
+
     // Return with cache headers
     const response = successResponse({
-      questions: questions || [],
+      questions: sanitizedQuestions,
       counts,
       pagination: {
         limit,

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { validateBody } from '@/middleware/validate-request';
+import { reviewReplySchema } from '@/lib/validations/schemas';
+import { sanitizeHtml } from '@/lib/security/sanitize-html';
 
 export const dynamic = 'force-dynamic';
 
 const replySchema = z.object({
-  reply_text: z.string().min(1).max(4096, 'Reply must be less than 4096 characters').optional(),
+  reply_text: reviewReplySchema.shape.replyText.optional(),
   tone: z.enum(['friendly', 'professional', 'apologetic', 'marketing']).optional(),
   generate_ai_reply: z.boolean().optional(),
 });
@@ -23,15 +26,9 @@ export async function POST(
     }
 
     const { id: reviewId } = params;
-    const body = await request.json();
-    
-    // Validate request body
-    const validation = replySchema.safeParse(body);
+    const validation = await validateBody(request, replySchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: validation.error.errors },
-        { status: 400 }
-      );
+      return validation.response;
     }
 
     const { reply_text, tone, generate_ai_reply } = validation.data;
@@ -51,7 +48,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    let finalReplyText = reply_text;
+    let finalReplyText = reply_text ? sanitizeHtml(reply_text).trim() : undefined;
 
     // Generate AI reply if requested
     if (generate_ai_reply && !reply_text) {
@@ -75,7 +72,7 @@ export async function POST(
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
-          finalReplyText = aiData.response;
+          finalReplyText = sanitizeHtml(aiData.response).trim();
         } else {
           return NextResponse.json(
             { error: 'Failed to generate AI reply' },
@@ -126,7 +123,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Reply saved successfully',
-      reply_text: finalReplyText
+      reply_text: sanitizeHtml(finalReplyText),
     });
   } catch (error) {
     console.error('Unexpected error:', error);

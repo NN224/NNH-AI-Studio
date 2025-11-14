@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
 import { replyToReview } from '@/server/actions/reviews-management';
+import { reviewReplySchema } from '@/lib/validations/schemas';
+import { validateBody } from '@/middleware/validate-request';
+import { sanitizeHtml } from '@/lib/security/sanitize-html';
 
 export const dynamic = 'force-dynamic';
-
-const bodySchema = z.object({
-  reviewId: z.string().uuid(),
-  locationId: z.string().uuid().optional(), // currently unused but kept for forwards compatibility
-  replyText: z.string().min(1).max(4096, 'Reply must be less than 4096 characters'),
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,23 +19,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const rawBody = await request.json().catch(() => ({}));
-    const parsed = bodySchema.safeParse(rawBody);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request payload', details: parsed.error.flatten() },
-        { status: 400 },
-      );
+    const validation = await validateBody(request, reviewReplySchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
-    const { reviewId, replyText } = parsed.data;
+    const { reviewId, replyText } = validation.data;
+    const safeReplyText = sanitizeHtml(replyText).trim();
 
     // Delegate to existing server action which:
     // - Validates ownership
     // - Calls Google Business Profile API
     // - Updates gmb_reviews row
-    const result = await replyToReview(reviewId, replyText);
+    const result = await replyToReview(reviewId, safeReplyText);
 
     if (!result.success) {
       return NextResponse.json(

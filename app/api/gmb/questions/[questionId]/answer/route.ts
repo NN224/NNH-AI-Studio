@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { logServerActivity } from '@/server/services/activity';
 import { errorResponse, successResponse } from '@/lib/utils/api-response';
 import { getValidAccessToken } from '@/lib/gmb/helpers';
+import { validateBody } from '@/middleware/validate-request';
+import { questionAnswerSchema } from '@/lib/validations/schemas';
+import { sanitizeHtml } from '@/lib/security/sanitize-html';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,11 +142,15 @@ export async function POST(
     }
 
     const { questionId } = params;
-    const body = await request.json();
-    const { answerText, isDraft = false } = body;
+    const validation = await validateBody(request, questionAnswerSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
 
-    // Validate required fields
-    if (!answerText || !answerText.trim()) {
+    const { answerText, isDraft = false } = validation.data;
+    const safeAnswerText = sanitizeHtml(answerText).trim();
+
+    if (!safeAnswerText) {
       return errorResponse('MISSING_FIELDS', 'Answer text is required', 400);
     }
 
@@ -198,7 +205,7 @@ export async function POST(
           accessToken,
           location.location_id,
           question.external_question_id,
-          answerText.trim()
+          safeAnswerText
         );
       } catch (googleError: any) {
         console.error('[Q&A API] Failed to publish answer to Google:', googleError);
@@ -209,7 +216,7 @@ export async function POST(
 
     // Update question with answer
     const updateData: any = {
-      answer_text: answerText.trim(),
+      answer_text: safeAnswerText,
       answer_status: isDraft ? 'draft' : 'answered',
       answered_by: user.email || user.id,
       answered_at: isDraft ? null : new Date().toISOString(),
@@ -259,8 +266,16 @@ export async function POST(
           ? 'Question answered and published to Google successfully' 
           : 'Question answered successfully (saved locally)');
 
+    const sanitizedQuestion = updatedQuestion
+      ? {
+          ...updatedQuestion,
+          answer_text: updatedQuestion.answer_text ? sanitizeHtml(updatedQuestion.answer_text) : null,
+          question_text: updatedQuestion.question_text ? sanitizeHtml(updatedQuestion.question_text) : null,
+        }
+      : null;
+
     return successResponse({
-      question: updatedQuestion,
+      question: sanitizedQuestion,
       message,
       publishedToGoogle: !!googleAnswerData
     });
@@ -372,8 +387,15 @@ export async function DELETE(
       });
     } catch {}
 
+    const sanitizedQuestion = updatedQuestion
+      ? {
+          ...updatedQuestion,
+          question_text: updatedQuestion.question_text ? sanitizeHtml(updatedQuestion.question_text) : updatedQuestion.question_text,
+        }
+      : null;
+
     return successResponse({
-      question: updatedQuestion,
+      question: sanitizedQuestion,
       message: 'Answer removed successfully'
     });
 
