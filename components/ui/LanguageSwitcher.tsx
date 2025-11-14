@@ -2,7 +2,7 @@
 
 import { Globe } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from '@/lib/navigation';
+import { usePathname } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const switchLocale = (newLocale: string) => {
@@ -20,8 +19,9 @@ export default function LanguageSwitcher() {
       // usePathname from next-intl already returns pathname without locale prefix
       const pathWithoutLocale = pathname || '/';
       
-      // Get current search params
+      // Get current search params and hash
       const searchParams = typeof window !== 'undefined' ? window.location.search : '';
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
       
       // Build new path with new locale
       // For default locale (en), don't add prefix if localePrefix is 'as-needed'
@@ -34,10 +34,14 @@ export default function LanguageSwitcher() {
         newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
       }
       
-      // Add search params if they exist
-      const fullPath = newPath + searchParams;
+      // Build full URL with search params and hash
+      const fullPath = newPath + searchParams + hash;
       
-      // Debug logging
+      // Get base URL
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const fullUrl = baseUrl + fullPath;
+      
+      // Debug logging (always log in development, or if explicitly enabled)
       if (typeof window !== 'undefined') {
         console.log('[LanguageSwitcher] Switching locale:', {
           from: locale,
@@ -46,16 +50,19 @@ export default function LanguageSwitcher() {
           pathWithoutLocale,
           newPath,
           fullPath,
+          fullUrl,
           windowPathname: window.location.pathname,
+          windowHref: window.location.href,
         });
       }
       
-      // Use startTransition for better UX and then navigate
+      // Use startTransition for better UX
       startTransition(() => {
         // Use window.location.href for full page reload to ensure locale change
         // This is necessary because next-intl needs a full reload to change locale
         if (typeof window !== 'undefined') {
-          window.location.href = fullPath;
+          // Force navigation by setting href
+          window.location.href = fullUrl;
         }
       });
     } catch (error) {
