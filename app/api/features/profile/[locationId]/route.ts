@@ -251,10 +251,11 @@ export async function GET(
     const profile = normalizeBusinessProfile(row)
 
     return NextResponse.json(profile)
-  } catch (error: any) {
-    console.error('[GET /api/features/profile/:locationId] Error', error)
-    const message = error?.message ?? 'Internal server error'
+  } catch (error: unknown) {
+    const isError = error instanceof Error
+    const message = isError ? error.message : 'Internal server error'
     const status = message === 'Location not found' ? 404 : 500
+    console.error('[GET /api/features/profile/:locationId] Error', { message, status, error })
     return NextResponse.json({ error: message }, { status })
   }
 }
@@ -369,10 +370,11 @@ export async function PUT(
     const profileResponse = normalizeBusinessProfile(updatedRow)
 
     return NextResponse.json(profileResponse)
-  } catch (error: any) {
-    console.error('[PUT /api/features/profile/:locationId] Error', error)
-    const message = error?.message ?? 'Internal server error'
+  } catch (error: unknown) {
+    const isError = error instanceof Error
+    const message = isError ? error.message : 'Internal server error'
     const status = message === 'Location not found' ? 404 : 500
+    console.error('[PUT /api/features/profile/:locationId] Error', { message, status, error })
     return NextResponse.json({ error: message }, { status })
   }
 }

@@ -19,7 +19,9 @@ export default function FeaturesError({
           onClick={() => {
             reset();
             window.dispatchEvent(new Event('dashboard:refresh'));
-            console.log('[FeaturesError] Try Again triggered, dashboard refresh dispatched');
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[FeaturesError] Try Again triggered, dashboard refresh dispatched');
+            }
           }}
           className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition text-white"
         >
