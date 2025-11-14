@@ -158,7 +158,6 @@ BEGIN
     'rollback',
     jsonb_build_object(
       'metadata', metadata,
-      'business_type', business_type,
       'description', description,
       'phone', phone,
       'website', website,
@@ -175,7 +174,6 @@ BEGIN
   UPDATE public.gmb_locations
   SET 
     metadata = COALESCE((v_history.data->>'metadata')::jsonb, metadata),
-    business_type = COALESCE(v_history.data->>'business_type', business_type),
     description = COALESCE(v_history.data->>'description', description),
     phone = COALESCE(v_history.data->>'phone', phone),
     website = COALESCE(v_history.data->>'website', website),

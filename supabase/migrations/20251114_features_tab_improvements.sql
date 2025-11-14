@@ -165,7 +165,6 @@ BEGIN
     'rollback',
     jsonb_build_object(
       'metadata', metadata,
-      'business_type', business_type,
       'description', description,
       'phone', phone,
       'website', website,
@@ -182,7 +181,6 @@ BEGIN
   UPDATE public.gmb_locations
   SET 
     metadata = COALESCE((v_history.data->>'metadata')::jsonb, metadata),
-    business_type = COALESCE(v_history.data->>'business_type', business_type),
     description = COALESCE(v_history.data->>'description', description),
     phone = COALESCE(v_history.data->>'phone', phone),
     website = COALESCE(v_history.data->>'website', website),
@@ -217,6 +215,11 @@ GRANT EXECUTE ON FUNCTION rollback_profile_to_history TO authenticated;
 CREATE OR REPLACE FUNCTION record_profile_changes()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Only work on gmb_locations table
+  IF TG_TABLE_NAME != 'gmb_locations' THEN
+    RETURN NEW;
+  END IF;
+  
   -- Only record if there are actual changes
   IF OLD IS DISTINCT FROM NEW THEN
     INSERT INTO public.business_profile_history (
@@ -232,7 +235,6 @@ BEGIN
       'update',
       jsonb_build_object(
         'metadata', NEW.metadata,
-        'business_type', NEW.business_type,
         'description', NEW.description,
         'phone', NEW.phone,
         'website', NEW.website,
