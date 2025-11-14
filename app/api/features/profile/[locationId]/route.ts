@@ -142,12 +142,21 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       metadata.name ??
       profileMetadata.title ??
       'Unnamed location',
-    description:
-      row.description ??
-      profileMetadata.description ??
-      metadata.description ??
-      profileMetadata.merchantDescription ??
-      '',
+    description: (() => {
+      // Priority 1: Direct column
+      if (row.description) return String(row.description).trim()
+      // Priority 2: Metadata profile.description
+      if (profileMetadata.description) return String(profileMetadata.description).trim()
+      // Priority 3: Metadata description
+      if (metadata.description) return String(metadata.description).trim()
+      // Priority 4: Metadata profile.merchantDescription
+      if (profileMetadata.merchantDescription) return String(profileMetadata.merchantDescription).trim()
+      // Priority 5: Check metadata.profile directly
+      if (metadata.profile?.description) return String(metadata.profile.description).trim()
+      // Priority 6: Check if location object has description in metadata
+      if (metadata.location?.profile?.description) return String(metadata.location.profile.description).trim()
+      return ''
+    })(),
     shortDescription:
       row.short_description ??
       profileMetadata.shortDescription ??
@@ -162,13 +171,43 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       metadata.primaryCategory ??
       metadata.categories?.primary ??
       '',
-    additionalCategories: ensureStringArray(
-      row.additional_categories ?? 
-      metadata.additional_categories ?? 
-      metadata.additionalCategories ??
-      metadata.categories?.additional ??
-      (metadata.categories?.additionalCategories || []).map((cat: any) => cat.displayName || cat.name || cat).filter(Boolean),
-    ),
+    additionalCategories: (() => {
+      // Priority 1: Direct column
+      if (row.additional_categories) {
+        return ensureStringArray(row.additional_categories)
+      }
+      // Priority 2: Metadata arrays (already strings)
+      if (metadata.additional_categories) {
+        return ensureStringArray(metadata.additional_categories)
+      }
+      if (metadata.additionalCategories) {
+        return ensureStringArray(metadata.additionalCategories)
+      }
+      // Priority 3: Metadata categories.additional
+      if (metadata.categories?.additional) {
+        return ensureStringArray(metadata.categories.additional)
+      }
+      // Priority 4: Metadata categories.additionalCategories (objects with displayName)
+      if (metadata.categories?.additionalCategories) {
+        const cats = Array.isArray(metadata.categories.additionalCategories)
+          ? metadata.categories.additionalCategories
+          : []
+        return cats
+          .map((cat: any) => {
+            if (typeof cat === 'string') return cat
+            if (cat?.displayName) return cat.displayName
+            if (cat?.name) return cat.name
+            return String(cat || '').trim()
+          })
+          .filter((cat: string) => cat.length > 0)
+      }
+      // Priority 5: Check if stored in metadata.profile
+      const profileMeta = parseRecord(metadata.profile)
+      if (profileMeta.additionalCategories) {
+        return ensureStringArray(profileMeta.additionalCategories)
+      }
+      return []
+    })(),
     features: normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {}),
     specialLinks: buildSpecialLinks(metadata, row),
     fromTheBusiness: ensureStringArray(row.from_the_business ?? metadata.from_the_business ?? metadata.fromBusiness),
