@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { useGmbStatus } from "@/hooks/use-gmb-status"
 
+const useNewSync = process.env.NEXT_PUBLIC_USE_NEW_SYNC === "true"
+
 interface GMBConnectionManagerProps {
   /** UI density - compact for dashboard widgets, full for settings page */
   variant?: 'compact' | 'full'
@@ -69,6 +71,7 @@ export function GMBConnectionManager({
 }: GMBConnectionManagerProps) {
   const router = useRouter()
   const isMounted = useRef(true)
+  const syncEndpoint = useNewSync ? "/api/gmb/sync-v2" : "/api/gmb/sync"
   const { 
     loading,
     connected: gmbConnected,
@@ -237,7 +240,7 @@ export function GMBConnectionManager({
     console.log('[GMB Sync] Starting sync for account:', activeAccount.id)
     
     try {
-      const response = await fetch('/api/gmb/sync', {
+      const response = await fetch(syncEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
