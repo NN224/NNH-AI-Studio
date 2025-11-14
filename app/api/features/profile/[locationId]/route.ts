@@ -15,7 +15,9 @@ function parseRecord(value: unknown): Record<string, any> {
         return parsed as Record<string, any>
       }
     } catch (error) {
-      console.warn('[features/profile] Failed to parse string metadata', error)
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[features/profile] Failed to parse string metadata', error)
+      }
     }
   }
   return {}
@@ -144,6 +146,7 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       row.description ??
       profileMetadata.description ??
       metadata.description ??
+      profileMetadata.merchantDescription ??
       '',
     shortDescription:
       row.short_description ??
@@ -160,7 +163,11 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       metadata.categories?.primary ??
       '',
     additionalCategories: ensureStringArray(
-      row.additional_categories ?? metadata.additional_categories ?? metadata.additionalCategories,
+      row.additional_categories ?? 
+      metadata.additional_categories ?? 
+      metadata.additionalCategories ??
+      metadata.categories?.additional ??
+      (metadata.categories?.additionalCategories || []).map((cat: any) => cat.displayName || cat.name || cat).filter(Boolean),
     ),
     features: normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {}),
     specialLinks: buildSpecialLinks(metadata, row),
@@ -205,10 +212,10 @@ function mergeMetadata(
 }
 
 async function getAuthorizedLocation(
-  supabase: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   locationId: string,
-): Promise<Record<string, any>> {
+): Promise<Record<string, unknown>> {
   const { data, error } = await supabase
     .from('gmb_locations')
     .select('*')
@@ -255,7 +262,9 @@ export async function GET(
     const isError = error instanceof Error
     const message = isError ? error.message : 'Internal server error'
     const status = message === 'Location not found' ? 404 : 500
-    console.error('[GET /api/features/profile/:locationId] Error', { message, status, error })
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[GET /api/features/profile/:locationId] Error', { message, status, error })
+    }
     return NextResponse.json({ error: message }, { status })
   }
 }
@@ -287,7 +296,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 })
     }
 
-    const currentRow = await getAuthorizedLocation(supabase, user.id, locationId)
+    const supabaseClient = await supabase
+    const currentRow = await getAuthorizedLocation(supabaseClient, user.id, locationId)
 
     const normalizedFeatureSelection: FeatureSelection = {
       amenities: Array.from(new Set(payload.features.amenities ?? []))
@@ -332,7 +342,8 @@ export async function PUT(
     }
 
     const completeness = computeCompleteness(normalizedProfile)
-    const updatedMetadata = mergeMetadata(currentRow.metadata, { ...normalizedProfile, profileCompleteness: completeness.score }, completeness)
+    const currentMetadata = parseRecord(currentRow.metadata)
+    const updatedMetadata = mergeMetadata(currentMetadata, { ...normalizedProfile, profileCompleteness: completeness.score }, completeness)
 
     const updatePayload: Record<string, any> = {
       metadata: updatedMetadata,
@@ -356,7 +367,7 @@ export async function PUT(
     if ('order_url' in currentRow) updatePayload.order_url = normalizedProfile.specialLinks.order ?? null
     if ('appointment_url' in currentRow) updatePayload.appointment_url = normalizedProfile.specialLinks.appointment ?? null
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseClient
       .from('gmb_locations')
       .update(updatePayload)
       .eq('id', locationId)
@@ -366,7 +377,7 @@ export async function PUT(
       throw new Error(updateError.message || 'Failed to update location profile')
     }
 
-    const updatedRow = await getAuthorizedLocation(supabase, user.id, locationId)
+    const updatedRow = await getAuthorizedLocation(supabaseClient, user.id, locationId)
     const profileResponse = normalizeBusinessProfile(updatedRow)
 
     return NextResponse.json(profileResponse)
@@ -374,7 +385,9 @@ export async function PUT(
     const isError = error instanceof Error
     const message = isError ? error.message : 'Internal server error'
     const status = message === 'Location not found' ? 404 : 500
-    console.error('[PUT /api/features/profile/:locationId] Error', { message, status, error })
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[PUT /api/features/profile/:locationId] Error', { message, status, error })
+    }
     return NextResponse.json({ error: message }, { status })
   }
 }

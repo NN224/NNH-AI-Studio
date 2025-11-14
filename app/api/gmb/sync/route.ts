@@ -1306,6 +1306,11 @@ export async function POST(request: NextRequest) {
             // Generate normalized_location_id as per architecture requirements
             const normalizedLocationId = location.name.replace(/[^a-zA-Z0-9]/g, '_');
             
+            // Extract profile data
+            const profileData = location.profile || {};
+            const description = profileData.description || '';
+            const additionalCategories = (location.categories?.additionalCategories || []).map((cat: any) => cat.displayName || '').filter(Boolean);
+            
             return {
               gmb_account_id: accountId,
               user_id: userId,
@@ -1316,6 +1321,8 @@ export async function POST(request: NextRequest) {
               phone: location.phoneNumbers?.primaryPhone || null,
               category: location.categories?.primaryCategory?.displayName || null,
               website: location.websiteUri || null,
+              description: description || null,
+              additional_categories: additionalCategories.length > 0 ? additionalCategories : null,
               is_active: true,
               latitude: latlng?.latitude ?? null,
               longitude: latlng?.longitude ?? null,

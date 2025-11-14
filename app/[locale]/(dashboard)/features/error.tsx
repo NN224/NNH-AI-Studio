@@ -1,5 +1,7 @@
 'use client'
 
+import { AlertTriangle } from 'lucide-react'
+
 export default function FeaturesError({
   error,
   reset,
@@ -10,7 +12,7 @@ export default function FeaturesError({
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-8">
       <div className="max-w-md text-center">
-        <div className="text-6xl mb-4">⚠️</div>
+        <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-red-500 mb-4">
           Failed to load profile settings
         </h2>

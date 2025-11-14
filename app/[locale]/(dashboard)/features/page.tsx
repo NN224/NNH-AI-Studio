@@ -9,7 +9,7 @@ import type { BusinessProfilePayload } from '@/types/features'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Lock, Unlock, Shield } from 'lucide-react'
+import { Lock, Unlock, Shield, FileText, Sparkles, RotateCcw, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface TabDefinition {
@@ -21,8 +21,8 @@ interface TabDefinition {
 type TabKey = 'info' | 'features'
 
 const TABS: readonly TabDefinition[] = [
-  { id: 'info', name: 'Basic Info', icon: '📝' },
-  { id: 'features', name: 'Features', icon: '✨' },
+  { id: 'info', name: 'Basic Info', icon: 'FileText' },
+  { id: 'features', name: 'Features', icon: 'Sparkles' },
 ]
 
 function fingerprint(profile: BusinessProfilePayload | null): string {
@@ -130,7 +130,7 @@ export default function BusinessProfilePage() {
       } catch (error: unknown) {
         if (!isMounted) return
         const isError = error instanceof Error
-        if (__DEV__) {
+        if (process.env.NODE_ENV !== 'production') {
           console.error('[BusinessProfile] Error fetching lock status:', isError ? error.message : error)
         }
         setIsLocked(false)
@@ -210,28 +210,6 @@ export default function BusinessProfilePage() {
     return locations.find((location) => location.id === selectedLocationId)?.name ?? 'Select a location'
   }, [locations, selectedLocationId])
 
-  const fetchLockStatus = async (locationId: string) => {
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('gmb_locations')
-        .select('metadata')
-        .eq('id', locationId)
-        .single()
-
-      if (error) throw error
-
-      const metadata = (data?.metadata as Record<string, unknown>) || {}
-      setIsLocked(metadata.profileLocked === true)
-    } catch (error: unknown) {
-      const isError = error instanceof Error
-      if (__DEV__) {
-        console.error('[BusinessProfile] Error fetching lock status:', isError ? error.message : error)
-      }
-      setIsLocked(false)
-    }
-  }
-
   const handleToggleLock = async () => {
     if (!selectedLocationId) return
 
@@ -276,15 +254,13 @@ export default function BusinessProfilePage() {
       const isError = error instanceof Error
       const message = isError ? error.message : 'Failed to update lock status'
       toast.error(message)
-      if (__DEV__) {
+      if (process.env.NODE_ENV !== 'production') {
         console.error('[BusinessProfile] Error toggling lock:', error)
       }
     } finally {
       setLockLoading(false)
     }
   }
-
-  const __DEV__ = process.env.NODE_ENV !== 'production'
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
@@ -313,22 +289,33 @@ export default function BusinessProfilePage() {
                   toast.info('Unsaved changes reverted')
                 }
               }}
-              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg font-medium transition text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg font-medium transition text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
               disabled={profileLoading || !initialProfile || !hasChanges || isLocked}
             >
-              🔄 Reset
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset
             </button>
             <button
               type="button"
               onClick={handleSave}
               disabled={!profile || !hasChanges || saveLoading || isLocked}
-              className={`px-6 py-3 rounded-lg font-medium transition ${
+              className={`px-6 py-3 rounded-lg font-medium transition inline-flex items-center ${
                 profile && hasChanges && !saveLoading && !isLocked
                   ? 'bg-orange-600 hover:bg-orange-700 text-white'
                   : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
               }`}
             >
-              {saveLoading ? '💾 Saving...' : '💾 Save Changes'}
+              {saveLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -371,7 +358,7 @@ export default function BusinessProfilePage() {
                       : 'Profile is unlocked. You can make changes freely.'}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-zinc-400">
-                    <span>🔒</span>
+                    <Lock className="w-3 h-3" />
                     <span>
                       {isLocked 
                         ? 'Protects your profile from unwanted changes and accidental modifications'
@@ -435,9 +422,8 @@ export default function BusinessProfilePage() {
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
                 }`}
               >
-                <span className="text-xl" aria-hidden>
-                  {tab.icon}
-                </span>
+                {tab.icon === 'FileText' && <FileText className="w-5 h-5" />}
+                {tab.icon === 'Sparkles' && <Sparkles className="w-5 h-5" />}
                 <span>{tab.name}</span>
               </button>
             ))}

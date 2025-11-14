@@ -7,6 +7,7 @@ import { FEATURE_CATALOG } from '@/lib/features/feature-definitions'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { FileText, Tag, Link2, List, Sparkles, Bot, Users, Heart, Award, Globe, Home, CheckCircle2, Circle } from 'lucide-react'
 
 const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = ['amenities', 'payment_methods', 'services', 'atmosphere']
 const COMMON_CATEGORIES: readonly string[] = [
@@ -14,13 +15,13 @@ const COMMON_CATEGORIES: readonly string[] = [
   'Restaurant', 'Entertainment venue', 'Event venue', 'Lounge', 'Wine bar',
   'Beer garden', 'Pub', 'Sports bar', 'Karaoke bar',
 ]
-const FROM_BUSINESS_OPTIONS: readonly { key: string; label: string; icon: string }[] = [
-  { key: 'black_owned', label: 'Black-owned', icon: '✊🏿' },
-  { key: 'women_led', label: 'Women-led', icon: '👩' },
-  { key: 'lgbtq_friendly', label: 'LGBTQ+ friendly', icon: '🏳️‍🌈' },
-  { key: 'veteran_led', label: 'Veteran-led', icon: '🎖️' },
-  { key: 'latino_owned', label: 'Latino-owned', icon: '🌎' },
-  { key: 'family_owned', label: 'Family-owned', icon: '👨‍👩‍👧‍👦' },
+const FROM_BUSINESS_OPTIONS: readonly { key: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'black_owned', label: 'Black-owned', icon: Users },
+  { key: 'women_led', label: 'Women-led', icon: Users },
+  { key: 'lgbtq_friendly', label: 'LGBTQ+ friendly', icon: Heart },
+  { key: 'veteran_led', label: 'Veteran-led', icon: Award },
+  { key: 'latino_owned', label: 'Latino-owned', icon: Globe },
+  { key: 'family_owned', label: 'Family-owned', icon: Home },
 ]
 const __DEV__ = process.env.NODE_ENV !== 'production'
 
@@ -221,7 +222,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
         <div className="bg-gradient-to-r from-purple-950/30 to-orange-950/30 border border-purple-500/30 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🤖</span>
+              <Bot className="w-6 h-6 text-purple-400" />
               <div>
                 <h3 className="text-lg font-semibold text-white">AI Suggestions</h3>
                 <p className="text-sm text-zinc-400">Smart suggestions to improve your profile</p>
@@ -261,7 +262,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
 
       {/* Basic Info */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">📝 Basic Information</h3>
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-orange-400" />
+          Basic Information
+        </h3>
         <div className="space-y-4">
       <div>
             <label className="block text-sm font-medium text-white mb-2">Business Name</label>
@@ -311,7 +315,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
 
       {/* Categories */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">🏷️ Categories</h3>
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Tag className="w-5 h-5 text-orange-400" />
+          Categories
+        </h3>
         <div className="space-y-4">
       <div>
             <label className="block text-sm font-medium text-white mb-2">Primary Category</label>
@@ -369,7 +376,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
 
       {/* Action Links */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">🔗 Action Links</h3>
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-orange-400" />
+          Action Links
+        </h3>
         <div className="space-y-4">
           {[
             { key: 'menu' as const, label: 'Menu URL', placeholder: 'https://yoursite.com/menu' },
@@ -394,7 +404,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
       
       {/* More Details */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">📋 More Details</h3>
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <List className="w-5 h-5 text-orange-400" />
+          More Details
+        </h3>
         <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-white mb-3">From the Business</label>
@@ -416,7 +429,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
                     disabled={disabled}
                     className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
-                  <span className="text-xl">{option.icon}</span>
+                  {(() => {
+                    const IconComponent = option.icon
+                    return <IconComponent className="w-5 h-5" />
+                  })()}
                   <span className="text-white text-sm">{option.label}</span>
               </label>
               ))}
@@ -485,11 +501,14 @@ export function FeaturesTab({ profile, onChange, onDirty, disabled = false }: Ta
     <div className="space-y-6 max-w-4xl">
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">✨ Features & Attributes</h3>
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-orange-400" />
+            Features & Attributes
+          </h3>
           <Badge variant="outline" className="border-orange-500/40 text-orange-200">
             {activeFeatureCount} selected
           </Badge>
-        </div>
+          </div>
         <div className="space-y-6">
           {FEATURE_CATEGORY_KEYS.map((category) => {
             const features = allFeatures[category] || []
@@ -515,9 +534,11 @@ export function FeaturesTab({ profile, onChange, onDirty, disabled = false }: Ta
                           disabled && 'opacity-50 cursor-not-allowed',
                         )}
                       >
-                        <span className={isActive ? 'text-orange-400' : 'text-zinc-500'}>
-                          {isActive ? '✓' : '○'}
-          </span>
+                        {isActive ? (
+                          <CheckCircle2 className="w-4 h-4 text-orange-400" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-zinc-500" />
+                        )}
                         <span className="text-sm">{feature.name}</span>
                       </button>
                     )
