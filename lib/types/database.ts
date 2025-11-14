@@ -41,6 +41,25 @@ export interface GMBLocation {
   ai_insights?: string
   created_at: string
   updated_at: string
+  // New columns from migration
+  description?: string
+  short_description?: string
+  additional_categories?: string[]
+  from_the_business?: string[]
+  cover_photo_url?: string
+  menu_url?: string
+  booking_url?: string
+  order_url?: string
+  appointment_url?: string
+  opening_date?: string
+  service_area_enabled?: boolean
+  profile_completeness?: number
+  account_id?: string
+  location_id_external?: string
+  regularhours?: Record<string, any>
+  health_score?: number
+  last_synced_at?: string
+  latlng?: string
 }
 
 export interface GMBLocationWithRating {
@@ -68,6 +87,25 @@ export interface GMBLocationWithRating {
   rating: number
   reviews_count: number
   last_review_date?: string
+  // New columns from migration
+  description?: string
+  short_description?: string
+  additional_categories?: string[]
+  from_the_business?: string[]
+  cover_photo_url?: string
+  menu_url?: string
+  booking_url?: string
+  order_url?: string
+  appointment_url?: string
+  opening_date?: string
+  service_area_enabled?: boolean
+  profile_completeness?: number
+  account_id?: string
+  location_id_external?: string
+  regularhours?: Record<string, any>
+  health_score?: number
+  last_synced_at?: string
+  latlng?: string
 }
 
 export interface GMBReview {

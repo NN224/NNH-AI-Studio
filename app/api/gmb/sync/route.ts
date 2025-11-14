@@ -1309,7 +1309,53 @@ export async function POST(request: NextRequest) {
             // Extract profile data
             const profileData = location.profile || {};
             const description = profileData.description || '';
+            const shortDescription = profileData.shortDescription || profileData.merchantDescription || null;
             const additionalCategories = (location.categories?.additionalCategories || []).map((cat: any) => cat.displayName || '').filter(Boolean);
+            
+            // Extract from_the_business (attributes from "From the Business" section)
+            const fromTheBusiness: string[] = [];
+            if (profileData.fromTheBusiness && Array.isArray(profileData.fromTheBusiness)) {
+              fromTheBusiness.push(...profileData.fromTheBusiness.map((item: any) => 
+                typeof item === 'string' ? item : (item?.displayName || item?.name || String(item || ''))
+              ).filter(Boolean));
+            }
+            if (profileData.attributes && Array.isArray(profileData.attributes)) {
+              fromTheBusiness.push(...profileData.attributes.map((attr: any) => 
+                typeof attr === 'string' ? attr : (attr?.displayName || attr?.name || String(attr || ''))
+              ).filter(Boolean));
+            }
+            
+            // Extract opening date
+            const openingDate = profileData.openingDate || openInfo?.openingDate || null;
+            const parsedOpeningDate = openingDate ? (typeof openingDate === 'string' ? openingDate : 
+              `${openingDate.year || ''}-${String(openingDate.month || 1).padStart(2, '0')}-${String(openingDate.day || 1).padStart(2, '0')}`) : null;
+            
+            // Extract service area enabled
+            const serviceAreaEnabled = openInfo?.status === 'SERVICE_AREA' || 
+              metadata.serviceAreaEnabled === true || 
+              location.serviceArea?.enabled === true || 
+              false;
+            
+            // Extract special links (menu, booking, order, appointment)
+            const specialLinks = profileData.specialLinks || profileData.moreHours || {};
+            const menuUrl = specialLinks.menu || specialLinks.menuUrl || null;
+            const bookingUrl = specialLinks.booking || specialLinks.bookingUrl || null;
+            const orderUrl = specialLinks.order || specialLinks.orderUrl || null;
+            const appointmentUrl = specialLinks.appointment || specialLinks.appointmentUrl || null;
+            
+            // Extract location ID external (just the ID part, not full resource name)
+            const locationIdExternal = location.name.includes('/locations/') 
+              ? location.name.split('/locations/')[1] 
+              : location.name.replace(/^locations\//, '');
+            
+            // Format latlng as string
+            const latlngStr = (latlng?.latitude && latlng?.longitude) 
+              ? `${latlng.latitude},${latlng.longitude}` 
+              : null;
+            
+            // Extract status and type
+            const locationStatus = location.status || metadata.status || openInfo?.status || 'pending';
+            const locationType = location.type || metadata.type || null;
             
             return {
               gmb_account_id: accountId,
@@ -1322,7 +1368,21 @@ export async function POST(request: NextRequest) {
               category: location.categories?.primaryCategory?.displayName || null,
               website: location.websiteUri || null,
               description: description || null,
+              short_description: shortDescription || null,
               additional_categories: additionalCategories.length > 0 ? additionalCategories : null,
+              from_the_business: fromTheBusiness.length > 0 ? fromTheBusiness : null,
+              opening_date: parsedOpeningDate || null,
+              service_area_enabled: serviceAreaEnabled,
+              menu_url: menuUrl || null,
+              booking_url: bookingUrl || null,
+              order_url: orderUrl || null,
+              appointment_url: appointmentUrl || null,
+              regularhours: location.regularHours || null,
+              status: locationStatus || null,
+              type: locationType || null,
+              account_id: accountResource || null,
+              location_id_external: locationIdExternal || null,
+              latlng: latlngStr || null,
               is_active: true,
               latitude: latlng?.latitude ?? null,
               longitude: latlng?.longitude ?? null,
