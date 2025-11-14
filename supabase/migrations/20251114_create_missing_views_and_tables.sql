@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS public.health_check_results (
   response_rate DECIMAL(5, 2) DEFAULT 0,
   average_rating DECIMAL(3, 2) DEFAULT 0,
   review_sentiment_distribution JSONB DEFAULT '{}'::jsonb,
-  checked_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  -- Indexes
-  INDEX idx_health_check_location (location_id),
-  INDEX idx_health_check_created (checked_at DESC)
+  checked_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Create indexes after table creation
+CREATE INDEX IF NOT EXISTS idx_health_check_location ON public.health_check_results(location_id);
+CREATE INDEX IF NOT EXISTS idx_health_check_created ON public.health_check_results(checked_at DESC);
 
 -- Enable RLS on health_check_results
 ALTER TABLE public.health_check_results ENABLE ROW LEVEL SECURITY;
