@@ -90,22 +90,28 @@ export async function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
-  // CSRF protection for API routes
-  const { valid: csrfValid, token: csrfToken } = await validateCSRF(request);
-  if (!csrfValid && request.method !== 'GET') {
-    return NextResponse.json(
-      { 
-        error: 'Invalid CSRF token',
-        message: 'CSRF token validation failed. Please refresh and try again.',
-        csrfToken // Provide token for first-time requests
-      },
-      { 
-        status: 403,
-        headers: {
-          'X-CSRF-Token': csrfToken || ''
+  // CSRF protection for API routes (exclude OAuth and webhook routes)
+  const isOAuthRoute = request.nextUrl.pathname.includes('/oauth') || 
+                       request.nextUrl.pathname.includes('/create-auth-url') ||
+                       request.nextUrl.pathname.includes('/webhook');
+  
+  if (!isOAuthRoute) {
+    const { valid: csrfValid, token: csrfToken } = await validateCSRF(request);
+    if (!csrfValid && request.method !== 'GET') {
+      return NextResponse.json(
+        { 
+          error: 'Invalid CSRF token',
+          message: 'CSRF token validation failed. Please refresh and try again.',
+          csrfToken // Provide token for first-time requests
+        },
+        { 
+          status: 403,
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
         }
-      }
-    );
+      );
+    }
   }
 
   // Rate limit API routes only
