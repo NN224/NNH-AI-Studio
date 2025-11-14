@@ -331,7 +331,16 @@
     "syncNow": "Sync Now",
     "disconnect": "Disconnect",
     "connectGMB": "Connect GMB Account",
-    "noAccount": "No GMB account connected yet"
+    "noAccount": "No GMB account connected yet",
+    "notifications": {
+      "title": "Notifications",
+      "new": "new",
+      "empty": "No notifications",
+      "markAllRead": "Mark all as read"
+    },
+    "auth": {
+      "signOut": "Sign Out"
+    }
   },
   "Reviews": {
     "title": "Reviews Management",
