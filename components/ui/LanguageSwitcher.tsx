@@ -2,7 +2,8 @@
 
 import { Globe } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from '@/lib/navigation';
+import { usePathname } from '@/lib/navigation';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,34 +11,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTransition } from 'react';
+import { useState } from 'react';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
-  const router = useRouter();
   const pathname = usePathname();
-  const [isPending, startTransition] = useTransition();
+  const params = useParams();
+  const [isPending, setIsPending] = useState(false);
 
   const switchLocale = (newLocale: string) => {
-    // usePathname from next-intl returns pathname without locale prefix
-    // So we can directly use it to build the new path
-    const currentPath = pathname || '/';
+    if (isPending || newLocale === locale) return;
     
-    // Build new path with new locale
-    // For default locale (en), don't add prefix if localePrefix is 'as-needed'
-    let newPath: string;
-    if (newLocale === 'en') {
-      // Default locale - no prefix needed
-      newPath = currentPath;
-    } else {
-      // Non-default locale - add prefix
-      newPath = `/${newLocale}${currentPath === '/' ? '' : currentPath}`;
+    setIsPending(true);
+    
+    try {
+      // Get current pathname (without locale prefix from next-intl)
+      const currentPath = pathname || '/';
+      
+      // Get current search params
+      const searchParams = typeof window !== 'undefined' ? window.location.search : '';
+      
+      // Build new path with new locale
+      // For default locale (en), don't add prefix if localePrefix is 'as-needed'
+      let newPath: string;
+      if (newLocale === 'en') {
+        // Default locale - no prefix needed
+        newPath = currentPath === '/' ? '/' : currentPath;
+      } else {
+        // Non-default locale - add prefix
+        newPath = `/${newLocale}${currentPath === '/' ? '' : currentPath}`;
+      }
+      
+      // Add search params if they exist
+      const fullPath = newPath + searchParams;
+      
+      // Use window.location.href for full page reload to ensure locale change
+      if (typeof window !== 'undefined') {
+        window.location.href = fullPath;
+      }
+    } catch (error) {
+      console.error('Error switching locale:', error);
+      setIsPending(false);
     }
-    
-    // Use startTransition for better UX
-    startTransition(() => {
-      router.replace(newPath);
-    });
   };
 
   return (
