@@ -95,8 +95,10 @@ export async function middleware(request: NextRequest) {
                        request.nextUrl.pathname.includes('/create-auth-url') ||
                        request.nextUrl.pathname.includes('/webhook');
   
+  let csrfToken: string | null = null;
   if (!isOAuthRoute) {
-    const { valid: csrfValid, token: csrfToken } = await validateCSRF(request);
+    const { valid: csrfValid, token } = await validateCSRF(request);
+    csrfToken = token || null;
     if (!csrfValid && request.method !== 'GET') {
       return NextResponse.json(
         { 
@@ -194,6 +196,11 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-RateLimit-Limit', limit.toString());
   response.headers.set('X-RateLimit-Remaining', remaining.toString());
   response.headers.set('X-RateLimit-Reset', reset.toString());
+  
+  // Add CSRF token to response headers if available (for GET requests)
+  if (!isOAuthRoute && csrfToken && request.method === 'GET') {
+    response.headers.set('X-CSRF-Token', csrfToken);
+  }
 
   return response;
 }

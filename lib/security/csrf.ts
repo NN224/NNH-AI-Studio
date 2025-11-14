@@ -142,10 +142,11 @@ export async function validateCSRF(request: NextRequest): Promise<{ valid: boole
   const cookieToken = await getCSRFTokenFromCookie();
   const requestToken = getCSRFTokenFromRequest(request);
 
-  // If no cookie token exists, generate one (first request)
+  // If no cookie token exists, generate one (but don't set it in middleware)
+  // Cookie setting should happen in Route Handlers only
   if (!cookieToken) {
     const newToken = generateCSRFToken();
-    await setCSRFTokenCookie(newToken);
+    // Don't set cookie in middleware - return token for Route Handler to set
     return { valid: false, token: newToken };
   }
 
