@@ -1,9 +1,10 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
+import type { ReviewData } from "@/lib/gmb/sync-types"
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
 const STAR_RATING_TO_SCORE: Record<string, number> = {
@@ -27,6 +28,74 @@ function buildLocationResourceName(accountId: string, locationId: string): strin
   return `accounts/${cleanAccountId}/locations/${cleanLocationId}`
 }
 
+interface ReviewFetchContext {
+  userId: string
+  accountId: string
+  locationResource: string
+  accessToken: string
+}
+
+async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<ReviewData[]> {
+  const locationResource = context.locationResource.startsWith('accounts/')
+    ? context.locationResource
+    : buildLocationResourceName(context.accountId, context.locationResource)
+  const reviews: ReviewData[] = []
+  let nextPageToken: string | undefined = undefined
+
+  do {
+    const url = new URL(`${GMB_API_BASE}/${locationResource}/reviews`)
+    url.searchParams.set("pageSize", "50")
+    if (nextPageToken) {
+      url.searchParams.set("pageToken", nextPageToken)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${context.accessToken}`,
+        Accept: "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error("[Reviews] Google API error:", errorData)
+      throw new Error("Failed to fetch reviews from Google")
+    }
+
+    const payload = await response.json()
+    const googleReviews = payload.reviews || []
+
+    for (const googleReview of googleReviews) {
+      const reviewId = googleReview.reviewId || googleReview.name?.split("/").pop()
+      if (!reviewId) continue
+
+      reviews.push({
+        user_id: context.userId,
+        location_id: locationResource,
+        gmb_account_id: context.accountId,
+        review_id: reviewId,
+        reviewer_name: googleReview.reviewer?.displayName || "Anonymous",
+        reviewer_display_name: googleReview.reviewer?.displayName || null,
+        reviewer_photo: googleReview.reviewer?.profilePhotoUrl || null,
+        rating: mapStarRating(googleReview.starRating),
+        review_text: googleReview.comment || null,
+        review_date: googleReview.createTime || new Date().toISOString(),
+        reply_text: googleReview.reviewReply?.comment || null,
+        reply_date: googleReview.reviewReply?.updateTime || null,
+        has_reply: Boolean(googleReview.reviewReply),
+        status: googleReview.reviewReply ? "responded" : "pending",
+        sentiment: null,
+        google_name: googleReview.name || null,
+        review_url: googleReview.reviewUrl || null,
+      })
+    }
+
+    nextPageToken = payload.nextPageToken
+  } while (nextPageToken)
+
+  return reviews
+}
+
 // Validation schemas
 const ReplySchema = z.object({
   reviewId: z.string().uuid(),
@@ -44,6 +113,30 @@ const FilterSchema = z.object({
   limit: z.number().min(1).max(100).optional(),
   offset: z.number().min(0).optional(),
 })
+
+export async function fetchReviewsFromGoogle(locationId: string, accessToken: string): Promise<ReviewData[]> {
+  const supabase = await createClient()
+  const { data: location, error } = await supabase
+    .from("gmb_locations")
+    .select("location_id, gmb_account_id, user_id")
+    .eq("id", locationId)
+    .single()
+
+  if (error || !location) {
+    throw new Error("Location not found")
+  }
+
+  return collectReviewsFromGoogle({
+    userId: location.user_id,
+    accountId: location.gmb_account_id,
+    locationResource: location.location_id,
+    accessToken,
+  })
+}
+
+export async function fetchReviewsForLocationResource(params: ReviewFetchContext): Promise<ReviewData[]> {
+  return collectReviewsFromGoogle(params)
+}
 
 /**
  * 1. GET REVIEWS WITH ADVANCED FILTERING
@@ -745,9 +838,11 @@ export async function syncReviewsFromGoogle(locationId: string) {
       .select(
         `
         id,
+        user_id,
         location_id,
         gmb_account_id,
-        gmb_accounts!inner(id, account_id, is_active)
+        metadata,
+        gmb_accounts!inner(account_id)
       `
       )
       .eq("id", locationId)
@@ -770,53 +865,14 @@ export async function syncReviewsFromGoogle(locationId: string) {
     }
 
     const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+    const reviewsPayload = await collectReviewsFromGoogle({
+      userId: user.id,
+      accountId: location.gmb_account_id,
+      locationResource: location.location_id,
+      accessToken,
+    })
 
-    const locationResource = buildLocationResourceName(
-      account.account_id,
-      location.location_id
-    )
-
-    // Fetch all reviews from Google with pagination support
-    const allReviews: any[] = []
-    let nextPageToken: string | undefined = undefined
-    const pageSize = 50 // Google's recommended page size for reviews API
-
-    do {
-      // Build endpoint with pagination parameters
-      const url = new URL(`${GMB_API_BASE}/${locationResource}/reviews`)
-      url.searchParams.set("pageSize", pageSize.toString())
-      if (nextPageToken) {
-        url.searchParams.set("pageToken", nextPageToken)
-      }
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error("[Reviews] Sync API error:", errorData)
-        return {
-          success: false,
-          error: "Failed to fetch reviews from Google",
-        }
-      }
-
-      const responseData = await response.json()
-      const { reviews, nextPageToken: newNextPageToken } = responseData
-
-      // Add reviews from this page to our collection
-      if (reviews && reviews.length > 0) {
-        allReviews.push(...reviews)
-      }
-
-      // Update nextPageToken for the next iteration
-      nextPageToken = newNextPageToken
-    } while (nextPageToken)
-
-    if (allReviews.length === 0) {
+    if (reviewsPayload.length === 0) {
       // Update last sync time even if no reviews found
       await supabase
         .from("gmb_locations")
@@ -831,26 +887,26 @@ export async function syncReviewsFromGoogle(locationId: string) {
     }
 
     // Prepare all review data for batch upsert
-    const reviewsToUpsert = allReviews.map((googleReview) => ({
+    const nowIso = new Date().toISOString()
+    const reviewsToUpsert = reviewsPayload.map((review) => ({
       location_id: locationId,
-      user_id: user.id,
+      user_id: review.user_id,
       gmb_account_id: location.gmb_account_id,
-      external_review_id: googleReview.reviewId || googleReview.name?.split("/").pop(),
-      rating: mapStarRating(googleReview.starRating),
-      review_text: googleReview.comment || null,
-      review_date: googleReview.createTime || new Date().toISOString(),
-      reviewer_name: googleReview.reviewer?.displayName || "Anonymous",
-      reviewer_display_name: googleReview.reviewer?.displayName || null,
-      reviewer_profile_photo_url:
-        googleReview.reviewer?.profilePhotoUrl || null,
-      response: googleReview.reviewReply?.comment || null,
-      reply_date: googleReview.reviewReply?.updateTime || null,
-      responded_at: googleReview.reviewReply?.updateTime || null,
-      has_reply: !!googleReview.reviewReply,
-      status: googleReview.reviewReply ? 'responded' : 'new',
-      google_my_business_name: googleReview.name,
-      review_url: googleReview.reviewUrl || null,
-      synced_at: new Date().toISOString(),
+      external_review_id: review.review_id,
+      rating: review.rating,
+      review_text: review.review_text || null,
+      review_date: review.review_date || nowIso,
+      reviewer_name: review.reviewer_name || "Anonymous",
+      reviewer_display_name: review.reviewer_display_name || null,
+      reviewer_profile_photo_url: review.reviewer_photo || null,
+      response: review.reply_text || null,
+      reply_date: review.reply_date || null,
+      responded_at: review.reply_date || null,
+      has_reply: review.has_reply,
+      status: review.status || "pending",
+      google_my_business_name: review.google_name || null,
+      review_url: review.review_url || null,
+      synced_at: nowIso,
     }))
 
     // Get existing review IDs to identify new reviews for auto-reply

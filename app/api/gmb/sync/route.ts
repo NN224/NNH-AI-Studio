@@ -103,10 +103,10 @@ async function finishPhaseLog(supabase: any, id: string | null, status: string, 
 }
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GBP_ACCOUNT_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
-const GMB_V4_BASE = 'https://mybusiness.googleapis.com/v4'; // v4 API for reviews and media
-const QANDA_API_BASE = 'https://mybusinessqanda.googleapis.com/v1'; // Q&A API for questions
+const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
+const GBP_ACCOUNT_MGMT_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE;
+const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE; // v4 API for reviews and media
+const QANDA_API_BASE = GMB_CONSTANTS.QANDA_BASE; // Q&A API for questions
 const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1'; // Performance API for metrics
 // Metrics upsert helper: accumulate totals and runs per phase
 async function upsertMetrics(
@@ -336,18 +336,22 @@ async function getValidAccessToken(
 }
 
 // Fetch locations from Google My Business
+type RawGoogleLocation = Record<string, any>;
+
 async function fetchLocations(
   accessToken: string,
   accountResource: string,
   pageToken?: string
-): Promise<{ locations: any[]; nextPageToken?: string }> {
+): Promise<{ locations: RawGoogleLocation[]; nextPageToken?: string }> {
   if (IS_DEV) {
     console.log('[GMB Sync] Fetching locations for account:', accountResource);
   }
 
   const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
-  // Expanded readMask to include all available location information
-  url.searchParams.set('readMask', 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels');
+  url.searchParams.set(
+    'readMask',
+    'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels'
+  );
   url.searchParams.set('pageSize', '100');
   url.searchParams.set('alt', 'json');
   if (pageToken) {

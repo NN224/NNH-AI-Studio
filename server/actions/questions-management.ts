@@ -1,11 +1,125 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
+import type { QuestionData } from "@/lib/gmb/sync-types";
 
 const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
+
+type QuestionLocationRecord = {
+  id: string;
+  user_id: string;
+  gmb_account_id: string;
+  location_id: string;
+  metadata?: Record<string, any> | null;
+  gmb_accounts?: Array<{ account_id: string }> | { account_id: string } | null;
+};
+
+function resolveAccountId(record: QuestionLocationRecord): string | null {
+  const relation = Array.isArray(record.gmb_accounts)
+    ? record.gmb_accounts[0]
+    : record.gmb_accounts;
+  return relation?.account_id ?? null;
+}
+
+async function buildQuestionDataset(
+  location: QuestionLocationRecord,
+  accountResource: string,
+  accessToken: string
+): Promise<QuestionData[]> {
+  const endpoint = `${GMB_API_BASE}/${location.location_id}/questions`;
+  const response = await fetch(endpoint, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Authentication expired. Please reconnect your Google account.");
+    }
+    if (response.status === 404) {
+      throw new Error("Location not found on Google.");
+    }
+
+    const errorData = await response.json().catch(() => ({}));
+    console.error("[Questions] Google API error:", {
+      status: response.status,
+      error: errorData,
+    });
+    throw new Error(errorData?.error?.message || "Failed to fetch questions from Google");
+  }
+
+  const data = await response.json();
+  const questions = data.questions || [];
+  const syncTime = new Date().toISOString();
+  const payload: QuestionData[] = [];
+
+  for (const googleQuestion of questions) {
+    const questionId = googleQuestion.name?.split("/").pop();
+    if (!questionId) continue;
+    const topAnswer = googleQuestion.topAnswers?.[0] || null;
+    const answerId = topAnswer?.name?.split("/").pop() || null;
+    const hasAnswer = !!topAnswer?.text;
+    const status = hasAnswer ? "answered" : "pending";
+
+    payload.push({
+      user_id: location.user_id,
+      location_id: location.id,
+      gmb_account_id: location.gmb_account_id,
+      question_id: questionId,
+      author_name: googleQuestion.author?.displayName || "Anonymous",
+      author_display_name: googleQuestion.author?.displayName || null,
+      author_profile_photo_url: googleQuestion.author?.profilePhotoUrl || null,
+      author_type: googleQuestion.author?.type || "CUSTOMER",
+      question_text: googleQuestion.text || "",
+      question_date: googleQuestion.createTime || syncTime,
+      answer_text: topAnswer?.text || null,
+      answer_date: topAnswer?.updateTime || null,
+      answer_author: topAnswer?.author?.displayName || null,
+      answer_id: answerId,
+      upvote_count: googleQuestion.upvoteCount || 0,
+      total_answer_count: googleQuestion.totalAnswerCount || 0,
+      status,
+      google_resource_name: googleQuestion.name || null,
+    });
+  }
+
+  return payload;
+}
+
+async function loadQuestionLocationAdmin(
+  locationId: string
+): Promise<QuestionLocationRecord & { account_resource: string }> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("gmb_locations")
+    .select("id, user_id, gmb_account_id, location_id, metadata, gmb_accounts!inner(account_id)")
+    .eq("id", locationId)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Location not found");
+  }
+
+  const accountId = resolveAccountId(data as QuestionLocationRecord);
+  if (!accountId) {
+    throw new Error("Google account details missing. Please reconnect your Google account.");
+  }
+
+  return { ...(data as QuestionLocationRecord), account_resource: accountId };
+}
+
+export async function fetchQuestionsFromGoogle(
+  locationId: string,
+  accessToken: string
+): Promise<QuestionData[]> {
+  const context = await loadQuestionLocationAdmin(locationId);
+  return buildQuestionDataset(context, context.account_resource, accessToken);
+}
 
 // Validation schemas
 const AnswerQuestionSchema = z.object({
@@ -710,44 +824,13 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     }
 
     const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    const questionDataset = await buildQuestionDataset(
+      location as QuestionLocationRecord,
+      account.account_id,
+      accessToken
+    );
 
-    // Fetch from Google
-    const endpoint = `${GMB_API_BASE}/${location.location_id}/questions`;
-
-    const response = await fetch(endpoint, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          success: false,
-          error: "Authentication expired. Please reconnect your Google account.",
-        };
-      } else if (response.status === 404) {
-        return {
-          success: false,
-          error: "Location not found on Google.",
-        };
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("[Questions] Google API error:", {
-          status: response.status,
-          error: errorData,
-        });
-        return {
-          success: false,
-          error: errorData?.error?.message || "Failed to fetch questions from Google",
-        };
-      }
-    }
-
-    const data = await response.json();
-    const questions = data.questions || [];
-
-    if (questions.length === 0) {
+    if (questionDataset.length === 0) {
       // Update location sync time even if no questions found
       await supabase
         .from("gmb_locations")
@@ -769,42 +852,30 @@ export async function syncQuestionsFromGoogle(locationId: string) {
 
     // Prepare all questions for batch upsert
     const syncTime = new Date().toISOString();
-    const questionsToUpsert = questions.map((googleQuestion: any) => {
-      const questionId = googleQuestion.name?.split("/").pop() || null;
-      const topAnswer = googleQuestion.topAnswers?.[0] || null;
-      const answerId = topAnswer?.name?.split("/").pop() || null;
-
-      // Determine status based on answer presence
-      // If there's an answer, status is "answered", otherwise "pending"
-      const hasAnswer = !!topAnswer?.text;
-      const answerStatus = hasAnswer ? "answered" : "unanswered";
-      const status = hasAnswer ? "answered" : "pending";
-
-      return {
-        user_id: user.id,
-        location_id: locationId,
-        gmb_account_id: location.gmb_account_id, // Always include gmb_account_id
-        question_id: questionId,
-        external_question_id: questionId, // Keep for backward compatibility
-        question_text: googleQuestion.text || "",
-        asked_at: googleQuestion.createTime || syncTime,
-        author_name: googleQuestion.author?.displayName || "Anonymous",
-        author_display_name: googleQuestion.author?.displayName || null,
-        author_profile_photo_url: googleQuestion.author?.profilePhotoUrl || null,
-        author_type: googleQuestion.author?.type || "CUSTOMER",
-        answer_text: topAnswer?.text || null,
-        answered_at: topAnswer?.updateTime || null,
-        answered_by: topAnswer?.author?.displayName || null,
-        answer_status: answerStatus,
-        answer_id: answerId,
-        upvote_count: googleQuestion.upvoteCount || 0,
-        total_answer_count: googleQuestion.totalAnswerCount || 0,
-        google_resource_name: googleQuestion.name || null,
-        status: status,
-        synced_at: syncTime,
-        updated_at: syncTime,
-      };
-    });
+    const questionsToUpsert = questionDataset.map((question) => ({
+      user_id: question.user_id,
+      location_id: question.location_id,
+      gmb_account_id: question.gmb_account_id || location.gmb_account_id,
+      question_id: question.question_id,
+      external_question_id: question.question_id,
+      question_text: question.question_text,
+      asked_at: question.question_date || syncTime,
+      author_name: question.author_name || "Anonymous",
+      author_display_name: question.author_display_name || null,
+      author_profile_photo_url: question.author_profile_photo_url || null,
+      author_type: question.author_type || "CUSTOMER",
+      answer_text: question.answer_text || null,
+      answered_at: question.answer_date || null,
+      answered_by: question.answer_author || null,
+      answer_status: question.status === "answered" ? "answered" : "unanswered",
+      answer_id: question.answer_id || null,
+      upvote_count: question.upvote_count || 0,
+      total_answer_count: question.total_answer_count || 0,
+      google_resource_name: question.google_resource_name || null,
+      status: question.status === "answered" ? "answered" : "pending",
+      synced_at: syncTime,
+      updated_at: syncTime,
+    }));
 
     // Batch upsert all questions at once
     const { data: upsertedData, error: upsertError } = await supabase
