@@ -10,19 +10,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useTransition } from 'react';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
   const switchLocale = (newLocale: string) => {
-    // Remove current locale from pathname
-    const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/';
-    // Add new locale
-    const newPath = `/${newLocale}${pathWithoutLocale}`;
-    router.push(newPath);
-    router.refresh();
+    // usePathname from next-intl returns pathname without locale prefix
+    // So we can directly use it to build the new path
+    const currentPath = pathname || '/';
+    
+    // Build new path with new locale
+    // For default locale (en), don't add prefix if localePrefix is 'as-needed'
+    let newPath: string;
+    if (newLocale === 'en') {
+      // Default locale - no prefix needed
+      newPath = currentPath;
+    } else {
+      // Non-default locale - add prefix
+      newPath = `/${newLocale}${currentPath === '/' ? '' : currentPath}`;
+    }
+    
+    // Use startTransition for better UX
+    startTransition(() => {
+      router.replace(newPath);
+    });
   };
 
   return (
