@@ -83,11 +83,16 @@ export async function GET(request: NextRequest) {
     const accountSettings = (account?.settings as Record<string, any>) || {}
 
     // Get client profile (branding)
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('client_profiles')
       .select('brand_name, primary_color, secondary_color, logo_url, cover_image_url')
       .eq('user_id', user.id)
       .maybeSingle()
+    
+    // Ignore PGRST116 error (no rows found) - this is expected for new users
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('[Settings API] Failed to fetch client profile:', profileError)
+    }
 
     // Combine all settings
     const allSettings = {
@@ -247,11 +252,16 @@ export async function PUT(request: NextRequest) {
 
     // Update client_profiles if branding or businessName is provided
     if (businessName !== undefined || branding) {
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: profileFetchError } = await supabase
         .from('client_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle()
+      
+      // Ignore PGRST116 error (no rows found) - this is expected for new users
+      if (profileFetchError && profileFetchError.code !== 'PGRST116') {
+        console.error('[Settings API] Failed to fetch existing profile:', profileFetchError)
+      }
 
       const profileData: any = {}
       if (businessName !== undefined) {
