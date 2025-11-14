@@ -29,10 +29,9 @@ BEGIN
 END $$;
 
 -- Create health check results table if it doesn't exist
--- First, check if the table exists with correct schema
 CREATE TABLE IF NOT EXISTS public.health_check_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  location_id UUID NOT NULL,
+  location_id UUID,
   health_score DECIMAL(5, 2) DEFAULT 0,
   response_rate DECIMAL(5, 2) DEFAULT 0,
   average_rating DECIMAL(3, 2) DEFAULT 0,
@@ -40,11 +39,24 @@ CREATE TABLE IF NOT EXISTS public.health_check_results (
   checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add foreign key constraint if gmb_locations exists
-ALTER TABLE public.health_check_results 
-ADD CONSTRAINT fk_health_check_location 
-FOREIGN KEY (location_id) 
-REFERENCES public.gmb_locations(id) ON DELETE CASCADE;
+-- Add foreign key constraint if gmb_locations exists (safely)
+DO $$
+BEGIN
+  -- Check if foreign key already exists
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'fk_health_check_location' 
+    AND table_name = 'health_check_results'
+  ) THEN
+    -- Only add if gmb_locations table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gmb_locations') THEN
+      ALTER TABLE public.health_check_results 
+      ADD CONSTRAINT fk_health_check_location 
+      FOREIGN KEY (location_id) 
+      REFERENCES public.gmb_locations(id) ON DELETE CASCADE;
+    END IF;
+  END IF;
+END $$;
 
 -- Create indexes after table creation
 CREATE INDEX IF NOT EXISTS idx_health_check_location ON public.health_check_results(location_id);
