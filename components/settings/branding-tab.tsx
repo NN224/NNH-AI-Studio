@@ -12,25 +12,68 @@ import Image from 'next/image';
 
 interface BrandingTabProps {
   readonly onSave?: () => void;
+  // Branding state from parent (optional - for unified save)
+  brandName?: string;
+  setBrandName?: (value: string) => void;
+  primaryColor?: string;
+  setPrimaryColor?: (value: string) => void;
+  secondaryColor?: string;
+  setSecondaryColor?: (value: string) => void;
+  logoUrl?: string | null;
+  setLogoUrl?: (value: string | null) => void;
+  coverImageUrl?: string | null;
+  setCoverImageUrl?: (value: string | null) => void;
 }
 
-export function BrandingTab({ onSave }: BrandingTabProps) {
+export function BrandingTab({ 
+  onSave,
+  brandName: brandNameProp,
+  setBrandName: setBrandNameProp,
+  primaryColor: primaryColorProp,
+  setPrimaryColor: setPrimaryColorProp,
+  secondaryColor: secondaryColorProp,
+  setSecondaryColor: setSecondaryColorProp,
+  logoUrl: logoUrlProp,
+  setLogoUrl: setLogoUrlProp,
+  coverImageUrl: coverImageUrlProp,
+  setCoverImageUrl: setCoverImageUrlProp
+}: BrandingTabProps) {
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [brandName, setBrandName] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
-  const [primaryColor, setPrimaryColor] = useState('#FFA500');
-  const [secondaryColor, setSecondaryColor] = useState('#1A1A1A');
+  
+  // Use props if provided, otherwise use local state
+  const [localBrandName, setLocalBrandName] = useState('');
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | null>(null);
+  const [localCoverImageUrl, setLocalCoverImageUrl] = useState<string | null>(null);
+  const [localPrimaryColor, setLocalPrimaryColor] = useState('#FFA500');
+  const [localSecondaryColor, setLocalSecondaryColor] = useState('#1A1A1A');
+  
+  const brandName = brandNameProp ?? localBrandName;
+  const setBrandName = setBrandNameProp ?? setLocalBrandName;
+  const logoUrl = logoUrlProp ?? localLogoUrl;
+  const setLogoUrl = setLogoUrlProp ?? setLocalLogoUrl;
+  const coverImageUrl = coverImageUrlProp ?? localCoverImageUrl;
+  const setCoverImageUrl = setCoverImageUrlProp ?? setLocalCoverImageUrl;
+  const primaryColor = primaryColorProp ?? localPrimaryColor;
+  const setPrimaryColor = setPrimaryColorProp ?? setLocalPrimaryColor;
+  const secondaryColor = secondaryColorProp ?? localSecondaryColor;
+  const setSecondaryColor = setSecondaryColorProp ?? setLocalSecondaryColor;
+  
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch existing branding data
+  // Fetch existing branding data (only if not provided via props)
   useEffect(() => {
+    if (brandNameProp !== undefined) {
+      // Branding is managed by parent, skip loading
+      setLoading(false);
+      return;
+    }
+
     const fetchBranding = async () => {
       try {
         setLoading(true);
@@ -49,11 +92,11 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
             console.error('Error fetching branding:', error);
           }
         } else if (data) {
-          setBrandName(data.brand_name || '');
-          setLogoUrl(data.logo_url || null);
-          setCoverImageUrl(data.cover_image_url || null);
-          setPrimaryColor(data.primary_color || '#FFA500');
-          setSecondaryColor(data.secondary_color || '#1A1A1A');
+          setLocalBrandName(data.brand_name || '');
+          setLocalLogoUrl(data.logo_url || null);
+          setLocalCoverImageUrl(data.cover_image_url || null);
+          setLocalPrimaryColor(data.primary_color || '#FFA500');
+          setLocalSecondaryColor(data.secondary_color || '#1A1A1A');
         }
       } catch (error) {
         console.error('Error in fetchBranding:', error);
@@ -63,7 +106,7 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
     };
 
     fetchBranding();
-  }, [supabase]);
+  }, [supabase, brandNameProp]);
 
   // Upload file to Supabase Storage
   const uploadFile = async (file: File, type: 'logo' | 'cover') => {
@@ -401,27 +444,37 @@ export function BrandingTab({ onSave }: BrandingTabProps) {
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="flex justify-end pt-4">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              size="lg"
-              className="gap-2"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+          {/* Save Button - Only show if not managed by parent */}
+          {!setBrandNameProp && (
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                size="lg"
+                className="gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          
+          {setBrandNameProp && (
+            <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg mt-4">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Changes will be saved when you click "Save All Changes" at the bottom of the page.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

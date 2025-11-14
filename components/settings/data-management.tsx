@@ -35,9 +35,19 @@ import {
 
 interface DataManagementProps {
   accountId?: string;
+  retentionDays?: number;
+  setRetentionDays?: (value: number) => void;
+  deleteOnDisconnect?: boolean;
+  setDeleteOnDisconnect?: (value: boolean) => void;
 }
 
-export function DataManagement({ accountId }: DataManagementProps) {
+export function DataManagement({ 
+  accountId,
+  retentionDays: retentionDaysProp,
+  setRetentionDays: setRetentionDaysProp,
+  deleteOnDisconnect: deleteOnDisconnectProp,
+  setDeleteOnDisconnect: setDeleteOnDisconnectProp
+}: DataManagementProps) {
   const {
     hasArchivedData,
     archivedLocationsCount,
@@ -46,22 +56,29 @@ export function DataManagement({ accountId }: DataManagementProps) {
     refresh,
   } = useGMBConnection();
 
-  const [retentionDays, setRetentionDays] = useState(30);
-  const [deleteOnDisconnect, setDeleteOnDisconnect] = useState(false);
+  // Use props if provided, otherwise use local state
+  const [localRetentionDays, setLocalRetentionDays] = useState(30);
+  const [localDeleteOnDisconnect, setLocalDeleteOnDisconnect] = useState(false);
+  
+  const retentionDays = retentionDaysProp ?? localRetentionDays;
+  const setRetentionDays = setRetentionDaysProp ?? setLocalRetentionDays;
+  const deleteOnDisconnect = deleteOnDisconnectProp ?? localDeleteOnDisconnect;
+  const setDeleteOnDisconnect = setDeleteOnDisconnectProp ?? setLocalDeleteOnDisconnect;
+
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const currentAccountId = accountId || activeAccounts[0]?.id;
 
-  // Load current settings
+  // Load current settings if not provided via props
   useEffect(() => {
-    if (activeAccounts.length > 0) {
+    if (!retentionDaysProp && activeAccounts.length > 0) {
       const account = activeAccounts[0];
-      setRetentionDays(account.data_retention_days || 30);
-      setDeleteOnDisconnect(account.delete_on_disconnect || false);
+      setLocalRetentionDays(account.data_retention_days || 30);
+      setLocalDeleteOnDisconnect(account.delete_on_disconnect || false);
     }
-  }, [activeAccounts]);
+  }, [activeAccounts, retentionDaysProp]);
 
   const handlePermanentDelete = async () => {
     setIsDeleting(true);
@@ -97,6 +114,17 @@ export function DataManagement({ accountId }: DataManagementProps) {
 
     setIsSaving(true);
     try {
+      // If settings are managed by parent, just show success
+      // The parent will handle saving via unified API
+      if (setRetentionDaysProp && setDeleteOnDisconnectProp) {
+        toast.success('Settings will be saved with other changes', {
+          description: 'Click "Save All Changes" button at the bottom to save.',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      // Otherwise, use server action (fallback)
       const result = await updateDataRetentionSettings(
         currentAccountId,
         retentionDays,
@@ -275,13 +303,21 @@ export function DataManagement({ accountId }: DataManagementProps) {
             )}
           </div>
 
-          <Button
-            onClick={handleSaveSettings}
-            disabled={isSaving || !currentAccountId}
-            className="w-full bg-orange-600 hover:bg-orange-700"
-          >
-            {isSaving ? 'Saving...' : 'Save Retention Settings'}
-          </Button>
+          {setRetentionDaysProp && setDeleteOnDisconnectProp ? (
+            <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Changes will be saved when you click "Save All Changes" at the bottom of the page.
+              </p>
+            </div>
+          ) : (
+            <Button
+              onClick={handleSaveSettings}
+              disabled={isSaving || !currentAccountId}
+              className="w-full bg-orange-600 hover:bg-orange-700"
+            >
+              {isSaving ? 'Saving...' : 'Save Retention Settings'}
+            </Button>
+          )}
         </CardContent>
       </Card>
 

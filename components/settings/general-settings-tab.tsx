@@ -17,10 +17,26 @@ interface GMBAccount {
 }
 
 interface GeneralSettingsTabProps {
+  // Sync & Publishing
   syncSchedule: string
   setSyncSchedule: (value: string) => void
   autoPublish: boolean
   setAutoPublish: (value: boolean) => void
+  
+  // Business Information
+  businessName: string
+  setBusinessName: (value: string) => void
+  primaryCategory: string
+  setPrimaryCategory: (value: string) => void
+  businessDescription: string
+  setBusinessDescription: (value: string) => void
+  defaultReplyTemplate: string
+  setDefaultReplyTemplate: (value: string) => void
+  timezone: string
+  setTimezone: (value: string) => void
+  language: string
+  setLanguage: (value: string) => void
+  
   gmbAccounts: GMBAccount[]
 }
 
@@ -29,6 +45,18 @@ export function GeneralSettingsTab({
   setSyncSchedule,
   autoPublish,
   setAutoPublish,
+  businessName,
+  setBusinessName,
+  primaryCategory,
+  setPrimaryCategory,
+  businessDescription,
+  setBusinessDescription,
+  defaultReplyTemplate,
+  setDefaultReplyTemplate,
+  timezone,
+  setTimezone,
+  language,
+  setLanguage,
   gmbAccounts
 }: GeneralSettingsTabProps) {
   const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
@@ -54,6 +82,8 @@ export function GeneralSettingsTab({
                 id="business-name" 
                 placeholder="Your Business Name" 
                 className="bg-secondary border-primary/30"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 This will be used as the default name across the platform
@@ -61,7 +91,7 @@ export function GeneralSettingsTab({
             </div>
             <div className="space-y-2">
               <Label htmlFor="primary-category">Primary Category</Label>
-              <Select>
+              <Select value={primaryCategory} onValueChange={setPrimaryCategory}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -85,6 +115,8 @@ export function GeneralSettingsTab({
               id="business-desc"
               placeholder="Describe your business in a few sentences..."
               className="bg-secondary border-primary/30 min-h-[80px]"
+              value={businessDescription}
+              onChange={(e) => setBusinessDescription(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               This helps AI generate better content tailored to your business
@@ -97,6 +129,8 @@ export function GeneralSettingsTab({
               id="default-reply"
               placeholder="Thank you for your review! We appreciate your feedback and hope to serve you again soon."
               className="bg-secondary border-primary/30 min-h-[100px]"
+              value={defaultReplyTemplate}
+              onChange={(e) => setDefaultReplyTemplate(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               This template will be used as a starting point for AI-generated responses
@@ -106,7 +140,7 @@ export function GeneralSettingsTab({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
-              <Select defaultValue="utc">
+              <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue />
                 </SelectTrigger>
@@ -123,7 +157,7 @@ export function GeneralSettingsTab({
             </div>
             <div className="space-y-2">
               <Label htmlFor="language">Default Language</Label>
-              <Select defaultValue="en">
+              <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="bg-secondary border-primary/30">
                   <SelectValue />
                 </SelectTrigger>

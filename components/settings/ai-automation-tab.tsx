@@ -13,13 +13,21 @@ interface AIAutomationTabProps {
   setAiResponseTone: (value: string) => void
   autoReply: boolean
   setAutoReply: (value: boolean) => void
+  responseLength: string
+  setResponseLength: (value: string) => void
+  creativityLevel: string
+  setCreativityLevel: (value: string) => void
 }
 
 export function AIAutomationTab({
   aiResponseTone,
   setAiResponseTone,
   autoReply,
-  setAutoReply
+  setAutoReply,
+  responseLength,
+  setResponseLength,
+  creativityLevel,
+  setCreativityLevel
 }: AIAutomationTabProps) {
   return (
     <div className="space-y-6">
@@ -121,7 +129,7 @@ export function AIAutomationTab({
 
           <div className="space-y-3">
             <Label htmlFor="response-length">Response Length Preference</Label>
-            <Select defaultValue="medium">
+            <Select value={responseLength} onValueChange={setResponseLength}>
               <SelectTrigger className="bg-secondary border-primary/30">
                 <SelectValue />
               </SelectTrigger>
@@ -135,7 +143,7 @@ export function AIAutomationTab({
 
           <div className="space-y-3">
             <Label htmlFor="creativity">AI Creativity Level</Label>
-            <Select defaultValue="medium">
+            <Select value={creativityLevel} onValueChange={setCreativityLevel}>
               <SelectTrigger className="bg-secondary border-primary/30">
                 <SelectValue />
               </SelectTrigger>
