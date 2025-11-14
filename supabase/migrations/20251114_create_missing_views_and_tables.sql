@@ -39,17 +39,37 @@ CREATE TABLE IF NOT EXISTS public.health_check_results (
   checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add location_id column if it doesn't exist (for safety)
+-- Ensure all required columns exist (add them if missing)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-    AND table_name = 'health_check_results'
-    AND column_name = 'location_id'
-  ) THEN
-    ALTER TABLE public.health_check_results 
-    ADD COLUMN location_id UUID;
+  -- Add location_id
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'location_id') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN location_id UUID;
+  END IF;
+  
+  -- Add health_score
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'health_score') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN health_score DECIMAL(5, 2) DEFAULT 0;
+  END IF;
+  
+  -- Add response_rate
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'response_rate') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN response_rate DECIMAL(5, 2) DEFAULT 0;
+  END IF;
+  
+  -- Add average_rating
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'average_rating') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN average_rating DECIMAL(3, 2) DEFAULT 0;
+  END IF;
+  
+  -- Add review_sentiment_distribution
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'review_sentiment_distribution') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN review_sentiment_distribution JSONB DEFAULT '{}'::jsonb;
+  END IF;
+  
+  -- Add checked_at
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'health_check_results' AND column_name = 'checked_at') THEN
+    ALTER TABLE public.health_check_results ADD COLUMN checked_at TIMESTAMPTZ DEFAULT NOW();
   END IF;
 END $$;
 
