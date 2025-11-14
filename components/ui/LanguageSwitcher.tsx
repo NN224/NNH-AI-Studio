@@ -3,20 +3,13 @@
 import { Globe } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { usePathname } from '@/lib/navigation';
-import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const pathname = usePathname();
-  const params = useParams();
   const [isPending, setIsPending] = useState(false);
 
   const switchLocale = (newLocale: string) => {
@@ -55,43 +48,44 @@ export default function LanguageSwitcher() {
     }
   };
 
+  const isEnglish = locale === 'en';
+  const isArabic = locale === 'ar';
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          className="flex items-center gap-2 bg-black/40 border-primary/20 backdrop-blur-sm hover:bg-black/60 disabled:opacity-50"
-        >
-          <Globe className={`w-4 h-4 text-primary ${isPending ? 'animate-spin' : ''}`} />
-          <span className="text-sm font-medium">
-            {locale === 'ar' ? 'العربية' : 'English'}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={() => switchLocale('en')}
-          className={locale === 'en' ? 'bg-primary/10' : ''}
-        >
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            <span>English</span>
-            {locale === 'en' && <span className="ml-auto text-xs">✓</span>}
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => switchLocale('ar')}
-          className={locale === 'ar' ? 'bg-primary/10' : ''}
-        >
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            <span>العربية</span>
-            {locale === 'ar' && <span className="ml-auto text-xs">✓</span>}
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2">
+      <Button
+        variant={isEnglish ? "default" : "outline"}
+        size="sm"
+        disabled={isPending || isEnglish}
+        onClick={() => switchLocale('en')}
+        className={cn(
+          "flex items-center gap-2 transition-all",
+          isEnglish 
+            ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+            : "bg-black/40 border-primary/20 backdrop-blur-sm hover:bg-black/60 disabled:opacity-50"
+        )}
+      >
+        <Globe className={cn("w-4 h-4", isEnglish ? "text-primary-foreground" : "text-primary", isPending && !isEnglish && "animate-spin")} />
+        <span className="text-sm font-medium">English</span>
+        {isEnglish && <span className="text-xs">✓</span>}
+      </Button>
+      
+      <Button
+        variant={isArabic ? "default" : "outline"}
+        size="sm"
+        disabled={isPending || isArabic}
+        onClick={() => switchLocale('ar')}
+        className={cn(
+          "flex items-center gap-2 transition-all",
+          isArabic 
+            ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+            : "bg-black/40 border-primary/20 backdrop-blur-sm hover:bg-black/60 disabled:opacity-50"
+        )}
+      >
+        <Globe className={cn("w-4 h-4", isArabic ? "text-primary-foreground" : "text-primary", isPending && !isArabic && "animate-spin")} />
+        <span className="text-sm font-medium">العربية</span>
+        {isArabic && <span className="text-xs">✓</span>}
+      </Button>
+    </div>
   );
 }
