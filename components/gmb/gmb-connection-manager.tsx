@@ -36,6 +36,8 @@ import { disconnectGMBAccount, type DisconnectOption } from "@/server/actions/gm
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { useGmbStatus } from "@/hooks/use-gmb-status"
+import { SyncProgressModal } from "@/components/sync/sync-progress-modal"
+import { useSyncProgress } from "@/hooks/use-sync-progress"
 
 const useNewSync = process.env.NEXT_PUBLIC_USE_NEW_SYNC === "true"
 
@@ -96,6 +98,17 @@ export function GMBConnectionManager({
   const [progressOpen, setProgressOpen] = useState(false)
   const [phases, setPhases] = useState<Array<{phase:string,status:string,last_counts?:any,last_error?:string|null,last_started_at?:string|null,last_ended_at?:string|null,avg_duration_ms?:number|null}>>([])
   const [estimateMs, setEstimateMs] = useState<number>(0)
+  const [showRealtimeProgress, setShowRealtimeProgress] = useState(false)
+
+  const {
+    progress: realtimeProgress,
+    startTracking: startSyncProgress,
+    stopTracking: stopSyncProgress,
+    elapsedMs: realtimeElapsedMs,
+    etaMs: realtimeEtaMs,
+    isConnected: realtimeConnected,
+    usingPolling: realtimeUsingPolling,
+  } = useSyncProgress()
 
   // Map legacy window events to hook refresh (temporary until SSE/BroadcastChannel)
   useEffect(() => {
@@ -127,6 +140,19 @@ export function GMBConnectionManager({
       }
     }
   }, [progressOpen])
+
+  useEffect(() => {
+    if (!useNewSync) return
+    if (!showRealtimeProgress) return
+    if (!realtimeProgress) return
+    if (realtimeProgress.status === "completed" || realtimeProgress.status === "error") {
+      const timeout = setTimeout(() => {
+        setShowRealtimeProgress(false)
+        stopSyncProgress()
+      }, 2000)
+      return () => clearTimeout(timeout)
+    }
+  }, [realtimeProgress, showRealtimeProgress, stopSyncProgress, useNewSync])
 
   // Start OAuth connection flow
   const handleConnect = async (e?: React.MouseEvent) => {
@@ -232,10 +258,15 @@ export function GMBConnectionManager({
     }
 
     setSyncing(true)
-    setProgressOpen(true)
-    setPhases([])
-    setEstimateMs(0)
-    startProgressStream(activeAccount.id)
+    if (useNewSync) {
+      startSyncProgress({ accountId: activeAccount.id })
+      setShowRealtimeProgress(true)
+    } else {
+      setProgressOpen(true)
+      setPhases([])
+      setEstimateMs(0)
+      startProgressStream(activeAccount.id)
+    }
 
     console.log('[GMB Sync] Starting sync for account:', activeAccount.id)
     
@@ -280,14 +311,16 @@ export function GMBConnectionManager({
       })
     } finally {
       setSyncing(false)
-      // أغلق الـ SSE بعد مهلة قصيرة لإتاحة آخر تحديث
-      setTimeout(() => { 
-        try { 
-          sseRef.current?.close() 
-        } catch (e) {
-          // Already closed
-        }
-      }, 1500)
+      if (!useNewSync) {
+        // أغلق الـ SSE بعد مهلة قصيرة لإتاحة آخر تحديث
+        setTimeout(() => { 
+          try { 
+            sseRef.current?.close() 
+          } catch (err) {
+            // Already closed
+          }
+        }, 1500)
+      }
     }
   }
 
@@ -375,6 +408,30 @@ export function GMBConnectionManager({
     }
   }
 
+  const handleCloseRealtimeModal = () => {
+    setShowRealtimeProgress(false)
+    stopSyncProgress()
+  }
+
+  const handleCancelSyncRequest = () => {
+    toast.info('طلب الإلغاء قيد التطوير وسيتم دعمه لاحقاً.', {
+      description: 'أغلق النافذة إذا رغبت بمتابعة العمل ريثما تنتهي المزامنة.'
+    })
+  }
+
+  const progressModal = useNewSync ? (
+    <SyncProgressModal
+      open={showRealtimeProgress}
+      onClose={handleCloseRealtimeModal}
+      onCancel={handleCancelSyncRequest}
+      progress={realtimeProgress}
+      elapsedMs={realtimeElapsedMs}
+      etaMs={realtimeEtaMs}
+      isConnected={realtimeConnected}
+      usingFallback={realtimeUsingPolling}
+    />
+  ) : null
+
   // Calculate human-readable last sync time
   const getTimeAgo = () => {
     if (!lastSyncTime) return "Not synced yet"
@@ -399,6 +456,7 @@ export function GMBConnectionManager({
   // ============ Compact View (Dashboard) ============
   if (variant === 'compact') {
     return (
+      <>
       <Card className={cn("bg-card border-primary/30", className)}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-3">
@@ -518,7 +576,7 @@ export function GMBConnectionManager({
             </div>
           </div>
         {/* Progress (compact) */}
-        {progressOpen && gmbConnected && (
+        {!useNewSync && progressOpen && gmbConnected && (
           <div className="mt-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Sync</span>
@@ -552,11 +610,14 @@ export function GMBConnectionManager({
           onConfirm={handleDisconnect}
         />
       </Card>
+      {progressModal}
+      </>
     )
   }
 
   // ============ Full View (Settings) ============
   return (
+    <>
     <Card className={cn("border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5", className)}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
@@ -698,7 +759,7 @@ export function GMBConnectionManager({
         </div>
 
         {/* Progress Panel */}
-        {progressOpen && gmbConnected && (
+        {!useNewSync && progressOpen && gmbConnected && (
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Sync Progress</p>
@@ -757,6 +818,8 @@ export function GMBConnectionManager({
         onConfirm={handleDisconnect}
       />
     </Card>
+    {progressModal}
+    </>
   )
 }
 

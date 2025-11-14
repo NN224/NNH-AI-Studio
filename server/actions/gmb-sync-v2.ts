@@ -4,11 +4,87 @@ import { createClient } from "@/lib/supabase/server"
 import { getValidAccessToken, buildLocationResourceName, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 import type { LocationData, ReviewData, QuestionData } from "@/lib/gmb/sync-types"
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions"
-import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager"
+import {
+  CacheBucket,
+  refreshCache,
+  publishSyncProgress,
+  type SyncProgressEvent,
+} from "@/lib/cache/cache-manager"
+import { randomUUID } from "crypto"
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE
 const REVIEWS_BASE = GMB_CONSTANTS.GMB_V4_BASE
 const QANDA_BASE = GMB_CONSTANTS.QANDA_BASE
+
+type SyncStage =
+  | "init"
+  | "locations_fetch"
+  | "reviews_fetch"
+  | "questions_fetch"
+  | "transaction"
+  | "cache_refresh"
+  | "complete"
+
+const BASE_STAGES: SyncStage[] = [
+  "init",
+  "locations_fetch",
+  "reviews_fetch",
+  "questions_fetch",
+  "transaction",
+  "cache_refresh",
+  "complete",
+]
+
+function createProgressEmitter(options: { userId: string; accountId: string; includeQuestions: boolean }) {
+  let activeSyncId = randomUUID()
+  const stageOrder: SyncStage[] = options.includeQuestions
+    ? [...BASE_STAGES]
+    : BASE_STAGES.filter((stage) => stage !== "questions_fetch")
+  const totalStages = stageOrder.length
+
+  const emit = (
+    stage: SyncStage,
+    status: SyncProgressEvent["status"],
+    extra?: { message?: string; counts?: Record<string, number | undefined>; error?: string }
+  ) => {
+    const stageIndex = Math.max(0, stageOrder.indexOf(stage))
+    const current =
+      status === "completed"
+        ? Math.min(stageIndex + 1, totalStages)
+        : stage === "complete" && status === "error"
+        ? totalStages
+        : stageIndex
+    const percentage = Math.max(0, Math.min(100, Math.round((current / totalStages) * 100)))
+
+    publishSyncProgress({
+      syncId: activeSyncId,
+      accountId: options.accountId,
+      userId: options.userId,
+      stage,
+      status,
+      current,
+      total: totalStages,
+      percentage,
+      message: extra?.message,
+      counts: extra?.counts,
+      error: extra?.error,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  return {
+    emit,
+    stageOrder,
+    updateSyncId(id?: string | null) {
+      if (id) {
+        activeSyncId = id
+      }
+    },
+    getSyncId() {
+      return activeSyncId
+    },
+  }
+}
 
 function mapStarRating(value?: string | number | null) {
   if (typeof value === "number") {
@@ -317,30 +393,110 @@ export async function performTransactionalSync(accountId: string, includeQuestio
     throw new Error("GMB account not found")
   }
 
-  const accessToken = await getValidAccessToken(supabase, accountId)
+  const progressEmitter = createProgressEmitter({
+    userId: user.id,
+    accountId,
+    includeQuestions,
+  })
 
-  const locations = await fetchLocationsDataForSync(account.account_id, accountId, user.id, accessToken)
-  const reviews = await fetchReviewsDataForSync(locations, account.account_id, accountId, user.id, accessToken)
-  const questions = includeQuestions
-    ? await fetchQuestionsDataForSync(locations, account.account_id, accountId, user.id, accessToken)
-    : []
+  progressEmitter.emit("init", "running", { message: "Starting Google Business sync" })
 
-  const transactionResult = await runSyncTransactionWithRetry(
-    supabase,
-    {
+  let currentStage: SyncStage = "init"
+
+  try {
+    const accessToken = await getValidAccessToken(supabase, accountId)
+
+    currentStage = "locations_fetch"
+    const locations = await fetchLocationsDataForSync(
+      account.account_id,
       accountId,
+      user.id,
+      accessToken
+    )
+    progressEmitter.emit("locations_fetch", "completed", {
+      counts: { locations: locations.length },
+      message: `Fetched ${locations.length} locations`,
+    })
+
+    currentStage = "reviews_fetch"
+    const reviews = await fetchReviewsDataForSync(
       locations,
-      reviews,
-      questions,
-    },
-    3
-  )
+      account.account_id,
+      accountId,
+      user.id,
+      accessToken
+    )
+    progressEmitter.emit("reviews_fetch", "completed", {
+      counts: { reviews: reviews.length },
+      message: `Fetched ${reviews.length} reviews`,
+    })
 
-  await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
+    let questions: QuestionData[] = []
+    if (includeQuestions) {
+      currentStage = "questions_fetch"
+      questions = await fetchQuestionsDataForSync(
+        locations,
+        account.account_id,
+        accountId,
+        user.id,
+        accessToken
+      )
+      progressEmitter.emit("questions_fetch", "completed", {
+        counts: { questions: questions.length },
+        message: `Fetched ${questions.length} questions`,
+      })
+    }
 
-  return {
-    success: true,
-    ...transactionResult,
+    currentStage = "transaction"
+    progressEmitter.emit("transaction", "running", { message: "Applying transactional sync" })
+    const transactionResult = await runSyncTransactionWithRetry(
+      supabase,
+      {
+        accountId,
+        locations,
+        reviews,
+        questions,
+      },
+      3
+    )
+    progressEmitter.updateSyncId(transactionResult.sync_id)
+    progressEmitter.emit("transaction", "completed", {
+      counts: {
+        locations: transactionResult.locations_synced,
+        reviews: transactionResult.reviews_synced,
+        questions: transactionResult.questions_synced,
+      },
+      message: "Database transaction committed",
+    })
+
+    currentStage = "cache_refresh"
+    progressEmitter.emit("cache_refresh", "running", {
+      message: "Refreshing dashboard caches",
+    })
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
+    progressEmitter.emit("cache_refresh", "completed", {
+      message: "Cache refreshed",
+    })
+
+    progressEmitter.emit("complete", "completed", {
+      message: "Sync completed successfully",
+    })
+
+    return {
+      success: true,
+      ...transactionResult,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Sync failed"
+    progressEmitter.emit(currentStage, "error", {
+      message,
+      error: message,
+    })
+    progressEmitter.emit("complete", "error", {
+      message,
+      error: message,
+    })
+    throw error
   }
 }
 

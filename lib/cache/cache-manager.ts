@@ -27,6 +27,21 @@ type CacheMetrics = {
   perBucket: Record<CacheBucket, { hits: number; misses: number }>
 }
 
+export type SyncProgressEvent = {
+  syncId?: string
+  accountId: string
+  userId: string
+  stage: string
+  status: 'pending' | 'running' | 'completed' | 'error'
+  current: number
+  total: number
+  percentage: number
+  message?: string
+  counts?: Record<string, number | undefined>
+  error?: string
+  timestamp: string
+}
+
 const TTL_CONFIG: Record<CacheBucket, number> = {
   [CacheBucket.DASHBOARD_OVERVIEW]: 60 * 5,
   [CacheBucket.LOCATIONS]: 60 * 10,
@@ -36,6 +51,7 @@ const TTL_CONFIG: Record<CacheBucket, number> = {
 
 const CACHE_PREFIX = 'cache:nnh'
 const INVALIDATION_CHANNEL = 'cache:invalidate'
+const SYNC_PROGRESS_CHANNEL = 'sync:progress'
 const inMemoryCache = new Map<string, CacheEntry>()
 const warmers = new Map<CacheBucket, Warmer>()
 const popularKeys = new Map<string, PopularKey>()
@@ -56,10 +72,11 @@ const metrics: CacheMetrics = {
 
 let subscriber: Redis | null = null
 let subscriberInitialized = false
+const syncHandlers = new Set<(event: SyncProgressEvent) => void>()
 
 declare global {
   // eslint-disable-next-line no-var
-  var __nnh_cache_warm_job_started?: boolean
+  var __nnh_cache_warm_job_started: boolean | undefined
 }
 
 function logCache(event: string, payload?: Record<string, unknown>) {
@@ -129,18 +146,32 @@ async function initSubscriber() {
 
     try {
       subscriber = redis.duplicate()
-      subscriber.on('message', (_, message) => {
-        try {
-          const payload = JSON.parse(message) as { key: string }
-          if (payload?.key) {
-            inMemoryCache.delete(payload.key)
-            logCache('invalidation:remote', { key: payload.key })
+      subscriber.on('message', (channel, message) => {
+        if (channel === INVALIDATION_CHANNEL) {
+          try {
+            const payload = JSON.parse(message) as { key: string }
+            if (payload?.key) {
+              inMemoryCache.delete(payload.key)
+              logCache('invalidation:remote', { key: payload.key })
+            }
+          } catch (error) {
+            logCache('invalidation:parse_error', { error })
           }
-        } catch (error) {
-          logCache('invalidation:parse_error', { error })
+          return
+        }
+
+        if (channel === SYNC_PROGRESS_CHANNEL) {
+          try {
+            const payload = JSON.parse(message) as SyncProgressEvent
+            if (payload?.userId) {
+              syncHandlers.forEach((handler) => handler(payload))
+            }
+          } catch (error) {
+            logCache('sync:parse_error', { error })
+          }
         }
       })
-      await subscriber.subscribe(INVALIDATION_CHANNEL)
+      await subscriber.subscribe(INVALIDATION_CHANNEL, SYNC_PROGRESS_CHANNEL)
       logCache('pubsub:ready')
     } catch (error) {
       logCache('pubsub:error', { error })
@@ -262,6 +293,26 @@ export async function refreshCache(bucket: CacheBucket, identifier: string) {
 export function getCacheStats() {
   return {
     ...metrics,
+  }
+}
+
+export function subscribeToSyncProgress(handler: (event: SyncProgressEvent) => void) {
+  syncHandlers.add(handler)
+  return () => {
+    syncHandlers.delete(handler)
+  }
+}
+
+export async function publishSyncProgress(event: SyncProgressEvent) {
+  syncHandlers.forEach((handler) => handler(event))
+
+  const redis = getRedisClient()
+  if (redis) {
+    try {
+      await redis.publish(SYNC_PROGRESS_CHANNEL, JSON.stringify(event))
+    } catch (error) {
+      logCache('sync:publish_error', { error })
+    }
   }
 }
 
