@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getValidAccessToken } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,44 +22,19 @@ export async function GET(request: NextRequest) {
     const locationResource = searchParams.get('locationResource'); // e.g., "locations/123456"
 
     // Get access token
-    const { data: accounts } = await supabase
+    const { data: account } = await supabase
       .from('gmb_accounts')
-      .select('access_token, refresh_token, token_expires_at')
+      .select('id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
-    if (!accounts || accounts.length === 0) {
+    if (!account) {
       return NextResponse.json({ error: 'No active GMB account' }, { status: 404 });
     }
 
-    const account = accounts[0];
-    let accessToken = account.access_token;
-
-    // Refresh token if expired
-    if (account.token_expires_at && new Date(account.token_expires_at) < new Date()) {
-      if (!account.refresh_token) {
-        return NextResponse.json({ error: 'Token expired and no refresh token' }, { status: 401 });
-      }
-
-      const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: account.refresh_token,
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        }),
-      });
-
-      const refreshData = await refreshResponse.json();
-      if (!refreshResponse.ok) {
-        return NextResponse.json({ error: 'Token refresh failed', details: refreshData }, { status: 401 });
-      }
-
-      accessToken = refreshData.access_token;
-    }
+    const accessToken = await getValidAccessToken(supabase, account.id);
 
     let testLocationResource = locationResource;
 

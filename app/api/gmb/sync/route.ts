@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ApiError, errorResponse } from '@/utils/api-error';
 import { Redis } from '@upstash/redis';
+import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
 
 export const dynamic = 'force-dynamic';
 
@@ -229,20 +230,27 @@ async function getValidAccessToken(
   throw new ApiError('Account not found', 404);
   }
 
+  const accessToken = resolveTokenValue(account.access_token, {
+    context: `gmb_accounts.access_token:${accountId}`,
+  });
+  const refreshToken = resolveTokenValue(account.refresh_token, {
+    context: `gmb_accounts.refresh_token:${accountId}`,
+  });
+
   const now = new Date();
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
 
   // Check if token is still valid (with 10 minute buffer)
   const BUFFER_MINUTES = 10;
-  if (account.access_token && expiresAt && expiresAt > new Date(now.getTime() + BUFFER_MINUTES * 60000)) {
+  if (accessToken && expiresAt && expiresAt > new Date(now.getTime() + BUFFER_MINUTES * 60000)) {
     if (IS_DEV) {
       console.log('[GMB Sync] Using existing valid access token');
     }
-    return account.access_token;
+    return accessToken;
   }
 
   // Token expired or missing, refresh it
-  if (!account.refresh_token) {
+  if (!refreshToken) {
     console.error('[GMB Sync] No refresh token available');
   throw new ApiError('No refresh token available - reconnect required', 401);
   }
@@ -250,19 +258,19 @@ async function getValidAccessToken(
   if (IS_DEV) {
     console.log('[GMB Sync] Token expired or missing, refreshing...');
   }
-  const tokens = await refreshAccessToken(account.refresh_token);
+  const tokens = await refreshAccessToken(refreshToken);
 
   // Update tokens in database
   const newExpiresAt = new Date();
   newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
 
   const updateData: any = {
-    access_token: tokens.access_token,
+    access_token: encryptToken(tokens.access_token),
     token_expires_at: newExpiresAt.toISOString(),
   };
 
   if (tokens.refresh_token) {
-    updateData.refresh_token = tokens.refresh_token;
+    updateData.refresh_token = encryptToken(tokens.refresh_token);
   }
 
   const { error: updateError } = await supabase

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/utils/api-error-handler';
 import { getBaseUrlDynamic } from '@/lib/utils/get-base-url-dynamic';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
 
 export const dynamic = 'force-dynamic';
 
@@ -258,6 +259,27 @@ export async function GET(request: NextRequest) {
       ); // Keep redirect for user-facing error
       }
       
+      const existingRefreshToken = existingAccount?.refresh_token
+        ? resolveTokenValue(existingAccount.refresh_token, { context: `gmb_accounts.refresh_token:${accountId}` })
+        : null;
+
+      let encryptedAccessToken: string;
+      let encryptedRefreshToken: string | null = null;
+
+      try {
+        encryptedAccessToken = encryptToken(tokenData.access_token);
+        const refreshTokenToPersist = tokenData.refresh_token || existingRefreshToken || null;
+        encryptedRefreshToken = refreshTokenToPersist ? encryptToken(refreshTokenToPersist) : null;
+      } catch (encryptionError) {
+        console.error('[OAuth Callback] Failed to encrypt tokens:', encryptionError);
+        const baseUrl = getBaseUrlDynamic(request);
+        return NextResponse.redirect(
+          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
+            'Failed to secure OAuth tokens. Please try again.'
+          )}`
+        );
+      }
+      
       // Use UPSERT to insert or update the account
       console.log(`[OAuth Callback] Upserting GMB account ${accountId}`);
       
@@ -267,8 +289,8 @@ export async function GET(request: NextRequest) {
         account_name: accountName,
         email: userInfo.email,
         google_account_id: userInfo.id,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || existingAccount?.refresh_token || null,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
         last_sync: new Date().toISOString(),

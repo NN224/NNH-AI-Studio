@@ -1,89 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getValidAccessToken } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
 
 const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-
-// Refresh Google access token
-async function refreshAccessToken(refreshToken: string): Promise<{
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
-}> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing Google OAuth configuration');
-  }
-
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(`Token refresh failed: ${data.error || 'Unknown error'}`);
-  }
-
-  return data;
-}
-
-// Get valid access token
-async function getValidAccessToken(supabase: any): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const { data: account, error } = await supabase
-    .from('gmb_accounts')
-    .select('id, access_token, refresh_token, token_expires_at')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .limit(1)
-    .single();
-
-  if (error || !account) {
-    throw new Error('No active account found');
-  }
-
-  const now = new Date();
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
-
-  if (!expiresAt || now >= expiresAt) {
-    if (!account.refresh_token) {
-      throw new Error('No refresh token available');
-    }
-
-    const tokens = await refreshAccessToken(account.refresh_token);
-    const newExpiresAt = new Date();
-    newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
-
-    await supabase
-      .from('gmb_accounts')
-      .update({
-        access_token: tokens.access_token,
-        token_expires_at: newExpiresAt.toISOString(),
-        ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
-      })
-      .eq('id', account.id);
-
-    return tokens.access_token;
-  }
-
-  return account.access_token;
-}
 
 export async function GET(
   request: NextRequest,
@@ -100,7 +21,20 @@ export async function GET(
     const { chainId } = params;
     const chainResource = chainId.startsWith('chains/') ? chainId : `chains/${chainId}`;
 
-    const accessToken = await getValidAccessToken(supabase);
+    const { data: account } = await supabase
+      .from('gmb_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!account) {
+      return NextResponse.json({ error: 'No active GMB account found' }, { status: 404 });
+    }
+
+    const accessToken = await getValidAccessToken(supabase, account.id);
 
     const url = new URL(`${GBP_LOC_BASE}/${chainResource}`);
 

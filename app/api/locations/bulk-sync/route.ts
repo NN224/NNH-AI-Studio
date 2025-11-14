@@ -4,75 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { GMB_CONSTANTS } from '@/lib/gmb/helpers';
+import { GMB_CONSTANTS, getValidAccessToken } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Get valid access token for a GMB account
- */
-async function getValidAccessToken(
-  supabase: any,
-  accountId: string
-): Promise<string> {
-  const { data: account, error } = await supabase
-    .from('gmb_accounts')
-    .select('access_token, refresh_token, token_expires_at, expires_at, account_id')
-    .eq('id', accountId)
-    .single();
-
-  if (error || !account) {
-    throw new Error(`Account not found: ${accountId}`);
-  }
-
-  // Check if token is expired (prefer token_expires_at but fall back to legacy expires_at)
-  const now = Date.now();
-  const expiresAt =
-    account.token_expires_at
-      ? new Date(account.token_expires_at).getTime()
-      : account.expires_at
-      ? new Date(account.expires_at).getTime()
-      : 0;
-
-  if (expiresAt && expiresAt > now) {
-    return account.access_token;
-  }
-
-  // Token expired, refresh it
-  console.log('[Bulk Sync] Refreshing access token for account:', accountId);
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: account.refresh_token,
-      grant_type: 'refresh_token',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Failed to refresh token: ${errorData.error || 'Unknown error'}`);
-  }
-
-  const tokens = await response.json();
-  const newExpiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
-
-  // Update token in database
-  await supabase
-    .from('gmb_accounts')
-    .update({
-      access_token: tokens.access_token,
-      token_expires_at: newExpiresAt.toISOString(),
-      // keep legacy column in sync if it still exists
-      expires_at: newExpiresAt.toISOString(),
-    })
-    .eq('id', accountId);
-
-  return tokens.access_token;
-}
 
 /**
  * Fetch reviews for a location

@@ -1,6 +1,8 @@
 // lib/gmb/helpers.ts
 // Shared GMB helper functions for token management and resource building
 
+import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
+
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 /**
@@ -50,7 +52,7 @@ export async function getValidAccessToken(
 ): Promise<string> {
   const { data: account, error } = await supabase
     .from('gmb_accounts')
-    .select('access_token, refresh_token, token_expires_at')
+    .select('access_token, refresh_token, token_expires_at, expires_at')
     .eq('id', accountId)
     .maybeSingle();
 
@@ -58,31 +60,38 @@ export async function getValidAccessToken(
     throw new Error('Account not found');
   }
 
-  const now = Date.now();
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
+  const accessToken = resolveTokenValue(account.access_token, { context: 'gmb_accounts.access_token' });
+  const refreshToken = resolveTokenValue(account.refresh_token, { context: 'gmb_accounts.refresh_token' });
 
-  const needsRefresh = !account.access_token || !expiresAt || now >= expiresAt;
+  const now = Date.now();
+  const expiresAt = account.token_expires_at
+    ? new Date(account.token_expires_at).getTime()
+    : account.expires_at
+    ? new Date(account.expires_at).getTime()
+    : 0;
+
+  const needsRefresh = !accessToken || !expiresAt || now >= expiresAt;
 
   if (!needsRefresh) {
-    return account.access_token;
+    return accessToken;
   }
 
-  if (!account.refresh_token) {
+  if (!refreshToken) {
     throw new Error('No refresh token available');
   }
 
-  const tokens = await refreshAccessToken(account.refresh_token);
+  const tokens = await refreshAccessToken(refreshToken);
   const newExpiresAt = new Date(now);
   newExpiresAt.setSeconds(newExpiresAt.getSeconds() + (tokens.expires_in || 0));
 
   const updatePayload: Record<string, any> = {
-    access_token: tokens.access_token,
+    access_token: encryptToken(tokens.access_token),
     token_expires_at: newExpiresAt.toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   if (tokens.refresh_token) {
-    updatePayload.refresh_token = tokens.refresh_token;
+    updatePayload.refresh_token = encryptToken(tokens.refresh_token);
   }
 
   await supabase

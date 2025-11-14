@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { resolveTokenValue } from '@/lib/security/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -35,14 +36,17 @@ export async function POST(request: Request) {
     const now = new Date();
     const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
     
+    const accessToken = resolveTokenValue(account.access_token, { context: `gmb_accounts.access_token:${accountId}` });
+    const refreshToken = resolveTokenValue(account.refresh_token, { context: `gmb_accounts.refresh_token:${accountId}` });
+
     const valid = !!(
-      account.access_token && 
-      account.refresh_token &&
+      accessToken && 
+      refreshToken &&
       (!expiresAt || expiresAt > now)
     );
 
     const expiresIn = expiresAt ? Math.floor((expiresAt.getTime() - now.getTime()) / 1000) : null;
-    const canRefresh = !!account.refresh_token;
+    const canRefresh = !!refreshToken;
 
     // If token is expired but we have refresh token, attempt refresh
     if (!valid && canRefresh) {
