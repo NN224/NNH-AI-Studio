@@ -63,6 +63,8 @@ type BrandingVariant = 'cover' | 'logo'
 
 // Limit verbose logging to non‑production builds
 const __DEV__ = process.env.NODE_ENV !== 'production';
+// Public key (browser) – used فقط كـ fallback للـ geocoding لما الإحداثيات تكون ناقصة
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export function LocationsMapTab() {
   // Use stable empty filters object to prevent infinite loops
@@ -76,6 +78,7 @@ export function LocationsMapTab() {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiView, setAiView] = useState<'insights' | 'competitors'>('insights');
   const [aiContextLocation, setAiContextLocation] = useState<Location | null>(null);
+  const [geoCache, setGeoCache] = useState<Record<string, { lat: number; lng: number }>>({});
   
   // Store locations in ref to avoid re-renders
   const locationsRef = useRef<Location[]>([]);
@@ -85,25 +88,45 @@ export function LocationsMapTab() {
   const [pendingVariant, setPendingVariant] = useState<BrandingVariant | null>(null);
   const [uploadingVariant, setBrandingUploadVariant] = useState<BrandingVariant | null>(null);
 
+  // Enrich locations محلياً بإحداثيات geocoding إذا الـ DB ما فيها coordinates
+  const locationsWithGeo = useMemo(() => {
+    if (!locations || locations.length === 0) {
+      return locations;
+    }
+    return locations.map((loc) => {
+      const cached = geoCache[loc.id];
+      if (!loc.coordinates && cached) {
+        return {
+          ...loc,
+          coordinates: cached,
+        };
+      }
+      return loc;
+    });
+  }, [locations, geoCache]);
+
   const selectedLocation = useMemo(
-    () => locations.find((loc) => loc.id === selectedLocationId),
-    [locations, selectedLocationId]
+    () =>
+      locationsWithGeo.find((loc) => loc.id === selectedLocationId) ??
+      locationsWithGeo[0] ??
+      null,
+    [locationsWithGeo, selectedLocationId]
   );
-  const allLocationIds = useMemo(() => locations.map((loc) => loc.id), [locations]);
+  const allLocationIds = useMemo(() => locationsWithGeo.map((loc) => loc.id), [locationsWithGeo]);
   const { stats, loading: statsLoading, error: statsError } = useLocationMapData(selectedLocationId);
   const topPerformers = useMemo(() => {
-    return [...locations]
+    return [...locationsWithGeo]
       .filter((location) => (location.rating ?? 0) > 0)
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
       .slice(0, 3);
-  }, [locations]);
+  }, [locationsWithGeo]);
 
   const attentionLocations = useMemo(() => {
-    return locations
+    return locationsWithGeo
       .filter((location) => location.hasIssues)
       .sort((a, b) => ((b.pendingReviews ?? 0) + (b.pendingQuestions ?? 0)) - ((a.pendingReviews ?? 0) + (a.pendingQuestions ?? 0)))
       .slice(0, 3);
-  }, [locations]);
+  }, [locationsWithGeo]);
 
   const aiLocation = aiContextLocation ?? selectedLocation ?? null;
   const aiStatusDisplay = useMemo(() => deriveDisplayStatus(aiLocation), [aiLocation]);
@@ -136,6 +159,66 @@ export function LocationsMapTab() {
 
     return suggestions.slice(0, 4);
   }, [aiLocation, attentionLocations, topPerformers]);
+
+  // Fallback geocoding: إذا الموقع ما عنده coordinates لكن عنده address، نجيب lat/lng من Google مرة واحدة
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      return;
+    }
+    if (!locations || locations.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const geocodeMissing = async () => {
+      for (const loc of locations) {
+        if (cancelled) break;
+        // إذا الإحداثيات موجودة أو ما في عنوان، ما نعمل شيء
+        if (loc.coordinates || !loc.address) continue;
+        // لو مأخوذة من قبل في cache، كمان نتجاهل
+        if (geoCache[loc.id]) continue;
+
+        try {
+          const encodedAddress = encodeURIComponent(loc.address);
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`;
+          const response = await fetch(url);
+          const data = await response.json().catch(() => null);
+
+          if (
+            !cancelled &&
+            data &&
+            data.status === 'OK' &&
+            Array.isArray(data.results) &&
+            data.results[0]?.geometry?.location
+          ) {
+            const { lat, lng } = data.results[0].geometry.location;
+            if (
+              typeof lat === 'number' &&
+              typeof lng === 'number' &&
+              !Number.isNaN(lat) &&
+              !Number.isNaN(lng)
+            ) {
+              setGeoCache((prev) => ({
+                ...prev,
+                [loc.id]: { lat, lng },
+              }));
+            }
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error('[LocationsMapTab] Geocoding failed for location', loc.id, error);
+          }
+        }
+      }
+    };
+
+    geocodeMissing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locations, geoCache]);
 
   const resolvedCoverImage = useMemo(() => {
     if (!selectedLocation) return null;
