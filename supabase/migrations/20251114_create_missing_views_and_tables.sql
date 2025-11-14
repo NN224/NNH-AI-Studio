@@ -39,21 +39,44 @@ CREATE TABLE IF NOT EXISTS public.health_check_results (
   checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add location_id column if it doesn't exist (for safety)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'health_check_results'
+    AND column_name = 'location_id'
+  ) THEN
+    ALTER TABLE public.health_check_results 
+    ADD COLUMN location_id UUID;
+  END IF;
+END $$;
+
 -- Add foreign key constraint if gmb_locations exists (safely)
 DO $$
 BEGIN
-  -- Check if foreign key already exists
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints 
-    WHERE constraint_name = 'fk_health_check_location' 
+  -- Check if location_id column exists
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
     AND table_name = 'health_check_results'
+    AND column_name = 'location_id'
   ) THEN
-    -- Only add if gmb_locations table exists
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gmb_locations') THEN
-      ALTER TABLE public.health_check_results 
-      ADD CONSTRAINT fk_health_check_location 
-      FOREIGN KEY (location_id) 
-      REFERENCES public.gmb_locations(id) ON DELETE CASCADE;
+    -- Check if foreign key already exists
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.table_constraints 
+      WHERE constraint_name = 'fk_health_check_location' 
+      AND table_name = 'health_check_results'
+      AND table_schema = 'public'
+    ) THEN
+      -- Only add if gmb_locations table exists
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'gmb_locations') THEN
+        ALTER TABLE public.health_check_results 
+        ADD CONSTRAINT fk_health_check_location 
+        FOREIGN KEY (location_id) 
+        REFERENCES public.gmb_locations(id) ON DELETE CASCADE;
+      END IF;
     END IF;
   END IF;
 END $$;
