@@ -9,6 +9,7 @@ BEGIN
     CREATE MATERIALIZED VIEW IF NOT EXISTS public.mv_location_stats AS
     SELECT 
       l.id,
+      l.user_id,
       l.location_name,
       COUNT(DISTINCT r.id) as total_reviews,
       COALESCE(AVG(r.rating), 0) as avg_rating,
@@ -21,7 +22,7 @@ BEGIN
     LEFT JOIN public.gmb_reviews r ON l.id = r.location_id
     LEFT JOIN public.gmb_questions q ON l.id = q.location_id
     WHERE l.user_id IS NOT NULL
-    GROUP BY l.id, l.location_name;
+    GROUP BY l.id, l.user_id, l.location_name;
     
     -- Create index on materialized view
     CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_location_stats_id ON public.mv_location_stats(id);
@@ -136,6 +137,7 @@ BEGIN
     CREATE OR REPLACE VIEW public.v_health_score_distribution AS
     SELECT 
       l.id as location_id,
+      l.user_id,
       l.location_name,
       COALESCE(hc.health_score, 0) as health_score,
       COALESCE(hc.response_rate, 0) as response_rate,

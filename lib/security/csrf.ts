@@ -76,7 +76,7 @@ export async function getCSRFTokenFromCookie(): Promise<string | null> {
  */
 export async function setCSRFTokenCookie(token: string): Promise<void> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set(CSRF_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -86,6 +86,7 @@ export async function setCSRFTokenCookie(token: string): Promise<void> {
     });
   } catch (error) {
     console.error('Error setting CSRF cookie:', error);
+    // Silently fail - cookie setting may not be available in all contexts
   }
 }
 
