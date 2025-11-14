@@ -18,8 +18,21 @@ export default function LanguageSwitcher() {
     setIsPending(true);
     
     try {
-      // Get current pathname (without locale prefix from next-intl)
-      const currentPath = pathname || '/';
+      // Get the actual pathname from window (includes locale prefix if exists)
+      const actualPathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+      
+      // Remove current locale prefix if exists
+      let pathWithoutLocale = actualPathname;
+      if (actualPathname.startsWith(`/${locale}/`)) {
+        pathWithoutLocale = actualPathname.replace(`/${locale}`, '');
+      } else if (actualPathname === `/${locale}`) {
+        pathWithoutLocale = '/';
+      }
+      
+      // Ensure path starts with /
+      if (!pathWithoutLocale.startsWith('/')) {
+        pathWithoutLocale = '/' + pathWithoutLocale;
+      }
       
       // Get current search params
       const searchParams = typeof window !== 'undefined' ? window.location.search : '';
@@ -29,10 +42,10 @@ export default function LanguageSwitcher() {
       let newPath: string;
       if (newLocale === 'en') {
         // Default locale - no prefix needed
-        newPath = currentPath === '/' ? '/' : currentPath;
+        newPath = pathWithoutLocale === '/' ? '/' : pathWithoutLocale;
       } else {
         // Non-default locale - add prefix
-        newPath = `/${newLocale}${currentPath === '/' ? '' : currentPath}`;
+        newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
       }
       
       // Add search params if they exist
