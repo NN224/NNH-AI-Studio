@@ -18,21 +18,9 @@ export default function LanguageSwitcher() {
     setIsPending(true);
     
     try {
-      // Get the actual pathname from window (includes locale prefix if exists)
-      const actualPathname = typeof window !== 'undefined' ? window.location.pathname : '/';
-      
-      // Remove current locale prefix if exists
-      let pathWithoutLocale = actualPathname;
-      if (actualPathname.startsWith(`/${locale}/`)) {
-        pathWithoutLocale = actualPathname.replace(`/${locale}`, '');
-      } else if (actualPathname === `/${locale}`) {
-        pathWithoutLocale = '/';
-      }
-      
-      // Ensure path starts with /
-      if (!pathWithoutLocale.startsWith('/')) {
-        pathWithoutLocale = '/' + pathWithoutLocale;
-      }
+      // usePathname from next-intl already returns pathname without locale prefix
+      // So we can use it directly
+      const pathWithoutLocale = pathname || '/';
       
       // Get current search params
       const searchParams = typeof window !== 'undefined' ? window.location.search : '';
@@ -50,6 +38,18 @@ export default function LanguageSwitcher() {
       
       // Add search params if they exist
       const fullPath = newPath + searchParams;
+      
+      // Debug logging
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log('[LanguageSwitcher] Switching locale:', {
+          from: locale,
+          to: newLocale,
+          pathname,
+          pathWithoutLocale,
+          newPath,
+          fullPath,
+        });
+      }
       
       // Use window.location.href for full page reload to ensure locale change
       if (typeof window !== 'undefined') {
