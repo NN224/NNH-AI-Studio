@@ -145,16 +145,22 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
     description: (() => {
       // Priority 1: Direct column
       if (row.description) return String(row.description).trim()
-      // Priority 2: Metadata profile.description
+      // Priority 2: Metadata profile.description (from parseRecord)
       if (profileMetadata.description) return String(profileMetadata.description).trim()
-      // Priority 3: Metadata description
+      // Priority 3: Metadata description (direct)
       if (metadata.description) return String(metadata.description).trim()
       // Priority 4: Metadata profile.merchantDescription
       if (profileMetadata.merchantDescription) return String(profileMetadata.merchantDescription).trim()
-      // Priority 5: Check metadata.profile directly
+      // Priority 5: Check metadata.profile directly (if it's an object)
+      const directProfile = metadata.profile
+      if (directProfile && typeof directProfile === 'object' && !Array.isArray(directProfile)) {
+        if (directProfile.description) return String(directProfile.description).trim()
+        if (directProfile.merchantDescription) return String(directProfile.merchantDescription).trim()
+      }
+      // Priority 6: Check if location object has description in metadata (full Google location object)
       if (metadata.profile?.description) return String(metadata.profile.description).trim()
-      // Priority 6: Check if location object has description in metadata
-      if (metadata.location?.profile?.description) return String(metadata.location.profile.description).trim()
+      // Priority 7: Check root level if metadata is the full location object
+      if (metadata.profile?.description) return String(metadata.profile.description).trim()
       return ''
     })(),
     shortDescription:
@@ -192,7 +198,7 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
         const cats = Array.isArray(metadata.categories.additionalCategories)
           ? metadata.categories.additionalCategories
           : []
-        return cats
+        const processed = cats
           .map((cat: any) => {
             if (typeof cat === 'string') return cat
             if (cat?.displayName) return cat.displayName
@@ -200,8 +206,9 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
             return String(cat || '').trim()
           })
           .filter((cat: string) => cat.length > 0)
+        if (processed.length > 0) return processed
       }
-      // Priority 5: Check if stored in metadata.profile
+      // Priority 5: Check if stored in metadata.profile (parsed)
       const profileMeta = parseRecord(metadata.profile)
       if (profileMeta.additionalCategories) {
         return ensureStringArray(profileMeta.additionalCategories)
