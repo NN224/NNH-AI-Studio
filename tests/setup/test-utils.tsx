@@ -123,7 +123,7 @@ export const mockSupabaseClient = {
 };
 
 // Mock API response helpers
-export const createMockResponse = <T>(data: T, error: any = null) => ({
+export const createMockResponse = <T,>(data: T, error: any = null) => ({
   data,
   error,
   count: Array.isArray(data) ? data.length : null,

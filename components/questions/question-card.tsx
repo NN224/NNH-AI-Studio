@@ -4,6 +4,7 @@ import { useMemo, type MouseEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   MessageSquare,
   ThumbsUp,
@@ -52,11 +53,13 @@ type QuestionType = GMBQuestion & {
 interface QuestionCardProps {
   question: QuestionType;
   isSelected?: boolean;
+  isChecked?: boolean;
   onClick?: () => void;
   onAnswer?: () => void;
+  onCheckChange?: (checked: boolean) => void;
 }
 
-export function QuestionCard({ question, isSelected, onClick, onAnswer }: QuestionCardProps) {
+export function QuestionCard({ question, isSelected, isChecked = false, onClick, onAnswer, onCheckChange }: QuestionCardProps) {
   const metadata: QuestionMetadata = useMemo(() => ({ ...(question.metadata ?? {}) }), [question.metadata]);
 
   const needsAnswer = !question.answer_text && (question.answer_status === 'unanswered' || question.answer_status === 'pending');
@@ -170,9 +173,20 @@ export function QuestionCard({ question, isSelected, onClick, onAnswer }: Questi
   return (
     <Card onClick={onClick} className={cardClassName}>
       <CardContent className="p-5">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="flex-1 space-y-4">
-            <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
+          {onCheckChange && (
+            <Checkbox
+              checked={isChecked}
+              onCheckedChange={(checked) => {
+                if (onCheckChange) onCheckChange(checked as boolean);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+            />
+          )}
+          <div className="flex flex-col gap-6 lg:flex-row w-full">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-base font-semibold text-white shadow-lg shadow-orange-500/20">
                 {question.author_name?.[0]?.toUpperCase() || question.author_display_name?.[0]?.toUpperCase() || '?'}
               </div>
@@ -318,6 +332,7 @@ export function QuestionCard({ question, isSelected, onClick, onAnswer }: Questi
               </div>
               <p className="mt-1">Source: {aiSourceLabel}</p>
         </div>
+            </div>
           </div>
         </div>
       </CardContent>

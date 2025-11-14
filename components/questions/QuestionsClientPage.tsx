@@ -32,6 +32,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import type { GMBQuestion } from '@/lib/types/database';
 import type { DashboardSnapshot } from '@/types/dashboard';
+import { BulkActionsBar } from './bulk-actions-bar';
 
 type QuestionEntity = GMBQuestion & {
   locationId: string;
@@ -104,6 +105,7 @@ export function QuestionsClientPage({
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(currentFilters.searchQuery ?? '');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoAnswerEnabled, setAutoAnswerEnabled] = useState(false);
   const [autoAnswerLoading, setAutoAnswerLoading] = useState(false);
   const [bulkAnswering, setBulkAnswering] = useState(false);
@@ -250,6 +252,31 @@ export function QuestionsClientPage({
     },
     [router, searchParamsString],
   );
+
+  // Selection handlers
+  const handleSelectQuestion = (questionId: string, isSelected: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (isSelected) {
+        newSet.add(questionId);
+      } else {
+        newSet.delete(questionId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === questions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(questions.map(q => q.id)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
 
   const refreshData = useCallback(() => {
     startTransition(() => {
@@ -410,6 +437,13 @@ export function QuestionsClientPage({
         isSyncing={isSyncing}
         canSync={canSync}
         onOpenAssistant={() => setAiPanelOpen(true)}
+      />
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        selectedIds={Array.from(selectedIds)}
+        onComplete={refreshData}
+        onClearSelection={handleClearSelection}
       />
 
       <QuestionsFilterBar
@@ -830,8 +864,10 @@ function QuestionsFeedSection({
                   key={question.id}
                   question={question}
                   isSelected={selectedQuestion?.id === question.id}
+                  isChecked={selectedIds.has(question.id)}
           onClick={() => onSelectQuestion(question)}
           onAnswer={() => onAnswer(question)}
+                  onCheckChange={(checked) => handleSelectQuestion(question.id, checked)}
                 />
               ))}
     </section>

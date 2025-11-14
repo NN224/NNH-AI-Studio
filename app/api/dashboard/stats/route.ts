@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
           reviewer: r.reviewer_name,
           date: r.review_date,
           hasReply: r.has_reply,
-          locationName: r.location?.location_name,
+          locationName: r.location?.[0]?.location_name || 'Unknown',
         })),
         questions: (recentQuestions || []).map(q => ({
           id: q.id,
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
           author: q.author_name,
           date: q.created_at,
           status: q.answer_status,
-          locationName: q.location?.location_name,
+          locationName: q.location?.[0]?.location_name || 'Unknown',
         })),
       },
       

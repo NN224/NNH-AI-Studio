@@ -9,9 +9,12 @@ import type { BusinessProfilePayload } from '@/types/features'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Lock, Unlock, Shield, FileText, Sparkles, RotateCcw, Save } from 'lucide-react'
+import { Lock, Unlock, Shield, FileText, Sparkles, RotateCcw, Save, Copy, History } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from 'next-intl'
+import { ValidationPanel } from '@/components/features/validation-panel'
+import { ChangeHistoryPanel } from '@/components/features/change-history-panel'
+import { BulkUpdateDialog } from '@/components/features/bulk-update-dialog'
 
 interface TabDefinition {
   readonly id: TabKey
@@ -19,11 +22,13 @@ interface TabDefinition {
   readonly icon: string
 }
 
-type TabKey = 'info' | 'features'
+type TabKey = 'info' | 'features' | 'validation' | 'history'
 
 const TABS: readonly TabDefinition[] = [
   { id: 'info', name: 'Basic Info', icon: 'FileText' },
   { id: 'features', name: 'Features', icon: 'Sparkles' },
+  { id: 'validation', name: 'Validation', icon: 'Shield' },
+  { id: 'history', name: 'History', icon: 'History' },
 ]
 
 function fingerprint(profile: BusinessProfilePayload | null): string {
@@ -51,6 +56,7 @@ export default function BusinessProfilePage() {
   const [profileError, setProfileError] = useState<string | null>(null)
   const [isLocked, setIsLocked] = useState(false)
   const [lockLoading, setLockLoading] = useState(false)
+  const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false)
 
   useEffect(() => {
     if (!selectedLocationId && locations.length > 0) {
@@ -279,6 +285,16 @@ export default function BusinessProfilePage() {
           </div>
 
           <div className="flex gap-3 flex-wrap justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBulkUpdateOpen(true)}
+              disabled={locations.length < 2}
+              className="gap-2"
+            >
+              <Copy className="w-4 h-4" />
+              Bulk Update
+            </Button>
             <button
               type="button"
               onClick={() => {
@@ -424,7 +440,14 @@ export default function BusinessProfilePage() {
               >
                 {tab.icon === 'FileText' && <FileText className="w-5 h-5" />}
                 {tab.icon === 'Sparkles' && <Sparkles className="w-5 h-5" />}
-                <span>{tab.id === 'info' ? t('tabs.basicInfo') : t('tabs.features')}</span>
+                {tab.icon === 'Shield' && <Shield className="w-5 h-5" />}
+                {tab.icon === 'History' && <History className="w-5 h-5" />}
+                <span>
+                  {tab.id === 'info' ? t('tabs.basicInfo') : 
+                   tab.id === 'features' ? t('tabs.features') :
+                   tab.id === 'validation' ? 'Validation' :
+                   'History'}
+                </span>
               </button>
             ))}
           </div>
@@ -449,11 +472,42 @@ export default function BusinessProfilePage() {
                 {activeTab === 'features' && (
                   <FeaturesTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={isLocked} />
                 )}
+                {activeTab === 'validation' && selectedLocationId && (
+                  <ValidationPanel
+                    profile={profile}
+                    onChange={handleProfileChange}
+                    onDirty={markDirty}
+                    locationName={selectedLocationName}
+                    disabled={isLocked}
+                  />
+                )}
+                {activeTab === 'history' && selectedLocationId && (
+                  <ChangeHistoryPanel
+                    locationId={selectedLocationId}
+                    locationName={selectedLocationName}
+                    onRollback={() => {
+                      // Reload profile after rollback
+                      setSelectedLocationId(null);
+                      setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
+                    }}
+                  />
+                )}
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Bulk Update Dialog */}
+      <BulkUpdateDialog
+        open={bulkUpdateOpen}
+        onOpenChange={setBulkUpdateOpen}
+        selectedLocations={locations.map(loc => ({ id: loc.id, name: loc.name }))}
+        onComplete={() => {
+          // Refresh data after bulk update
+          window.dispatchEvent(new Event('dashboard:refresh'));
+        }}
+      />
     </div>
   )
 }

@@ -72,7 +72,10 @@ export class MLSentimentService {
       this.apiKey = process.env.HUGGINGFACE_API_KEY;
       this.apiProvider = 'huggingface';
     } else {
-      throw new Error('No ML API key configured for sentiment analysis');
+      // Fallback to basic sentiment analysis when no API key is configured
+      console.warn('No ML API key configured for sentiment analysis - using basic analysis');
+      this.apiKey = '';
+      this.apiProvider = 'openai'; // Default to prevent errors
     }
   }
 
@@ -87,6 +90,11 @@ export class MLSentimentService {
    * Analyze sentiment of a single review
    */
   async analyzeSentiment(text: string, rating?: number): Promise<SentimentAnalysisResult> {
+    // If no API key configured, return basic sentiment based on rating
+    if (!this.apiKey) {
+      return this.getBasicSentiment(text, rating);
+    }
+    
     try {
       switch (this.apiProvider) {
         case 'openai':

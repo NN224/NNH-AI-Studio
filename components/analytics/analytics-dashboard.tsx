@@ -13,66 +13,116 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarDays } from "lucide-react"
 import { useState } from "react"
+import { AnalyticsFilters, type AnalyticsFilters as AnalyticsFiltersType } from "./analytics-filters"
+import { RealtimeMetricsDisplay } from "./realtime-metrics-display"
+import { CustomReportBuilder } from "./custom-report-builder"
 
 export function AnalyticsDashboard() {
-  const [dateRange, setDateRange] = useState("30")
+  const [filters, setFilters] = useState<AnalyticsFiltersType>({
+    dateRange: {
+      preset: '30',
+      from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      to: new Date()
+    },
+    locationIds: [],
+    comparison: 'previous_period',
+    metric: 'all'
+  })
+
+  const handleFiltersChange = (newFilters: AnalyticsFiltersType) => {
+    setFilters(newFilters)
+  }
+
+  // Extract date range for backward compatibility
+  const dateRange = filters.dateRange.preset || '30'
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Analytics</h2>
-          <p className="text-muted-foreground">Monitor your Google My Business performance</p>
-        </div>
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[180px] bg-secondary border-primary/30">
-            <CalendarDays className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+      <div>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Analytics</h2>
+        <p className="text-muted-foreground mb-6">Monitor your Google My Business performance</p>
+        
+        {/* Advanced Filters */}
+        <AnalyticsFilters 
+          onFiltersChange={handleFiltersChange}
+          defaultDateRange="30"
+        />
       </div>
 
+      {/* Realtime Metrics */}
+      <RealtimeMetricsDisplay 
+        locationIds={filters.locationIds}
+        simulateData={true} // Enable demo mode for testing
+      />
+
       {/* Key Metrics */}
-      <MetricsOverview dateRange={dateRange} />
+      <MetricsOverview 
+        dateRange={dateRange} 
+        locationIds={filters.locationIds}
+        comparison={filters.comparison}
+      />
 
       {/* Performance Overview */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top Performing Locations */}
-        <LocationPerformance />
+        <LocationPerformance locationIds={filters.locationIds} />
         
         {/* Impressions Breakdown */}
-        <ImpressionsBreakdownChart dateRange={dateRange} />
+        <ImpressionsBreakdownChart 
+          dateRange={dateRange}
+          locationIds={filters.locationIds}
+        />
       </div>
 
       {/* Performance Metrics Chart */}
-      <PerformanceMetricsChart dateRange={dateRange} />
+      <PerformanceMetricsChart 
+        dateRange={dateRange}
+        locationIds={filters.locationIds}
+        comparison={filters.comparison}
+      />
 
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Impressions Trends */}
-        <TrafficChart dateRange={dateRange} />
+        <TrafficChart 
+          dateRange={dateRange}
+          locationIds={filters.locationIds}
+        />
         
         {/* Review Sentiment */}
-        <ReviewSentimentChart />
+        <ReviewSentimentChart 
+          dateRange={filters.dateRange}
+          locationIds={filters.locationIds}
+        />
       </div>
 
       {/* Search Keywords */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <SearchKeywords />
+        <SearchKeywords 
+          dateRange={filters.dateRange}
+          locationIds={filters.locationIds}
+        />
       </div>
 
       {/* Response Time Chart */}
-      <ResponseTimeChart />
+      <ResponseTimeChart 
+        dateRange={filters.dateRange}
+        locationIds={filters.locationIds}
+      />
 
       {/* Business Insights */}
-      <BusinessInsights />
+      <BusinessInsights 
+        filters={filters}
+      />
+
+      {/* Custom Report Builder */}
+      <CustomReportBuilder 
+        onReportGenerate={(config) => {
+          console.log('Report generated:', config);
+          // Handle report generation
+        }}
+      />
     </div>
   )
 }

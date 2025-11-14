@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { errorResponse, successResponse } from '@/lib/utils/api-response';
+import { unstable_cache } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
+
+// Cache tag for questions
+const QUESTIONS_CACHE_TAG = 'questions-data';
 
 // GET - Fetch questions for user's locations
 export async function GET(request: NextRequest) {
@@ -76,12 +80,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build query - only fetch questions from active locations
+    // Build optimized query - only fetch questions from active locations
     let query = supabase
       .from('gmb_questions')
       .select(`
-        *,
-        location:gmb_locations(id, location_name)
+        id,
+        location_id,
+        question_text,
+        answer_text,
+        answer_status,
+        author_name,
+        author_type,
+        created_at,
+        answered_at,
+        upvote_count,
+        ai_suggested_answer,
+        ai_confidence_score,
+        metadata,
+        location:gmb_locations!inner(id, location_name)
       `)
       .eq('user_id', user.id)
       .in('location_id', activeLocationIds)
@@ -151,7 +167,8 @@ export async function GET(request: NextRequest) {
       draft: draftCount,
     };
 
-    return successResponse({
+    // Return with cache headers
+    const response = successResponse({
       questions: questions || [],
       counts,
       pagination: {
@@ -160,6 +177,12 @@ export async function GET(request: NextRequest) {
         hasMore: questions?.length === limit
       }
     });
+
+    // Add cache headers
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
+    response.headers.set('X-Cache-Tag', QUESTIONS_CACHE_TAG);
+    
+    return response;
 
   } catch (error: any) {
     console.error('[Questions API] Unexpected error:', error);

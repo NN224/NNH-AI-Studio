@@ -164,27 +164,3 @@ export function usePredictiveNavigation() {
   return { predictAndPrefetch };
 }
 
-/**
- * Component to wrap navigation links with prefetch behavior
- */
-export function PrefetchLink({ 
-  href, 
-  children, 
-  prefetch = true,
-  ...props 
-}: {
-  href: string;
-  children: React.ReactNode;
-  prefetch?: boolean;
-  [key: string]: any;
-}) {
-  const { prefetchOnHover } = useRoutePrefetch();
-  
-  const prefetchProps = prefetch ? prefetchOnHover(href) : {};
-  
-  return (
-    <a href={href} {...prefetchProps} {...props}>
-      {children}
-    </a>
-  );
-}

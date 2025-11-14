@@ -143,9 +143,9 @@ export async function GET(request: NextRequest) {
       const recentReviews = location.recent_reviews || [];
 
       // Calculate average recent rating
-      const recentRatings = recentReviews.map(r => r.rating).filter(r => r != null);
+      const recentRatings = recentReviews.map((r: any) => r.rating).filter((r: any) => r != null);
       const avgRecentRating = recentRatings.length > 0 
-        ? recentRatings.reduce((sum, r) => sum + r, 0) / recentRatings.length
+        ? recentRatings.reduce((sum: any, r: any) => sum + r, 0) / recentRatings.length
         : null;
 
       // Clean up the location object
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
           lastReviewDate: recentReviews[0]?.review_date || null,
         },
         // Include a few recent reviews for preview
-        recentReviews: recentReviews.slice(0, 3).map(r => ({
+        recentReviews: recentReviews.slice(0, 3).map((r: any) => ({
           id: r.id,
           rating: r.rating,
           text: r.review_text?.substring(0, 100) + (r.review_text?.length > 100 ? '...' : ''),

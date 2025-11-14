@@ -44,16 +44,17 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
     setGenerating(true);
 
     try {
-      // Call AI API to generate answer
-      const response = await fetch('/api/ai/generate-review-reply', {
+      // Use new ML analysis endpoint
+      const response = await fetch('/api/questions/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewText: question.question_text || '',
-          rating: 5, // Questions are neutral
-          tone: 'friendly',
-          locationName: question.location_name || 'Business',
-          isQuestion: true,
+          questionId: question.id,
+          questionText: question.question_text || '',
+          locationId: question.location_id,
+          businessContext: {
+            businessName: question.location_name || 'Business',
+          }
         }),
       });
 
@@ -62,16 +63,18 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
         throw new Error(errorData.error || 'Failed to generate AI answer');
       }
 
-      const { reply } = await response.json();
+      const { analysis } = await response.json();
 
-      if (!reply || typeof reply !== 'string') {
+      if (!analysis?.suggestedAnswer) {
         throw new Error('Invalid response from AI service');
       }
 
-      setAnswer(reply);
+      setAnswer(analysis.suggestedAnswer);
 
-      toast.success('AI answer generated!', {
-        description: 'Review and edit before sending',
+      // Show confidence level
+      const confidencePercent = Math.round((analysis.confidence || 0) * 100);
+      toast.success(`AI answer generated with ${confidencePercent}% confidence!`, {
+        description: `Category: ${analysis.category} | Intent: ${analysis.intent}`,
       });
     } catch (error) {
       console.error('Error generating AI answer:', error);
