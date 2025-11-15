@@ -42,6 +42,12 @@ import { DashboardBanner } from '@/components/dashboard/dashboard-banner';
 import { useDashboardSnapshot, cacheUtils } from '@/hooks/use-dashboard-cache';
 import type { DashboardSnapshot } from '@/types/dashboard';
 
+// Import AI Components
+import dynamic from 'next/dynamic';
+const AIInsightsPanel = dynamic(() => import('@/components/dashboard/ai/ai-insights-panel').then(mod => ({ default: mod.AIInsightsPanel })), { ssr: false });
+const ChatAssistant = dynamic(() => import('@/components/dashboard/ai/chat-assistant').then(mod => ({ default: mod.ChatAssistant })), { ssr: false });
+const AutomationInsights = dynamic(() => import('@/components/dashboard/ai/automation-insights').then(mod => ({ default: mod.AutomationInsights })), { ssr: false });
+
 interface DashboardStats {
   totalLocations: number;
   locationsTrend: number;
@@ -91,6 +97,7 @@ export default function DashboardPage() {
   const { isMobile, isTablet } = useResponsiveLayout();
 
   const [gmbConnected, setGmbConnected] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [lastDataUpdate, setLastDataUpdate] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ preset: '30d', start: null, end: null });
   const [widgetPreferences, setWidgetPreferences] = useState<DashboardWidgetPreferences>(getDashboardPreferences());
@@ -187,6 +194,9 @@ export default function DashboardPage() {
         router.push("/auth/login");
         return;
       }
+
+      // Save user ID for AI components
+      setUserId(authUser.id);
 
       // Check GMB connection status - only active accounts
       const { data: gmbAccounts } = await supabase
@@ -405,6 +415,24 @@ export default function DashboardPage() {
             </DashboardSection>
           )}
         </ResponsiveGrid>
+      )}
+
+      {/* Advanced AI Features - New Section */}
+      {gmbConnected && userId && (
+        <>
+          {/* AI Insights Panel - Predictions & Recommendations */}
+          <DashboardSection section="AI Insights Panel">
+            <AIInsightsPanel userId={userId} />
+          </DashboardSection>
+
+          {/* Automation Insights */}
+          <DashboardSection section="Automation Insights">
+            <AutomationInsights userId={userId} />
+          </DashboardSection>
+
+          {/* Floating Chat Assistant */}
+          <ChatAssistant userId={userId} />
+        </>
       )}
     </div>
   );
