@@ -522,8 +522,7 @@ export default async function HomePage() {
                   { icon: BarChart3, label: 'View Analytics', href: '/analytics' },
                   { icon: MessageSquare, label: 'Manage Reviews', href: '/reviews' },
                   { icon: Play, label: 'YouTube Dashboard', href: '/youtube-dashboard' },
-                  { icon: Sparkles, label: 'GMB Posts', href: '/posts' },
-                  { icon: Sparkles, label: 'YouTube Posts', href: '/youtube-posts' }
+                  { icon: Sparkles, label: 'GMB Posts', href: '/posts' }
                 ].map((action, index) => (
                   <Link key={index} href={action.href}>
                     <Button 

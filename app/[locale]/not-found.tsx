@@ -60,7 +60,6 @@ export default function NotFound() {
                 { label: 'Dashboard', href: '/dashboard' },
                 { label: 'YouTube Dashboard', href: '/youtube-dashboard' },
                 { label: 'GMB Posts', href: '/posts' },
-                { label: 'YouTube Posts', href: '/youtube-posts' },
                 { label: 'Analytics', href: '/analytics' },
                 { label: 'About', href: '/about' },
               ].map((link) => (
