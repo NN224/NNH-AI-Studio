@@ -22,7 +22,7 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, index }: any) 
     </CardContent>
   </Card>
 )
-import { YoutubeDashboardSidebar } from "@/components/dashboard/youtube-sidebar"
+// Removed youtube-sidebar import - component deleted
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -897,8 +897,7 @@ export default function YoutubeDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <YoutubeDashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+      {/* Sidebar - Removed (component deleted) */}
       
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-[240px] transition-all duration-300">

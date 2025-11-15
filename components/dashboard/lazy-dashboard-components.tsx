@@ -46,74 +46,40 @@ export const LazyPerformanceChart = dynamic(
   }
 );
 
-export const LazyLocationHighlights = dynamic(
-  () => import('./location-highlights-carousel').then(mod => ({ default: mod.LocationHighlightsCarousel })),
-  {
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-[150px]" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-[150px]" />
-                  <Skeleton className="h-3 w-[100px]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    ),
-    ssr: false,
-  }
+// Removed LazyLocationHighlights - component deleted
+// Removed LazyAIInsights - component deleted
+// Removed LazyGamificationWidget - component deleted
+
+// Simple fallback components
+export const LazyLocationHighlights = ({ locations, loading }: any) => (
+  <Card>
+    <CardHeader>
+      <Skeleton className="h-6 w-[150px]" />
+    </CardHeader>
+    <CardContent>
+      <p className="text-sm text-muted-foreground">Location highlights coming soon</p>
+    </CardContent>
+  </Card>
 );
 
-export const LazyAIInsights = dynamic(
-  () => import('./ai-insights-card').then(mod => ({ default: mod.AIInsightsCard })),
-  {
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-[120px]" />
-          <Skeleton className="h-4 w-[200px]" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <div className="flex gap-2">
-              <Skeleton className="h-8 w-[80px]" />
-              <Skeleton className="h-8 w-[80px]" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    ),
-    ssr: false,
-  }
+export const LazyAIInsights = ({ stats, loading }: any) => (
+  <Card>
+    <CardHeader>
+      <Skeleton className="h-6 w-[120px]" />
+    </CardHeader>
+    <CardContent>
+      <p className="text-sm text-muted-foreground">AI insights coming soon</p>
+    </CardContent>
+  </Card>
 );
 
-export const LazyGamificationWidget = dynamic(
-  () => import('./gamification-widget').then(mod => ({ default: mod.GamificationWidget })),
-  {
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-[140px]" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-[80%]" />
-            <Skeleton className="h-4 w-[60%]" />
-          </div>
-        </CardContent>
-      </Card>
-    ),
-    ssr: false,
-  }
+export const LazyGamificationWidget = ({ stats }: any) => (
+  <Card>
+    <CardHeader>
+      <Skeleton className="h-6 w-[140px]" />
+    </CardHeader>
+    <CardContent>
+      <p className="text-sm text-muted-foreground">Gamification coming soon</p>
+    </CardContent>
+  </Card>
 );

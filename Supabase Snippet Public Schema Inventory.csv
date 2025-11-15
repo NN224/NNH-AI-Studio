@@ -1,920 +1,944 @@
-query_type,schemaname,tablename,column_name,data_type
-COLUMNS,public,activity_logs,actionable,boolean
-COLUMNS,public,activity_logs,activity_message,text
-COLUMNS,public,activity_logs,activity_type,text
-COLUMNS,public,activity_logs,created_at,timestamp with time zone
-COLUMNS,public,activity_logs,id,uuid
-COLUMNS,public,activity_logs,metadata,jsonb
-COLUMNS,public,activity_logs,user_id,uuid
-COLUMNS,public,ai_autopilot_logs,action_description,text
-COLUMNS,public,ai_autopilot_logs,action_type,text
-COLUMNS,public,ai_autopilot_logs,created_at,timestamp with time zone
-COLUMNS,public,ai_autopilot_logs,id,uuid
-COLUMNS,public,ai_autopilot_logs,location_id,uuid
-COLUMNS,public,ai_autopilot_logs,metadata,jsonb
-COLUMNS,public,ai_autopilot_logs,status,text
-COLUMNS,public,ai_autopilot_settings,auto_reply_enabled,boolean
-COLUMNS,public,ai_autopilot_settings,auto_reply_min_rating,integer
-COLUMNS,public,ai_autopilot_settings,auto_reply_tone,text
-COLUMNS,public,ai_autopilot_settings,created_at,timestamp with time zone
-COLUMNS,public,ai_autopilot_settings,id,uuid
-COLUMNS,public,ai_autopilot_settings,is_enabled,boolean
-COLUMNS,public,ai_autopilot_settings,location_id,uuid
-COLUMNS,public,ai_autopilot_settings,posting_days,ARRAY
-COLUMNS,public,ai_autopilot_settings,posting_frequency,integer
-COLUMNS,public,ai_autopilot_settings,smart_posting_enabled,boolean
-COLUMNS,public,ai_autopilot_settings,updated_at,timestamp with time zone
-COLUMNS,public,ai_requests,completion_tokens,integer
-COLUMNS,public,ai_requests,cost_usd,numeric
-COLUMNS,public,ai_requests,created_at,timestamp with time zone
-COLUMNS,public,ai_requests,feature,text
-COLUMNS,public,ai_requests,id,uuid
-COLUMNS,public,ai_requests,latency_ms,integer
-COLUMNS,public,ai_requests,location_id,uuid
-COLUMNS,public,ai_requests,model,text
-COLUMNS,public,ai_requests,prompt_tokens,integer
-COLUMNS,public,ai_requests,provider,text
-COLUMNS,public,ai_requests,success,boolean
-COLUMNS,public,ai_requests,total_tokens,integer
-COLUMNS,public,ai_requests,user_id,uuid
-COLUMNS,public,ai_settings,api_key,text
-COLUMNS,public,ai_settings,created_at,timestamp with time zone
-COLUMNS,public,ai_settings,id,uuid
-COLUMNS,public,ai_settings,is_active,boolean
-COLUMNS,public,ai_settings,priority,integer
-COLUMNS,public,ai_settings,provider,text
-COLUMNS,public,ai_settings,updated_at,timestamp with time zone
-COLUMNS,public,ai_settings,user_id,uuid
-COLUMNS,public,audit_logs,action,character varying
-COLUMNS,public,audit_logs,created_at,timestamp with time zone
-COLUMNS,public,audit_logs,id,uuid
-COLUMNS,public,audit_logs,ip_address,text
-COLUMNS,public,audit_logs,metadata,jsonb
-COLUMNS,public,audit_logs,resource_id,character varying
-COLUMNS,public,audit_logs,resource_type,character varying
-COLUMNS,public,audit_logs,user_id,uuid
-COLUMNS,public,auto_reply_queue,created_at,timestamp with time zone
-COLUMNS,public,auto_reply_queue,error_message,text
-COLUMNS,public,auto_reply_queue,generated_response,text
-COLUMNS,public,auto_reply_queue,id,uuid
-COLUMNS,public,auto_reply_queue,response_style,character varying
-COLUMNS,public,auto_reply_queue,retry_count,integer
-COLUMNS,public,auto_reply_queue,review_id,uuid
-COLUMNS,public,auto_reply_queue,scheduled_send_at,timestamp with time zone
-COLUMNS,public,auto_reply_queue,status,character varying
-COLUMNS,public,auto_reply_queue,updated_at,timestamp with time zone
-COLUMNS,public,auto_reply_queue,user_id,uuid
-COLUMNS,public,auto_reply_settings,created_at,timestamp with time zone
-COLUMNS,public,auto_reply_settings,enabled,boolean
-COLUMNS,public,auto_reply_settings,id,uuid
-COLUMNS,public,auto_reply_settings,language,character varying
-COLUMNS,public,auto_reply_settings,location_id,uuid
-COLUMNS,public,auto_reply_settings,reply_to_negative,boolean
-COLUMNS,public,auto_reply_settings,reply_to_neutral,boolean
-COLUMNS,public,auto_reply_settings,reply_to_positive,boolean
-COLUMNS,public,auto_reply_settings,require_approval,boolean
-COLUMNS,public,auto_reply_settings,response_delay_minutes,integer
-COLUMNS,public,auto_reply_settings,response_style,character varying
-COLUMNS,public,auto_reply_settings,updated_at,timestamp with time zone
-COLUMNS,public,auto_reply_settings,user_id,uuid
-COLUMNS,public,autopilot_logs,action_type,text
-COLUMNS,public,autopilot_logs,created_at,timestamp with time zone
-COLUMNS,public,autopilot_logs,details,jsonb
-COLUMNS,public,autopilot_logs,error_message,text
-COLUMNS,public,autopilot_logs,id,uuid
-COLUMNS,public,autopilot_logs,location_id,uuid
-COLUMNS,public,autopilot_logs,status,text
-COLUMNS,public,autopilot_logs,user_id,uuid
-COLUMNS,public,autopilot_settings,auto_reply_enabled,boolean
-COLUMNS,public,autopilot_settings,auto_reply_min_rating,integer
-COLUMNS,public,autopilot_settings,competitor_monitoring_enabled,boolean
-COLUMNS,public,autopilot_settings,content_preferences,jsonb
-COLUMNS,public,autopilot_settings,created_at,timestamp with time zone
-COLUMNS,public,autopilot_settings,id,uuid
-COLUMNS,public,autopilot_settings,insights_reports_enabled,boolean
-COLUMNS,public,autopilot_settings,is_enabled,boolean
-COLUMNS,public,autopilot_settings,location_id,uuid
-COLUMNS,public,autopilot_settings,post_days,jsonb
-COLUMNS,public,autopilot_settings,post_frequency,integer
-COLUMNS,public,autopilot_settings,post_times,jsonb
-COLUMNS,public,autopilot_settings,reply_tone,text
-COLUMNS,public,autopilot_settings,report_frequency,text
-COLUMNS,public,autopilot_settings,smart_posting_enabled,boolean
-COLUMNS,public,autopilot_settings,updated_at,timestamp with time zone
-COLUMNS,public,autopilot_settings,user_id,uuid
-COLUMNS,public,business_profile_history,created_at,timestamp with time zone
-COLUMNS,public,business_profile_history,created_by,uuid
-COLUMNS,public,business_profile_history,data,jsonb
-COLUMNS,public,business_profile_history,id,uuid
-COLUMNS,public,business_profile_history,location_id,uuid
-COLUMNS,public,business_profile_history,location_name,text
-COLUMNS,public,business_profile_history,metadata,jsonb
-COLUMNS,public,business_profile_history,operation_type,text
-COLUMNS,public,citation_listings,address,text
-COLUMNS,public,citation_listings,business_name,text
-COLUMNS,public,citation_listings,consistency_score,integer
-COLUMNS,public,citation_listings,created_at,timestamp with time zone
-COLUMNS,public,citation_listings,id,uuid
-COLUMNS,public,citation_listings,last_checked,timestamp with time zone
-COLUMNS,public,citation_listings,listing_url,text
-COLUMNS,public,citation_listings,location_id,uuid
-COLUMNS,public,citation_listings,notes,text
-COLUMNS,public,citation_listings,phone,text
-COLUMNS,public,citation_listings,source_id,uuid
-COLUMNS,public,citation_listings,status,text
-COLUMNS,public,citation_listings,updated_at,timestamp with time zone
-COLUMNS,public,citation_listings,user_id,uuid
-COLUMNS,public,citation_sources,category,text
-COLUMNS,public,citation_sources,created_at,timestamp with time zone
-COLUMNS,public,citation_sources,domain_authority,integer
-COLUMNS,public,citation_sources,id,uuid
-COLUMNS,public,citation_sources,is_active,boolean
-COLUMNS,public,citation_sources,logo_url,text
-COLUMNS,public,citation_sources,name,text
-COLUMNS,public,citation_sources,updated_at,timestamp with time zone
-COLUMNS,public,citation_sources,url_pattern,text
-COLUMNS,public,client_profiles,brand_name,text
-COLUMNS,public,client_profiles,cover_image_url,text
-COLUMNS,public,client_profiles,created_at,timestamp with time zone
-COLUMNS,public,client_profiles,id,uuid
-COLUMNS,public,client_profiles,logo_url,text
-COLUMNS,public,client_profiles,primary_color,character varying
-COLUMNS,public,client_profiles,secondary_color,character varying
-COLUMNS,public,client_profiles,updated_at,timestamp with time zone
-COLUMNS,public,client_profiles,user_id,uuid
-COLUMNS,public,competitor_tracking,average_rating,numeric
-COLUMNS,public,competitor_tracking,competitor_gmb_id,text
-COLUMNS,public,competitor_tracking,competitor_name,text
-COLUMNS,public,competitor_tracking,created_at,timestamp with time zone
-COLUMNS,public,competitor_tracking,distance_miles,numeric
-COLUMNS,public,competitor_tracking,id,uuid
-COLUMNS,public,competitor_tracking,is_active,boolean
-COLUMNS,public,competitor_tracking,location_id,uuid
-COLUMNS,public,competitor_tracking,post_frequency,integer
-COLUMNS,public,competitor_tracking,review_count,integer
-COLUMNS,public,competitor_tracking,updated_at,timestamp with time zone
-COLUMNS,public,competitor_tracking,user_id,uuid
-COLUMNS,public,content_generation,content_type,text
-COLUMNS,public,content_generation,created_at,timestamp with time zone
-COLUMNS,public,content_generation,generated_content,text
-COLUMNS,public,content_generation,id,uuid
-COLUMNS,public,content_generation,metadata,jsonb
-COLUMNS,public,content_generation,prompt,text
-COLUMNS,public,content_generation,provider,text
-COLUMNS,public,content_generation,tone,text
-COLUMNS,public,content_generation,user_id,uuid
-COLUMNS,public,content_generations,ai_model,text
-COLUMNS,public,content_generations,content_type,text
-COLUMNS,public,content_generations,cost,numeric
-COLUMNS,public,content_generations,created_at,timestamp with time zone
-COLUMNS,public,content_generations,generated_content,text
-COLUMNS,public,content_generations,id,uuid
-COLUMNS,public,content_generations,metadata,jsonb
-COLUMNS,public,content_generations,prompt,text
-COLUMNS,public,content_generations,tokens_used,integer
-COLUMNS,public,content_generations,user_id,uuid
-COLUMNS,public,error_logs,browser_name,text
-COLUMNS,public,error_logs,browser_version,text
-COLUMNS,public,error_logs,context,jsonb
-COLUMNS,public,error_logs,created_at,timestamp with time zone
-COLUMNS,public,error_logs,device_type,text
-COLUMNS,public,error_logs,error_code,text
-COLUMNS,public,error_logs,error_type,text
-COLUMNS,public,error_logs,id,text
-COLUMNS,public,error_logs,ip_address,inet
-COLUMNS,public,error_logs,level,text
-COLUMNS,public,error_logs,message,text
-COLUMNS,public,error_logs,os_name,text
-COLUMNS,public,error_logs,os_version,text
-COLUMNS,public,error_logs,resolution_notes,text
-COLUMNS,public,error_logs,resolved,boolean
-COLUMNS,public,error_logs,resolved_at,timestamp with time zone
-COLUMNS,public,error_logs,resolved_by,uuid
-COLUMNS,public,error_logs,session_id,text
-COLUMNS,public,error_logs,severity,integer
-COLUMNS,public,error_logs,stack,text
-COLUMNS,public,error_logs,timestamp,timestamp with time zone
-COLUMNS,public,error_logs,url,text
-COLUMNS,public,error_logs,user_agent,text
-COLUMNS,public,error_logs,user_id,uuid
-COLUMNS,public,gmb_accounts,access_token,text
-COLUMNS,public,gmb_accounts,account_id,text
-COLUMNS,public,gmb_accounts,account_name,text
-COLUMNS,public,gmb_accounts,created_at,timestamp with time zone
-COLUMNS,public,gmb_accounts,data_retention_days,integer
-COLUMNS,public,gmb_accounts,delete_on_disconnect,boolean
-COLUMNS,public,gmb_accounts,disconnected_at,timestamp with time zone
-COLUMNS,public,gmb_accounts,email,text
-COLUMNS,public,gmb_accounts,google_account_id,text
-COLUMNS,public,gmb_accounts,id,uuid
-COLUMNS,public,gmb_accounts,is_active,boolean
-COLUMNS,public,gmb_accounts,last_sync,timestamp with time zone
-COLUMNS,public,gmb_accounts,refresh_token,text
-COLUMNS,public,gmb_accounts,settings,jsonb
-COLUMNS,public,gmb_accounts,token_expires_at,timestamp with time zone
-COLUMNS,public,gmb_accounts,updated_at,timestamp with time zone
-COLUMNS,public,gmb_accounts,user_id,uuid
-COLUMNS,public,gmb_attributes,attribute_name,text
-COLUMNS,public,gmb_attributes,attribute_value,jsonb
-COLUMNS,public,gmb_attributes,created_at,timestamp with time zone
-COLUMNS,public,gmb_attributes,display_name,text
-COLUMNS,public,gmb_attributes,gmb_account_id,uuid
-COLUMNS,public,gmb_attributes,group_name,text
-COLUMNS,public,gmb_attributes,id,uuid
-COLUMNS,public,gmb_attributes,is_active,boolean
-COLUMNS,public,gmb_attributes,is_deprecated,boolean
-COLUMNS,public,gmb_attributes,location_id,uuid
-COLUMNS,public,gmb_attributes,metadata,jsonb
-COLUMNS,public,gmb_attributes,synced_at,timestamp with time zone
-COLUMNS,public,gmb_attributes,updated_at,timestamp with time zone
-COLUMNS,public,gmb_attributes,user_id,uuid
-COLUMNS,public,gmb_attributes,value_type,text
-COLUMNS,public,gmb_citations,address,text
-COLUMNS,public,gmb_citations,business_name,text
-COLUMNS,public,gmb_citations,created_at,timestamp with time zone
-COLUMNS,public,gmb_citations,id,uuid
-COLUMNS,public,gmb_citations,last_checked,timestamp with time zone
-COLUMNS,public,gmb_citations,location_id,uuid
-COLUMNS,public,gmb_citations,phone,text
-COLUMNS,public,gmb_citations,platform_name,text
-COLUMNS,public,gmb_citations,platform_url,text
-COLUMNS,public,gmb_citations,status,text
-COLUMNS,public,gmb_citations,updated_at,timestamp with time zone
-COLUMNS,public,gmb_dashboard_reports,category,text
-COLUMNS,public,gmb_dashboard_reports,created_at,timestamp without time zone
-COLUMNS,public,gmb_dashboard_reports,id,bigint
-COLUMNS,public,gmb_dashboard_reports,report_type,text
-COLUMNS,public,gmb_dashboard_reports,stats,jsonb
-COLUMNS,public,gmb_insights,created_at,timestamp with time zone
-COLUMNS,public,gmb_insights,date,date
-COLUMNS,public,gmb_insights,id,uuid
-COLUMNS,public,gmb_insights,location_id,uuid
-COLUMNS,public,gmb_insights,metric_type,text
-COLUMNS,public,gmb_insights,metric_value,integer
-COLUMNS,public,gmb_insights,source,text
-COLUMNS,public,gmb_insights,updated_at,timestamp with time zone
-COLUMNS,public,gmb_locations,account_id,text
-COLUMNS,public,gmb_locations,additional_categories,ARRAY
-COLUMNS,public,gmb_locations,address,text
-COLUMNS,public,gmb_locations,ai_insights,text
-COLUMNS,public,gmb_locations,appointment_url,text
-COLUMNS,public,gmb_locations,archived_at,timestamp with time zone
-COLUMNS,public,gmb_locations,booking_url,text
-COLUMNS,public,gmb_locations,business_hours,jsonb
-COLUMNS,public,gmb_locations,calculated_response_rate,numeric
-COLUMNS,public,gmb_locations,category,text
-COLUMNS,public,gmb_locations,cover_photo_url,text
-COLUMNS,public,gmb_locations,created_at,timestamp with time zone
-COLUMNS,public,gmb_locations,description,text
-COLUMNS,public,gmb_locations,from_the_business,ARRAY
-COLUMNS,public,gmb_locations,gmb_account_id,uuid
-COLUMNS,public,gmb_locations,health_score,integer
-COLUMNS,public,gmb_locations,id,uuid
-COLUMNS,public,gmb_locations,is_active,boolean
-COLUMNS,public,gmb_locations,is_archived,boolean
-COLUMNS,public,gmb_locations,is_syncing,boolean
-COLUMNS,public,gmb_locations,last_synced_at,timestamp with time zone
-COLUMNS,public,gmb_locations,latitude,double precision
-COLUMNS,public,gmb_locations,latlng,text
-COLUMNS,public,gmb_locations,location_id,text
-COLUMNS,public,gmb_locations,location_id_external,text
-COLUMNS,public,gmb_locations,location_name,text
-COLUMNS,public,gmb_locations,longitude,double precision
-COLUMNS,public,gmb_locations,menu_url,text
-COLUMNS,public,gmb_locations,metadata,jsonb
-COLUMNS,public,gmb_locations,normalized_location_id,text
-COLUMNS,public,gmb_locations,opening_date,date
-COLUMNS,public,gmb_locations,order_url,text
-COLUMNS,public,gmb_locations,phone,text
-COLUMNS,public,gmb_locations,profile_completeness,integer
-COLUMNS,public,gmb_locations,rating,numeric
-COLUMNS,public,gmb_locations,regularhours,jsonb
-COLUMNS,public,gmb_locations,response_rate,numeric
-COLUMNS,public,gmb_locations,review_count,integer
-COLUMNS,public,gmb_locations,service_area_enabled,boolean
-COLUMNS,public,gmb_locations,short_description,text
-COLUMNS,public,gmb_locations,status,text
-COLUMNS,public,gmb_locations,type,text
-COLUMNS,public,gmb_locations,updated_at,timestamp with time zone
-COLUMNS,public,gmb_locations,user_id,uuid
-COLUMNS,public,gmb_locations,website,text
-COLUMNS,public,gmb_locations_with_rating,address,text
-COLUMNS,public,gmb_locations_with_rating,business_hours,jsonb
-COLUMNS,public,gmb_locations_with_rating,calculated_rating,numeric
-COLUMNS,public,gmb_locations_with_rating,category,text
-COLUMNS,public,gmb_locations_with_rating,created_at,timestamp with time zone
-COLUMNS,public,gmb_locations_with_rating,gmb_account_id,uuid
-COLUMNS,public,gmb_locations_with_rating,id,uuid
-COLUMNS,public,gmb_locations_with_rating,is_active,boolean
-COLUMNS,public,gmb_locations_with_rating,last_review_date,timestamp with time zone
-COLUMNS,public,gmb_locations_with_rating,location_id,text
-COLUMNS,public,gmb_locations_with_rating,location_name,text
-COLUMNS,public,gmb_locations_with_rating,metadata,jsonb
-COLUMNS,public,gmb_locations_with_rating,normalized_location_id,text
-COLUMNS,public,gmb_locations_with_rating,phone,text
-COLUMNS,public,gmb_locations_with_rating,reviews_count,integer
-COLUMNS,public,gmb_locations_with_rating,stored_rating,numeric
-COLUMNS,public,gmb_locations_with_rating,updated_at,timestamp with time zone
-COLUMNS,public,gmb_locations_with_rating,user_id,uuid
-COLUMNS,public,gmb_locations_with_rating,website,text
-COLUMNS,public,gmb_media,created_at,timestamp with time zone
-COLUMNS,public,gmb_media,external_media_id,text
-COLUMNS,public,gmb_media,gmb_account_id,uuid
-COLUMNS,public,gmb_media,id,uuid
-COLUMNS,public,gmb_media,location_id,uuid
-COLUMNS,public,gmb_media,metadata,jsonb
-COLUMNS,public,gmb_media,synced_at,timestamp with time zone
-COLUMNS,public,gmb_media,thumbnail_url,text
-COLUMNS,public,gmb_media,type,text
-COLUMNS,public,gmb_media,updated_at,timestamp with time zone
-COLUMNS,public,gmb_media,url,text
-COLUMNS,public,gmb_media,user_id,uuid
-COLUMNS,public,gmb_metrics,avg_duration_ms,numeric
-COLUMNS,public,gmb_metrics,created_at,timestamp with time zone
-COLUMNS,public,gmb_metrics,gmb_account_id,uuid
-COLUMNS,public,gmb_metrics,id,uuid
-COLUMNS,public,gmb_metrics,phase,text
-COLUMNS,public,gmb_metrics,runs_count,integer
-COLUMNS,public,gmb_metrics,total_duration_ms,bigint
-COLUMNS,public,gmb_metrics,total_items_count,bigint
-COLUMNS,public,gmb_metrics,updated_at,timestamp with time zone
-COLUMNS,public,gmb_metrics,user_id,uuid
-COLUMNS,public,gmb_performance_metrics,created_at,timestamp with time zone
-COLUMNS,public,gmb_performance_metrics,gmb_account_id,uuid
-COLUMNS,public,gmb_performance_metrics,id,uuid
-COLUMNS,public,gmb_performance_metrics,location_id,uuid
-COLUMNS,public,gmb_performance_metrics,metadata,jsonb
-COLUMNS,public,gmb_performance_metrics,metric_date,date
-COLUMNS,public,gmb_performance_metrics,metric_type,text
-COLUMNS,public,gmb_performance_metrics,metric_value,bigint
-COLUMNS,public,gmb_performance_metrics,sub_entity_type,jsonb
-COLUMNS,public,gmb_performance_metrics,synced_at,timestamp with time zone
-COLUMNS,public,gmb_performance_metrics,updated_at,timestamp with time zone
-COLUMNS,public,gmb_performance_metrics,user_id,uuid
-COLUMNS,public,gmb_posts,archived_at,timestamp with time zone
-COLUMNS,public,gmb_posts,call_to_action,text
-COLUMNS,public,gmb_posts,call_to_action_url,text
-COLUMNS,public,gmb_posts,content,text
-COLUMNS,public,gmb_posts,created_at,timestamp with time zone
-COLUMNS,public,gmb_posts,cta_type,text
-COLUMNS,public,gmb_posts,cta_url,text
-COLUMNS,public,gmb_posts,end_date,timestamp with time zone
-COLUMNS,public,gmb_posts,error_message,text
-COLUMNS,public,gmb_posts,id,uuid
-COLUMNS,public,gmb_posts,is_archived,boolean
-COLUMNS,public,gmb_posts,location_id,uuid
-COLUMNS,public,gmb_posts,media_url,text
-COLUMNS,public,gmb_posts,metadata,jsonb
-COLUMNS,public,gmb_posts,post_id,text
-COLUMNS,public,gmb_posts,post_type,text
-COLUMNS,public,gmb_posts,provider_post_id,text
-COLUMNS,public,gmb_posts,published_at,timestamp with time zone
-COLUMNS,public,gmb_posts,scheduled_at,timestamp with time zone
-COLUMNS,public,gmb_posts,start_date,timestamp with time zone
-COLUMNS,public,gmb_posts,status,text
-COLUMNS,public,gmb_posts,title,text
-COLUMNS,public,gmb_posts,updated_at,timestamp with time zone
-COLUMNS,public,gmb_posts,user_id,uuid
-COLUMNS,public,gmb_questions,ai_answer_generated,boolean
-COLUMNS,public,gmb_questions,ai_category,text
-COLUMNS,public,gmb_questions,ai_confidence_score,numeric
-COLUMNS,public,gmb_questions,ai_suggested_answer,text
-COLUMNS,public,gmb_questions,answer_id,text
-COLUMNS,public,gmb_questions,answer_status,text
-COLUMNS,public,gmb_questions,answer_text,text
-COLUMNS,public,gmb_questions,answered_at,timestamp with time zone
-COLUMNS,public,gmb_questions,answered_by,text
-COLUMNS,public,gmb_questions,archived_at,timestamp with time zone
-COLUMNS,public,gmb_questions,asked_at,timestamp with time zone
-COLUMNS,public,gmb_questions,author_display_name,text
-COLUMNS,public,gmb_questions,author_name,text
-COLUMNS,public,gmb_questions,author_profile_photo_url,text
-COLUMNS,public,gmb_questions,author_type,text
-COLUMNS,public,gmb_questions,created_at,timestamp with time zone
-COLUMNS,public,gmb_questions,external_question_id,text
-COLUMNS,public,gmb_questions,gmb_account_id,uuid
-COLUMNS,public,gmb_questions,google_resource_name,text
-COLUMNS,public,gmb_questions,id,uuid
-COLUMNS,public,gmb_questions,internal_notes,text
-COLUMNS,public,gmb_questions,is_archived,boolean
-COLUMNS,public,gmb_questions,is_featured,boolean
-COLUMNS,public,gmb_questions,is_hidden,boolean
-COLUMNS,public,gmb_questions,language_code,text
-COLUMNS,public,gmb_questions,location_id,uuid
-COLUMNS,public,gmb_questions,metadata,jsonb
-COLUMNS,public,gmb_questions,priority,text
-COLUMNS,public,gmb_questions,question_id,text
-COLUMNS,public,gmb_questions,question_text,text
-COLUMNS,public,gmb_questions,question_url,text
-COLUMNS,public,gmb_questions,status,text
-COLUMNS,public,gmb_questions,synced_at,timestamp with time zone
-COLUMNS,public,gmb_questions,total_answer_count,integer
-COLUMNS,public,gmb_questions,updated_at,timestamp with time zone
-COLUMNS,public,gmb_questions,upvote_count,integer
-COLUMNS,public,gmb_questions,user_id,uuid
-COLUMNS,public,gmb_rankings,best_position,integer
-COLUMNS,public,gmb_rankings,created_at,timestamp with time zone
-COLUMNS,public,gmb_rankings,current_position,integer
-COLUMNS,public,gmb_rankings,id,uuid
-COLUMNS,public,gmb_rankings,keyword,text
-COLUMNS,public,gmb_rankings,last_checked,timestamp with time zone
-COLUMNS,public,gmb_rankings,location_id,uuid
-COLUMNS,public,gmb_rankings,previous_position,integer
-COLUMNS,public,gmb_rankings,search_volume,integer
-COLUMNS,public,gmb_rankings,updated_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,account_id,text
-COLUMNS,public,gmb_reviews,ai_confidence_score,numeric
-COLUMNS,public,gmb_reviews,ai_generated_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,ai_generated_response,text
-COLUMNS,public,gmb_reviews,ai_reply_generated,boolean
-COLUMNS,public,gmb_reviews,ai_sent_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,ai_sentiment,text
-COLUMNS,public,gmb_reviews,ai_sentiment_analysis,jsonb
-COLUMNS,public,gmb_reviews,ai_sentiment_score,numeric
-COLUMNS,public,gmb_reviews,ai_suggested_reply,text
-COLUMNS,public,gmb_reviews,archived_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,auto_reply_enabled,boolean
-COLUMNS,public,gmb_reviews,auto_reply_status,character varying
-COLUMNS,public,gmb_reviews,comment,text
-COLUMNS,public,gmb_reviews,created_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,external_review_id,text
-COLUMNS,public,gmb_reviews,flagged_reason,text
-COLUMNS,public,gmb_reviews,gmb_account_id,uuid
-COLUMNS,public,gmb_reviews,google_my_business_name,text
-COLUMNS,public,gmb_reviews,has_reply,boolean
-COLUMNS,public,gmb_reviews,has_response,boolean
-COLUMNS,public,gmb_reviews,id,uuid
-COLUMNS,public,gmb_reviews,internal_notes,text
-COLUMNS,public,gmb_reviews,is_anonymized,boolean
-COLUMNS,public,gmb_reviews,is_archived,boolean
-COLUMNS,public,gmb_reviews,is_verified_purchase,boolean
-COLUMNS,public,gmb_reviews,location_id,uuid
-COLUMNS,public,gmb_reviews,metadata,jsonb
-COLUMNS,public,gmb_reviews,rating,integer
-COLUMNS,public,gmb_reviews,replied_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,reply_date,timestamp with time zone
-COLUMNS,public,gmb_reviews,reply_text,text
-COLUMNS,public,gmb_reviews,reply_timestamp,timestamp with time zone
-COLUMNS,public,gmb_reviews,responded_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,response,text
-COLUMNS,public,gmb_reviews,response_priority,text
-COLUMNS,public,gmb_reviews,response_text,text
-COLUMNS,public,gmb_reviews,review_date,timestamp with time zone
-COLUMNS,public,gmb_reviews,review_id,text
-COLUMNS,public,gmb_reviews,review_reply,text
-COLUMNS,public,gmb_reviews,review_text,text
-COLUMNS,public,gmb_reviews,review_timestamp,timestamp with time zone
-COLUMNS,public,gmb_reviews,review_url,text
-COLUMNS,public,gmb_reviews,reviewer_display_name,text
-COLUMNS,public,gmb_reviews,reviewer_name,text
-COLUMNS,public,gmb_reviews,reviewer_profile_photo_url,text
-COLUMNS,public,gmb_reviews,status,text
-COLUMNS,public,gmb_reviews,synced_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,tags,ARRAY
-COLUMNS,public,gmb_reviews,updated_at,timestamp with time zone
-COLUMNS,public,gmb_reviews,user_id,uuid
-COLUMNS,public,gmb_reviews_backup_20251114,account_id,text
-COLUMNS,public,gmb_reviews_backup_20251114,ai_confidence_score,numeric
-COLUMNS,public,gmb_reviews_backup_20251114,ai_generated_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,ai_generated_response,text
-COLUMNS,public,gmb_reviews_backup_20251114,ai_reply_generated,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,ai_sent_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,ai_sentiment,text
-COLUMNS,public,gmb_reviews_backup_20251114,ai_sentiment_analysis,jsonb
-COLUMNS,public,gmb_reviews_backup_20251114,ai_sentiment_score,numeric
-COLUMNS,public,gmb_reviews_backup_20251114,ai_suggested_reply,text
-COLUMNS,public,gmb_reviews_backup_20251114,archived_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,auto_reply_enabled,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,auto_reply_status,character varying
-COLUMNS,public,gmb_reviews_backup_20251114,comment,text
-COLUMNS,public,gmb_reviews_backup_20251114,created_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,external_review_id,text
-COLUMNS,public,gmb_reviews_backup_20251114,flagged_reason,text
-COLUMNS,public,gmb_reviews_backup_20251114,gmb_account_id,uuid
-COLUMNS,public,gmb_reviews_backup_20251114,google_my_business_name,text
-COLUMNS,public,gmb_reviews_backup_20251114,has_reply,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,has_response,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,id,uuid
-COLUMNS,public,gmb_reviews_backup_20251114,internal_notes,text
-COLUMNS,public,gmb_reviews_backup_20251114,is_anonymized,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,is_archived,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,is_verified_purchase,boolean
-COLUMNS,public,gmb_reviews_backup_20251114,location_id,uuid
-COLUMNS,public,gmb_reviews_backup_20251114,metadata,jsonb
-COLUMNS,public,gmb_reviews_backup_20251114,rating,integer
-COLUMNS,public,gmb_reviews_backup_20251114,replied_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,reply_date,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,reply_text,text
-COLUMNS,public,gmb_reviews_backup_20251114,reply_timestamp,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,responded_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,response,text
-COLUMNS,public,gmb_reviews_backup_20251114,response_priority,text
-COLUMNS,public,gmb_reviews_backup_20251114,response_text,text
-COLUMNS,public,gmb_reviews_backup_20251114,review_date,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,review_id,text
-COLUMNS,public,gmb_reviews_backup_20251114,review_reply,text
-COLUMNS,public,gmb_reviews_backup_20251114,review_text,text
-COLUMNS,public,gmb_reviews_backup_20251114,review_timestamp,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,review_url,text
-COLUMNS,public,gmb_reviews_backup_20251114,reviewer_display_name,text
-COLUMNS,public,gmb_reviews_backup_20251114,reviewer_name,text
-COLUMNS,public,gmb_reviews_backup_20251114,reviewer_profile_photo_url,text
-COLUMNS,public,gmb_reviews_backup_20251114,status,text
-COLUMNS,public,gmb_reviews_backup_20251114,synced_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,tags,ARRAY
-COLUMNS,public,gmb_reviews_backup_20251114,updated_at,timestamp with time zone
-COLUMNS,public,gmb_reviews_backup_20251114,user_id,uuid
-COLUMNS,public,gmb_search_keywords,created_at,timestamp with time zone
-COLUMNS,public,gmb_search_keywords,gmb_account_id,uuid
-COLUMNS,public,gmb_search_keywords,id,uuid
-COLUMNS,public,gmb_search_keywords,impressions_count,bigint
-COLUMNS,public,gmb_search_keywords,location_id,uuid
-COLUMNS,public,gmb_search_keywords,metadata,jsonb
-COLUMNS,public,gmb_search_keywords,month_year,date
-COLUMNS,public,gmb_search_keywords,search_keyword,text
-COLUMNS,public,gmb_search_keywords,synced_at,timestamp with time zone
-COLUMNS,public,gmb_search_keywords,threshold_value,bigint
-COLUMNS,public,gmb_search_keywords,updated_at,timestamp with time zone
-COLUMNS,public,gmb_search_keywords,user_id,uuid
-COLUMNS,public,gmb_sync_logs,counts,jsonb
-COLUMNS,public,gmb_sync_logs,created_at,timestamp with time zone
-COLUMNS,public,gmb_sync_logs,duration_ms,integer
-COLUMNS,public,gmb_sync_logs,ended_at,timestamp with time zone
-COLUMNS,public,gmb_sync_logs,error,text
-COLUMNS,public,gmb_sync_logs,gmb_account_id,uuid
-COLUMNS,public,gmb_sync_logs,id,uuid
-COLUMNS,public,gmb_sync_logs,metadata,jsonb
-COLUMNS,public,gmb_sync_logs,phase,text
-COLUMNS,public,gmb_sync_logs,started_at,timestamp with time zone
-COLUMNS,public,gmb_sync_logs,status,text
-COLUMNS,public,gmb_sync_logs,user_id,uuid
-COLUMNS,public,health_check_results,average_rating,numeric
-COLUMNS,public,health_check_results,checked_at,timestamp with time zone
-COLUMNS,public,health_check_results,created_at,timestamp with time zone
-COLUMNS,public,health_check_results,details,jsonb
-COLUMNS,public,health_check_results,duration,integer
-COLUMNS,public,health_check_results,health_score,numeric
-COLUMNS,public,health_check_results,id,uuid
-COLUMNS,public,health_check_results,location_id,uuid
-COLUMNS,public,health_check_results,message,text
-COLUMNS,public,health_check_results,response_rate,numeric
-COLUMNS,public,health_check_results,review_sentiment_distribution,jsonb
-COLUMNS,public,health_check_results,service,text
-COLUMNS,public,health_check_results,status,text
-COLUMNS,public,health_check_results,timestamp,timestamp with time zone
-COLUMNS,public,jobs_log,error,text
-COLUMNS,public,jobs_log,finished_at,timestamp with time zone
-COLUMNS,public,jobs_log,id,bigint
-COLUMNS,public,jobs_log,meta,jsonb
-COLUMNS,public,jobs_log,source,text
-COLUMNS,public,jobs_log,started_at,timestamp with time zone
-COLUMNS,public,jobs_log,status,text
-COLUMNS,public,keyword_rankings,competition,text
-COLUMNS,public,keyword_rankings,created_at,timestamp with time zone
-COLUMNS,public,keyword_rankings,date,date
-COLUMNS,public,keyword_rankings,id,uuid
-COLUMNS,public,keyword_rankings,keyword,text
-COLUMNS,public,keyword_rankings,location_id,uuid
-COLUMNS,public,keyword_rankings,position,integer
-COLUMNS,public,keyword_rankings,previous_position,integer
-COLUMNS,public,keyword_rankings,search_type,text
-COLUMNS,public,keyword_rankings,search_volume,integer
-COLUMNS,public,keyword_rankings,updated_at,timestamp with time zone
-COLUMNS,public,keyword_rankings,url,text
-COLUMNS,public,monitoring_alerts,acknowledged,boolean
-COLUMNS,public,monitoring_alerts,acknowledged_at,timestamp with time zone
-COLUMNS,public,monitoring_alerts,acknowledged_by,uuid
-COLUMNS,public,monitoring_alerts,created_at,timestamp with time zone
-COLUMNS,public,monitoring_alerts,id,text
-COLUMNS,public,monitoring_alerts,message,text
-COLUMNS,public,monitoring_alerts,metadata,jsonb
-COLUMNS,public,monitoring_alerts,resolution_notes,text
-COLUMNS,public,monitoring_alerts,resolved,boolean
-COLUMNS,public,monitoring_alerts,resolved_at,timestamp with time zone
-COLUMNS,public,monitoring_alerts,resolved_by,uuid
-COLUMNS,public,monitoring_alerts,service,text
-COLUMNS,public,monitoring_alerts,severity,text
-COLUMNS,public,monitoring_alerts,timestamp,timestamp with time zone
-COLUMNS,public,monitoring_alerts,title,text
-COLUMNS,public,monitoring_alerts,type,text
-COLUMNS,public,monitoring_alerts,user_id,uuid
-COLUMNS,public,monitoring_metrics,created_at,timestamp with time zone
-COLUMNS,public,monitoring_metrics,id,uuid
-COLUMNS,public,monitoring_metrics,name,text
-COLUMNS,public,monitoring_metrics,tags,jsonb
-COLUMNS,public,monitoring_metrics,timestamp,timestamp with time zone
-COLUMNS,public,monitoring_metrics,unit,text
-COLUMNS,public,monitoring_metrics,user_id,uuid
-COLUMNS,public,monitoring_metrics,value,numeric
-COLUMNS,public,notifications,created_at,timestamp with time zone
-COLUMNS,public,notifications,id,uuid
-COLUMNS,public,notifications,link,text
-COLUMNS,public,notifications,message,text
-COLUMNS,public,notifications,metadata,jsonb
-COLUMNS,public,notifications,read,boolean
-COLUMNS,public,notifications,title,text
-COLUMNS,public,notifications,type,text
-COLUMNS,public,notifications,user_id,uuid
-COLUMNS,public,oauth_events,created_at,timestamp with time zone
-COLUMNS,public,oauth_events,event_type,text
-COLUMNS,public,oauth_events,id,uuid
-COLUMNS,public,oauth_events,provider,text
-COLUMNS,public,oauth_events,reason,text
-COLUMNS,public,oauth_events,status,text
-COLUMNS,public,oauth_events,user_id,uuid
-COLUMNS,public,oauth_states,created_at,timestamp with time zone
-COLUMNS,public,oauth_states,expires_at,timestamp with time zone
-COLUMNS,public,oauth_states,id,uuid
-COLUMNS,public,oauth_states,state,text
-COLUMNS,public,oauth_states,used,boolean
-COLUMNS,public,oauth_states,user_id,uuid
-COLUMNS,public,performance_metrics,id,uuid
-COLUMNS,public,performance_metrics,metadata,jsonb
-COLUMNS,public,performance_metrics,name,text
-COLUMNS,public,performance_metrics,timestamp,timestamp with time zone
-COLUMNS,public,performance_metrics,unit,text
-COLUMNS,public,performance_metrics,user_id,uuid
-COLUMNS,public,performance_metrics,value,numeric
-COLUMNS,public,profiles,avatar_url,text
-COLUMNS,public,profiles,created_at,timestamp with time zone
-COLUMNS,public,profiles,email,text
-COLUMNS,public,profiles,full_name,text
-COLUMNS,public,profiles,id,uuid
-COLUMNS,public,profiles,last_login,timestamp with time zone
-COLUMNS,public,profiles,phone,text
-COLUMNS,public,profiles,provider_sub,text
-COLUMNS,public,profiles,updated_at,timestamp with time zone
-COLUMNS,public,profiles,user_id,uuid
-COLUMNS,public,question_templates,category,text
-COLUMNS,public,question_templates,created_at,timestamp with time zone
-COLUMNS,public,question_templates,id,uuid
-COLUMNS,public,question_templates,question_pattern,text
-COLUMNS,public,question_templates,template_answer,text
-COLUMNS,public,question_templates,updated_at,timestamp with time zone
-COLUMNS,public,question_templates,usage_count,integer
-COLUMNS,public,question_templates,user_id,uuid
-COLUMNS,public,rate_limit_requests,action,text
-COLUMNS,public,rate_limit_requests,created_at,timestamp with time zone
-COLUMNS,public,rate_limit_requests,id,uuid
-COLUMNS,public,rate_limit_requests,user_id,uuid
-COLUMNS,public,review_activity_log,action,character varying
-COLUMNS,public,review_activity_log,created_at,timestamp with time zone
-COLUMNS,public,review_activity_log,details,jsonb
-COLUMNS,public,review_activity_log,id,uuid
-COLUMNS,public,review_activity_log,review_id,uuid
-COLUMNS,public,review_activity_log,user_id,uuid
-COLUMNS,public,review_ai_analysis,ai_suggested_response,text
-COLUMNS,public,review_ai_analysis,analyzed_at,timestamp with time zone
-COLUMNS,public,review_ai_analysis,created_at,timestamp with time zone
-COLUMNS,public,review_ai_analysis,id,uuid
-COLUMNS,public,review_ai_analysis,keywords,ARRAY
-COLUMNS,public,review_ai_analysis,review_id,uuid
-COLUMNS,public,review_ai_analysis,sentiment,character varying
-COLUMNS,public,review_ai_analysis,sentiment_score,numeric
-COLUMNS,public,review_stats_view,avg_rating,numeric
-COLUMNS,public,review_stats_view,negative_count,bigint
-COLUMNS,public,review_stats_view,neutral_count,bigint
-COLUMNS,public,review_stats_view,pending_reviews,bigint
-COLUMNS,public,review_stats_view,positive_count,bigint
-COLUMNS,public,review_stats_view,responded_reviews,bigint
-COLUMNS,public,review_stats_view,response_rate,numeric
-COLUMNS,public,review_stats_view,total_reviews,bigint
-COLUMNS,public,review_stats_view,user_id,uuid
-COLUMNS,public,room_members,created_at,timestamp with time zone
-COLUMNS,public,room_members,room_id,uuid
-COLUMNS,public,room_members,user_id,uuid
-COLUMNS,public,secret_keys,created_at,timestamp with time zone
-COLUMNS,public,secret_keys,id,text
-COLUMNS,public,secret_keys,key,bytea
-COLUMNS,public,security_logs,created_at,timestamp with time zone
-COLUMNS,public,security_logs,details,jsonb
-COLUMNS,public,security_logs,event,text
-COLUMNS,public,security_logs,id,uuid
-COLUMNS,public,security_logs,severity,text
-COLUMNS,public,security_logs,user_id,uuid
-COLUMNS,public,sync_results,account_id,uuid
-COLUMNS,public,sync_results,created_at,timestamp with time zone
-COLUMNS,public,sync_results,error,text
-COLUMNS,public,sync_results,id,bigint
-COLUMNS,public,sync_results,ok,boolean
-COLUMNS,public,sync_results,run_id,uuid
-COLUMNS,public,sync_results,status,integer
-COLUMNS,public,sync_runs,batch_size,integer
-COLUMNS,public,sync_runs,created_at,timestamp with time zone
-COLUMNS,public,sync_runs,finished_at,timestamp with time zone
-COLUMNS,public,sync_runs,id,uuid
-COLUMNS,public,sync_runs,meta,jsonb
-COLUMNS,public,sync_runs,next_cursor,uuid
-COLUMNS,public,sync_runs,started_at,timestamp with time zone
-COLUMNS,public,sync_runs,status,text
-COLUMNS,public,sync_runs,triggered_by,text
-COLUMNS,public,sync_status,completed_at,timestamp with time zone
-COLUMNS,public,sync_status,created_at,timestamp with time zone
-COLUMNS,public,sync_status,error,text
-COLUMNS,public,sync_status,id,uuid
-COLUMNS,public,sync_status,started_at,timestamp with time zone
-COLUMNS,public,sync_status,status,text
-COLUMNS,public,sync_status,updated_at,timestamp with time zone
-COLUMNS,public,sync_status,user_id,uuid
-COLUMNS,public,system_settings,key,text
-COLUMNS,public,system_settings,value,text
-COLUMNS,public,team_members,created_at,timestamp with time zone
-COLUMNS,public,team_members,id,uuid
-COLUMNS,public,team_members,invited_at,timestamp with time zone
-COLUMNS,public,team_members,is_active,boolean
-COLUMNS,public,team_members,joined_at,timestamp with time zone
-COLUMNS,public,team_members,locations_access,jsonb
-COLUMNS,public,team_members,owner_id,uuid
-COLUMNS,public,team_members,permissions,jsonb
-COLUMNS,public,team_members,role,text
-COLUMNS,public,team_members,updated_at,timestamp with time zone
-COLUMNS,public,team_members,user_id,uuid
-COLUMNS,public,users,avatar,text
-COLUMNS,public,users,created_at,timestamp with time zone
-COLUMNS,public,users,email,text
-COLUMNS,public,users,google_id,text
-COLUMNS,public,users,id,uuid
-COLUMNS,public,users,last_login,timestamp with time zone
-COLUMNS,public,users,name,text
-COLUMNS,public,users,role,text
-COLUMNS,public,users,status,text
-COLUMNS,public,users,updated_at,timestamp with time zone
-COLUMNS,public,v_dashboard_stats,avg_rating,numeric
-COLUMNS,public,v_dashboard_stats,calculated_at,timestamp with time zone
-COLUMNS,public,v_dashboard_stats,pending_questions,bigint
-COLUMNS,public,v_dashboard_stats,pending_reviews,bigint
-COLUMNS,public,v_dashboard_stats,recent_questions,bigint
-COLUMNS,public,v_dashboard_stats,recent_reviews,bigint
-COLUMNS,public,v_dashboard_stats,response_rate,numeric
-COLUMNS,public,v_dashboard_stats,total_locations,bigint
-COLUMNS,public,v_dashboard_stats,total_reviews,bigint
-COLUMNS,public,v_dashboard_stats,user_id,uuid
-COLUMNS,public,v_health_score_distribution,average_rating,numeric
-COLUMNS,public,v_health_score_distribution,checked_at,timestamp with time zone
-COLUMNS,public,v_health_score_distribution,health_score,numeric
-COLUMNS,public,v_health_score_distribution,health_status,text
-COLUMNS,public,v_health_score_distribution,location_id,uuid
-COLUMNS,public,v_health_score_distribution,location_name,text
-COLUMNS,public,v_health_score_distribution,response_rate,numeric
-COLUMNS,public,v_health_score_distribution,user_id,uuid
-COLUMNS,public,weekly_task_recommendations,category,text
-COLUMNS,public,weekly_task_recommendations,created_at,timestamp with time zone
-COLUMNS,public,weekly_task_recommendations,description,text
-COLUMNS,public,weekly_task_recommendations,effort_level,text
-COLUMNS,public,weekly_task_recommendations,estimated_minutes,integer
-COLUMNS,public,weekly_task_recommendations,expected_impact,text
-COLUMNS,public,weekly_task_recommendations,id,uuid
-COLUMNS,public,weekly_task_recommendations,insights,text
-COLUMNS,public,weekly_task_recommendations,priority,text
-COLUMNS,public,weekly_task_recommendations,reasoning,text
-COLUMNS,public,weekly_task_recommendations,status,text
-COLUMNS,public,weekly_task_recommendations,tasks,jsonb
-COLUMNS,public,weekly_task_recommendations,title,text
-COLUMNS,public,weekly_task_recommendations,updated_at,timestamp with time zone
-COLUMNS,public,weekly_task_recommendations,user_id,uuid
-COLUMNS,public,weekly_task_recommendations,week_end_date,date
-COLUMNS,public,weekly_task_recommendations,week_start_date,date
-COLUMNS,public,weekly_tasks,completed,boolean
-COLUMNS,public,weekly_tasks,completed_at,timestamp with time zone
-COLUMNS,public,weekly_tasks,created_at,timestamp with time zone
-COLUMNS,public,weekly_tasks,description,text
-COLUMNS,public,weekly_tasks,due_date,date
-COLUMNS,public,weekly_tasks,id,uuid
-COLUMNS,public,weekly_tasks,location_id,uuid
-COLUMNS,public,weekly_tasks,priority,text
-COLUMNS,public,weekly_tasks,task_type,text
-COLUMNS,public,weekly_tasks,title,text
-COLUMNS,public,weekly_tasks,updated_at,timestamp with time zone
-COLUMNS,public,weekly_tasks,user_id,uuid
-COLUMNS,public,youtube_drafts,created_at,timestamp with time zone
-COLUMNS,public,youtube_drafts,description,text
-COLUMNS,public,youtube_drafts,hashtags,text
-COLUMNS,public,youtube_drafts,id,uuid
-COLUMNS,public,youtube_drafts,title,text
-COLUMNS,public,youtube_drafts,user_id,uuid
-COLUMNS,public,youtube_videos,category,text
-COLUMNS,public,youtube_videos,created_at,timestamp with time zone
-COLUMNS,public,youtube_videos,description,text
-COLUMNS,public,youtube_videos,id,uuid
-COLUMNS,public,youtube_videos,language,text
-COLUMNS,public,youtube_videos,privacy_status,text
-COLUMNS,public,youtube_videos,published_at,timestamp with time zone
-COLUMNS,public,youtube_videos,tags,ARRAY
-COLUMNS,public,youtube_videos,thumbnail_url,text
-COLUMNS,public,youtube_videos,title,text
-COLUMNS,public,youtube_videos,updated_at,timestamp with time zone
-COLUMNS,public,youtube_videos,user_id,uuid
-COLUMNS,public,youtube_videos,video_id,text
-FOREIGN_KEYS,public,ai_autopilot_logs,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,ai_autopilot_settings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,ai_requests,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,ai_requests,user_id,FK to profiles.id
-FOREIGN_KEYS,public,ai_settings,user_id,FK to profiles.id
-FOREIGN_KEYS,public,auto_reply_queue,review_id,FK to gmb_reviews.id
-FOREIGN_KEYS,public,auto_reply_settings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,autopilot_logs,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,autopilot_settings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,autopilot_settings,user_id,FK to profiles.id
-FOREIGN_KEYS,public,business_profile_history,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,citation_listings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,citation_listings,source_id,FK to citation_sources.id
-FOREIGN_KEYS,public,competitor_tracking,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,content_generation,user_id,FK to profiles.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to profiles.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to users.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to profiles.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to users.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to profiles.id
-FOREIGN_KEYS,public,gmb_accounts,user_id,FK to profiles.id
-FOREIGN_KEYS,public,gmb_attributes,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_attributes,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_citations,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_insights,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_locations,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_media,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_media,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_performance_metrics,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_performance_metrics,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_posts,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_questions,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_questions,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_rankings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_reviews,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_reviews,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_search_keywords,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_search_keywords,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,gmb_sync_logs,gmb_account_id,FK to gmb_accounts.id
-FOREIGN_KEYS,public,gmb_sync_logs,user_id,FK to profiles.id
-FOREIGN_KEYS,public,health_check_results,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,keyword_rankings,location_id,FK to gmb_locations.id
-FOREIGN_KEYS,public,profiles,user_id,FK to profiles.id
-FOREIGN_KEYS,public,profiles,user_id,FK to users.id
-FOREIGN_KEYS,public,profiles,user_id,FK to users.id
-FOREIGN_KEYS,public,profiles,user_id,FK to profiles.id
-FOREIGN_KEYS,public,review_activity_log,review_id,FK to gmb_reviews.id
-FOREIGN_KEYS,public,review_ai_analysis,review_id,FK to gmb_reviews.id
-FOREIGN_KEYS,public,sync_results,run_id,FK to sync_runs.id
-FOREIGN_KEYS,public,team_members,owner_id,FK to profiles.id
-FOREIGN_KEYS,public,team_members,user_id,FK to profiles.id
-FOREIGN_KEYS,public,weekly_tasks,location_id,FK to gmb_locations.id
-TABLES,public,activity_logs,null,null
-TABLES,public,ai_autopilot_logs,null,null
-TABLES,public,ai_autopilot_settings,null,null
-TABLES,public,ai_requests,null,null
-TABLES,public,ai_settings,null,null
-TABLES,public,audit_logs,null,null
-TABLES,public,auto_reply_queue,null,null
-TABLES,public,auto_reply_settings,null,null
-TABLES,public,autopilot_logs,null,null
-TABLES,public,autopilot_settings,null,null
-TABLES,public,business_profile_history,null,null
-TABLES,public,citation_listings,null,null
-TABLES,public,citation_sources,null,null
-TABLES,public,client_profiles,null,null
-TABLES,public,competitor_tracking,null,null
-TABLES,public,content_generation,null,null
-TABLES,public,content_generations,null,null
-TABLES,public,error_logs,null,null
-TABLES,public,gmb_accounts,null,null
-TABLES,public,gmb_attributes,null,null
-TABLES,public,gmb_citations,null,null
-TABLES,public,gmb_dashboard_reports,null,null
-TABLES,public,gmb_insights,null,null
-TABLES,public,gmb_locations,null,null
-TABLES,public,gmb_media,null,null
-TABLES,public,gmb_metrics,null,null
-TABLES,public,gmb_performance_metrics,null,null
-TABLES,public,gmb_posts,null,null
-TABLES,public,gmb_questions,null,null
-TABLES,public,gmb_rankings,null,null
-TABLES,public,gmb_reviews,null,null
-TABLES,public,gmb_reviews_backup_20251114,null,null
-TABLES,public,gmb_search_keywords,null,null
-TABLES,public,gmb_sync_logs,null,null
-TABLES,public,health_check_results,null,null
-TABLES,public,jobs_log,null,null
-TABLES,public,keyword_rankings,null,null
-TABLES,public,monitoring_alerts,null,null
-TABLES,public,monitoring_metrics,null,null
-TABLES,public,notifications,null,null
-TABLES,public,oauth_events,null,null
-TABLES,public,oauth_states,null,null
-TABLES,public,performance_metrics,null,null
-TABLES,public,profiles,null,null
-TABLES,public,question_templates,null,null
-TABLES,public,rate_limit_requests,null,null
-TABLES,public,review_activity_log,null,null
-TABLES,public,review_ai_analysis,null,null
-TABLES,public,room_members,null,null
-TABLES,public,secret_keys,null,null
-TABLES,public,security_logs,null,null
-TABLES,public,sync_results,null,null
-TABLES,public,sync_runs,null,null
-TABLES,public,sync_status,null,null
-TABLES,public,system_settings,null,null
-TABLES,public,team_members,null,null
-TABLES,public,users,null,null
-TABLES,public,weekly_task_recommendations,null,null
-TABLES,public,weekly_tasks,null,null
-TABLES,public,youtube_drafts,null,null
-TABLES,public,youtube_videos,null,null
+| query_type   | schemaname | tablename                   | column_name                   | data_type                   |
+| ------------ | ---------- | --------------------------- | ----------------------------- | --------------------------- |
+| COLUMNS      | public     | activity_logs               | actionable                    | boolean                     |
+| COLUMNS      | public     | activity_logs               | activity_message              | text                        |
+| COLUMNS      | public     | activity_logs               | activity_type                 | text                        |
+| COLUMNS      | public     | activity_logs               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | activity_logs               | id                            | uuid                        |
+| COLUMNS      | public     | activity_logs               | metadata                      | jsonb                       |
+| COLUMNS      | public     | activity_logs               | user_id                       | uuid                        |
+| COLUMNS      | public     | ai_autopilot_logs           | action_description            | text                        |
+| COLUMNS      | public     | ai_autopilot_logs           | action_type                   | text                        |
+| COLUMNS      | public     | ai_autopilot_logs           | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_autopilot_logs           | id                            | uuid                        |
+| COLUMNS      | public     | ai_autopilot_logs           | location_id                   | uuid                        |
+| COLUMNS      | public     | ai_autopilot_logs           | metadata                      | jsonb                       |
+| COLUMNS      | public     | ai_autopilot_logs           | status                        | text                        |
+| COLUMNS      | public     | ai_autopilot_settings       | auto_reply_enabled            | boolean                     |
+| COLUMNS      | public     | ai_autopilot_settings       | auto_reply_min_rating         | integer                     |
+| COLUMNS      | public     | ai_autopilot_settings       | auto_reply_tone               | text                        |
+| COLUMNS      | public     | ai_autopilot_settings       | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_autopilot_settings       | id                            | uuid                        |
+| COLUMNS      | public     | ai_autopilot_settings       | is_enabled                    | boolean                     |
+| COLUMNS      | public     | ai_autopilot_settings       | location_id                   | uuid                        |
+| COLUMNS      | public     | ai_autopilot_settings       | posting_days                  | ARRAY                       |
+| COLUMNS      | public     | ai_autopilot_settings       | posting_frequency             | integer                     |
+| COLUMNS      | public     | ai_autopilot_settings       | smart_posting_enabled         | boolean                     |
+| COLUMNS      | public     | ai_autopilot_settings       | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_requests                 | completion_tokens             | integer                     |
+| COLUMNS      | public     | ai_requests                 | cost_usd                      | numeric                     |
+| COLUMNS      | public     | ai_requests                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_requests                 | feature                       | text                        |
+| COLUMNS      | public     | ai_requests                 | id                            | uuid                        |
+| COLUMNS      | public     | ai_requests                 | latency_ms                    | integer                     |
+| COLUMNS      | public     | ai_requests                 | location_id                   | uuid                        |
+| COLUMNS      | public     | ai_requests                 | model                         | text                        |
+| COLUMNS      | public     | ai_requests                 | prompt_tokens                 | integer                     |
+| COLUMNS      | public     | ai_requests                 | provider                      | text                        |
+| COLUMNS      | public     | ai_requests                 | success                       | boolean                     |
+| COLUMNS      | public     | ai_requests                 | total_tokens                  | integer                     |
+| COLUMNS      | public     | ai_requests                 | user_id                       | uuid                        |
+| COLUMNS      | public     | ai_settings                 | api_key                       | text                        |
+| COLUMNS      | public     | ai_settings                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_settings                 | id                            | uuid                        |
+| COLUMNS      | public     | ai_settings                 | is_active                     | boolean                     |
+| COLUMNS      | public     | ai_settings                 | priority                      | integer                     |
+| COLUMNS      | public     | ai_settings                 | provider                      | text                        |
+| COLUMNS      | public     | ai_settings                 | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | ai_settings                 | user_id                       | uuid                        |
+| COLUMNS      | public     | audit_logs                  | action                        | character varying           |
+| COLUMNS      | public     | audit_logs                  | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | audit_logs                  | id                            | uuid                        |
+| COLUMNS      | public     | audit_logs                  | ip_address                    | text                        |
+| COLUMNS      | public     | audit_logs                  | metadata                      | jsonb                       |
+| COLUMNS      | public     | audit_logs                  | resource_id                   | character varying           |
+| COLUMNS      | public     | audit_logs                  | resource_type                 | character varying           |
+| COLUMNS      | public     | audit_logs                  | user_id                       | uuid                        |
+| COLUMNS      | public     | auto_reply_queue            | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | auto_reply_queue            | error_message                 | text                        |
+| COLUMNS      | public     | auto_reply_queue            | generated_response            | text                        |
+| COLUMNS      | public     | auto_reply_queue            | id                            | uuid                        |
+| COLUMNS      | public     | auto_reply_queue            | response_style                | character varying           |
+| COLUMNS      | public     | auto_reply_queue            | retry_count                   | integer                     |
+| COLUMNS      | public     | auto_reply_queue            | review_id                     | uuid                        |
+| COLUMNS      | public     | auto_reply_queue            | scheduled_send_at             | timestamp with time zone    |
+| COLUMNS      | public     | auto_reply_queue            | status                        | character varying           |
+| COLUMNS      | public     | auto_reply_queue            | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | auto_reply_queue            | user_id                       | uuid                        |
+| COLUMNS      | public     | auto_reply_settings         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | auto_reply_settings         | enabled                       | boolean                     |
+| COLUMNS      | public     | auto_reply_settings         | id                            | uuid                        |
+| COLUMNS      | public     | auto_reply_settings         | language                      | character varying           |
+| COLUMNS      | public     | auto_reply_settings         | location_id                   | uuid                        |
+| COLUMNS      | public     | auto_reply_settings         | reply_to_negative             | boolean                     |
+| COLUMNS      | public     | auto_reply_settings         | reply_to_neutral              | boolean                     |
+| COLUMNS      | public     | auto_reply_settings         | reply_to_positive             | boolean                     |
+| COLUMNS      | public     | auto_reply_settings         | require_approval              | boolean                     |
+| COLUMNS      | public     | auto_reply_settings         | response_delay_minutes        | integer                     |
+| COLUMNS      | public     | auto_reply_settings         | response_style                | character varying           |
+| COLUMNS      | public     | auto_reply_settings         | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | auto_reply_settings         | user_id                       | uuid                        |
+| COLUMNS      | public     | autopilot_logs              | action_type                   | text                        |
+| COLUMNS      | public     | autopilot_logs              | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | autopilot_logs              | details                       | jsonb                       |
+| COLUMNS      | public     | autopilot_logs              | error_message                 | text                        |
+| COLUMNS      | public     | autopilot_logs              | id                            | uuid                        |
+| COLUMNS      | public     | autopilot_logs              | location_id                   | uuid                        |
+| COLUMNS      | public     | autopilot_logs              | status                        | text                        |
+| COLUMNS      | public     | autopilot_logs              | user_id                       | uuid                        |
+| COLUMNS      | public     | autopilot_settings          | auto_reply_enabled            | boolean                     |
+| COLUMNS      | public     | autopilot_settings          | auto_reply_min_rating         | integer                     |
+| COLUMNS      | public     | autopilot_settings          | competitor_monitoring_enabled | boolean                     |
+| COLUMNS      | public     | autopilot_settings          | content_preferences           | jsonb                       |
+| COLUMNS      | public     | autopilot_settings          | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | autopilot_settings          | id                            | uuid                        |
+| COLUMNS      | public     | autopilot_settings          | insights_reports_enabled      | boolean                     |
+| COLUMNS      | public     | autopilot_settings          | is_enabled                    | boolean                     |
+| COLUMNS      | public     | autopilot_settings          | location_id                   | uuid                        |
+| COLUMNS      | public     | autopilot_settings          | post_days                     | jsonb                       |
+| COLUMNS      | public     | autopilot_settings          | post_frequency                | integer                     |
+| COLUMNS      | public     | autopilot_settings          | post_times                    | jsonb                       |
+| COLUMNS      | public     | autopilot_settings          | reply_tone                    | text                        |
+| COLUMNS      | public     | autopilot_settings          | report_frequency              | text                        |
+| COLUMNS      | public     | autopilot_settings          | smart_posting_enabled         | boolean                     |
+| COLUMNS      | public     | autopilot_settings          | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | autopilot_settings          | user_id                       | uuid                        |
+| COLUMNS      | public     | business_profile_history    | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | business_profile_history    | created_by                    | uuid                        |
+| COLUMNS      | public     | business_profile_history    | data                          | jsonb                       |
+| COLUMNS      | public     | business_profile_history    | id                            | uuid                        |
+| COLUMNS      | public     | business_profile_history    | location_id                   | uuid                        |
+| COLUMNS      | public     | business_profile_history    | location_name                 | text                        |
+| COLUMNS      | public     | business_profile_history    | metadata                      | jsonb                       |
+| COLUMNS      | public     | business_profile_history    | operation_type                | text                        |
+| COLUMNS      | public     | citation_listings           | address                       | text                        |
+| COLUMNS      | public     | citation_listings           | business_name                 | text                        |
+| COLUMNS      | public     | citation_listings           | consistency_score             | integer                     |
+| COLUMNS      | public     | citation_listings           | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | citation_listings           | id                            | uuid                        |
+| COLUMNS      | public     | citation_listings           | last_checked                  | timestamp with time zone    |
+| COLUMNS      | public     | citation_listings           | listing_url                   | text                        |
+| COLUMNS      | public     | citation_listings           | location_id                   | uuid                        |
+| COLUMNS      | public     | citation_listings           | notes                         | text                        |
+| COLUMNS      | public     | citation_listings           | phone                         | text                        |
+| COLUMNS      | public     | citation_listings           | source_id                     | uuid                        |
+| COLUMNS      | public     | citation_listings           | status                        | text                        |
+| COLUMNS      | public     | citation_listings           | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | citation_listings           | user_id                       | uuid                        |
+| COLUMNS      | public     | citation_sources            | category                      | text                        |
+| COLUMNS      | public     | citation_sources            | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | citation_sources            | domain_authority              | integer                     |
+| COLUMNS      | public     | citation_sources            | id                            | uuid                        |
+| COLUMNS      | public     | citation_sources            | is_active                     | boolean                     |
+| COLUMNS      | public     | citation_sources            | logo_url                      | text                        |
+| COLUMNS      | public     | citation_sources            | name                          | text                        |
+| COLUMNS      | public     | citation_sources            | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | citation_sources            | url_pattern                   | text                        |
+| COLUMNS      | public     | client_profiles             | brand_name                    | text                        |
+| COLUMNS      | public     | client_profiles             | cover_image_url               | text                        |
+| COLUMNS      | public     | client_profiles             | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | client_profiles             | id                            | uuid                        |
+| COLUMNS      | public     | client_profiles             | logo_url                      | text                        |
+| COLUMNS      | public     | client_profiles             | primary_color                 | character varying           |
+| COLUMNS      | public     | client_profiles             | secondary_color               | character varying           |
+| COLUMNS      | public     | client_profiles             | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | client_profiles             | user_id                       | uuid                        |
+| COLUMNS      | public     | competitor_tracking         | average_rating                | numeric                     |
+| COLUMNS      | public     | competitor_tracking         | competitor_gmb_id             | text                        |
+| COLUMNS      | public     | competitor_tracking         | competitor_name               | text                        |
+| COLUMNS      | public     | competitor_tracking         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | competitor_tracking         | distance_miles                | numeric                     |
+| COLUMNS      | public     | competitor_tracking         | id                            | uuid                        |
+| COLUMNS      | public     | competitor_tracking         | is_active                     | boolean                     |
+| COLUMNS      | public     | competitor_tracking         | location_id                   | uuid                        |
+| COLUMNS      | public     | competitor_tracking         | post_frequency                | integer                     |
+| COLUMNS      | public     | competitor_tracking         | review_count                  | integer                     |
+| COLUMNS      | public     | competitor_tracking         | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | competitor_tracking         | user_id                       | uuid                        |
+| COLUMNS      | public     | content_generation          | content_type                  | text                        |
+| COLUMNS      | public     | content_generation          | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | content_generation          | generated_content             | text                        |
+| COLUMNS      | public     | content_generation          | id                            | uuid                        |
+| COLUMNS      | public     | content_generation          | metadata                      | jsonb                       |
+| COLUMNS      | public     | content_generation          | prompt                        | text                        |
+| COLUMNS      | public     | content_generation          | provider                      | text                        |
+| COLUMNS      | public     | content_generation          | tone                          | text                        |
+| COLUMNS      | public     | content_generation          | user_id                       | uuid                        |
+| COLUMNS      | public     | content_generations         | ai_model                      | text                        |
+| COLUMNS      | public     | content_generations         | content_type                  | text                        |
+| COLUMNS      | public     | content_generations         | cost                          | numeric                     |
+| COLUMNS      | public     | content_generations         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | content_generations         | generated_content             | text                        |
+| COLUMNS      | public     | content_generations         | id                            | uuid                        |
+| COLUMNS      | public     | content_generations         | metadata                      | jsonb                       |
+| COLUMNS      | public     | content_generations         | prompt                        | text                        |
+| COLUMNS      | public     | content_generations         | tokens_used                   | integer                     |
+| COLUMNS      | public     | content_generations         | user_id                       | uuid                        |
+| COLUMNS      | public     | error_logs                  | browser_name                  | text                        |
+| COLUMNS      | public     | error_logs                  | browser_version               | text                        |
+| COLUMNS      | public     | error_logs                  | context                       | jsonb                       |
+| COLUMNS      | public     | error_logs                  | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | error_logs                  | device_type                   | text                        |
+| COLUMNS      | public     | error_logs                  | error_code                    | text                        |
+| COLUMNS      | public     | error_logs                  | error_type                    | text                        |
+| COLUMNS      | public     | error_logs                  | id                            | text                        |
+| COLUMNS      | public     | error_logs                  | ip_address                    | inet                        |
+| COLUMNS      | public     | error_logs                  | level                         | text                        |
+| COLUMNS      | public     | error_logs                  | message                       | text                        |
+| COLUMNS      | public     | error_logs                  | os_name                       | text                        |
+| COLUMNS      | public     | error_logs                  | os_version                    | text                        |
+| COLUMNS      | public     | error_logs                  | resolution_notes              | text                        |
+| COLUMNS      | public     | error_logs                  | resolved                      | boolean                     |
+| COLUMNS      | public     | error_logs                  | resolved_at                   | timestamp with time zone    |
+| COLUMNS      | public     | error_logs                  | resolved_by                   | uuid                        |
+| COLUMNS      | public     | error_logs                  | session_id                    | text                        |
+| COLUMNS      | public     | error_logs                  | severity                      | integer                     |
+| COLUMNS      | public     | error_logs                  | stack                         | text                        |
+| COLUMNS      | public     | error_logs                  | timestamp                     | timestamp with time zone    |
+| COLUMNS      | public     | error_logs                  | url                           | text                        |
+| COLUMNS      | public     | error_logs                  | user_agent                    | text                        |
+| COLUMNS      | public     | error_logs                  | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_accounts                | access_token                  | text                        |
+| COLUMNS      | public     | gmb_accounts                | account_id                    | text                        |
+| COLUMNS      | public     | gmb_accounts                | account_name                  | text                        |
+| COLUMNS      | public     | gmb_accounts                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_accounts                | data_retention_days           | integer                     |
+| COLUMNS      | public     | gmb_accounts                | delete_on_disconnect          | boolean                     |
+| COLUMNS      | public     | gmb_accounts                | disconnected_at               | timestamp with time zone    |
+| COLUMNS      | public     | gmb_accounts                | email                         | text                        |
+| COLUMNS      | public     | gmb_accounts                | google_account_id             | text                        |
+| COLUMNS      | public     | gmb_accounts                | id                            | uuid                        |
+| COLUMNS      | public     | gmb_accounts                | is_active                     | boolean                     |
+| COLUMNS      | public     | gmb_accounts                | last_sync                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_accounts                | refresh_token                 | text                        |
+| COLUMNS      | public     | gmb_accounts                | settings                      | jsonb                       |
+| COLUMNS      | public     | gmb_accounts                | token_expires_at              | timestamp with time zone    |
+| COLUMNS      | public     | gmb_accounts                | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_accounts                | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_attributes              | attribute_name                | text                        |
+| COLUMNS      | public     | gmb_attributes              | attribute_value               | jsonb                       |
+| COLUMNS      | public     | gmb_attributes              | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_attributes              | display_name                  | text                        |
+| COLUMNS      | public     | gmb_attributes              | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_attributes              | group_name                    | text                        |
+| COLUMNS      | public     | gmb_attributes              | id                            | uuid                        |
+| COLUMNS      | public     | gmb_attributes              | is_active                     | boolean                     |
+| COLUMNS      | public     | gmb_attributes              | is_deprecated                 | boolean                     |
+| COLUMNS      | public     | gmb_attributes              | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_attributes              | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_attributes              | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_attributes              | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_attributes              | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_attributes              | value_type                    | text                        |
+| COLUMNS      | public     | gmb_citations               | address                       | text                        |
+| COLUMNS      | public     | gmb_citations               | business_name                 | text                        |
+| COLUMNS      | public     | gmb_citations               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_citations               | id                            | uuid                        |
+| COLUMNS      | public     | gmb_citations               | last_checked                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_citations               | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_citations               | phone                         | text                        |
+| COLUMNS      | public     | gmb_citations               | platform_name                 | text                        |
+| COLUMNS      | public     | gmb_citations               | platform_url                  | text                        |
+| COLUMNS      | public     | gmb_citations               | status                        | text                        |
+| COLUMNS      | public     | gmb_citations               | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_dashboard_reports       | category                      | text                        |
+| COLUMNS      | public     | gmb_dashboard_reports       | created_at                    | timestamp without time zone |
+| COLUMNS      | public     | gmb_dashboard_reports       | id                            | bigint                      |
+| COLUMNS      | public     | gmb_dashboard_reports       | report_type                   | text                        |
+| COLUMNS      | public     | gmb_dashboard_reports       | stats                         | jsonb                       |
+| COLUMNS      | public     | gmb_insights                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_insights                | date                          | date                        |
+| COLUMNS      | public     | gmb_insights                | id                            | uuid                        |
+| COLUMNS      | public     | gmb_insights                | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_insights                | metric_type                   | text                        |
+| COLUMNS      | public     | gmb_insights                | metric_value                  | integer                     |
+| COLUMNS      | public     | gmb_insights                | source                        | text                        |
+| COLUMNS      | public     | gmb_insights                | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations               | account_id                    | text                        |
+| COLUMNS      | public     | gmb_locations               | additional_categories         | ARRAY                       |
+| COLUMNS      | public     | gmb_locations               | address                       | text                        |
+| COLUMNS      | public     | gmb_locations               | ai_insights                   | text                        |
+| COLUMNS      | public     | gmb_locations               | appointment_url               | text                        |
+| COLUMNS      | public     | gmb_locations               | archived_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations               | booking_url                   | text                        |
+| COLUMNS      | public     | gmb_locations               | business_hours                | jsonb                       |
+| COLUMNS      | public     | gmb_locations               | calculated_response_rate      | numeric                     |
+| COLUMNS      | public     | gmb_locations               | category                      | text                        |
+| COLUMNS      | public     | gmb_locations               | cover_photo_url               | text                        |
+| COLUMNS      | public     | gmb_locations               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations               | description                   | text                        |
+| COLUMNS      | public     | gmb_locations               | from_the_business             | ARRAY                       |
+| COLUMNS      | public     | gmb_locations               | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_locations               | health_score                  | integer                     |
+| COLUMNS      | public     | gmb_locations               | id                            | uuid                        |
+| COLUMNS      | public     | gmb_locations               | is_active                     | boolean                     |
+| COLUMNS      | public     | gmb_locations               | is_archived                   | boolean                     |
+| COLUMNS      | public     | gmb_locations               | is_syncing                    | boolean                     |
+| COLUMNS      | public     | gmb_locations               | last_synced_at                | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations               | latitude                      | double precision            |
+| COLUMNS      | public     | gmb_locations               | latlng                        | text                        |
+| COLUMNS      | public     | gmb_locations               | location_id                   | text                        |
+| COLUMNS      | public     | gmb_locations               | location_id_external          | text                        |
+| COLUMNS      | public     | gmb_locations               | location_name                 | text                        |
+| COLUMNS      | public     | gmb_locations               | longitude                     | double precision            |
+| COLUMNS      | public     | gmb_locations               | menu_url                      | text                        |
+| COLUMNS      | public     | gmb_locations               | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_locations               | normalized_location_id        | text                        |
+| COLUMNS      | public     | gmb_locations               | opening_date                  | date                        |
+| COLUMNS      | public     | gmb_locations               | order_url                     | text                        |
+| COLUMNS      | public     | gmb_locations               | phone                         | text                        |
+| COLUMNS      | public     | gmb_locations               | profile_completeness          | integer                     |
+| COLUMNS      | public     | gmb_locations               | rating                        | numeric                     |
+| COLUMNS      | public     | gmb_locations               | regularhours                  | jsonb                       |
+| COLUMNS      | public     | gmb_locations               | response_rate                 | numeric                     |
+| COLUMNS      | public     | gmb_locations               | review_count                  | integer                     |
+| COLUMNS      | public     | gmb_locations               | service_area_enabled          | boolean                     |
+| COLUMNS      | public     | gmb_locations               | short_description             | text                        |
+| COLUMNS      | public     | gmb_locations               | status                        | text                        |
+| COLUMNS      | public     | gmb_locations               | type                          | text                        |
+| COLUMNS      | public     | gmb_locations               | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations               | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_locations               | website                       | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | address                       | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | business_hours                | jsonb                       |
+| COLUMNS      | public     | gmb_locations_with_rating   | calculated_rating             | numeric                     |
+| COLUMNS      | public     | gmb_locations_with_rating   | category                      | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations_with_rating   | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | id                            | uuid                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | is_active                     | boolean                     |
+| COLUMNS      | public     | gmb_locations_with_rating   | last_review_date              | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations_with_rating   | location_id                   | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | location_name                 | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_locations_with_rating   | normalized_location_id        | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | phone                         | text                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | reviews_count                 | integer                     |
+| COLUMNS      | public     | gmb_locations_with_rating   | stored_rating                 | numeric                     |
+| COLUMNS      | public     | gmb_locations_with_rating   | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_locations_with_rating   | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_locations_with_rating   | website                       | text                        |
+| COLUMNS      | public     | gmb_media                   | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_media                   | external_media_id             | text                        |
+| COLUMNS      | public     | gmb_media                   | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_media                   | id                            | uuid                        |
+| COLUMNS      | public     | gmb_media                   | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_media                   | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_media                   | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_media                   | thumbnail_url                 | text                        |
+| COLUMNS      | public     | gmb_media                   | type                          | text                        |
+| COLUMNS      | public     | gmb_media                   | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_media                   | url                           | text                        |
+| COLUMNS      | public     | gmb_media                   | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_metrics                 | avg_duration_ms               | numeric                     |
+| COLUMNS      | public     | gmb_metrics                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_metrics                 | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_metrics                 | id                            | uuid                        |
+| COLUMNS      | public     | gmb_metrics                 | phase                         | text                        |
+| COLUMNS      | public     | gmb_metrics                 | runs_count                    | integer                     |
+| COLUMNS      | public     | gmb_metrics                 | total_duration_ms             | bigint                      |
+| COLUMNS      | public     | gmb_metrics                 | total_items_count             | bigint                      |
+| COLUMNS      | public     | gmb_metrics                 | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_metrics                 | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_performance_metrics     | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_performance_metrics     | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_performance_metrics     | id                            | uuid                        |
+| COLUMNS      | public     | gmb_performance_metrics     | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_performance_metrics     | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_performance_metrics     | metric_date                   | date                        |
+| COLUMNS      | public     | gmb_performance_metrics     | metric_type                   | text                        |
+| COLUMNS      | public     | gmb_performance_metrics     | metric_value                  | bigint                      |
+| COLUMNS      | public     | gmb_performance_metrics     | sub_entity_type               | jsonb                       |
+| COLUMNS      | public     | gmb_performance_metrics     | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_performance_metrics     | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_performance_metrics     | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_posts                   | archived_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | call_to_action                | text                        |
+| COLUMNS      | public     | gmb_posts                   | call_to_action_url            | text                        |
+| COLUMNS      | public     | gmb_posts                   | content                       | text                        |
+| COLUMNS      | public     | gmb_posts                   | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | cta_type                      | text                        |
+| COLUMNS      | public     | gmb_posts                   | cta_url                       | text                        |
+| COLUMNS      | public     | gmb_posts                   | end_date                      | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | error_message                 | text                        |
+| COLUMNS      | public     | gmb_posts                   | id                            | uuid                        |
+| COLUMNS      | public     | gmb_posts                   | is_archived                   | boolean                     |
+| COLUMNS      | public     | gmb_posts                   | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_posts                   | media_url                     | text                        |
+| COLUMNS      | public     | gmb_posts                   | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_posts                   | post_id                       | text                        |
+| COLUMNS      | public     | gmb_posts                   | post_type                     | text                        |
+| COLUMNS      | public     | gmb_posts                   | provider_post_id              | text                        |
+| COLUMNS      | public     | gmb_posts                   | published_at                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | scheduled_at                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | start_date                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | status                        | text                        |
+| COLUMNS      | public     | gmb_posts                   | title                         | text                        |
+| COLUMNS      | public     | gmb_posts                   | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_posts                   | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_questions               | ai_answer_generated           | boolean                     |
+| COLUMNS      | public     | gmb_questions               | ai_category                   | text                        |
+| COLUMNS      | public     | gmb_questions               | ai_confidence_score           | numeric                     |
+| COLUMNS      | public     | gmb_questions               | ai_suggested_answer           | text                        |
+| COLUMNS      | public     | gmb_questions               | answer_id                     | text                        |
+| COLUMNS      | public     | gmb_questions               | answer_status                 | text                        |
+| COLUMNS      | public     | gmb_questions               | answer_text                   | text                        |
+| COLUMNS      | public     | gmb_questions               | answered_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | answered_by                   | text                        |
+| COLUMNS      | public     | gmb_questions               | archived_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | asked_at                      | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | author_display_name           | text                        |
+| COLUMNS      | public     | gmb_questions               | author_name                   | text                        |
+| COLUMNS      | public     | gmb_questions               | author_profile_photo_url      | text                        |
+| COLUMNS      | public     | gmb_questions               | author_type                   | text                        |
+| COLUMNS      | public     | gmb_questions               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | external_question_id          | text                        |
+| COLUMNS      | public     | gmb_questions               | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_questions               | google_resource_name          | text                        |
+| COLUMNS      | public     | gmb_questions               | id                            | uuid                        |
+| COLUMNS      | public     | gmb_questions               | internal_notes                | text                        |
+| COLUMNS      | public     | gmb_questions               | is_archived                   | boolean                     |
+| COLUMNS      | public     | gmb_questions               | is_featured                   | boolean                     |
+| COLUMNS      | public     | gmb_questions               | is_hidden                     | boolean                     |
+| COLUMNS      | public     | gmb_questions               | language_code                 | text                        |
+| COLUMNS      | public     | gmb_questions               | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_questions               | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_questions               | priority                      | text                        |
+| COLUMNS      | public     | gmb_questions               | question_id                   | text                        |
+| COLUMNS      | public     | gmb_questions               | question_text                 | text                        |
+| COLUMNS      | public     | gmb_questions               | question_url                  | text                        |
+| COLUMNS      | public     | gmb_questions               | status                        | text                        |
+| COLUMNS      | public     | gmb_questions               | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | total_answer_count            | integer                     |
+| COLUMNS      | public     | gmb_questions               | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_questions               | upvote_count                  | integer                     |
+| COLUMNS      | public     | gmb_questions               | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_rankings                | best_position                 | integer                     |
+| COLUMNS      | public     | gmb_rankings                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_rankings                | current_position              | integer                     |
+| COLUMNS      | public     | gmb_rankings                | id                            | uuid                        |
+| COLUMNS      | public     | gmb_rankings                | keyword                       | text                        |
+| COLUMNS      | public     | gmb_rankings                | last_checked                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_rankings                | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_rankings                | previous_position             | integer                     |
+| COLUMNS      | public     | gmb_rankings                | search_volume                 | integer                     |
+| COLUMNS      | public     | gmb_rankings                | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | account_id                    | text                        |
+| COLUMNS      | public     | gmb_reviews                 | ai_confidence_score           | numeric                     |
+| COLUMNS      | public     | gmb_reviews                 | ai_generated_at               | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | ai_generated_response         | text                        |
+| COLUMNS      | public     | gmb_reviews                 | ai_reply_generated            | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | ai_sent_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | ai_sentiment                  | text                        |
+| COLUMNS      | public     | gmb_reviews                 | ai_sentiment_analysis         | jsonb                       |
+| COLUMNS      | public     | gmb_reviews                 | ai_sentiment_score            | numeric                     |
+| COLUMNS      | public     | gmb_reviews                 | ai_suggested_reply            | text                        |
+| COLUMNS      | public     | gmb_reviews                 | archived_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | auto_reply_enabled            | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | auto_reply_status             | character varying           |
+| COLUMNS      | public     | gmb_reviews                 | comment                       | text                        |
+| COLUMNS      | public     | gmb_reviews                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | external_review_id            | text                        |
+| COLUMNS      | public     | gmb_reviews                 | flagged_reason                | text                        |
+| COLUMNS      | public     | gmb_reviews                 | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_reviews                 | google_my_business_name       | text                        |
+| COLUMNS      | public     | gmb_reviews                 | has_reply                     | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | has_response                  | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | id                            | uuid                        |
+| COLUMNS      | public     | gmb_reviews                 | internal_notes                | text                        |
+| COLUMNS      | public     | gmb_reviews                 | is_anonymized                 | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | is_archived                   | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | is_verified_purchase          | boolean                     |
+| COLUMNS      | public     | gmb_reviews                 | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_reviews                 | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_reviews                 | rating                        | integer                     |
+| COLUMNS      | public     | gmb_reviews                 | replied_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | reply_date                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | reply_text                    | text                        |
+| COLUMNS      | public     | gmb_reviews                 | reply_timestamp               | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | responded_at                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | response                      | text                        |
+| COLUMNS      | public     | gmb_reviews                 | response_priority             | text                        |
+| COLUMNS      | public     | gmb_reviews                 | response_text                 | text                        |
+| COLUMNS      | public     | gmb_reviews                 | review_date                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | review_id                     | text                        |
+| COLUMNS      | public     | gmb_reviews                 | review_reply                  | text                        |
+| COLUMNS      | public     | gmb_reviews                 | review_text                   | text                        |
+| COLUMNS      | public     | gmb_reviews                 | review_timestamp              | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | review_url                    | text                        |
+| COLUMNS      | public     | gmb_reviews                 | reviewer_display_name         | text                        |
+| COLUMNS      | public     | gmb_reviews                 | reviewer_name                 | text                        |
+| COLUMNS      | public     | gmb_reviews                 | reviewer_profile_photo_url    | text                        |
+| COLUMNS      | public     | gmb_reviews                 | status                        | text                        |
+| COLUMNS      | public     | gmb_reviews                 | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | tags                          | ARRAY                       |
+| COLUMNS      | public     | gmb_reviews                 | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews                 | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | account_id                    | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_confidence_score           | numeric                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_generated_at               | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_generated_response         | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_reply_generated            | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_sent_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_sentiment                  | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_sentiment_analysis         | jsonb                       |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_sentiment_score            | numeric                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | ai_suggested_reply            | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | archived_at                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | auto_reply_enabled            | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | auto_reply_status             | character varying           |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | comment                       | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | external_review_id            | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | flagged_reason                | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | google_my_business_name       | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | has_reply                     | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | has_response                  | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | id                            | uuid                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | internal_notes                | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | is_anonymized                 | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | is_archived                   | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | is_verified_purchase          | boolean                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | rating                        | integer                     |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | replied_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reply_date                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reply_text                    | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reply_timestamp               | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | responded_at                  | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | response                      | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | response_priority             | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | response_text                 | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_date                   | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_id                     | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_reply                  | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_text                   | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_timestamp              | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | review_url                    | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reviewer_display_name         | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reviewer_name                 | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | reviewer_profile_photo_url    | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | status                        | text                        |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | tags                          | ARRAY                       |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_reviews_backup_20251114 | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_search_keywords         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_search_keywords         | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_search_keywords         | id                            | uuid                        |
+| COLUMNS      | public     | gmb_search_keywords         | impressions_count             | bigint                      |
+| COLUMNS      | public     | gmb_search_keywords         | location_id                   | uuid                        |
+| COLUMNS      | public     | gmb_search_keywords         | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_search_keywords         | month_year                    | date                        |
+| COLUMNS      | public     | gmb_search_keywords         | search_keyword                | text                        |
+| COLUMNS      | public     | gmb_search_keywords         | synced_at                     | timestamp with time zone    |
+| COLUMNS      | public     | gmb_search_keywords         | threshold_value               | bigint                      |
+| COLUMNS      | public     | gmb_search_keywords         | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_search_keywords         | user_id                       | uuid                        |
+| COLUMNS      | public     | gmb_sync_logs               | counts                        | jsonb                       |
+| COLUMNS      | public     | gmb_sync_logs               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_sync_logs               | duration_ms                   | integer                     |
+| COLUMNS      | public     | gmb_sync_logs               | ended_at                      | timestamp with time zone    |
+| COLUMNS      | public     | gmb_sync_logs               | error                         | text                        |
+| COLUMNS      | public     | gmb_sync_logs               | gmb_account_id                | uuid                        |
+| COLUMNS      | public     | gmb_sync_logs               | id                            | uuid                        |
+| COLUMNS      | public     | gmb_sync_logs               | metadata                      | jsonb                       |
+| COLUMNS      | public     | gmb_sync_logs               | phase                         | text                        |
+| COLUMNS      | public     | gmb_sync_logs               | started_at                    | timestamp with time zone    |
+| COLUMNS      | public     | gmb_sync_logs               | status                        | text                        |
+| COLUMNS      | public     | gmb_sync_logs               | user_id                       | uuid                        |
+| COLUMNS      | public     | health_check_results        | average_rating                | numeric                     |
+| COLUMNS      | public     | health_check_results        | checked_at                    | timestamp with time zone    |
+| COLUMNS      | public     | health_check_results        | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | health_check_results        | details                       | jsonb                       |
+| COLUMNS      | public     | health_check_results        | duration                      | integer                     |
+| COLUMNS      | public     | health_check_results        | health_score                  | numeric                     |
+| COLUMNS      | public     | health_check_results        | id                            | uuid                        |
+| COLUMNS      | public     | health_check_results        | location_id                   | uuid                        |
+| COLUMNS      | public     | health_check_results        | message                       | text                        |
+| COLUMNS      | public     | health_check_results        | response_rate                 | numeric                     |
+| COLUMNS      | public     | health_check_results        | review_sentiment_distribution | jsonb                       |
+| COLUMNS      | public     | health_check_results        | service                       | text                        |
+| COLUMNS      | public     | health_check_results        | status                        | text                        |
+| COLUMNS      | public     | health_check_results        | timestamp                     | timestamp with time zone    |
+| COLUMNS      | public     | jobs_log                    | error                         | text                        |
+| COLUMNS      | public     | jobs_log                    | finished_at                   | timestamp with time zone    |
+| COLUMNS      | public     | jobs_log                    | id                            | bigint                      |
+| COLUMNS      | public     | jobs_log                    | meta                          | jsonb                       |
+| COLUMNS      | public     | jobs_log                    | source                        | text                        |
+| COLUMNS      | public     | jobs_log                    | started_at                    | timestamp with time zone    |
+| COLUMNS      | public     | jobs_log                    | status                        | text                        |
+| COLUMNS      | public     | keyword_rankings            | competition                   | text                        |
+| COLUMNS      | public     | keyword_rankings            | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | keyword_rankings            | date                          | date                        |
+| COLUMNS      | public     | keyword_rankings            | id                            | uuid                        |
+| COLUMNS      | public     | keyword_rankings            | keyword                       | text                        |
+| COLUMNS      | public     | keyword_rankings            | location_id                   | uuid                        |
+| COLUMNS      | public     | keyword_rankings            | position                      | integer                     |
+| COLUMNS      | public     | keyword_rankings            | previous_position             | integer                     |
+| COLUMNS      | public     | keyword_rankings            | search_type                   | text                        |
+| COLUMNS      | public     | keyword_rankings            | search_volume                 | integer                     |
+| COLUMNS      | public     | keyword_rankings            | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | keyword_rankings            | url                           | text                        |
+| COLUMNS      | public     | monitoring_alerts           | acknowledged                  | boolean                     |
+| COLUMNS      | public     | monitoring_alerts           | acknowledged_at               | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_alerts           | acknowledged_by               | uuid                        |
+| COLUMNS      | public     | monitoring_alerts           | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_alerts           | id                            | text                        |
+| COLUMNS      | public     | monitoring_alerts           | message                       | text                        |
+| COLUMNS      | public     | monitoring_alerts           | metadata                      | jsonb                       |
+| COLUMNS      | public     | monitoring_alerts           | resolution_notes              | text                        |
+| COLUMNS      | public     | monitoring_alerts           | resolved                      | boolean                     |
+| COLUMNS      | public     | monitoring_alerts           | resolved_at                   | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_alerts           | resolved_by                   | uuid                        |
+| COLUMNS      | public     | monitoring_alerts           | service                       | text                        |
+| COLUMNS      | public     | monitoring_alerts           | severity                      | text                        |
+| COLUMNS      | public     | monitoring_alerts           | timestamp                     | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_alerts           | title                         | text                        |
+| COLUMNS      | public     | monitoring_alerts           | type                          | text                        |
+| COLUMNS      | public     | monitoring_alerts           | user_id                       | uuid                        |
+| COLUMNS      | public     | monitoring_metrics          | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_metrics          | id                            | uuid                        |
+| COLUMNS      | public     | monitoring_metrics          | name                          | text                        |
+| COLUMNS      | public     | monitoring_metrics          | tags                          | jsonb                       |
+| COLUMNS      | public     | monitoring_metrics          | timestamp                     | timestamp with time zone    |
+| COLUMNS      | public     | monitoring_metrics          | unit                          | text                        |
+| COLUMNS      | public     | monitoring_metrics          | user_id                       | uuid                        |
+| COLUMNS      | public     | monitoring_metrics          | value                         | numeric                     |
+| COLUMNS      | public     | notifications               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | notifications               | id                            | uuid                        |
+| COLUMNS      | public     | notifications               | link                          | text                        |
+| COLUMNS      | public     | notifications               | message                       | text                        |
+| COLUMNS      | public     | notifications               | metadata                      | jsonb                       |
+| COLUMNS      | public     | notifications               | read                          | boolean                     |
+| COLUMNS      | public     | notifications               | title                         | text                        |
+| COLUMNS      | public     | notifications               | type                          | text                        |
+| COLUMNS      | public     | notifications               | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | notifications               | user_id                       | uuid                        |
+| COLUMNS      | public     | oauth_events                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | oauth_events                | event_type                    | text                        |
+| COLUMNS      | public     | oauth_events                | id                            | uuid                        |
+| COLUMNS      | public     | oauth_events                | provider                      | text                        |
+| COLUMNS      | public     | oauth_events                | reason                        | text                        |
+| COLUMNS      | public     | oauth_events                | status                        | text                        |
+| COLUMNS      | public     | oauth_events                | user_id                       | uuid                        |
+| COLUMNS      | public     | oauth_states                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | oauth_states                | expires_at                    | timestamp with time zone    |
+| COLUMNS      | public     | oauth_states                | id                            | uuid                        |
+| COLUMNS      | public     | oauth_states                | state                         | text                        |
+| COLUMNS      | public     | oauth_states                | used                          | boolean                     |
+| COLUMNS      | public     | oauth_states                | user_id                       | uuid                        |
+| COLUMNS      | public     | performance_metrics         | id                            | uuid                        |
+| COLUMNS      | public     | performance_metrics         | metadata                      | jsonb                       |
+| COLUMNS      | public     | performance_metrics         | name                          | text                        |
+| COLUMNS      | public     | performance_metrics         | timestamp                     | timestamp with time zone    |
+| COLUMNS      | public     | performance_metrics         | unit                          | text                        |
+| COLUMNS      | public     | performance_metrics         | user_id                       | uuid                        |
+| COLUMNS      | public     | performance_metrics         | value                         | numeric                     |
+| COLUMNS      | public     | profiles                    | avatar_url                    | text                        |
+| COLUMNS      | public     | profiles                    | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | profiles                    | email                         | text                        |
+| COLUMNS      | public     | profiles                    | full_name                     | text                        |
+| COLUMNS      | public     | profiles                    | id                            | uuid                        |
+| COLUMNS      | public     | profiles                    | last_login                    | timestamp with time zone    |
+| COLUMNS      | public     | profiles                    | phone                         | text                        |
+| COLUMNS      | public     | profiles                    | provider_sub                  | text                        |
+| COLUMNS      | public     | profiles                    | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | profiles                    | user_id                       | uuid                        |
+| COLUMNS      | public     | question_templates          | category                      | text                        |
+| COLUMNS      | public     | question_templates          | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | question_templates          | id                            | uuid                        |
+| COLUMNS      | public     | question_templates          | question_pattern              | text                        |
+| COLUMNS      | public     | question_templates          | template_answer               | text                        |
+| COLUMNS      | public     | question_templates          | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | question_templates          | usage_count                   | integer                     |
+| COLUMNS      | public     | question_templates          | user_id                       | uuid                        |
+| COLUMNS      | public     | rate_limit_requests         | action                        | text                        |
+| COLUMNS      | public     | rate_limit_requests         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | rate_limit_requests         | endpoint                      | text                        |
+| COLUMNS      | public     | rate_limit_requests         | id                            | uuid                        |
+| COLUMNS      | public     | rate_limit_requests         | ip_address                    | inet                        |
+| COLUMNS      | public     | rate_limit_requests         | user_agent                    | text                        |
+| COLUMNS      | public     | rate_limit_requests         | user_id                       | uuid                        |
+| COLUMNS      | public     | review_activity_log         | action                        | character varying           |
+| COLUMNS      | public     | review_activity_log         | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | review_activity_log         | details                       | jsonb                       |
+| COLUMNS      | public     | review_activity_log         | id                            | uuid                        |
+| COLUMNS      | public     | review_activity_log         | review_id                     | uuid                        |
+| COLUMNS      | public     | review_activity_log         | user_id                       | uuid                        |
+| COLUMNS      | public     | review_ai_analysis          | ai_suggested_response         | text                        |
+| COLUMNS      | public     | review_ai_analysis          | analyzed_at                   | timestamp with time zone    |
+| COLUMNS      | public     | review_ai_analysis          | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | review_ai_analysis          | id                            | uuid                        |
+| COLUMNS      | public     | review_ai_analysis          | keywords                      | ARRAY                       |
+| COLUMNS      | public     | review_ai_analysis          | review_id                     | uuid                        |
+| COLUMNS      | public     | review_ai_analysis          | sentiment                     | character varying           |
+| COLUMNS      | public     | review_ai_analysis          | sentiment_score               | numeric                     |
+| COLUMNS      | public     | review_stats_view           | avg_rating                    | numeric                     |
+| COLUMNS      | public     | review_stats_view           | negative_count                | bigint                      |
+| COLUMNS      | public     | review_stats_view           | neutral_count                 | bigint                      |
+| COLUMNS      | public     | review_stats_view           | pending_reviews               | bigint                      |
+| COLUMNS      | public     | review_stats_view           | positive_count                | bigint                      |
+| COLUMNS      | public     | review_stats_view           | responded_reviews             | bigint                      |
+| COLUMNS      | public     | review_stats_view           | response_rate                 | numeric                     |
+| COLUMNS      | public     | review_stats_view           | total_reviews                 | bigint                      |
+| COLUMNS      | public     | review_stats_view           | user_id                       | uuid                        |
+| COLUMNS      | public     | room_members                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | room_members                | room_id                       | uuid                        |
+| COLUMNS      | public     | room_members                | user_id                       | uuid                        |
+| COLUMNS      | public     | secret_keys                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | secret_keys                 | id                            | text                        |
+| COLUMNS      | public     | secret_keys                 | key                           | bytea                       |
+| COLUMNS      | public     | security_logs               | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | security_logs               | details                       | jsonb                       |
+| COLUMNS      | public     | security_logs               | event                         | text                        |
+| COLUMNS      | public     | security_logs               | id                            | uuid                        |
+| COLUMNS      | public     | security_logs               | severity                      | text                        |
+| COLUMNS      | public     | security_logs               | user_id                       | uuid                        |
+| COLUMNS      | public     | sync_results                | account_id                    | uuid                        |
+| COLUMNS      | public     | sync_results                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_results                | error                         | text                        |
+| COLUMNS      | public     | sync_results                | id                            | bigint                      |
+| COLUMNS      | public     | sync_results                | ok                            | boolean                     |
+| COLUMNS      | public     | sync_results                | run_id                        | uuid                        |
+| COLUMNS      | public     | sync_results                | status                        | integer                     |
+| COLUMNS      | public     | sync_runs                   | batch_size                    | integer                     |
+| COLUMNS      | public     | sync_runs                   | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_runs                   | finished_at                   | timestamp with time zone    |
+| COLUMNS      | public     | sync_runs                   | id                            | uuid                        |
+| COLUMNS      | public     | sync_runs                   | meta                          | jsonb                       |
+| COLUMNS      | public     | sync_runs                   | next_cursor                   | uuid                        |
+| COLUMNS      | public     | sync_runs                   | started_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_runs                   | status                        | text                        |
+| COLUMNS      | public     | sync_runs                   | triggered_by                  | text                        |
+| COLUMNS      | public     | sync_status                 | completed_at                  | timestamp with time zone    |
+| COLUMNS      | public     | sync_status                 | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_status                 | error                         | text                        |
+| COLUMNS      | public     | sync_status                 | id                            | uuid                        |
+| COLUMNS      | public     | sync_status                 | started_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_status                 | status                        | text                        |
+| COLUMNS      | public     | sync_status                 | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | sync_status                 | user_id                       | uuid                        |
+| COLUMNS      | public     | system_settings             | key                           | text                        |
+| COLUMNS      | public     | system_settings             | value                         | text                        |
+| COLUMNS      | public     | team_members                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | team_members                | id                            | uuid                        |
+| COLUMNS      | public     | team_members                | invited_at                    | timestamp with time zone    |
+| COLUMNS      | public     | team_members                | is_active                     | boolean                     |
+| COLUMNS      | public     | team_members                | joined_at                     | timestamp with time zone    |
+| COLUMNS      | public     | team_members                | locations_access              | jsonb                       |
+| COLUMNS      | public     | team_members                | owner_id                      | uuid                        |
+| COLUMNS      | public     | team_members                | permissions                   | jsonb                       |
+| COLUMNS      | public     | team_members                | role                          | text                        |
+| COLUMNS      | public     | team_members                | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | team_members                | user_id                       | uuid                        |
+| COLUMNS      | public     | users                       | avatar                        | text                        |
+| COLUMNS      | public     | users                       | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | users                       | email                         | text                        |
+| COLUMNS      | public     | users                       | google_id                     | text                        |
+| COLUMNS      | public     | users                       | id                            | uuid                        |
+| COLUMNS      | public     | users                       | last_login                    | timestamp with time zone    |
+| COLUMNS      | public     | users                       | name                          | text                        |
+| COLUMNS      | public     | users                       | role                          | text                        |
+| COLUMNS      | public     | users                       | status                        | text                        |
+| COLUMNS      | public     | users                       | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | v_dashboard_stats           | avg_rating                    | numeric                     |
+| COLUMNS      | public     | v_dashboard_stats           | calculated_at                 | timestamp with time zone    |
+| COLUMNS      | public     | v_dashboard_stats           | pending_questions             | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | pending_reviews               | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | recent_questions              | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | recent_reviews                | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | response_rate                 | numeric                     |
+| COLUMNS      | public     | v_dashboard_stats           | total_locations               | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | total_reviews                 | bigint                      |
+| COLUMNS      | public     | v_dashboard_stats           | user_id                       | uuid                        |
+| COLUMNS      | public     | v_error_summary             | error_count                   | bigint                      |
+| COLUMNS      | public     | v_error_summary             | last_error                    | timestamp with time zone    |
+| COLUMNS      | public     | v_error_summary             | resolved_count                | bigint                      |
+| COLUMNS      | public     | v_error_summary             | severity                      | integer                     |
+| COLUMNS      | public     | v_error_summary             | user_id                       | uuid                        |
+| COLUMNS      | public     | v_health_score_distribution | average_rating                | numeric                     |
+| COLUMNS      | public     | v_health_score_distribution | checked_at                    | timestamp with time zone    |
+| COLUMNS      | public     | v_health_score_distribution | health_score                  | numeric                     |
+| COLUMNS      | public     | v_health_score_distribution | health_status                 | text                        |
+| COLUMNS      | public     | v_health_score_distribution | location_id                   | uuid                        |
+| COLUMNS      | public     | v_health_score_distribution | location_name                 | text                        |
+| COLUMNS      | public     | v_health_score_distribution | response_rate                 | numeric                     |
+| COLUMNS      | public     | v_health_score_distribution | user_id                       | uuid                        |
+| COLUMNS      | public     | v_notification_summary      | last_notification             | timestamp with time zone    |
+| COLUMNS      | public     | v_notification_summary      | total_count                   | bigint                      |
+| COLUMNS      | public     | v_notification_summary      | type                          | text                        |
+| COLUMNS      | public     | v_notification_summary      | unread_count                  | bigint                      |
+| COLUMNS      | public     | v_notification_summary      | user_id                       | uuid                        |
+| COLUMNS      | public     | v_performance_summary       | avg_value                     | numeric                     |
+| COLUMNS      | public     | v_performance_summary       | last_measured                 | timestamp with time zone    |
+| COLUMNS      | public     | v_performance_summary       | max_value                     | numeric                     |
+| COLUMNS      | public     | v_performance_summary       | measurement_count             | bigint                      |
+| COLUMNS      | public     | v_performance_summary       | median_value                  | double precision            |
+| COLUMNS      | public     | v_performance_summary       | min_value                     | numeric                     |
+| COLUMNS      | public     | v_performance_summary       | name                          | text                        |
+| COLUMNS      | public     | v_performance_summary       | p95_value                     | double precision            |
+| COLUMNS      | public     | v_performance_summary       | user_id                       | uuid                        |
+| COLUMNS      | public     | weekly_task_recommendations | category                      | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | weekly_task_recommendations | description                   | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | effort_level                  | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | estimated_minutes             | integer                     |
+| COLUMNS      | public     | weekly_task_recommendations | expected_impact               | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | id                            | uuid                        |
+| COLUMNS      | public     | weekly_task_recommendations | insights                      | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | priority                      | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | reasoning                     | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | status                        | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | tasks                         | jsonb                       |
+| COLUMNS      | public     | weekly_task_recommendations | title                         | text                        |
+| COLUMNS      | public     | weekly_task_recommendations | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | weekly_task_recommendations | user_id                       | uuid                        |
+| COLUMNS      | public     | weekly_task_recommendations | week_end_date                 | date                        |
+| COLUMNS      | public     | weekly_task_recommendations | week_start_date               | date                        |
+| COLUMNS      | public     | weekly_tasks                | completed                     | boolean                     |
+| COLUMNS      | public     | weekly_tasks                | completed_at                  | timestamp with time zone    |
+| COLUMNS      | public     | weekly_tasks                | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | weekly_tasks                | description                   | text                        |
+| COLUMNS      | public     | weekly_tasks                | due_date                      | date                        |
+| COLUMNS      | public     | weekly_tasks                | id                            | uuid                        |
+| COLUMNS      | public     | weekly_tasks                | location_id                   | uuid                        |
+| COLUMNS      | public     | weekly_tasks                | priority                      | text                        |
+| COLUMNS      | public     | weekly_tasks                | task_type                     | text                        |
+| COLUMNS      | public     | weekly_tasks                | title                         | text                        |
+| COLUMNS      | public     | weekly_tasks                | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | weekly_tasks                | user_id                       | uuid                        |
+| COLUMNS      | public     | youtube_drafts              | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | youtube_drafts              | description                   | text                        |
+| COLUMNS      | public     | youtube_drafts              | hashtags                      | text                        |
+| COLUMNS      | public     | youtube_drafts              | id                            | uuid                        |
+| COLUMNS      | public     | youtube_drafts              | title                         | text                        |
+| COLUMNS      | public     | youtube_drafts              | user_id                       | uuid                        |
+| COLUMNS      | public     | youtube_videos              | category                      | text                        |
+| COLUMNS      | public     | youtube_videos              | created_at                    | timestamp with time zone    |
+| COLUMNS      | public     | youtube_videos              | description                   | text                        |
+| COLUMNS      | public     | youtube_videos              | id                            | uuid                        |
+| COLUMNS      | public     | youtube_videos              | language                      | text                        |
+| COLUMNS      | public     | youtube_videos              | privacy_status                | text                        |
+| COLUMNS      | public     | youtube_videos              | published_at                  | timestamp with time zone    |
+| COLUMNS      | public     | youtube_videos              | tags                          | ARRAY                       |
+| COLUMNS      | public     | youtube_videos              | thumbnail_url                 | text                        |
+| COLUMNS      | public     | youtube_videos              | title                         | text                        |
+| COLUMNS      | public     | youtube_videos              | updated_at                    | timestamp with time zone    |
+| COLUMNS      | public     | youtube_videos              | user_id                       | uuid                        |
+| COLUMNS      | public     | youtube_videos              | video_id                      | text                        |
+| FOREIGN_KEYS | public     | ai_autopilot_logs           | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | ai_autopilot_settings       | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | ai_requests                 | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | ai_requests                 | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | ai_settings                 | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | auto_reply_queue            | review_id                     | FK to gmb_reviews.id        |
+| FOREIGN_KEYS | public     | auto_reply_settings         | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | autopilot_logs              | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | autopilot_settings          | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | autopilot_settings          | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | business_profile_history    | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | citation_listings           | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | citation_listings           | source_id                     | FK to citation_sources.id   |
+| FOREIGN_KEYS | public     | competitor_tracking         | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | content_generation          | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to users.id              |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to users.id              |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | gmb_accounts                | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | gmb_attributes              | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_attributes              | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_citations               | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_insights                | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_locations               | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_media                   | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_media                   | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_performance_metrics     | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_performance_metrics     | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_posts                   | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_questions               | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_questions               | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_rankings                | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_reviews                 | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_reviews                 | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_search_keywords         | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_search_keywords         | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | gmb_sync_logs               | gmb_account_id                | FK to gmb_accounts.id       |
+| FOREIGN_KEYS | public     | gmb_sync_logs               | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | health_check_results        | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | keyword_rankings            | location_id                   | FK to gmb_locations.id      |
+| FOREIGN_KEYS | public     | profiles                    | user_id                       | FK to users.id              |
+| FOREIGN_KEYS | public     | profiles                    | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | profiles                    | user_id                       | FK to users.id              |
+| FOREIGN_KEYS | public     | profiles                    | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | review_activity_log         | review_id                     | FK to gmb_reviews.id        |
+| FOREIGN_KEYS | public     | review_ai_analysis          | review_id                     | FK to gmb_reviews.id        |
+| FOREIGN_KEYS | public     | sync_results                | run_id                        | FK to sync_runs.id          |
+| FOREIGN_KEYS | public     | team_members                | owner_id                      | FK to profiles.id           |
+| FOREIGN_KEYS | public     | team_members                | user_id                       | FK to profiles.id           |
+| FOREIGN_KEYS | public     | weekly_tasks                | location_id                   | FK to gmb_locations.id      |
+| TABLES       | public     | activity_logs               | null                          | null                        |
+| TABLES       | public     | ai_autopilot_logs           | null                          | null                        |
+| TABLES       | public     | ai_autopilot_settings       | null                          | null                        |
+| TABLES       | public     | ai_requests                 | null                          | null                        |
+| TABLES       | public     | ai_settings                 | null                          | null                        |
+| TABLES       | public     | audit_logs                  | null                          | null                        |
+| TABLES       | public     | auto_reply_queue            | null                          | null                        |
+| TABLES       | public     | auto_reply_settings         | null                          | null                        |
+| TABLES       | public     | autopilot_logs              | null                          | null                        |
+| TABLES       | public     | autopilot_settings          | null                          | null                        |
+| TABLES       | public     | business_profile_history    | null                          | null                        |
+| TABLES       | public     | citation_listings           | null                          | null                        |
+| TABLES       | public     | citation_sources            | null                          | null                        |
+| TABLES       | public     | client_profiles             | null                          | null                        |
+| TABLES       | public     | competitor_tracking         | null                          | null                        |
+| TABLES       | public     | content_generation          | null                          | null                        |
+| TABLES       | public     | content_generations         | null                          | null                        |
+| TABLES       | public     | error_logs                  | null                          | null                        |
+| TABLES       | public     | gmb_accounts                | null                          | null                        |
+| TABLES       | public     | gmb_attributes              | null                          | null                        |
+| TABLES       | public     | gmb_citations               | null                          | null                        |
+| TABLES       | public     | gmb_dashboard_reports       | null                          | null                        |
+| TABLES       | public     | gmb_insights                | null                          | null                        |
+| TABLES       | public     | gmb_locations               | null                          | null                        |
+| TABLES       | public     | gmb_media                   | null                          | null                        |
+| TABLES       | public     | gmb_metrics                 | null                          | null                        |
+| TABLES       | public     | gmb_performance_metrics     | null                          | null                        |
+| TABLES       | public     | gmb_posts                   | null                          | null                        |
+| TABLES       | public     | gmb_questions               | null                          | null                        |
+| TABLES       | public     | gmb_rankings                | null                          | null                        |
+| TABLES       | public     | gmb_reviews                 | null                          | null                        |
+| TABLES       | public     | gmb_reviews_backup_20251114 | null                          | null                        |
+| TABLES       | public     | gmb_search_keywords         | null                          | null                        |
+| TABLES       | public     | gmb_sync_logs               | null                          | null                        |
+| TABLES       | public     | health_check_results        | null                          | null                        |
+| TABLES       | public     | jobs_log                    | null                          | null                        |
+| TABLES       | public     | keyword_rankings            | null                          | null                        |
+| TABLES       | public     | monitoring_alerts           | null                          | null                        |
+| TABLES       | public     | monitoring_metrics          | null                          | null                        |
+| TABLES       | public     | notifications               | null                          | null                        |
+| TABLES       | public     | oauth_events                | null                          | null                        |
+| TABLES       | public     | oauth_states                | null                          | null                        |
+| TABLES       | public     | performance_metrics         | null                          | null                        |
+| TABLES       | public     | profiles                    | null                          | null                        |
+| TABLES       | public     | question_templates          | null                          | null                        |
+| TABLES       | public     | rate_limit_requests         | null                          | null                        |
+| TABLES       | public     | review_activity_log         | null                          | null                        |
+| TABLES       | public     | review_ai_analysis          | null                          | null                        |
+| TABLES       | public     | room_members                | null                          | null                        |
+| TABLES       | public     | secret_keys                 | null                          | null                        |
+| TABLES       | public     | security_logs               | null                          | null                        |
+| TABLES       | public     | sync_results                | null                          | null                        |
+| TABLES       | public     | sync_runs                   | null                          | null                        |
+| TABLES       | public     | sync_status                 | null                          | null                        |
+| TABLES       | public     | system_settings             | null                          | null                        |
+| TABLES       | public     | team_members                | null                          | null                        |
+| TABLES       | public     | users                       | null                          | null                        |
+| TABLES       | public     | weekly_task_recommendations | null                          | null                        |
+| TABLES       | public     | weekly_tasks                | null                          | null                        |
+| TABLES       | public     | youtube_drafts              | null                          | null                        |
+| TABLES       | public     | youtube_videos              | null                          | null                        |
