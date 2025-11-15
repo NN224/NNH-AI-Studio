@@ -10,6 +10,9 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { DashboardClientWrapper, DashboardHeader } from '@/components/dashboard/dashboard-client-wrapper'
 import { ErrorBoundaryWrapper } from '@/components/dashboard/dashboard-error-boundary-wrapper'
 import { DashboardCharts, DashboardChartsSkeleton } from '@/components/dashboard/charts'
+import { AIInsightsPanel } from '@/components/dashboard/ai/ai-insights-panel'
+import { ChatAssistant } from '@/components/dashboard/ai/chat-assistant'
+import { AutomationInsights } from '@/components/dashboard/ai/automation-insights'
 import type { GmbAccount, GMBLocation, GMBReview, ActivityLog } from '@/lib/types/database'
 
 interface DashboardStats {
@@ -37,14 +40,8 @@ interface ReviewWithLocation extends GMBReview {
 async function getDashboardData(userId: string) {
   const supabase = await createClient()
 
-  // Fetch all data in parallel for optimal performance
-  const [
-    { data: accounts, error: accountsError },
-    { data: locations, error: locationsError },
-    { data: reviews, error: reviewsError },
-    { data: activities, error: activitiesError },
-    { data: stats, error: statsError },
-  ] = await Promise.all([
+  // Fetch all data in parallel using Promise.allSettled for better error handling
+  const results = await Promise.allSettled([
     // Get active GMB accounts
     supabase
       .from('gmb_accounts')
@@ -89,24 +86,58 @@ async function getDashboardData(userId: string) {
       .single(),
   ])
 
-  // Handle errors gracefully
-  if (accountsError) console.error('Error fetching accounts:', accountsError)
-  if (locationsError) console.error('Error fetching locations:', locationsError)
-  if (reviewsError) console.error('Error fetching reviews:', reviewsError)
-  if (activitiesError) console.error('Error fetching activities:', activitiesError)
-  if (statsError) console.error('Error fetching stats:', statsError)
+  // Extract data from settled promises
+  const [accountsResult, locationsResult, reviewsResult, activitiesResult, statsResult] = results
+
+  // Handle each result with fallbacks
+  const accounts = accountsResult.status === 'fulfilled' && accountsResult.value.data 
+    ? accountsResult.value.data 
+    : []
+  
+  const locations = locationsResult.status === 'fulfilled' && locationsResult.value.data
+    ? locationsResult.value.data
+    : []
+  
+  const reviews = reviewsResult.status === 'fulfilled' && reviewsResult.value.data
+    ? reviewsResult.value.data
+    : []
+  
+  const activities = activitiesResult.status === 'fulfilled' && activitiesResult.value.data
+    ? activitiesResult.value.data
+    : []
+  
+  const stats = statsResult.status === 'fulfilled' && statsResult.value.data
+    ? statsResult.value.data
+    : null
+
+  // Log errors for monitoring
+  if (accountsResult.status === 'rejected') {
+    console.error('Error fetching accounts:', accountsResult.reason)
+  }
+  if (locationsResult.status === 'rejected') {
+    console.error('Error fetching locations:', locationsResult.reason)
+  }
+  if (reviewsResult.status === 'rejected') {
+    console.error('Error fetching reviews:', reviewsResult.reason)
+  }
+  if (activitiesResult.status === 'rejected') {
+    console.error('Error fetching activities:', activitiesResult.reason)
+  }
+  if (statsResult.status === 'rejected') {
+    console.error('Error fetching stats:', statsResult.reason)
+  }
 
   // Transform reviews data to include location_name
-  const reviewsWithLocation: ReviewWithLocation[] = reviews?.map((review: any) => ({
+  const reviewsWithLocation: ReviewWithLocation[] = reviews.map((review: any) => ({
     ...review,
     location_name: review.gmb_locations?.location_name || 'Unknown Location',
-  })) || []
+  }))
 
   return {
-    accounts: (accounts || []) as GmbAccount[],
-    locations: (locations || []) as LocationWithRating[],
+    accounts: accounts as GmbAccount[],
+    locations: locations as LocationWithRating[],
     reviews: reviewsWithLocation,
-    activities: (activities || []) as ActivityLog[],
+    activities: activities as ActivityLog[],
     stats: stats as DashboardStats | null,
   }
 }
@@ -189,6 +220,23 @@ export default async function DashboardPage() {
               />
             </Suspense>
           </ErrorBoundaryWrapper>
+
+          {/* AI Insights Section */}
+          <ErrorBoundaryWrapper>
+            <Suspense fallback={<DashboardSkeleton section="widget" count={3} />}>
+              <AIInsightsPanel userId={user.id} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+
+          {/* Automation Insights Section */}
+          <ErrorBoundaryWrapper>
+            <Suspense fallback={<DashboardSkeleton section="widget" count={4} />}>
+              <AutomationInsights userId={user.id} />
+            </Suspense>
+          </ErrorBoundaryWrapper>
+
+          {/* Floating Chat Assistant */}
+          <ChatAssistant userId={user.id} />
         </div>
       )}
     </DashboardClientWrapper>

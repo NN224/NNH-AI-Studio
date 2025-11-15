@@ -1,182 +1,171 @@
 'use client';
 
-import React, { ErrorInfo, ReactNode } from 'react';
+/**
+ * Global Error Boundary
+ * Catches and handles errors across the entire application
+ */
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, Home, FileText } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
-  error?: Error;
-  errorInfo?: ErrorInfo;
-  errorId?: string;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
 }
 
-export class GlobalErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
 
-  static getDerivedStateFromError(error: Error): State {
-    // Generate unique error ID for tracking
-    const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    return { 
-      hasError: true, 
-      error,
-      errorId 
+export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error caught by boundary:', error, errorInfo);
-    }
-
-    // Send error to logging service
-    this.logErrorToService(error, errorInfo);
-    
-    // Update state with error details
-    this.setState({
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return {
+      hasError: true,
       error,
-      errorInfo,
-    });
+    };
   }
 
-  logErrorToService = async (error: Error, errorInfo: ErrorInfo) => {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error to console
+    console.error('Global Error Boundary caught an error:', error, errorInfo);
+
+    // Update state with error info
+    this.setState({
+      errorInfo,
+    });
+
+    // Log to Supabase error_logs table
+    this.logErrorToDatabase(error, errorInfo);
+  }
+
+  async logErrorToDatabase(error: Error, errorInfo: React.ErrorInfo) {
     try {
-      // In production, send to error tracking service (e.g., Sentry)
-      if (process.env.NODE_ENV === 'production') {
-        await fetch('/api/log-error', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: error.message,
-            stack: error.stack,
-            componentStack: errorInfo.componentStack,
-            errorId: this.state.errorId,
-            timestamp: new Date().toISOString(),
-            userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : null,
-            url: typeof window !== 'undefined' ? window.location.href : null,
-          }),
-        });
-      }
+      await fetch('/api/error-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          timestamp: new Date().toISOString(),
+          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+        }),
+      });
     } catch (logError) {
-      console.error('Failed to log error:', logError);
+      // Fail silently - don't break the error boundary
+      console.error('Failed to log error to database:', logError);
     }
-  };
+  }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
   };
 
   handleReload = () => {
     window.location.reload();
   };
 
-  copyErrorDetails = () => {
-    const { error, errorInfo, errorId } = this.state;
-    const details = `
-Error ID: ${errorId}
-Message: ${error?.message}
-Stack: ${error?.stack}
-Component Stack: ${errorInfo?.componentStack}
-URL: ${window.location.href}
-Time: ${new Date().toISOString()}
-    `.trim();
-
-    navigator.clipboard.writeText(details);
-    toast.success('Error details copied to clipboard');
+  handleGoHome = () => {
+    window.location.href = '/';
   };
 
   render() {
     if (this.state.hasError) {
       // Use custom fallback if provided
       if (this.props.fallback) {
-        return <>{this.props.fallback}</>;
+        return this.props.fallback;
       }
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full bg-zinc-900 border-zinc-800">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+          <Card className="max-w-2xl w-full">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
+                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">حدث خطأ غير متوقع</CardTitle>
+                  <CardDescription>
+                    نعتذر عن الإزعاج. تم تسجيل المشكلة وسنعمل على حلها.
+                  </CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-2xl text-white">Something went wrong</CardTitle>
-              <CardDescription className="text-zinc-400">
-                An unexpected error occurred. The error has been logged and our team will investigate.
-              </CardDescription>
             </CardHeader>
-            
-            <CardContent className="space-y-4">
-              {/* Error details (only in development) */}
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="bg-zinc-800 rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-mono text-red-400">{this.state.error.message}</p>
-                  {this.state.error.stack && (
-                    <pre className="text-xs text-zinc-400 overflow-x-auto max-h-40 overflow-y-auto">
-                      {this.state.error.stack}
-                    </pre>
-                  )}
+            <CardContent className="space-y-6">
+              {/* Error Details */}
+              {this.state.error && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm">تفاصيل الخطأ:</h3>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <code className="text-sm text-red-600 dark:text-red-400 break-all">
+                      {this.state.error.message}
+                    </code>
+                  </div>
                 </div>
               )}
 
-              {/* Error ID for reference */}
-              <div className="text-center">
-                <p className="text-sm text-zinc-500">
-                  Error ID: <code className="text-zinc-400">{this.state.errorId}</code>
-                </p>
+              {/* Stack Trace (Development Only) */}
+              {process.env.NODE_ENV === 'development' && this.state.error?.stack && (
+                <details className="space-y-2">
+                  <summary className="cursor-pointer font-semibold text-sm hover:text-primary">
+                    Stack Trace (للمطورين)
+                  </summary>
+                  <div className="p-4 bg-muted rounded-lg overflow-auto max-h-64">
+                    <pre className="text-xs">
+                      <code>{this.state.error.stack}</code>
+                    </pre>
+                  </div>
+                </details>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={this.handleReset} variant="default" className="flex-1">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  حاول مرة أخرى
+                </Button>
+                <Button onClick={this.handleReload} variant="outline" className="flex-1">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  إعادة تحميل الصفحة
+                </Button>
+                <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
+                  <Home className="h-4 w-4 mr-2" />
+                  العودة للرئيسية
+                </Button>
+              </div>
+
+              {/* Help Text */}
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>إذا استمرت المشكلة، يمكنك:</p>
+                <ul className="list-disc list-inside space-y-1 mr-4">
+                  <li>مسح ذاكرة التخزين المؤقت للمتصفح</li>
+                  <li>تحديث المتصفح إلى أحدث إصدار</li>
+                  <li>التواصل مع الدعم الفني</li>
+                </ul>
               </div>
             </CardContent>
-
-            <CardFooter className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={this.handleReset}
-                variant="default"
-                className="w-full sm:w-auto"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again
-              </Button>
-              
-              <Button
-                onClick={this.handleReload}
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                Reload Page
-              </Button>
-
-              <Link href="/" className="w-full sm:w-auto">
-                <Button variant="outline" className="w-full">
-                  <Home className="w-4 h-4 mr-2" />
-                  Go Home
-                </Button>
-              </Link>
-
-              {process.env.NODE_ENV === 'development' && (
-                <Button
-                  onClick={this.copyErrorDetails}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Copy Details
-                </Button>
-              )}
-            </CardFooter>
           </Card>
         </div>
       );
@@ -184,4 +173,19 @@ Time: ${new Date().toISOString()}
 
     return this.props.children;
   }
+}
+
+/**
+ * Error Boundary Hook (for functional components)
+ */
+export function useErrorHandler() {
+  const [error, setError] = React.useState<Error | null>(null);
+
+  React.useEffect(() => {
+    if (error) {
+      throw error;
+    }
+  }, [error]);
+
+  return setError;
 }
