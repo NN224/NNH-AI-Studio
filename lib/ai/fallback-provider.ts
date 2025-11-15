@@ -59,19 +59,21 @@ export async function getAIProviderWithFallback(
  */
 async function getSystemAPIKey(): Promise<AIProviderConfig | null> {
   // Option 1: From environment variables (recommended)
+  // Priority: Anthropic > OpenAI > Google
+  
+  if (process.env.SYSTEM_ANTHROPIC_API_KEY) {
+    return {
+      provider: 'anthropic',
+      apiKey: process.env.SYSTEM_ANTHROPIC_API_KEY,
+      model: 'claude-3-haiku-20240307', // Fastest and cheapest
+    };
+  }
+
   if (process.env.SYSTEM_OPENAI_API_KEY) {
     return {
       provider: 'openai',
       apiKey: process.env.SYSTEM_OPENAI_API_KEY,
       model: 'gpt-3.5-turbo',
-    };
-  }
-
-  if (process.env.SYSTEM_ANTHROPIC_API_KEY) {
-    return {
-      provider: 'anthropic',
-      apiKey: process.env.SYSTEM_ANTHROPIC_API_KEY,
-      model: 'claude-3-haiku-20240307',
     };
   }
 
