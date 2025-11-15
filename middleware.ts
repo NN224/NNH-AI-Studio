@@ -4,24 +4,19 @@ import type { NextRequest } from 'next/server';
 import { validateCSRF } from '@/lib/security/csrf';
 
 // Upstash Ratelimit configuration with fallback to in-memory
-import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-const RATE_LIMIT = 1000; // requests per hour per user
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const REQUEST_LIMIT_PER_MIN = 100;
+const REQUEST_WINDOW_MS = 60 * 1000;
+const SYNC_LIMIT_PER_HOUR = 10;
+const SYNC_WINDOW_MS = 60 * 60 * 1000;
 
 // Try to initialize Upstash Redis; fallback to in-memory if env vars missing
 let redis: Redis | null = null;
-let ratelimit: Ratelimit | null = null;
 let usingRedis = false;
 
 try {
   redis = Redis.fromEnv();
-  ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.fixedWindow(RATE_LIMIT, `${RATE_LIMIT_WINDOW_MS / 1000} s`),
-    prefix: 'nnh-rate-limit',
-  });
   usingRedis = true;
   console.log('[Middleware] Using Upstash Redis for rate limiting');
 } catch (error) {
@@ -35,6 +30,39 @@ if (!g.__rateLimitStore) {
   g.__rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 }
 const rateLimitStore: Map<string, { count: number; resetAt: number }> = g.__rateLimitStore;
+
+async function checkRateLimit(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+
+  if (usingRedis && redis) {
+    const redisKey = `ratelimit:${key}`;
+    const count = await redis.incr(redisKey);
+    if (count === 1) {
+      await redis.pexpire(redisKey, windowMs);
+    }
+    const ttlMs = await redis.pttl(redisKey);
+    const reset = ttlMs > 0 ? now + ttlMs : now + windowMs;
+    return {
+      allowed: count <= limit,
+      remaining: Math.max(0, limit - count),
+      reset,
+    };
+  }
+
+  const bucket = rateLimitStore.get(key);
+  if (!bucket || bucket.resetAt < now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: limit - 1, reset: now + windowMs };
+  }
+
+  bucket.count += 1;
+  rateLimitStore.set(key, bucket);
+  return {
+    allowed: bucket.count <= limit,
+    remaining: Math.max(0, limit - bucket.count),
+    reset: bucket.resetAt,
+  };
+}
 
 // Create next-intl middleware
 const intlMiddleware = createIntlMiddleware({
@@ -120,60 +148,11 @@ export async function middleware(request: NextRequest) {
   // Rate limit API routes only
   const userId = extractUserId(request);
 
-  let success = true;
-  let limit = RATE_LIMIT;
-  let remaining = RATE_LIMIT;
-  let reset = Date.now() + RATE_LIMIT_WINDOW_MS;
+  const generalKey = `req:${userId}`;
+  const generalResult = await checkRateLimit(generalKey, REQUEST_LIMIT_PER_MIN, REQUEST_WINDOW_MS);
 
-  if (usingRedis && ratelimit) {
-    // Use Upstash Redis rate limiting
-    try {
-      const result = await ratelimit.limit(userId);
-      success = result.success;
-      limit = result.limit;
-      remaining = result.remaining;
-      reset = result.reset;
-    } catch (error) {
-      console.error('[Middleware] Upstash rate limit check failed:', error);
-      // Continue with in-memory fallback on error
-      usingRedis = false;
-    }
-  }
-
-  if (!usingRedis) {
-    // In-memory fallback rate limiting
-    const now = Date.now();
-    const userLimit = rateLimitStore.get(userId);
-
-    if (!userLimit || userLimit.resetAt < now) {
-      // New window or expired window
-      rateLimitStore.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-      remaining = RATE_LIMIT - 1;
-      reset = now + RATE_LIMIT_WINDOW_MS;
-    } else {
-      // Within current window
-      userLimit.count++;
-      rateLimitStore.set(userId, userLimit);
-      remaining = Math.max(0, RATE_LIMIT - userLimit.count);
-      reset = userLimit.resetAt;
-
-      if (userLimit.count > RATE_LIMIT) {
-        success = false;
-      }
-    }
-
-    // Cleanup old entries periodically (10% chance per request)
-    if (Math.random() < 0.1) {
-      for (const [key, value] of rateLimitStore.entries()) {
-        if (value.resetAt < now) {
-          rateLimitStore.delete(key);
-        }
-      }
-    }
-  }
-
-  if (!success) {
-    const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+  if (!generalResult.allowed) {
+    const retryAfter = Math.ceil((generalResult.reset - Date.now()) / 1000);
     return NextResponse.json(
       {
         error: 'Rate limit exceeded',
@@ -183,20 +162,58 @@ export async function middleware(request: NextRequest) {
       {
         status: 429,
         headers: {
-          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Limit': REQUEST_LIMIT_PER_MIN.toString(),
           'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': reset.toString(),
+          'X-RateLimit-Reset': generalResult.reset.toString(),
           'Retry-After': retryAfter.toString(),
         }
       }
     );
   }
 
+  const isSyncRoute =
+    request.nextUrl.pathname.includes('/gmb/sync') ||
+    request.nextUrl.pathname.includes('/gmb/sync-v2');
+
+  if (isSyncRoute) {
+    const syncResult = await checkRateLimit(
+      `sync:${userId}`,
+      SYNC_LIMIT_PER_HOUR,
+      SYNC_WINDOW_MS
+    );
+
+    if (!syncResult.allowed) {
+      const retryAfter = Math.ceil((syncResult.reset - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          error: 'Sync rate limit exceeded',
+          retryAfter,
+          message: `Sync operations limited to ${SYNC_LIMIT_PER_HOUR} per hour.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': retryAfter.toString(),
+          },
+        }
+      );
+    }
+  }
+
+  if (!usingRedis && Math.random() < 0.1) {
+    const now = Date.now();
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (value.resetAt < now) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
   // Add rate limit headers to response
   const response = NextResponse.next();
-  response.headers.set('X-RateLimit-Limit', limit.toString());
-  response.headers.set('X-RateLimit-Remaining', remaining.toString());
-  response.headers.set('X-RateLimit-Reset', reset.toString());
+  response.headers.set('X-RateLimit-Limit', REQUEST_LIMIT_PER_MIN.toString());
+  response.headers.set('X-RateLimit-Remaining', generalResult.remaining.toString());
+  response.headers.set('X-RateLimit-Reset', generalResult.reset.toString());
   
   // Add CSRF token to response headers if available (for GET requests)
   if (!isOAuthRoute && csrfToken && request.method === 'GET') {

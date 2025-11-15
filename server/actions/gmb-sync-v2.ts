@@ -10,6 +10,8 @@ import {
   publishSyncProgress,
   type SyncProgressEvent,
 } from "@/lib/cache/cache-manager"
+import { logAction } from "@/lib/monitoring/audit"
+import { trackSyncResult } from "@/lib/monitoring/metrics"
 import { randomUUID } from "crypto"
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE
@@ -372,6 +374,7 @@ export async function fetchQuestionsDataForSync(
 
 export async function performTransactionalSync(accountId: string, includeQuestions = true) {
   const supabase = await createClient()
+  const operationStart = Date.now()
 
   const {
     data: { user },
@@ -482,6 +485,18 @@ export async function performTransactionalSync(accountId: string, includeQuestio
       message: "Sync completed successfully",
     })
 
+    const durationMs = Date.now() - operationStart
+    await logAction("sync", "gmb_account", accountId, {
+      status: "success",
+      took_ms: durationMs,
+      counts: {
+        locations: transactionResult.locations_synced,
+        reviews: transactionResult.reviews_synced,
+        questions: transactionResult.questions_synced,
+      },
+    })
+    await trackSyncResult(user.id, true, durationMs)
+
     return {
       success: true,
       ...transactionResult,
@@ -496,6 +511,14 @@ export async function performTransactionalSync(accountId: string, includeQuestio
       message,
       error: message,
     })
+    const durationMs = Date.now() - operationStart
+    await logAction("sync", "gmb_account", accountId, {
+      status: "failed",
+      stage: currentStage,
+      took_ms: durationMs,
+      error: message,
+    })
+    await trackSyncResult(user?.id ?? null, false, durationMs)
     throw error
   }
 }

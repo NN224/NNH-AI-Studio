@@ -46,6 +46,16 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
+      await fetch('/api/monitoring/audit/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login',
+          resourceType: 'user',
+          resourceId: 'self',
+          metadata: { method: 'password' },
+        }),
+      }).catch(() => {})
       router.push("/home")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")

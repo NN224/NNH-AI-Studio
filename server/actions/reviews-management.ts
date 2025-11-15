@@ -6,6 +6,8 @@ import { z } from "zod"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
 import type { ReviewData } from "@/lib/gmb/sync-types"
 import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager"
+import { logAction } from "@/lib/monitoring/audit"
+import { trackApiResponse } from "@/lib/monitoring/metrics"
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
 const STAR_RATING_TO_SCORE: Record<string, number> = {
@@ -263,6 +265,7 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
  * 2. REPLY TO REVIEW
  */
 export async function replyToReview(reviewId: string, replyText: string) {
+  const operationStart = Date.now()
   try {
     const validatedData = ReplySchema.parse({ reviewId, replyText })
     const supabase = await createClient()
@@ -434,6 +437,14 @@ export async function replyToReview(reviewId: string, replyText: string) {
 
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
 
+    const durationMs = Date.now() - operationStart
+    await logAction("review_reply", "gmb_review", validatedData.reviewId, {
+      status: "success",
+      type: "create",
+      location_id: location?.id,
+    })
+    await trackApiResponse("review_reply", durationMs)
+
     return {
       success: true,
       data: result,
@@ -441,6 +452,13 @@ export async function replyToReview(reviewId: string, replyText: string) {
     }
   } catch (error: any) {
     console.error("[Reviews] Reply error:", error)
+    const durationMs = Date.now() - operationStart
+    await logAction("review_reply", "gmb_review", reviewId, {
+      status: "failed",
+      type: "create",
+      error: error?.message ?? "unknown",
+    })
+    await trackApiResponse("review_reply", durationMs)
 
     if (error instanceof z.ZodError) {
       return {
@@ -460,6 +478,7 @@ export async function replyToReview(reviewId: string, replyText: string) {
  * 3. UPDATE EXISTING REPLY
  */
 export async function updateReply(reviewId: string, newReplyText: string) {
+  const operationStart = Date.now()
   try {
     const validatedData = ReplySchema.parse({ reviewId, replyText: newReplyText })
     const supabase = await createClient()
@@ -581,6 +600,14 @@ export async function updateReply(reviewId: string, newReplyText: string) {
     revalidatePath("/dashboard")
     revalidatePath("/reviews")
 
+    const durationMs = Date.now() - operationStart
+    await logAction("review_reply", "gmb_review", validatedData.reviewId, {
+      status: "success",
+      type: "update",
+      location_id: location?.id,
+    })
+    await trackApiResponse("review_reply", durationMs)
+
     return {
       success: true,
       data: result,
@@ -588,6 +615,13 @@ export async function updateReply(reviewId: string, newReplyText: string) {
     }
   } catch (error: any) {
     console.error("[Reviews] Update reply error:", error)
+    const durationMs = Date.now() - operationStart
+    await logAction("review_reply", "gmb_review", reviewId, {
+      status: "failed",
+      type: "update",
+      error: error?.message ?? "unknown",
+    })
+    await trackApiResponse("review_reply", durationMs)
     return {
       success: false,
       error: error.message || "Failed to update reply",

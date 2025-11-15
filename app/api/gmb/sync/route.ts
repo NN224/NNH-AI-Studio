@@ -6,6 +6,8 @@ import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
 import { runSyncTransactionWithRetry } from '@/lib/supabase/transactions';
 import type { LocationData, ReviewData, QuestionData } from '@/lib/gmb/sync-types';
 import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager';
+import { logAction } from '@/lib/monitoring/audit';
+import { trackSyncResult } from '@/lib/monitoring/metrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -2077,6 +2079,14 @@ export async function POST(request: NextRequest) {
       console.log(`[GMB Sync API] Sync completed in ${took}ms`, counts);
     }
 
+    await logAction('sync', 'gmb_account', accountId, {
+      status: 'success',
+      took_ms: took,
+      sync_type: syncType,
+      counts,
+    });
+    await trackSyncResult(userId ?? null, true, took);
+
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
 
     const successPayload = {
@@ -2098,6 +2108,13 @@ export async function POST(request: NextRequest) {
     console.error('[GMB Sync API] Sync failed:', error);
     const baseMessage = error instanceof Error ? error.message : 'Sync failed';
     syncStatusError = `${baseMessage} / فشلت عملية المزامنة.`;
+    await logAction('sync', 'gmb_account', accountId, {
+      status: 'failed',
+      took_ms: took,
+      sync_type: syncType,
+      error: baseMessage,
+    });
+    await trackSyncResult(typeof userId === 'string' ? userId : null, false, took);
     return errorResponse(error);
   } finally {
     if (lockRefreshTimer) {

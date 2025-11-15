@@ -3,6 +3,7 @@ import { handleApiError } from '@/lib/utils/api-error-handler';
 import { getBaseUrlDynamic } from '@/lib/utils/get-base-url-dynamic';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
+import { logAction } from '@/lib/monitoring/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -390,8 +391,14 @@ export async function GET(request: NextRequest) {
       ); // Keep redirect for user-facing error
     }
     
+    // Audit logging for successful connection
+    await logAction('gmb_connect', 'gmb_account', savedAccountId, {
+      google_email: userInfo.email,
+      state_token: state,
+    });
+
     // Redirect to dashboard settings with success message
-  const redirectUrl = `${baseUrl}/${localeCookie}/settings?connected=true`;
+    const redirectUrl = `${baseUrl}/${localeCookie}/settings?connected=true`;
     console.log('[OAuth Callback] Redirecting to:', redirectUrl);
     return NextResponse.redirect(redirectUrl);
     
