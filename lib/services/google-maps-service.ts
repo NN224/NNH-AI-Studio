@@ -11,6 +11,7 @@ export interface GeocodeResult {
 export class GoogleMapsService {
   private static instance: GoogleMapsService;
   private isConfigured: boolean = false;
+  private csrfToken: string | null = null;
 
   private constructor() {}
 
@@ -41,10 +42,17 @@ export class GoogleMapsService {
    */
   async geocodeAddress(address: string): Promise<GeocodeResult | null> {
     try {
+      const csrfToken = await this.getCsrfToken();
+      if (!csrfToken) {
+        console.error('Geocoding failed: unable to obtain CSRF token');
+        return null;
+      }
+
       const response = await fetch('/api/google-maps/geocode', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ address }),
       });
@@ -85,10 +93,17 @@ export class GoogleMapsService {
     params: Record<string, any>;
   }): Promise<string | null> {
     try {
+      const csrfToken = await this.getCsrfToken();
+      if (!csrfToken) {
+        console.error('Failed to get embed URL: unable to obtain CSRF token');
+        return null;
+      }
+
       const response = await fetch('/api/google-maps/embed-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify(params),
       });
@@ -124,6 +139,28 @@ export class GoogleMapsService {
     // Consider using alternative mapping solutions or server-side rendering
     console.warn('Direct Maps JavaScript API loading needs to be replaced with a secure alternative');
     return false;
+  }
+
+  /**
+   * Fetch and cache CSRF token for protected POST requests
+   */
+  private async getCsrfToken(): Promise<string | null> {
+    if (this.csrfToken) {
+      return this.csrfToken;
+    }
+
+    try {
+      const response = await fetch('/api/csrf-token');
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      this.csrfToken = data.token || null;
+      return this.csrfToken;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+      return null;
+    }
   }
 }
 
