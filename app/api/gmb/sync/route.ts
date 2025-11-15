@@ -1130,6 +1130,9 @@ export async function POST(request: NextRequest) {
   let syncStatusId: string | null = null;
   let syncStatusState: SyncStatusState = 'failed';
   let syncStatusError: string | null = null;
+  let accountId: string | undefined;
+  let userId: string | undefined;
+  let syncType: string = 'full';
 
   try {
 
@@ -1149,6 +1152,7 @@ export async function POST(request: NextRequest) {
         return errorResponse(new ApiError('Authentication required', 401));
       }
       user = authUser;
+      userId = user.id;
       if (IS_DEV) {
         console.warn('[GMB Sync API] User authenticated:', user.id);
       }
@@ -1175,8 +1179,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Support both naming conventions: account_id/accountId and sync_type/syncType
-    const accountId = bodyFields.accountId || bodyFields.account_id;
-    const syncType = (bodyFields.syncType || bodyFields.sync_type || 'full').toLowerCase();
+    accountId = bodyFields.accountId || bodyFields.account_id;
+    syncType = (bodyFields.syncType || bodyFields.sync_type || 'full').toLowerCase();
 
     if (!VALID_SYNC_TYPES.includes(syncType)) {
       console.error('[GMB Sync API] Invalid syncType supplied:', syncType);
@@ -1231,7 +1235,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user_id from account for cron requests (where user might be null)
-    const userId = user?.id || account.user_id;
+    userId = userId || account.user_id || undefined;
     if (!userId) {
       console.error('[GMB Sync API] Cannot determine user_id');
       return errorResponse(new ApiError('Cannot determine user_id', 400));
@@ -1943,7 +1947,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch performance metrics and search keywords for each location
-    if (doPerformance || doKeywords && IS_DEV) {
+    if ((doPerformance || doKeywords) && IS_DEV) {
       console.warn('[GMB Sync API] Starting performance metrics sync...');
     }
     let phasePerformanceId: string | null = null;
@@ -2121,13 +2125,17 @@ export async function POST(request: NextRequest) {
       console.warn(`[GMB Sync API] Sync completed in ${took}ms`, counts);
     }
 
-    await logAction('sync', 'gmb_account', accountId, {
-      status: 'success',
-      took_ms: took,
-      sync_type: syncType,
-      counts,
-    });
-    await trackSyncResult(userId ?? null, true, took);
+    if (accountId) {
+      await logAction('sync', 'gmb_account', accountId, {
+        status: 'success',
+        took_ms: took,
+        sync_type: syncType,
+        counts,
+      });
+    }
+    if (userId) {
+      await trackSyncResult(userId ?? null, true, took);
+    }
 
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
 
@@ -2150,13 +2158,17 @@ export async function POST(request: NextRequest) {
     console.error('[GMB Sync API] Sync failed:', error);
     const baseMessage = error instanceof Error ? error.message : 'Sync failed';
     syncStatusError = `${baseMessage} / فشلت عملية المزامنة.`;
-    await logAction('sync', 'gmb_account', accountId, {
-      status: 'failed',
-      took_ms: took,
-      sync_type: syncType,
-      error: baseMessage,
-    });
-    await trackSyncResult(typeof userId === 'string' ? userId : null, false, took);
+    if (accountId) {
+      await logAction('sync', 'gmb_account', accountId, {
+        status: 'failed',
+        took_ms: took,
+        sync_type: syncType,
+        error: baseMessage,
+      });
+    }
+    if (typeof userId === 'string') {
+      await trackSyncResult(userId, false, took);
+    }
     return errorResponse(error);
   } finally {
     if (lockRefreshTimer) {
