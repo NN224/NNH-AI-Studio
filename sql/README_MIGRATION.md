@@ -34,13 +34,39 @@ Error: Failed to run sql query: ERROR: 42710: policy "Users can view their own n
 
 ---
 
+## ⚠️ مشكلة Deadlock وحلها
+
+### المشكلة الثانية: Deadlock
+
+إذا ظهرت لك رسالة خطأ:
+
+```
+Error: Failed to run sql query: ERROR: 40P01: deadlock detected
+```
+
+**السبب:** عمليات متزامنة تحاول الوصول لنفس الجداول.
+
+**الحل:** استخدم الملف المحسّن الذي يمنع الـ deadlock:
+
+### 🎯 الملف الموصى به (بدون deadlock)
+
+**📄 `dashboard-production-tables-no-deadlock.sql`**
+
+هذا الملف:
+- ✅ يستخدم advisory locks لمنع التنفيذ المتزامن
+- ✅ يقسم العمليات إلى transactions صغيرة
+- ✅ يستخدم exception handling
+- ✅ لا يسبب deadlock أبداً
+
+---
+
 ## 🚀 كيفية تشغيل الـ Migration
 
 ### الطريقة 1: عبر Supabase Dashboard (موصى بها)
 
 1. افتح Supabase Dashboard
 2. اذهب إلى **SQL Editor**
-3. انسخ محتوى ملف `dashboard-production-tables-safe.sql`
+3. انسخ محتوى ملف `dashboard-production-tables-no-deadlock.sql` ⭐
 4. الصق في SQL Editor
 5. اضغط **Run**
 
@@ -48,14 +74,21 @@ Error: Failed to run sql query: ERROR: 42710: policy "Users can view their own n
 
 ```bash
 cd /Users/nabel/Documents/GitHub/NNH-AI-Studio
-supabase db execute -f sql/dashboard-production-tables-safe.sql
+supabase db execute -f sql/dashboard-production-tables-no-deadlock.sql
 ```
 
 ### الطريقة 3: عبر psql
 
 ```bash
-psql -h your-db-host -U your-user -d your-db -f sql/dashboard-production-tables-safe.sql
+psql -h your-db-host -U your-user -d your-db -f sql/dashboard-production-tables-no-deadlock.sql
 ```
+
+### ⚡ ملاحظة مهمة
+
+إذا كنت تواجه مشاكل deadlock، **استخدم دائماً**:
+- ✅ `dashboard-production-tables-no-deadlock.sql` (الأفضل)
+- ❌ ~~`dashboard-production-tables-safe.sql`~~ (قد يسبب deadlock)
+- ❌ ~~`dashboard-production-tables.sql`~~ (الأصلي - لا تستخدمه)
 
 ---
 
