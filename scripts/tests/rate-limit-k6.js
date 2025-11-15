@@ -2,7 +2,11 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_PROTOCOL = BASE_URL.startsWith('https://') ? 'https' : 'http';
+const BASE_HOST = BASE_URL.replace(/^https?:\/\//, '').split('/')[0];
+const BASE_ORIGIN = `${BASE_PROTOCOL}://${BASE_HOST}`;
 const API_TOKEN = __ENV.API_TOKEN || '';
+const SB_ACCESS_TOKEN = __ENV.SB_ACCESS_TOKEN || API_TOKEN;
 const ACCOUNT_ID = __ENV.ACCOUNT_ID || '';
 
 export const options = {
@@ -27,21 +31,24 @@ export const options = {
 };
 
 function authHeaders() {
-  return API_TOKEN
-    ? {
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    : {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      };
+  const headers = { 'Content-Type': 'application/json' };
+  if (API_TOKEN && !SB_ACCESS_TOKEN) {
+    headers.Authorization = `Bearer ${API_TOKEN}`;
+  }
+  return { headers };
+}
+
+function ensureSessionCookie() {
+  if (!SB_ACCESS_TOKEN) return;
+  const jar = http.cookieJar();
+  jar.set(BASE_ORIGIN, 'sb-access-token', SB_ACCESS_TOKEN, {
+    path: '/',
+    secure: BASE_PROTOCOL === 'https',
+  });
 }
 
 export function hitStandardEndpoints() {
+  ensureSessionCookie();
   const paths = [
     '/api/locations',
     '/api/locations/stats',
@@ -60,6 +67,7 @@ export function hitStandardEndpoints() {
 }
 
 export function triggerSync() {
+  ensureSessionCookie();
   if (!ACCOUNT_ID) {
     console.warn('ACCOUNT_ID is missing; skipping sync scenario');
     sleep(1);

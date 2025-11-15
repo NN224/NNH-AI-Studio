@@ -19,7 +19,7 @@ const nextConfig = {
   
   // Optimize bundle size
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false,
     scrollRestoration: true,
   },
   typescript: {

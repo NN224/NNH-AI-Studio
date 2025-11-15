@@ -4,6 +4,7 @@ import { ApiError, errorResponse } from '@/utils/api-error';
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
 import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
 import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager';
+import { GMB_CONSTANTS } from '@/lib/gmb/helpers';
 import { logAction } from '@/lib/monitoring/audit';
 import { trackSyncResult } from '@/lib/monitoring/metrics';
 
