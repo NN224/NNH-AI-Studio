@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useId } from "react"
+import { useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { replyToReview, updateReply } from "@/server/actions/reviews-management"
 import type { GMBReview } from "@/lib/types/database"
+import { useAutoSave } from "@/hooks/use-auto-save"
+import { formatDistanceToNow } from "date-fns"
 
 interface ReplyDialogProps {
   readonly review: GMBReview | null
@@ -32,20 +34,35 @@ export function ReplyDialog({
   onClose,
   onSuccess,
 }: Readonly<ReplyDialogProps>) {
-  const [reply, setReply] = useState(review?.reply_text || review?.response_text || review?.review_reply || "")
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const router = useRouter()
   const textareaId = useId()
+  const initialReplyValue = review?.reply_text || review?.response_text || review?.review_reply || ""
+  const draftKey = review ? `review:${review.id}` : null
 
-  // Update reply when review changes
+  const {
+    value: reply,
+    setValue: setReply,
+    lastSavedAt,
+    showRestorePrompt,
+    pendingDraftTimestamp,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+    isDirty,
+  } = useAutoSave({
+    key: draftKey,
+    type: "review_reply",
+    initialValue: initialReplyValue,
+  })
+
   useEffect(() => {
-    if (review) {
-      setReply(review.reply_text || review.response_text || review.review_reply || "")
-    } else {
-      setReply("")
+    if (!isOpen) {
+      setGenerating(false)
+      setLoading(false)
     }
-  }, [review])
+  }, [isOpen])
 
   const handleGenerateAI = async () => {
     if (!review) return
@@ -125,6 +142,7 @@ export function ReplyDialog({
         toast.success(result.message || "Reply posted successfully!", {
           description: "Your reply is now visible on Google",
         })
+        clearDraft()
         setReply("")
         onClose()
         onSuccess?.()
@@ -171,6 +189,42 @@ export function ReplyDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
+            {showRestorePrompt && (
+              <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 flex flex-col gap-2">
+                <div className="text-sm text-yellow-100">
+                  Found a saved draft
+                  {pendingDraftTimestamp && (
+                    <> saved {formatDistanceToNow(pendingDraftTimestamp, { addSuffix: true })}</>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-yellow-500/80 text-black hover:bg-yellow-400"
+                    onClick={() => {
+                      const previousValue = reply
+                      restoreDraft()
+                      toast.success("Draft restored", {
+                        action: {
+                          label: "Undo",
+                          onClick: () => setReply(previousValue),
+                        },
+                      })
+                    }}
+                  >
+                    Restore draft
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={discardDraft}
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
             {review?.review_text && (
               <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
                 <div className="flex items-center gap-2 mb-2">
@@ -201,6 +255,20 @@ export function ReplyDialog({
               {reply.length > 4096 && (
                 <p className="text-xs text-red-400">Reply exceeds the 4096 character limit</p>
               )}
+              <div className="flex items-center justify-between text-xs mt-1">
+                <span className={isDirty ? "text-orange-400 flex items-center gap-1" : "text-zinc-500"}>
+                  {isDirty ? (
+                    <>
+                      <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+                      Unsaved changes
+                    </>
+                  ) : lastSavedAt ? (
+                    <>Draft saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}</>
+                  ) : (
+                    "Drafts auto-save every second"
+                  )}
+                </span>
+              </div>
             </div>
             <Button
               type="button"

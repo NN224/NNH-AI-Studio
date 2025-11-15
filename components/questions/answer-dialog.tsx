@@ -16,6 +16,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { answerQuestion, updateAnswer, deleteAnswer } from '@/server/actions/questions-management';
 import type { GMBQuestion } from '@/lib/types/database';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { formatDistanceToNow } from 'date-fns';
 
 interface AnswerDialogProps {
   question: GMBQuestion | null;
@@ -25,19 +27,34 @@ interface AnswerDialogProps {
 }
 
 export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDialogProps) {
-  const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const router = useRouter();
+  const initialAnswerValue = question?.answer_text || question?.ai_suggested_answer || '';
+  const draftKey = question ? `question:${question.id}` : null;
 
-  // Update answer when question changes
+  const {
+    value: answer,
+    setValue: setAnswer,
+    lastSavedAt,
+    showRestorePrompt,
+    pendingDraftTimestamp,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+    isDirty,
+  } = useAutoSave({
+    key: draftKey,
+    type: 'question_answer',
+    initialValue: initialAnswerValue,
+  });
+
   useEffect(() => {
-    if (question) {
-      setAnswer(question.answer_text || question.ai_suggested_answer || '');
-    } else {
-      setAnswer('');
+    if (!isOpen) {
+      setGenerating(false);
+      setLoading(false);
     }
-  }, [question]);
+  }, [isOpen]);
 
   const handleGenerateAI = async () => {
     if (!question) return;
@@ -115,6 +132,7 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
           description: 'Your answer is now visible on Google',
         });
         setAnswer('');
+        clearDraft();
         onClose();
         onSuccess?.();
         router.refresh();
@@ -155,6 +173,7 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
       if (result.success) {
         toast.success('Answer deleted!');
         setAnswer('');
+        clearDraft();
         onClose();
         onSuccess?.();
         router.refresh();
@@ -190,6 +209,44 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
               : 'Provide a helpful answer to this customer question'}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Draft restore prompt */}
+        {showRestorePrompt && (
+          <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 mb-4 flex flex-col gap-2">
+            <div className="text-sm text-yellow-100">
+              Found a saved draft
+              {pendingDraftTimestamp && (
+                <> saved {formatDistanceToNow(pendingDraftTimestamp, { addSuffix: true })}</>
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                className="bg-yellow-500/80 text-black hover:bg-yellow-400"
+                onClick={() => {
+                  const previousValue = answer;
+                  restoreDraft();
+                  toast.success('Draft restored', {
+                    action: {
+                      label: 'Undo',
+                      onClick: () => setAnswer(previousValue),
+                    },
+                  });
+                }}
+              >
+                Restore draft
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={discardDraft}
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Question Details */}
         <div className="space-y-4">
@@ -269,6 +326,18 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
                   )}
                 </Button>
               )}
+              <span className={isDirty ? 'text-orange-400 flex items-center gap-1' : 'text-zinc-500'}>
+                {isDirty ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
+                    Unsaved changes
+                  </>
+                ) : lastSavedAt ? (
+                  <>Draft saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}</>
+                ) : (
+                  'Drafts auto-save every second'
+                )}
+              </span>
             </div>
           </div>
         </div>
