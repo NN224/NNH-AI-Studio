@@ -8,8 +8,6 @@ import { Redis } from '@upstash/redis';
 
 const REQUEST_LIMIT_PER_MIN = 100;
 const REQUEST_WINDOW_MS = 60 * 1000;
-const SYNC_LIMIT_PER_HOUR = 10;
-const SYNC_WINDOW_MS = 60 * 60 * 1000;
 
 // Try to initialize Upstash Redis; fallback to in-memory if env vars missing
 let redis: Redis | null = null;
@@ -171,35 +169,6 @@ export async function middleware(request: NextRequest) {
         }
       }
     );
-  }
-
-  const isSyncRoute =
-    request.nextUrl.pathname.includes('/gmb/sync') ||
-    request.nextUrl.pathname.includes('/gmb/sync-v2');
-
-  if (isSyncRoute) {
-    const syncResult = await checkRateLimit(
-      `sync:${userId}`,
-      SYNC_LIMIT_PER_HOUR,
-      SYNC_WINDOW_MS
-    );
-
-    if (!syncResult.allowed) {
-      const retryAfter = Math.ceil((syncResult.reset - Date.now()) / 1000);
-      return NextResponse.json(
-        {
-          error: 'Sync rate limit exceeded',
-          retryAfter,
-          message: `Sync operations limited to ${SYNC_LIMIT_PER_HOUR} per hour.`,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': retryAfter.toString(),
-          },
-        }
-      );
-    }
   }
 
   if (!usingRedis && Math.random() < 0.1) {

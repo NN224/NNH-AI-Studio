@@ -7,6 +7,7 @@ import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager';
 import { GMB_CONSTANTS } from '@/lib/gmb/helpers';
 import { logAction } from '@/lib/monitoring/audit';
 import { trackSyncResult } from '@/lib/monitoring/metrics';
+import { checkKeyRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,8 @@ type PhaseCounts = Record<string, number | undefined>
 type JsonRecord = Record<string, unknown>
 type ApiDisplayValue = { displayName?: string; name?: string; merchantDescription?: string }
 type ApiMediaItem = { mediaFormat?: string; googleUrl?: string | null }
+const SYNC_LIMIT_PER_HOUR = 10
+const SYNC_WINDOW_MS = 60 * 60 * 1000
 
 function extractDisplayString(value: unknown): string | null {
   if (typeof value === 'string') return value
@@ -1232,6 +1235,26 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       console.error('[GMB Sync API] Cannot determine user_id');
       return errorResponse(new ApiError('Cannot determine user_id', 400));
+    }
+
+    const syncRateKey = `sync:${userId}:${accountId}`;
+    const syncRateResult = await checkKeyRateLimit(syncRateKey, SYNC_LIMIT_PER_HOUR, SYNC_WINDOW_MS, 'ratelimit:sync');
+    if (!syncRateResult.success) {
+      const retryAfterSeconds = Math.max(0, syncRateResult.reset - Math.floor(Date.now() / 1000));
+      return NextResponse.json(
+        {
+          error: 'Sync rate limit exceeded',
+          retryAfter: retryAfterSeconds,
+          message: `Sync operations limited to ${SYNC_LIMIT_PER_HOUR} per hour.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': retryAfterSeconds.toString(),
+            ...syncRateResult.headers,
+          },
+        }
+      );
     }
 
     syncStatusId = await createSyncStatusRecord(supabase, userId);

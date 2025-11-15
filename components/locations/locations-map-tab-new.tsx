@@ -36,6 +36,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+
 /**
  * Custom hook to track previous value
  */
@@ -230,7 +232,9 @@ export function LocationsMapTab() {
               return { id: loc.id, coordinates: { lat, lng } };
             }
           } else if (__DEV__) {
-            console.warn(`[LocationsMapTab] Geocoding failed for "${loc.address}": ${data?.status || 'Unknown error'}`);
+            console.warn(
+              `[LocationsMapTab] Geocoding failed for "${loc.address}": ${geocodeResult?.status || 'Unknown error'}`
+            );
           }
         } catch (error) {
           if (__DEV__ && !cancelled) {

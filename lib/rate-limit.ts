@@ -70,27 +70,29 @@ const memoryStore = new MemoryRateLimitStore();
 const RATE_LIMIT_REQUESTS = 100; // requests per window
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-/**
- * Check rate limit for a user
- * Uses Upstash Redis if configured, otherwise falls back to in-memory store
- */
-export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
-  // Try to use Upstash Redis if configured
+interface ApplyRateLimitOptions {
+  limit: number;
+  windowMs: number;
+  prefix: string;
+}
+
+async function applyRateLimit(
+  identifier: string,
+  { limit, windowMs, prefix }: ApplyRateLimitOptions
+): Promise<RateLimitResult> {
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     try {
-      // Dynamic import to avoid requiring @upstash packages if not installed
       const { Ratelimit } = await import('@upstash/ratelimit');
       const { Redis } = await import('@upstash/redis');
-      
+
       const rateLimiter = new Ratelimit({
         redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(RATE_LIMIT_REQUESTS, `${RATE_LIMIT_WINDOW_MS}ms`),
+        limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
         analytics: true,
-        prefix: 'ratelimit:dashboard',
+        prefix,
       });
 
-      const result = await rateLimiter.limit(userId);
-      
+      const result = await rateLimiter.limit(identifier);
       return {
         success: result.success,
         limit: result.limit,
@@ -104,29 +106,51 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
       };
     } catch (error) {
       console.warn('Upstash rate limiting failed, falling back to memory:', error);
-      // Fall through to memory-based rate limiting
     }
   }
 
-  // Fallback to in-memory rate limiting
-  const key = `ratelimit:${userId}`;
-  const count = memoryStore.increment(key, RATE_LIMIT_WINDOW_MS);
-  const entry = memoryStore.get(key);
-  const resetTime = entry?.resetTime || Date.now() + RATE_LIMIT_WINDOW_MS;
-  const remaining = Math.max(0, RATE_LIMIT_REQUESTS - count);
-  const success = count <= RATE_LIMIT_REQUESTS;
+  const namespacedKey = `${prefix}:${identifier}`;
+  const count = memoryStore.increment(namespacedKey, windowMs);
+  const entry = memoryStore.get(namespacedKey);
+  const resetTime = entry?.resetTime || Date.now() + windowMs;
+  const remaining = Math.max(0, limit - count);
+  const success = count <= limit;
   const reset = Math.floor(resetTime / 1000);
 
   return {
     success,
-    limit: RATE_LIMIT_REQUESTS,
+    limit,
     remaining,
     reset,
     headers: {
-      'X-RateLimit-Limit': RATE_LIMIT_REQUESTS.toString(),
+      'X-RateLimit-Limit': limit.toString(),
       'X-RateLimit-Remaining': remaining.toString(),
       'X-RateLimit-Reset': reset.toString(),
     },
   };
+}
+
+/**
+ * Check rate limit for a user
+ * Uses Upstash Redis if configured, otherwise falls back to in-memory store
+ */
+export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
+  return applyRateLimit(`user:${userId}`, {
+    limit: RATE_LIMIT_REQUESTS,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    prefix: 'ratelimit:dashboard',
+  });
+}
+
+/**
+ * Generic rate limiter for custom keys (e.g., sync per account)
+ */
+export async function checkKeyRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  prefix = 'ratelimit:custom'
+): Promise<RateLimitResult> {
+  return applyRateLimit(key, { limit, windowMs, prefix });
 }
 
