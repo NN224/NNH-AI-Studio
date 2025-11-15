@@ -307,17 +307,10 @@
       "reviews": "Reviews",
       "questions": "Questions",
       "gmbPosts": "GMB Posts",
-      "calendar": "Calendar",
       "media": "Media",
       "analytics": "Analytics",
-      "monitoring": "Monitoring",
-      "gridTracking": "Grid Tracking",
       "features": "Profile",
       "automation": "Automation",
-      "approvals": "Approvals",
-      "webhooks": "Webhooks",
-      "team": "Team",
-      "youtubePosts": "YouTube Posts",
       "settings": "Settings"
     },
     "stats": {
@@ -1171,13 +1164,10 @@
       "reviews": "Reviews",
       "questions": "Questions",
       "gmbPosts": "GMB Posts",
-      "youtubePosts": "YouTube Posts",
       "analytics": "Analytics",
       "automation": "Automation",
-      "team": "Team",
       "settings": "Settings",
       "createGmbPost": "Create GMB Post",
-      "createYoutubePost": "Create YouTube Post",
       "exportData": "Export Data",
       "importLocations": "Import Locations",
       "searchLocations": "Search Locations",
@@ -1203,26 +1193,6 @@
     "analytics": {
       "title": "Analytics Command Center",
       "description": "Deep performance dashboards, AI benchmarking, and cross-channel intelligence are nearly ready. Soon you'll get unified analytics purpose-built for AI growth."
-    },
-    "approvals": {
-      "title": "Approvals Workflow",
-      "description": "Centralized content approvals, AI guardrails, and compliance controls are nearly complete. Soon you'll manage every review cycle from a single command center."
-    },
-    "webhooks": {
-      "title": "Webhook Automations",
-      "description": "Event-driven triggers, AI filters, and low-code integrations are on the roadmap. Soon you'll connect NNH AI Studio to every workflow in minutes."
-    },
-    "team": {
-      "title": "Team Workspace",
-      "description": "Role-based access, approvals, and collaborative AI copilots are nearly done. Soon you'll manage every teammate and permission from one secure hub."
-    },
-    "youtubePosts": {
-      "title": "YouTube Shorts Automation",
-      "description": "Auto-generated shorts, scheduled uploads, and multi-location reporting are almost ready. Soon you'll orchestrate every YouTube touchpoint with AI."
-    },
-    "gridTracking": {
-      "title": "Local Grid Tracking",
-      "description": "Hyper-local rank tracking with AI diagnostics and competitive overlays is on the way. Soon you'll monitor SERP positions across every grid point in seconds."
     }
   }
 }
