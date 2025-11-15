@@ -13,7 +13,7 @@ const GMB_ACCOUNTS_URL = 'https://mybusinessaccountmanagement.googleapis.com/v1/
 const GMB_LOCATIONS_URL = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 
 export async function GET(request: NextRequest) {
-  console.log('[OAuth Callback] Processing OAuth callback...');
+  console.warn('[OAuth Callback] Processing OAuth callback...');
   
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       ); // Keep redirect for user-facing error
     }
     
-    console.log('[OAuth Callback] State:', state);
+    console.warn('[OAuth Callback] State:', state);
     
     const supabase = await createClient();
     const adminClient = createAdminClient();
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       .eq('state', state);
       
     const userId = stateRecord.user_id;
-    console.log('[OAuth Callback] User ID from state:', userId);
+    console.warn('[OAuth Callback] User ID from state:', userId);
     
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -100,9 +100,9 @@ export async function GET(request: NextRequest) {
     
     // Ensure redirect_uri doesn't have trailing slash (must match create-auth-url)
     const cleanRedirectUri = redirectUri.replace(/\/$/, '');
-    console.log('[OAuth Callback] Using redirect URI:', cleanRedirectUri);
+    console.warn('[OAuth Callback] Using redirect URI:', cleanRedirectUri);
     
-    console.log('[OAuth Callback] Exchanging code for tokens...');
+    console.warn('[OAuth Callback] Exchanging code for tokens...');
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -129,10 +129,10 @@ export async function GET(request: NextRequest) {
       ); // Keep redirect for user-facing error
     }
     
-    console.log('[OAuth Callback] Tokens received successfully');
+    console.warn('[OAuth Callback] Tokens received successfully');
     
     // Get user info from Google
-    console.log('[OAuth Callback] Fetching user info...');
+    console.warn('[OAuth Callback] Fetching user info...');
     const userInfoUrl = new URL(GOOGLE_USERINFO_URL);
     userInfoUrl.searchParams.set('alt', 'json');
     
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     }
     
     const userInfo = await userInfoResponse.json();
-    console.log('[OAuth Callback] User info:', { email: userInfo.email, id: userInfo.id });
+    console.warn('[OAuth Callback] User info:', { email: userInfo.email, id: userInfo.id });
 
     if (!userInfo.email) {
       console.error('[OAuth Callback] Google user info did not include an email address');
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
         userInfo.email.split('@')[0] ||
         'Google User';
 
-      console.log('[OAuth Callback] Creating profile record for new user', { userId, email: userInfo.email });
+      console.warn('[OAuth Callback] Creating profile record for new user', { userId, email: userInfo.email });
 
       const { error: createProfileError } = await adminClient.from('profiles').upsert({
         id: userId,
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
     tokenExpiresAt.setSeconds(tokenExpiresAt.getSeconds() + (tokenData.expires_in || 3600));
     
     // Fetch GMB accounts
-    console.log('[OAuth Callback] Fetching GMB accounts...');
+    console.warn('[OAuth Callback] Fetching GMB accounts...');
     const gmbAccountsUrl = new URL(GMB_ACCOUNTS_URL);
     gmbAccountsUrl.searchParams.set('alt', 'json');
     
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
     const gmbAccountsData = await gmbAccountsResponse.json();
     const gmbAccounts = gmbAccountsData.accounts || [];
     
-    console.log(`[OAuth Callback] Found ${gmbAccounts.length} GMB accounts`);
+    console.warn(`[OAuth Callback] Found ${gmbAccounts.length} GMB accounts`);
     
     if (gmbAccounts.length === 0) {
       console.warn('[OAuth Callback] No GMB accounts found for user');
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
       const accountName = gmbAccount.accountName || gmbAccount.name;
       const accountId = gmbAccount.name; // e.g., "accounts/12345"
       
-      console.log(`[OAuth Callback] Processing GMB account: ${accountName} (${accountId})`);
+      console.warn(`[OAuth Callback] Processing GMB account: ${accountName} (${accountId})`);
       
       // Check if this account is already linked to another user
       const { data: existingAccount } = await supabase
@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Use UPSERT to insert or update the account
-      console.log(`[OAuth Callback] Upserting GMB account ${accountId}`);
+      console.warn(`[OAuth Callback] Upserting GMB account ${accountId}`);
       
       const upsertData = {
         user_id: userId,
@@ -322,10 +322,10 @@ export async function GET(request: NextRequest) {
       }
       
       savedAccountId = upsertedAccount.id;
-      console.log(`[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`);
+      console.warn(`[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`);
       
       // Fetch initial locations for this account
-      console.log(`[OAuth Callback] Fetching initial locations for account ${accountId}`);
+      console.warn(`[OAuth Callback] Fetching initial locations for account ${accountId}`);
       const locationsUrl = new URL(`${GMB_LOCATIONS_URL}/${accountId}/locations`);
       locationsUrl.searchParams.set('readMask', 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories');
       locationsUrl.searchParams.set('alt', 'json');
@@ -341,7 +341,7 @@ export async function GET(request: NextRequest) {
         const locationsData = await locationsResponse.json();
         const locations = locationsData.locations || [];
         
-        console.log(`[OAuth Callback] Found ${locations.length} locations`);
+        console.warn(`[OAuth Callback] Found ${locations.length} locations`);
         
         for (const location of locations) {
           const locationData = {
@@ -399,16 +399,16 @@ export async function GET(request: NextRequest) {
 
     // Redirect to dashboard settings with success message
     const redirectUrl = `${baseUrl}/${localeCookie}/settings?connected=true`;
-    console.log('[OAuth Callback] Redirecting to:', redirectUrl);
+    console.warn('[OAuth Callback] Redirecting to:', redirectUrl);
     return NextResponse.redirect(redirectUrl);
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[OAuth Callback] Unexpected error:', error);
     const baseUrl = getBaseUrlDynamic(request);
     const localeCookie = request.cookies.get('NEXT_LOCALE')?.value || 'en';
     return NextResponse.redirect(
       `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-        error.message || 'An unexpected error occurred'
+        error instanceof Error ? error.message : 'An unexpected error occurred'
       )}`
     );
   }

@@ -18,18 +18,20 @@ let usingRedis = false;
 try {
   redis = Redis.fromEnv();
   usingRedis = true;
-  console.log('[Middleware] Using Upstash Redis for rate limiting');
-} catch (error) {
-  console.warn('[Middleware] Upstash Redis not configured, using in-memory rate limiting fallback');
+  console.warn('[Middleware] Using Upstash Redis for rate limiting');
+} catch (error: unknown) {
+  console.warn('[Middleware] Upstash Redis not configured, using in-memory rate limiting fallback', error);
   usingRedis = false;
 }
 
-// In-memory fallback for rate limiting
-const g: any = globalThis as any;
-if (!g.__rateLimitStore) {
-  g.__rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+type RateLimitStore = Map<string, { count: number; resetAt: number }>
+type GlobalWithRateLimit = typeof globalThis & { __rateLimitStore?: RateLimitStore }
+
+const rateLimitGlobal = globalThis as GlobalWithRateLimit;
+if (!rateLimitGlobal.__rateLimitStore) {
+  rateLimitGlobal.__rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 }
-const rateLimitStore: Map<string, { count: number; resetAt: number }> = g.__rateLimitStore;
+const rateLimitStore = rateLimitGlobal.__rateLimitStore;
 
 async function checkRateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();
@@ -94,7 +96,7 @@ function extractUserId(request: NextRequest): string {
         if (payload?.sub && typeof payload.sub === 'string' && payload.sub.trim() !== '') {
           return payload.sub;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn('[Middleware] Failed to decode sb-access-token payload:', error);
       }
     }

@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
@@ -106,6 +106,10 @@ const ReplySchema = z.object({
   reviewId: z.string().uuid(),
   replyText: z.string().min(1).max(4096, "Reply must be less than 4096 characters"),
 })
+
+function resolveErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
 
 const FilterSchema = z.object({
   locationId: z.string().uuid().optional(),
@@ -250,11 +254,11 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
       data: data || [],
       count: count || 0,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Error:", error)
     return {
       success: false,
-      error: error.message || "Failed to fetch reviews",
+      error: resolveErrorMessage(error, "Failed to fetch reviews"),
       data: [],
       count: 0,
     }
@@ -450,13 +454,14 @@ export async function replyToReview(reviewId: string, replyText: string) {
       data: result,
       message: "Reply posted successfully!",
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Reply error:", error)
     const durationMs = Date.now() - operationStart
+    const errorMessage = resolveErrorMessage(error, "Failed to post reply")
     await logAction("review_reply", "gmb_review", reviewId, {
       status: "failed",
       type: "create",
-      error: error?.message ?? "unknown",
+      error: errorMessage,
     })
     await trackApiResponse("review_reply", durationMs)
 
@@ -469,7 +474,7 @@ export async function replyToReview(reviewId: string, replyText: string) {
 
     return {
       success: false,
-      error: error.message || "Failed to post reply",
+      error: errorMessage,
     }
   }
 }
@@ -613,18 +618,19 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       data: result,
       message: "Reply updated successfully!",
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Update reply error:", error)
     const durationMs = Date.now() - operationStart
+    const errorMessage = resolveErrorMessage(error, "Failed to update reply")
     await logAction("review_reply", "gmb_review", reviewId, {
       status: "failed",
       type: "update",
-      error: error?.message ?? "unknown",
+      error: errorMessage,
     })
     await trackApiResponse("review_reply", durationMs)
     return {
       success: false,
-      error: error.message || "Failed to update reply",
+      error: errorMessage,
     }
   }
 }
@@ -742,11 +748,12 @@ export async function deleteReply(reviewId: string) {
       success: true,
       message: "Reply deleted successfully!",
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Delete reply error:", error)
+    const errorMessage = resolveErrorMessage(error, "Failed to delete reply")
     return {
       success: false,
-      error: error.message || "Failed to delete reply",
+      error: errorMessage,
     }
   }
 }
@@ -800,11 +807,12 @@ export async function bulkReplyToReviews(
       data: results,
       message: `Replied to ${results.success.length} of ${reviewIds.length} reviews`,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Bulk reply error:", error)
+    const errorMessage = resolveErrorMessage(error, "Failed to bulk reply")
     return {
       success: false,
-      error: error.message || "Failed to bulk reply",
+      error: errorMessage,
     }
   }
 }
@@ -846,10 +854,10 @@ export async function flagReview(reviewId: string, reason: string) {
       success: true,
       message: "Review flagged successfully",
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Failed to flag review",
+      error: resolveErrorMessage(error, "Failed to flag review"),
     }
   }
 }
@@ -1017,11 +1025,11 @@ export async function syncReviewsFromGoogle(locationId: string) {
       message: `Synced ${synced} reviews`,
       data: { synced },
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Sync error:", error)
     return {
       success: false,
-      error: error.message || "Failed to sync reviews",
+      error: resolveErrorMessage(error, "Failed to sync reviews"),
     }
   }
 }
@@ -1093,11 +1101,11 @@ export async function getReviewStats(locationId?: string, context?: StatsContext
       success: true,
       data: stats,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Reviews] Stats error:", error)
     return {
       success: false,
-      error: error.message || "Failed to get stats",
+      error: resolveErrorMessage(error, "Failed to get stats"),
       data: null,
     }
   }
@@ -1139,10 +1147,10 @@ export async function archiveReview(reviewId: string) {
       success: true,
       message: "Review archived successfully",
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Failed to archive review",
+      error: resolveErrorMessage(error, "Failed to archive review"),
     }
   }
 }

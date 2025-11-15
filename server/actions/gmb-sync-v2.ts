@@ -125,7 +125,15 @@ function resolveLocationResource(accountResource: string, googleLocationId: stri
   return buildLocationResourceName(accountResource.replace(/^accounts\//, ""), googleLocationId)
 }
 
-function formatAddress(address?: Record<string, any> | null) {
+type GoogleAddress = {
+  addressLines?: string[]
+  locality?: string
+  administrativeArea?: string
+  postalCode?: string
+  country?: string
+}
+
+function formatAddress(address?: GoogleAddress | null) {
   if (!address) return null
   const segments = [
     Array.isArray(address.addressLines) ? address.addressLines.join(", ") : "",
@@ -150,7 +158,7 @@ export async function fetchLocationsDataForSync(
   let nextPageToken: string | undefined
   const nowIso = new Date().toISOString()
 
-  console.time("[GMB Sync v2] fetchLocations")
+  const locationsTimerStart = Date.now()
 
   do {
     const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`)
@@ -220,7 +228,11 @@ export async function fetchLocationsDataForSync(
     nextPageToken = payload.nextPageToken
   } while (nextPageToken)
 
-  console.timeEnd("[GMB Sync v2] fetchLocations")
+  console.warn(
+    "[GMB Sync v2] fetchLocations completed in",
+    Date.now() - locationsTimerStart,
+    "ms"
+  )
   return locations
 }
 
@@ -232,7 +244,7 @@ export async function fetchReviewsDataForSync(
   accessToken: string
 ): Promise<ReviewData[]> {
   const reviews: ReviewData[] = []
-  console.time("[GMB Sync v2] fetchReviews")
+  const reviewsTimerStart = Date.now()
 
   for (const location of locations) {
     const locationResource = resolveLocationResource(accountResource, location.location_id)
@@ -299,7 +311,11 @@ export async function fetchReviewsDataForSync(
     } while (nextPageToken)
   }
 
-  console.timeEnd("[GMB Sync v2] fetchReviews")
+  console.warn(
+    "[GMB Sync v2] fetchReviews completed in",
+    Date.now() - reviewsTimerStart,
+    "ms"
+  )
   return reviews
 }
 
@@ -311,7 +327,7 @@ export async function fetchQuestionsDataForSync(
   accessToken: string
 ): Promise<QuestionData[]> {
   const questions: QuestionData[] = []
-  console.time("[GMB Sync v2] fetchQuestions")
+  const questionsTimerStart = Date.now()
 
   for (const location of locations) {
     const locationResource = resolveLocationResource(accountResource, location.location_id)
@@ -368,7 +384,11 @@ export async function fetchQuestionsDataForSync(
     }
   }
 
-  console.timeEnd("[GMB Sync v2] fetchQuestions")
+  console.warn(
+    "[GMB Sync v2] fetchQuestions completed in",
+    Date.now() - questionsTimerStart,
+    "ms"
+  )
   return questions
 }
 

@@ -3,8 +3,13 @@
 import { getRedisClient } from '@/lib/redis/client'
 
 type MemoryStore = Map<string, number | Set<string>>
-const globalStore: MemoryStore =
-  (globalThis as any).__metricsStore ?? ((globalThis as any).__metricsStore = new Map())
+type GlobalWithMetrics = typeof globalThis & { __metricsStore?: MemoryStore }
+
+const globalObject = globalThis as GlobalWithMetrics
+if (!globalObject.__metricsStore) {
+  globalObject.__metricsStore = new Map()
+}
+const globalStore: MemoryStore = globalObject.__metricsStore
 
 const DAY_SECONDS = 24 * 60 * 60
 

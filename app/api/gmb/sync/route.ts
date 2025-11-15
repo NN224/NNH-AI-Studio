@@ -3,8 +3,6 @@ import { createClient } from '@/lib/supabase/server';
 import { ApiError, errorResponse } from '@/utils/api-error';
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
 import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
-import { runSyncTransactionWithRetry } from '@/lib/supabase/transactions';
-import type { LocationData, ReviewData, QuestionData } from '@/lib/gmb/sync-types';
 import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager';
 import { logAction } from '@/lib/monitoring/audit';
 import { trackSyncResult } from '@/lib/monitoring/metrics';
@@ -26,8 +24,33 @@ const VALID_SYNC_TYPES = [
 ];
 
 type SyncStatusState = 'running' | 'success' | 'failed'
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+type PhaseCounts = Record<string, number | undefined>
+type JsonRecord = Record<string, unknown>
+type ApiDisplayValue = { displayName?: string; name?: string; merchantDescription?: string }
+type ApiMediaItem = { mediaFormat?: string; googleUrl?: string | null }
 
-async function createSyncStatusRecord(supabase: any, userId: string) {
+function extractDisplayString(value: unknown): string | null {
+  if (typeof value === 'string') return value
+  if (value && typeof value === 'object') {
+    const record = value as ApiDisplayValue
+    return record.displayName || record.name || record.merchantDescription || null
+  }
+  return null
+}
+
+function collectDisplayStrings(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => extractDisplayString(entry))
+    .filter((entry): entry is string => Boolean(entry))
+}
+
+function isApiMediaItem(value: unknown): value is ApiMediaItem {
+  return typeof value === 'object' && value !== null
+}
+
+async function createSyncStatusRecord(supabase: SupabaseServerClient, userId: string) {
   try {
     const { data, error } = await supabase
       .from('sync_status')
@@ -52,7 +75,7 @@ async function createSyncStatusRecord(supabase: any, userId: string) {
 }
 
 async function finalizeSyncStatusRecord(
-  supabase: any,
+  supabase: SupabaseServerClient,
   statusId: string | null,
   state: SyncStatusState,
   errorMessage?: string | null
@@ -76,7 +99,12 @@ async function finalizeSyncStatusRecord(
 }
 
 // Phase logging helpers (minimal; replaces later with structured service)
-async function startPhaseLog(supabase: any, accountId: string, userId: string, phase: string) {
+async function startPhaseLog(
+  supabase: SupabaseServerClient,
+  accountId: string,
+  userId: string,
+  phase: string
+) {
   try {
     const { data, error } = await supabase
       .from('gmb_sync_logs')
@@ -88,34 +116,38 @@ async function startPhaseLog(supabase: any, accountId: string, userId: string, p
       return null;
     }
     return data?.id || null;
-  } catch (e) {
-    console.warn('[GMB Sync API] Exception starting phase log', phase, e);
+  } catch (error) {
+    console.warn('[GMB Sync API] Exception starting phase log', phase, error);
     return null;
   }
 }
 
-async function finishPhaseLog(supabase: any, id: string | null, status: string, counts: any, error?: any) {
+async function finishPhaseLog(
+  supabase: SupabaseServerClient,
+  id: string | null,
+  status: string,
+  counts: PhaseCounts | null,
+  error?: string | null
+) {
   if (!id) return;
   try {
-    const durationMs = 0; // Will compute with SQL trigger later if needed
     await supabase
       .from('gmb_sync_logs')
       .update({ status, ended_at: new Date().toISOString(), counts, error: error ? String(error) : null })
       .eq('id', id);
-  } catch (e) {
-    console.warn('[GMB Sync API] Failed to finish phase log', id, e);
+  } catch (error) {
+    console.warn('[GMB Sync API] Failed to finish phase log', id, error);
   }
 }
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
-const GBP_ACCOUNT_MGMT_BASE = GMB_CONSTANTS.BUSINESS_INFORMATION_BASE;
 const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE; // v4 API for reviews and media
 const QANDA_API_BASE = GMB_CONSTANTS.QANDA_BASE; // Q&A API for questions
 const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1'; // Performance API for metrics
 // Metrics upsert helper: accumulate totals and runs per phase
 async function upsertMetrics(
-  supabase: any,
+  supabase: SupabaseServerClient,
   accountId: string,
   userId: string,
   phase: 'locations' | 'reviews' | 'media' | 'questions' | 'performance' | 'keywords',
@@ -163,8 +195,8 @@ async function upsertMetrics(
         console.warn('[GMB Metrics] Insert error:', insError.message);
       }
     }
-  } catch (e) {
-    console.warn('[GMB Metrics] Exception upserting metrics for phase', phase, e);
+  } catch (error) {
+    console.warn('[GMB Metrics] Exception upserting metrics for phase', phase, error);
   }
 }
 
@@ -199,28 +231,6 @@ function convertStarRatingToNumber(starRating: string | undefined | null): numbe
   return ratingMap[starRating.toUpperCase()] || 0;
 }
 
-// Helper function to build full location resource name
-function buildLocationResourceName(accountId: string, locationId: string): string {
-  // Clean location_id from any existing prefix
-  const cleanLocationId = locationId.replace(/^(accounts\/.*\/)?locations\//, '');
-
-  // If accountId starts with "accounts/", use it directly, otherwise add prefix
-  const accountResource = accountId.startsWith('accounts/') ? accountId : `accounts/${accountId}`;
-
-  return `${accountResource}/locations/${cleanLocationId}`;
-}
-
-// Helper function to parse location resource name
-function parseLocationResourceName(resourceName: string): { accountId: string; locationId: string } | null {
-  const match = resourceName.match(/accounts\/([^/]+)\/locations\/(.+)/);
-  if (!match) return null;
-
-  return {
-    accountId: match[1],
-    locationId: match[2]
-  };
-}
-
 // Refresh Google access token
 async function refreshAccessToken(refreshToken: string): Promise<{
   access_token: string;
@@ -228,7 +238,7 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   refresh_token?: string;
 }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Attempting to refresh access token...');
+    console.warn('[GMB Sync] Attempting to refresh access token...');
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -260,18 +270,18 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   }
 
   if (IS_DEV) {
-    console.log('[GMB Sync] Access token refreshed successfully');
+    console.warn('[GMB Sync] Access token refreshed successfully');
   }
   return data;
 }
 
 // Get valid access token (refresh if needed)
 async function getValidAccessToken(
-  supabase: any,
+  supabase: SupabaseServerClient,
   accountId: string
 ): Promise<string> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Getting valid access token for account:', accountId);
+    console.warn('[GMB Sync] Getting valid access token for account:', accountId);
   }
 
   const { data: account, error } = await supabase
@@ -299,7 +309,7 @@ async function getValidAccessToken(
   const BUFFER_MINUTES = 10;
   if (accessToken && expiresAt && expiresAt > new Date(now.getTime() + BUFFER_MINUTES * 60000)) {
     if (IS_DEV) {
-      console.log('[GMB Sync] Using existing valid access token');
+      console.warn('[GMB Sync] Using existing valid access token');
     }
     return accessToken;
   }
@@ -311,7 +321,7 @@ async function getValidAccessToken(
   }
 
   if (IS_DEV) {
-    console.log('[GMB Sync] Token expired or missing, refreshing...');
+    console.warn('[GMB Sync] Token expired or missing, refreshing...');
   }
   const tokens = await refreshAccessToken(refreshToken);
 
@@ -319,7 +329,11 @@ async function getValidAccessToken(
   const newExpiresAt = new Date();
   newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
 
-  const updateData: any = {
+  const updateData: {
+    access_token: string
+    token_expires_at: string
+    refresh_token?: string
+  } = {
     access_token: encryptToken(tokens.access_token),
     token_expires_at: newExpiresAt.toISOString(),
   };
@@ -341,7 +355,7 @@ async function getValidAccessToken(
 }
 
 // Fetch locations from Google My Business
-type RawGoogleLocation = Record<string, any>;
+type RawGoogleLocation = Record<string, JsonRecord | string | number | boolean | null>;
 
 async function fetchLocations(
   accessToken: string,
@@ -349,7 +363,7 @@ async function fetchLocations(
   pageToken?: string
 ): Promise<{ locations: RawGoogleLocation[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching locations for account:', accountResource);
+    console.warn('[GMB Sync] Fetching locations for account:', accountResource);
   }
 
   const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
@@ -374,22 +388,22 @@ async function fetchLocations(
   if (!response.ok) {
     // Try to read error as JSON if Content-Type is correct
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
 
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
-      } catch (e) {
+      } catch (error) {
         // Failed to parse JSON, continue with empty object
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     } else {
       // Not JSON, try to read as text for debugging
       try {
         const errorText = await response.text();
         console.error('[GMB Sync] Non-JSON error response:', errorText.substring(0, 200));
-      } catch (e) {
-        // Ignore text parsing errors
+      } catch (error) {
+        console.warn('[GMB Sync] Failed to read non-JSON error response', error);
       }
     }
 
@@ -411,7 +425,7 @@ async function fetchLocations(
   const data = await response.json();
 
   if (IS_DEV) {
-    console.log(`[GMB Sync] Fetched ${data.locations?.length || 0} locations`);
+    console.warn(`[GMB Sync] Fetched ${data.locations?.length || 0} locations`);
   }
   return {
     locations: data.locations || [],
@@ -426,9 +440,9 @@ async function fetchReviews(
   locationResource: string,
   accountResource?: string,
   pageToken?: string
-): Promise<{ reviews: any[]; nextPageToken?: string }> {
+): Promise<{ reviews: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching reviews for location:', locationResource);
+    console.warn('[GMB Sync] Fetching reviews for location:', locationResource);
   }
   
   // Build full location resource if needed
@@ -451,7 +465,7 @@ async function fetchReviews(
       
       fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
       if (IS_DEV) {
-        console.log('[GMB Sync API] Built location resource:', locationResource, '?', fullLocationResource);
+        console.warn('[GMB Sync API] Built location resource:', locationResource, '?', fullLocationResource);
       }
     } else {
       console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
@@ -467,7 +481,7 @@ async function fetchReviews(
   url.searchParams.set('pageSize', '50');
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Reviews URL (v4 API):', url.toString());
+    console.warn('[GMB Sync] Reviews URL (v4 API):', url.toString());
   }
 
   const response = await fetch(url.toString(), {
@@ -481,14 +495,14 @@ async function fetchReviews(
   // Check if response failed
   if (!response.ok) {
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
 
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
         console.error('[GMB Sync] v4 API error for reviews:', JSON.stringify(errorData));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+      } catch (error) {
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     } else {
       try {
@@ -500,8 +514,8 @@ async function fetchReviews(
         if (errorText.includes('error')) {
           console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
         }
-      } catch (e) {
-        console.error('[GMB Sync] Failed to read error text:', e);
+      } catch (error) {
+        console.error('[GMB Sync] Failed to read error text:', error);
       }
     }
     
@@ -542,11 +556,11 @@ async function fetchReviews(
   const reviews = data.reviews || [];
   
   if (IS_DEV) {
-    console.log('[GMB Sync] v4 API reviews response:', reviews.length, 'reviews');
+    console.warn('[GMB Sync] v4 API reviews response:', reviews.length, 'reviews');
     if (reviews.length > 0) {
-      console.log('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
+      console.warn('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
     } else {
-      console.log('[GMB Sync] v4 API response structure:', JSON.stringify(Object.keys(data), null, 2));
+      console.warn('[GMB Sync] v4 API response structure:', JSON.stringify(Object.keys(data), null, 2));
     }
   }
   
@@ -563,9 +577,9 @@ async function fetchMedia(
   locationResource: string,
   accountResource?: string,
   pageToken?: string
-): Promise<{ media: any[]; nextPageToken?: string }> {
+): Promise<{ media: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching media for location:', locationResource);
+    console.warn('[GMB Sync] Fetching media for location:', locationResource);
   }
   
   // Build full location resource if needed
@@ -588,7 +602,7 @@ async function fetchMedia(
       
       fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
       if (IS_DEV) {
-        console.log('[GMB Sync] Built media location resource:', locationResource, '?', fullLocationResource);
+        console.warn('[GMB Sync] Built media location resource:', locationResource, '?', fullLocationResource);
       }
     } else {
       console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
@@ -604,8 +618,8 @@ async function fetchMedia(
   url.searchParams.set('pageSize', '100');
 
   if (IS_DEV) {
-    console.log('[GMB Sync] Media URL (v4 API):', url.toString());
-    console.log('[GMB Sync] Media location resource:', fullLocationResource);
+    console.warn('[GMB Sync] Media URL (v4 API):', url.toString());
+    console.warn('[GMB Sync] Media location resource:', fullLocationResource);
   }
 
   const response = await fetch(url.toString(), {
@@ -618,14 +632,14 @@ async function fetchMedia(
   // Check if response failed
   if (!response.ok) {
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
 
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
         console.error('[GMB Sync] Media API error:', JSON.stringify(errorData));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+      } catch (error) {
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     } else {
       try {
@@ -637,8 +651,8 @@ async function fetchMedia(
         if (errorText.includes('error')) {
           console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
         }
-      } catch (e) {
-        console.error('[GMB Sync] Failed to read error text:', e);
+      } catch (error) {
+        console.error('[GMB Sync] Failed to read error text:', error);
       }
     }
     
@@ -678,12 +692,12 @@ async function fetchMedia(
   const media = data.mediaItems || [];
   
   if (IS_DEV) {
-    console.log('[GMB Sync] v4 API media response:', media.length, 'items');
-    console.log('[GMB Sync] Response keys:', Object.keys(data));
+    console.warn('[GMB Sync] v4 API media response:', media.length, 'items');
+    console.warn('[GMB Sync] Response keys:', Object.keys(data));
   
     if (media.length > 0) {
       const sampleMedia = media[0];
-      console.log('[GMB Sync] Sample media structure:', {
+      console.warn('[GMB Sync] Sample media structure:', {
         name: sampleMedia.name,
         mediaFormat: sampleMedia.mediaFormat,
         googleUrl: sampleMedia.googleUrl ? 'present' : 'missing',
@@ -694,7 +708,7 @@ async function fetchMedia(
         allKeys: Object.keys(sampleMedia),
       });
     } else {
-      console.log(
+      console.warn(
         '[GMB Sync] No media items in response. Full response structure:',
         JSON.stringify(Object.keys(data), null, 2),
       );
@@ -714,9 +728,9 @@ async function fetchQuestions(
   locationResource: string,
   accountResource?: string,
   pageToken?: string
-): Promise<{ questions: any[]; nextPageToken?: string }> {
+): Promise<{ questions: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching questions for location:', locationResource);
+    console.warn('[GMB Sync] Fetching questions for location:', locationResource);
   }
   
   // Extract location ID from various formats
@@ -749,7 +763,7 @@ async function fetchQuestions(
   url.searchParams.set('pageSize', '10'); // Max 10 per API spec
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Questions URL (Q&A API v1):', url.toString());
+    console.warn('[GMB Sync] Questions URL (Q&A API v1):', url.toString());
   }
 
   const response = await fetch(url.toString(), {
@@ -763,22 +777,22 @@ async function fetchQuestions(
   // Check if response failed
   if (!response.ok) {
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
 
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
         console.error('[GMB Sync] Questions API error:', JSON.stringify(errorData));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+      } catch (error) {
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     } else {
       try {
         const errorText = await response.text();
         console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to read error text:', e);
+      } catch (error) {
+        console.error('[GMB Sync] Failed to read error text:', error);
       }
     }
     
@@ -814,9 +828,9 @@ async function fetchQuestions(
   const questions = data.questions || [];
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Q&A API questions response:', questions.length, 'questions');
+    console.warn('[GMB Sync] Q&A API questions response:', questions.length, 'questions');
     if (questions.length > 0) {
-      console.log('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 500));
+      console.warn('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 500));
     }
   }
   
@@ -846,9 +860,9 @@ async function fetchDailyMetrics(
     'BUSINESS_FOOD_ORDERS',
     'BUSINESS_FOOD_MENU_CLICKS',
   ]
-): Promise<{ metrics: any[] }> {
+): Promise<{ metrics: JsonRecord[] }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching daily metrics for location:', locationId);
+    console.warn('[GMB Sync] Fetching daily metrics for location:', locationId);
   }
   
   // Performance API uses format: locations/{location_id} (just the ID, not full resource)
@@ -885,7 +899,7 @@ async function fetchDailyMetrics(
   });
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Performance API URL:', url.toString());
+    console.warn('[GMB Sync] Performance API URL:', url.toString());
   }
   
   const response = await fetch(url.toString(), {
@@ -898,22 +912,22 @@ async function fetchDailyMetrics(
   
   if (!response.ok) {
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
     
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
         console.error('[GMB Sync] Performance API error:', JSON.stringify(errorData));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+      } catch (error) {
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     } else {
       try {
         const errorText = await response.text();
         console.error('[GMB Sync] Performance API error response. Status:', response.status);
         console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to read error text:', e);
+      } catch (error) {
+        console.error('[GMB Sync] Failed to read error text:', error);
       }
     }
     
@@ -942,7 +956,7 @@ async function fetchDailyMetrics(
   
   // Extract metrics from response
   // Response structure: { multiDailyMetricTimeSeries: [{ dailyMetricTimeSeries: [...] }] }
-  const allMetrics: any[] = [];
+  const allMetrics: JsonRecord[] = [];
   
   if (data.multiDailyMetricTimeSeries) {
     for (const multiSeries of data.multiDailyMetricTimeSeries) {
@@ -969,7 +983,7 @@ async function fetchDailyMetrics(
   }
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Performance API returned', allMetrics.length, 'metric data points');
+    console.warn('[GMB Sync] Performance API returned', allMetrics.length, 'metric data points');
   }
   
   return { metrics: allMetrics };
@@ -982,9 +996,9 @@ async function fetchSearchKeywords(
   startMonth: Date,
   endMonth: Date,
   pageToken?: string
-): Promise<{ keywords: any[]; nextPageToken?: string }> {
+): Promise<{ keywords: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.log('[GMB Sync] Fetching search keywords for location:', locationId);
+    console.warn('[GMB Sync] Fetching search keywords for location:', locationId);
   }
   
   // Extract just the location ID if it has prefixes
@@ -1018,7 +1032,7 @@ async function fetchSearchKeywords(
   url.searchParams.set('pageSize', '100');
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Search Keywords URL:', url.toString());
+    console.warn('[GMB Sync] Search Keywords URL:', url.toString());
   }
   
   const response = await fetch(url.toString(), {
@@ -1031,14 +1045,14 @@ async function fetchSearchKeywords(
   
   if (!response.ok) {
     const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: any = {};
+    let errorData: JsonRecord = {};
     
     if (contentType && contentType.includes('application/json')) {
       try {
         errorData = await response.json();
         console.error('[GMB Sync] Search Keywords API error:', JSON.stringify(errorData));
-      } catch (e) {
-        console.error('[GMB Sync] Failed to parse error response as JSON');
+      } catch (error) {
+        console.error('[GMB Sync] Failed to parse error response as JSON', error);
       }
     }
     
@@ -1066,7 +1080,7 @@ async function fetchSearchKeywords(
   
   // Extract keywords from response
   // Response structure: { searchKeywordsCounts: [{ searchKeyword: "...", insightsValue: {...} }] }
-  const keywords: any[] = [];
+  const keywords: JsonRecord[] = [];
   
   if (data.searchKeywordsCounts) {
     for (const keywordCount of data.searchKeywordsCounts) {
@@ -1089,7 +1103,7 @@ async function fetchSearchKeywords(
   }
   
   if (IS_DEV) {
-    console.log('[GMB Sync] Search Keywords API returned', keywords.length, 'keywords');
+    console.warn('[GMB Sync] Search Keywords API returned', keywords.length, 'keywords');
   }
   
   return {
@@ -1100,7 +1114,7 @@ async function fetchSearchKeywords(
 
 export async function POST(request: NextRequest) {
   if (IS_DEV) {
-    console.log('[GMB Sync API] Sync request received');
+    console.warn('[GMB Sync API] Sync request received');
   }
   const started = Date.now();
   const supabase = await createClient();
@@ -1120,7 +1134,7 @@ export async function POST(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
     const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
     
-    let user: any = null;
+    let user: { id: string } | null = null;
     
     // If it's a cron request, skip user authentication check
     if (!isCronRequest) {
@@ -1132,16 +1146,16 @@ export async function POST(request: NextRequest) {
       }
       user = authUser;
       if (IS_DEV) {
-        console.log('[GMB Sync API] User authenticated:', user.id);
+        console.warn('[GMB Sync API] User authenticated:', user.id);
       }
     } else {
       if (IS_DEV) {
-        console.log('[GMB Sync API] Cron request detected - skipping user auth');
+        console.warn('[GMB Sync API] Cron request detected - skipping user auth');
       }
     }
 
     // Parse request body with proper error handling
-    let body: any = {};
+    let body: Record<string, unknown> = {};
     try {
       body = await request.json();
     } catch (jsonError) {
@@ -1149,9 +1163,16 @@ export async function POST(request: NextRequest) {
       return errorResponse(new ApiError('Request body must be valid JSON', 400));
     }
 
+    const bodyFields = body as {
+      accountId?: string
+      account_id?: string
+      syncType?: string
+      sync_type?: string
+    }
+
     // Support both naming conventions: account_id/accountId and sync_type/syncType
-    const accountId = body.accountId || body.account_id;
-    const syncType = (body.syncType || body.sync_type || 'full').toLowerCase();
+    const accountId = bodyFields.accountId || bodyFields.account_id;
+    const syncType = (bodyFields.syncType || bodyFields.sync_type || 'full').toLowerCase();
 
     if (!VALID_SYNC_TYPES.includes(syncType)) {
       console.error('[GMB Sync API] Invalid syncType supplied:', syncType);
@@ -1164,7 +1185,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (IS_DEV) {
-      console.log(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
+      console.warn(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
     }
 
     lockKey = `locks:gmb:sync:${accountId}`;
@@ -1218,7 +1239,7 @@ export async function POST(request: NextRequest) {
     let accountResource = account.account_id;
     if (!accountResource) {
       if (IS_DEV) {
-        console.log('[GMB Sync API] Account resource name missing, fetching from Google...');
+        console.warn('[GMB Sync API] Account resource name missing, fetching from Google...');
       }
       const accessToken = await getValidAccessToken(supabase, accountId);
 
@@ -1239,7 +1260,7 @@ export async function POST(request: NextRequest) {
         if (accounts.length > 0) {
           accountResource = accounts[0].name;
           if (IS_DEV) {
-            console.log('[GMB Sync API] Found account resource:', accountResource);
+            console.warn('[GMB Sync API] Found account resource:', accountResource);
           }
 
           // Update account with resource name
@@ -1281,7 +1302,7 @@ export async function POST(request: NextRequest) {
     if (doLocations) {
       phaseLocationsId = await startPhaseLog(supabase, accountId, userId, 'locations');
       if (IS_DEV) {
-        console.log('[GMB Sync API] Starting location sync...');
+        console.warn('[GMB Sync API] Starting location sync...');
       }
       let locationsNextPageToken: string | undefined = undefined;
       const phaseStart = Date.now();
@@ -1303,7 +1324,10 @@ export async function POST(request: NextRequest) {
             });
             if (res.ok) {
               const data = await res.json();
-              const cover = data.mediaItems?.find((m: any) => m.mediaFormat === 'COVER');
+              const mediaItems = Array.isArray(data.mediaItems) ? data.mediaItems : [];
+              const cover = mediaItems.find(
+                (item): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'COVER'
+              );
               coverPhotoUrl = cover?.googleUrl || null;
             } else {
               console.warn(`[GMB Sync API] Failed to fetch media for location ${locationId}`);
@@ -1316,7 +1340,7 @@ export async function POST(request: NextRequest) {
           loc.cover_photo_url = coverPhotoUrl;
         }
         if (locations.length > 0 && IS_DEV) {
-          console.log('[GMB Sync API] Sample location from Google API:', {
+          console.warn('[GMB Sync API] Sample location from Google API:', {
             name: locations[0].name,
             title: locations[0].title,
           });
@@ -1362,20 +1386,14 @@ export async function POST(request: NextRequest) {
             const profileData = location.profile || {};
             const description = profileData.description || '';
             const shortDescription = profileData.shortDescription || profileData.merchantDescription || null;
-            const additionalCategories = (location.categories?.additionalCategories || []).map((cat: any) => cat.displayName || '').filter(Boolean);
+            const additionalCategories = collectDisplayStrings(
+              (location.categories as { additionalCategories?: unknown[] } | undefined)?.additionalCategories ?? []
+            );
             
             // Extract from_the_business (attributes from "From the Business" section)
             const fromTheBusiness: string[] = [];
-            if (profileData.fromTheBusiness && Array.isArray(profileData.fromTheBusiness)) {
-              fromTheBusiness.push(...profileData.fromTheBusiness.map((item: any) => 
-                typeof item === 'string' ? item : (item?.displayName || item?.name || String(item || ''))
-              ).filter(Boolean));
-            }
-            if (profileData.attributes && Array.isArray(profileData.attributes)) {
-              fromTheBusiness.push(...profileData.attributes.map((attr: any) => 
-                typeof attr === 'string' ? attr : (attr?.displayName || attr?.name || String(attr || ''))
-              ).filter(Boolean));
-            }
+            fromTheBusiness.push(...collectDisplayStrings(profileData.fromTheBusiness));
+            fromTheBusiness.push(...collectDisplayStrings(profileData.attributes));
             
             // Extract opening date
             const openingDate = profileData.openingDate || openInfo?.openingDate || null;
@@ -1459,7 +1477,7 @@ export async function POST(request: NextRequest) {
       } while (locationsNextPageToken);
       const phaseDuration = Date.now() - phaseStart;
       if (IS_DEV) {
-        console.log(`[GMB Sync API] Synced ${counts.locations} locations in ${phaseDuration}ms`);
+        console.warn(`[GMB Sync API] Synced ${counts.locations} locations in ${phaseDuration}ms`);
       }
       await finishPhaseLog(supabase, phaseLocationsId, 'completed', { locations: counts.locations });
       await upsertMetrics(supabase, accountId, userId, 'locations', phaseDuration, counts.locations);
@@ -1467,7 +1485,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch reviews and media for each location
     if (IS_DEV) {
-      console.log('[GMB Sync API] Starting reviews and media sync...');
+      console.warn('[GMB Sync API] Starting reviews and media sync...');
     }
     const { data: dbLocations } = await supabase
       .from('gmb_locations')
@@ -1483,7 +1501,7 @@ export async function POST(request: NextRequest) {
 
     if (dbLocations && Array.isArray(dbLocations)) {
       if (IS_DEV) {
-        console.log(`[GMB Sync API] Processing ${dbLocations.length} locations for reviews/media sync`);
+        console.warn(`[GMB Sync API] Processing ${dbLocations.length} locations for reviews/media sync`);
       }
 
       for (const location of dbLocations) {
@@ -1502,10 +1520,10 @@ export async function POST(request: NextRequest) {
             fullLocationName = `${account.account_id}/locations/${fullLocationName}`;
           }
           if (IS_DEV) {
-            console.log(`[GMB Sync API] Built location resource: ${location.location_id} ? ${fullLocationName}`);
+            console.warn(`[GMB Sync API] Built location resource: ${location.location_id} ? ${fullLocationName}`);
           }
         } else if (IS_DEV) {
-          console.log(`[GMB Sync API] Using full location resource: ${fullLocationName}`);
+          console.warn(`[GMB Sync API] Using full location resource: ${fullLocationName}`);
         }
         
         // Validate that we have a proper resource name
@@ -1530,7 +1548,7 @@ export async function POST(request: NextRequest) {
 
             if (reviews.length > 0) {
               if (IS_DEV) {
-                console.log(
+                console.warn(
                   `[GMB Sync API] Processing ${reviews.length} reviews for location ${location.id}`,
                 );
               }
@@ -1587,7 +1605,7 @@ export async function POST(request: NextRequest) {
                 .filter((row): row is NonNullable<typeof row> => !!row);
 
               if (IS_DEV) {
-                console.log(
+                console.warn(
                   `[GMB Sync API] Prepared ${reviewRows.length} review rows from ${reviews.length} reviews`,
                 );
               }
@@ -1612,7 +1630,7 @@ export async function POST(request: NextRequest) {
               }
 
               if (IS_DEV) {
-                console.log(
+                console.warn(
                   `[GMB Sync API] Completed reviews sync: upserted ${upsertedCount} reviews`,
                 );
               }
@@ -1628,7 +1646,7 @@ export async function POST(request: NextRequest) {
                 reviews.length
               );
             } else if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] No reviews returned for location ${location.id}`,
               );
             }
@@ -1652,7 +1670,7 @@ export async function POST(request: NextRequest) {
 
           if (media.length > 0) {
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Processing ${media.length} media items for location ${location.id}`,
               );
             }
@@ -1660,7 +1678,7 @@ export async function POST(request: NextRequest) {
             const mediaRows = media.map((item) => {
               // Log first item structure for debugging
               if (media.indexOf(item) === 0 && IS_DEV) {
-                console.log('[GMB Sync API] First media item structure:', {
+                console.warn('[GMB Sync API] First media item structure:', {
                   name: item.name,
                   mediaFormat: item.mediaFormat,
                   type: item.type,
@@ -1695,7 +1713,7 @@ export async function POST(request: NextRequest) {
             });
             
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Prepared ${mediaRows.length} valid media rows from ${media.length} items`,
               );
             }
@@ -1703,10 +1721,10 @@ export async function POST(request: NextRequest) {
             let upsertedCount = 0;
             for (const chunk of chunks(mediaRows)) {
               if (IS_DEV) {
-                console.log(`[GMB Sync API] Upserting chunk of ${chunk.length} media items...`);
+                console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} media items...`);
               }
               
-              const { data, error } = await supabase
+              const { error } = await supabase
                 .from('gmb_media')
                 .upsert(chunk, { 
                   onConflict: 'external_media_id',
@@ -1724,7 +1742,7 @@ export async function POST(request: NextRequest) {
                 } else {
                 upsertedCount += chunk.length;
                   if (IS_DEV) {
-                    console.log(
+                    console.warn(
                       `[GMB Sync API] Successfully upserted ${chunk.length} media items (total: ${upsertedCount})`,
                     );
                   }
@@ -1732,7 +1750,7 @@ export async function POST(request: NextRequest) {
             }
             
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Completed media sync: ${upsertedCount}/${mediaRows.length} items saved`,
               );
             }
@@ -1740,7 +1758,7 @@ export async function POST(request: NextRequest) {
             const phaseMediaDuration = Date.now() - phaseMediaStart;
             await upsertMetrics(supabase, accountId, userId, 'media', phaseMediaDuration, media.length);
           } else if (IS_DEV) {
-            console.log(`[GMB Sync API] No media found for location ${location.id}`);
+            console.warn(`[GMB Sync API] No media found for location ${location.id}`);
           }
 
           mediaNextPageToken = nextPageToken;
@@ -1766,7 +1784,7 @@ export async function POST(request: NextRequest) {
         }
         
         if (IS_DEV) {
-          console.log(
+          console.warn(
             `[GMB Sync API] Extracted location ID for Q&A: ${fullLocationName} -> ${locationIdForQandA}`,
           );
         }
@@ -1781,7 +1799,7 @@ export async function POST(request: NextRequest) {
 
           if (questions.length > 0) {
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Processing ${questions.length} questions for location ${location.id}`,
               );
             }
@@ -1834,7 +1852,7 @@ export async function POST(request: NextRequest) {
             });
 
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Prepared ${questionRows.length} valid question rows from ${questions.length} questions`,
               );
             }
@@ -1842,10 +1860,10 @@ export async function POST(request: NextRequest) {
             let upsertedCount = 0;
             for (const chunk of chunks(questionRows)) {
               if (IS_DEV) {
-                console.log(`[GMB Sync API] Upserting chunk of ${chunk.length} questions...`);
+                console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} questions...`);
               }
               
-              const { data, error } = await supabase
+              const { error } = await supabase
                 .from('gmb_questions')
                 .upsert(chunk, { 
                   onConflict: 'external_question_id',
@@ -1863,7 +1881,7 @@ export async function POST(request: NextRequest) {
               } else {
                 upsertedCount += chunk.length;
                 if (IS_DEV) {
-                  console.log(
+                  console.warn(
                     `[GMB Sync API] Successfully upserted ${chunk.length} questions (total: ${upsertedCount})`,
                   );
                 }
@@ -1871,7 +1889,7 @@ export async function POST(request: NextRequest) {
             }
 
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Completed questions sync: ${upsertedCount}/${questionRows.length} questions saved`,
               );
             }
@@ -1879,7 +1897,7 @@ export async function POST(request: NextRequest) {
             const phaseQuestionsDuration = Date.now() - phaseQuestionsStart;
             await upsertMetrics(supabase, accountId, userId, 'questions', phaseQuestionsDuration, questions.length);
           } else if (IS_DEV) {
-            console.log(`[GMB Sync API] No questions found for location ${location.id}`);
+            console.warn(`[GMB Sync API] No questions found for location ${location.id}`);
           }
 
           questionsNextPageToken = nextPageToken;
@@ -1895,14 +1913,14 @@ export async function POST(request: NextRequest) {
   await finishPhaseLog(supabase, phaseQuestionsId, 'completed', { questions: counts.questions });
 
     if (IS_DEV) {
-      console.log(
+      console.warn(
         `[GMB Sync API] Synced ${counts.reviews} reviews, ${counts.media} media items, and ${counts.questions} questions`,
       );
     }
 
     // Fetch performance metrics and search keywords for each location
     if (doPerformance || doKeywords && IS_DEV) {
-      console.log('[GMB Sync API] Starting performance metrics sync...');
+      console.warn('[GMB Sync API] Starting performance metrics sync...');
     }
     let phasePerformanceId: string | null = null;
     let phaseKeywordsId: string | null = null;
@@ -1910,7 +1928,7 @@ export async function POST(request: NextRequest) {
     if (doKeywords) phaseKeywordsId = await startPhaseLog(supabase, accountId, userId, 'keywords');
     if (dbLocations && Array.isArray(dbLocations) && (doPerformance || doKeywords)) {
       if (IS_DEV) {
-        console.log(
+        console.warn(
           `[GMB Sync API] Processing ${dbLocations.length} locations for performance metrics sync`,
         );
       }
@@ -1943,7 +1961,7 @@ export async function POST(request: NextRequest) {
           const phasePerformanceStart = Date.now();
           try {
             if (IS_DEV) {
-              console.log(
+              console.warn(
                 `[GMB Sync API] Fetching performance metrics for location: ${locationIdForPerformance}`,
               );
             }
@@ -1978,7 +1996,7 @@ export async function POST(request: NextRequest) {
                 if (error) {
                   console.error('[GMB Sync API] Error upserting performance metrics:', error);
                 } else if (IS_DEV) {
-                  console.log(`[GMB Sync API] Upserted ${chunk.length} performance metrics`);
+                  console.warn(`[GMB Sync API] Upserted ${chunk.length} performance metrics`);
                 }
               }
 
@@ -2000,7 +2018,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
           if (IS_DEV) {
-            console.log(
+            console.warn(
               `[GMB Sync API] Fetching search keywords for location: ${locationIdForPerformance}`,
             );
           }
@@ -2040,7 +2058,7 @@ export async function POST(request: NextRequest) {
                 if (error) {
                   console.error('[GMB Sync API] Error upserting search keywords:', error);
                 } else if (IS_DEV) {
-                  console.log(`[GMB Sync API] Upserted ${chunk.length} search keywords`);
+                  console.warn(`[GMB Sync API] Upserted ${chunk.length} search keywords`);
                 }
               }
 
@@ -2063,7 +2081,7 @@ export async function POST(request: NextRequest) {
   await finishPhaseLog(supabase, phaseKeywordsId, 'completed', { search_keywords: counts.search_keywords });
 
     if (IS_DEV) {
-      console.log(
+      console.warn(
         `[GMB Sync API] Synced ${counts.performance_metrics} performance metrics and ${counts.search_keywords} search keywords`,
       );
     }
@@ -2076,7 +2094,7 @@ export async function POST(request: NextRequest) {
 
     const took = Date.now() - started;
     if (IS_DEV) {
-      console.log(`[GMB Sync API] Sync completed in ${took}ms`, counts);
+      console.warn(`[GMB Sync API] Sync completed in ${took}ms`, counts);
     }
 
     await logAction('sync', 'gmb_account', accountId, {
@@ -2103,7 +2121,7 @@ export async function POST(request: NextRequest) {
     syncStatusError = null;
     return NextResponse.json(successPayload);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const took = Date.now() - started;
     console.error('[GMB Sync API] Sync failed:', error);
     const baseMessage = error instanceof Error ? error.message : 'Sync failed';
