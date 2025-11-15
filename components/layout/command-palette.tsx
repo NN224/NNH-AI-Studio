@@ -76,11 +76,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       shortcut: 'G P',
     },
     {
-      icon: FileText,
-      label: t('commands.youtubePosts'),
-      action: '/youtube-posts',
-    },
-    {
       icon: BarChart3,
       label: t('commands.analytics'),
       action: '/analytics',
@@ -90,11 +85,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       icon: Zap,
       label: t('commands.automation'),
       action: '/automation',
-    },
-    {
-      icon: Users,
-      label: t('commands.team'),
-      action: '/team',
     },
     {
       icon: Settings,
@@ -109,11 +99,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       icon: Plus,
       label: t('commands.createGmbPost'),
       action: '/posts',
-    },
-    {
-      icon: Plus,
-      label: t('commands.createYoutubePost'),
-      action: '/youtube-posts',
     },
     {
       icon: Download,

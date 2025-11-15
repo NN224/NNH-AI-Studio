@@ -74,17 +74,11 @@ const getRouteName = (path: string, t: any): string => {
     '/locations': 'nav.locations',
     '/reviews': 'nav.reviews',
     '/questions': 'nav.questions',
-    '/youtube-posts': 'nav.youtubePosts',
     '/posts': 'nav.gmbPosts',
-    '/calendar': 'nav.calendar',
     '/media': 'nav.media',
     '/analytics': 'nav.analytics',
-    '/grid-tracking': 'nav.gridTracking',
     '/features': 'nav.features',
     '/automation': 'nav.automation',
-    '/approvals': 'nav.approvals',
-    '/webhooks': 'nav.webhooks',
-    '/team': 'nav.team',
     '/settings': 'nav.settings',
   };
   const key = routeMap[path];
