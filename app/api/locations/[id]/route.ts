@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { validateBody } from '@/middleware/validate-request';
 import { locationUpdateSchema } from '@/lib/validations/schemas';
 import { getValidAccessToken } from '@/lib/gmb/helpers';
+import { logAction } from '@/lib/monitoring/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,6 +177,10 @@ export async function PUT(
 
     if (error) {
       console.error('[PUT /api/locations/:id] Update error:', error);
+      await logAction('location_update', 'gmb_location', locationId, {
+        status: 'failed',
+        reason: error.message,
+      });
       return NextResponse.json(
         { error: 'Failed to update location' },
         { status: 500 }
@@ -189,12 +194,21 @@ export async function PUT(
       );
     }
 
+    await logAction('location_update', 'gmb_location', locationId, {
+      status: 'success',
+      changed_fields: Object.keys(updateData),
+    });
+
     return NextResponse.json({
       data,
       message: 'Location updated successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PUT /api/locations/:id] Unexpected error:', error);
+    await logAction('location_update', 'gmb_location', params.locationId || null, {
+      status: 'failed',
+      reason: error.message,
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -237,18 +251,30 @@ export async function DELETE(
 
     if (error) {
       console.error('[DELETE /api/locations/:id] Delete error:', error);
+      await logAction('location_delete', 'gmb_location', locationId, {
+        status: 'failed',
+        reason: error.message,
+      });
       return NextResponse.json(
         { error: 'Failed to delete location' },
         { status: 500 }
       );
     }
 
+    await logAction('location_delete', 'gmb_location', locationId, {
+      status: 'success',
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Location deleted successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[DELETE /api/locations/:id] Unexpected error:', error);
+    await logAction('location_delete', 'gmb_location', params.locationId || null, {
+      status: 'failed',
+      reason: error.message,
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

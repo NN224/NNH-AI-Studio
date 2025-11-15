@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { addCoordinatesToLocations } from '@/lib/utils/location-coordinates';
 import { applySafeSearchFilter } from '@/lib/utils/secure-search';
+import { logAction } from '@/lib/monitoring/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -353,6 +354,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
+      await logAction('location_create', 'gmb_location', null, {
+        status: 'failed',
+        reason: insertError.message,
+      });
       console.error('[POST /api/locations] DB Error:', {
         error: insertError.message,
         code: insertError.code,
@@ -382,18 +387,26 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json(
-      { 
+    await logAction('location_create', 'gmb_location', location.id, {
+      status: 'success',
+      user_id: user.id,
+    });
+
+    return NextResponse.json(
+      {
         data: location,
-        message: 'Location created successfully'
+        message: 'Location created successfully',
       },
-      { 
+      {
         status: 201,
-        headers: responseHeaders
+        headers: responseHeaders,
       }
     );
-
   } catch (error: any) {
+    await logAction('location_create', 'gmb_location', null, {
+      status: 'failed',
+      reason: error.message,
+    });
     console.error('[POST /api/locations] Unexpected error:', {
       error: error.message,
       stack: error.stack,
