@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logAction } from '@/lib/monitoring/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,10 @@ export async function GET(request: NextRequest) {
 
     if (accountsError) {
       console.error('[Settings API] Failed to fetch accounts:', accountsError)
+      await logAction('settings_view', 'settings', 'global', {
+        status: 'failed',
+        error: accountsError.message,
+      })
       return NextResponse.json(
         { error: 'Failed to load settings' },
         { status: 500 }
@@ -92,6 +97,11 @@ export async function GET(request: NextRequest) {
     // Ignore PGRST116 error (no rows found) - this is expected for new users
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('[Settings API] Failed to fetch client profile:', profileError)
+      await logAction('settings_view', 'settings', 'global', {
+        status: 'partial',
+        warning: 'client_profile_fetch_failed',
+        error: profileError.message,
+      })
     }
 
     // Combine all settings
@@ -144,9 +154,16 @@ export async function GET(request: NextRequest) {
       },
     }
 
+    await logAction('settings_view', 'settings', 'global', {
+      status: 'success',
+    })
     return NextResponse.json({ settings: allSettings })
   } catch (error) {
     console.error('[Settings API] Unexpected error:', error)
+    await logAction('settings_view', 'settings', 'global', {
+      status: 'failed',
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       { error: 'Unexpected error while loading settings' },
       { status: 500 }
@@ -167,6 +184,10 @@ export async function PUT(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      await logAction('settings_update', 'settings', 'global', {
+        status: 'failed',
+        error: authError?.message || 'Unauthorized',
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -174,6 +195,11 @@ export async function PUT(request: NextRequest) {
     const parsed = settingsSchema.partial().safeParse(body)
 
     if (!parsed.success) {
+      await logAction('settings_update', 'settings', 'global', {
+        status: 'failed',
+        error: 'Invalid settings payload',
+        details: parsed.error.flatten(),
+      })
       return NextResponse.json(
         { error: 'Invalid settings data', details: parsed.error.flatten() },
         { status: 400 }
@@ -191,6 +217,10 @@ export async function PUT(request: NextRequest) {
 
     if (accountsError) {
       console.error('[Settings API] Failed to fetch accounts:', accountsError)
+      await logAction('settings_update', 'settings', 'global', {
+        status: 'failed',
+        error: accountsError.message,
+      })
       return NextResponse.json(
         { error: 'Failed to update settings' },
         { status: 500 }
@@ -198,6 +228,10 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!accounts || accounts.length === 0) {
+      await logAction('settings_update', 'settings', 'global', {
+        status: 'failed',
+        error: 'No active GMB account found',
+      })
       return NextResponse.json(
         { error: 'No active GMB account found' },
         { status: 400 }
@@ -243,6 +277,10 @@ export async function PUT(request: NextRequest) {
 
       if (updateError) {
         console.error('[Settings API] Failed to update account:', updateError)
+        await logAction('settings_update', 'settings', account.id, {
+          status: 'failed',
+          error: updateError.message,
+        })
         return NextResponse.json(
           { error: 'Failed to update settings' },
           { status: 500 }
@@ -284,6 +322,10 @@ export async function PUT(request: NextRequest) {
 
           if (profileError) {
             console.error('[Settings API] Failed to update profile:', profileError)
+            await logAction('settings_update', 'settings', 'branding', {
+              status: 'failed',
+              error: profileError.message,
+            })
             // Don't fail the whole request if profile update fails
           }
         } else {
@@ -293,11 +335,23 @@ export async function PUT(request: NextRequest) {
 
           if (profileError) {
             console.error('[Settings API] Failed to create profile:', profileError)
+            await logAction('settings_update', 'settings', 'branding', {
+              status: 'failed',
+              error: profileError.message,
+            })
             // Don't fail the whole request if profile creation fails
           }
         }
       }
     }
+
+    const changedKeys = Object.keys(settings)
+    await logAction('settings_update', 'settings', 'global', {
+      status: 'success',
+      changed_keys: changedKeys,
+      retention_days: settings.retentionDays,
+      delete_on_disconnect: settings.deleteOnDisconnect,
+    })
 
     return NextResponse.json({
       success: true,
@@ -305,6 +359,10 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('[Settings API] Unexpected error:', error)
+    await logAction('settings_update', 'settings', 'global', {
+      status: 'failed',
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       { error: 'Unexpected error while updating settings' },
       { status: 500 }
