@@ -24,7 +24,7 @@ const insightsCache = new Map<string, CachedInsights>();
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get authenticated user
     const {
@@ -295,7 +295,7 @@ function parseAIResponse(content: string): Omit<AIInsightsResponse, 'generatedAt
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const {
       data: { user },
