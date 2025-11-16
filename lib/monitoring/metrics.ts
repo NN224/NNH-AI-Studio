@@ -20,11 +20,16 @@ function todayKey() {
 async function incrementCounter(key: string, amount: number, ttlSeconds: number) {
   const redis = getRedisClient()
   if (redis) {
-    const value = await redis.incrby(key, amount)
-    if (value === amount) {
-      await redis.expire(key, ttlSeconds)
+    try {
+      const value = await redis.incrby(key, amount)
+      if (value === amount) {
+        await redis.expire(key, ttlSeconds)
+      }
+      return
+    } catch (error) {
+      // Redis connection failed, fall back to in-memory
+      console.log('[Metrics] Redis unavailable, using in-memory storage')
     }
-    return
   }
 
   const current = (globalStore.get(key) as number | undefined) ?? 0
@@ -34,9 +39,14 @@ async function incrementCounter(key: string, amount: number, ttlSeconds: number)
 async function addToSet(key: string, member: string, ttlSeconds: number) {
   const redis = getRedisClient()
   if (redis) {
-    await redis.sadd(key, member)
-    await redis.expire(key, ttlSeconds)
-    return
+    try {
+      await redis.sadd(key, member)
+      await redis.expire(key, ttlSeconds)
+      return
+    } catch (error) {
+      // Redis connection failed, fall back to in-memory
+      console.log('[Metrics] Redis unavailable, using in-memory storage')
+    }
   }
 
   let set = globalStore.get(key) as Set<string> | undefined
