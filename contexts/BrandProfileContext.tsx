@@ -31,11 +31,12 @@ export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
         return;
       }
 
+      // Prefer profiles (built-in) instead of deprecated client_profiles
       const { data, error } = await supabase
-        .from('client_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .from('profiles')
+        .select('id, full_name, avatar_url, updated_at')
+        .eq('id', user.id)
+        .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -46,7 +47,7 @@ export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
           setProfile(null);
         }
       } else {
-        setProfile(data);
+        setProfile(data as any);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);

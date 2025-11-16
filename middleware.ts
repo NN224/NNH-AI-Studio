@@ -118,14 +118,15 @@ export async function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
-  // CSRF protection for API routes (exclude OAuth, webhook, and sync routes)
+  // CSRF protection for API routes (exclude OAuth, webhook, sync, and AI routes)
   const isOAuthRoute = request.nextUrl.pathname.includes('/oauth') || 
                        request.nextUrl.pathname.includes('/create-auth-url') ||
                        request.nextUrl.pathname.includes('/webhook') ||
                        request.nextUrl.pathname.includes('/gmb/sync');
+  const isAIRoute = request.nextUrl.pathname.startsWith('/api/ai/');
   
   let csrfToken: string | null = null;
-  if (!isOAuthRoute) {
+  if (!isOAuthRoute && !isAIRoute) {
     const { valid: csrfValid, token } = await validateCSRF(request);
     csrfToken = token || null;
     if (!csrfValid && request.method !== 'GET') {

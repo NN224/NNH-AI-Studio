@@ -32,7 +32,7 @@ export default function BusinessHeader({ className }: { className?: string }) {
         // Grab one active location for branding
         const { data } = await supabase
           .from('gmb_locations')
-          .select('location_name, rating, review_count, address, cover_photo_url:profile_cover_url, logo_url:profile_logo_url')
+          .select('location_name, rating, review_count, address')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .limit(1)
