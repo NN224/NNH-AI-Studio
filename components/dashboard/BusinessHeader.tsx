@@ -29,15 +29,57 @@ export default function BusinessHeader({ className }: { className?: string }) {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        // Grab one active location for branding
-        const { data } = await supabase
+        // Grab one active location basics
+        const { data: location } = await supabase
           .from('gmb_locations')
           .select('location_name, rating, review_count, address')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .limit(1)
           .maybeSingle();
-        if (mounted) setLoc((data as any) || null);
+        
+        // Try to fetch client branding (preferred)
+        let logoUrl: string | null = null;
+        let coverUrl: string | null = null;
+        try {
+          const { data: branding } = await supabase
+            .from('client_profiles')
+            .select('logo_url, cover_image_url, brand_name')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          logoUrl = (branding as any)?.logo_url ?? null;
+          coverUrl = (branding as any)?.cover_image_url ?? null;
+          // If brand_name exists use it instead of raw location name
+          if (branding?.brand_name) {
+            (location as any).location_name = branding.brand_name;
+          }
+        } catch {
+          // ignore if table missing
+        }
+        // Fallback to profiles.avatar_url if no explicit logo
+        if (!logoUrl) {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('id', user.id)
+              .maybeSingle();
+            logoUrl = (profile as any)?.avatar_url ?? null;
+          } catch {}
+        }
+
+        const composed: LocationLite | null = location
+          ? {
+              location_name: (location as any)?.location_name ?? null,
+              rating: (location as any)?.rating ?? null,
+              review_count: (location as any)?.review_count ?? null,
+              address: (location as any)?.address ?? null,
+              logo_url: logoUrl,
+              cover_photo_url: coverUrl,
+            }
+          : null;
+
+        if (mounted) setLoc(composed);
       } finally {
         if (mounted) setLoading(false);
       }
