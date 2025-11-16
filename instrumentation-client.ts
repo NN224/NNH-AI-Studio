@@ -32,6 +32,27 @@ Sentry.init({
 
   // Only enable in production
   enabled: process.env.NODE_ENV === 'production' && !!process.env.NEXT_PUBLIC_SENTRY_DSN,
+
+  // Filter out certain errors
+  ignoreErrors: [
+    // Browser extensions
+    'top.GLOBALS',
+    // Network errors
+    'NetworkError',
+    'Failed to fetch',
+    // Random plugins/extensions
+    'Non-Error promise rejection captured',
+    // Sentry internal errors
+    'Multiple Sentry Session Replay instances are not supported',
+  ],
+
+  beforeSend(event, hint) {
+    // Filter out non-error events in development
+    if (process.env.NODE_ENV === 'development') {
+      return null
+    }
+    return event
+  },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
