@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import MiniChat from '@/components/dashboard/ai/MiniChat';
 
 // Animation variants
 const containerVariants = {
@@ -120,6 +121,11 @@ const NewDashboardClient = () => {
         >
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-6">
+            {/* AI Insights + Mini Chat */}
+            <motion.div variants={itemVariants}>
+              <MiniChat stats={stats as any} activityFeed={activityFeed as any} />
+            </motion.div>
+
             {/* Stats Grid */}
             <motion.div 
               className="grid grid-cols-1 sm:grid-cols-2 gap-4"
