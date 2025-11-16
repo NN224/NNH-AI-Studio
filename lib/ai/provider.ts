@@ -263,28 +263,78 @@ export async function getAIProvider(userId: string): Promise<AIProvider | null> 
     .limit(1)
     .single();
 
-  if (error || !settings) {
-    return null;
-  }
-
-  // Default model configurations
+  // Default model configurations (updated 2025)
   const modelConfig: Record<string, { model: string; maxTokens: number; temperature: number }> = {
-    openai: { model: 'gpt-4-turbo', maxTokens: 4000, temperature: 0.7 },
-    anthropic: { model: 'claude-3-sonnet-20240229', maxTokens: 4000, temperature: 0.7 },
-    google: { model: 'gemini-pro', maxTokens: 4000, temperature: 0.7 },
+    openai: { model: 'gpt-4o-mini', maxTokens: 4000, temperature: 0.7 },
+    anthropic: { model: 'claude-3-5-sonnet-20240620', maxTokens: 4000, temperature: 0.7 },
+    google: { model: 'gemini-1.5-pro', maxTokens: 4000, temperature: 0.7 },
   };
 
-  const config = modelConfig[settings.provider];
+  // 1) If user has explicit settings in DB, use them
+  if (!error && settings) {
+    const cfg = modelConfig[settings.provider];
+    return new AIProvider(
+      {
+        provider: settings.provider as 'openai' | 'anthropic' | 'google',
+        model: cfg.model,
+        maxTokens: cfg.maxTokens,
+        temperature: cfg.temperature,
+        apiKey: settings.api_key,
+      },
+      userId
+    );
+  }
 
-  return new AIProvider(
-    {
-      provider: settings.provider as 'openai' | 'anthropic' | 'google',
-      model: config.model,
-      maxTokens: config.maxTokens,
-      temperature: config.temperature,
-      apiKey: settings.api_key,
-    },
-    userId
-  );
+  // 2) Fallback to system-level keys (priority: Anthropic → OpenAI → Google)
+  const sysAnthropic =
+    process.env.SYSTEM_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (sysAnthropic) {
+    const cfg = modelConfig['anthropic'];
+    return new AIProvider(
+      {
+        provider: 'anthropic',
+        model: cfg.model,
+        maxTokens: cfg.maxTokens,
+        temperature: cfg.temperature,
+        apiKey: sysAnthropic,
+      },
+      userId
+    );
+  }
+
+  const sysOpenAI =
+    process.env.SYSTEM_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (sysOpenAI) {
+    const cfg = modelConfig['openai'];
+    return new AIProvider(
+      {
+        provider: 'openai',
+        model: cfg.model,
+        maxTokens: cfg.maxTokens,
+        temperature: cfg.temperature,
+        apiKey: sysOpenAI,
+      },
+      userId
+    );
+  }
+
+  const sysGoogle =
+    process.env.SYSTEM_GOOGLE_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  if (sysGoogle) {
+    const cfg = modelConfig['google'];
+    return new AIProvider(
+      {
+        provider: 'google',
+        model: cfg.model,
+        maxTokens: cfg.maxTokens,
+        temperature: cfg.temperature,
+        apiKey: sysGoogle,
+      },
+      userId
+    );
+  }
+
+  // If nothing configured
+  return null;
 }
 
