@@ -6,6 +6,7 @@
 import type { Metadata } from 'next'
 import InteractiveHero from './components/InteractiveHero'
 import LiveDemoSandbox from './components/LiveDemoSandbox'
+import ROICalculator from './components/ROICalculator'
 
 export const metadata: Metadata = {
   title: 'NNH AI Studio - أفضل منصة لإدارة Google My Business',
@@ -43,6 +44,7 @@ export default function LandingPageV2() {
       <div className="relative space-y-20">
         <InteractiveHero />
         <LiveDemoSandbox />
+        <ROICalculator />
       </div>
     </div>
   )
