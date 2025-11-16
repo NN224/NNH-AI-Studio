@@ -144,8 +144,8 @@ ORDER BY tablename;
 -- ============================================
 SELECT 
     schemaname as schema,
-    tablename as table_name,
-    indexname as index_name,
+    relname as table_name,
+    indexrelname as index_name,
     idx_scan as times_used,
     pg_size_pretty(pg_relation_size(indexrelid)) as index_size
 FROM pg_stat_user_indexes
