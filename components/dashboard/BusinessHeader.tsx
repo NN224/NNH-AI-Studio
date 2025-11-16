@@ -30,6 +30,34 @@ export default function BusinessHeader({ className }: { className?: string }) {
   const [file, setFile] = useState<File | null>(null);
   const supabase = createClient();
   const { toast } = useToast();
+  
+  async function fetchFromGMB() {
+    if (!loc?.id) return;
+    try {
+      const res = await fetch(`/api/gmb/media?locationId=${loc.id}`, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Failed (${res.status})`);
+      const media: any[] = data?.data?.media || data?.media || [];
+      if (!Array.isArray(media) || media.length === 0) {
+        toast({ title: 'No media found on GMB' });
+        return;
+      }
+      const pickUrl = (m: any): string | null =>
+        m?.sourceUrl || m?.googleUrl || m?.url || m?.thumbnailUrl || null;
+      const getCat = (m: any) =>
+        (m?.locationAssociation?.category || m?.metadata?.locationAssociation?.category || m?.metadata?.category || m?.category || '').toString().toUpperCase();
+      const cover = media.find((m: any) => getCat(m).includes('COVER')) || media.find((m: any) => (m?.mediaFormat || m?.type) !== 'VIDEO');
+      const logo = media.find((m: any) => ['LOGO','PROFILE'].some(tag => getCat(m).includes(tag)));
+      setLoc((prev) => prev ? {
+        ...prev,
+        cover_photo_url: cover ? pickUrl(cover) : prev.cover_photo_url,
+        logo_url: logo ? pickUrl(logo) : prev.logo_url,
+      } : prev);
+      toast({ title: 'Fetched from GMB' });
+    } catch (e: any) {
+      toast({ title: 'Fetch error', description: e?.message || 'Failed to fetch from GMB' });
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -160,6 +188,9 @@ export default function BusinessHeader({ className }: { className?: string }) {
                 : 'No cover image found. Upload a cover to showcase your business.'}
             </div>
             <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={fetchFromGMB}>
+                Fetch from GMB
+              </Button>
               {!loc?.logo_url && (
                 <Button size="sm" variant="secondary" onClick={() => setUploadOpen('logo')}>
                   Upload logo
