@@ -23,6 +23,8 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import MiniChat from '@/components/dashboard/ai/MiniChat';
+import BusinessHeader from '@/components/dashboard/BusinessHeader';
+import AIInsightsCards from '@/components/dashboard/ai/AIInsightsCards';
 
 // Animation variants
 const containerVariants = {
@@ -121,9 +123,17 @@ const NewDashboardClient = () => {
         >
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Business header */}
+            <motion.div variants={itemVariants}>
+              <BusinessHeader />
+            </motion.div>
+
             {/* AI Insights + Mini Chat */}
             <motion.div variants={itemVariants}>
-              <MiniChat stats={stats as any} activityFeed={activityFeed as any} />
+              <div className="space-y-4">
+                <AIInsightsCards stats={stats as any} />
+                <MiniChat stats={stats as any} activityFeed={activityFeed as any} />
+              </div>
             </motion.div>
 
             {/* Stats Grid */}
