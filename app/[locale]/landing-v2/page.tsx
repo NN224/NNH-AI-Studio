@@ -7,6 +7,8 @@ import type { Metadata } from 'next'
 import InteractiveHero from './components/InteractiveHero'
 import LiveDemoSandbox from './components/LiveDemoSandbox'
 import ROICalculator from './components/ROICalculator'
+import AIChatWidget from './components/AIChatWidget'
+import SocialProofStream from './components/SocialProofStream'
 
 export const metadata: Metadata = {
   title: 'NNH AI Studio - أفضل منصة لإدارة Google My Business',
@@ -46,6 +48,10 @@ export default function LandingPageV2() {
         <LiveDemoSandbox />
         <ROICalculator />
       </div>
+
+      {/* Floating Widgets */}
+      <AIChatWidget />
+      <SocialProofStream />
     </div>
   )
 }
