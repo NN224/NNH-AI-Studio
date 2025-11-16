@@ -25,6 +25,8 @@ import { toast } from 'sonner';
 import MiniChat from '@/components/dashboard/ai/MiniChat';
 import BusinessHeader from '@/components/dashboard/BusinessHeader';
 import AIInsightsCards from '@/components/dashboard/ai/AIInsightsCards';
+import AutopilotStatus from '@/components/dashboard/ai/AutopilotStatus';
+import PerformancePredictor from '@/components/dashboard/ai/PerformancePredictor';
 
 // Animation variants
 const containerVariants = {
@@ -199,6 +201,9 @@ const NewDashboardClient = () => {
                     xAxisKey="date"
                     isLoading={isLoadingChart}
                   />
+                  <div className="mt-4">
+                    <PerformancePredictor data={chartData as any || []} />
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -281,6 +286,11 @@ const NewDashboardClient = () => {
 
           {/* Sidebar Column */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Autopilot Control */}
+            <motion.div variants={itemVariants}>
+              <AutopilotStatus />
+            </motion.div>
+
             {/* Quick Actions */}
             <motion.div variants={itemVariants}>
               <Card className="hover:shadow-lg transition-shadow duration-300">
