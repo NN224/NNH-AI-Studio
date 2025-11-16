@@ -101,9 +101,12 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
         }),
       });
       if (!res.ok) {
-        // fallback to quick local summary
-        const fallback = buildQuickUpdate('any');
-        setMessages((prev) => [...prev, { role: 'ai', text: fallback }]);
+        // Show API error instead of masking with local fallback to avoid confusion
+        const errorText = await res.text().catch(() => '');
+        const apiError = (() => {
+          try { return JSON.parse(errorText)?.error || errorText; } catch { return errorText || `Request failed (${res.status})`; }
+        })();
+        setMessages((prev) => [...prev, { role: 'ai', text: `AI error: ${apiError}` }]);
       } else {
         const data = await res.json();
         const reply = data?.message || '';
@@ -114,8 +117,8 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
         setMessages((prev) => [...prev, { role: 'ai', text: enriched }]);
       }
     } catch (e) {
-      const fallback = 'AI service is currently unavailable. Here is a quick summary:\n' + buildQuickUpdate('any');
-      setMessages((prev) => [...prev, { role: 'ai', text: fallback }]);
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      setMessages((prev) => [...prev, { role: 'ai', text: `AI connection error: ${msg}` }]);
     } finally {
       setLoading(false);
     }
