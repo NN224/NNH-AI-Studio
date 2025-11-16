@@ -10,6 +10,7 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type LocationLite = {
+  id?: string | null;
   location_name: string | null;
   cover_photo_url?: string | null;
   logo_url?: string | null;
@@ -33,7 +34,7 @@ export default function BusinessHeader({ className }: { className?: string }) {
         // Grab one active location basics
         const { data: location } = await supabase
           .from('gmb_locations')
-          .select('location_name, rating, review_count, address')
+          .select('id, location_name, rating, review_count, address')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .limit(1)
@@ -66,8 +67,36 @@ export default function BusinessHeader({ className }: { className?: string }) {
           } catch {}
         }
 
+        // If no branding in settings, try infer from GMB media for the active location
+        if ((!logoUrl || !coverUrl) && (location as any)?.id) {
+          try {
+            const mediaRes = await fetch(`/api/gmb/media?locationId=${(location as any).id}`, { cache: 'no-store' });
+            const mediaJson = await mediaRes.json().catch(() => ({}));
+            const media: any[] = mediaJson?.data?.media || [];
+            const pickUrl = (m: any): string | null =>
+              m?.sourceUrl || m?.googleUrl || m?.url || m?.thumbnailUrl || null;
+            const isCover = (m: any) => {
+              const c = (m?.locationAssociation?.category || m?.category || '').toString().toUpperCase();
+              return c.includes('COVER');
+            };
+            const isLogo = (m: any) => {
+              const c = (m?.locationAssociation?.category || m?.category || '').toString().toUpperCase();
+              return c.includes('LOGO') || c.includes('PROFILE');
+            };
+            if (!coverUrl) {
+              const cover = media.find(isCover) || media.find((m) => (m?.description || '').toLowerCase().includes('cover'));
+              coverUrl = cover ? pickUrl(cover) : coverUrl;
+            }
+            if (!logoUrl) {
+              const logo = media.find(isLogo) || media.find((m) => (m?.description || '').toLowerCase().includes('logo'));
+              logoUrl = logo ? pickUrl(logo) : logoUrl;
+            }
+          } catch {}
+        }
+
         const composed: LocationLite | null = location
           ? {
+              id: (location as any)?.id ?? null,
               location_name: (location as any)?.location_name ?? null,
               rating: (location as any)?.rating ?? null,
               review_count: (location as any)?.review_count ?? null,
