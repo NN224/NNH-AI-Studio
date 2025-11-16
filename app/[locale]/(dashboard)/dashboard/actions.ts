@@ -531,15 +531,15 @@ export async function getPerformanceChartData() {
     throw new Error('User not authenticated');
   }
   
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Format as YYYY-MM-DD
 
   const { data, error } = await supabase
     .from('gmb_performance_metrics')
-    .select('date, value')
+    .select('metric_date, metric_value')
     .eq('user_id', user.id)
     .eq('metric_type', 'VIEWS_SEARCH')
-    .gte('date', sevenDaysAgo)
-    .order('date', { ascending: true });
+    .gte('metric_date', sevenDaysAgo)
+    .order('metric_date', { ascending: true });
 
   if (error) {
     console.error('Error fetching performance chart data:', error);
@@ -547,8 +547,13 @@ export async function getPerformanceChartData() {
     return [];
   }
 
-  // Return empty array if no data
-  return data || [];
+  // Map to expected format (date, value)
+  const formattedData = (data || []).map(item => ({
+    date: item.metric_date,
+    value: item.metric_value || 0,
+  }));
+
+  return formattedData;
 }
 
 export async function getActivityFeed() {
