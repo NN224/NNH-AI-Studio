@@ -7,9 +7,10 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Log new review
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO activity_logs (user_id, activity_message, created_at)
+    INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
     VALUES (
       NEW.user_id,
+      'review_received',
       'New review received: ' || COALESCE(NEW.rating::text, '0') || ' stars from ' || COALESCE(NEW.reviewer_name, 'Anonymous'),
       NEW.created_at
     );
@@ -17,9 +18,10 @@ BEGIN
   
   -- Log review reply
   IF TG_OP = 'UPDATE' AND OLD.reply_text IS NULL AND NEW.reply_text IS NOT NULL THEN
-    INSERT INTO activity_logs (user_id, activity_message, created_at)
+    INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
     VALUES (
       NEW.user_id,
+      'review_responded',
       'Replied to review from ' || COALESCE(NEW.reviewer_name, 'Anonymous'),
       NOW()
     );
@@ -35,9 +37,10 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Log new question
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO activity_logs (user_id, activity_message, created_at)
+    INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
     VALUES (
       NEW.user_id,
+      'question_received',
       'New question received: ' || LEFT(COALESCE(NEW.question_text, 'Question'), 50),
       NEW.created_at
     );
@@ -45,9 +48,10 @@ BEGIN
   
   -- Log question answer
   IF TG_OP = 'UPDATE' AND OLD.answer_text IS NULL AND NEW.answer_text IS NOT NULL THEN
-    INSERT INTO activity_logs (user_id, activity_message, created_at)
+    INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
     VALUES (
       NEW.user_id,
+      'question_answered',
       'Answered a customer question',
       NOW()
     );
@@ -62,9 +66,10 @@ CREATE OR REPLACE FUNCTION log_post_activity()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO activity_logs (user_id, activity_message, created_at)
+    INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
     VALUES (
       NEW.user_id,
+      'post_published',
       'Published new post: ' || LEFT(COALESCE(NEW.summary, 'Post'), 50),
       NEW.created_at
     );
@@ -96,9 +101,10 @@ CREATE TRIGGER trigger_log_post_activity
   EXECUTE FUNCTION log_post_activity();
 
 -- Backfill recent activity from existing data (last 30 days only)
-INSERT INTO activity_logs (user_id, activity_message, created_at)
+INSERT INTO activity_logs (user_id, activity_type, activity_message, created_at)
 SELECT 
   user_id,
+  'review_received',
   'Review received: ' || rating::text || ' stars from ' || COALESCE(reviewer_name, 'Anonymous'),
   created_at
 FROM gmb_reviews
