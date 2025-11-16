@@ -34,7 +34,41 @@ export class AIProvider {
           ({ content, usage } = await this.callOpenAI(prompt));
           break;
         case 'anthropic':
-          ({ content, usage } = await this.callAnthropic(prompt));
+          try {
+            ({ content, usage } = await this.callAnthropic(prompt));
+          } catch (primaryError) {
+            // Attempt graceful fallback to OpenAI or Google if available
+            const sysOpenAI = process.env.SYSTEM_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+            const sysGoogle = process.env.SYSTEM_GOOGLE_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+            if (sysOpenAI) {
+              const fallback = new AIProvider(
+                {
+                  provider: 'openai',
+                  model: 'gpt-4o-mini',
+                  maxTokens: this.config.maxTokens,
+                  temperature: this.config.temperature,
+                  apiKey: sysOpenAI,
+                },
+                this.userId
+              );
+              ({ content, usage } = await fallback.callOpenAI(prompt));
+              break;
+            } else if (sysGoogle) {
+              const fallback = new AIProvider(
+                {
+                  provider: 'google',
+                  model: 'gemini-1.5-pro',
+                  maxTokens: this.config.maxTokens,
+                  temperature: this.config.temperature,
+                  apiKey: sysGoogle,
+                },
+                this.userId
+              );
+              ({ content, usage } = await fallback.callGoogle(prompt));
+              break;
+            }
+            throw primaryError;
+          }
           break;
         case 'google':
           ({ content, usage } = await this.callGoogle(prompt));
@@ -144,8 +178,11 @@ export class AIProvider {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Anthropic API error: ${error.error?.message || 'Unknown error'}`);
+      let errText = '';
+      try { errText = await response.text(); } catch {}
+      let errMsg = 'Unknown error';
+      try { errMsg = JSON.parse(errText)?.error?.message || errText; } catch { errMsg = errText || errMsg; }
+      throw new Error(`Anthropic API error: ${errMsg}`);
     }
 
     const data = await response.json();
@@ -267,7 +304,7 @@ export async function getAIProvider(userId: string): Promise<AIProvider | null> 
   // Default model configurations (updated 2025)
   const modelConfig: Record<string, { model: string; maxTokens: number; temperature: number }> = {
     openai: { model: 'gpt-4o-mini', maxTokens: 4000, temperature: 0.7 },
-    anthropic: { model: 'claude-3-5-sonnet-20240620', maxTokens: 4000, temperature: 0.7 },
+    anthropic: { model: 'claude-3-5-sonnet-latest', maxTokens: 4000, temperature: 0.7 },
     google: { model: 'gemini-1.5-pro', maxTokens: 4000, temperature: 0.7 },
   };
 
