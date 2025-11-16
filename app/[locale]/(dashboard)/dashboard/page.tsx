@@ -41,6 +41,7 @@ import { HealthScoreCard } from './components/HealthScoreCard';
 import { DashboardBanner } from '@/components/dashboard/dashboard-banner';
 import { useDashboardSnapshot, cacheUtils } from '@/hooks/use-dashboard-cache';
 import type { DashboardSnapshot } from '@/types/dashboard';
+import NewDashboardClient from './NewDashboardClient';
 
 // Import AI Components
 import dynamic from 'next/dynamic';
@@ -245,195 +246,196 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-8 p-4 md:p-6" data-print-root>
-      {/* Header - محسن للموبايل */}
-      <DashboardHeader onPreferencesChange={handlePreferencesChange} />
-
-      {/* Custom Branding Banner */}
-      <DashboardBanner />
-
-      {/* Real-time Updates Indicator */}
-      {gmbConnected && (
-        <DashboardSection section="Real-time Updates">
-          <RealtimeUpdatesIndicator
-            lastUpdated={lastDataUpdate}
-            onRefresh={() => fetchData(true)}
-            isRefreshing={loading}
-            autoRefreshInterval={5}
-            syncDetails={syncDetails}
-          />
-        </DashboardSection>
-      )}
-
-      {/* Date Range Controls & Export/Share */}
-      {gmbConnected && (
-        <ResponsiveGrid type="main" className="!grid-cols-1 lg:!grid-cols-2">
-          <DashboardSection section="Date Controls">
-            <DateRangeControls
-              value={dateRange}
-              onChange={setDateRange}
-              onApply={() => fetchData(true)}
-            />
-          </DashboardSection>
-          <DashboardSection section="Export Controls">
-            <ExportShareBar
-              getShareParams={() => {
-                const params: Record<string, string> = {};
-                if (dateRange.preset) params.preset = dateRange.preset;
-                if (dateRange.start) params.start = dateRange.start.toISOString();
-                if (dateRange.end) params.end = dateRange.end.toISOString();
-                return params;
-              }}
-            />
-          </DashboardSection>
-        </ResponsiveGrid>
-      )}
-
-      {/* GMB Connection Banner */}
-      {!gmbConnected && (
-        <DashboardSection section="Connection Banner">
-          <GMBConnectionBanner />
-        </DashboardSection>
-      )}
-
-      {/* Connection Status and Quick Actions */}
-      {gmbConnected && (
-        <>
-          <ResponsiveGrid type="main" className="!grid-cols-1 md:!grid-cols-4">
-            <div className="md:col-span-3">
-              <DashboardSection section="GMB Connection">
-                <GMBConnectionManager
-                  variant="compact"
-                  showLastSync={true}
-                  onSuccess={handleGMBSuccess}
-                />
-              </DashboardSection>
-            </div>
-            <DashboardSection section="Health Score">
-              <HealthScoreCard loading={loading} healthScore={currentStats.healthScore} />
-            </DashboardSection>
-          </ResponsiveGrid>
-
-          <DashboardSection section="Quick Actions">
-            <QuickActionsBar 
-              pendingReviews={currentStats.pendingReviews}
-              unansweredQuestions={currentStats.unansweredQuestions}
-              totalLocations={quickActionInsights.totalLocations}
-              profileCompletenessAverage={quickActionInsights.profileCompletenessAverage}
-              incompleteProfiles={quickActionInsights.incompleteProfiles}
-            />
-          </DashboardSection>
-        </>
-      )}
-
-      {/* Stats Cards - Lazy Loaded */}
-      {gmbConnected && (
-        <DashboardSection section="Statistics">
-          <ResponsiveGrid type="stats" className="gap-4">
-            <LazyStatsCards 
-              loading={loading} 
-              data={currentStats} 
-              dateRange={dateRange}
-              comparisonDetails={comparisonDetails}
-            />
-          </ResponsiveGrid>
-        </DashboardSection>
-      )}
-
-      {/* Weekly Tasks and Bottlenecks */}
-      {gmbConnected && (widgetPreferences.showWeeklyTasks || widgetPreferences.showBottlenecks) && (
-        <ResponsiveGrid type="main">
-          {widgetPreferences.showWeeklyTasks && (
-            <DashboardSection section="Weekly Tasks">
-              <WeeklyTasksWidget />
-            </DashboardSection>
-          )}
-          {widgetPreferences.showBottlenecks && (
-            <DashboardSection section="Bottlenecks">
-              <BottlenecksWidget 
-                bottlenecks={currentStats.bottlenecks} 
-                loading={loading}
-              />
-            </DashboardSection>
-          )}
-        </ResponsiveGrid>
-      )}
-
-      {/* Performance Charts - Lazy Loaded */}
-      {gmbConnected && currentStats.monthlyComparison && (widgetPreferences.showPerformanceComparison || widgetPreferences.showLocationHighlights) && (
-        <ResponsiveGrid type="chart">
-          {widgetPreferences.showPerformanceComparison && (
-            <DashboardSection section="Performance Chart">
-              <LazyPerformanceChart
-                currentMonthData={currentStats.monthlyComparison.current}
-                previousMonthData={currentStats.monthlyComparison.previous}
-                loading={loading}
-              />
-            </DashboardSection>
-          )}
-          {widgetPreferences.showLocationHighlights && (
-            <DashboardSection section="Location Highlights">
-              <LazyLocationHighlights
-                locations={currentStats.locationHighlights || []}
-                loading={loading}
-              />
-            </DashboardSection>
-          )}
-        </ResponsiveGrid>
-      )}
-
-      {/* AI Insights + Gamification - Lazy Loaded */}
-      {gmbConnected && (widgetPreferences.showAIInsights || widgetPreferences.showAchievements) && (
-        <ResponsiveGrid type="main">
-          {widgetPreferences.showAIInsights && (
-            <DashboardSection section="AI Insights">
-              <LazyAIInsights
-                stats={{
-                  totalReviews: currentStats.totalReviews,
-                  averageRating: currentStats.averageRating,
-                  responseRate: currentStats.responseRate,
-                  pendingReviews: currentStats.pendingReviews,
-                  unansweredQuestions: currentStats.unansweredQuestions,
-                  ratingTrend: currentStats.ratingTrend,
-                  reviewsTrend: currentStats.reviewsTrend
-                }}
-                loading={loading}
-              />
-            </DashboardSection>
-          )}
-          {widgetPreferences.showAchievements && (
-            <DashboardSection section="Gamification">
-              <LazyGamificationWidget
-                stats={{
-                  healthScore: currentStats.healthScore,
-                  responseRate: currentStats.responseRate,
-                  averageRating: currentStats.averageRating,
-                  totalReviews: currentStats.totalReviews,
-                  pendingReviews: currentStats.pendingReviews,
-                }}
-              />
-            </DashboardSection>
-          )}
-        </ResponsiveGrid>
-      )}
-
-      {/* Advanced AI Features - New Section */}
-      {gmbConnected && userId && (
-        <>
-          {/* AI Insights Panel - Predictions & Recommendations */}
-          <DashboardSection section="AI Insights Panel">
-            <AIInsightsPanel userId={userId} />
-          </DashboardSection>
-
-          {/* Automation Insights */}
-          <DashboardSection section="Automation Insights">
-            <AutomationInsights userId={userId} />
-          </DashboardSection>
-
-          {/* Floating Chat Assistant */}
-          <ChatAssistant userId={userId} />
-        </>
-      )}
-    </div>
+    <NewDashboardClient />
+    // <div className="space-y-4 md:space-y-8 p-4 md:p-6" data-print-root>
+    //   {/* Header - محسن للموبايل */}
+    //   <DashboardHeader onPreferencesChange={handlePreferencesChange} />
+    //
+    //   {/* Custom Branding Banner */}
+    //   <DashboardBanner />
+    //
+    //   {/* Real-time Updates Indicator */}
+    //   {gmbConnected && (
+    //     <DashboardSection section="Real-time Updates">
+    //       <RealtimeUpdatesIndicator
+    //         lastUpdated={lastDataUpdate}
+    //         onRefresh={() => fetchData(true)}
+    //         isRefreshing={loading}
+    //         autoRefreshInterval={5}
+    //         syncDetails={syncDetails}
+    //       />
+    //     </DashboardSection>
+    //   )}
+    //
+    //   {/* Date Range Controls & Export/Share */}
+    //   {gmbConnected && (
+    //     <ResponsiveGrid type="main" className="!grid-cols-1 lg:!grid-cols-2">
+    //       <DashboardSection section="Date Controls">
+    //         <DateRangeControls
+    //           value={dateRange}
+    //           onChange={setDateRange}
+    //           onApply={() => fetchData(true)}
+    //         />
+    //       </DashboardSection>
+    //       <DashboardSection section="Export Controls">
+    //         <ExportShareBar
+    //           getShareParams={() => {
+    //             const params: Record<string, string> = {};
+    //             if (dateRange.preset) params.preset = dateRange.preset;
+    //             if (dateRange.start) params.start = dateRange.start.toISOString();
+    //             if (dateRange.end) params.end = dateRange.end.toISOString();
+    //             return params;
+    //           }}
+    //         />
+    //       </DashboardSection>
+    //     </ResponsiveGrid>
+    //   )}
+    //
+    //   {/* GMB Connection Banner */}
+    //   {!gmbConnected && (
+    //     <DashboardSection section="Connection Banner">
+    //       <GMBConnectionBanner />
+    //     </DashboardSection>
+    //   )}
+    //
+    //   {/* Connection Status and Quick Actions */}
+    //   {gmbConnected && (
+    //     <>
+    //       <ResponsiveGrid type="main" className="!grid-cols-1 md:!grid-cols-4">
+    //         <div className="md:col-span-3">
+    //           <DashboardSection section="GMB Connection">
+    //             <GMBConnectionManager
+    //               variant="compact"
+    //               showLastSync={true}
+    //               onSuccess={handleGMBSuccess}
+    //             />
+    //           </DashboardSection>
+    //         </div>
+    //         <DashboardSection section="Health Score">
+    //           <HealthScoreCard loading={loading} healthScore={currentStats.healthScore} />
+    //         </DashboardSection>
+    //       </ResponsiveGrid>
+    //
+    //       <DashboardSection section="Quick Actions">
+    //         <QuickActionsBar 
+    //           pendingReviews={currentStats.pendingReviews}
+    //           unansweredQuestions={currentStats.unansweredQuestions}
+    //           totalLocations={quickActionInsights.totalLocations}
+    //           profileCompletenessAverage={quickActionInsights.profileCompletenessAverage}
+    //           incompleteProfiles={quickActionInsights.incompleteProfiles}
+    //         />
+    //       </DashboardSection>
+    //     </>
+    //   )}
+    //
+    //   {/* Stats Cards - Lazy Loaded */}
+    //   {gmbConnected && (
+    //     <DashboardSection section="Statistics">
+    //       <ResponsiveGrid type="stats" className="gap-4">
+    //         <LazyStatsCards 
+    //           loading={loading} 
+    //           data={currentStats} 
+    //           dateRange={dateRange}
+    //           comparisonDetails={comparisonDetails}
+    //         />
+    //       </ResponsiveGrid>
+    //     </DashboardSection>
+    //   )}
+    //
+    //   {/* Weekly Tasks and Bottlenecks */}
+    //   {gmbConnected && (widgetPreferences.showWeeklyTasks || widgetPreferences.showBottlenecks) && (
+    //     <ResponsiveGrid type="main">
+    //       {widgetPreferences.showWeeklyTasks && (
+    //         <DashboardSection section="Weekly Tasks">
+    //           <WeeklyTasksWidget />
+    //         </DashboardSection>
+    //       )}
+    //       {widgetPreferences.showBottlenecks && (
+    //         <DashboardSection section="Bottlenecks">
+    //           <BottlenecksWidget 
+    //             bottlenecks={currentStats.bottlenecks} 
+    //             loading={loading}
+    //           />
+    //         </DashboardSection>
+    //       )}
+    //     </ResponsiveGrid>
+    //   )}
+    //
+    //   {/* Performance Charts - Lazy Loaded */}
+    //   {gmbConnected && currentStats.monthlyComparison && (widgetPreferences.showPerformanceComparison || widgetPreferences.showLocationHighlights) && (
+    //     <ResponsiveGrid type="chart">
+    //       {widgetPreferences.showPerformanceComparison && (
+    //         <DashboardSection section="Performance Chart">
+    //           <LazyPerformanceChart
+    //             currentMonthData={currentStats.monthlyComparison.current}
+    //             previousMonthData={currentStats.monthlyComparison.previous}
+    //             loading={loading}
+    //           />
+    //         </DashboardSection>
+    //       )}
+    //       {widgetPreferences.showLocationHighlights && (
+    //         <DashboardSection section="Location Highlights">
+    //           <LazyLocationHighlights
+    //             locations={currentStats.locationHighlights || []}
+    //             loading={loading}
+    //           />
+    //         </DashboardSection>
+    //       )}
+    //     </ResponsiveGrid>
+    //   )}
+    //
+    //   {/* AI Insights + Gamification - Lazy Loaded */}
+    //   {gmbConnected && (widgetPreferences.showAIInsights || widgetPreferences.showAchievements) && (
+    //     <ResponsiveGrid type="main">
+    //       {widgetPreferences.showAIInsights && (
+    //         <DashboardSection section="AI Insights">
+    //           <LazyAIInsights
+    //             stats={{
+    //               totalReviews: currentStats.totalReviews,
+    //               averageRating: currentStats.averageRating,
+    //               responseRate: currentStats.responseRate,
+    //               pendingReviews: currentStats.pendingReviews,
+    //               unansweredQuestions: currentStats.unansweredQuestions,
+    //               ratingTrend: currentStats.ratingTrend,
+    //               reviewsTrend: currentStats.reviewsTrend
+    //             }}
+    //             loading={loading}
+    //           />
+    //         </DashboardSection>
+    //       )}
+    //       {widgetPreferences.showAchievements && (
+    //         <DashboardSection section="Gamification">
+    //           <LazyGamificationWidget
+    //             stats={{
+    //               healthScore: currentStats.healthScore,
+    //               responseRate: currentStats.responseRate,
+    //               averageRating: currentStats.averageRating,
+    //               totalReviews: currentStats.totalReviews,
+    //               pendingReviews: currentStats.pendingReviews,
+    //             }}
+    //           />
+    //         </DashboardSection>
+    //       )}
+    //     </ResponsiveGrid>
+    //   )}
+    //
+    //   {/* Advanced AI Features - New Section */}
+    //   {gmbConnected && userId && (
+    //     <>
+    //       {/* AI Insights Panel - Predictions & Recommendations */}
+    //       <DashboardSection section="AI Insights Panel">
+    //         <AIInsightsPanel userId={userId} />
+    //       </DashboardSection>
+    //
+    //       {/* Automation Insights */}
+    //       <DashboardSection section="Automation Insights">
+    //         <AutomationInsights userId={userId} />
+    //       </DashboardSection>
+    //
+    //       {/* Floating Chat Assistant */}
+    //       <ChatAssistant userId={userId} />
+    //     </>
+    //   )}
+    // </div>
   );
 }

@@ -439,3 +439,74 @@ export async function getDashboardDataWithFilter(
     return { success: false, error: error instanceof Error ? error.message : 'Failed to get dashboard data' };
   }
 }
+
+export async function getDashboardStats() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('v_dashboard_stats')
+    .select('total_reviews, avg_rating, pending_reviews, pending_questions')
+    .eq('user_id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching dashboard stats:', error);
+    throw new Error('Could not fetch dashboard stats.');
+  }
+
+  return data;
+}
+
+export async function getPerformanceChartData() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('gmb_performance_metrics')
+    .select('date, value')
+    .eq('user_id', user.id)
+    .eq('metric_type', 'VIEWS_SEARCH')
+    .gte('date', sevenDaysAgo)
+    .order('date', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching performance chart data:', error);
+    throw new Error('Could not fetch performance chart data.');
+  }
+
+  return data;
+}
+
+export async function getActivityFeed() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('id, activity_message, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.error('Error fetching activity feed:', error);
+    throw new Error('Could not fetch activity feed.');
+  }
+
+  return data;
+}

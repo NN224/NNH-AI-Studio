@@ -37,6 +37,9 @@
   ],
   "exclude": [
     "node_modules",
-    "supabase"
+    "supabase",
+    "storybook-static",
+    "**/*.stories.ts",
+    "**/*.stories.tsx"
   ]
 }

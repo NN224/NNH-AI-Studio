@@ -34,3 +34,6 @@ next-env.d.ts
 exports/
 
 .env.local
+
+*storybook.log
+storybook-static
