@@ -19,8 +19,9 @@ review_stats AS (
     r.user_id,
     COUNT(DISTINCT r.id) as total_reviews,
     AVG(r.rating) FILTER (WHERE r.rating IS NOT NULL AND r.rating > 0) as avg_rating,
-    COUNT(DISTINCT r.id) FILTER (WHERE r.has_reply = false OR r.reply_text IS NULL) as pending_reviews,
-    COUNT(DISTINCT r.id) FILTER (WHERE r.created_at > NOW() - INTERVAL '7 days') as recent_reviews
+    COUNT(DISTINCT r.id) FILTER (WHERE (r.has_reply = false OR r.has_reply IS NULL) AND (r.reply_text IS NULL OR r.reply_text = '')) as pending_reviews,
+    COUNT(DISTINCT r.id) FILTER (WHERE r.created_at > NOW() - INTERVAL '7 days') as recent_reviews,
+    COUNT(DISTINCT r.id) FILTER (WHERE r.reply_text IS NOT NULL AND r.reply_text != '') as replied_reviews
   FROM public.gmb_reviews r
   WHERE r.rating IS NOT NULL
   GROUP BY r.user_id
@@ -38,9 +39,16 @@ SELECT
   COALESCE(rs.total_reviews, 0) as total_reviews,
   COALESCE(rs.avg_rating, 0) as avg_rating,
   COALESCE(rs.pending_reviews, 0) as pending_reviews,
+  COALESCE(rs.replied_reviews, 0) as replied_reviews,
   COALESCE(qs.pending_questions, 0) as pending_questions,
   COALESCE(rs.recent_reviews, 0) as recent_reviews,
-  COALESCE(ls.avg_response_rate, 0) as avg_response_rate
+  COALESCE(ls.avg_response_rate, 0) as avg_response_rate,
+  -- Calculate response rate from actual replies
+  CASE 
+    WHEN COALESCE(rs.total_reviews, 0) > 0 
+    THEN ROUND((COALESCE(rs.replied_reviews, 0)::numeric / rs.total_reviews::numeric) * 100, 2)
+    ELSE 0 
+  END as calculated_response_rate
 FROM location_stats ls
 FULL OUTER JOIN review_stats rs ON ls.user_id = rs.user_id
 FULL OUTER JOIN question_stats qs ON COALESCE(ls.user_id, rs.user_id) = qs.user_id;

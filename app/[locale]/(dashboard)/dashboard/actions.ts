@@ -451,7 +451,7 @@ export async function getDashboardStats() {
   // Fetch main stats from view
   const { data: stats, error: statsError } = await supabase
     .from('v_dashboard_stats')
-    .select('total_reviews, avg_rating, pending_reviews, pending_questions')
+    .select('total_reviews, avg_rating, pending_reviews, pending_questions, replied_reviews, calculated_response_rate')
     .eq('user_id', user.id)
     .single();
 
@@ -477,21 +477,8 @@ export async function getDashboardStats() {
     .eq('user_id', user.id)
     .gte('created_at', startOfMonth.toISOString());
 
-  // Calculate response rate
-  const { count: totalReviewsCount } = await supabase
-    .from('gmb_reviews')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
-  const { count: repliedReviewsCount } = await supabase
-    .from('gmb_reviews')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .not('reply_text', 'is', null);
-
-  const responseRate = totalReviewsCount && totalReviewsCount > 0
-    ? Math.round((repliedReviewsCount || 0) / totalReviewsCount * 100)
-    : 0;
+  // Use response rate from view (already calculated)
+  const responseRate = stats?.calculated_response_rate || 0;
 
   // Calculate reviews trend (last 7 days vs previous 7 days)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
