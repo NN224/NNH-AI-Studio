@@ -4,6 +4,8 @@ import { Providers } from "./providers"
 import { Toaster } from "sonner"
 import "./globals.css"
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext"
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/react'
 
 const getBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
@@ -47,6 +49,8 @@ export default function RootLayout({
             <Toaster position="top-right" richColors closeButton />
           </Providers>
         </BrandProfileProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
