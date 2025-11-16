@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Send, Clock } from 'lucide-react';
+import { Sparkles, Send, Clock, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type ActivityItem = {
@@ -42,6 +42,7 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
   const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const latestActivity = useMemo(() => (activityFeed || []).slice(0, 3), [activityFeed]);
   const listRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -136,6 +137,16 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
           </CardTitle>
           <div className="flex gap-2">
             <Badge variant="secondary" className="hidden sm:inline-flex">Live</Badge>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setExpanded((v) => !v)}
+              title={expanded ? 'تصغير' : 'تكبير'}
+              aria-label={expanded ? 'Minimize' : 'Maximize'}
+            >
+              {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -147,7 +158,13 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
           <Button size="sm" variant="ghost" onClick={() => handlePrompt('performance')}>Performance</Button>
         </div>
 
-        <div ref={listRef} className="h-32 overflow-auto rounded-md border bg-background/50 p-2 space-y-2">
+        <div
+          ref={listRef}
+          className={cn(
+            'overflow-auto rounded-md border bg-background/50 p-2 space-y-2',
+            expanded ? 'h-72 sm:h-80' : 'h-40 sm:h-48'
+          )}
+        >
           {messages.length === 0 && (
             <div className="text-xs text-muted-foreground">
               AI: اسألني عن تحديث سريع حول المراجعات أو الأسئلة أو الأداء.
