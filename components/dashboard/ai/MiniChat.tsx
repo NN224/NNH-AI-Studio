@@ -39,15 +39,17 @@ function timeAgo(iso?: string) {
 }
 
 export default function MiniChat({ stats, activityFeed, className }: MiniChatProps) {
-  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
-    {
-      role: 'ai',
-      text: 'Hi! Ask me for a quick update about reviews, questions, posts, or performance.',
-    },
-  ]);
+  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const latestActivity = useMemo(() => (activityFeed || []).slice(0, 3), [activityFeed]);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   function buildQuickUpdate(kind: 'any' | 'reviews' | 'questions' | 'posts' | 'performance') {
     const lines: string[] = [];
@@ -145,7 +147,12 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
           <Button size="sm" variant="ghost" onClick={() => handlePrompt('performance')}>Performance</Button>
         </div>
 
-        <div className="h-32 overflow-auto rounded-md border bg-background/50 p-2 space-y-2">
+        <div ref={listRef} className="h-32 overflow-auto rounded-md border bg-background/50 p-2 space-y-2">
+          {messages.length === 0 && (
+            <div className="text-xs text-muted-foreground">
+              AI: اسألني عن تحديث سريع حول المراجعات أو الأسئلة أو الأداء.
+            </div>
+          )}
           {messages.map((m, idx) => (
             <div key={idx} className={cn('text-sm whitespace-pre-line', m.role === 'ai' ? 'text-muted-foreground' : 'text-foreground')}>
               {m.role === 'ai' ? 'AI: ' : 'You: '}{m.text}
@@ -155,7 +162,7 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
 
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Ask the AI... e.g. Any update?"
+          placeholder="اسأل الذكاء الاصطناعي... مثال: أي تحديث؟"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
