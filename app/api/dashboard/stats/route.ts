@@ -57,15 +57,23 @@ export async function GET(request: NextRequest) {
       console.error('Location stats error:', locationStatsError);
     }
 
-    // Get health score distribution
-    const { data: healthScores, error: healthError } = await supabase
-      .from('v_health_score_distribution')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    // Get health score distribution (skip if view doesn't exist)
+    let healthScores = null;
+    try {
+      const { data, error: healthError } = await supabase
+        .from('v_health_score_distribution')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-    if (healthError && healthError.code !== 'PGRST116') {
-      console.error('Health score error:', healthError);
+      if (healthError && healthError.code !== 'PGRST116' && healthError.code !== 'PGRST205') {
+        console.error('Health score error:', healthError);
+      } else {
+        healthScores = data;
+      }
+    } catch (error) {
+      // View doesn't exist, skip it
+      console.log('Health score view not available, skipping...');
     }
 
     // Get recent activity using a single optimized query

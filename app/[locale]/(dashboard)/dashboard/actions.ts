@@ -543,10 +543,12 @@ export async function getPerformanceChartData() {
 
   if (error) {
     console.error('Error fetching performance chart data:', error);
-    throw new Error('Could not fetch performance chart data.');
+    // Return empty array instead of throwing to avoid breaking dashboard
+    return [];
   }
 
-  return data;
+  // Return empty array if no data
+  return data || [];
 }
 
 export async function getActivityFeed() {

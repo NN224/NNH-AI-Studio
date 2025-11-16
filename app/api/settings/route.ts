@@ -87,27 +87,36 @@ export async function GET(request: NextRequest) {
     const account = accounts?.[0]
     const accountSettings = (account?.settings as Record<string, any>) || {}
 
-    // Get client profile (branding)
-    const { data: profile, error: profileError } = await supabase
-      .from('client_profiles')
-      .select('brand_name, primary_color, secondary_color, logo_url, cover_image_url')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    
-    // Ignore PGRST116 error (no rows found) - this is expected for new users
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.error('[Settings API] Failed to fetch client profile:', profileError)
-      await logAction('settings_view', 'settings', 'global', {
-        status: 'partial',
-        warning: 'client_profile_fetch_failed',
-        error: profileError.message,
-      })
+    // Get client profile (branding) - use profiles table instead
+    let profile = null;
+    try {
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle()
+      
+      // Ignore PGRST116 error (no rows found) - this is expected for new users
+      // Ignore PGRST205 error (table not found) - client_profiles was deleted
+      if (profileError && profileError.code !== 'PGRST116' && profileError.code !== 'PGRST205') {
+        console.error('[Settings API] Failed to fetch client profile:', profileError)
+        await logAction('settings_view', 'settings', 'global', {
+          status: 'partial',
+          warning: 'client_profile_fetch_failed',
+          error: profileError.message,
+        })
+      } else {
+        profile = data;
+      }
+    } catch (error) {
+      // Table doesn't exist, skip it
+      console.log('[Settings API] Profiles table not available, skipping...');
     }
 
     // Combine all settings
     const allSettings = {
       // General Settings
-      businessName: profile?.brand_name || accountSettings.businessName || null,
+      businessName: (profile as any)?.full_name || accountSettings.businessName || null,
       primaryCategory: accountSettings.primaryCategory || null,
       businessDescription: accountSettings.businessDescription || null,
       defaultReplyTemplate: accountSettings.defaultReplyTemplate || null,
@@ -144,13 +153,13 @@ export async function GET(request: NextRequest) {
       retentionDays: account?.data_retention_days || 30,
       deleteOnDisconnect: account?.delete_on_disconnect || false,
 
-      // Branding (from client_profiles)
+      // Branding (from profiles)
       branding: {
-        brandName: profile?.brand_name || null,
-        primaryColor: profile?.primary_color || '#FFA500',
-        secondaryColor: profile?.secondary_color || '#1A1A1A',
-        logoUrl: profile?.logo_url || null,
-        coverImageUrl: profile?.cover_image_url || null,
+        brandName: (profile as any)?.full_name || null,
+        primaryColor: '#FFA500',
+        secondaryColor: '#1A1A1A',
+        logoUrl: (profile as any)?.avatar_url || null,
+        coverImageUrl: null,
       },
     }
 
