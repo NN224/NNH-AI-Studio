@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,7 +25,11 @@ type LocationLite = {
 export default function BusinessHeader({ className }: { className?: string }) {
   const [loc, setLoc] = useState<LocationLite | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadOpen, setUploadOpen] = useState<false | 'logo' | 'cover'>(false);
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     let mounted = true;
@@ -152,12 +159,76 @@ export default function BusinessHeader({ className }: { className?: string }) {
                 ? 'No logo found. Upload a logo to improve trust.'
                 : 'No cover image found. Upload a cover to showcase your business.'}
             </div>
-            <Button asChild size="sm" variant="secondary">
-              <a href="/settings">Upload now</a>
-            </Button>
+            <div className="flex gap-2">
+              {!loc?.logo_url && (
+                <Button size="sm" variant="secondary" onClick={() => setUploadOpen('logo')}>
+                  Upload logo
+                </Button>
+              )}
+              {!loc?.cover_photo_url && (
+                <Button size="sm" variant="secondary" onClick={() => setUploadOpen('cover')}>
+                  Upload cover
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
+      <Dialog open={Boolean(uploadOpen)} onOpenChange={(o) => setUploadOpen(o ? (uploadOpen || 'logo') : false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{uploadOpen === 'cover' ? 'Upload Cover Image' : 'Upload Logo'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={uploading}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setUploadOpen(false); setFile(null); }} disabled={uploading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!file || !loc?.id) {
+                  toast({ title: 'Select a file first' });
+                  return;
+                }
+                try {
+                  setUploading(true);
+                  const form = new FormData();
+                  form.append('file', file);
+                  form.append('locationId', String(loc.id));
+                  const res = await fetch('/api/upload/image', { method: 'POST', body: form });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok || !data?.success || !data?.publicUrl && !data?.media?.url) {
+                    throw new Error(data?.error || `Upload failed (${res.status})`);
+                  }
+                  const url = data.publicUrl || data.media?.url;
+                  setLoc((prev) => prev ? {
+                    ...prev,
+                    logo_url: uploadOpen === 'logo' ? url : prev.logo_url,
+                    cover_photo_url: uploadOpen === 'cover' ? url : prev.cover_photo_url,
+                  } : prev);
+                  toast({ title: 'Uploaded successfully' });
+                  setUploadOpen(false);
+                  setFile(null);
+                } catch (e: any) {
+                  toast({ title: 'Upload error', description: e?.message || 'Failed' });
+                } finally {
+                  setUploading(false);
+                }
+              }}
+              disabled={uploading || !file}
+            >
+              {uploading ? 'Uploading…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
