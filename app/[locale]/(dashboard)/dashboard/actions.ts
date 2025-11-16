@@ -448,18 +448,79 @@ export async function getDashboardStats() {
     throw new Error('User not authenticated');
   }
 
-  const { data, error } = await supabase
+  // Fetch main stats from view
+  const { data: stats, error: statsError } = await supabase
     .from('v_dashboard_stats')
     .select('total_reviews, avg_rating, pending_reviews, pending_questions')
     .eq('user_id', user.id)
     .single();
 
-  if (error) {
-    console.error('Error fetching dashboard stats:', error);
+  if (statsError) {
+    console.error('Error fetching dashboard stats:', statsError);
     throw new Error('Could not fetch dashboard stats.');
   }
 
-  return data;
+  // Fetch total locations
+  const { count: totalLocations } = await supabase
+    .from('gmb_locations')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  // Fetch reviews this month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count: reviewsThisMonth } = await supabase
+    .from('gmb_reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', startOfMonth.toISOString());
+
+  // Calculate response rate
+  const { count: totalReviewsCount } = await supabase
+    .from('gmb_reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  const { count: repliedReviewsCount } = await supabase
+    .from('gmb_reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .not('reply_text', 'is', null);
+
+  const responseRate = totalReviewsCount && totalReviewsCount > 0
+    ? Math.round((repliedReviewsCount || 0) / totalReviewsCount * 100)
+    : 0;
+
+  // Calculate reviews trend (last 7 days vs previous 7 days)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const { count: recentReviews } = await supabase
+    .from('gmb_reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', sevenDaysAgo.toISOString());
+
+  const { count: previousReviews } = await supabase
+    .from('gmb_reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', fourteenDaysAgo.toISOString())
+    .lt('created_at', sevenDaysAgo.toISOString());
+
+  const reviewsTrend = previousReviews && previousReviews > 0
+    ? Math.round(((recentReviews || 0) - previousReviews) / previousReviews * 100)
+    : 0;
+
+  return {
+    ...stats,
+    total_locations: totalLocations || 0,
+    reviews_this_month: reviewsThisMonth || 0,
+    response_rate: responseRate,
+    reviews_trend: reviewsTrend,
+  };
 }
 
 export async function getPerformanceChartData() {
@@ -501,12 +562,18 @@ export async function getActivityFeed() {
     .select('id, activity_message, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(10);
 
   if (error) {
     console.error('Error fetching activity feed:', error);
-    throw new Error('Could not fetch activity feed.');
+    // Return empty array instead of throwing to avoid breaking dashboard
+    return [];
   }
 
-  return data;
+  // Map activity_message to message for consistency
+  return (data || []).map(item => ({
+    id: item.id,
+    message: item.activity_message,
+    created_at: item.created_at,
+  }));
 }
