@@ -5,6 +5,7 @@
 
 import type { Metadata } from 'next'
 import InteractiveHero from './components/InteractiveHero'
+import LiveDemoSandbox from './components/LiveDemoSandbox'
 
 export const metadata: Metadata = {
   title: 'NNH AI Studio - أفضل منصة لإدارة Google My Business',
@@ -39,8 +40,9 @@ export default function LandingPageV2() {
       </div>
 
       {/* Content */}
-      <div className="relative">
+      <div className="relative space-y-20">
         <InteractiveHero />
+        <LiveDemoSandbox />
       </div>
     </div>
   )
