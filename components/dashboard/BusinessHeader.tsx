@@ -48,11 +48,23 @@ export default function BusinessHeader({ className }: { className?: string }) {
         (m?.locationAssociation?.category || m?.metadata?.locationAssociation?.category || m?.metadata?.category || m?.category || '').toString().toUpperCase();
       const cover = media.find((m: any) => getCat(m).includes('COVER')) || media.find((m: any) => (m?.mediaFormat || m?.type) !== 'VIDEO');
       const logo = media.find((m: any) => ['LOGO','PROFILE'].some(tag => getCat(m).includes(tag)));
+      const nextCover = cover ? pickUrl(cover) : null;
+      const nextLogo = logo ? pickUrl(logo) : null;
       setLoc((prev) => prev ? {
         ...prev,
-        cover_photo_url: cover ? pickUrl(cover) : prev.cover_photo_url,
-        logo_url: logo ? pickUrl(logo) : prev.logo_url,
+        cover_photo_url: nextCover ?? prev.cover_photo_url,
+        logo_url: nextLogo ?? prev.logo_url,
       } : prev);
+      // Persist to DB
+      try {
+        if (loc?.id && (nextCover || nextLogo)) {
+          await fetch('/api/locations/update-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: loc.id, cover_photo_url: nextCover, logo_url: nextLogo }),
+          });
+        }
+      } catch {}
       toast({ title: 'Fetched from GMB' });
     } catch (e: any) {
       toast({ title: 'Fetch error', description: e?.message || 'Failed to fetch from GMB' });
@@ -69,7 +81,7 @@ export default function BusinessHeader({ className }: { className?: string }) {
         // Grab one active location basics
         const { data: location } = await supabase
           .from('gmb_locations')
-          .select('id, location_name, rating, review_count, address')
+          .select('id, location_name, rating, review_count, address, logo_url, cover_photo_url')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .limit(1)
@@ -244,6 +256,19 @@ export default function BusinessHeader({ className }: { className?: string }) {
                     logo_url: uploadOpen === 'logo' ? url : prev.logo_url,
                     cover_photo_url: uploadOpen === 'cover' ? url : prev.cover_photo_url,
                   } : prev);
+                  // Persist to DB
+                  try {
+                    if (loc?.id) {
+                      await fetch('/api/locations/update-media', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: loc.id, 
+                          logo_url: uploadOpen === 'logo' ? url : undefined,
+                          cover_photo_url: uploadOpen === 'cover' ? url : undefined,
+                        }),
+                      });
+                    }
+                  } catch {}
                   toast({ title: 'Uploaded successfully' });
                   setUploadOpen(false);
                   setFile(null);
