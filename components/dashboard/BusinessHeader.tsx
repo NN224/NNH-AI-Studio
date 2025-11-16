@@ -40,32 +40,9 @@ export default function BusinessHeader({ className }: { className?: string }) {
           .limit(1)
           .maybeSingle();
         
-        // Load branding from existing settings API (JSON in gmb_accounts.settings) — no new tables
+        // Only use client's own GMB media (no branding/settings/avatar fallbacks)
         let logoUrl: string | null = null;
         let coverUrl: string | null = null;
-        try {
-          const res = await fetch('/api/settings', { cache: 'no-store' });
-          if (res.ok) {
-            const json = await res.json();
-            const branding = json?.settings?.branding || {};
-            logoUrl = branding.logoUrl ?? null;
-            coverUrl = branding.coverImageUrl ?? null;
-            if (branding.brandName) {
-              (location as any).location_name = branding.brandName;
-            }
-          }
-        } catch {}
-        // Fallback to profiles.avatar_url if no explicit logo
-        if (!logoUrl) {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('avatar_url')
-              .eq('id', user.id)
-              .maybeSingle();
-            logoUrl = (profile as any)?.avatar_url ?? null;
-          } catch {}
-        }
 
         // If no branding in settings, try infer from GMB media for the active location
         if ((!logoUrl || !coverUrl) && (location as any)?.id) {
@@ -134,11 +111,7 @@ export default function BusinessHeader({ className }: { className?: string }) {
             sizes="100vw"
             priority
           />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs sm:text-sm text-muted-foreground">
-            لا توجد صورة غلاف بعد — ارفع صورة غلاف جميلة لتعزيز الهوية
-          </div>
-        )}
+        ) : null}
       </div>
       <div className="flex items-center gap-4 px-4 pb-4 -mt-8">
         <div className="relative h-16 w-16 rounded-md border bg-background overflow-hidden">
@@ -152,11 +125,7 @@ export default function BusinessHeader({ className }: { className?: string }) {
               className="object-cover"
               sizes="64px"
             />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-[10px] sm:text-xs text-muted-foreground">
-              ارفع شعارك لتعزيز الثقة
-            </div>
-          )}
+          ) : null}
         </div>
         <div className="min-w-0">
           <div className="text-lg font-semibold truncate">
@@ -178,13 +147,13 @@ export default function BusinessHeader({ className }: { className?: string }) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-md border bg-background/60 p-3">
             <div className="text-xs sm:text-sm text-muted-foreground">
               {(!loc?.logo_url && !loc?.cover_photo_url)
-                ? 'أضف الشعار وصورة الغلاف ليظهر ملف عملك بشكل احترافي.'
+                ? 'No logo and cover found on your GMB profile. Please upload them to complete your profile.'
                 : !loc?.logo_url
-                ? 'أضف شعارك ليزداد تميّز العلامة وثقة العملاء.'
-                : 'أضف صورة غلاف تعبّر عن نشاطك.'}
+                ? 'No logo found. Upload a logo to improve trust.'
+                : 'No cover image found. Upload a cover to showcase your business.'}
             </div>
             <Button asChild size="sm" variant="secondary">
-              <a href="/settings">إضافة الهوية الآن</a>
+              <a href="/settings">Upload now</a>
             </Button>
           </div>
         </div>
