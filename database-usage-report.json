@@ -1,0 +1,1239 @@
+{
+  "tables": {
+    "gmb_accounts": {
+      "count": 185,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/dashboard/actions.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/[locale]/(dashboard)/dashboard/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/[locale]/home/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/api/cron/cleanup/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/accounts/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/attributes/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 7
+        },
+        {
+          "path": "/app/api/gmb/categories/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/chains/[chainId]/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/chains/search/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/disconnect/route.ts",
+          "count": 6
+        },
+        {
+          "path": "/app/api/gmb/google-locations/search/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/oauth-callback/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/posts/list/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/questions/[questionId]/answer/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/questions/answer/routs.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/questions/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/scheduled-sync/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/security-check/route.ts",
+          "count": 5
+        },
+        {
+          "path": "/app/api/gmb/sync/route.ts",
+          "count": 10
+        },
+        {
+          "path": "/app/api/gmb/test-attributes/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/test-qa/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/validate-token/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-publish/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/export/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/list-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/settings/route.ts",
+          "count": 6
+        },
+        {
+          "path": "/components/ai/ai-assistant.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/impressions-breakdown-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/location-performance.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/metrics-overview.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/performance-metrics-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/response-time-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/review-sentiment-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/search-keywords.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/traffic-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/attributes/attributes-manager.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/dashboard/gmb-posts-section.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/insights/business-insights.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/locations/locations-list.tsx",
+          "count": 4
+        },
+        {
+          "path": "/components/recommendations/business-recommendations.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/reviews/reviews-list.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/settings/gmb-settings.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/settings/security-review-panel.tsx",
+          "count": 9
+        },
+        {
+          "path": "/components/settings/settings-test-panel.tsx",
+          "count": 8
+        },
+        {
+          "path": "/lib/gmb/helpers.ts",
+          "count": 4
+        },
+        {
+          "path": "/lib/hooks/useAccountsManagement.ts",
+          "count": 4
+        },
+        {
+          "path": "/hooks/use-gmb-status.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/accounts.ts",
+          "count": 6
+        },
+        {
+          "path": "/server/actions/achievements.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/dashboard.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/gmb-account.ts",
+          "count": 8
+        },
+        {
+          "path": "/server/actions/gmb-sync-v2.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/gmb-sync.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/locations.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/onboarding.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/performance.ts",
+          "count": 2
+        }
+      ]
+    },
+    "gmb_locations": {
+      "count": 268,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/dashboard/actions.ts",
+          "count": 10
+        },
+        {
+          "path": "/app/[locale]/(dashboard)/features/page.tsx",
+          "count": 6
+        },
+        {
+          "path": "/app/[locale]/(dashboard)/questions/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/[locale]/(dashboard)/reviews/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/[locale]/home/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/api/ai/chat/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/ai/insights/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/automation/summary/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/cron/cleanup/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/features/bulk-update/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/features/profile/[locationId]/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 3
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/attributes/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/health/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/update/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/location/list-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/locations/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/media/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/oauth-callback/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/posts/create/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/posts/list/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/questions/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/security-check/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/sync/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/test-attributes/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/test-qa/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/health/database/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/health/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/branding/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/locations/[id]/cover/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/logo/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/metrics/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/route.ts",
+          "count": 6
+        },
+        {
+          "path": "/app/api/locations/bulk-delete/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/locations/bulk-label/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-publish/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-sync/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/locations/bulk-update/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/competitor-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/export/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/list-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/map-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/optimized/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/route.ts",
+          "count": 10
+        },
+        {
+          "path": "/app/api/locations/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/questions/analyze/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/components/ai/ai-assistant.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/analytics-filters.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/impressions-breakdown-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/location-performance.tsx",
+          "count": 5
+        },
+        {
+          "path": "/components/analytics/metrics-overview.tsx",
+          "count": 3
+        },
+        {
+          "path": "/components/analytics/performance-metrics-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/response-time-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/review-sentiment-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/search-keywords.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/traffic-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/attributes/attributes-manager.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/dashboard/gmb-posts-section.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/insights/business-insights.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/locations/add-location-dialog.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/locations/location-attributes-dialog.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/locations/locations-list.tsx",
+          "count": 4
+        },
+        {
+          "path": "/components/recommendations/business-recommendations.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/reviews/reviews-list.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/settings/security-review-panel.tsx",
+          "count": 1
+        },
+        {
+          "path": "/lib/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/lib/hooks/useAccountsManagement.ts",
+          "count": 2
+        },
+        {
+          "path": "/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/hooks/use-locations.ts",
+          "count": 3
+        },
+        {
+          "path": "/server/actions/accounts.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/achievements.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/dashboard.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/gmb-account.ts",
+          "count": 18
+        },
+        {
+          "path": "/server/actions/gmb-sync.ts",
+          "count": 8
+        },
+        {
+          "path": "/server/actions/locations.ts",
+          "count": 14
+        },
+        {
+          "path": "/server/actions/onboarding.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/performance.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/posts-management.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/questions-management.ts",
+          "count": 8
+        },
+        {
+          "path": "/server/actions/reviews-management.ts",
+          "count": 8
+        }
+      ]
+    },
+    "gmb_reviews": {
+      "count": 152,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/dashboard/actions.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/[locale]/home/page.tsx",
+          "count": 4
+        },
+        {
+          "path": "/app/api/ai/chat/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/ai/insights/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/cron/cleanup/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/health/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/reviews/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/locations/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/security-check/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/map-data/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/reviews/[id]/reply/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/reviews/ai-response/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/reviews/analyze-sentiment/route.ts",
+          "count": 8
+        },
+        {
+          "path": "/app/api/reviews/auto-reply/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/reviews/pending/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/reviews/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/reviews/sentiment/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/reviews/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/components/ai/ai-assistant.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/location-performance.tsx",
+          "count": 1
+        },
+        {
+          "path": "/components/analytics/metrics-overview.tsx",
+          "count": 3
+        },
+        {
+          "path": "/components/analytics/response-time-chart.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/analytics/review-sentiment-chart.tsx",
+          "count": 5
+        },
+        {
+          "path": "/components/insights/business-insights.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/recommendations/business-recommendations.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/reviews/reviews-list.tsx",
+          "count": 4
+        },
+        {
+          "path": "/components/settings/security-review-panel.tsx",
+          "count": 1
+        },
+        {
+          "path": "/lib/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/lib/services/analytics-realtime-service.ts",
+          "count": 3
+        },
+        {
+          "path": "/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/hooks/use-locations.ts",
+          "count": 2
+        },
+        {
+          "path": "/hooks/use-pending-reviews.ts",
+          "count": 1
+        },
+        {
+          "path": "/server/actions/achievements.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/auto-reply.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/dashboard.ts",
+          "count": 4
+        },
+        {
+          "path": "/server/actions/gmb-account.ts",
+          "count": 10
+        },
+        {
+          "path": "/server/actions/locations.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/onboarding.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/reviews-management.ts",
+          "count": 24
+        },
+        {
+          "path": "/server/actions/reviews.ts",
+          "count": 6
+        },
+        {
+          "path": "/server/actions/weekly-tasks.ts",
+          "count": 2
+        }
+      ]
+    },
+    "gmb_questions": {
+      "count": 94,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/dashboard/actions.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/cron/cleanup/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/locations/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/questions/[questionId]/answer/route.ts",
+          "count": 8
+        },
+        {
+          "path": "/app/api/gmb/questions/answer/routs.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/questions/route.ts",
+          "count": 12
+        },
+        {
+          "path": "/app/api/gmb/security-check/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/questions/analyze/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/questions/bulk/route.ts",
+          "count": 12
+        },
+        {
+          "path": "/components/settings/security-review-panel.tsx",
+          "count": 1
+        },
+        {
+          "path": "/lib/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/lib/services/analytics-realtime-service.ts",
+          "count": 3
+        },
+        {
+          "path": "/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/hooks/use-locations.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/gmb-account.ts",
+          "count": 8
+        },
+        {
+          "path": "/server/actions/locations.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/questions-management.ts",
+          "count": 18
+        },
+        {
+          "path": "/server/actions/weekly-tasks.ts",
+          "count": 2
+        }
+      ]
+    },
+    "ai_requests": {
+      "count": 8,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/settings/ai/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/lib/ai/fallback-provider.ts",
+          "count": 4
+        },
+        {
+          "path": "/lib/ai/provider.ts",
+          "count": 2
+        }
+      ]
+    },
+    "ai_settings": {
+      "count": 18,
+      "files": [
+        {
+          "path": "/app/[locale]/(dashboard)/settings/ai/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/api/settings/ai/[id]/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/settings/ai/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/lib/ai/fallback-provider.ts",
+          "count": 6
+        },
+        {
+          "path": "/lib/ai/provider.ts",
+          "count": 2
+        }
+      ]
+    },
+    "profiles": {
+      "count": 14,
+      "files": [
+        {
+          "path": "/app/[locale]/home/page.tsx",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/create-auth-url/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/oauth-callback/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/lib/ai/fallback-provider.ts",
+          "count": 4
+        },
+        {
+          "path": "/hooks/use-locations.ts",
+          "count": 2
+        }
+      ]
+    },
+    "gmb_posts": {
+      "count": 82,
+      "files": [
+        {
+          "path": "/app/api/cron/cleanup/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/location/[locationId]/health/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/media/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/posts/[postId]/route.ts",
+          "count": 8
+        },
+        {
+          "path": "/app/api/gmb/posts/create/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/gmb/posts/delete/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/posts/list/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/gmb/security-check/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/stats/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/components/recommendations/business-recommendations.tsx",
+          "count": 2
+        },
+        {
+          "path": "/components/settings/security-review-panel.tsx",
+          "count": 1
+        },
+        {
+          "path": "/lib/posts/posts-crud.ts",
+          "count": 6
+        },
+        {
+          "path": "/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/server/actions/achievements.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/gmb-account.ts",
+          "count": 8
+        },
+        {
+          "path": "/server/actions/onboarding.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/posts-management.ts",
+          "count": 26
+        },
+        {
+          "path": "/server/actions/weekly-tasks.ts",
+          "count": 2
+        }
+      ]
+    },
+    "weekly_task_recommendations": {
+      "count": 18,
+      "files": [
+        {
+          "path": "/app/api/dashboard/overview/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/tasks/update/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/components/dashboard/weekly-tasks-widget.tsx",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/weekly-tasks.ts",
+          "count": 10
+        }
+      ]
+    },
+    "gmb_media": {
+      "count": 29,
+      "files": [
+        {
+          "path": "/app/api/gmb/audit/route.ts",
+          "count": 1
+        },
+        {
+          "path": "/app/api/gmb/sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/locations/bulk-sync/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/media/[id]/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/media/bulk-delete/route.ts",
+          "count": 4
+        },
+        {
+          "path": "/app/api/upload/bulk/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/upload/image/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/actions/media-management.ts",
+          "count": 10
+        }
+      ]
+    },
+    "activity_logs": {
+      "count": 12,
+      "files": [
+        {
+          "path": "/app/api/locations/[id]/activity/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/components/dashboard/activity-feed.tsx",
+          "count": 3
+        },
+        {
+          "path": "/lib/services/activity.ts",
+          "count": 2
+        },
+        {
+          "path": "/hooks/use-dashboard-realtime.ts",
+          "count": 1
+        },
+        {
+          "path": "/server/actions/dashboard.ts",
+          "count": 2
+        },
+        {
+          "path": "/server/services/activity.ts",
+          "count": 2
+        }
+      ]
+    },
+    "error_logs": {
+      "count": 2,
+      "files": [
+        {
+          "path": "/app/api/log-errors/route.ts",
+          "count": 2
+        }
+      ]
+    },
+    "notifications": {
+      "count": 14,
+      "files": [
+        {
+          "path": "/app/api/notifications/create/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/notifications/route.ts",
+          "count": 10
+        },
+        {
+          "path": "/components/settings/gmb-settings.tsx",
+          "count": 2
+        }
+      ]
+    },
+    "audit_logs": {
+      "count": 4,
+      "files": [
+        {
+          "path": "/lib/monitoring/audit.ts",
+          "count": 4
+        }
+      ]
+    },
+    "performance_metrics": {
+      "count": 2,
+      "files": [
+        {
+          "path": "/lib/performance-tracking.ts",
+          "count": 2
+        }
+      ]
+    },
+    "rate_limit_requests": {
+      "count": 8,
+      "files": [
+        {
+          "path": "/lib/security/rate-limiter.ts",
+          "count": 8
+        }
+      ]
+    },
+    "v_dashboard_stats": {
+      "count": 6,
+      "files": [
+        {
+          "path": "/app/api/ai/chat/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/ai/insights/route.ts",
+          "count": 2
+        },
+        {
+          "path": "/app/api/dashboard/stats/route.ts",
+          "count": 2
+        }
+      ]
+    }
+  },
+  "views": {},
+  "functions": {},
+  "unusedTables": [
+    "users",
+    "location_features",
+    "location_branding",
+    "sync_transactions",
+    "sync_errors",
+    "user_preferences",
+    "dashboard_widgets",
+    "saved_filters",
+    "api_keys",
+    "webhooks",
+    "webhook_events",
+    "sessions",
+    "refresh_tokens",
+    "password_reset_tokens",
+    "email_verification_tokens",
+    "user_roles",
+    "permissions",
+    "role_permissions",
+    "user_permissions"
+  ],
+  "unusedViews": [
+    "v_location_performance",
+    "v_review_summary",
+    "v_question_summary",
+    "v_post_summary"
+  ],
+  "unusedFunctions": [
+    "calculate_health_score",
+    "get_pending_reviews_count",
+    "update_updated_at_column",
+    "notify_new_review",
+    "notify_new_question"
+  ],
+  "totalFiles": 1614,
+  "scannedFiles": 145
+}
