@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/nextjs-vite'
 import '../app/globals.css';
 import { withThemeByClassName } from '@storybook/addon-themes';
+import React from 'react';
 
 import * as NextImage from 'next/image';
 import * as NextLink from 'next/link';
@@ -10,12 +11,12 @@ const OriginalNextLink = NextLink.default;
 
 Object.defineProperty(NextImage, 'default', {
   configurable: true,
-  value: (props: any) => <OriginalNextImage {...props} unoptimized />,
+  value: (props: any) => React.createElement(OriginalNextImage, { ...props, unoptimized: true }),
 });
 
 Object.defineProperty(NextLink, 'default', {
   configurable: true,
-  value: (props: any) => <OriginalNextLink {...props} />,
+  value: (props: any) => React.createElement(OriginalNextLink, props),
 });
 
 
