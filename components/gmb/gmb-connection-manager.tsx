@@ -99,6 +99,9 @@ export function GMBConnectionManager({
   const [phases, setPhases] = useState<Array<{phase:string,status:string,last_counts?:any,last_error?:string|null,last_started_at?:string|null,last_ended_at?:string|null,avg_duration_ms?:number|null}>>([])
   const [estimateMs, setEstimateMs] = useState<number>(0)
   const [showRealtimeProgress, setShowRealtimeProgress] = useState(false)
+  
+  // Database counts
+  const [dbCounts, setDbCounts] = useState<{locations: number, reviews: number, questions: number, media: number} | null>(null)
 
   const {
     progress: realtimeProgress,
@@ -153,6 +156,40 @@ export function GMBConnectionManager({
       return () => clearTimeout(timeout)
     }
   }, [realtimeProgress, showRealtimeProgress, stopSyncProgress, useNewSync])
+
+  // Fetch actual database counts
+  useEffect(() => {
+    if (!gmbConnected || !activeAccount) return
+    
+    const fetchDbCounts = async () => {
+      try {
+        const response = await fetch('/api/gmb/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setDbCounts({
+            locations: data.locations || 0,
+            reviews: data.reviews || 0,
+            questions: data.questions || 0,
+            media: data.media || 0
+          })
+        }
+      } catch (error) {
+        console.error('[GMB] Failed to fetch database counts:', error)
+      }
+    }
+    
+    fetchDbCounts()
+    
+    // Refresh counts after sync
+    const handleSyncComplete = () => {
+      fetchDbCounts()
+    }
+    
+    window.addEventListener('gmb-sync-complete', handleSyncComplete)
+    return () => {
+      window.removeEventListener('gmb-sync-complete', handleSyncComplete)
+    }
+  }, [gmbConnected, activeAccount])
 
   // Start OAuth connection flow
   const handleConnect = async (e?: React.MouseEvent) => {
@@ -780,6 +817,26 @@ export function GMBConnectionManager({
                   {p.last_counts && Object.keys(p.last_counts).length > 0 && (
                     <p className="mt-1">
                       {Object.entries(p.last_counts).map(([k,v]) => `${k}:${v}`).join(' ')}
+                    </p>
+                  )}
+                  {dbCounts && p.phase === 'locations' && (
+                    <p className="mt-1 text-xs text-green-400">
+                      Total in DB: {dbCounts.locations}
+                    </p>
+                  )}
+                  {dbCounts && p.phase === 'reviews' && (
+                    <p className="mt-1 text-xs text-green-400">
+                      Total in DB: {dbCounts.reviews}
+                    </p>
+                  )}
+                  {dbCounts && p.phase === 'questions' && (
+                    <p className="mt-1 text-xs text-green-400">
+                      Total in DB: {dbCounts.questions}
+                    </p>
+                  )}
+                  {dbCounts && p.phase === 'media' && (
+                    <p className="mt-1 text-xs text-green-400">
+                      Total in DB: {dbCounts.media}
                     </p>
                   )}
                   {p.last_error && (
