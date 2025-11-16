@@ -39,24 +39,21 @@ export default function BusinessHeader({ className }: { className?: string }) {
           .limit(1)
           .maybeSingle();
         
-        // Try to fetch client branding (preferred)
+        // Load branding from existing settings API (JSON in gmb_accounts.settings) — no new tables
         let logoUrl: string | null = null;
         let coverUrl: string | null = null;
         try {
-          const { data: branding } = await supabase
-            .from('client_profiles')
-            .select('logo_url, cover_image_url, brand_name')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          logoUrl = (branding as any)?.logo_url ?? null;
-          coverUrl = (branding as any)?.cover_image_url ?? null;
-          // If brand_name exists use it instead of raw location name
-          if (branding?.brand_name) {
-            (location as any).location_name = branding.brand_name;
+          const res = await fetch('/api/settings', { cache: 'no-store' });
+          if (res.ok) {
+            const json = await res.json();
+            const branding = json?.settings?.branding || {};
+            logoUrl = branding.logoUrl ?? null;
+            coverUrl = branding.coverImageUrl ?? null;
+            if (branding.brandName) {
+              (location as any).location_name = branding.brandName;
+            }
           }
-        } catch {
-          // ignore if table missing
-        }
+        } catch {}
         // Fallback to profiles.avatar_url if no explicit logo
         if (!logoUrl) {
           try {
