@@ -47,8 +47,22 @@ export async function POST(request: NextRequest) {
     // Build chat prompt
     const prompt = buildChatPrompt(message, context, conversationHistory || []);
 
-    // Generate response
-    const { content } = await aiProvider.generateCompletion(prompt, 'chat_assistant');
+    // Generate response with rich error context
+    let content: string;
+    try {
+      ({ content } = await aiProvider.generateCompletion(prompt, 'chat_assistant'));
+    } catch (err: any) {
+      const message =
+        (err && (err.message || err.toString())) || 'AI provider call failed';
+      return NextResponse.json(
+        {
+          error: message,
+          hint:
+            'Verify API key, model name, and provider availability. Ensure SYSTEM_* API keys are set on Vercel.',
+        },
+        { status: 500 }
+      );
+    }
 
     // Parse response
     const response = parseChatResponse(content);
