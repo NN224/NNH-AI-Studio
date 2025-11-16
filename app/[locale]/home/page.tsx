@@ -40,12 +40,12 @@ export default async function HomePage() {
   const userId = user!.id
   const userEmail = user?.email || ''
 
-  // Get user profile
+  // Get user profile (platform identity for Home only)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email')
-  .eq('user_id', userId)
-    .single()
+    .select('full_name, email, avatar_url')
+    .eq('id', userId)
+    .maybeSingle()
 
   // Fetch real stats from database
   const { count: locationsCount } = await supabase
@@ -119,18 +119,19 @@ export default async function HomePage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Image
-                src="/nnh-logo.png"
-                alt="NNH Logo"
-                width={48}
-                height={48}
-              />
+              <div className="relative w-12 h-12 rounded-full overflow-hidden border border-primary/20 bg-muted">
+                {profile?.avatar_url ? (
+                  <Image src={profile.avatar_url} alt="Avatar" fill sizes="48px" className="object-cover" />
+                ) : (
+                  <Image src="/nnh-logo.png" alt="NNH Logo" fill sizes="48px" className="object-contain p-1.5" />
+                )}
+              </div>
               <div>
                 <h1 className="text-xl font-bold gradient-text">
-                  NNH - AI Studio
+                  {profile?.full_name || userEmail}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Welcome back, {profile?.full_name || userEmail}
+                  Welcome back to NNH - AI Studio
                 </p>
               </div>
             </div>
