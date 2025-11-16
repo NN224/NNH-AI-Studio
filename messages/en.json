@@ -925,6 +925,61 @@
         "description": "Pause notifications during specific times",
         "enable": "Enable Quiet Hours",
         "enableDesc": "No notifications during your rest time"
+      },
+      "gmbNotifications": {
+        "title": "Real-time GMB Notifications",
+        "description": "Receive instant notifications from Google via Pub/Sub when important events occur",
+        "topicName": "Pub/Sub Topic Name",
+        "topicPlaceholder": "projects/your-project/topics/gmb-notifications",
+        "topicHint": "Enter the full Google Cloud Pub/Sub topic name",
+        "notificationTypes": "Notification Types",
+        "saveSettings": "Save Notification Settings",
+        "saving": "Saving...",
+        "types": {
+          "GOOGLE_UPDATE": "Google Updates",
+          "NEW_REVIEW": "New Reviews",
+          "UPDATED_REVIEW": "Updated Reviews",
+          "NEW_CUSTOMER_MEDIA": "New Customer Media",
+          "NEW_QUESTION": "New Questions",
+          "UPDATED_QUESTION": "Updated Questions",
+          "NEW_ANSWER": "New Answers",
+          "UPDATED_ANSWER": "Updated Answers",
+          "DUPLICATE_LOCATION": "Duplicate Location",
+          "VOICE_OF_MERCHANT_UPDATED": "Voice of Merchant Updated"
+        },
+        "typeDescriptions": {
+          "GOOGLE_UPDATE": "When Google updates your business information",
+          "NEW_REVIEW": "When a customer leaves a new review",
+          "UPDATED_REVIEW": "When a customer updates their review",
+          "NEW_CUSTOMER_MEDIA": "When a customer adds photos or videos",
+          "NEW_QUESTION": "When a customer asks a question",
+          "UPDATED_QUESTION": "When a question is updated",
+          "NEW_ANSWER": "When someone answers a question",
+          "UPDATED_ANSWER": "When an answer is updated",
+          "DUPLICATE_LOCATION": "When Google detects a duplicate location",
+          "VOICE_OF_MERCHANT_UPDATED": "When merchant information is updated"
+        },
+        "status": {
+          "notConfigured": "Not Configured",
+          "active": "Active",
+          "error": "Error"
+        },
+        "messages": {
+          "success": "Notification settings saved successfully!",
+          "error": "Failed to save notification settings",
+          "topicRequired": "Topic name is required",
+          "selectAtLeastOne": "Select at least one notification type"
+        },
+        "setup": {
+          "title": "Pub/Sub Notifications Setup",
+          "step1": "1. Create a Pub/Sub topic in Google Cloud Console",
+          "step2": "2. Create a Push subscription pointing to:",
+          "step3": "3. Grant permissions to the service account:",
+          "step4": "4. Enter the topic name above and select notification types",
+          "webhookUrl": "Webhook URL",
+          "serviceAccount": "Service Account",
+          "role": "Role: Pub/Sub Publisher"
+        }
       }
     },
     "data": {

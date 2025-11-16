@@ -926,6 +926,61 @@
         "description": "إيقاف الإشعارات خلال أوقات محددة",
         "enable": "تفعيل ساعات الهدوء",
         "enableDesc": "لا توجد إشعارات خلال وقت راحتك"
+      },
+      "gmbNotifications": {
+        "title": "إشعارات نشاطي التجاري في الوقت الفعلي",
+        "description": "تلقي إشعارات فورية من Google عبر Pub/Sub عند حدوث أحداث مهمة",
+        "topicName": "اسم موضوع Pub/Sub",
+        "topicPlaceholder": "projects/your-project/topics/gmb-notifications",
+        "topicHint": "أدخل اسم موضوع Google Cloud Pub/Sub الكامل",
+        "notificationTypes": "أنواع الإشعارات",
+        "saveSettings": "حفظ إعدادات الإشعارات",
+        "saving": "جاري الحفظ...",
+        "types": {
+          "GOOGLE_UPDATE": "تحديثات Google",
+          "NEW_REVIEW": "تقييمات جديدة",
+          "UPDATED_REVIEW": "تقييمات محدثة",
+          "NEW_CUSTOMER_MEDIA": "وسائط العملاء الجديدة",
+          "NEW_QUESTION": "أسئلة جديدة",
+          "UPDATED_QUESTION": "أسئلة محدثة",
+          "NEW_ANSWER": "إجابات جديدة",
+          "UPDATED_ANSWER": "إجابات محدثة",
+          "DUPLICATE_LOCATION": "موقع مكرر",
+          "VOICE_OF_MERCHANT_UPDATED": "تحديث صوت التاجر"
+        },
+        "typeDescriptions": {
+          "GOOGLE_UPDATE": "عندما يقوم Google بتحديث معلومات نشاطك التجاري",
+          "NEW_REVIEW": "عندما يترك عميل تقييماً جديداً",
+          "UPDATED_REVIEW": "عندما يقوم عميل بتحديث تقييمه",
+          "NEW_CUSTOMER_MEDIA": "عندما يضيف عميل صوراً أو فيديوهات",
+          "NEW_QUESTION": "عندما يطرح عميل سؤالاً",
+          "UPDATED_QUESTION": "عندما يتم تحديث سؤال",
+          "NEW_ANSWER": "عندما يجيب شخص ما على سؤال",
+          "UPDATED_ANSWER": "عندما يتم تحديث إجابة",
+          "DUPLICATE_LOCATION": "عندما يكتشف Google موقعاً مكرراً",
+          "VOICE_OF_MERCHANT_UPDATED": "عندما يتم تحديث معلومات التاجر"
+        },
+        "status": {
+          "notConfigured": "لم يتم التكوين",
+          "active": "نشط",
+          "error": "خطأ"
+        },
+        "messages": {
+          "success": "تم حفظ إعدادات الإشعارات بنجاح!",
+          "error": "فشل حفظ إعدادات الإشعارات",
+          "topicRequired": "اسم الموضوع مطلوب",
+          "selectAtLeastOne": "اختر نوع إشعار واحد على الأقل"
+        },
+        "setup": {
+          "title": "إعداد إشعارات Pub/Sub",
+          "step1": "1. أنشئ موضوع Pub/Sub في Google Cloud Console",
+          "step2": "2. أنشئ اشتراك Push يشير إلى:",
+          "step3": "3. أعط الصلاحيات للحساب:",
+          "step4": "4. أدخل اسم الموضوع أعلاه واختر أنواع الإشعارات",
+          "webhookUrl": "رابط Webhook",
+          "serviceAccount": "حساب الخدمة",
+          "role": "الدور: Pub/Sub Publisher"
+        }
       }
     },
     "data": {

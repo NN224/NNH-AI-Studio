@@ -7,6 +7,9 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Mail, MessageSquare, Smartphone, Clock } from "lucide-react"
 import { useTranslations } from 'next-intl'
+import { GMBNotificationsSetup } from './gmb-notifications-setup'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface NotificationsTabProps {
   reviewNotifications: boolean
@@ -78,6 +81,29 @@ export function NotificationsTab({
   setNotifyTips
 }: NotificationsTabProps) {
   const t = useTranslations('Settings.notifications')
+  const supabase = createClient()
+  const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadGMBAccount() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: accounts } = await supabase
+        .from('gmb_accounts')
+        .select('account_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single()
+
+      if (accounts?.account_id) {
+        setGmbAccountId(accounts.account_id)
+      }
+    }
+
+    loadGMBAccount()
+  }, [supabase])
+
   return (
     <div className="space-y-6">
       {/* Review Notifications */}
@@ -388,6 +414,11 @@ export function NotificationsTab({
           )}
         </CardContent>
       </Card>
+
+      {/* GMB Real-time Notifications */}
+      {gmbAccountId && (
+        <GMBNotificationsSetup accountId={gmbAccountId} />
+      )}
     </div>
   )
 }
