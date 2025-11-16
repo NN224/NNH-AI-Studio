@@ -116,6 +116,11 @@ export async function GET(request: NextRequest) {
     const { data: settingsData, error: settingsError } = await settingsQuery;
 
     if (settingsError) {
+      // If table doesn't exist yet in some environments, degrade gracefully
+      if ((settingsError as any).code === 'PGRST205') {
+        // Return empty settings instead of failing
+        return NextResponse.json({ settings: [], logs: [] });
+      }
       console.error('[Automation Summary API] Failed to load settings', settingsError);
       return NextResponse.json(
         { error: 'Failed to load automation settings' },
