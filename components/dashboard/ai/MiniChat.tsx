@@ -46,6 +46,7 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
     },
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const latestActivity = useMemo(() => (activityFeed || []).slice(0, 3), [activityFeed]);
 
   function buildQuickUpdate(kind: 'any' | 'reviews' | 'questions' | 'posts' | 'performance') {
@@ -79,17 +80,45 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
     setMessages((prev) => [...prev, { role: 'user', text: preset === 'any' ? 'Any update?' : preset }, { role: 'ai', text: ai }]);
   }
 
-  function onSend() {
+  async function onSend() {
     const trimmed = input.trim();
     if (!trimmed) return;
     setMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
-    // Simple intent routing
-    const lower = trimmed.toLowerCase();
-    if (lower.includes('review')) handlePrompt('reviews');
-    else if (lower.includes('question')) handlePrompt('questions');
-    else if (lower.includes('perform') || lower.includes('views')) handlePrompt('performance');
-    else handlePrompt('any');
     setInput('');
+    setLoading(true);
+    try {
+      // Call real AI Chat API with conversation history
+      const history = messages.slice(-6).map((m) => ({
+        role: m.role === 'ai' ? 'assistant' : 'user',
+        content: m.text,
+      }));
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: trimmed,
+          conversationHistory: history,
+        }),
+      });
+      if (!res.ok) {
+        // fallback to quick local summary
+        const fallback = buildQuickUpdate('any');
+        setMessages((prev) => [...prev, { role: 'ai', text: fallback }]);
+      } else {
+        const data = await res.json();
+        const reply = data?.message || '';
+        const suggestions: string[] = data?.suggestions || [];
+        const enriched =
+          reply +
+          (suggestions.length ? `\n\nSuggestions:\n- ${suggestions.join('\n- ')}` : '');
+        setMessages((prev) => [...prev, { role: 'ai', text: enriched }]);
+      }
+    } catch (e) {
+      const fallback = 'AI service is currently unavailable. Here is a quick summary:\n' + buildQuickUpdate('any');
+      setMessages((prev) => [...prev, { role: 'ai', text: fallback }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -127,17 +156,17 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onSend();
+              if (e.key === 'Enter' && !loading) onSend();
             }}
           />
-          <Button size="sm" onClick={onSend}>
+          <Button size="sm" onClick={onSend} disabled={loading}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          Quick summaries are generated from your latest stats and activity.
+          {loading ? 'Thinking with AI...' : 'Powered by your latest stats + AI.'}
         </div>
       </CardContent>
     </Card>
