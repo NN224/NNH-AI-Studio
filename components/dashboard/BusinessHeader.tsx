@@ -84,11 +84,15 @@ export default function BusinessHeader({ className }: { className?: string }) {
               return c.includes('LOGO') || c.includes('PROFILE');
             };
             if (!coverUrl) {
-              const cover = media.find(isCover) || media.find((m) => (m?.description || '').toLowerCase().includes('cover'));
+              const cover = media.find(isCover)
+                || media.find((m) => (m?.description || '').toLowerCase().includes('cover'))
+                || media.find((m) => (m?.mediaFormat || m?.type) !== 'VIDEO'); // first photo fallback
               coverUrl = cover ? pickUrl(cover) : coverUrl;
             }
             if (!logoUrl) {
-              const logo = media.find(isLogo) || media.find((m) => (m?.description || '').toLowerCase().includes('logo'));
+              const logo = media.find(isLogo)
+                || media.find((m) => (m?.description || '').toLowerCase().includes('logo'))
+                || media.find((m) => (m?.mediaFormat || m?.type) !== 'VIDEO'); // first photo fallback
               logoUrl = logo ? pickUrl(logo) : logoUrl;
             }
           } catch {}

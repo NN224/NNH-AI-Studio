@@ -136,7 +136,7 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
             AI Insights & Mini Chat
           </CardTitle>
           <div className="flex gap-2">
-            <Badge variant="secondary" className="hidden sm:inline-flex">مباشر</Badge>
+            <Badge variant="secondary" className="hidden sm:inline-flex">Live</Badge>
             <Button
               size="icon"
               variant="ghost"
@@ -152,10 +152,10 @@ export default function MiniChat({ stats, activityFeed, className }: MiniChatPro
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" onClick={() => handlePrompt('any')}>أي تحديث؟</Button>
-          <Button size="sm" variant="ghost" onClick={() => handlePrompt('reviews')}>المراجعات</Button>
-          <Button size="sm" variant="ghost" onClick={() => handlePrompt('questions')}>الأسئلة</Button>
-          <Button size="sm" variant="ghost" onClick={() => handlePrompt('performance')}>الأداء</Button>
+          <Button size="sm" variant="secondary" onClick={() => handlePrompt('any')}>Any update?</Button>
+          <Button size="sm" variant="ghost" onClick={() => handlePrompt('reviews')}>Reviews</Button>
+          <Button size="sm" variant="ghost" onClick={() => handlePrompt('questions')}>Questions</Button>
+          <Button size="sm" variant="ghost" onClick={() => handlePrompt('performance')}>Performance</Button>
         </div>
 
         <div
