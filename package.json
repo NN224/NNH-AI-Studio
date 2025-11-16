@@ -11,6 +11,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/next-build-with-css.js",
+    "build:analyze": "ANALYZE=true npm run build",
     "dev": "next dev -p 5050 -H 0.0.0.0",
     "lint": "eslint .",
     "start": "unset NODE_ENV && next start -p 5000 -H 0.0.0.0",
@@ -61,6 +62,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "@react-google-maps/api": "^2.20.7",
     "@sendgrid/mail": "^8.1.6",
+    "@sentry/nextjs": "^10.25.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "^2.81.1",
     "@tanstack/react-query": "^5.90.9",
@@ -118,6 +120,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.2",
     "@eslint/js": "^9.39.1",
+    "@next/bundle-analyzer": "^16.0.3",
     "@playwright/test": "^1.56.1",
     "@storybook/addon-a11y": "^10.0.7",
     "@storybook/addon-docs": "^10.0.7",

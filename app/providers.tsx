@@ -9,9 +9,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: true,
+        // Cache data for 5 minutes
+        staleTime: 5 * 60 * 1000,
+        // Keep data in cache for 10 minutes
+        gcTime: 10 * 60 * 1000,
+        // Retry failed requests 3 times with exponential backoff
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        // Refetch on window focus in production only
+        refetchOnWindowFocus: process.env.NODE_ENV === 'production',
+        // Don't refetch on mount if data is fresh
+        refetchOnMount: false,
+        // Enable background refetching
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        // Retry failed mutations once
         retry: 1,
+        // Show error for 5 seconds
+        onError: (error) => {
+          console.error('[Mutation Error]:', error);
+        },
       },
     },
   }));
@@ -21,7 +39,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <StoreProvider>
         {children}
       </StoreProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+      )}
     </QueryClientProvider>
   );
 }
