@@ -133,6 +133,7 @@ export class AIProvider {
         model: this.config.model,
         max_tokens: this.config.maxTokens,
         temperature: this.config.temperature,
+        system: 'You are an AI assistant specialized in Google My Business analytics and insights. Always return ONLY valid JSON as instructed. Never include markdown or code fences.',
         messages: [
           {
             role: 'user',

@@ -123,13 +123,13 @@ function buildChatPrompt(
     .map((msg) => `${msg.role}: ${msg.content}`)
     .join('\n');
 
-  return `You are an AI assistant specialized in Google My Business analytics. Help the user with their query based on their dashboard data.
+  return `You are an AI assistant specialized in Google My Business analytics. Your primary goal is to directly and specifically answer the user's question. Do not give generic summaries unless the user asks for a summary. Always tailor your answer to the user's exact intent and context. If information is missing, ask a brief, specific follow-up question.
 
 **User's Current Dashboard Data:**
 - Total Locations: ${stats?.total_locations || 0}
 - Total Reviews: ${stats?.total_reviews || 0}
 - Average Rating: ${stats?.avg_rating?.toFixed(2) || 'N/A'}/5
-- Response Rate: ${((stats?.response_rate || 0) * 100).toFixed(1)}%
+- Response Rate: ${Number.isFinite(stats?.response_rate) ? (Number(stats?.response_rate) >= 1 ? `${Number(stats?.response_rate).toFixed(1)}%` : `${(Number(stats?.response_rate) * 100).toFixed(1)}%`) : '0.0%'}
 - Pending Reviews: ${stats?.pending_reviews || 0}
 - Pending Questions: ${stats?.pending_questions || 0}
 
@@ -154,14 +154,16 @@ ${(locations || [])
       : 'N/A'
   }
 
-${conversationContext ? `**Conversation History:**\n${conversationContext}\n` : ''}
+${conversationContext ? `**Conversation History (last 5):**\n${conversationContext}\n` : ''}
 
 **User Query:** ${userMessage}
 
-Provide a helpful, concise response. If the user asks for specific data or actions:
-1. Reference the actual data from their dashboard
-2. Suggest specific actions they can take
-3. Provide navigation links when relevant
+Provide a helpful, concise response that directly addresses the User Query above. If the user asks for specific data or actions:
+1. Reference the actual data from their dashboard (numbers, trends, pending items)
+2. Suggest specific, actionable steps they can take (e.g., reply to X reviews at /reviews)
+3. Provide navigation links when relevant (e.g., "/reviews", "/analytics", "/locations")
+4. If the question is about improvement, include 2-3 targeted recommendations (not generic)
+5. If the question cannot be answered from available data, ask one clarifying question in the same JSON
 
 Return your response in JSON format:
 {
@@ -180,7 +182,7 @@ Return your response in JSON format:
   }
 }
 
-Be conversational, helpful, and actionable. Return ONLY valid JSON.`;
+Be conversational, helpful, and actionable. IMPORTANT: Return ONLY valid JSON, no markdown, no triple backticks, no extra text.`;
 }
 
 /**
