@@ -13,13 +13,26 @@ const REQUEST_WINDOW_MS = 60 * 1000;
 let redis: Redis | null = null;
 let usingRedis = false;
 
-try {
-  redis = Redis.fromEnv();
-  usingRedis = true;
-  console.warn('[Middleware] Using Upstash Redis for rate limiting');
-} catch (error: unknown) {
-  console.warn('[Middleware] Upstash Redis not configured, using in-memory rate limiting fallback', error);
+// Be explicit: only enable Upstash if both URL and TOKEN exist
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+if (upstashUrl && upstashToken) {
+  try {
+    redis = new Redis({
+      url: upstashUrl,
+      token: upstashToken,
+    });
+    usingRedis = true;
+    console.warn('[Middleware] Using Upstash Redis for rate limiting');
+  } catch (error: unknown) {
+    console.warn('[Middleware] Failed to init Upstash Redis, falling back to in-memory rate limiting', error);
+    usingRedis = false;
+    redis = null;
+  }
+} else {
+  console.warn('[Middleware] Upstash Redis not configured (missing URL/TOKEN), using in-memory rate limiting fallback');
   usingRedis = false;
+  redis = null;
 }
 
 type RateLimitStore = Map<string, { count: number; resetAt: number }>
