@@ -238,7 +238,7 @@ export class AIProvider {
    */
   private async logRequest(request: Omit<AIRequest, 'id' | 'created_at'>): Promise<void> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
       await supabase.from('ai_requests').insert(request);
     } catch (error) {
       console.error('Failed to log AI request:', error);
@@ -251,7 +251,7 @@ export class AIProvider {
  * Get AI provider for user
  */
 export async function getAIProvider(userId: string): Promise<AIProvider | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Get active AI settings for user
   const { data: settings, error } = await supabase
