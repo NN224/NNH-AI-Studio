@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star } from 'lucide-react';
@@ -103,7 +104,11 @@ export default function BusinessHeader({ className }: { className?: string }) {
             sizes="100vw"
             priority
           />
-        ) : null}
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-xs sm:text-sm text-muted-foreground">
+            لا توجد صورة غلاف بعد — ارفع صورة غلاف جميلة لتعزيز الهوية
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-4 px-4 pb-4 -mt-8">
         <div className="relative h-16 w-16 rounded-md border bg-background overflow-hidden">
@@ -117,7 +122,11 @@ export default function BusinessHeader({ className }: { className?: string }) {
               className="object-cover"
               sizes="64px"
             />
-          ) : null}
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-[10px] sm:text-xs text-muted-foreground">
+              ارفع شعارك لتعزيز الثقة
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <div className="text-lg font-semibold truncate">
@@ -134,6 +143,22 @@ export default function BusinessHeader({ className }: { className?: string }) {
           </div>
         </div>
       </div>
+      {(!loc?.logo_url || !loc?.cover_photo_url) && (
+        <div className="px-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-md border bg-background/60 p-3">
+            <div className="text-xs sm:text-sm text-muted-foreground">
+              {(!loc?.logo_url && !loc?.cover_photo_url)
+                ? 'أضف الشعار وصورة الغلاف ليظهر ملف عملك بشكل احترافي.'
+                : !loc?.logo_url
+                ? 'أضف شعارك ليزداد تميّز العلامة وثقة العملاء.'
+                : 'أضف صورة غلاف تعبّر عن نشاطك.'}
+            </div>
+            <Button asChild size="sm" variant="secondary">
+              <a href="/settings">إضافة الهوية الآن</a>
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
