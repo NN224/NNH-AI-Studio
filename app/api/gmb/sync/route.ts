@@ -1356,7 +1356,12 @@ export async function POST(request: NextRequest) {
               const cover = mediaItems.find(
                 (item): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'COVER'
               );
+              const logo = mediaItems.find(
+                (item): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'LOGO'
+              );
               coverPhotoUrl = cover?.googleUrl || null;
+              const logoUrl = logo?.googleUrl || null;
+              loc.logo_url = logoUrl;
             } else {
               console.warn(`[GMB Sync API] Failed to fetch media for location ${locationId}`);
             }
@@ -1484,8 +1489,9 @@ export async function POST(request: NextRequest) {
               is_active: true,
               latitude: latlng?.latitude ?? null,
               longitude: latlng?.longitude ?? null,
-              // Store cover photo url
+              // Store cover photo url and logo url
               cover_photo_url: location.cover_photo_url || null,
+              logo_url: location.logo_url || null,
               metadata: enhancedMetadata,
               updated_at: new Date().toISOString(),
               last_synced_at: new Date().toISOString(),
@@ -1725,6 +1731,7 @@ export async function POST(request: NextRequest) {
                 user_id: userId,
                 external_media_id: item.name || item.mediaId || null,
                 type: item.mediaFormat || item.type || null,
+                category: item.locationAssociation?.category || null,
                 url: item.googleUrl || item.sourceUrl || null,
                 thumbnail_url: item.thumbnailUrl || null,
                 created_at: item.createTime || null,

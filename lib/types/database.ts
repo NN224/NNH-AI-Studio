@@ -47,6 +47,7 @@ export interface GMBLocation {
   additional_categories?: string[]
   from_the_business?: string[]
   cover_photo_url?: string
+  logo_url?: string | null
   menu_url?: string
   booking_url?: string
   order_url?: string
@@ -93,6 +94,7 @@ export interface GMBLocationWithRating {
   additional_categories?: string[]
   from_the_business?: string[]
   cover_photo_url?: string
+  logo_url?: string | null
   menu_url?: string
   booking_url?: string
   order_url?: string
