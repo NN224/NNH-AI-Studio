@@ -1423,6 +1423,10 @@ export async function POST(request: NextRequest) {
               (location.categories as { additionalCategories?: unknown[] } | undefined)?.additionalCategories ?? []
             );
             
+            // Extract rating and review count from metadata
+            const rating = metadata.averageRating || location.averageRating || null;
+            const reviewCount = metadata.totalReviewCount || location.totalReviewCount || null;
+            
             // Extract from_the_business (attributes from "From the Business" section)
             const fromTheBusiness: string[] = [];
             fromTheBusiness.push(...collectDisplayStrings(profileData.fromTheBusiness));
@@ -1471,6 +1475,8 @@ export async function POST(request: NextRequest) {
               category: location.categories?.primaryCategory?.displayName || null,
               website: location.websiteUri || null,
               description: description || null,
+              rating: rating,
+              review_count: reviewCount,
               short_description: shortDescription || null,
               additional_categories: additionalCategories.length > 0 ? additionalCategories : null,
               from_the_business: fromTheBusiness.length > 0 ? fromTheBusiness : null,
