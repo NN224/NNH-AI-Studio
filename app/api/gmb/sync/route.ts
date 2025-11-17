@@ -1478,11 +1478,13 @@ export async function POST(request: NextRequest) {
           // Attach cover photo URL to location object for database insert
           loc.cover_photo_url = coverPhotoUrl;
         }
-        if (locations.length > 0 && IS_DEV) {
-          console.warn('[GMB Sync API] Sample location from Google API:', {
-            name: locations[0].name,
-            title: locations[0].title,
-          });
+        if (locations.length > 0) {
+          if (IS_DEV) {
+            console.warn('[GMB Sync API] Sample location from Google API:', {
+              name: locations[0].name,
+              title: locations[0].title,
+            });
+          }
           const locationRows = locations.map((location, index) => {
             // Log first location data in dev to understand structure
             if (IS_DEV && index === 0) {
