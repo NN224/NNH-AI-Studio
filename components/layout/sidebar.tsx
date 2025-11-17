@@ -48,7 +48,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       icon: MapPin,
     },
     {
-      nameKey: 'nav.features',
+      nameKey: 'nav.businessInfo',
       href: '/features',
       icon: Layers,
     },

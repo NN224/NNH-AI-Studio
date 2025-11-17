@@ -9,7 +9,7 @@ import type { BusinessProfilePayload } from '@/types/features'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Lock, Unlock, Shield, FileText, Sparkles, RotateCcw, Save, Copy, History } from 'lucide-react'
+import { Shield, FileText, Sparkles, RotateCcw, Save, Copy, History, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from 'next-intl'
 import { ValidationPanel } from '@/components/features/validation-panel'
@@ -54,8 +54,7 @@ export default function BusinessProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
-  const [isLocked, setIsLocked] = useState(false)
-  const [lockLoading, setLockLoading] = useState(false)
+  // Removed profile locking - simplified UX
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false)
 
   useEffect(() => {
@@ -111,46 +110,6 @@ export default function BusinessProfilePage() {
     }
   }, [selectedLocationId])
 
-  // Fetch lock status when location changes
-  useEffect(() => {
-    if (!selectedLocationId) {
-      setIsLocked(false)
-      return
-    }
-    
-    let isMounted = true
-    
-    const loadLockStatus = async () => {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('gmb_locations')
-          .select('metadata')
-          .eq('id', selectedLocationId)
-          .single()
-
-        if (error) throw error
-
-        if (!isMounted) return
-
-        const metadata = (data?.metadata as Record<string, unknown>) || {}
-        setIsLocked(metadata.profileLocked === true)
-      } catch (error: unknown) {
-        if (!isMounted) return
-        const isError = error instanceof Error
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('[BusinessProfile] Error fetching lock status:', isError ? error.message : error)
-        }
-        setIsLocked(false)
-      }
-    }
-    
-    loadLockStatus()
-    
-    return () => {
-      isMounted = false
-    }
-  }, [selectedLocationId])
 
   const hasChanges = useMemo(() => {
     if (!profile || !initialProfile) return false
@@ -158,11 +117,6 @@ export default function BusinessProfilePage() {
   }, [profile, initialProfile])
 
   const handleProfileChange = (next: BusinessProfilePayload) => {
-    if (isLocked) {
-      toast.error('Profile is locked. Please unlock to make changes.')
-      return
-    }
-    
     setProfile((prev) => {
       if (!prev) {
         return { ...next }
@@ -180,10 +134,6 @@ export default function BusinessProfilePage() {
       return
     }
 
-    if (isLocked) {
-      toast.error(t('profileLockedSave'))
-      return
-    }
 
     try {
       setSaveLoading(true)
@@ -218,57 +168,6 @@ export default function BusinessProfilePage() {
     return locations.find((location) => location.id === selectedLocationId)?.name ?? 'Select a location'
   }, [locations, selectedLocationId])
 
-  const handleToggleLock = async () => {
-    if (!selectedLocationId) return
-
-    try {
-      setLockLoading(true)
-      const supabase = createClient()
-      
-      // Get current metadata
-      const { data: locationData, error: fetchError } = await supabase
-        .from('gmb_locations')
-        .select('metadata')
-        .eq('id', selectedLocationId)
-        .single()
-
-      if (fetchError) throw fetchError
-
-      const currentMetadata = (locationData?.metadata as Record<string, unknown>) || {}
-      const newLockStatus = !isLocked
-
-      // Update lock status in metadata
-      const { error: updateError } = await supabase
-        .from('gmb_locations')
-        .update({
-          metadata: {
-            ...currentMetadata,
-            profileLocked: newLockStatus,
-          },
-        })
-        .eq('id', selectedLocationId)
-
-      if (updateError) throw updateError
-
-      setIsLocked(newLockStatus)
-      toast.success(newLockStatus ? 'Profile locked successfully' : 'Profile unlocked successfully')
-      
-      // If locking, revert any unsaved changes
-      if (newLockStatus && initialProfile) {
-        setProfile(cloneProfilePayload(initialProfile))
-        toast.info('Unsaved changes reverted')
-      }
-    } catch (error: unknown) {
-      const isError = error instanceof Error
-      const message = isError ? error.message : 'Failed to update lock status'
-      toast.error(message)
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[BusinessProfile] Error toggling lock:', error)
-      }
-    } finally {
-      setLockLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
@@ -288,6 +187,35 @@ export default function BusinessProfilePage() {
             <Button
               type="button"
               variant="outline"
+              onClick={async () => {
+                if (!selectedLocationId) return;
+                try {
+                  toast.loading('Importing from GMB...');
+                  const response = await fetch('/api/gmb/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locationIds: [selectedLocationId] })
+                  });
+                  if (response.ok) {
+                    toast.success('Successfully imported from GMB');
+                    // Reload profile
+                    setSelectedLocationId(null);
+                    setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
+                  } else {
+                    toast.error('Failed to import from GMB');
+                  }
+                } catch (error) {
+                  toast.error('Import failed');
+                }
+              }}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Import from GMB
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setBulkUpdateOpen(true)}
               disabled={locations.length < 2}
               className="gap-2"
@@ -298,17 +226,13 @@ export default function BusinessProfilePage() {
             <button
               type="button"
               onClick={() => {
-                if (isLocked) {
-                  toast.error(t('profileLocked'))
-                  return
-                }
                 if (initialProfile) {
                   setProfile(cloneProfilePayload(initialProfile))
                   toast.info('Unsaved changes reverted')
                 }
               }}
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg font-medium transition text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
-              disabled={profileLoading || !initialProfile || !hasChanges || isLocked}
+              disabled={profileLoading || !initialProfile || !hasChanges}
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               {t('reset')}
@@ -316,9 +240,9 @@ export default function BusinessProfilePage() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!profile || !hasChanges || saveLoading || isLocked}
+              disabled={!profile || !hasChanges || saveLoading}
               className={`px-6 py-3 rounded-lg font-medium transition inline-flex items-center ${
-                profile && hasChanges && !saveLoading && !isLocked
+                profile && hasChanges && !saveLoading
                   ? 'bg-orange-600 hover:bg-orange-700 text-white'
                   : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
               }`}
@@ -358,60 +282,6 @@ export default function BusinessProfilePage() {
           <p className="text-xs text-zinc-500 mt-2">{t('currentlyEditing')}: {selectedLocationName}</p>
         </div>
 
-        {/* Profile Protection Card */}
-        {selectedLocationId && (
-          <Card className="bg-gradient-to-r from-orange-950/30 to-red-950/30 border-orange-500/30 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-zinc-100 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-orange-400" />
-                {t('protection.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm text-zinc-300 mb-2">
-                    {isLocked 
-                      ? t('protection.locked')
-                      : t('protection.unlocked')}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-zinc-400">
-                    <Lock className="w-3 h-3" />
-                    <span>
-                      {t('protection.lockDescription')}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleToggleLock}
-                  disabled={lockLoading}
-                  className={`flex items-center gap-2 ${
-                    isLocked
-                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                      : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
-                  }`}
-                >
-                  {lockLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      <span>Loading...</span>
-                    </>
-                  ) : isLocked ? (
-                    <>
-                      <Unlock className="w-4 h-4" />
-                      <span>{t('protection.unlockButton')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>{t('protection.lockButton')}</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {profileLoading ? (
           <Skeleton className="h-48 w-full" />
@@ -455,22 +325,11 @@ export default function BusinessProfilePage() {
           <div className="p-6">
             {profile && (
               <>
-                {isLocked && (
-                  <div className="mb-6 p-4 rounded-lg border border-orange-500/30 bg-orange-500/10 flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-orange-400" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-orange-200">{t('protection.locked')}</p>
-                      <p className="text-xs text-orange-300/80 mt-1">
-                        No changes can be made. Please unlock the profile from the "{t('protection.title')}" section above.
-                      </p>
-                    </div>
-                  </div>
-                )}
                 {activeTab === 'info' && (
-                  <BusinessInfoTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={isLocked} />
+                  <BusinessInfoTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={false} />
                 )}
                 {activeTab === 'features' && (
-                  <FeaturesTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={isLocked} />
+                  <FeaturesTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={false} />
                 )}
                 {activeTab === 'validation' && selectedLocationId && (
                   <ValidationPanel
@@ -478,7 +337,7 @@ export default function BusinessProfilePage() {
                     onChange={handleProfileChange}
                     onDirty={markDirty}
                     locationName={selectedLocationName}
-                    disabled={isLocked}
+                    disabled={false}
                   />
                 )}
                 {activeTab === 'history' && selectedLocationId && (

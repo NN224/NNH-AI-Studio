@@ -4,6 +4,8 @@ import { useMemo, useState, useCallback, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
 import type { BusinessProfilePayload, FeatureCategoryKey } from '@/types/features'
 import { FEATURE_CATALOG } from '@/lib/features/feature-definitions'
+import { ESSENTIAL_FEATURES, getEssentialFeatures } from '@/lib/features/essential-features'
+import { getIndustryFeatures } from '@/lib/features/industry-specific-features'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -467,9 +469,12 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
   )
 }
 
-// Keep FeaturesTab as is - it's already simple
+// Simplified FeaturesTab with Industry-specific Features
 export function FeaturesTab({ profile, onChange, onDirty, disabled = false }: TabComponentProps) {
-  const allFeatures = FEATURE_CATALOG
+  // Get features based on business category
+  const allFeatures = useMemo(() => {
+    return getIndustryFeatures(profile.primaryCategory || 'general');
+  }, [profile.primaryCategory]);
 
   const activeFeatureCount = useMemo(() => {
     return FEATURE_CATEGORY_KEYS.reduce((acc, key) => acc + (profile.features?.[key]?.length ?? 0), 0)
@@ -527,19 +532,35 @@ export function FeaturesTab({ profile, onChange, onDirty, disabled = false }: Ta
                         onClick={() => toggleFeature(category, feature.key, !isActive)}
                         disabled={disabled}
                         className={cn(
-                          'flex items-center gap-2 p-3 rounded-lg border-2 transition text-left',
+                          'flex items-start gap-3 p-3 rounded-lg border-2 transition text-left relative',
                           isActive
-                            ? 'border-orange-500 bg-orange-500/10 text-white'
-                            : 'border-zinc-700 hover:border-zinc-600 bg-zinc-950/50 text-zinc-300',
+                            ? 'border-orange-500 bg-orange-500/10'
+                            : 'border-zinc-700 hover:border-zinc-600 bg-zinc-950/50',
                           disabled && 'opacity-50 cursor-not-allowed',
                         )}
                       >
                         {isActive ? (
-                          <CheckCircle2 className="w-4 h-4 text-orange-400" />
+                          <CheckCircle2 className="w-5 h-5 text-orange-400 flex-shrink-0" />
                         ) : (
-                          <Circle className="w-4 h-4 text-zinc-500" />
+                          <Circle className="w-5 h-5 text-zinc-500 flex-shrink-0" />
                         )}
-                        <span className="text-sm">{feature.name}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{feature.icon}</span>
+                            <span className={cn(
+                              "text-sm font-medium",
+                              isActive ? "text-white" : "text-zinc-300"
+                            )}>
+                              {feature.name}
+                            </span>
+                          </div>
+                          <span className="text-xs text-zinc-400 mt-1">{feature.nameAr}</span>
+                        </div>
+                        {feature.importance === 'critical' && (
+                          <Badge variant="destructive" className="text-xs absolute top-1 right-1">
+                            Critical
+                          </Badge>
+                        )}
                       </button>
                     )
                   })}
