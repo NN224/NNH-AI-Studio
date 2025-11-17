@@ -1677,7 +1677,19 @@ export async function POST(request: NextRequest) {
               : null;
             
             // Extract status and type
-            const locationStatus = location.status || metadata.status || openInfo?.status || 'pending';
+            // Map GMB status values to our database allowed values
+            const gmbStatus = location.status || metadata.status || openInfo?.status;
+            const locationStatus = (() => {
+              // GMB can return: OPEN, CLOSED_TEMPORARILY, CLOSED_PERMANENTLY, etc.
+              // Map to our allowed values: active, pending, inactive, closed
+              if (!gmbStatus) return 'active'; // Default to active
+              const statusStr = String(gmbStatus).toUpperCase();
+              if (statusStr.includes('OPEN')) return 'active';
+              if (statusStr.includes('CLOSED_PERMANENTLY')) return 'closed';
+              if (statusStr.includes('CLOSED')) return 'inactive';
+              if (statusStr.includes('PENDING')) return 'pending';
+              return 'active'; // Default fallback
+            })();
             const locationType = location.type || metadata.type || null;
             
             return {
