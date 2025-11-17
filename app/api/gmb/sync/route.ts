@@ -1463,6 +1463,9 @@ export async function POST(request: NextRequest) {
           if (attributesData?.attributes) {
             // Attach attributes to location object for later processing
             (loc as any).fetchedAttributes = attributesData.attributes;
+            console.log(`[GMB Sync] ✅ Fetched ${attributesData.attributes.length} attributes for ${loc.name}`);
+          } else {
+            console.warn(`[GMB Sync] ⚠️ No attributes returned for ${loc.name}`);
           }
 
           // Fetch place action links (menu, booking, order, etc.)
@@ -1470,9 +1473,9 @@ export async function POST(request: NextRequest) {
           if (placeActionLinks && placeActionLinks.length > 0) {
             // Attach place action links to location object for later processing
             (loc as any).placeActionLinks = placeActionLinks;
-            if (IS_DEV) {
-              console.warn('[GMB Sync] Found place action links:', placeActionLinks.map(l => ({ type: l.placeActionType, uri: l.uri })));
-            }
+            console.log(`[GMB Sync] ✅ Fetched ${placeActionLinks.length} place action links for ${loc.name}:`, placeActionLinks.map(l => ({ type: l.placeActionType, uri: l.uri })));
+          } else {
+            console.warn(`[GMB Sync] ⚠️ No place action links returned for ${loc.name}`);
           }
 
           // Attach cover photo URL to location object for database insert
@@ -1509,6 +1512,16 @@ export async function POST(request: NextRequest) {
             // Include fetched attributes and place action links in metadata for storage
             const fetchedAttributes = (location as any).fetchedAttributes || [];
             const placeActionLinks = (location as any).placeActionLinks || [];
+            
+            // Debug log what we're about to save
+            console.log(`[GMB Sync] Saving location ${location.name} with:`, {
+              attributesCount: fetchedAttributes.length,
+              placeActionLinksCount: placeActionLinks.length,
+              hasRegularHours: !!location.regularHours,
+              hasMoreHours: !!location.moreHours,
+              hasServiceItems: !!location.serviceItems
+            });
+            
             const enhancedMetadata = {
               ...location,
               profile,
