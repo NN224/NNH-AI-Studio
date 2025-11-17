@@ -328,7 +328,7 @@ export function GMBConnectionManager({
       if (data.success || data.ok) {
         toast.success('Sync complete', {
           description: data.counts ? 
-            `Synced ${data.counts.locations || 0} locations and ${data.counts.reviews || 0} reviews` :
+            `Updated ${data.counts.locations || 0} new locations and ${data.counts.reviews || 0} reviews` :
             'Data updated successfully'
         })
         

@@ -51,9 +51,13 @@ export async function GET(request: NextRequest) {
         comment,
         review_text,
         reply_text,
+        review_reply,
+        response_text,
         has_reply,
+        has_response,
         review_date,
         replied_at,
+        responded_at,
         ai_sentiment,
         location_id,
         external_review_id,
@@ -164,6 +168,9 @@ export async function GET(request: NextRequest) {
       // Get review text - prefer 'comment' field, fallback to 'review_text'
       const reviewText = (r.comment || r.review_text || '').trim();
       
+      // Get reply text from any of the possible fields
+      const replyText = r.reply_text || r.review_reply || r.response_text || '';
+      
       return {
         id: r.id,
         review_id: r.review_id,
@@ -171,11 +178,13 @@ export async function GET(request: NextRequest) {
         rating: r.rating || 0,
         comment: reviewText,
         review_text: reviewText,
-        reply_text: r.reply_text || '',
-        has_reply: Boolean(r.reply_text || r.has_reply),
+        reply_text: replyText,
+        review_reply: replyText, // Include for backward compatibility
+        response_text: replyText, // Include for backward compatibility
+        has_reply: Boolean(replyText || r.has_reply),
         review_date: r.review_date,
         created_at: r.created_at,
-        replied_at: r.replied_at,
+        replied_at: r.replied_at || r.responded_at,
         ai_sentiment: r.ai_sentiment,
         location_id: r.location_id,
         external_review_id: r.external_review_id,
