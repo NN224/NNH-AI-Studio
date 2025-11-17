@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { BusinessProfile, BusinessProfilePayload, FeatureCategoryKey, FeatureSelection, SpecialLinks } from '@/types/features'
 import { FEATURE_CATALOG, ALL_FEATURE_KEYS } from '@/lib/features/feature-definitions'
+import { extractFeatureKeysFromGMBAttributes } from '@/lib/features/gmb-attribute-mapper'
 
 const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = ['amenities', 'payment_methods', 'services', 'atmosphere']
 
@@ -95,7 +96,7 @@ function extractAttributeStrings(attributesArray: unknown[]): string[] {
     
     const attrObj = attr as Record<string, any>
     
-    // Add attribute name/id if present
+    // Add attribute name/id if present (for backward compatibility)
     if (attrObj.name && typeof attrObj.name === 'string') {
       result.push(attrObj.name)
     }
@@ -309,12 +310,17 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       const featuresFromMetadata = normalizeFeatureSelection(metadata.features ?? {})
       
       // Priority 2: Extract from attributes array (from Attributes API)
-      let attributeStrings: string[] = []
+      // Use the GMB attribute mapper to convert GMB attribute names to feature keys
+      let featureKeysFromGMB: string[] = []
       if (Array.isArray(metadata.attributes)) {
-        attributeStrings = extractAttributeStrings(metadata.attributes)
+        featureKeysFromGMB = extractFeatureKeysFromGMBAttributes(metadata.attributes)
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[normalizeBusinessProfile] Extracted feature keys from GMB attributes:', featureKeysFromGMB.length)
+        }
       }
       
-      // Priority 3: Check from_the_business column
+      // Priority 3: Check from_the_business column (legacy string-based attributes)
       const fromBusiness = (() => {
         if (row.from_the_business) {
           return ensureStringArray(row.from_the_business)
@@ -328,8 +334,8 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
         return []
       })()
       
-      // Merge all attribute sources
-      const allAttributes = Array.from(new Set([...attributeStrings, ...fromBusiness]))
+      // Merge all feature key sources
+      const allFeatureKeys = Array.from(new Set([...featureKeysFromGMB, ...fromBusiness]))
       
       // If we have structured features from metadata, use them
       const hasMetadataFeatures = FEATURE_CATEGORY_KEYS.some(cat => featuresFromMetadata[cat].length > 0)
@@ -337,8 +343,9 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
         return featuresFromMetadata
       }
       
-      // Otherwise, try to extract features from attributes
-      if (allAttributes.length > 0) {
+      // Otherwise, build feature selection from extracted keys
+      if (allFeatureKeys.length > 0) {
+        // Build an index of feature keys to categories
         const index = new Map<string, FeatureCategoryKey>()
         FEATURE_CATEGORY_KEYS.forEach((category) => {
           FEATURE_CATALOG[category].forEach((definition) => {
@@ -353,12 +360,21 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
           atmosphere: [],
         }
         
-        allAttributes.forEach((attr: string) => {
-          const category = index.get(attr.trim())
+        allFeatureKeys.forEach((featureKey: string) => {
+          const category = index.get(featureKey.trim())
           if (category) {
-            selection[category] = Array.from(new Set([...selection[category], attr.trim()]))
+            selection[category] = Array.from(new Set([...selection[category], featureKey.trim()]))
           }
         })
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[normalizeBusinessProfile] Built feature selection:', {
+            amenities: selection.amenities.length,
+            payment_methods: selection.payment_methods.length,
+            services: selection.services.length,
+            atmosphere: selection.atmosphere.length,
+          })
+        }
         
         return selection
       }
