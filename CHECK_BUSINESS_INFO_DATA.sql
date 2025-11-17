@@ -1,4 +1,6 @@
--- Check if Business Info data exists
+-- Check what data exists in gmb_locations for a specific location
+-- Replace '8a606c17-5706-4d89-ac5a-8fd651b24c33' with your location ID
+
 SELECT 
   id,
   location_name,
@@ -8,48 +10,61 @@ SELECT
   website,
   category,
   additional_categories,
-  metadata->>'features' as features,
-  metadata->>'fromTheBusiness' as from_the_business,
-  profile_completeness
+  menu_url,
+  booking_url,
+  order_url,
+  appointment_url,
+  from_the_business,
+  opening_date,
+  service_area_enabled,
+  profile_completeness,
+  -- Check metadata structure
+  CASE 
+    WHEN metadata IS NULL THEN 'NULL'
+    WHEN metadata::text = '{}' THEN 'EMPTY_OBJECT'
+    ELSE 'HAS_DATA'
+  END as metadata_status,
+  -- Check if metadata has profile
+  CASE 
+    WHEN metadata->'profile' IS NOT NULL THEN 'HAS_PROFILE'
+    ELSE 'NO_PROFILE'
+  END as has_profile_in_metadata,
+  -- Check if metadata has features
+  CASE 
+    WHEN metadata->'features' IS NOT NULL THEN 'HAS_FEATURES'
+    ELSE 'NO_FEATURES'
+  END as has_features_in_metadata,
+  -- Check if metadata has attributes
+  CASE 
+    WHEN metadata->'attributes' IS NOT NULL THEN 'HAS_ATTRIBUTES'
+    ELSE 'NO_ATTRIBUTES'
+  END as has_attributes_in_metadata,
+  -- Sample metadata keys
+  jsonb_object_keys(metadata) as metadata_keys
 FROM gmb_locations
-WHERE is_active = true
-LIMIT 5;
+WHERE id = '8a606c17-5706-4d89-ac5a-8fd651b24c33'
+LIMIT 1;
 
--- Check if metadata has features
+-- Check metadata content (first 1000 chars)
 SELECT 
+  id,
   location_name,
-  jsonb_typeof(metadata) as metadata_type,
-  metadata ? 'features' as has_features,
-  metadata->'features' ? 'amenities' as has_amenities,
-  metadata->'features' ? 'payment_methods' as has_payment,
-  metadata->'features' ? 'services' as has_services,
-  metadata->'features' ? 'atmosphere' as has_atmosphere
+  description,
+  menu_url,
+  booking_url,
+  from_the_business,
+  substring(metadata::text, 1, 1000) as metadata_sample
 FROM gmb_locations
-WHERE is_active = true
-LIMIT 5;
+WHERE id = '8a606c17-5706-4d89-ac5a-8fd651b24c33';
 
--- Calculate actual profile completeness
+-- Check if metadata.profile exists and has description
 SELECT 
+  id,
   location_name,
-  CASE 
-    WHEN location_name IS NOT NULL AND location_name != '' THEN 20 
-    ELSE 0 
-  END +
-  CASE 
-    WHEN description IS NOT NULL AND description != '' THEN 20 
-    ELSE 0 
-  END +
-  CASE 
-    WHEN phone IS NOT NULL AND phone != '' THEN 20 
-    ELSE 0 
-  END +
-  CASE 
-    WHEN website IS NOT NULL AND website != '' THEN 20 
-    ELSE 0 
-  END +
-  CASE 
-    WHEN category IS NOT NULL AND category != '' THEN 20 
-    ELSE 0 
-  END as calculated_completeness
+  metadata->'profile'->>'description' as profile_description,
+  metadata->'profile'->>'merchantDescription' as profile_merchant_description,
+  metadata->>'description' as metadata_description,
+  metadata->'profile'->'attributes' as profile_attributes,
+  metadata->'features' as metadata_features
 FROM gmb_locations
-WHERE is_active = true;
+WHERE id = '8a606c17-5706-4d89-ac5a-8fd651b24c33';

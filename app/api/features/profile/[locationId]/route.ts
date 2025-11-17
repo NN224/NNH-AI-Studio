@@ -435,23 +435,31 @@ export async function GET(
     
     // Debug logging in development
     if (process.env.NODE_ENV !== 'production') {
+      const metadata = parseRecord(row.metadata)
+      const profileMetadata = parseRecord(metadata.profile ?? metadata)
       console.log('[GET /api/features/profile] Row data:', {
         id: row.id,
         location_name: row.location_name,
-        description: row.description,
-        additional_categories: row.additional_categories,
-        phone: row.phone,
-        website: row.website,
-        category: row.category,
-        menu_url: row.menu_url,
-        booking_url: row.booking_url,
-        order_url: row.order_url,
-        appointment_url: row.appointment_url,
-        from_the_business: row.from_the_business,
-        opening_date: row.opening_date,
+        description: row.description || 'EMPTY',
+        additional_categories: row.additional_categories || 'EMPTY',
+        phone: row.phone || 'EMPTY',
+        website: row.website || 'EMPTY',
+        category: row.category || 'EMPTY',
+        menu_url: row.menu_url || 'NULL',
+        booking_url: row.booking_url || 'NULL',
+        order_url: row.order_url || 'NULL',
+        appointment_url: row.appointment_url || 'NULL',
+        from_the_business: row.from_the_business || 'EMPTY',
+        opening_date: row.opening_date || 'NULL',
         service_area_enabled: row.service_area_enabled,
         has_metadata: !!row.metadata,
-        metadata_keys: row.metadata ? Object.keys(parseRecord(row.metadata)) : [],
+        metadata_keys: row.metadata ? Object.keys(metadata) : [],
+        metadata_profile_keys: profileMetadata ? Object.keys(profileMetadata).slice(0, 10) : [],
+        metadata_description: metadata.description ? 'EXISTS' : 'MISSING',
+        metadata_profile_description: profileMetadata.description ? 'EXISTS' : 'MISSING',
+        metadata_features: metadata.features ? 'EXISTS' : 'MISSING',
+        metadata_attributes: metadata.attributes ? 'EXISTS' : 'MISSING',
+        metadata_specialLinks: metadata.specialLinks ? 'EXISTS' : 'MISSING',
       })
     }
     
