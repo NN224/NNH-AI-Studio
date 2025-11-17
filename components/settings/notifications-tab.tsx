@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Mail, MessageSquare, Smartphone, Clock } from "lucide-react"
 import { useTranslations } from 'next-intl'
-import GMBNotificationsSetup from './gmb-notifications-setup'
+// Temporarily disabled due to build issues
+// import GMBNotificationsSetup from './gmb-notifications-setup'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -416,9 +417,10 @@ export function NotificationsTab({
       </Card>
 
       {/* GMB Real-time Notifications */}
-      {gmbAccountId && (
+      {/* Temporarily disabled due to build issues */}
+      {/* {gmbAccountId && (
         <GMBNotificationsSetup accountId={gmbAccountId} />
-      )}
+      )} */}
     </div>
   )
 }
