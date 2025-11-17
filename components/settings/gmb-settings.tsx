@@ -10,13 +10,7 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from 'next-intl'
 import { DataManagement } from "./data-management"
 import { AccountConnectionTab } from "./account-connection-tab"
-import { GeneralSettingsTab } from "./general-settings-tab"
-import { AIAutomationTab } from "./ai-automation-tab"
-import { NotificationsTab } from "./notifications-tab"
-import { BrandingTab } from "./branding-tab"
-import { GMBAuditPanel } from "./gmb-audit-panel"
-import { SettingsTestPanel } from "./settings-test-panel"
-import { SecurityReviewPanel } from "./security-review-panel"
+import { AppSettingsTab } from "./app-settings-tab"
 
 interface GMBAccount {
   id: string;
@@ -36,50 +30,14 @@ export function GMBSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // General Settings
-  const [businessName, setBusinessName] = useState<string>('')
-  const [primaryCategory, setPrimaryCategory] = useState<string>('')
-  const [businessDescription, setBusinessDescription] = useState<string>('')
-  const [defaultReplyTemplate, setDefaultReplyTemplate] = useState<string>('')
-  const [timezone, setTimezone] = useState<string>('utc')
+  // App Settings
   const [language, setLanguage] = useState<string>('en')
-  const [syncSchedule, setSyncSchedule] = useState<string>('manual')
-  const [autoPublish, setAutoPublish] = useState(false)
-
-  // AI & Automation Settings
-  const [autoReply, setAutoReply] = useState(false)
-  const [aiResponseTone, setAiResponseTone] = useState("professional")
-  const [responseLength, setResponseLength] = useState<string>('medium')
-  const [creativityLevel, setCreativityLevel] = useState<string>('medium')
-
-  // Notifications Settings
   const [reviewNotifications, setReviewNotifications] = useState(true)
-  const [emailDigest, setEmailDigest] = useState("daily")
-  const [emailDeliveryTime, setEmailDeliveryTime] = useState<string>('09:00')
-  const [negativePriority, setNegativePriority] = useState(true)
-  const [replyReminders, setReplyReminders] = useState(true)
-  const [browserNotifications, setBrowserNotifications] = useState(false)
-  const [soundAlerts, setSoundAlerts] = useState(false)
-  const [quietHours, setQuietHours] = useState(false)
-  const [quietHoursStart, setQuietHoursStart] = useState<string>('22:00')
-  const [quietHoursEnd, setQuietHoursEnd] = useState<string>('08:00')
-  const [notifyReviews, setNotifyReviews] = useState(true)
-  const [notifyQuestions, setNotifyQuestions] = useState(true)
-  const [notifyMessages, setNotifyMessages] = useState(true)
-  const [notifyMentions, setNotifyMentions] = useState(false)
-  const [notifyInsights, setNotifyInsights] = useState(true)
-  const [notifyTips, setNotifyTips] = useState(false)
-
+  const [emailDigest, setEmailDigest] = useState("never")
+  
   // Data Management Settings
   const [retentionDays, setRetentionDays] = useState<number>(30)
   const [deleteOnDisconnect, setDeleteOnDisconnect] = useState(false)
-
-  // Branding Settings
-  const [brandName, setBrandName] = useState<string>('')
-  const [primaryColor, setPrimaryColor] = useState<string>('#FFA500')
-  const [secondaryColor, setSecondaryColor] = useState<string>('#1A1A1A')
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
 
   // Load all settings from API
   const loadSettings = useCallback(async () => {
@@ -112,27 +70,10 @@ export function GMBSettings() {
 
       // Set all settings states
       if (settings) {
-        // General Settings
-        setBusinessName(settings.businessName || '')
-        setPrimaryCategory(settings.primaryCategory || '')
-        setBusinessDescription(settings.businessDescription || '')
-        setDefaultReplyTemplate(settings.defaultReplyTemplate || '')
-        setTimezone(settings.timezone || 'utc')
+        // App Settings
         setLanguage(settings.language || 'en')
-        setSyncSchedule(settings.syncSchedule || 'manual')
-        setAutoPublish(settings.autoPublish || false)
-
-        // AI & Automation
-        setAutoReply(settings.autoReply || false)
-        setAiResponseTone(settings.aiResponseTone || 'professional')
-        setResponseLength(settings.responseLength || 'medium')
-        setCreativityLevel(settings.creativityLevel || 'medium')
-
-        // Notifications
         setReviewNotifications(settings.reviewNotifications !== false)
-        setEmailDigest(settings.emailDigest || 'daily')
-        setEmailDeliveryTime(settings.emailDeliveryTime || '09:00')
-        setNegativePriority(settings.negativePriority !== false)
+        setEmailDigest(settings.emailDigest || 'never')
         setReplyReminders(settings.replyReminders !== false)
         setBrowserNotifications(settings.browserNotifications || false)
         setSoundAlerts(settings.soundAlerts || false)
@@ -276,7 +217,7 @@ export function GMBSettings() {
   }
 
   const hasAccounts = gmbAccounts.length > 0
-  const firstTab = hasAccounts ? "account" : "branding"
+  const firstTab = hasAccounts ? "account" : "app"
 
   if (loading) {
     return (
@@ -288,36 +229,24 @@ export function GMBSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Settings Tabs */}
+      {/* Settings Tabs - Simplified to 3 tabs only */}
       <Tabs defaultValue={firstTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 bg-secondary/50" role="tablist">
+        <TabsList className="grid w-full grid-cols-3 bg-secondary/50" role="tablist">
           <TabsTrigger
             value="account"
             className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
             disabled={!hasAccounts}
           >
             <Shield className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('general.account')}</span>
+            <span className="hidden sm:inline">GMB Connection</span>
           </TabsTrigger>
-          <TabsTrigger value="branding" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Palette className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('branding.title')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="general" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+          <TabsTrigger value="app" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('general.title')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('ai.title')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Bell className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('notifications.title')}</span>
+            <span className="hidden sm:inline">App Settings</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Database className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('data.title')}</span>
+            <span className="hidden sm:inline">Data & Privacy</span>
           </TabsTrigger>
         </TabsList>
 
@@ -328,94 +257,32 @@ export function GMBSettings() {
           />
         </TabsContent>
 
-        <TabsContent value="branding" className="space-y-6" role="tabpanel">
-          <BrandingTab 
-            onSave={() => {
-              window.dispatchEvent(new Event('brand-profile-updated'));
-              router.refresh();
-            }}
-            brandName={brandName}
-            setBrandName={setBrandName}
-            primaryColor={primaryColor}
-            setPrimaryColor={setPrimaryColor}
-            secondaryColor={secondaryColor}
-            setSecondaryColor={setSecondaryColor}
-            logoUrl={logoUrl}
-            setLogoUrl={setLogoUrl}
-            coverImageUrl={coverImageUrl}
-            setCoverImageUrl={setCoverImageUrl}
-          />
-        </TabsContent>
-
-        <TabsContent value="general" className="space-y-6" role="tabpanel">
-          <GeneralSettingsTab
-            syncSchedule={syncSchedule}
-            setSyncSchedule={setSyncSchedule}
-            autoPublish={autoPublish}
-            setAutoPublish={setAutoPublish}
-            businessName={businessName}
-            setBusinessName={setBusinessName}
-            primaryCategory={primaryCategory}
-            setPrimaryCategory={setPrimaryCategory}
-            businessDescription={businessDescription}
-            setBusinessDescription={setBusinessDescription}
-            defaultReplyTemplate={defaultReplyTemplate}
-            setDefaultReplyTemplate={setDefaultReplyTemplate}
-            timezone={timezone}
-            setTimezone={setTimezone}
+        <TabsContent value="app" className="space-y-6" role="tabpanel">
+          <AppSettingsTab
             language={language}
             setLanguage={setLanguage}
-            gmbAccounts={gmbAccounts}
-          />
-        </TabsContent>
-
-        <TabsContent value="ai" className="space-y-6" role="tabpanel">
-          <AIAutomationTab
-            aiResponseTone={aiResponseTone}
-            setAiResponseTone={setAiResponseTone}
-            autoReply={autoReply}
-            setAutoReply={setAutoReply}
-            responseLength={responseLength}
-            setResponseLength={setResponseLength}
-            creativityLevel={creativityLevel}
-            setCreativityLevel={setCreativityLevel}
-          />
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-6" role="tabpanel">
-          <NotificationsTab
-            reviewNotifications={reviewNotifications}
-            setReviewNotifications={setReviewNotifications}
-            emailDigest={emailDigest}
-            setEmailDigest={setEmailDigest}
-            emailDeliveryTime={emailDeliveryTime}
-            setEmailDeliveryTime={setEmailDeliveryTime}
-            negativePriority={negativePriority}
-            setNegativePriority={setNegativePriority}
-            replyReminders={replyReminders}
-            setReplyReminders={setReplyReminders}
-            browserNotifications={browserNotifications}
-            setBrowserNotifications={setBrowserNotifications}
-            soundAlerts={soundAlerts}
-            setSoundAlerts={setSoundAlerts}
-            quietHours={quietHours}
-            setQuietHours={setQuietHours}
-            quietHoursStart={quietHoursStart}
-            setQuietHoursStart={setQuietHoursStart}
-            quietHoursEnd={quietHoursEnd}
-            setQuietHoursEnd={setQuietHoursEnd}
-            notifyReviews={notifyReviews}
-            setNotifyReviews={setNotifyReviews}
-            notifyQuestions={notifyQuestions}
-            setNotifyQuestions={setNotifyQuestions}
-            notifyMessages={notifyMessages}
-            setNotifyMessages={setNotifyMessages}
-            notifyMentions={notifyMentions}
-            setNotifyMentions={setNotifyMentions}
-            notifyInsights={notifyInsights}
-            setNotifyInsights={setNotifyInsights}
-            notifyTips={notifyTips}
-            setNotifyTips={setNotifyTips}
+            theme={localStorage.getItem('theme') || 'system'}
+            setTheme={(value) => {
+              localStorage.setItem('theme', value)
+              if (value === 'dark') {
+                document.documentElement.classList.add('dark')
+              } else if (value === 'light') {
+                document.documentElement.classList.remove('dark')
+              } else {
+                // System preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+                if (prefersDark) {
+                  document.documentElement.classList.add('dark')
+                } else {
+                  document.documentElement.classList.remove('dark')
+                }
+              }
+              router.refresh()
+            }}
+            notifications={reviewNotifications}
+            setNotifications={setReviewNotifications}
+            emailUpdates={emailDigest !== 'never'}
+            setEmailUpdates={(value) => setEmailDigest(value ? 'weekly' : 'never')}
           />
         </TabsContent>
 

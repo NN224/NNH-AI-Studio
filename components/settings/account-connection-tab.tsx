@@ -19,101 +19,10 @@ interface AccountConnectionTabProps {
 
 export function AccountConnectionTab({ gmbAccounts, onSuccess }: AccountConnectionTabProps) {
   const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
-  const hasActiveConnection = activeAccounts.length > 0
 
   return (
     <div className="space-y-6">
-      {/* Connection Status Overview */}
-      <Card className="bg-card border-primary/30">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Account Connection Status
-              </CardTitle>
-              <CardDescription className="mt-2">
-                Manage your Google My Business account connection
-              </CardDescription>
-            </div>
-            <Badge 
-              variant={hasActiveConnection ? "default" : "secondary"}
-              className={hasActiveConnection ? "bg-green-500/20 text-green-400 border-green-500/30" : ""}
-            >
-              {hasActiveConnection ? (
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3" />
-                  Connected
-                </div>
-              ) : (
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  Not Connected
-                </div>
-              )}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {hasActiveConnection ? (
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Connected Accounts</p>
-                  <p className="text-2xl font-bold text-foreground">{activeAccounts.length}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Connection Health</p>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    <p className="text-sm text-green-400">Active & Healthy</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Account Details */}
-              <div className="space-y-2 pt-4 border-t border-primary/20">
-                <p className="text-sm font-medium text-foreground">Account Details</p>
-                <div className="space-y-2">
-                  {activeAccounts.map((account) => (
-                    <div 
-                      key={account.id} 
-                      className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-primary/20"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {account.account_name || 'Google My Business Account'}
-                        </p>
-                        {account.last_sync && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            Last synced: {new Date(account.last_sync).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        Active
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <Database className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-              <p className="text-sm text-muted-foreground mb-4">
-                No active Google My Business connection found
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Connect your account below to start managing your GMB data
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* GMB Connection Manager */}
+      {/* GMB Connection Manager - Main Component */}
       <GMBConnectionManager 
         variant="full"
         showLastSync={true}

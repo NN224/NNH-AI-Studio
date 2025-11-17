@@ -1792,6 +1792,44 @@ export async function POST(request: NextRequest) {
             counts.media += media.length;
             const phaseMediaDuration = Date.now() - phaseMediaStart;
             await upsertMetrics(supabase, accountId, userId, 'media', phaseMediaDuration, media.length);
+            
+            // Update location with logo and cover URLs if found
+            const logoItem = media.find((item: any) => 
+              item.locationAssociation?.category === 'LOGO' || 
+              item.mediaFormat === 'LOGO' ||
+              item.locationAssociation?.category === 'PROFILE'
+            );
+            
+            const coverItem = media.find((item: any) => 
+              item.locationAssociation?.category === 'COVER' ||
+              item.locationAssociation?.category === 'COVER_PHOTO' ||
+              item.mediaFormat === 'COVER' ||
+              item.mediaFormat === 'COVER_PHOTO' ||
+              item.locationAssociation?.category === 'EXTERIOR' ||
+              (!logoItem && item.locationAssociation?.category === 'ADDITIONAL')
+            );
+            
+            // Update both logo and cover URLs if found
+            const updates: any = {};
+            if (logoItem && logoItem.googleUrl) {
+              updates.logo_url = logoItem.googleUrl;
+            }
+            if (coverItem && coverItem.googleUrl) {
+              updates.cover_photo_url = coverItem.googleUrl;
+            }
+            
+            if (Object.keys(updates).length > 0) {
+              const { error: updateError } = await supabase
+                .from('gmb_locations')
+                .update(updates)
+                .eq('id', location.id);
+                
+              if (updateError) {
+                console.error('[GMB Sync API] Error updating media URLs:', updateError);
+              } else if (IS_DEV) {
+                console.warn(`[GMB Sync API] Updated location ${location.id} with media URLs:`, Object.keys(updates));
+              }
+            }
           } else if (IS_DEV) {
             console.warn(`[GMB Sync API] No media found for location ${location.id}`);
           }

@@ -16,6 +16,7 @@ import { LocationReviewsSection } from '@/components/locations/location-reviews-
 import { LocationMediaSection } from '@/components/locations/location-media-section';
 import { LocationMetricsSection } from '@/components/locations/location-metrics-section';
 import { LocationQASection } from '@/components/locations/location-qa-section';
+import { LocationMediaUpload } from '@/components/locations/location-media-upload';
 
 export default function LocationDetailPage() {
   const params = useParams();
@@ -124,6 +125,17 @@ export default function LocationDetailPage() {
               metadata={metadata}
               attributes={data.attributes || []}
               googleUpdated={data.googleUpdated}
+            />
+            
+            {/* Media Upload Section */}
+            <LocationMediaUpload
+              locationId={locationId}
+              currentLogo={location.logo_url}
+              currentCover={location.cover_photo_url}
+              onUploadSuccess={() => {
+                refetch();
+                window.dispatchEvent(new Event('dashboard:refresh'));
+              }}
             />
           </TabsContent>
 
