@@ -126,6 +126,14 @@ function extractUserId(request: NextRequest): string {
 }
 
 export async function middleware(request: NextRequest) {
+  // 🚨 EMERGENCY: Block webhook spam attack
+  if (request.nextUrl.pathname === '/api/webhooks/gmb-notifications') {
+    return NextResponse.json(
+      { error: 'Endpoint disabled' },
+      { status: 410 } // 410 Gone - permanently removed
+    );
+  }
+
   // Handle i18n routing for non-API routes
   if (!request.nextUrl.pathname.startsWith('/api/')) {
     return intlMiddleware(request);
