@@ -49,8 +49,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${baseUrl}/auth/login?error=${encodeURIComponent(error.message)}`)
     }
 
-    // Redirect to home page with success
-    return NextResponse.redirect(`${baseUrl}/home`)
+    // Redirect to dashboard with success
+    return NextResponse.redirect(`${baseUrl}/dashboard`)
   }
 
   return NextResponse.redirect(baseUrl)
