@@ -9,7 +9,7 @@ import { getIndustryFeatures } from '@/lib/features/industry-specific-features'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { FileText, Tag, Link2, List, Sparkles, Bot, Users, Heart, Award, Globe, Home, CheckCircle2, Circle } from 'lucide-react'
+import { FileText, Tag, Link2, List, Sparkles, Bot, CheckCircle2, Circle } from 'lucide-react'
 
 const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = ['amenities', 'payment_methods', 'services', 'atmosphere']
 const COMMON_CATEGORIES: readonly string[] = [
@@ -17,14 +17,7 @@ const COMMON_CATEGORIES: readonly string[] = [
   'Restaurant', 'Entertainment venue', 'Event venue', 'Lounge', 'Wine bar',
   'Beer garden', 'Pub', 'Sports bar', 'Karaoke bar',
 ]
-const FROM_BUSINESS_OPTIONS: readonly { key: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: 'black_owned', label: 'Black-owned', icon: Users },
-  { key: 'women_led', label: 'Women-led', icon: Users },
-  { key: 'lgbtq_friendly', label: 'LGBTQ+ friendly', icon: Heart },
-  { key: 'veteran_led', label: 'Veteran-led', icon: Award },
-  { key: 'latino_owned', label: 'Latino-owned', icon: Globe },
-  { key: 'family_owned', label: 'Family-owned', icon: Home },
-]
+// Removed FROM_BUSINESS_OPTIONS - not relevant for target market
 const __DEV__ = process.env.NODE_ENV !== 'production'
 
 interface TabComponentProps {
@@ -189,19 +182,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
     window.dispatchEvent(new Event('dashboard:refresh'))
   }
 
-  // More attributes
-  const toggleAttribute = (key: string) => {
-    if (disabled) return
-    const set = new Set(profile.fromTheBusiness)
-    if (set.has(key)) {
-      set.delete(key)
-    } else {
-      set.add(key)
-    }
-    onChange({ ...profile, fromTheBusiness: Array.from(set) })
-    onDirty()
-    window.dispatchEvent(new Event('dashboard:refresh'))
-  }
+  // Removed toggleAttribute - FROM_BUSINESS_OPTIONS removed
 
   const updateOpeningDate = (value: string) => {
     if (disabled) return
@@ -404,65 +385,38 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
           </div>
         </div>
       
-      {/* More Details */}
+      {/* Additional Settings */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <List className="w-5 h-5 text-orange-400" />
-          More Details
+          Additional Settings
         </h3>
         <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-white mb-3">From the Business</label>
-            <div className="grid grid-cols-2 gap-3">
-              {FROM_BUSINESS_OPTIONS.map((option) => (
-              <label
-                key={option.key}
-                className={cn(
-                    'flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition',
-                    profile.fromTheBusiness.includes(option.key)
-                      ? 'border-orange-500 bg-orange-500/10'
-                      : 'border-zinc-700 hover:border-zinc-600 bg-zinc-950/50',
-                )}
-              >
-                <input
-                  type="checkbox"
-                    checked={profile.fromTheBusiness.includes(option.key)}
-                  onChange={() => toggleAttribute(option.key)}
-                    disabled={disabled}
-                    className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  {(() => {
-                    const IconComponent = option.icon
-                    return <IconComponent className="w-5 h-5" />
-                  })()}
-                  <span className="text-white text-sm">{option.label}</span>
-              </label>
-              ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-white mb-2">Opening Date</label>
-        <input
-          type="date"
-          value={profile.openingDate ?? ''}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Opening Date</label>
+            <input
+              type="date"
+              value={profile.openingDate ?? ''}
               onChange={(e) => updateOpeningDate(e.target.value)}
               disabled={disabled}
               className="w-full md:w-auto px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-white focus:border-orange-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-      </div>
+              placeholder="Select opening date"
+            />
+            <p className="text-xs text-zinc-500 mt-1">When did your business first open?</p>
+          </div>
           <div className="flex items-center gap-3 p-4 rounded-lg border border-zinc-800 bg-zinc-950/50">
-          <input
-            type="checkbox"
-            checked={profile.serviceAreaEnabled}
+            <input
+              type="checkbox"
+              checked={profile.serviceAreaEnabled}
               onChange={(e) => updateServiceArea(e.target.checked)}
               disabled={disabled}
               className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <div>
-              <span className="text-white font-medium text-sm">Show service area on map</span>
-            <p className="text-xs text-zinc-500 mt-1">Display the geographic area where you provide services</p>
+            />
+            <div>
+              <span className="text-white font-medium text-sm">Service Area Business</span>
+              <p className="text-xs text-zinc-500 mt-1">Enable if you provide services in a geographic area rather than at a fixed location</p>
+            </div>
           </div>
-      </div>
         </div>
       </div>
     </div>

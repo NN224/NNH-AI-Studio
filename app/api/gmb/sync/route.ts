@@ -373,7 +373,7 @@ async function fetchLocations(
   const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
   url.searchParams.set(
     'readMask',
-    'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels'
+    'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,attributes,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,reservationUri,menuLink,orderLink,appointmentLink'
   );
   url.searchParams.set('pageSize', '100');
   url.searchParams.set('alt', 'json');
@@ -1377,7 +1377,16 @@ export async function POST(request: NextRequest) {
             name: locations[0].name,
             title: locations[0].title,
           });
-          const locationRows = locations.map((location) => {
+          const locationRows = locations.map((location, index) => {
+            // Log first location data in dev to understand structure
+            if (IS_DEV && index === 0) {
+              console.warn('[GMB Sync] Sample location structure:');
+              console.warn('- attributes:', location.attributes);
+              console.warn('- moreHours:', location.moreHours);
+              console.warn('- reservationUri:', location.reservationUri);
+              console.warn('- menuLink:', location.menuLink);
+              console.warn('- profile:', location.profile);
+            }
             const address = location.storefrontAddress;
             const addressStr = address
               ? `${(address.addressLines || []).join(', ')}${
@@ -1431,6 +1440,7 @@ export async function POST(request: NextRequest) {
             const fromTheBusiness: string[] = [];
             fromTheBusiness.push(...collectDisplayStrings(profileData.fromTheBusiness));
             fromTheBusiness.push(...collectDisplayStrings(profileData.attributes));
+            fromTheBusiness.push(...collectDisplayStrings(location.attributes));
             
             // Extract opening date
             const openingDate = profileData.openingDate || openInfo?.openingDate || null;
@@ -1444,11 +1454,22 @@ export async function POST(request: NextRequest) {
               false;
             
             // Extract special links (menu, booking, order, appointment)
-            const specialLinks = profileData.specialLinks || profileData.moreHours || {};
-            const menuUrl = specialLinks.menu || specialLinks.menuUrl || null;
-            const bookingUrl = specialLinks.booking || specialLinks.bookingUrl || null;
-            const orderUrl = specialLinks.order || specialLinks.orderUrl || null;
-            const appointmentUrl = specialLinks.appointment || specialLinks.appointmentUrl || null;
+            // Check multiple possible locations for special links in GMB API response
+            const specialLinks = profileData.specialLinks || profileData.moreHours || location.moreHours || {};
+            const menuUrl = specialLinks.menu || specialLinks.menuUrl || specialLinks.menuLink?.url || null;
+            const bookingUrl = specialLinks.booking || specialLinks.bookingUrl || specialLinks.reservationUri || location.reservationUri || null;
+            const orderUrl = specialLinks.order || specialLinks.orderUrl || specialLinks.orderLink?.url || null;
+            const appointmentUrl = specialLinks.appointment || specialLinks.appointmentUrl || specialLinks.appointmentLink?.url || null;
+            
+            // Log for debugging in dev
+            if (IS_DEV && (menuUrl || bookingUrl || orderUrl || appointmentUrl)) {
+              console.warn('[GMB Sync] Found special links:', {
+                menu: menuUrl,
+                booking: bookingUrl,
+                order: orderUrl,
+                appointment: appointmentUrl
+              });
+            }
             
             // Extract location ID external (just the ID part, not full resource name)
             const locationIdExternal = location.name.includes('/locations/') 
