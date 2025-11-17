@@ -87,11 +87,11 @@ export default function BusinessHeader({ className }: { className?: string }) {
           .limit(1)
           .maybeSingle();
         
-        // Only use client's own GMB media (no branding/settings/avatar fallbacks)
-        let logoUrl: string | null = null;
-        let coverUrl: string | null = null;
+        // Use logo and cover from database first
+        let logoUrl: string | null = (location as any)?.logo_url || null;
+        let coverUrl: string | null = (location as any)?.cover_photo_url || null;
 
-        // If no branding in settings, try infer from GMB media for the active location
+        // If no logo/cover in database, try to fetch from GMB media API
         if ((!logoUrl || !coverUrl) && (location as any)?.id) {
           try {
             const mediaRes = await fetch(`/api/gmb/media?locationId=${(location as any).id}`, { cache: 'no-store' });
