@@ -1551,7 +1551,7 @@ export async function POST(request: NextRequest) {
             // Attributes are fetched separately via locations/{location_id}/attributes endpoint
             // They are NOT in profile object according to API documentation
             const fromTheBusiness: string[] = [];
-            const fetchedAttributes = (location as any).fetchedAttributes || [];
+            // fetchedAttributes already defined above - removed duplicate
             
             // Process attributes from the separate endpoint
             for (const attr of fetchedAttributes) {
