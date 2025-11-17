@@ -86,6 +86,28 @@ export default function BusinessProfilePage() {
         const payload: BusinessProfilePayload = await response.json()
         if (!isMounted) return
 
+        // Debug logging
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Business Info] Received profile data:', {
+            locationName: payload.locationName,
+            description: payload.description?.substring(0, 100),
+            phone: payload.phone,
+            website: payload.website,
+            primaryCategory: payload.primaryCategory,
+            additionalCategories: payload.additionalCategories,
+            specialLinks: payload.specialLinks,
+            features: {
+              amenities: payload.features?.amenities?.length || 0,
+              payment_methods: payload.features?.payment_methods?.length || 0,
+              services: payload.features?.services?.length || 0,
+              atmosphere: payload.features?.atmosphere?.length || 0,
+            },
+            fromTheBusiness: payload.fromTheBusiness,
+            openingDate: payload.openingDate,
+            serviceAreaEnabled: payload.serviceAreaEnabled,
+          })
+        }
+
         setProfile(payload)
         setInitialProfile(payload)
       } catch (error: unknown) {

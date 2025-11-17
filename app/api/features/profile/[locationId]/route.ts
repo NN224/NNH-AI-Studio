@@ -121,11 +121,34 @@ function computeCompleteness(profile: BusinessProfile) {
 function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): SpecialLinks {
   const linksMetadata = parseRecord(raw.specialLinks ?? raw.links)
 
+  // Check multiple sources for special links
   return {
-    menu: linksMetadata.menu ?? raw.menu_url ?? row.menu_url ?? null,
-    booking: linksMetadata.booking ?? raw.booking_url ?? row.booking_url ?? null,
-    order: linksMetadata.order ?? raw.order_url ?? row.order_url ?? null,
-    appointment: linksMetadata.appointment ?? raw.appointment_url ?? row.appointment_url ?? null,
+    menu: linksMetadata.menu ?? 
+          raw.menu_url ?? 
+          raw.menu ?? 
+          row.menu_url ?? 
+          row.menu ?? 
+          null,
+    booking: linksMetadata.booking ?? 
+             raw.booking_url ?? 
+             raw.booking ?? 
+             raw.reservationUri ??
+             row.booking_url ?? 
+             row.booking ?? 
+             row.reservation_uri ??
+             null,
+    order: linksMetadata.order ?? 
+           raw.order_url ?? 
+           raw.order ?? 
+           row.order_url ?? 
+           row.order ?? 
+           null,
+    appointment: linksMetadata.appointment ?? 
+                 raw.appointment_url ?? 
+                 raw.appointment ?? 
+                 row.appointment_url ?? 
+                 row.appointment ?? 
+                 null,
   }
 }
 
@@ -358,6 +381,13 @@ export async function GET(
         phone: row.phone,
         website: row.website,
         category: row.category,
+        menu_url: row.menu_url,
+        booking_url: row.booking_url,
+        order_url: row.order_url,
+        appointment_url: row.appointment_url,
+        from_the_business: row.from_the_business,
+        opening_date: row.opening_date,
+        service_area_enabled: row.service_area_enabled,
         has_metadata: !!row.metadata,
         metadata_keys: row.metadata ? Object.keys(parseRecord(row.metadata)) : [],
       })
@@ -369,12 +399,17 @@ export async function GET(
     if (process.env.NODE_ENV !== 'production') {
       console.log('[GET /api/features/profile] Normalized profile:', {
         locationName: profile.locationName,
-        description: profile.description,
+        description: profile.description?.substring(0, 100),
         additionalCategories: profile.additionalCategories,
         phone: profile.phone,
         website: profile.website,
         primaryCategory: profile.primaryCategory,
-        features: profile.features,
+        features: {
+          amenities: profile.features.amenities?.length || 0,
+          payment_methods: profile.features.payment_methods?.length || 0,
+          services: profile.features.services?.length || 0,
+          atmosphere: profile.features.atmosphere?.length || 0,
+        },
         specialLinks: profile.specialLinks,
         fromTheBusiness: profile.fromTheBusiness,
         openingDate: profile.openingDate,
