@@ -294,12 +294,6 @@ export function GMBSettings() {
             deleteOnDisconnect={deleteOnDisconnect}
             setDeleteOnDisconnect={setDeleteOnDisconnect}
           />
-
-          <GMBAuditPanel />
-
-          <SettingsTestPanel />
-
-          <SecurityReviewPanel />
         </TabsContent>
       </Tabs>
 
