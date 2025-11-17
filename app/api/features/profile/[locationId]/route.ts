@@ -85,6 +85,45 @@ function normalizeFeatureSelection(raw: Record<string, any>): FeatureSelection {
   return selection
 }
 
+// Extract attribute strings from GMB Attributes API response
+// Attributes API returns: [{ name: "attr_id", values: ["val1"], uriValues: [{uri: "..."}] }]
+function extractAttributeStrings(attributesArray: unknown[]): string[] {
+  const result: string[] = []
+  
+  for (const attr of attributesArray) {
+    if (!attr || typeof attr !== 'object') continue
+    
+    const attrObj = attr as Record<string, any>
+    
+    // Add attribute name/id if present
+    if (attrObj.name && typeof attrObj.name === 'string') {
+      result.push(attrObj.name)
+    }
+    
+    // Add string values if present
+    if (Array.isArray(attrObj.values)) {
+      attrObj.values.forEach((val: any) => {
+        if (typeof val === 'string' && val.trim()) {
+          result.push(val.trim())
+        } else if (val && typeof val === 'object' && val.displayName) {
+          result.push(String(val.displayName).trim())
+        }
+      })
+    }
+    
+    // Add URI values if present
+    if (Array.isArray(attrObj.uriValues)) {
+      attrObj.uriValues.forEach((uriVal: any) => {
+        if (uriVal && typeof uriVal === 'object' && uriVal.uri) {
+          // Don't add URIs to features, skip
+        }
+      })
+    }
+  }
+  
+  return result.filter((s) => s.length > 0)
+}
+
 function sanitizeWebsite(value: string): string {
   return value.trim()
 }
@@ -120,16 +159,30 @@ function computeCompleteness(profile: BusinessProfile) {
 
 function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): SpecialLinks {
   const linksMetadata = parseRecord(raw.specialLinks ?? raw.links)
+  
+  // Extract place action links from placeActionLinks array (from Place Actions API)
+  const placeActionLinks = Array.isArray(raw.placeActionLinks) ? raw.placeActionLinks : []
+  const placeActions: Record<string, string> = {}
+  placeActionLinks.forEach((link: any) => {
+    if (link.placeActionType && link.uri) {
+      const type = link.placeActionType.toLowerCase()
+      if (type.includes('order')) placeActions.order = link.uri
+      else if (type.includes('menu') || type.includes('food_menu')) placeActions.menu = link.uri
+      else if (type.includes('book') || type.includes('appointment')) placeActions.booking = link.uri
+    }
+  })
 
-  // Check multiple sources for special links
+  // Check multiple sources for special links (prioritize Place Actions API)
   return {
-    menu: linksMetadata.menu ?? 
+    menu: placeActions.menu ??
+          linksMetadata.menu ?? 
           raw.menu_url ?? 
           raw.menu ?? 
           row.menu_url ?? 
           row.menu ?? 
           null,
-    booking: linksMetadata.booking ?? 
+    booking: placeActions.booking ??
+             linksMetadata.booking ?? 
              raw.booking_url ?? 
              raw.booking ?? 
              raw.reservationUri ??
@@ -137,13 +190,15 @@ function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): 
              row.booking ?? 
              row.reservation_uri ??
              null,
-    order: linksMetadata.order ?? 
+    order: placeActions.order ??
+           linksMetadata.order ?? 
            raw.order_url ?? 
            raw.order ?? 
            row.order_url ?? 
            row.order ?? 
            null,
-    appointment: linksMetadata.appointment ?? 
+    appointment: placeActions.booking ?? // booking and appointment are the same in GMB
+                 linksMetadata.appointment ?? 
                  raw.appointment_url ?? 
                  raw.appointment ?? 
                  row.appointment_url ?? 
@@ -250,9 +305,16 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
     })(),
     features: (() => {
       // Try multiple sources for features
-      const featuresFromMetadata = normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {})
+      // Priority 1: If metadata.features is already structured
+      const featuresFromMetadata = normalizeFeatureSelection(metadata.features ?? {})
       
-      // Also check from_the_business column - it may contain feature attributes
+      // Priority 2: Extract from attributes array (from Attributes API)
+      let attributeStrings: string[] = []
+      if (Array.isArray(metadata.attributes)) {
+        attributeStrings = extractAttributeStrings(metadata.attributes)
+      }
+      
+      // Priority 3: Check from_the_business column
       const fromBusiness = (() => {
         if (row.from_the_business) {
           return ensureStringArray(row.from_the_business)
@@ -263,20 +325,20 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
         if (profileMetadata.fromTheBusiness) {
           return ensureStringArray(profileMetadata.fromTheBusiness)
         }
-        if (profileMetadata.attributes && Array.isArray(profileMetadata.attributes)) {
-          return ensureStringArray(profileMetadata.attributes)
-        }
         return []
       })()
       
-      // If we have features from metadata, use them
+      // Merge all attribute sources
+      const allAttributes = Array.from(new Set([...attributeStrings, ...fromBusiness]))
+      
+      // If we have structured features from metadata, use them
       const hasMetadataFeatures = FEATURE_CATEGORY_KEYS.some(cat => featuresFromMetadata[cat].length > 0)
       if (hasMetadataFeatures) {
         return featuresFromMetadata
       }
       
-      // Otherwise, try to extract features from from_the_business array
-      if (fromBusiness.length > 0) {
+      // Otherwise, try to extract features from attributes
+      if (allAttributes.length > 0) {
         const index = new Map<string, FeatureCategoryKey>()
         FEATURE_CATEGORY_KEYS.forEach((category) => {
           FEATURE_CATALOG[category].forEach((definition) => {
@@ -291,7 +353,7 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
           atmosphere: [],
         }
         
-        fromBusiness.forEach((attr: string) => {
+        allAttributes.forEach((attr: string) => {
           const category = index.get(attr.trim())
           if (category) {
             selection[category] = Array.from(new Set([...selection[category], attr.trim()]))
@@ -321,9 +383,13 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       if (profileMetadata.fromTheBusiness) {
         return ensureStringArray(profileMetadata.fromTheBusiness)
       }
-      // Priority 5: Metadata profile.attributes (if it's an array of strings)
+      // Priority 5: Extract from attributes array (from Attributes API)
+      if (Array.isArray(metadata.attributes)) {
+        return extractAttributeStrings(metadata.attributes)
+      }
+      // Priority 6: Metadata profile.attributes (if it's an array)
       if (profileMetadata.attributes && Array.isArray(profileMetadata.attributes)) {
-        return ensureStringArray(profileMetadata.attributes)
+        return extractAttributeStrings(profileMetadata.attributes)
       }
       return []
     })(),
