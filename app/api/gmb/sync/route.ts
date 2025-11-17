@@ -361,6 +361,91 @@ async function getValidAccessToken(
 // Fetch locations from Google My Business
 type RawGoogleLocation = Record<string, JsonRecord | string | number | boolean | null>;
 
+// Fetch attributes for a specific location
+async function fetchLocationAttributes(
+  accessToken: string,
+  locationResource: string
+): Promise<{ attributes?: Array<{ name: string; values?: unknown[]; uriValues?: Array<{ uri: string }> }> } | null> {
+  try {
+    const url = new URL(`${GBP_LOC_BASE}/${locationResource}/attributes`);
+    
+    if (IS_DEV) {
+      console.warn('[GMB Sync] Fetching attributes for location:', locationResource);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      // Attributes endpoint may return 404 if location has no attributes - this is normal
+      if (response.status === 404) {
+        if (IS_DEV) {
+          console.warn('[GMB Sync] No attributes found for location:', locationResource);
+        }
+        return null;
+      }
+      // Log other errors but don't fail the sync
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[GMB Sync] Failed to fetch attributes for ${locationResource}:`, response.status, errorText.substring(0, 200));
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    // Don't fail the sync if attributes fetch fails
+    console.error(`[GMB Sync] Error fetching attributes for ${locationResource}:`, error);
+    return null;
+  }
+}
+
+// Fetch place action links for a specific location
+const PLACE_ACTIONS_BASE = 'https://mybusinessplaceactions.googleapis.com/v1';
+async function fetchPlaceActionLinks(
+  accessToken: string,
+  locationResource: string
+): Promise<Array<{ placeActionType: string; uri: string; isPreferred?: boolean }> | null> {
+  try {
+    const url = new URL(`${PLACE_ACTIONS_BASE}/${locationResource}/placeActionLinks`);
+    
+    if (IS_DEV) {
+      console.warn('[GMB Sync] Fetching place action links for location:', locationResource);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      // 404 is normal - location may not have place action links
+      if (response.status === 404) {
+        if (IS_DEV) {
+          console.warn('[GMB Sync] No place action links found for location:', locationResource);
+        }
+        return null;
+      }
+      // Log other errors but don't fail the sync
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[GMB Sync] Failed to fetch place action links for ${locationResource}:`, response.status, errorText.substring(0, 200));
+      return null;
+    }
+
+    const data = await response.json();
+    return data.placeActionLinks || null;
+  } catch (error) {
+    // Don't fail the sync if place actions fetch fails
+    console.error(`[GMB Sync] Error fetching place action links for ${locationResource}:`, error);
+    return null;
+  }
+}
+
 async function fetchLocations(
   accessToken: string,
   accountResource: string,
@@ -371,6 +456,8 @@ async function fetchLocations(
   }
 
   const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
+  // Note: profile only contains 'description' field according to API docs
+  // Attributes must be fetched separately via locations/{location_id}/attributes endpoint
   url.searchParams.set(
     'readMask',
     'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels'
@@ -1340,12 +1427,13 @@ export async function POST(request: NextRequest) {
           accountResource,
           locationsNextPageToken
         );
-        // Fetch cover photo for each location using Google My Business v4 API
+        // Fetch cover photo and attributes for each location
         for (const loc of locations) {
           const locationId = loc.name.split('/').pop();
           const mediaUrl = `${GMB_V4_BASE}/${accountResource}/locations/${locationId}/media`;
           let coverPhotoUrl = null;
 
+          // Fetch media (cover photo and logo)
           try {
             const res = await fetch(mediaUrl, {
               headers: { Authorization: `Bearer ${accessToken}` },
@@ -1367,6 +1455,24 @@ export async function POST(request: NextRequest) {
             }
           } catch (err) {
             console.error(`[GMB Sync API] Error fetching cover photo for location ${locationId}:`, err);
+          }
+
+          // Fetch attributes for this location (separate endpoint)
+          // According to API docs, attributes are not in profile - they must be fetched separately
+          const attributesData = await fetchLocationAttributes(accessToken, loc.name);
+          if (attributesData?.attributes) {
+            // Attach attributes to location object for later processing
+            (loc as any).fetchedAttributes = attributesData.attributes;
+          }
+
+          // Fetch place action links (menu, booking, order, etc.)
+          const placeActionLinks = await fetchPlaceActionLinks(accessToken, loc.name);
+          if (placeActionLinks && placeActionLinks.length > 0) {
+            // Attach place action links to location object for later processing
+            (loc as any).placeActionLinks = placeActionLinks;
+            if (IS_DEV) {
+              console.warn('[GMB Sync] Found place action links:', placeActionLinks.map(l => ({ type: l.placeActionType, uri: l.uri })));
+            }
           }
 
           // Attach cover photo URL to location object for database insert
@@ -1398,9 +1504,14 @@ export async function POST(request: NextRequest) {
             const latlng = location.latlng || {};
             const profile = location.profile || {};
             const openInfo = location.openInfo || {};
+            // Include fetched attributes and place action links in metadata for storage
+            const fetchedAttributes = (location as any).fetchedAttributes || [];
+            const placeActionLinks = (location as any).placeActionLinks || [];
             const enhancedMetadata = {
               ...location,
               profile,
+              attributes: fetchedAttributes, // Store attributes in metadata
+              placeActionLinks: placeActionLinks, // Store place action links in metadata
               regularHours: location.regularHours,
               specialHours: location.specialHours,
               moreHours: location.moreHours,
@@ -1424,6 +1535,7 @@ export async function POST(request: NextRequest) {
             const normalizedLocationId = location.name.replace(/[^a-zA-Z0-9]/g, '_');
             
             // Extract profile data
+            // According to API docs, Profile object only contains 'description' field
             const profileData = location.profile || {};
             const description = profileData.description || '';
             const shortDescription = profileData.shortDescription || profileData.merchantDescription || null;
@@ -1436,10 +1548,32 @@ export async function POST(request: NextRequest) {
             const reviewCount = metadata.totalReviewCount || location.totalReviewCount || null;
             
             // Extract from_the_business (attributes from "From the Business" section)
-            // Attributes are inside profile, not at location level
+            // Attributes are fetched separately via locations/{location_id}/attributes endpoint
+            // They are NOT in profile object according to API documentation
             const fromTheBusiness: string[] = [];
-            fromTheBusiness.push(...collectDisplayStrings(profileData.fromTheBusiness));
-            fromTheBusiness.push(...collectDisplayStrings(profileData.attributes));
+            const fetchedAttributes = (location as any).fetchedAttributes || [];
+            
+            // Process attributes from the separate endpoint
+            for (const attr of fetchedAttributes) {
+              if (attr.name && attr.values) {
+                // Extract display strings from attribute values
+                for (const value of attr.values) {
+                  if (typeof value === 'string') {
+                    fromTheBusiness.push(value);
+                  } else if (value && typeof value === 'object' && 'displayName' in value) {
+                    fromTheBusiness.push(String((value as any).displayName));
+                  }
+                }
+              }
+              // Also check uriValues for URL-type attributes (like menu, booking links)
+              if (attr.uriValues && Array.isArray(attr.uriValues)) {
+                for (const uriValue of attr.uriValues) {
+                  if (uriValue.uri) {
+                    fromTheBusiness.push(uriValue.uri);
+                  }
+                }
+              }
+            }
             
             // Extract opening date
             const openingDate = profileData.openingDate || openInfo?.openingDate || null;
@@ -1453,13 +1587,58 @@ export async function POST(request: NextRequest) {
               false;
             
             // Extract special links (menu, booking, order, appointment)
-            // Special links are inside profile.specialLinks or profile.moreHours
-            // Note: moreHours is a separate field in readMask, but special links may be nested
-            const specialLinks = profileData.specialLinks || profileData.moreHours || location.moreHours || {};
-            const menuUrl = specialLinks.menu || specialLinks.menuUrl || specialLinks.menuLink?.url || null;
-            const bookingUrl = specialLinks.booking || specialLinks.bookingUrl || specialLinks.reservationUri || null;
-            const orderUrl = specialLinks.order || specialLinks.orderUrl || specialLinks.orderLink?.url || null;
-            const appointmentUrl = specialLinks.appointment || specialLinks.appointmentUrl || specialLinks.appointmentLink?.url || null;
+            // Use Place Action Links API (correct source) instead of trying to extract from profile
+            let menuUrl: string | null = null;
+            let bookingUrl: string | null = null;
+            let orderUrl: string | null = null;
+            let appointmentUrl: string | null = null;
+            
+            // Priority 1: Place Action Links (official API)
+            const placeActions = (location as any).placeActionLinks || [];
+            for (const action of placeActions) {
+              const actionType = action.placeActionType;
+              const uri = action.uri;
+              
+              // Map place action types to our link types
+              if (actionType === 'FOOD_ORDERING' || actionType === 'FOOD_DELIVERY' || actionType === 'FOOD_TAKEOUT') {
+                if (!orderUrl || action.isPreferred) {
+                  orderUrl = uri;
+                }
+              } else if (actionType === 'DINING_RESERVATION') {
+                if (!bookingUrl || action.isPreferred) {
+                  bookingUrl = uri;
+                }
+              } else if (actionType === 'APPOINTMENT' || actionType === 'ONLINE_APPOINTMENT' || actionType === 'SOLOPRENEUR_APPOINTMENT') {
+                if (!appointmentUrl || action.isPreferred) {
+                  appointmentUrl = uri;
+                }
+              } else if (actionType === 'SHOP_ONLINE') {
+                // Could be menu or order
+                if (!menuUrl && !orderUrl) {
+                  orderUrl = uri;
+                }
+              }
+            }
+            
+            // Priority 2: Check attributes for URL-type attributes (fallback)
+            if (!menuUrl || !bookingUrl || !orderUrl || !appointmentUrl) {
+              for (const attr of fetchedAttributes) {
+                if (attr.name && attr.uriValues && Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
+                  const attrName = attr.name.toLowerCase();
+                  const uri = attr.uriValues[0].uri;
+                  
+                  if (!menuUrl && (attrName.includes('menu') || attrName.includes('food'))) {
+                    menuUrl = uri;
+                  } else if (!bookingUrl && (attrName.includes('booking') || attrName.includes('reservation'))) {
+                    bookingUrl = uri;
+                  } else if (!orderUrl && (attrName.includes('order') || attrName.includes('delivery'))) {
+                    orderUrl = uri;
+                  } else if (!appointmentUrl && (attrName.includes('appointment'))) {
+                    appointmentUrl = uri;
+                  }
+                }
+              }
+            }
             
             // Log for debugging in dev
             if (IS_DEV && (menuUrl || bookingUrl || orderUrl || appointmentUrl)) {
@@ -1467,7 +1646,8 @@ export async function POST(request: NextRequest) {
                 menu: menuUrl,
                 booking: bookingUrl,
                 order: orderUrl,
-                appointment: appointmentUrl
+                appointment: appointmentUrl,
+                source: placeActions.length > 0 ? 'Place Actions API' : 'Attributes'
               });
             }
             

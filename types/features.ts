@@ -29,6 +29,9 @@ export interface BusinessProfile {
 }
 
 export interface BusinessProfilePayload extends BusinessProfile {
+  readonly regularHours?: any;
+  readonly moreHours?: any;
+  readonly serviceItems?: any;
   readonly profileCompletenessBreakdown?: {
     readonly basicsFilled: boolean;
     readonly categoriesSet: boolean;

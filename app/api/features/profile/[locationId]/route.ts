@@ -351,6 +351,9 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       }
       return false
     })(),
+    regularHours: metadata.regularHours || row.business_hours || row.regularhours || undefined,
+    moreHours: metadata.moreHours || undefined,
+    serviceItems: metadata.serviceItems || undefined,
     profileCompleteness: Number(row.profile_completeness ?? metadata.profileCompleteness ?? 0) || 0,
   }
 
