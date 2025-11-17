@@ -170,22 +170,30 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
     description: (() => {
       // Priority 1: Direct column
       if (row.description) return String(row.description).trim()
-      // Priority 2: Metadata profile.description (from parseRecord)
-      if (profileMetadata.description) return String(profileMetadata.description).trim()
-      // Priority 3: Metadata description (direct)
-      if (metadata.description) return String(metadata.description).trim()
-      // Priority 4: Metadata profile.merchantDescription
-      if (profileMetadata.merchantDescription) return String(profileMetadata.merchantDescription).trim()
-      // Priority 5: Check metadata.profile directly (if it's an object)
+      
+      // Priority 2: Check metadata.profile directly (if it's an object, not parsed)
       const directProfile = metadata.profile
       if (directProfile && typeof directProfile === 'object' && !Array.isArray(directProfile)) {
         if (directProfile.description) return String(directProfile.description).trim()
         if (directProfile.merchantDescription) return String(directProfile.merchantDescription).trim()
       }
-      // Priority 6: Check if location object has description in metadata (full Google location object)
-      if (metadata.profile?.description) return String(metadata.profile.description).trim()
-      // Priority 7: Check root level if metadata is the full location object
-      if (metadata.profile?.description) return String(metadata.profile.description).trim()
+      
+      // Priority 3: Metadata profile.description (from parseRecord)
+      if (profileMetadata.description) return String(profileMetadata.description).trim()
+      
+      // Priority 4: Metadata description (direct)
+      if (metadata.description) return String(metadata.description).trim()
+      
+      // Priority 5: Metadata profile.merchantDescription
+      if (profileMetadata.merchantDescription) return String(profileMetadata.merchantDescription).trim()
+      
+      // Priority 6: Check nested metadata.profile.description (if metadata.profile is nested)
+      if (metadata.profile && typeof metadata.profile === 'object') {
+        const nestedProfile = parseRecord(metadata.profile)
+        if (nestedProfile.description) return String(nestedProfile.description).trim()
+        if (nestedProfile.merchantDescription) return String(nestedProfile.merchantDescription).trim()
+      }
+      
       return ''
     })(),
     shortDescription:
@@ -240,7 +248,61 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       }
       return []
     })(),
-    features: normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {}),
+    features: (() => {
+      // Try multiple sources for features
+      const featuresFromMetadata = normalizeFeatureSelection(metadata.features ?? metadata.attributes ?? {})
+      
+      // Also check from_the_business column - it may contain feature attributes
+      const fromBusiness = (() => {
+        if (row.from_the_business) {
+          return ensureStringArray(row.from_the_business)
+        }
+        if (metadata.from_the_business) {
+          return ensureStringArray(metadata.from_the_business)
+        }
+        if (profileMetadata.fromTheBusiness) {
+          return ensureStringArray(profileMetadata.fromTheBusiness)
+        }
+        if (profileMetadata.attributes && Array.isArray(profileMetadata.attributes)) {
+          return ensureStringArray(profileMetadata.attributes)
+        }
+        return []
+      })()
+      
+      // If we have features from metadata, use them
+      const hasMetadataFeatures = FEATURE_CATEGORY_KEYS.some(cat => featuresFromMetadata[cat].length > 0)
+      if (hasMetadataFeatures) {
+        return featuresFromMetadata
+      }
+      
+      // Otherwise, try to extract features from from_the_business array
+      if (fromBusiness.length > 0) {
+        const index = new Map<string, FeatureCategoryKey>()
+        FEATURE_CATEGORY_KEYS.forEach((category) => {
+          FEATURE_CATALOG[category].forEach((definition) => {
+            index.set(definition.key, category)
+          })
+        })
+        
+        const selection: FeatureSelection = {
+          amenities: [],
+          payment_methods: [],
+          services: [],
+          atmosphere: [],
+        }
+        
+        fromBusiness.forEach((attr: string) => {
+          const category = index.get(attr.trim())
+          if (category) {
+            selection[category] = Array.from(new Set([...selection[category], attr.trim()]))
+          }
+        })
+        
+        return selection
+      }
+      
+      return featuresFromMetadata
+    })(),
     specialLinks: buildSpecialLinks(metadata, row),
     fromTheBusiness: (() => {
       // Priority 1: Direct column

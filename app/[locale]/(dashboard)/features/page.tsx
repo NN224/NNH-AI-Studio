@@ -370,7 +370,12 @@ export default function BusinessProfilePage() {
           </div>
 
           <div className="p-6">
-            {profile && (
+            {profileLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <span className="ml-3 text-zinc-400">Loading profile data...</span>
+              </div>
+            ) : profile ? (
               <>
                 {activeTab === 'info' && (
                   <BusinessInfoTab profile={profile} onChange={handleProfileChange} onDirty={markDirty} disabled={false} />
@@ -399,6 +404,10 @@ export default function BusinessProfilePage() {
                   />
                 )}
               </>
+            ) : (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-200">
+                <p className="font-medium">{profileError || 'No profile data available. Please select a location.'}</p>
+              </div>
             )}
           </div>
         </div>

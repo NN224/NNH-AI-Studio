@@ -51,6 +51,15 @@ function sanitizePhone(value: string): string {
 
 // Simplified BusinessInfoTab - All content merged into a single simple interface
 export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }: TabComponentProps) {
+  // Safety check
+  if (!profile) {
+    return (
+      <div className="p-6 text-center text-zinc-400">
+        <p>Loading profile data...</p>
+      </div>
+    )
+  }
+
   const handleInputChange = (field: keyof Pick<BusinessProfilePayload, 'locationName' | 'shortDescription' | 'phone' | 'website'>, value: string) => {
     if (disabled) return
     onChange({ ...profile, [field]: value })
@@ -253,7 +262,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
       <div>
             <label className="block text-sm font-medium text-white mb-2">Business Name</label>
         <input
-                  value={profile.locationName}
+                  value={profile.locationName || ''}
               onChange={(e) => handleInputChange('locationName', e.target.value)}
               disabled={disabled}
               className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white focus:border-orange-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -263,7 +272,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
         <div>
               <label className="block text-sm font-medium text-white mb-2">Phone</label>
           <input
-            value={profile.phone}
+            value={profile.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
             placeholder="+971 XX XXX XXXX"
                 disabled={disabled}
@@ -273,7 +282,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
         <div>
               <label className="block text-sm font-medium text-white mb-2">Website</label>
           <input
-            value={profile.website}
+            value={profile.website || ''}
                 onChange={(e) => handleInputChange('website', e.target.value)}
                     placeholder="https://example.com"
                 disabled={disabled}
@@ -284,14 +293,14 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
           <div>
             <label className="block text-sm font-medium text-white mb-2">Description</label>
                 <textarea
-                  value={profile.description}
+                  value={profile.description || ''}
                   onChange={handleTextArea}
               rows={4}
                   maxLength={750}
                   disabled={disabled}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white focus:border-orange-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-            <p className="text-xs text-zinc-500 mt-1">{profile.description.length}/750 characters</p>
+            <p className="text-xs text-zinc-500 mt-1">{(profile.description || '').length}/750 characters</p>
               </div>
             </div>
           </div>
@@ -306,7 +315,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
       <div>
             <label className="block text-sm font-medium text-white mb-2">Primary Category</label>
         <select
-          value={profile.primaryCategory}
+          value={profile.primaryCategory || ''}
               onChange={(e) => updatePrimaryCategory(e.target.value)}
               disabled={disabled}
               className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-white focus:border-orange-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -318,11 +327,11 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
       </div>
       <div>
             <label className="block text-sm font-medium text-white mb-2">
-            Additional Categories ({profile.additionalCategories.length}/9)
+            Additional Categories ({(profile.additionalCategories || []).length}/9)
           </label>
-        {profile.additionalCategories.length > 0 && (
+        {(profile.additionalCategories || []).length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
-                {profile.additionalCategories.map((cat) => (
+                {(profile.additionalCategories || []).map((cat) => (
                   <Badge key={cat} variant="outline" className="border-orange-500/40 text-orange-200">
                     {cat}
                 <button
@@ -339,14 +348,14 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
         )}
             <div className="flex flex-wrap gap-2">
               {COMMON_CATEGORIES.filter(
-                (cat) => cat !== profile.primaryCategory && !profile.additionalCategories.includes(cat)
+                (cat) => cat !== profile.primaryCategory && !(profile.additionalCategories || []).includes(cat)
               ).slice(0, 6).map((cat) => (
                 <Button
                   key={cat}
                   size="sm"
                   variant="outline"
                   onClick={() => addCategory(cat)}
-              disabled={profile.additionalCategories.length >= 9 || disabled}
+              disabled={(profile.additionalCategories || []).length >= 9 || disabled}
                   className="border-zinc-700 text-zinc-300"
             >
                   + {cat}
@@ -374,7 +383,7 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
               <label className="block text-sm font-medium text-white mb-2">{link.label}</label>
           <input
             type="url"
-                value={profile.specialLinks?.[link.key] ?? ''}
+                value={(profile.specialLinks?.[link.key] || '')}
                 onChange={(e) => handleLinkChange(link.key, e.target.value)}
             placeholder={link.placeholder}
                 disabled={disabled}
@@ -425,6 +434,15 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
 
 // Simplified FeaturesTab with Industry-specific Features
 export function FeaturesTab({ profile, onChange, onDirty, disabled = false }: TabComponentProps) {
+  // Safety check
+  if (!profile) {
+    return (
+      <div className="p-6 text-center text-zinc-400">
+        <p>Loading profile data...</p>
+      </div>
+    )
+  }
+
   // Get features based on business category
   const allFeatures = useMemo(() => {
     return getIndustryFeatures(profile.primaryCategory || 'general');
