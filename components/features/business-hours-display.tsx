@@ -60,6 +60,12 @@ const moreHoursNames: Record<string, string> = {
 }
 
 export function BusinessHoursDisplay({ regularHours, moreHours }: BusinessHoursDisplayProps) {
+  // Debug logging
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[BusinessHoursDisplay] regularHours:', regularHours)
+    console.log('[BusinessHoursDisplay] moreHours:', moreHours)
+  }
+
   if (!regularHours && (!moreHours || moreHours.length === 0)) {
     return null
   }

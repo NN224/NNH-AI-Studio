@@ -15,6 +15,8 @@ import { useTranslations } from 'next-intl'
 import { ValidationPanel } from '@/components/features/validation-panel'
 import { ChangeHistoryPanel } from '@/components/features/change-history-panel'
 import { BulkUpdateDialog } from '@/components/features/bulk-update-dialog'
+import { BusinessHoursDisplay } from '@/components/features/business-hours-display'
+import { ServiceItemsDisplay } from '@/components/features/service-items-display'
 
 interface TabDefinition {
   readonly id: TabKey
@@ -402,6 +404,17 @@ export default function BusinessProfilePage() {
                       setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
                     }}
                   />
+                )}
+                
+                {/* Business Hours & Service Items - Show on info tab */}
+                {activeTab === 'info' && profile && (
+                  <div className="mt-6 space-y-6">
+                    <BusinessHoursDisplay 
+                      regularHours={profile.regularHours}
+                      moreHours={profile.moreHours}
+                    />
+                    <ServiceItemsDisplay serviceItems={profile.serviceItems} />
+                  </div>
                 )}
               </>
             ) : (

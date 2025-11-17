@@ -11,6 +11,11 @@ interface ServiceItemsDisplayProps {
 }
 
 export function ServiceItemsDisplay({ serviceItems }: ServiceItemsDisplayProps) {
+  // Debug logging
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[ServiceItemsDisplay] serviceItems:', serviceItems)
+  }
+
   if (!serviceItems || serviceItems.length === 0) {
     return null
   }

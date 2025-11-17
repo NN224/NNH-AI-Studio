@@ -417,9 +417,27 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       }
       return false
     })(),
-    regularHours: metadata.regularHours || row.business_hours || row.regularhours || undefined,
-    moreHours: metadata.moreHours || undefined,
-    serviceItems: metadata.serviceItems || undefined,
+    regularHours: (() => {
+      const hours = metadata.regularHours || row.business_hours || row.regularhours
+      if (process.env.NODE_ENV !== 'production' && hours) {
+        console.log('[normalizeBusinessProfile] regularHours found:', typeof hours, Object.keys(hours || {}))
+      }
+      return hours || undefined
+    })(),
+    moreHours: (() => {
+      const hours = metadata.moreHours
+      if (process.env.NODE_ENV !== 'production' && hours) {
+        console.log('[normalizeBusinessProfile] moreHours found:', Array.isArray(hours), hours)
+      }
+      return hours || undefined
+    })(),
+    serviceItems: (() => {
+      const items = metadata.serviceItems
+      if (process.env.NODE_ENV !== 'production' && items) {
+        console.log('[normalizeBusinessProfile] serviceItems found:', Array.isArray(items), items?.length)
+      }
+      return items || undefined
+    })(),
     profileCompleteness: Number(row.profile_completeness ?? metadata.profileCompleteness ?? 0) || 0,
   }
 
