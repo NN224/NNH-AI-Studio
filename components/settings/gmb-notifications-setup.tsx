@@ -420,3 +420,4 @@ export function GmbNotificationsSetup() {
   )
 }
 
+export default GMBNotificationsSetup

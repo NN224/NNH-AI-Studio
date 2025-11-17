@@ -21,3 +21,7 @@ export function errorResponse(error: unknown) {
   }
   return NextResponse.json({ error: 'Unknown error' }, { status: 500 });
 }
+
+export function successResponse(data: any, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
