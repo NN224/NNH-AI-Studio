@@ -205,7 +205,7 @@ export default function BusinessProfilePage() {
                     body: JSON.stringify({ 
                       accountId: locationData.accountId || locationData.gmb_account_id,
                       locationIds: [selectedLocationId],
-                      syncType: 'location'
+                      syncType: 'locations'  // Fixed: was 'location', should be 'locations'
                     })
                   });
                   
