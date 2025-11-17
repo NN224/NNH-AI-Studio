@@ -1,4 +1,4 @@
-import Redis from 'ioredis'
+import { Redis } from '@upstash/redis'
 
 let redisClient: Redis | null = null
 let redisUnavailable = false
@@ -25,30 +25,27 @@ export function getRedisClient(): Redis | null {
   }
 
   const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-  if (!redisUrl) {
-    console.warn('[Redis] No REDIS_URL/UPSTASH_REDIS_URL configured. Falling back to in-memory locks.')
+  // Upstash Redis requires both URL and token
+  if (!redisUrl || !redisToken) {
+    console.warn('[Redis] No REDIS_URL/UPSTASH_REDIS_URL or UPSTASH_REDIS_REST_TOKEN configured. Falling back to in-memory locks.')
     redisUnavailable = true
     scheduleRetryWindow()
     return null
   }
 
-  redisClient = new Redis(redisUrl, {
-    maxRetriesPerRequest: 2,
-    enableOfflineQueue: false,
-    lazyConnect: true,
-  })
-
-  redisClient.on('error', (err) => {
-    console.error('[Redis] Connection error:', err)
-  })
-
-  redisClient.on('end', () => {
-    console.warn('[Redis] Connection closed. Using in-memory fallback until reconnection succeeds.')
-    redisClient = null
+  try {
+    redisClient = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    })
+  } catch (error) {
+    console.error('[Redis] Failed to initialize client:', error)
     redisUnavailable = true
     scheduleRetryWindow()
-  })
+    return null
+  }
 
   return redisClient
 }
@@ -58,15 +55,7 @@ export function markRedisAsUnavailable(reason?: unknown) {
     console.warn('[Redis] Marking client as unavailable. Falling back to in-memory locks.', reason)
   }
   redisUnavailable = true
-  if (redisClient) {
-    try {
-      redisClient.disconnect()
-    } catch {
-      // ignore disconnect errors
-    } finally {
-      redisClient = null
-    }
-  }
+  redisClient = null
   scheduleRetryWindow()
 }
 

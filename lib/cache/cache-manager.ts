@@ -1,4 +1,4 @@
-import type Redis from 'ioredis'
+import type { Redis } from '@upstash/redis'
 import { getRedisClient } from '@/lib/redis/client'
 
 export enum CacheBucket {
@@ -70,7 +70,6 @@ const metrics: CacheMetrics = {
   },
 }
 
-let subscriber: Redis | null = null
 let subscriberInitialized = false
 const syncHandlers = new Set<(event: SyncProgressEvent) => void>()
 
@@ -137,49 +136,10 @@ async function initSubscriber() {
   }
   subscriberInitialized = true
 
-  const attempt = async (): Promise<void> => {
-    const redis = getRedisClient()
-    if (!redis) {
-      setTimeout(attempt, 30_000).unref?.()
-      return
-    }
-
-    try {
-      subscriber = redis.duplicate()
-      subscriber.on('message', (channel, message) => {
-        if (channel === INVALIDATION_CHANNEL) {
-          try {
-            const payload = JSON.parse(message) as { key: string }
-            if (payload?.key) {
-              inMemoryCache.delete(payload.key)
-              logCache('invalidation:remote', { key: payload.key })
-            }
-          } catch (error) {
-            logCache('invalidation:parse_error', { error })
-          }
-          return
-        }
-
-        if (channel === SYNC_PROGRESS_CHANNEL) {
-          try {
-            const payload = JSON.parse(message) as SyncProgressEvent
-            if (payload?.userId) {
-              syncHandlers.forEach((handler) => handler(payload))
-            }
-          } catch (error) {
-            logCache('sync:parse_error', { error })
-          }
-        }
-      })
-      await subscriber.subscribe(INVALIDATION_CHANNEL, SYNC_PROGRESS_CHANNEL)
-      logCache('pubsub:ready')
-    } catch (error) {
-      logCache('pubsub:error', { error })
-      setTimeout(attempt, 30_000).unref?.()
-    }
-  }
-
-  attempt().catch((error) => logCache('pubsub:subscribe_failed', { error }))
+  // Note: Upstash Redis REST API doesn't support pub/sub directly
+  // Pub/sub functionality is disabled for now
+  // If needed, consider using Upstash Redis WebSocket or polling mechanism
+  logCache('pubsub:disabled', { reason: 'Upstash Redis REST API does not support pub/sub' })
 }
 
 initSubscriber()
@@ -191,7 +151,7 @@ export async function getCacheValue<T>(bucket: CacheBucket, identifier: string):
   if (redis) {
     try {
       const raw = await redis.get(key)
-      if (raw) {
+      if (raw && typeof raw === 'string') {
         trackMetrics(bucket, true)
         trackPopularity(bucket, identifier, true)
         logCache('hit', { key, bucket })
@@ -235,7 +195,7 @@ export async function setCacheValue<T>(
 
   if (redis) {
     try {
-      await redis.set(key, serialized, 'EX', ttl)
+      await redis.set(key, serialized, { ex: ttl })
       logCache('set', { key, bucket, ttl })
     } catch (error) {
       logCache('redis:set_error', { error })
@@ -254,7 +214,9 @@ export async function invalidateCache(bucket: CacheBucket, identifier: string) {
   if (redis) {
     try {
       await redis.del(key)
-      await redis.publish(INVALIDATION_CHANNEL, JSON.stringify({ key }))
+      // Note: Upstash Redis REST API doesn't support pub/sub directly
+      // We'll rely on in-memory cache invalidation and polling
+      // await redis.publish(INVALIDATION_CHANNEL, JSON.stringify({ key }))
     } catch (error) {
       logCache('redis:invalidate_error', { error })
     }
@@ -304,15 +266,18 @@ export function subscribeToSyncProgress(handler: (event: SyncProgressEvent) => v
 }
 
 export async function publishSyncProgress(event: SyncProgressEvent) {
+  // Always call handlers directly (in-memory)
   syncHandlers.forEach((handler) => handler(event))
 
-  const redis = getRedisClient()
-  if (redis) {
-    try {
-      await redis.publish(SYNC_PROGRESS_CHANNEL, JSON.stringify(event))
-    } catch (error) {
-      logCache('sync:publish_error', { error })
-    }
-  }
+  // Note: Upstash Redis REST API doesn't support pub/sub directly
+  // If needed, consider using Upstash Redis WebSocket or polling mechanism
+  // const redis = getRedisClient()
+  // if (redis) {
+  //   try {
+  //     await redis.publish(SYNC_PROGRESS_CHANNEL, JSON.stringify(event))
+  //   } catch (error) {
+  //     logCache('sync:publish_error', { error })
+  //   }
+  // }
 }
 

@@ -24,7 +24,7 @@ export async function acquireLock(key: string, ttlSeconds: number): Promise<stri
 
   if (redis) {
     try {
-      const result = await redis.set(key, token, 'NX', 'EX', ttl)
+      const result = await redis.set(key, token, { nx: true, ex: ttl })
       if (result === 'OK') {
         return token
       }
@@ -59,11 +59,12 @@ export async function releaseLock(key: string, token: string): Promise<boolean> 
         end
         return 0
       `
-      const result = await redis.eval(script, 1, key, token)
+      // Upstash Redis eval takes arrays for keys and args
+      const result = await redis.eval(script, [key], [token])
       if (typeof result === 'number') {
         return result === 1
       }
-      return result === '1'
+      return result === '1' || result === 1
     } catch (error) {
       markRedisAsUnavailable(error)
     }
@@ -90,11 +91,12 @@ export async function extendLock(key: string, token: string, ttlSeconds: number)
         end
         return 0
       `
-      const result = await redis.eval(script, 1, key, token, ttl)
+      // Upstash Redis eval takes arrays for keys and args
+      const result = await redis.eval(script, [key], [token, ttl.toString()])
       if (typeof result === 'number') {
         return result === 1
       }
-      return result === '1'
+      return result === '1' || result === 1
     } catch (error) {
       markRedisAsUnavailable(error)
     }
