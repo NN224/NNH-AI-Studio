@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -121,7 +121,11 @@ router.push("/auth/login");
 };
 
 
-// Fetch notifications
+// Fetch notifications with smart polling
+const pollIntervalRef = useRef(60000); // Start with 60 seconds
+const lastUnreadCountRef = useRef(0);
+const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+
 useAsyncEffect(async (signal) => {
 const fetchNotifications = async () => {
 if (signal.aborted) return;
@@ -133,15 +137,35 @@ setLoadingNotifications(false);
 return;
 }
 
+// Skip if page is not visible (browser tab is hidden)
+if (typeof document !== 'undefined' && document.hidden) {
+return;
+}
+
 const response = await fetch('/api/notifications?limit=10', { signal });
 if (response.ok && !signal.aborted) {
 const data = await response.json();
 setNotifications(data.notifications || []);
-setUnreadCount(data.unreadCount || 0);
+const currentUnreadCount = data.unreadCount || 0;
+setUnreadCount(currentUnreadCount);
+
+// Adaptive polling: if there are unread notifications, poll more frequently
+// If no new notifications, poll less frequently (up to 2 minutes)
+if (currentUnreadCount > lastUnreadCountRef.current) {
+// New notifications - poll every 30 seconds
+pollIntervalRef.current = 30000;
+} else if (currentUnreadCount === 0 && lastUnreadCountRef.current === 0) {
+// No unread notifications - gradually increase interval up to 2 minutes
+pollIntervalRef.current = Math.min(pollIntervalRef.current + 10000, 120000);
+}
+
+lastUnreadCountRef.current = currentUnreadCount;
 }
 } catch (error: any) {
 if (error.name !== 'AbortError') {
 console.error('Failed to fetch notifications:', error);
+// On error, increase interval to avoid spamming
+pollIntervalRef.current = Math.min(pollIntervalRef.current + 30000, 120000);
 }
 } finally {
 if (!signal.aborted) {
@@ -152,16 +176,52 @@ setLoadingNotifications(false);
 
 await fetchNotifications();
 
-// Refresh every 30 seconds
-const interval = setInterval(() => {
-if (!signal.aborted) {
-fetchNotifications();
+// Smart polling with adaptive interval
+const scheduleNextPoll = () => {
+if (signal.aborted) return;
+if (timeoutIdRef.current) {
+clearTimeout(timeoutIdRef.current);
 }
-}, 30000);
+timeoutIdRef.current = setTimeout(() => {
+if (!signal.aborted) {
+fetchNotifications().then(() => {
+scheduleNextPoll();
+});
+}
+}, pollIntervalRef.current);
+};
+
+scheduleNextPoll();
+
+// Pause polling when page is hidden, resume when visible
+let visibilityHandler: (() => void) | null = null;
+if (typeof document !== 'undefined') {
+visibilityHandler = () => {
+if (document.hidden) {
+// Page hidden - clear timeout
+if (timeoutIdRef.current) {
+clearTimeout(timeoutIdRef.current);
+timeoutIdRef.current = null;
+}
+} else {
+// Page visible - resume polling
+if (!timeoutIdRef.current) {
+scheduleNextPoll();
+}
+}
+};
+document.addEventListener('visibilitychange', visibilityHandler);
+}
 
 // Cleanup function
 signal.addEventListener('abort', () => {
-clearInterval(interval);
+if (timeoutIdRef.current) {
+clearTimeout(timeoutIdRef.current);
+timeoutIdRef.current = null;
+}
+if (visibilityHandler && typeof document !== 'undefined') {
+document.removeEventListener('visibilitychange', visibilityHandler);
+}
 });
 }, [supabase, setLoadingNotifications, setNotifications, setUnreadCount]);
 
