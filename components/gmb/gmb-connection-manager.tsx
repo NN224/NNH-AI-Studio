@@ -99,7 +99,7 @@ export function GMBConnectionManager({
   const [phases, setPhases] = useState<Array<{phase:string,status:string,last_counts?:any,last_error?:string|null,last_started_at?:string|null,last_ended_at?:string|null,avg_duration_ms?:number|null}>>([])
   const [estimateMs, setEstimateMs] = useState<number>(0)
   const [showRealtimeProgress, setShowRealtimeProgress] = useState(false)
-  
+
   // Database counts
   const [dbCounts, setDbCounts] = useState<{locations: number, reviews: number, questions: number, media: number} | null>(null)
 
