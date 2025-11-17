@@ -189,23 +189,48 @@ export default function BusinessProfilePage() {
               variant="outline"
               onClick={async () => {
                 if (!selectedLocationId) return;
+                
+                const loadingToast = toast.loading('Importing from GMB...');
+                
                 try {
-                  toast.loading('Importing from GMB...');
+                  // First get the account ID for this location
+                  const locationData = locations.find(l => l.id === selectedLocationId);
+                  if (!locationData) {
+                    throw new Error('Location not found');
+                  }
+                  
                   const response = await fetch('/api/gmb/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ locationIds: [selectedLocationId] })
+                    body: JSON.stringify({ 
+                      accountId: locationData.accountId || locationData.gmb_account_id,
+                      locationIds: [selectedLocationId],
+                      syncType: 'location'
+                    })
                   });
+                  
+                  const data = await response.json().catch(() => ({}));
+                  
                   if (response.ok) {
-                    toast.success('Successfully imported from GMB');
-                    // Reload profile
-                    setSelectedLocationId(null);
-                    setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
+                    toast.success('Successfully imported from GMB', {
+                      id: loadingToast
+                    });
+                    // Reload profile after a short delay
+                    setTimeout(() => {
+                      setSelectedLocationId(null);
+                      setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
+                    }, 1000);
                   } else {
-                    toast.error('Failed to import from GMB');
+                    toast.error(data.error || `Import failed (${response.status})`, {
+                      id: loadingToast
+                    });
+                    console.error('[Import GMB] Error:', data);
                   }
                 } catch (error) {
-                  toast.error('Import failed');
+                  console.error('[Import GMB] Exception:', error);
+                  toast.error('Import failed - please check your connection', {
+                    id: loadingToast
+                  });
                 }
               }}
               className="gap-2"
