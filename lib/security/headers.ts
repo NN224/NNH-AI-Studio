@@ -151,7 +151,7 @@ export function withSecurityHeaders(
  */
 export function getCORSHeaders(origin?: string): Record<string, string> {
   const allowedOrigin = process.env.NODE_ENV === 'production'
-    ? process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.com'
+    ? process.env.NEXT_PUBLIC_APP_URL || 'https://nnh.ae'
     : 'http://localhost:3000';
 
   return {

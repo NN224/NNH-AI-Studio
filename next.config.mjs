@@ -107,8 +107,8 @@ const nextConfig = {
           // CORS headers for API (adjust origin as needed)
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'production' 
-              ? 'https://yourdomain.com' // Replace with your actual domain
+            value: process.env.NODE_ENV === 'production'
+              ? 'https://nnh.ae'
               : 'http://localhost:3000',
           },
           {
