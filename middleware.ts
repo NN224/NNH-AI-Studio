@@ -48,20 +48,28 @@ async function checkRateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();
 
   if (usingRedis && redis) {
-    const redisKey = `ratelimit:${key}`;
-    const count = await redis.incr(redisKey);
-    if (count === 1) {
-      await redis.pexpire(redisKey, windowMs);
+    try {
+      const redisKey = `ratelimit:${key}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.pexpire(redisKey, windowMs);
+      }
+      const ttlMs = await redis.pttl(redisKey);
+      const reset = ttlMs > 0 ? now + ttlMs : now + windowMs;
+      return {
+        allowed: count <= limit,
+        remaining: Math.max(0, limit - count),
+        reset,
+      };
+    } catch (error) {
+      // If Redis fails, fall back to in-memory rate limiting
+      console.warn('[Middleware] Redis rate limit failed, falling back to in-memory:', error);
+      usingRedis = false;
+      // Continue to in-memory fallback below
     }
-    const ttlMs = await redis.pttl(redisKey);
-    const reset = ttlMs > 0 ? now + ttlMs : now + windowMs;
-    return {
-      allowed: count <= limit,
-      remaining: Math.max(0, limit - count),
-      reset,
-    };
   }
 
+  // In-memory rate limiting fallback
   const bucket = rateLimitStore.get(key);
   if (!bucket || bucket.resetAt < now) {
     rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });

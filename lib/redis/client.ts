@@ -24,12 +24,12 @@ export function getRedisClient(): Redis | null {
     return redisClient
   }
 
-  const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL
   const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
   // Upstash Redis requires both URL and token
   if (!redisUrl || !redisToken) {
-    console.warn('[Redis] No REDIS_URL/UPSTASH_REDIS_URL or UPSTASH_REDIS_REST_TOKEN configured. Falling back to in-memory locks.')
+    console.warn('[Redis] No UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN configured. Falling back to in-memory locks.')
     redisUnavailable = true
     scheduleRetryWindow()
     return null
