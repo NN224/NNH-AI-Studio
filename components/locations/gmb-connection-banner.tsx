@@ -29,29 +29,29 @@ export const GMBConnectionBanner = () => {
 
             {/* Title & Subtitle */}
             <div className="space-y-3">
-              <h1 className="text-4xl font-bold tracking-tight">{t('noAccount.title')}</h1>
-              <p className="text-xl text-muted-foreground">{t('noAccount.subtitle')}</p>
+              <h1 className="text-4xl font-bold tracking-tight">Connect Your Google Business Profile</h1>
+              <p className="text-xl text-muted-foreground">Manage your business locations, reviews, and posts all in one place</p>
             </div>
 
             {/* Benefits Grid */}
             <div className="mt-8 mb-8">
-              <h3 className="text-lg font-semibold mb-6 text-primary">{t('noAccount.benefits.title')}</h3>
+              <h3 className="text-lg font-semibold mb-6 text-primary">What You Can Do</h3>
               <div className="grid md:grid-cols-2 gap-4 text-left">
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">{t('noAccount.benefits.manage')}</span>
+                  <span className="text-sm">Manage multiple business locations from one dashboard</span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">{t('noAccount.benefits.respond')}</span>
+                  <span className="text-sm">Respond to reviews with AI-powered suggestions</span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <TrendingUpIcon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">{t('noAccount.benefits.track')}</span>
+                  <span className="text-sm">Track performance with detailed analytics</span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">{t('noAccount.benefits.optimize')}</span>
+                  <span className="text-sm">Optimize your business profile for better visibility</span>
                 </div>
               </div>
             </div>
@@ -65,7 +65,7 @@ export const GMBConnectionBanner = () => {
                 className="w-full sm:w-auto"
                 onClick={() => router.push('/features')}
               >
-                {t('noAccount.learnMore')}
+                Learn More
               </Button>
             </div>
           </div>
@@ -133,15 +133,15 @@ export const EmptyLocationsState = ({
     <Card>
       <CardContent className="flex flex-col items-center justify-center py-16">
         <MapPin className="w-12 h-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
+        <h3 className="text-lg font-semibold mb-2">No Locations Found</h3>
         <p className="text-muted-foreground text-center mb-4">
           {hasFilters
-            ? t('empty.filteredMessage')
-            : t('empty.defaultMessage')}
+            ? 'No locations match your current filters. Try adjusting your search criteria.'
+            : 'Get started by adding your first business location.'}
         </p>
         <Button onClick={onAddLocationAction}>
           <Plus className="w-4 h-4 mr-2" />
-          {t('actions.addLocation')}
+          Add Location
         </Button>
       </CardContent>
     </Card>

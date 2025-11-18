@@ -66,29 +66,21 @@ read: boolean;
 created_at: string;
 }
 
-// Route names will be translated using Dashboard.nav keys
-const getRouteName = (path: string, t: any): string => {
+// Route names mapping
+const getRouteName = (path: string): string => {
   const routeMap: Record<string, string> = {
-    '/dashboard': 'nav.dashboard',
-    '/locations': 'nav.locations',
-    '/reviews': 'nav.reviews',
-    '/questions': 'nav.questions',
-    '/posts': 'nav.gmbPosts',
-    '/media': 'nav.media',
-    '/analytics': 'nav.analytics',
-    '/features': 'nav.features',
-    '/automation': 'nav.automation',
-    '/settings': 'nav.settings',
+    '/dashboard': 'Dashboard',
+    '/locations': 'Locations',
+    '/reviews': 'Reviews',
+    '/questions': 'Questions',
+    '/posts': 'Posts',
+    '/media': 'Media',
+    '/analytics': 'Analytics',
+    '/features': 'Business Info',
+    '/automation': 'Automation',
+    '/settings': 'Settings',
   };
-  const key = routeMap[path];
-  if (key) {
-    try {
-      return t(key);
-    } catch {
-      return path.split('/').pop() || path;
-    }
-  }
-  return path.split('/').pop() || path;
+  return routeMap[path] || path.split('/').pop() || path;
 };
 
 // ⭐️ دالة مساعدة للحروف الأولى
@@ -254,7 +246,7 @@ const pathSegments = safePath.split('/').filter(Boolean);
 const breadcrumbs = pathSegments.map((segment, index) => {
   const path = `/${pathSegments.slice(0, index + 1).join('/')}`;
   return {
-    name: getRouteName(path, t) || segment.charAt(0).toUpperCase() + segment.slice(1),
+    name: getRouteName(path) || segment.charAt(0).toUpperCase() + segment.slice(1),
     path,
   };
 });
@@ -365,9 +357,9 @@ className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center r
 </DropdownMenuTrigger>
 <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>{t('notifications.title')}</span>
+          <span>Notifications</span>
           {unreadCount > 0 && (
-            <Badge variant="secondary">{unreadCount} {t('notifications.new')}</Badge>
+            <Badge variant="secondary">{unreadCount} new</Badge>
           )}
         </DropdownMenuLabel>
 <DropdownMenuSeparator />
@@ -379,7 +371,7 @@ className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center r
 ) : notifications.length === 0 ? (
 <div className="flex flex-col items-center justify-center py-8 text-center">
 <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-muted-foreground">{t('notifications.empty')}</p>
+            <p className="text-sm text-muted-foreground">No new notifications</p>
 </div>
 ) : (
 notifications.map((notification) => (
@@ -437,7 +429,7 @@ console.error('Failed to mark all as read:', error);
 }
 }}
 >
-            {t('notifications.markAllRead')}
+            Mark all as read
 </DropdownMenuItem>
 </>
 )}
@@ -470,7 +462,7 @@ console.error('Failed to mark all as read:', error);
                     <Link href="/settings" passHref>
                         <DropdownMenuItem className="cursor-pointer">
                             <Settings className="mr-2 h-4 w-4" />
-                            <span>{t('nav.settings')}</span>
+                            <span>Settings</span>
                         </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator />
@@ -479,7 +471,7 @@ console.error('Failed to mark all as read:', error);
                         className="cursor-pointer text-red-500 focus:text-red-600"
                     >
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>{t('auth.signOut')}</span>
+                        <span>Sign Out</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

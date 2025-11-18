@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 interface NavigationItem {
-  nameKey: string;
+  name: string;
   href: string;
   icon: any;
   badge?: string | number;
@@ -35,47 +35,47 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
   
   const navigation: NavigationItem[] = [
     {
-      nameKey: 'nav.dashboard',
+      name: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
     },
     {
-      nameKey: 'nav.locations',
+      name: 'Locations',
       href: '/locations',
       icon: MapPin,
     },
     {
-      nameKey: 'nav.businessInfo',
+      name: 'Business Info',
       href: '/features',
       icon: Layers,
     },
     {
-      nameKey: 'nav.reviews',
+      name: 'Reviews',
       href: '/reviews',
       icon: Star,
     },
     {
-      nameKey: 'nav.questions',
+      name: 'Questions',
       href: '/questions',
       icon: MessageSquare,
     },
     {
-      nameKey: 'nav.gmbPosts',
+      name: 'Posts',
       href: '/posts',
       icon: FileText,
     },
     {
-      nameKey: 'nav.media',
+      name: 'Media',
       href: '/media',
       icon: ImageIcon,
     },
     {
-      nameKey: 'nav.analytics',
+      name: 'Analytics',
       href: '/analytics',
       icon: BarChart3,
     },
     {
-      nameKey: 'nav.automation',
+      name: 'Automation',
       href: '/automation',
       icon: Zap,
     },
@@ -83,12 +83,12 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
 
   const bottomNavigation: NavigationItem[] = [
     {
-      nameKey: 'nav.whatsNew',
+      name: "What's New",
       href: '/changelog',
       icon: Sparkles,
     },
     {
-      nameKey: 'nav.settings',
+      name: 'Settings',
       href: '/settings',
       icon: Settings,
     },
@@ -141,10 +141,10 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
             )}
             <div className="flex flex-col">
               <span className="text-lg font-bold">
-                {brandProfile?.brand_name || t('title')}
+                {brandProfile?.brand_name || 'NNH AI Studio'}
               </span>
               <span className="text-xs text-muted-foreground">
-                {t('subtitle')}
+                AI-Powered Business Management
               </span>
             </div>
           </div>
@@ -168,7 +168,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      <span className="flex-1">{t(item.nameKey)}</span>
+                      <span className="flex-1">{item.name}</span>
                       {item.badge && (
                         <span
                           className={cn(
@@ -207,7 +207,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      <span className="flex-1">{t(item.nameKey)}</span>
+                      <span className="flex-1">{item.name}</span>
                     </motion.div>
                   </Link>
                 );
