@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { AutoReplySettings } from '@/server/actions/auto-reply'
+import { ActivityStatsCard } from '@/components/settings/activity-stats-card'
 
 export default function AutoPilotPage() {
   const [settings, setSettings] = useState<AutoReplySettings | null>(null)
@@ -51,16 +52,13 @@ export default function AutoPilotPage() {
     try {
       setSaving(true)
       
-      const response = await fetch('/api/reviews/auto-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: settings.enabled ? 'resume' : 'pause',
-          locationId: settings.locationId
-        })
-      })
+      // Use saveAutoReplySettings directly to save all settings including per-rating
+      const { saveAutoReplySettings } = await import('@/server/actions/auto-reply')
+      const result = await saveAutoReplySettings(settings)
 
-      if (!response.ok) throw new Error('Failed to save')
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save')
+      }
 
       toast.success('✅ تم الحفظ بنجاح')
     } catch (error) {

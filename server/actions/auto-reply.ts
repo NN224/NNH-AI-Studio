@@ -305,13 +305,38 @@ function evaluateAutoReplyEligibility(
     return { allowed: false, reason: "Auto-reply is disabled" };
   }
 
-  const matchesRating =
-    (review.rating >= 4 && settings.replyToPositive) ||
-    (review.rating === 3 && settings.replyToNeutral) ||
-    (review.rating <= 2 && settings.replyToNegative);
+  // Check per-rating controls first (new system)
+  let ratingAllowed = false;
+  switch (review.rating) {
+    case 1:
+      ratingAllowed = settings.autoReply1Star ?? settings.replyToNegative ?? false;
+      break;
+    case 2:
+      ratingAllowed = settings.autoReply2Star ?? settings.replyToNegative ?? false;
+      break;
+    case 3:
+      ratingAllowed = settings.autoReply3Star ?? settings.replyToNeutral ?? false;
+      break;
+    case 4:
+      ratingAllowed = settings.autoReply4Star ?? settings.replyToPositive ?? false;
+      break;
+    case 5:
+      ratingAllowed = settings.autoReply5Star ?? settings.replyToPositive ?? false;
+      break;
+    default:
+      ratingAllowed = false;
+  }
 
-  if (!matchesRating) {
-    return { allowed: false, reason: "Review rating doesn't match auto-reply criteria" };
+  // Fallback to legacy system if per-rating not set
+  if (!ratingAllowed) {
+    ratingAllowed =
+      (review.rating >= 4 && settings.replyToPositive) ||
+      (review.rating === 3 && settings.replyToNeutral) ||
+      (review.rating <= 2 && settings.replyToNegative);
+  }
+
+  if (!ratingAllowed) {
+    return { allowed: false, reason: `Auto-reply is disabled for ${review.rating}-star reviews` };
   }
 
   if (review.rating < settings.minRating) {
@@ -417,18 +442,52 @@ export async function processAutoReply(reviewId: string) {
     const eligibility = evaluateAutoReplyEligibility(review, settings);
 
     if (!eligibility.allowed) {
+      // Log the rejection
+      try {
+        const { logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
+        await logReplyGeneration(user.id, reviewId, {
+          success: false,
+          error: eligibility.reason || "Review is not eligible for auto-reply",
+        }, {
+          reviewText: review.review_text || "",
+          rating: review.rating,
+        });
+      } catch (logError) {
+        console.error('[AutoReply] Failed to log rejection:', logError);
+      }
+
       return {
         success: false,
         error: eligibility.reason || "Review is not eligible for auto-reply",
       };
     }
 
-    const generationResult = await generateReviewReply(review, settings);
+    const generationResult = await generateReviewReply(review, settings, user.id, supabase);
     if (!generationResult.success) {
+      // Log the failure
+      try {
+        const { logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
+        await logReplyGeneration(user.id, reviewId, {
+          success: false,
+          error: generationResult.error,
+        }, {
+          reviewText: review.review_text || "",
+          rating: review.rating,
+        });
+      } catch (logError) {
+        console.error('[AutoReply] Failed to log failure:', logError);
+      }
+
       return generationResult;
     }
 
     const generatedReply = generationResult.reply;
+    
+    // Check confidence threshold if available
+    if (generationResult.confidence !== undefined && generationResult.confidence < 70) {
+      console.warn(`[AutoReply] Low confidence reply (${generationResult.confidence}%) for review ${reviewId}`);
+      // Still proceed, but log the warning
+    }
 
     if (settings.requireApproval) {
       const draftResult = await persistApprovalDraft(supabase, reviewId, generatedReply);
