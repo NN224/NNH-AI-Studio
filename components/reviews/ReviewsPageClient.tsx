@@ -812,6 +812,7 @@ function ReviewsFeedSection({
   reviewStats,
   loadMore,
 }: ReviewsFeedSectionProps) {
+  const t = useTranslations('Reviews');
   const hasReviews = reviews.length > 0;
 
   return (
