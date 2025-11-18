@@ -191,6 +191,20 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
     window.dispatchEvent(new Event('dashboard:refresh'))
   }
 
+  // Social Links
+  const handleSocialLinkChange = (key: keyof typeof profile.socialLinks, value: string) => {
+    if (disabled) return
+    onChange({
+      ...profile,
+      socialLinks: {
+        ...profile.socialLinks,
+        [key]: value ? sanitizeUrl(value) : null,
+      },
+    })
+    onDirty()
+    window.dispatchEvent(new Event('dashboard:refresh'))
+  }
+
   // Removed toggleAttribute - FROM_BUSINESS_OPTIONS removed
 
   const updateOpeningDate = (value: string) => {
@@ -393,6 +407,42 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
           ))}
           </div>
         </div>
+
+      {/* Social Media Links */}
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-orange-400" />
+          Social Media
+        </h3>
+        <p className="text-sm text-zinc-400 mb-4">Connect your social media profiles (from Google My Business attributes)</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            { key: 'facebook' as const, label: 'Facebook', placeholder: 'https://facebook.com/yourpage', icon: '📘' },
+            { key: 'instagram' as const, label: 'Instagram', placeholder: 'https://instagram.com/yourhandle', icon: '📷' },
+            { key: 'twitter' as const, label: 'Twitter', placeholder: 'https://twitter.com/yourhandle', icon: '🐦' },
+            { key: 'whatsapp' as const, label: 'WhatsApp', placeholder: 'https://wa.me/971xxxxxxxxx', icon: '💬' },
+            { key: 'youtube' as const, label: 'YouTube', placeholder: 'https://youtube.com/@yourchannel', icon: '📹' },
+            { key: 'linkedin' as const, label: 'LinkedIn', placeholder: 'https://linkedin.com/company/yourcompany', icon: '💼' },
+            { key: 'tiktok' as const, label: 'TikTok', placeholder: 'https://tiktok.com/@yourhandle', icon: '🎵' },
+            { key: 'pinterest' as const, label: 'Pinterest', placeholder: 'https://pinterest.com/yourprofile', icon: '📌' },
+          ].map((social) => (
+            <div key={social.key}>
+              <label className="block text-sm font-medium text-white mb-2">
+                <span className="mr-2">{social.icon}</span>
+                {social.label}
+              </label>
+              <input
+                type="url"
+                value={(profile.socialLinks?.[social.key] || '')}
+                onChange={(e) => handleSocialLinkChange(social.key, e.target.value)}
+                placeholder={social.placeholder}
+                disabled={disabled}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white focus:border-orange-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
       
       {/* Additional Settings */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">

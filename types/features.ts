@@ -10,6 +10,17 @@ export interface SpecialLinks {
   readonly appointment?: string | null;
 }
 
+export interface SocialLinks {
+  readonly facebook?: string | null;
+  readonly instagram?: string | null;
+  readonly twitter?: string | null;
+  readonly whatsapp?: string | null;
+  readonly youtube?: string | null;
+  readonly linkedin?: string | null;
+  readonly tiktok?: string | null;
+  readonly pinterest?: string | null;
+}
+
 export interface BusinessProfile {
   readonly id: string;
   readonly locationResourceId: string | null;
@@ -22,6 +33,7 @@ export interface BusinessProfile {
   readonly additionalCategories: readonly string[];
   readonly features: FeatureSelection;
   readonly specialLinks: SpecialLinks;
+  readonly socialLinks: SocialLinks;
   readonly fromTheBusiness: readonly string[];
   readonly openingDate: string | null;
   readonly serviceAreaEnabled: boolean;

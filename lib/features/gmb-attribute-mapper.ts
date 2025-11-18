@@ -5,59 +5,88 @@
  */
 
 export const GMB_TO_FEATURE_KEY_MAP: Record<string, string> = {
-  // Amenities - Seating
+  // Amenities - Seating (actual GMB attribute names)
   'attributes/has_seating_rooftop': 'rooftop_seating',
+  'attributes/has_seating_outdoors': 'outdoor_seating',
   'attributes/has_seating_outdoor': 'outdoor_seating',
   'attributes/has_seating_indoor': 'indoor_seating',
   
-  // Amenities - Accessibility
+  // Amenities - Accessibility (actual GMB attribute names)
+  'attributes/has_wheelchair_accessible_entrance': 'wheelchair_accessible',
+  'attributes/has_wheelchair_accessible_parking': 'wheelchair_accessible',
+  'attributes/has_wheelchair_accessible_restroom': 'wheelchair_accessible',
+  'attributes/has_wheelchair_accessible_seating': 'wheelchair_accessible',
   'attributes/wheelchair_accessible_entrance': 'wheelchair_accessible',
-  'attributes/wheelchair_accessible_parking': 'parking_accessible',
+  'attributes/wheelchair_accessible_parking': 'wheelchair_accessible',
   'attributes/wheelchair_accessible_restroom': 'wheelchair_accessible',
   'attributes/wheelchair_accessible_seating': 'wheelchair_accessible',
+  'attributes/has_hearing_loop': 'wheelchair_accessible',
   
-  // Amenities - Parking
+  // Amenities - Parking (actual GMB attribute names)
+  'attributes/has_onsite_parking': 'parking',
   'attributes/has_parking_lot': 'parking',
+  'attributes/has_parking_lot_free': 'parking',
+  'attributes/has_parking_lot_paid': 'parking',
+  'attributes/has_parking_garage_free': 'parking',
+  'attributes/has_parking_garage_paid': 'parking',
+  'attributes/has_parking_street_free': 'parking',
+  'attributes/has_parking_street_paid': 'parking',
+  'attributes/has_parking_valet': 'valet_parking',
   'attributes/has_valet_parking': 'valet_parking',
   'attributes/has_parking_garage': 'parking',
   'attributes/has_parking_street': 'parking',
   'attributes/has_free_parking': 'parking',
   
-  // Amenities - General
+  // Amenities - General (actual GMB attribute names)
+  'attributes/wi_fi': 'wifi_free', // Special: value = "free_wi_fi" or "paid_wi_fi"
   'attributes/has_wifi': 'wifi_free',
   'attributes/has_free_wifi': 'wifi_free',
   'attributes/has_air_conditioning': 'air_conditioning',
   'attributes/has_coat_check': 'coat_check',
   'attributes/has_smoking_area': 'smoking_area',
   
-  // Payment Methods
+  // Payment Methods (actual GMB attribute names)
+  'attributes/pay_credit_card': 'credit_cards',
+  'attributes/pay_debit_card': 'credit_cards',
   'attributes/accepts_credit_cards': 'credit_cards',
   'attributes/accepts_debit_cards': 'credit_cards',
+  'attributes/requires_cash_only': 'cash',
   'attributes/accepts_cash_only': 'cash',
+  'attributes/pay_mobile_nfc': 'mobile_payment',
   'attributes/accepts_nfc': 'mobile_payment',
   'attributes/accepts_android_pay': 'mobile_payment',
   'attributes/accepts_apple_pay': 'mobile_payment',
+  'attributes/pay_check': 'cheque',
   
-  // Services - Restaurant
+  // Services - Restaurant (actual GMB attribute names)
+  'attributes/serves_dine_in': 'dine_in',
   'attributes/has_dine_in': 'dine_in',
   'attributes/has_takeout': 'takeout',
   'attributes/has_delivery': 'delivery',
+  'attributes/has_no_contact_delivery': 'delivery',
+  'attributes/accepts_reservations': 'reservations',
+  'attributes/requires_reservations': 'reservations',
   'attributes/has_reservations': 'reservations',
   'attributes/has_table_service': 'table_service',
   'attributes/has_bottle_service': 'bottle_service',
   
-  // Services - General
+  // Services - General (actual GMB attribute names)
+  'attributes/has_onsite_services': 'online_service',
   'attributes/has_online_booking': 'online_booking',
   'attributes/appointment_required': 'appointment_required',
   'attributes/walk_ins_welcome': 'walk_ins',
   
-  // Atmosphere
+  // Atmosphere (actual GMB attribute names)
+  'attributes/welcomes_children': 'family_friendly',
   'attributes/is_family_friendly': 'family_friendly',
   'attributes/good_for_groups': 'groups',
   'attributes/good_for_kids': 'kids_area',
   'attributes/has_live_music': 'live_music',
+  'attributes/has_live_performances': 'live_music',
   'attributes/has_dj': 'dj',
+  'attributes/has_dancing': 'dancing',
   'attributes/has_dance_floor': 'dancing',
+  'attributes/has_karaoke_nights': 'live_music',
   'attributes/has_dress_code': 'dress_code',
   'attributes/has_vip_area': 'vip_area',
   'attributes/is_lgbt_friendly': 'lgbt_friendly',
@@ -67,17 +96,25 @@ export const GMB_TO_FEATURE_KEY_MAP: Record<string, string> = {
   'attributes/is_luxury': 'luxury',
   'attributes/is_budget_friendly': 'budget_friendly',
   
-  // Dining Options
+  // Dining Options (actual GMB attribute names)
+  'attributes/serves_breakfast': 'breakfast',
   'attributes/has_breakfast': 'breakfast',
+  'attributes/serves_brunch': 'brunch',
   'attributes/has_brunch': 'brunch',
+  'attributes/serves_lunch': 'lunch',
   'attributes/has_lunch': 'lunch',
+  'attributes/serves_dinner': 'dinner',
   'attributes/has_dinner': 'dinner',
+  'attributes/serves_late_night': 'late_night',
   'attributes/has_late_night': 'late_night',
+  'attributes/serves_food': 'dine_in',
+  'attributes/serves_happy_hour_food': 'happy_hour',
   
-  // Drinks
+  // Drinks (actual GMB attribute names)
   'attributes/serves_beer': 'beer',
   'attributes/serves_wine': 'wine',
   'attributes/serves_cocktails': 'cocktails',
+  'attributes/serves_alcohol': 'full_bar',
   'attributes/has_happy_hour': 'happy_hour',
   'attributes/has_full_bar': 'full_bar',
   
@@ -158,6 +195,15 @@ export function extractFeatureKeysFromGMBAttributes(attributes: any[]): string[]
     
     const attrName = attr.name
     if (!attrName || typeof attrName !== 'string') continue
+    
+    // Special handling for wi_fi attribute (value is a string, not boolean)
+    if (attrName === 'attributes/wi_fi') {
+      const wifiValue = Array.isArray(attr.values) ? attr.values[0] : attr.values
+      if (wifiValue === 'free_wi_fi' || wifiValue === 'paid_wi_fi') {
+        featureKeys.add('wifi_free')
+      }
+      continue
+    }
     
     // Check if this is a boolean attribute set to true
     const isTrueValue = Array.isArray(attr.values) && attr.values[0] === true

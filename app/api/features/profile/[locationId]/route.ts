@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { BusinessProfile, BusinessProfilePayload, FeatureCategoryKey, FeatureSelection, SpecialLinks } from '@/types/features'
+import type { BusinessProfile, BusinessProfilePayload, FeatureCategoryKey, FeatureSelection, SpecialLinks, SocialLinks } from '@/types/features'
 import { FEATURE_CATALOG, ALL_FEATURE_KEYS } from '@/lib/features/feature-definitions'
 import { extractFeatureKeysFromGMBAttributes } from '@/lib/features/gmb-attribute-mapper'
 
@@ -208,6 +208,34 @@ function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): 
   }
 }
 
+function buildSocialLinks(raw: Record<string, any>): SocialLinks {
+  // Extract social media links from GMB attributes
+  const attributes = Array.isArray(raw.attributes) ? raw.attributes : []
+  const socialLinks: SocialLinks = {}
+  
+  attributes.forEach((attr: any) => {
+    if (!attr || !attr.name || !attr.values) return
+    
+    const attrName = attr.name
+    const value = Array.isArray(attr.values) ? attr.values[0] : attr.values
+    
+    // Skip if value is null or empty
+    if (!value || typeof value !== 'string') return
+    
+    // Map GMB attribute names to social link fields
+    if (attrName === 'attributes/url_facebook') socialLinks.facebook = value
+    else if (attrName === 'attributes/url_instagram') socialLinks.instagram = value
+    else if (attrName === 'attributes/url_twitter') socialLinks.twitter = value
+    else if (attrName === 'attributes/url_whatsapp') socialLinks.whatsapp = value
+    else if (attrName === 'attributes/url_youtube') socialLinks.youtube = value
+    else if (attrName === 'attributes/url_linkedin') socialLinks.linkedin = value
+    else if (attrName === 'attributes/url_tiktok') socialLinks.tiktok = value
+    else if (attrName === 'attributes/url_pinterest') socialLinks.pinterest = value
+  })
+  
+  return socialLinks
+}
+
 function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayload {
   const metadata = parseRecord(row.metadata)
   // enhancedMetadata contains the full location object, so profile is at metadata.profile
@@ -382,6 +410,7 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
       return featuresFromMetadata
     })(),
     specialLinks: buildSpecialLinks(metadata, row),
+    socialLinks: buildSocialLinks(metadata),
     fromTheBusiness: (() => {
       // Priority 1: Direct column
       if (row.from_the_business) {
