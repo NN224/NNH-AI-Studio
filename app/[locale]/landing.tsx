@@ -4,11 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Link } from "@/lib/navigation"
 import { ArrowRight, BarChart3, MapPin, MessageSquare, Sparkles, Check, Play, Activity, Video, Star, Shield, Globe, Users, TrendingUp, Award, Headphones, Building2, Briefcase, Zap, ChevronDown, ChevronUp, Clock } from "lucide-react"
 import { useState } from "react"
-import { useTranslations } from 'next-intl'
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher"
 
 export default function LandingPage() {
-  const t = useTranslations('HomePage')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   const toggleFaq = (index: number) => {
@@ -64,7 +61,6 @@ export default function LandingPage() {
               <Link href="/pricing/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 {t('nav.contact')}
               </Link>
-              <LanguageSwitcher />
               <Button
                 asChild
                 variant="outline"
@@ -76,7 +72,6 @@ export default function LandingPage() {
             </nav>
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-3">
-              <LanguageSwitcher />
               <Button
                 asChild
                 variant="outline"

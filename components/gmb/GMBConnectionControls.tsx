@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 // Ensure Badge path exists; fallback to a simple span if unavailable
 import { Badge as UIBadge } from '@/components/ui/badge';
 import { Loader2, Plug, RefreshCcw, Unplug } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 
 export type GMBStatus =
   | 'disconnected'
@@ -64,7 +63,6 @@ export const GMBConnectionControls: React.FC<GMBConnectionControlsProps> = ({
   className,
   labels,
 }) => {
-  const t = useTranslations('GMB');
   const isBusy = status === 'connecting' || status === 'syncing' || status === 'disconnecting';
   const lastSyncText = formatDate(lastSyncedAt);
 

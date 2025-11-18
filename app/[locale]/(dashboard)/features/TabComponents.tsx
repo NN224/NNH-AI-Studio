@@ -80,18 +80,6 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
     const description = profile.description.toLowerCase()
 
     // Critical suggestions
-    if (!hasArabicName && profile.locationName.trim()) {
-      suggestions.push({
-        title: 'Add Arabic business name',
-        description: 'Boost trust with bilingual audiences searching locally',
-        onApply: () => {
-          const arabicName = `${profile.locationName.trim()} | ${profile.locationName.trim()}`
-          onChange({ ...profile, locationName: arabicName })
-          onDirty()
-          toast.success('Arabic name added')
-        },
-      })
-    }
 
     if (!amenityFeatures.has('wheelchair_accessible')) {
       suggestions.push({

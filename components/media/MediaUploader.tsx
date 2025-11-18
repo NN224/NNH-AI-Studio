@@ -5,10 +5,8 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useTranslations } from 'next-intl';
 
 export function MediaUploader({ onUploadComplete }) {
-  const t = useTranslations('Media.uploader');
   const [uploading, setUploading] = useState(false);
   
   const onDrop = useCallback(async (acceptedFiles) => {
@@ -26,14 +24,14 @@ export function MediaUploader({ onUploadComplete }) {
       });
       
       const data = await response.json();
-      toast.success(t('uploadSuccess', { count: data.uploaded.length }));
+      toast.success(`Successfully uploaded ${data.uploaded.length} image(s)`);
       onUploadComplete(data.uploaded);
     } catch (error) {
-      toast.error(t('uploadFailed'));
+      toast.error('Failed to upload images');
     } finally {
       setUploading(false);
     }
-  }, [onUploadComplete, t]);
+  }, [onUploadComplete]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -52,7 +50,7 @@ export function MediaUploader({ onUploadComplete }) {
         <>
           <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-500" />
           <p className="text-zinc-500">
-            {isDragActive ? t('dropMessage') : t('dragMessage')}
+            {isDragActive ? 'Drop the images here' : 'Drag and drop some files here, or click to select files'}
           </p>
         </>
       )}

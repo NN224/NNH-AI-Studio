@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Plus, Wrench, Bug, Zap, Calendar } from 'lucide-react';
 import { BetaBadge } from '@/components/common/beta-badge';
-import { useTranslations } from 'next-intl';
 
 interface ChangelogEntry {
   date: string;
@@ -110,7 +109,6 @@ const typeConfig = {
 };
 
 export default function ChangelogPage() {
-  const t = useTranslations('Changelog');
 
   return (
     <div className="space-y-6 pb-8">

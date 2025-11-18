@@ -1,20 +1,16 @@
 import { Suspense } from 'react'
-import { getTranslations } from 'next-intl/server'
 import { SentimentAnalysisCard } from '@/components/reviews/ai-cockpit/sentiment-analysis-card'
 import { PendingResponsesCard } from '@/components/reviews/ai-cockpit/pending-responses-card'
 import { AICockpitClient } from './ai-cockpit-client'
 
 export async function generateMetadata() {
-  const t = await getTranslations('AICockpit')
   return {
-    title: t('title'),
-    description: t('description'),
+    title: 'AI Cockpit',
+    description: 'AI-powered review management cockpit',
   }
 }
 
 export default async function AICockpitPage() {
-  const t = await getTranslations('AICockpit')
-
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('dashboard:refresh'));
     console.log('[AICockpitPage] AI Cockpit loaded, dashboard refresh triggered');
@@ -23,9 +19,9 @@ export default async function AICockpitPage() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">{t('title')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">AI Cockpit</h1>
         <p className="text-muted-foreground mt-2">
-          {t('description')}
+          AI-powered review management and analytics
         </p>
       </div>
 
@@ -49,4 +45,3 @@ function AICockpitSkeleton() {
     </div>
   )
 }
-

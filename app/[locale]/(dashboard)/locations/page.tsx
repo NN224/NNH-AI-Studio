@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LocationsMapTab } from '@/components/locations/locations-map-tab-new';
 import { LocationsStatsCardsAPI } from '@/components/locations/locations-stats-cards-api';
@@ -28,7 +27,6 @@ const QuickActionButton = ({ icon: Icon, label, onClick }: { icon: React.ReactNo
 );
 
 export default function LocationsPage() {
-  const t = useTranslations('Locations');
   const [syncing, setSyncing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -277,12 +275,12 @@ export default function LocationsPage() {
       <ErrorBoundary>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-              <p className="text-muted-foreground mt-2">
-                {t('subtitle') || 'Manage and monitor all your business locations'}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage and monitor all your business locations
+            </p>
+          </div>
           </div>
           <GMBConnectionBanner />
         </div>
@@ -296,9 +294,9 @@ export default function LocationsPage() {
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Locations</h1>
             <p className="text-muted-foreground mt-2">
-              {t('subtitle') || 'Manage and monitor all your business locations'}
+              Manage and monitor all your business locations
             </p>
           </div>
           

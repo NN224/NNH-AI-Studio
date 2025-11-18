@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
 
 export interface AutomationSettingsSummary {
   id: string
@@ -73,7 +72,6 @@ type Template = Readonly<{
 }>
 
 export function AutomationTemplates() {
-  const t = useTranslations('Automation.templates');
   const templates: ReadonlyArray<Template> = [
     {
       name: t('autoReply'),
@@ -142,7 +140,6 @@ interface AutomationLocationCardProps {
 }
 
 export function AutomationLocationCard({ settings, logs }: AutomationLocationCardProps) {
-  const t = useTranslations('Automation.locationCard');
   const [isExpanded, setIsExpanded] = useState(false)
 
   const { totalRuns, successRate, lastRun } = useMemo(() => {
@@ -279,7 +276,6 @@ export function AutomationLocationCard({ settings, logs }: AutomationLocationCar
 }
 
 export function ActivityLog({ logs }: Readonly<{ logs: ReadonlyArray<AutomationLogEntry> }>) {
-  const t = useTranslations('Automation.activityLog');
   const [filter, setFilter] = useState<'all' | 'success' | 'failure'>('all')
 
   const filteredLogs = useMemo(() => {

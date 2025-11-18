@@ -19,7 +19,6 @@ import {
   MapPin, Star, TrendingUp, TrendingDown, Shield, Eye, BarChart3,
   Edit3, MessageSquare
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { Link } from '@/lib/navigation';
 
 // Helper function to safely access insights - memoized to prevent recalculation
@@ -47,7 +46,6 @@ export const LazyLocationCard = React.memo(({
   onEditAction: (id: string) => void;
   onViewDetailsAction: (id: string) => void;
 }) => {
-  const t = useTranslations('Locations');
   
   // Memoize insights calculation to avoid recalculation on every render
   const insights = useMemo(() => getSafeInsights(location), [location.insights]);

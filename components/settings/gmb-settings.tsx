@@ -7,7 +7,6 @@ import { Save, Shield, Globe, Sparkles, Bell, Database, Palette, Bot } from "luc
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useTranslations } from 'next-intl'
 import { DataManagement } from "./data-management"
 import { AccountConnectionTab } from "./account-connection-tab"
 import { AppSettingsTab } from "./app-settings-tab"
@@ -21,7 +20,6 @@ interface GMBAccount {
 }
 
 export function GMBSettings() {
-  const t = useTranslations('Settings')
   const supabase = createClient()
   const router = useRouter()
 

@@ -101,7 +101,7 @@ export default function AutoPilotPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6" dir="rtl">
+    <div className="container mx-auto p-6 max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

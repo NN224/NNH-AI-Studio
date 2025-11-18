@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils';
 import { UserButton } from '@/components/auth/user-button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-import { useTranslations } from 'next-intl';
 import { useBrandProfile } from '@/contexts/BrandProfileContext';
 import Image from 'next/image';
 
@@ -33,7 +31,6 @@ interface NavigationItem {
 
 export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
   const pathname = usePathname();
-  const t = useTranslations('Dashboard');
   const { profile: brandProfile, loading: brandLoading } = useBrandProfile();
   
   const navigation: NavigationItem[] = [
@@ -223,8 +220,6 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
             <div className="flex items-center gap-3 rounded-lg glass-strong p-3">
               <UserButton />
             </div>
-            {/* Language switcher below to avoid accidental taps near profile */}
-            <LanguageSwitcher />
           </div>
         </div>
       </motion.aside>

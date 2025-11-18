@@ -9,7 +9,6 @@ import { Upload, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 
 interface BrandingTabProps {
   readonly onSave?: () => void;
@@ -39,7 +38,6 @@ export function BrandingTab({
   coverImageUrl: coverImageUrlProp,
   setCoverImageUrl: setCoverImageUrlProp
 }: BrandingTabProps) {
-  const t = useTranslations('Settings.branding')
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

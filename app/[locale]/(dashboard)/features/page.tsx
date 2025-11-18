@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Shield, FileText, Sparkles, RotateCcw, Save, Copy, History, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useTranslations } from 'next-intl'
 import { ValidationPanel } from '@/components/features/validation-panel'
 import { ChangeHistoryPanel } from '@/components/features/change-history-panel'
 import { BulkUpdateDialog } from '@/components/features/bulk-update-dialog'
@@ -45,7 +44,6 @@ function cloneProfilePayload(payload: BusinessProfilePayload): BusinessProfilePa
 }
 
 export default function BusinessProfilePage() {
-  const t = useTranslations('BusinessProfile')
   const { data: snapshot, loading: snapshotLoading, error: snapshotError } = useDashboardSnapshot()
 
   const locations = useMemo(() => snapshot?.locationSummary?.locations ?? [], [snapshot?.locationSummary?.locations])

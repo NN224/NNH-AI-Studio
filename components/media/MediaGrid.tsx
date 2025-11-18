@@ -1,16 +1,14 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { MediaCard } from './MediaCard';
 
 export function MediaGrid({ media, onDelete }) {
-  const t = useTranslations('Media.grid');
 
   if (media.length === 0) {
     return (
       <div className="text-center py-16 border-2 border-dashed border-zinc-800 rounded-lg">
-        <p className="text-zinc-500">{t('noMedia')}</p>
-        <p className="text-zinc-600 text-sm">{t('getStarted')}</p>
+        <p className="text-zinc-500">No media found.</p>
+        <p className="text-zinc-600 text-sm">Upload some images to get started.</p>
       </div>
     );
   }

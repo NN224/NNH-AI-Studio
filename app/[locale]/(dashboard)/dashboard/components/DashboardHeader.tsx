@@ -7,14 +7,12 @@ import { Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DashboardCustomizationModal } from '@/components/dashboard/dashboard-customization-modal';
 import { type DashboardWidgetPreferences } from '@/lib/dashboard-preferences';
-import { useTranslations } from 'next-intl';
 
 interface DashboardHeaderProps {
   onPreferencesChange?: (preferences: DashboardWidgetPreferences) => void;
 }
 
 export function DashboardHeader({ onPreferencesChange }: DashboardHeaderProps) {
-  const t = useTranslations('Dashboard');
   const { isMobile } = useResponsiveLayout();
   const [userName, setUserName] = useState<string>('');
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);

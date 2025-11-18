@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button';
 import { 
   MapPin, Star, BarChart3, CheckCircle2, Sparkles, TrendingUpIcon, Shield, Plus
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { GMBConnectionManager } from '@/components/gmb/gmb-connection-manager';
 
 // No GMB Account Banner Component
 export const GMBConnectionBanner = () => {
-  const t = useTranslations('Locations');
   const router = useRouter();
   
   return (
@@ -130,7 +128,6 @@ export const EmptyLocationsState = ({
   hasFilters: boolean; 
   onAddLocationAction: () => void; 
 }) => {
-  const t = useTranslations('Locations');
 
   return (
     <Card>

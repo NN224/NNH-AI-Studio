@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Globe, Moon, Bell, Download, Trash2 } from "lucide-react"
-import { useTranslations } from 'next-intl'
 import { toast } from "sonner"
 import { useState } from "react"
 
@@ -31,7 +30,6 @@ export function AppSettingsTab({
   emailUpdates = false,
   setEmailUpdates = () => {}
 }: AppSettingsTabProps) {
-  const t = useTranslations('Settings')
   const [isClearing, setIsClearing] = useState(false)
 
   const handleClearCache = async () => {
@@ -84,9 +82,9 @@ export function AppSettingsTab({
           {/* Language */}
           <div className="space-y-2">
             <Label htmlFor="language">Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Select value="en" disabled>
               <SelectTrigger id="language" className="w-full">
-                <SelectValue />
+                <SelectValue placeholder="🇬🇧 English" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">
@@ -94,13 +92,9 @@ export function AppSettingsTab({
                     🇬🇧 English
                   </span>
                 </SelectItem>
-                <SelectItem value="ar">
-                  <span className="flex items-center gap-2">
-                    🇸🇦 العربية
-                  </span>
-                </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">Interface language is English only</p>
           </div>
 
           {/* Theme */}

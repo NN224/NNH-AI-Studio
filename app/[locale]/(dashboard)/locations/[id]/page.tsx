@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter } from '@/lib/navigation';
 import { useParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,7 +20,6 @@ import { LocationMediaUpload } from '@/components/locations/location-media-uploa
 export default function LocationDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const t = useTranslations('Locations');
   const locationId = params.id as string;
   const [activeTab, setActiveTab] = useState('overview');
 

@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Mail, MessageSquare, Smartphone, Clock } from "lucide-react"
-import { useTranslations } from 'next-intl'
 // Temporarily disabled due to build issues
 // import GMBNotificationsSetup from './gmb-notifications-setup'
 import { useEffect, useState } from 'react'
@@ -81,7 +80,6 @@ export function NotificationsTab({
   notifyTips,
   setNotifyTips
 }: NotificationsTabProps) {
-  const t = useTranslations('Settings.notifications')
   const supabase = createClient()
   const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
 

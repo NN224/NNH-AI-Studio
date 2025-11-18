@@ -9,7 +9,6 @@ import {
   Star, MapPin, Heart, Eye, Phone, MessageSquare, 
   BarChart3, Edit3, CheckCircle2, TrendingUp
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { Link } from '@/lib/navigation';
 import { Location, formatLargeNumber, getHealthScoreColor } from './location-types';
 
@@ -23,7 +22,6 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> = React.m
   location,
   onEdit 
 }) => {
-  const t = useTranslations('Locations');
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(true);
