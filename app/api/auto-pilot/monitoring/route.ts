@@ -28,32 +28,75 @@ export async function GET(request: NextRequest) {
     // Get today's replies (reviews with replies sent today)
     const { data: todayReplies } = await supabase
       .from('gmb_reviews')
-      .select('id, rating, replied_at, updated_at, has_reply, reply_text')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
       .eq('user_id', user.id)
       .eq('has_reply', true)
       .not('reply_text', 'is', null)
-      .or(`replied_at.gte.${startOfToday.toISOString()},and(replied_at.is.null,updated_at.gte.${startOfToday.toISOString()})`);
+      .gte('replied_at', startOfToday.toISOString());
+
+    // Also get replies where replied_at is null but updated_at is today
+    const { data: todayRepliesAlt } = await supabase
+      .from('gmb_reviews')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
+      .eq('user_id', user.id)
+      .eq('has_reply', true)
+      .not('reply_text', 'is', null)
+      .is('replied_at', null)
+      .gte('updated_at', startOfToday.toISOString());
+
+    const allTodayReplies = [
+      ...(todayReplies || []),
+      ...(todayRepliesAlt || [])
+    ];
 
     // Get this week's replies
     const { data: weekReplies } = await supabase
       .from('gmb_reviews')
-      .select('id, rating, replied_at, updated_at, has_reply, reply_text')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
       .eq('user_id', user.id)
       .eq('has_reply', true)
       .not('reply_text', 'is', null)
-      .or(`replied_at.gte.${startOfWeek.toISOString()},and(replied_at.is.null,updated_at.gte.${startOfWeek.toISOString()})`);
+      .gte('replied_at', startOfWeek.toISOString());
+
+    const { data: weekRepliesAlt } = await supabase
+      .from('gmb_reviews')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
+      .eq('user_id', user.id)
+      .eq('has_reply', true)
+      .not('reply_text', 'is', null)
+      .is('replied_at', null)
+      .gte('updated_at', startOfWeek.toISOString());
+
+    const allWeekReplies = [
+      ...(weekReplies || []),
+      ...(weekRepliesAlt || [])
+    ];
 
     // Get this month's replies
     const { data: monthReplies } = await supabase
       .from('gmb_reviews')
-      .select('id, rating, replied_at, updated_at, has_reply, reply_text')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
       .eq('user_id', user.id)
       .eq('has_reply', true)
       .not('reply_text', 'is', null)
-      .or(`replied_at.gte.${startOfMonth.toISOString()},and(replied_at.is.null,updated_at.gte.${startOfMonth.toISOString()})`);
+      .gte('replied_at', startOfMonth.toISOString());
+
+    const { data: monthRepliesAlt } = await supabase
+      .from('gmb_reviews')
+      .select('id, rating, replied_at, updated_at, has_reply, reply_text, created_at')
+      .eq('user_id', user.id)
+      .eq('has_reply', true)
+      .not('reply_text', 'is', null)
+      .is('replied_at', null)
+      .gte('updated_at', startOfMonth.toISOString());
+
+    const allMonthReplies = [
+      ...(monthReplies || []),
+      ...(monthRepliesAlt || [])
+    ];
 
     // Calculate today's stats
-    const todayTotal = todayReplies?.length || 0;
+    const todayTotal = allTodayReplies.length;
     const todaySuccess = todayTotal; // Assume all replies are successful (we can enhance this later with error tracking)
     const todayFailed = 0; // We'll track this when we add error logging
 
@@ -61,23 +104,18 @@ export async function GET(request: NextRequest) {
     let totalResponseTime = 0;
     let responseTimeCount = 0;
     
-    if (todayReplies) {
-      // Get review creation times
-      const reviewIds = todayReplies.map(r => r.id);
-      const { data: reviews } = await supabase
-        .from('gmb_reviews')
-        .select('id, created_at, replied_at, updated_at')
-        .in('id', reviewIds);
-
-      reviews?.forEach((review) => {
-        const replyTime = review.replied_at 
-          ? new Date(review.replied_at).getTime()
-          : new Date(review.updated_at).getTime();
-        const reviewTime = new Date(review.created_at).getTime();
-        const responseTime = (replyTime - reviewTime) / 1000; // in seconds
-        if (responseTime > 0 && responseTime < 86400) { // Less than 24 hours
-          totalResponseTime += responseTime;
-          responseTimeCount++;
+    if (allTodayReplies.length > 0) {
+      allTodayReplies.forEach((review) => {
+        if (review.created_at) {
+          const replyTime = review.replied_at 
+            ? new Date(review.replied_at).getTime()
+            : new Date(review.updated_at).getTime();
+          const reviewTime = new Date(review.created_at).getTime();
+          const responseTime = (replyTime - reviewTime) / 1000; // in seconds
+          if (responseTime > 0 && responseTime < 86400) { // Less than 24 hours
+            totalResponseTime += responseTime;
+            responseTimeCount++;
+          }
         }
       });
     }
@@ -87,11 +125,11 @@ export async function GET(request: NextRequest) {
       : 0;
 
     // Calculate weekly and monthly stats
-    const weekTotal = weekReplies?.length || 0;
+    const weekTotal = allWeekReplies.length;
     const weekSuccess = weekTotal;
     const weekFailed = 0;
 
-    const monthTotal = monthReplies?.length || 0;
+    const monthTotal = allMonthReplies.length;
     const monthSuccess = monthTotal;
     const monthFailed = 0;
 
@@ -104,14 +142,26 @@ export async function GET(request: NextRequest) {
       const dayEnd = new Date(dayStart);
       dayEnd.setDate(dayStart.getDate() + 1);
 
-      const { count: dayCount } = await supabase
+      const { count: dayCount1 } = await supabase
         .from('gmb_reviews')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('has_reply', true)
         .not('reply_text', 'is', null)
-        .or(`replied_at.gte.${dayStart.toISOString()},and(replied_at.is.null,updated_at.gte.${dayStart.toISOString()})`)
+        .gte('replied_at', dayStart.toISOString())
         .lt('replied_at', dayEnd.toISOString());
+
+      const { count: dayCount2 } = await supabase
+        .from('gmb_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('has_reply', true)
+        .not('reply_text', 'is', null)
+        .is('replied_at', null)
+        .gte('updated_at', dayStart.toISOString())
+        .lt('updated_at', dayEnd.toISOString());
+
+      const dayCount = (dayCount1 || 0) + (dayCount2 || 0);
 
       dailyStats.push({
         date: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
