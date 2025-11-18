@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
 
         // Create a mock request object for the sync endpoint
         // We'll use the internal sync logic by creating a proper request
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:5050';
         const syncUrl = `${baseUrl}/api/gmb/sync`;
 
         // Make internal HTTP request to sync endpoint

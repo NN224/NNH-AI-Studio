@@ -17,5 +17,5 @@ export function getBaseUrl(): string {
   
   // Fallback for server-side in development (e.g., during build)
   // This should ideally be passed from the request context
-  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:5050'
 }

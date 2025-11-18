@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
  * Dynamically determines the base URL for the current request, prioritizing:
  * 1. NEXT_PUBLIC_BASE_URL environment variable.
  * 2. Request headers (for Vercel/Codespaces environments).
- * 3. Fallback to http://localhost:3000.
+ * 3. Fallback to http://localhost:5050.
  * 
  * @param request The NextRequest object.
  * @returns The determined base URL string.
@@ -22,5 +22,5 @@ export function getBaseUrlDynamic(request: NextRequest): string {
   }
 
   // Fallback for local development or if headers are missing
-  return 'http://localhost:3000';
+  return 'http://localhost:5050';
 }

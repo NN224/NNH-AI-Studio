@@ -109,7 +109,7 @@ const nextConfig = {
             key: 'Access-Control-Allow-Origin',
             value: process.env.NODE_ENV === 'production'
               ? 'https://nnh.ae'
-              : 'http://localhost:3000',
+              : 'http://localhost:5050',
           },
           {
             key: 'Access-Control-Allow-Methods',

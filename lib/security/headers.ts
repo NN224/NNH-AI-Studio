@@ -152,7 +152,7 @@ export function withSecurityHeaders(
 export function getCORSHeaders(origin?: string): Record<string, string> {
   const allowedOrigin = process.env.NODE_ENV === 'production'
     ? process.env.NEXT_PUBLIC_APP_URL || 'https://nnh.ae'
-    : 'http://localhost:3000';
+    : 'http://localhost:5050';
 
   return {
     'Access-Control-Allow-Origin': origin && isOriginAllowed(origin) ? origin : allowedOrigin,
@@ -168,7 +168,7 @@ export function getCORSHeaders(origin?: string): Record<string, string> {
  */
 function isOriginAllowed(origin: string): boolean {
   const allowedOrigins = [
-    'http://localhost:3000',
+    'http://localhost:5050',
     'http://localhost:3001',
     process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean);

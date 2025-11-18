@@ -5,12 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 export interface AutoReplySettings {
   enabled: boolean;
   minRating: number; // Minimum rating to auto-reply (1-5)
-  replyToPositive: boolean; // 4-5 stars
-  replyToNeutral: boolean; // 3 stars
-  replyToNegative: boolean; // 1-2 stars
-  requireApproval: boolean; // Require manual approval before sending
+  replyToPositive: boolean; // 4-5 stars (legacy, kept for backwards compatibility)
+  replyToNeutral: boolean; // 3 stars (legacy, kept for backwards compatibility)
+  replyToNegative: boolean; // 1-2 stars (legacy, kept for backwards compatibility)
+  requireApproval: boolean; // Require manual approval before sending (default: false)
   tone: "friendly" | "professional" | "apologetic" | "marketing";
   locationId?: string; // If null, applies to all locations
+  // New per-rating controls
+  autoReply1Star?: boolean; // Auto-reply to 1-star reviews
+  autoReply2Star?: boolean; // Auto-reply to 2-star reviews
+  autoReply3Star?: boolean; // Auto-reply to 3-star reviews
+  autoReply4Star?: boolean; // Auto-reply to 4-star reviews
+  autoReply5Star?: boolean; // Auto-reply to 5-star reviews
 }
 
 /**
@@ -69,6 +75,12 @@ export async function saveAutoReplySettings(
       response_style: settings.tone,
       response_delay_minutes: settings.minRating,
       language: "en",
+      // New per-rating controls
+      auto_reply_1_star: settings.autoReply1Star ?? settings.replyToNegative ?? true,
+      auto_reply_2_star: settings.autoReply2Star ?? settings.replyToNegative ?? true,
+      auto_reply_3_star: settings.autoReply3Star ?? settings.replyToNeutral ?? true,
+      auto_reply_4_star: settings.autoReply4Star ?? settings.replyToPositive ?? true,
+      auto_reply_5_star: settings.autoReply5Star ?? settings.replyToPositive ?? true,
       updated_at: new Date().toISOString(),
     };
 
@@ -142,9 +154,15 @@ export async function getAutoReplySettings(locationId?: string) {
       replyToPositive: true,
       replyToNeutral: false,
       replyToNegative: false,
-      requireApproval: true,
+      requireApproval: false, // ← Changed to false for instant replies!
       tone: "friendly",
       locationId: locationId || undefined,
+      // New per-rating defaults (all enabled for immediate responses)
+      autoReply1Star: true,
+      autoReply2Star: true,
+      autoReply3Star: true,
+      autoReply4Star: true,
+      autoReply5Star: true,
     };
 
     const allowedTones: AutoReplySettings["tone"][] = [
@@ -164,7 +182,12 @@ export async function getAutoReplySettings(locationId?: string) {
           reply_to_negative,
           require_approval,
           response_style,
-          response_delay_minutes
+          response_delay_minutes,
+          auto_reply_1_star,
+          auto_reply_2_star,
+          auto_reply_3_star,
+          auto_reply_4_star,
+          auto_reply_5_star
         `
       )
       .eq("user_id", user.id)
@@ -216,6 +239,12 @@ export async function getAutoReplySettings(locationId?: string) {
         requireApproval: row.require_approval ?? defaultSettings.requireApproval,
         tone: resolvedTone,
         locationId: locationId || undefined,
+        // New per-rating controls
+        autoReply1Star: row.auto_reply_1_star ?? defaultSettings.autoReply1Star,
+        autoReply2Star: row.auto_reply_2_star ?? defaultSettings.autoReply2Star,
+        autoReply3Star: row.auto_reply_3_star ?? defaultSettings.autoReply3Star,
+        autoReply4Star: row.auto_reply_4_star ?? defaultSettings.autoReply4Star,
+        autoReply5Star: row.auto_reply_5_star ?? defaultSettings.autoReply5Star,
       },
     };
   } catch (error) {
@@ -240,7 +269,7 @@ interface ReviewRecord {
   status: string | null;
 }
 
-const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5050";
 
 async function fetchReviewRecord(
   supabase: SupabaseClient,
