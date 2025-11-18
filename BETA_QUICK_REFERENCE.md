@@ -36,7 +36,7 @@
 
 ## ✅ Checklist السريع
 
-عند إضافة أي صفحة أو مكون جديد:
+### للـ UI/Layout:
 
 ```
 □ هل يحتوي على header أو navigation؟
@@ -50,6 +50,19 @@
 
 □ هل تم اختبار الصفحة؟
   └─ نعم → تأكد أن شريط BETA لا يغطي المحتوى
+```
+
+### لـ ميزات GMB:
+
+```
+⚠️ □ هل راجعت google-api-docs/ للـ API المناسب؟
+  └─ لا → توقف! راجعها أولاً
+
+□ هل تحققت من الحقول المتاحة في schema؟
+  └─ نعم → استخدم الأسماء والأنواع الصحيحة
+
+□ هل اتبعت القيود (required, enum, etc.)؟
+  └─ نعم → جاهز للتطبيق
 ```
 
 ---
@@ -80,6 +93,7 @@
 
 ## 📁 الملفات الرئيسية
 
+### للـ BETA & Layout:
 ```
 components/common/beta-badge.tsx        → مكونات BETA
 app/[locale]/layout.tsx                 → BetaIndicator (عام)
@@ -87,6 +101,15 @@ app/[locale]/(dashboard)/layout.tsx     → تخطيط Dashboard
 components/layout/sidebar.tsx           → الشريط الجانبي
 components/layout/public-header.tsx     → هيدر الصفحات العامة
 app/[locale]/landing.tsx                → صفحة الهبوط
+```
+
+### للـ GMB APIs:
+```
+google-api-docs/                        → ⚠️ وثائق Google الرسمية
+  ├─ mybusinessbusinessinformation/     → Business Info (الأكثر استخداماً)
+  ├─ mybusinessaccountmanagement/       → Accounts
+  ├─ mybusinessqanda/                   → Questions & Answers
+  └─ [other APIs]/                      → باقي الـ APIs
 ```
 
 ---

@@ -164,6 +164,7 @@ NNH-AI-Studio/
 ├── hooks/                        # Custom React hooks
 ├── messages/                     # i18n translations
 ├── supabase/                     # Database migrations
+├── google-api-docs/              # ⭐ Google Official API Documentation
 └── public/                       # Static assets
 ```
 
@@ -259,8 +260,11 @@ We welcome feedback and contributions! Since this is in BETA, your input is valu
 - **BETA Status Guide:** `BETA_STATUS_GUIDE.md` - Detailed BETA implementation guide
 - **Quick Reference:** `BETA_QUICK_REFERENCE.md` - Quick checklist for BETA rules
 
-### 🚀 Deployment
-- **Deployment Guide:** `DEPLOYMENT_GUIDE.md` - Deployment instructions
+### 📚 API Documentation
+- **Google API Docs:** `google-api-docs/README.md` - **Official Google My Business API Documentation**
+  - ⚠️ **Always check here before modifying Dashboard features!**
+  - Contains official API schemas and specifications
+  - 8 different APIs documented
 
 > **⚠️ New to the project?** Read `IMPORTANT_READ_THIS.md` first, then check `DOCUMENTATION_INDEX.md` for the complete guide!
 

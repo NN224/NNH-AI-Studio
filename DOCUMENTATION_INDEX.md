@@ -16,6 +16,18 @@
 
 ## 📖 الملفات حسب الموضوع
 
+### 📚 وثائق API (الأكثر أهمية!)
+
+#### `google-api-docs/README.md` ⭐⭐⭐
+- **الوقت:** 10 دقائق
+- **المحتوى:** وثائق Google الرسمية لجميع APIs المستخدمة
+- **متى تقرأه:** **قبل أي تعديل على Dashboard أو ميزات GMB!**
+- **الأهمية:** 🔴 حرج جداً - يجب مراجعته دائماً
+
+> **⚠️ قاعدة إلزامية:** قبل تعديل أي ميزة في Dashboard، راجع الوثائق الرسمية في `google-api-docs/`
+
+---
+
 ### 🌍 البيئات (Environments)
 
 #### `IMPORTANT_READ_THIS.md` ⭐
@@ -95,6 +107,15 @@
 3. ENVIRONMENTS.md              (فهم البيئات)
 4. PROJECT_STATUS.md            (نظرة عامة)
 5. BETA_STATUS_GUIDE.md         (القواعد الكاملة)
+6. google-api-docs/README.md    (وثائق API الرسمية)
+```
+
+### أريد تعديل ميزة GMB في Dashboard
+```
+1. google-api-docs/README.md          ⚠️ (راجع API الرسمي أولاً!)
+2. google-api-docs/[api-name]/v1/     (الـ schema المحدد)
+3. [عدّل الكود]
+4. [اختبر محلياً]
 ```
 
 ### أريد إضافة صفحة جديدة
@@ -150,7 +171,7 @@
   → `BETA_QUICK_REFERENCE.md` أو `BETA_STATUS_GUIDE.md`
 
 - **كيف أنشر على Production؟**  
-  → `DEPLOYMENT_GUIDE.md`
+  → `ENVIRONMENTS.md` قسم "النشر"
 
 - **ما حالة المشروع الحالية؟**  
   → `PROJECT_STATUS.md`
@@ -158,8 +179,11 @@
 - **كيف أبدأ التطوير؟**  
   → `README.md`
 
-- **ماذا تم تنفيذه من BETA؟**  
-  → `BETA_IMPLEMENTATION_SUMMARY.md`
+- **ما هي الحقول المتاحة في GMB API؟**  
+  → `google-api-docs/README.md` ⚠️ **مهم جداً!**
+
+- **كيف أتحقق من صحة البيانات التي أرسلها لـ GMB؟**  
+  → `google-api-docs/[api-name]/v1/*.json`
 
 ---
 
@@ -175,15 +199,25 @@ NNH-AI-Studio/
 │   ├── ENVIRONMENTS.md                 (5 دقائق)
 │   └── README.md                       (10 دقائق)
 │
+├── 📚 وثائق API (حرجة!)
+│   └── google-api-docs/
+│       ├── README.md                   ⚠️ (وثائق Google الرسمية)
+│       ├── mybusinessbusinessinformation/
+│       ├── mybusinessaccountmanagement/
+│       ├── mybusinessqanda/
+│       ├── mybusinessbusinesscalls/
+│       ├── mybusinesslodging/
+│       ├── mybusinessnotifications/
+│       ├── mybusinessplaceactions/
+│       └── mybusinessverifications/
+│
 ├── 🚀 المشروع (Project)
 │   ├── PROJECT_STATUS.md               (حالة المشروع)
-│   └── DEPLOYMENT_GUIDE.md             (دليل النشر)
+│   └── ENVIRONMENTS.md                 (البيئات والنشر)
 │
 ├── 🎨 BETA
 │   ├── BETA_STATUS_GUIDE.md            (دليل شامل)
-│   ├── BETA_QUICK_REFERENCE.md         (مرجع سريع)
-│   ├── BETA_STRATEGY.md                (الاستراتيجية)
-│   └── BETA_IMPLEMENTATION_SUMMARY.md  (ملخص التنفيذ)
+│   └── BETA_QUICK_REFERENCE.md         (مرجع سريع)
 │
 └── ⚡ مراجع
     └── .beta-reminder                  (تذكير terminal)

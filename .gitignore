@@ -43,3 +43,7 @@ storybook-static
 
 # Cursor
 .cursor/
+
+# Testing
+coverage/
+.nyc_output/
