@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/lib/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, MessageSquare, Layers } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, MessageSquare, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserButton } from '@/components/auth/user-button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -86,6 +86,11 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
 
   const bottomNavigation: NavigationItem[] = [
     {
+      nameKey: 'nav.whatsNew',
+      href: '/changelog',
+      icon: Sparkles,
+    },
+    {
       nameKey: 'nav.settings',
       href: '/settings',
       icon: Settings,
@@ -138,9 +143,14 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-lg font-bold">
-                {brandProfile?.brand_name || t('title')}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">
+                  {brandProfile?.brand_name || t('title')}
+                </span>
+                <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+                  BETA
+                </span>
+              </div>
               <span className="text-xs text-muted-foreground">
                 {t('subtitle')}
               </span>
