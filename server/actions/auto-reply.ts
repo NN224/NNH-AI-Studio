@@ -348,34 +348,142 @@ function evaluateAutoReplyEligibility(
 
 async function generateReviewReply(
   review: ReviewRecord,
-  settings: AutoReplySettings
-): Promise<{ success: true; reply: string } | { success: false; error: string }> {
-  try {
-    const aiResponse = await fetch(`${DEFAULT_APP_URL}/api/ai/generate-review-reply`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reviewText: review.review_text || "",
-        rating: review.rating,
-        tone: settings.tone,
-        locationName: "Business",
-      }),
-    });
+  settings: AutoReplySettings,
+  userId: string,
+  supabase: SupabaseClient
+): Promise<{ success: true; reply: string; confidence?: number } | { success: false; error: string }> {
+  const maxRetries = 3;
+  let lastError: string | null = null;
 
-    if (!aiResponse.ok) {
-      return { success: false, error: "Failed to generate AI response" };
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Try enhanced service first
+      try {
+        const { generateAIReviewReply, logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
+        
+        // Fetch location name if available
+        let locationName = "Business";
+        if (review.location_id) {
+          const { data: location } = await supabase
+            .from('gmb_locations')
+            .select('location_name')
+            .eq('id', review.location_id)
+            .single();
+          if (location?.location_name) {
+            locationName = location.location_name;
+          }
+        }
+
+        const context = {
+          reviewText: review.review_text || "",
+          rating: review.rating,
+          locationName,
+          customerName: (review as any).reviewer_name || undefined,
+        };
+
+        const result = await generateAIReviewReply(context, settings, userId);
+        
+        // Log the generation attempt
+        await logReplyGeneration(userId, review.id, result, context);
+
+        if (result.success) {
+          // Check confidence threshold (default: 70%)
+          const minConfidence = 70;
+          if (result.confidence < minConfidence && attempt < maxRetries) {
+            console.warn(`[AutoReply] Low confidence (${result.confidence}%), retrying... (attempt ${attempt}/${maxRetries})`);
+            lastError = `Low confidence: ${result.confidence}%`;
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+            continue;
+          }
+
+          return {
+            success: true,
+            reply: result.reply,
+            confidence: result.confidence,
+          };
+        } else {
+          lastError = result.error;
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+        }
+      } catch (serviceError) {
+        console.warn('[AutoReply] Enhanced service failed, falling back to legacy:', serviceError);
+        // Fall through to legacy method
+      }
+
+      // Fallback to legacy API endpoint
+      let locationName = "Business";
+      if (review.location_id) {
+        const { data: location } = await supabase
+          .from('gmb_locations')
+          .select('location_name')
+          .eq('id', review.location_id)
+          .single();
+        if (location?.location_name) {
+          locationName = location.location_name;
+        }
+      }
+
+      const aiResponse = await fetch(`${DEFAULT_APP_URL}/api/ai/generate-review-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewText: review.review_text || "",
+          rating: review.rating,
+          tone: settings.tone,
+          locationName,
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorData = await aiResponse.json().catch(() => ({}));
+        lastError = errorData.error || "Failed to generate AI reply";
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        return {
+          success: false,
+          error: lastError,
+        };
+      }
+
+      const data = await aiResponse.json();
+      const generatedReply = data.reply || data.content || "";
+      
+      if (!generatedReply) {
+        lastError = "No response generated";
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        return {
+          success: false,
+          error: lastError,
+        };
+      }
+
+      return {
+        success: true,
+        reply: generatedReply,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Failed to generate reply";
+      console.error(`[AutoReply] Error generating reply (attempt ${attempt}/${maxRetries}):`, error);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        continue;
+      }
     }
-
-    const { response: generatedReply } = await aiResponse.json();
-    if (!generatedReply) {
-      return { success: false, error: "No response generated" };
-    }
-
-    return { success: true, reply: generatedReply as string };
-  } catch (error) {
-    console.error("Error generating review reply:", error);
-    return { success: false, error: "Failed to generate AI response" };
   }
+
+  return {
+    success: false,
+    error: lastError || "Failed to generate reply after multiple attempts",
+  };
 }
 
 async function persistApprovalDraft(

@@ -236,37 +236,8 @@ export default function AutoPilotPage() {
         </Card>
       )}
 
-      {/* Activity Stats (Placeholder) */}
-      {settings.enabled && (
-        <Card className="bg-zinc-900/50 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-orange-400" />
-              نشاط اليوم
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-4 bg-zinc-950/50 rounded-lg">
-                <div className="text-2xl font-bold text-white">--</div>
-                <div className="text-sm text-zinc-400 mt-1">ردود تلقائية</div>
-              </div>
-              <div className="p-4 bg-zinc-950/50 rounded-lg">
-                <div className="text-2xl font-bold text-white">--</div>
-                <div className="text-sm text-zinc-400 mt-1">متوسط الوقت</div>
-              </div>
-              <div className="p-4 bg-zinc-950/50 rounded-lg">
-                <div className="text-2xl font-bold text-white">--</div>
-                <div className="text-sm text-zinc-400 mt-1">نسبة النجاح</div>
-              </div>
-            </div>
-            <p className="text-xs text-zinc-500 text-center mt-4">
-              <Clock className="w-3 h-3 inline-block mr-1" />
-              سيتم عرض الإحصائيات بعد تفعيل النظام
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Activity Stats */}
+      {settings.enabled && <ActivityStatsCard />}
 
       {/* Save Button */}
       <div className="flex gap-3">
