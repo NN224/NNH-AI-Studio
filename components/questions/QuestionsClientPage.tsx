@@ -267,10 +267,11 @@ export function QuestionsClientPage({
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.size === questions.length) {
+    const safeQuestions = Array.isArray(questions) ? questions : [];
+    if (selectedIds.size === safeQuestions.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(questions.map(q => q.id)));
+      setSelectedIds(new Set(safeQuestions.map(q => q.id)));
     }
   };
 
@@ -846,7 +847,9 @@ function QuestionsFeedSection({
     );
   }
 
-  if (!questions.length) {
+  const safeQuestions = Array.isArray(questions) ? questions : [];
+  
+  if (!safeQuestions.length) {
     return (
       <section className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/30 text-center">
         <h3 className="text-lg font-semibold text-zinc-200">No questions found</h3>
@@ -859,7 +862,7 @@ function QuestionsFeedSection({
 
   return (
     <section className="space-y-4">
-      {questions.map((question) => (
+      {safeQuestions.map((question) => (
                 <QuestionCard
                   key={question.id}
                   question={question}
