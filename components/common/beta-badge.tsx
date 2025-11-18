@@ -64,38 +64,22 @@ export function BetaBadge({
 }
 
 export function BetaIndicator() {
-  // يظهر في Development دائماً، وفي Production للمشاريع تحت التطوير
-  const isDev = process.env.NODE_ENV === 'development';
-  
   return (
     <motion.div
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`
-        fixed top-0 left-0 right-0 z-50 
-        flex items-center justify-center gap-2 
-        backdrop-blur-sm border-b px-4 py-1.5
-        ${isDev 
-          ? 'bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20'
-          : 'bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-emerald-500/20'
-        }
-      `}
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-sm border-b border-emerald-500/20 px-4 py-1"
     >
-      <Sparkles className={`h-3.5 w-3.5 ${isDev ? 'text-blue-400' : 'text-emerald-400'}`} />
-      <span className={`text-xs font-medium ${isDev ? 'text-blue-400' : 'text-emerald-400'}`}>
-        {isDev 
-          ? 'Development Mode - Port 5050'
-          : 'BETA - New features added weekly'
-        }
+      <Sparkles className="h-3 w-3 text-emerald-400" />
+      <span className="text-[11px] font-medium text-emerald-400">
+        BETA - New features weekly
       </span>
-      {!isDev && (
-        <a 
-          href="mailto:feedback@nnh.ae" 
-          className="text-[10px] text-blue-400 hover:text-blue-300 underline ml-2 transition-colors"
-        >
-          Share feedback
-        </a>
-      )}
+      <a 
+        href="mailto:feedback@nnh.ae" 
+        className="text-[10px] text-blue-400 hover:text-blue-300 underline ml-1 transition-colors"
+      >
+        Share feedback
+      </a>
     </motion.div>
   );
 }

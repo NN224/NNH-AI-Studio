@@ -118,7 +118,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
         animate={{ x: isDesktop ? 0 : (isOpen ? 0 : -280) }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-[280px]',
+          'fixed left-0 top-8 z-40 h-[calc(100vh-2rem)] w-[280px]',
           'border-r bg-background shadow-sm',
           // Always visible on desktop (lg and above)
           'block',
@@ -143,14 +143,9 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
               </div>
             )}
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {brandProfile?.brand_name || t('title')}
-                </span>
-                <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
-                  BETA
-                </span>
-              </div>
+              <span className="text-lg font-bold">
+                {brandProfile?.brand_name || t('title')}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {t('subtitle')}
               </span>

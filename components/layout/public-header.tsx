@@ -10,7 +10,7 @@ export function PublicHeader() {
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="sticky top-0 z-50 w-full border-b border-primary/20 bg-black/80 backdrop-blur-xl"
+      className="mt-8 w-full border-b border-primary/20 bg-black/80 backdrop-blur-xl"
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-3 group">

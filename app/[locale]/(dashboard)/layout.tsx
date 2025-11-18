@@ -11,7 +11,6 @@ import { KeyboardProvider } from '@/components/keyboard/keyboard-provider';
 import { BrandProfileProvider } from '@/contexts/BrandProfileContext';
 import { DynamicThemeProvider } from '@/components/theme/DynamicThemeProvider';
 import { createClient } from '@/lib/supabase/client';
-import { BetaIndicator } from '@/components/common/beta-badge';
 
 interface UserProfile {
     name: string | null;
@@ -70,7 +69,6 @@ export default function DashboardLayout({
     <BrandProfileProvider>
       <DynamicThemeProvider>
         <KeyboardProvider onCommandPaletteOpen={() => setCommandPaletteOpen(true)}>
-          <BetaIndicator />
           <div className="relative min-h-screen bg-background">
             <Sidebar 
                 isOpen={sidebarOpen} 
@@ -78,7 +76,7 @@ export default function DashboardLayout({
                 userProfile={userProfile}
             />
 
-            <div className="lg:pl-[280px]">
+            <div className="lg:pl-[280px] pt-8">
               <Header
                 onMenuClick={() => setSidebarOpen(!sidebarOpen)}
                 onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
