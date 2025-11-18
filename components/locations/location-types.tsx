@@ -9,7 +9,6 @@ import {
   Video, Image, FileText, MessageCircle, Megaphone, AlertCircle,
   Clock, Camera, CheckCircle2, Plus, Sparkles, HelpCircle, Bot, Lock
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useRouter, Link } from '@/lib/navigation';
 import {
   Dialog,
@@ -276,7 +275,6 @@ export const getHealthScoreBreakdown = (location: Location) => {
 
 // Health Score Details Component
 export const HealthScoreDetails = ({ location }: { location: Location }) => {
-  const t = useTranslations('Locations.healthScore');
   const breakdown = getHealthScoreBreakdown(location);
   const router = useRouter();
 

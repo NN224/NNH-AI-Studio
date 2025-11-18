@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Layers } from 'lucide-react';
@@ -33,7 +32,6 @@ import { LocationsErrorAlert } from '@/components/locations/locations-error-aler
 
 // Main Optimized Locations Page
 export default function OptimizedLocationsPage() {
-  const t = useTranslations('Locations');
   const router = useRouter();
   const isMobile = useIsMobile();
   const gridCols = useResponsiveGrid();

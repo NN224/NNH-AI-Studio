@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Clock, CheckCircle, Globe } from "lucide-react"
-import { useTranslations } from 'next-intl'
 
 interface GMBAccount {
   id: string;
@@ -60,7 +59,6 @@ export function GeneralSettingsTab({
   setLanguage,
   gmbAccounts
 }: GeneralSettingsTabProps) {
-  const t = useTranslations('Settings.general')
   const activeAccounts = gmbAccounts?.filter((a) => a && a.is_active) || []
 
   return (
@@ -159,9 +157,9 @@ export function GeneralSettingsTab({
             </div>
             <div className="space-y-2">
               <Label htmlFor="language">{t('language')}</Label>
-              <Select value={language} onValueChange={setLanguage}>
+              <Select value="en" disabled>
                 <SelectTrigger className="bg-secondary border-primary/30">
-                  <SelectValue />
+                  <SelectValue placeholder="English" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">
@@ -170,14 +168,9 @@ export function GeneralSettingsTab({
                       English
                     </div>
                   </SelectItem>
-                  <SelectItem value="ar">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-3 w-3" />
-                      العربية (Arabic)
-                    </div>
-                  </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">Interface language is English only</p>
             </div>
           </div>
         </CardContent>

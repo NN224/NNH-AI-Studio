@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { SentimentAnalysisCard } from '@/components/reviews/ai-cockpit/sentiment-analysis-card'
 import { PendingResponsesCard } from '@/components/reviews/ai-cockpit/pending-responses-card'
 import { EmptyState } from '@/components/reviews/ai-cockpit/empty-state'
@@ -14,7 +13,6 @@ import { Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function AICockpitClient() {
-  const t = useTranslations('AICockpit')
   const { data: sentimentData, loading: sentimentLoading } = useSentimentAnalysis()
   const { reviews, stats, loading: reviewsLoading } = usePendingReviews()
   const { generate, loading: generating } = useAIResponseGenerator()
@@ -91,7 +89,7 @@ export function AICockpitClient() {
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  {generating ? 'Generating...' : t('generateResponse')}
+                  {generating ? 'Generating...' : 'Generate Response'}
                 </Button>
               </div>
 

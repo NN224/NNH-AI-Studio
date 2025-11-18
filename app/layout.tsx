@@ -41,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html className="dark" lang="en" dir="ltr">
+    <html className="dark" lang="en">
       <body className="min-h-screen bg-background font-sans antialiased">
         <BrandProfileProvider>
           <Providers>

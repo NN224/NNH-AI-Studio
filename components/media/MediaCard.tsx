@@ -5,10 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useTranslations } from 'next-intl';
 
 export function MediaCard({ mediaItem, onDelete }) {
-  const t = useTranslations('Media.card');
 
   const handleDelete = async () => {
     try {
@@ -20,10 +18,10 @@ export function MediaCard({ mediaItem, onDelete }) {
       
       if (!response.ok) throw new Error('Failed to delete');
       
-      toast.success(t('deleteSuccess'));
+      toast.success('Image deleted successfully');
       onDelete(mediaItem.id);
     } catch (error) {
-      toast.error(t('deleteFailed'));
+      toast.error('Failed to delete image');
     }
   };
 
@@ -31,7 +29,7 @@ export function MediaCard({ mediaItem, onDelete }) {
     <Card className="overflow-hidden group relative">
       <Image
         src={mediaItem.url}
-        alt={mediaItem.metadata?.originalName || t('altText')}
+        alt={mediaItem.metadata?.originalName || 'Media item'}
         width={300}
         height={300}
         className="object-cover aspect-square"

@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 
 // Error alert component for locations page - Added user-friendly error message handling to prevent technical details exposure
 export const LocationsErrorAlert = ({ 
@@ -12,7 +11,6 @@ export const LocationsErrorAlert = ({
   error: string | Error; 
   onRetryAction: () => void; 
 }) => {
-  const t = useTranslations('Locations');
 
   // Extract error message with proper type checking and internationalization
   const errorMessage = typeof error === 'string' 

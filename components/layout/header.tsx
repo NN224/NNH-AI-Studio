@@ -40,7 +40,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
 import { useSafeState, useAsyncEffect } from '@/hooks/use-safe-fetch';
 
 // ⭐️ واجهة بيانات المستخدم (مطابقة لما تم إنشاؤه في layout.tsx)
@@ -104,7 +103,6 @@ const getInitials = (nameOrEmail?: string | null) => {
 
 
 export function Header({ onMenuClick, onCommandPaletteOpen, userProfile }: HeaderProps) {
-const t = useTranslations('Dashboard');
 const pathname = usePathname();
 const { theme, setTheme } = useTheme();
 const { showShortcutsModal } = useKeyboard();

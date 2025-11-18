@@ -4,7 +4,6 @@ import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useInView } from 'react-intersection-observer';
-import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   RefreshCw,
@@ -61,7 +60,6 @@ type ReviewsFilters = ReviewsHookState['filters'];
 type UpdateFilterFn = ReviewsHookState['updateFilter'];
 
 export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClientProps) {
-  const t = useTranslations('Reviews');
   const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -812,7 +810,6 @@ function ReviewsFeedSection({
   reviewStats,
   loadMore,
 }: ReviewsFeedSectionProps) {
-  const t = useTranslations('Reviews');
   const hasReviews = reviews.length > 0;
 
   return (

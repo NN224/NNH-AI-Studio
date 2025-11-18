@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -29,7 +28,6 @@ interface AutoReplySettingsPanelProps {
 }
 
 export function AutoReplySettingsPanel({ locationId }: AutoReplySettingsPanelProps) {
-  const t = useTranslations('Reviews.autoReply');
   const [settings, setSettings] = useState<AutoReplySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

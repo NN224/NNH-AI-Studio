@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin, Eye, Star, Shield } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { formatLargeNumber } from './location-types';
 
 // Stats cards component for locations overview
@@ -19,7 +18,6 @@ export const LocationsStats = ({
   avgHealthScore: number;
   loading?: boolean;
 }) => {
-  const t = useTranslations('Locations');
 
   if (loading) {
     return (

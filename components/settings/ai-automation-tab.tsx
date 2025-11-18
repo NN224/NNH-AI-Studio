@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Brain, Zap, Clock, CheckCircle, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useTranslations } from 'next-intl'
 
 interface AIAutomationTabProps {
   aiResponseTone: string
@@ -30,7 +29,6 @@ export function AIAutomationTab({
   creativityLevel,
   setCreativityLevel
 }: AIAutomationTabProps) {
-  const t = useTranslations('Settings.ai')
   return (
     <div className="space-y-6">
       {/* AI Response Configuration */}

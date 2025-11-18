@@ -32,7 +32,6 @@ import {
   permanentlyDeleteArchivedData,
   updateDataRetentionSettings,
 } from '@/server/actions/gmb-account';
-import { useTranslations } from 'next-intl';
 
 interface DataManagementProps {
   accountId?: string;
@@ -49,7 +48,6 @@ export function DataManagement({
   deleteOnDisconnect: deleteOnDisconnectProp,
   setDeleteOnDisconnect: setDeleteOnDisconnectProp
 }: DataManagementProps) {
-  const t = useTranslations('Settings.data')
   const {
     hasArchivedData,
     archivedLocationsCount,

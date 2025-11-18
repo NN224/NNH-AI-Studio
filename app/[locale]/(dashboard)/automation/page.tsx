@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import {
   ActivityLog,
   AutomationLogEntry,
@@ -17,7 +16,6 @@ interface AutomationSummaryResponse {
 }
 
 export default function AutomationPage() {
-  const t = useTranslations('Automation.page');
   const tStats = useTranslations('Automation.stats');
   const [settings, setSettings] = useState<AutomationSettingsSummary[]>([])
   const [logs, setLogs] = useState<AutomationLogEntry[]>([])

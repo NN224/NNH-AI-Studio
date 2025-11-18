@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Download, Grid3x3, List, CheckCircle2, X, Trash2, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,7 +17,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
 export function LocationsOverviewTab() {
-  const t = useTranslations('Locations');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filters, setFilters] = useState<LocationFilters>({});
   const [showAddDialog, setShowAddDialog] = useState(false);

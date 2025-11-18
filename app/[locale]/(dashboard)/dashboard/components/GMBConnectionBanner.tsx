@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Zap, Loader2, Star, MapPin, CheckCircle } from 'lucide-react';
@@ -11,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { useResponsiveLayout } from '@/components/dashboard/responsive-layout';
 
 export function GMBConnectionBanner() {
-  const t = useTranslations('Dashboard.connectionBanner');
   const { isMobile } = useResponsiveLayout();
   const router = useRouter();
   const [connecting, setConnecting] = useState(false);
@@ -63,10 +61,10 @@ export function GMBConnectionBanner() {
             </div>
             <div className="space-y-2 flex-1">
               <h2 className={cn("font-bold text-foreground", isMobile ? "text-xl" : "text-2xl")}>
-                {t('title')}
+                Connect Your Google My Business
               </h2>
               <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
-                {t('description')}
+                Connect your GMB account to start managing your locations, reviews, and more.
               </p>
               
               {/* Benefits Grid - مُحسَّن للموبايل */}
@@ -120,7 +118,7 @@ export function GMBConnectionBanner() {
                 rel="noopener noreferrer"
               >
                 <Star className="w-4 h-4 md:w-5 md:h-5" />
-                {t('learnMore')}
+                Learn More
               </a>
             </Button>
           </div>

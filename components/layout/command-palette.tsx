@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import {
   CommandDialog,
   CommandEmpty,
@@ -36,7 +35,6 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
-  const t = useTranslations('CommandPalette');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
