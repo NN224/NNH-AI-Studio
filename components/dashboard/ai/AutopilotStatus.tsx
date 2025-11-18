@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { CheckCircle2, PauseCircle, Rocket, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 type AutopilotStatus = {
   enabled: boolean;
@@ -30,32 +31,44 @@ export default function AutopilotStatus() {
     timeSavedMinutes: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
+  // Fetch autopilot stats and settings
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      // read from gmb_accounts.settings (jsonb)
-      const { data } = await supabase
-        .from('gmb_accounts')
-        .select('settings')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
-      const s = (data as any)?.settings || {};
-      if (!mounted) return;
-      setStatus((prev) => ({
-        ...prev,
-        enabled: !!s.autopilotEnabled,
-        autoReplyEnabled: !!s.autoReplyEnabled,
-        autoAnswerEnabled: !!s.autoAnswerEnabled,
-        autoPostEnabled: !!s.autoPostEnabled,
-      }));
-    })();
-    return () => { mounted = false; };
+    let intervalId: NodeJS.Timeout;
+
+    const fetchStats = async () => {
+      try {
+        // Fetch stats from API
+        const statsRes = await fetch('/api/auto-pilot/stats', { cache: 'no-store' });
+        if (!statsRes.ok) throw new Error('Failed to fetch stats');
+        
+        const statsData = await statsRes.json();
+        if (!mounted) return;
+
+        if (statsData.success && statsData.data) {
+          setStatus(statsData.data);
+        }
+      } catch (error) {
+        console.error('[AutopilotStatus] Error fetching stats:', error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    // Initial fetch
+    fetchStats();
+
+    // Refresh every 30 seconds
+    intervalId = setInterval(fetchStats, 30000);
+
+    return () => {
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   async function toggleGlobal(enabled: boolean) {
@@ -65,13 +78,38 @@ export default function AutopilotStatus() {
       if (!user) return;
       const { error } = await supabase
         .from('gmb_accounts')
-        .update({ settings: { autopilotEnabled: enabled, autoReplyEnabled: enabled, autoAnswerEnabled: enabled, autoPostEnabled: status.autoPostEnabled } })
+        .update({ 
+          settings: { 
+            autopilotEnabled: enabled, 
+            autoReplyEnabled: enabled, 
+            autoAnswerEnabled: enabled, 
+            autoPostEnabled: status.autoPostEnabled 
+          } 
+        })
         .eq('user_id', user.id)
         .eq('is_active', true);
-      if (!error) setStatus((p) => ({ ...p, enabled, autoReplyEnabled: enabled, autoAnswerEnabled: enabled }));
+      if (!error) {
+        setStatus((p) => ({ ...p, enabled, autoReplyEnabled: enabled, autoAnswerEnabled: enabled }));
+        // Refresh stats after toggle
+        const statsRes = await fetch('/api/auto-pilot/stats', { cache: 'no-store' });
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          if (statsData.success && statsData.data) {
+            setStatus(statsData.data);
+          }
+        }
+      }
     } finally {
       setSaving(false);
     }
+  }
+
+  function handlePause() {
+    toggleGlobal(false);
+  }
+
+  function handleConfigure() {
+    router.push('/settings/auto-pilot');
   }
 
   const hours = Math.floor(status.timeSavedMinutes / 60);
@@ -112,10 +150,20 @@ export default function AutopilotStatus() {
         </div>
 
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" disabled={!status.enabled || saving}>
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            disabled={!status.enabled || saving || loading}
+            onClick={handlePause}
+          >
             Pause <PauseCircle className="ml-1 h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" disabled={saving}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={saving || loading}
+            onClick={handleConfigure}
+          >
             Configure
           </Button>
         </div>

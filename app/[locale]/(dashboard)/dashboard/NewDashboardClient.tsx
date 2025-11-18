@@ -27,6 +27,7 @@ import BusinessHeader from '@/components/dashboard/BusinessHeader';
 import AIInsightsCards from '@/components/dashboard/ai/AIInsightsCards';
 import AutopilotStatus from '@/components/dashboard/ai/AutopilotStatus';
 import PerformancePredictor from '@/components/dashboard/ai/PerformancePredictor';
+import AutoReplyMonitoring from '@/components/dashboard/ai/AutoReplyMonitoring';
 
 // Animation variants
 const containerVariants = {
@@ -54,23 +55,26 @@ const itemVariants = {
 const NewDashboardClient = () => {
   const router = useRouter();
 
-  // Fetch dashboard data using React Query
+  // Fetch dashboard data using React Query with auto-refresh
   const { data: stats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: () => getDashboardStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
   });
 
   const { data: chartData, isLoading: isLoadingChart } = useQuery({
     queryKey: ['performanceChartData'],
     queryFn: () => getPerformanceChartData(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
   });
 
   const { data: activityFeed, isLoading: isLoadingFeed } = useQuery({
     queryKey: ['activityFeed'],
     queryFn: () => getActivityFeed(),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
   });
 
   const handleRefresh = async () => {
@@ -206,6 +210,11 @@ const NewDashboardClient = () => {
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* Auto-Reply Monitoring */}
+            <motion.div variants={itemVariants}>
+              <AutoReplyMonitoring />
             </motion.div>
 
             {/* Quick Stats */}
