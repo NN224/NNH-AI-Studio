@@ -1284,5 +1284,27 @@
       "title": "Analytics Command Center",
       "description": "Deep performance dashboards, AI benchmarking, and cross-channel intelligence are nearly ready. Soon you'll get unified analytics purpose-built for AI growth."
     }
+  },
+  "Media": {
+    "title": "Media Library",
+    "uploader": {
+      "dropMessage": "Drop the images here",
+      "dragMessage": "Drag 'n' drop some files here, or click to select files",
+      "uploadSuccess": "Successfully uploaded {count} image(s)",
+      "uploadFailed": "Failed to upload images"
+    },
+    "grid": {
+      "noMedia": "No media found.",
+      "getStarted": "Upload some images to get started."
+    },
+    "card": {
+      "deleteSuccess": "Image deleted successfully",
+      "deleteFailed": "Failed to delete image",
+      "altText": "Media item"
+    },
+    "filters": {
+      "placeholder": "Filter by location...",
+      "allLocations": "All Locations"
+    }
   }
 }

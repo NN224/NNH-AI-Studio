@@ -1283,5 +1283,27 @@
     "title": "الجديد",
     "subtitle": "آخر التحديثات والتحسينات",
     "feedback": "شارك رأيك"
+  },
+  "Media": {
+    "title": "مكتبة الوسائط",
+    "uploader": {
+      "dropMessage": "أفلت الصور هنا",
+      "dragMessage": "اسحب وأفلت بعض الملفات هنا، أو انقر لاختيار الملفات",
+      "uploadSuccess": "تم رفع {count} صورة بنجاح",
+      "uploadFailed": "فشل رفع الصور"
+    },
+    "grid": {
+      "noMedia": "لم يتم العثور على وسائط.",
+      "getStarted": "قم برفع بعض الصور للبدء."
+    },
+    "card": {
+      "deleteSuccess": "تم حذف الصورة بنجاح",
+      "deleteFailed": "فشل حذف الصورة",
+      "altText": "عنصر وسائط"
+    },
+    "filters": {
+      "placeholder": "تصفية حسب الموقع...",
+      "allLocations": "جميع المواقع"
+    }
   }
 }

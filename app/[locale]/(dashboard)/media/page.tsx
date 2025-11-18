@@ -1,19 +1,29 @@
-'use client';
+import { createClient } from '@/lib/supabase/server';
+import { MediaGalleryClient } from '@/components/media/MediaGalleryClient';
 
-import { ComingSoon } from '@/components/common/coming-soon';
-import { useTranslations } from 'next-intl';
+export default async function MediaPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return null;
+  }
+  
+  const { data: locations } = await supabase
+    .from('gmb_locations')
+    .select('id, location_name')
+    .eq('user_id', user.id);
+    
+  const { data: media } = await supabase
+    .from('gmb_media')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
 
-export default function MediaLibraryPage() {
-  const t = useTranslations('ComingSoon.media');
   return (
-    <div className="min-h-screen bg-zinc-950 p-6">
-      <div className="mx-auto max-w-4xl">
-        <ComingSoon
-          title={t('title')}
-          description={t('description')}
-          icon="🖼️"
-          />
-      </div>
-    </div>
+    <MediaGalleryClient
+      locations={locations || []}
+      initialMedia={media || []}
+    />
   );
 }
