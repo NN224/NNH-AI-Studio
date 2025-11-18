@@ -397,7 +397,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
               <label className="block text-sm font-medium text-white mb-2">{link.label}</label>
           <input
             type="url"
-                value={(profile.specialLinks?.[link.key] || '')}
+                value={(() => {
+                  const val = profile.specialLinks?.[link.key];
+                  return typeof val === 'string' ? val : '';
+                })()}
                 onChange={(e) => handleLinkChange(link.key, e.target.value)}
             placeholder={link.placeholder}
                 disabled={disabled}
@@ -433,7 +436,10 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
               </label>
               <input
                 type="url"
-                value={(profile.socialLinks?.[social.key] || '')}
+                value={(() => {
+                  const val = profile.socialLinks?.[social.key];
+                  return typeof val === 'string' ? val : '';
+                })()}
                 onChange={(e) => handleSocialLinkChange(social.key, e.target.value)}
                 placeholder={social.placeholder}
                 disabled={disabled}
