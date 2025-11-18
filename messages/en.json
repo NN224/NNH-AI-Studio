@@ -353,7 +353,36 @@
       "cancel": "Cancel"
     },
     "empty": "No reviews found",
-    "aiCopilot": "AI Copilot"
+    "aiCopilot": "AI Copilot",
+    "loadMore": "Load more",
+    "allCaughtUp": "You're all caught up — no more reviews to load.",
+    "realtimeSyncEnabled": "Real-time sync enabled",
+    "autoReply": {
+      "title": "Auto-Reply Settings",
+      "description": "Manage AI Auto-Reply settings for reviews",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableAutopilot": "Enable Autopilot",
+      "enableDescription": "AI will automatically reply to all new reviews",
+      "instantModeEnabled": "Instant Mode Enabled!",
+      "instantModeDescription": "Reviews will be replied to in under 1 minute",
+      "perRatingControl": "Per-Rating Reply Control",
+      "toneSelection": "Select Reply Tone",
+      "friendly": "Friendly",
+      "professional": "Professional",
+      "apologetic": "Apologetic",
+      "marketing": "Marketing",
+      "saveSettings": "💾 Save Settings",
+      "saving": "Saving...",
+      "saved": "✅ Saved successfully",
+      "loadFailed": "Failed to load settings",
+      "saveFailed": "Failed to save",
+      "tabs": {
+        "settings": "Settings",
+        "test": "Test",
+        "stats": "Statistics"
+      }
+    }
   },
   "AICockpit": {
     "title": "AI Review Cockpit",
