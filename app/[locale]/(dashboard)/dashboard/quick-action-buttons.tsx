@@ -33,7 +33,18 @@ export function QuickActionButtons() {
         }
         router.refresh();
       } else {
-        toast.error(`❌ ${result.error || 'Failed to sync data. Please try again.'}`);
+        const errorMsg = result.error || 'Failed to sync data. Please try again.';
+        if (errorMsg.includes('expired') || errorMsg.includes('reconnect')) {
+          toast.error('🔗 Google connection expired. Go to Settings to reconnect.', {
+            duration: 8000,
+            action: {
+              label: 'Settings',
+              onClick: () => router.push('/settings')
+            }
+          });
+        } else {
+          toast.error(`❌ ${errorMsg}`);
+        }
       }
     } catch (error) {
       console.error('[QuickActionButtons] Error during Sync All:', error);

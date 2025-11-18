@@ -249,7 +249,14 @@ export async function syncLocation(locationId: string) {
         }
       } catch (tokenError) {
         console.error('[syncLocation] Token refresh failed:', tokenError);
-        return { success: false, error: 'Failed to refresh Google access token' };
+        const errorMessage = tokenError instanceof Error ? tokenError.message : 'Failed to refresh Google access token';
+        if (errorMessage.includes('expired') || errorMessage.includes('invalid_grant')) {
+          return { 
+            success: false, 
+            error: 'Your Google account connection has expired. Please go to Settings and reconnect your Google My Business account.' 
+          };
+        }
+        return { success: false, error: errorMessage };
       }
     }
 
@@ -453,9 +460,9 @@ export async function getDashboardStats() {
     .from('v_dashboard_stats')
     .select('total_reviews, avg_rating, pending_reviews, pending_questions, replied_reviews, calculated_response_rate')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (statsError) {
+  if (statsError && statsError.code !== 'PGRST116') {
     console.error('Error fetching dashboard stats:', statsError);
     throw new Error('Could not fetch dashboard stats.');
   }
@@ -477,8 +484,18 @@ export async function getDashboardStats() {
     .eq('user_id', user.id)
     .gte('created_at', startOfMonth.toISOString());
 
-  // Use response rate from view (already calculated)
+  // Use response rate from view (already calculated) or fallback to 0
   const responseRate = stats?.calculated_response_rate || 0;
+  
+  // Provide fallback values when no stats are available (new user)
+  const safeStats = {
+    total_reviews: stats?.total_reviews || 0,
+    avg_rating: stats?.avg_rating || 0,
+    pending_reviews: stats?.pending_reviews || 0,
+    pending_questions: stats?.pending_questions || 0,
+    replied_reviews: stats?.replied_reviews || 0,
+    calculated_response_rate: responseRate
+  };
 
   // Calculate reviews trend (last 7 days vs previous 7 days)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -502,7 +519,7 @@ export async function getDashboardStats() {
     : 0;
 
   return {
-    ...stats,
+    ...safeStats,
     total_locations: totalLocations || 0,
     reviews_this_month: reviewsThisMonth || 0,
     response_rate: responseRate,

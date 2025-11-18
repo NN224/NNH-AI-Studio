@@ -268,7 +268,7 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   if (!response.ok) {
     console.error('[GMB Sync] Token refresh failed:', data);
     if (data.error === 'invalid_grant') {
-      throw new ApiError('invalid_grant', 401);
+      throw new ApiError('Your Google account connection has expired. Please reconnect your Google My Business account in Settings.', 401);
     }
     throw new ApiError(`Token refresh failed: ${data.error || 'Unknown error'}`, 401);
   }

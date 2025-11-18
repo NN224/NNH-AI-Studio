@@ -136,6 +136,33 @@ import { BetaBadge } from '@/components/common/beta-badge';
 
 ---
 
+## 🗄️ Checklist عند تعديل Database Schema
+
+### عند إضافة/تعديل migration:
+- [ ] كتبت الـ migration في `supabase/migrations/`
+- [ ] اختبرت المضافة محلياً (`npm run db:push`)
+- [ ] **⚠️ Exported schema جديد من Supabase:**
+  - [ ] شغّلت `scripts/export-complete-schema.sql` في SQL Editor
+  - [ ] حفظت النتائج كـ CSV في `database-schema.csv`
+- [ ] **⚠️ حدّثت التوثيق:**
+  - [ ] `google-api-docs/DATABASE_SCHEMA.md`
+  - [ ] `google-api-docs/DATABASE_QUICK_REF.md` (إذا ضروري)
+- [ ] تحققت من التوافق مع Google APIs
+- [ ] **Committed الكل مع بعض** (migration + CSV + docs)
+
+### الطريقة السريعة:
+```bash
+# بعد إضافة migration، شغّل:
+npm run db:update-docs
+
+# سيساعدك في:
+# 1. تذكّر export الـ schema
+# 2. تذكّر تحديث التوثيق
+# 3. stage الملفات للـ commit
+```
+
+---
+
 ## 📝 Checklist عند إضافة صفحة/مكون جديد
 
 ### للـ UI/Layout:
@@ -146,10 +173,13 @@ import { BetaBadge } from '@/components/common/beta-badge';
 - [ ] هل شريط BETA يظهر بشكل صحيح؟
 
 ### لـ ميزات GMB:
-- [ ] **⚠️ هل راجعت الوثائق الرسمية في `google-api-docs/`؟**
+- [ ] **⚠️ هل راجعت الوثائق الرسمية في `google-api-docs/[api-name]/`؟**
+- [ ] **⚠️ هل راجعت `google-api-docs/DATABASE_SCHEMA.md`؟**
 - [ ] هل تحققت من الحقول المتاحة في API schema؟
-- [ ] هل استخدمت الأنواع الصحيحة للبيانات؟
-- [ ] هل تحققت من القيود (required, enum values, etc.)؟
+- [ ] هل تحققت من الأعمدة الموجودة في Database schema؟
+- [ ] هل استخدمت الأنواع الصحيحة للبيانات (API ↔ Database)؟
+- [ ] هل تحققت من القيود (required, enum values, foreign keys, etc.)؟
+- [ ] هل العلاقات (relationships) صحيحة بين الجداول؟
 
 ---
 

@@ -200,16 +200,23 @@ NNH-AI-Studio/
 │   └── README.md                       (10 دقائق)
 │
 ├── 📚 وثائق API (حرجة!)
-│   └── google-api-docs/
-│       ├── README.md                   ⚠️ (وثائق Google الرسمية)
-│       ├── mybusinessbusinessinformation/
-│       ├── mybusinessaccountmanagement/
-│       ├── mybusinessqanda/
-│       ├── mybusinessbusinesscalls/
-│       ├── mybusinesslodging/
-│       ├── mybusinessnotifications/
-│       ├── mybusinessplaceactions/
-│       └── mybusinessverifications/
+│   ├── google-api-docs/
+│   │   ├── README.md                   ⚠️ (وثائق Google الرسمية)
+│   │   ├── DATABASE_SCHEMA.md          🗄️ (schema قاعدة البيانات الكامل)
+│   │   ├── DATABASE_QUICK_REF.md       ⚡ (مرجع سريع للـ schema)
+│   │   ├── mybusinessbusinessinformation/
+│   │   ├── mybusinessaccountmanagement/
+│   │   ├── mybusinessqanda/
+│   │   ├── mybusinessbusinesscalls/
+│   │   ├── mybusinesslodging/
+│   │   ├── mybusinessnotifications/
+│   │   ├── mybusinessplaceactions/
+│   │   └── mybusinessverifications/
+│   ├── database-schema.csv             📊 (CSV مفصل للـ schema)
+│   ├── SCHEMA_UPDATE_GUIDE.md          🔄 (دليل تحديث الـ schema)
+│   └── supabase/migrations/
+│       ├── README.md                   📝 (قواعد الـ migrations)
+│       └── _TEMPLATE.sql               📋 (template للـ migrations)
 │
 ├── 🚀 المشروع (Project)
 │   ├── PROJECT_STATUS.md               (حالة المشروع)

@@ -1,0 +1,309 @@
+# NNH AI Studio - Cursor AI Rules
+
+## 🎯 Project Context
+- **Platform**: Next.js 14 + TypeScript + Supabase + Multi-AI Provider System
+- **Version**: v0.9.0-beta (BETA Status)
+- **Production**: https://nnh.ae (LIVE - accessible worldwide)
+- **Development**: http://localhost:5050 (LOCAL ONLY)
+
+---
+
+## 🚨 CRITICAL RULES - NEVER VIOLATE
+
+### 1. Documentation (HIGHEST PRIORITY)
+- **BEFORE** any GMB feature changes → check `google-api-docs/` for official Google API schemas
+- **AFTER** any database migration → AUTOMATICALLY update `DATABASE_SCHEMA.md`
+- **WORKFLOW**: Migration → `npm run db:push` → Export CSV → `npm run db:update-docs`
+- **REMINDER**: Check `.beta-reminder` file before any layout changes
+
+### 2. BETA Status (PERMANENT)
+- BETA banner MUST be visible on ALL pages (`components/common/beta-badge.tsx`)
+- **All layouts** use `top-8` for headers and `pt-8` for main containers
+- NEVER remove BETA indicators
+- Version: `0.9.0-beta` in `package.json`
+
+### 3. Database Schema
+- **Current State**: 24 tables, 462 columns (see `DATABASE_SCHEMA.md`)
+- Any schema change = migration file + documentation update
+- Use template: `supabase/migrations/_TEMPLATE.sql`
+- Never modify tables directly without migration
+
+### 4. AI Provider System
+- **Always** use fallback providers (never single provider)
+- **Priority**: Anthropic (Claude) → OpenAI → Google (Gemini) → Groq → DeepSeek
+- **Log** all AI requests to `ai_requests` table
+- Handle errors gracefully with user-friendly messages
+
+### 5. Git Workflow
+- **NEVER** commit directly to `main`
+- **ALWAYS** create feature branch: `feature/[feature-name]`
+- Test on `localhost:5050` before PR
+- After merge, deploy manually on server: `git pull origin main`
+
+---
+
+## 📋 TAB-BY-TAB DEVELOPMENT STRATEGY
+
+### Current Strategy: Focus on ONE tab at a time
+1. **Verify** data loading works correctly
+2. **Verify** data displays correctly  
+3. **Verify** all AI features work correctly
+4. **Test** with real/beta user data
+5. **Achieve** 100% production-ready state
+6. **Then** move to next tab
+
+### Tab Priority Order:
+1. **Reviews Tab** (Phase 1: Enhanced Auto-Reply)
+2. **Questions Tab** (Phase 2: Auto-Answer)
+3. **Profile/Features Tab** (Phase 3: AI Suggestions)
+4. **Dashboard Tab** (Phase 4-6: Analytics, Chat, Predictions)
+
+---
+
+## 🛠️ Code Standards
+
+### TypeScript
+- **Strict mode**: Always enabled
+- **No `any`** types unless absolutely necessary
+- **Interfaces** over types for object shapes
+- **Null safety**: Always handle undefined/null
+
+### React/Next.js
+- **Server Components** by default
+- **Client Components** only when needed (`"use client"`)
+- **Error Boundaries** for all major features
+- **Loading states** for all async operations
+
+### API Routes
+- **Authentication**: Always check user via `createClient().auth.getUser()`
+- **Error Handling**: Return proper HTTP status codes
+- **Rate Limiting**: Already in place, don't bypass
+- **CORS**: Already configured, don't modify
+
+### Supabase
+- **RLS Policies**: Never bypass Row Level Security
+- **Server Client**: Use `createClient()` from `lib/supabase/server`
+- **Admin Client**: Only for privileged operations
+- **Transactions**: Use when modifying multiple tables
+
+### AI Services
+- **Context**: Always provide business context (name, category, location)
+- **Tone**: Respect user's tone preferences
+- **Language**: Support Arabic + English
+- **Confidence**: Track and log confidence scores
+- **Fallback**: Never fail silently - show user-friendly error
+
+---
+
+## 🎨 UI/UX Standards
+
+### Layouts
+- **Header**: `top-8` (account for BETA banner)
+- **Sidebar**: `top-8`, `h-[calc(100vh-2rem)]`
+- **Main Content**: `pt-8` minimum
+- **Modals**: Center, with backdrop blur
+
+### Components
+- **Loading**: Use Skeleton loaders, not spinners
+- **Empty States**: Provide helpful actions
+- **Error States**: Actionable error messages
+- **Success**: Toast notifications (via Sonner)
+
+### Accessibility
+- **ARIA labels** on all interactive elements
+- **Keyboard navigation** support
+- **Screen reader** friendly
+- **Color contrast** WCAG AA minimum
+
+---
+
+## 📊 Performance Standards
+
+### API Response Times
+- **Target**: < 200ms for data fetching
+- **Maximum**: < 1000ms acceptable
+- **AI Calls**: < 3000ms (with streaming where possible)
+
+### Database Queries
+- **Indexes**: Use indexes for all foreign keys
+- **Pagination**: Always paginate large datasets
+- **Caching**: Use React Query for client-side caching
+- **N+1**: Avoid with proper joins/select
+
+### Bundle Size
+- **Images**: Use Next.js Image component
+- **Code Splitting**: Dynamic imports for heavy components
+- **Tree Shaking**: Import only what's needed
+
+---
+
+## 🧪 Testing Standards
+
+### Before PR
+- ✅ Test on `localhost:5050`
+- ✅ Test with real/sample data
+- ✅ Test error scenarios
+- ✅ Test on both English + Arabic
+- ✅ Check browser console (no errors)
+- ✅ Check Network tab (no failed requests)
+
+### Beta Testing
+- ✅ Deploy to production
+- ✅ Test with 5-10 beta users
+- ✅ Collect feedback
+- ✅ Monitor Sentry for errors
+- ✅ Check performance metrics
+
+---
+
+## 🚀 Deployment Checklist
+
+### Before Deployment
+- [ ] All migrations applied locally
+- [ ] Database schema documented
+- [ ] Environment variables verified
+- [ ] No console errors
+- [ ] No TypeScript errors
+- [ ] Tests passed (if any)
+
+### Deployment
+1. Merge PR to `main`
+2. SSH to production server
+3. Run: `git pull origin main`
+4. Run: `npm install` (if dependencies changed)
+5. Run: `npm run build`
+6. Restart: `pm2 restart nnh-ai-studio`
+7. Verify: Check https://nnh.ae
+
+### After Deployment
+- [ ] Smoke test main features
+- [ ] Check Sentry for new errors
+- [ ] Monitor performance
+- [ ] Alert beta users of new features
+
+---
+
+## 🔐 Security Standards
+
+### Never Commit
+- ❌ API Keys
+- ❌ Passwords
+- ❌ Service Account Keys
+- ❌ `.env` files
+
+### Always
+- ✅ Validate user input
+- ✅ Sanitize HTML output
+- ✅ Check authentication
+- ✅ Respect RLS policies
+- ✅ Use parameterized queries
+
+---
+
+## 📝 Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `refactor`: Code refactoring
+- `perf`: Performance improvement
+- `test`: Tests
+- `chore`: Maintenance
+
+**Examples:**
+```
+feat(reviews): add instant auto-reply without approval
+
+- Modified server/actions/auto-reply.ts
+- Set require_approval to false by default
+- Added monitoring dashboard
+- Updated DATABASE_SCHEMA.md
+
+Closes #123
+```
+
+---
+
+## 🎯 AI-First Platform Rules
+
+### Philosophy
+- **Auto (No Approval)**: Review Replies + Question Answers
+- **User Approval Required**: ALL profile changes (description, hours, attributes, photos)
+
+### Transparency
+- **Always** show user what AI is doing
+- **Always** provide opt-out option
+- **Always** log AI actions
+- **Never** hide AI behavior
+
+### Control
+- **User control > Automation**
+- **Clear settings** for all AI features
+- **Easy disable** for any feature
+- **Full audit trail** of AI actions
+
+---
+
+## 📚 Key Files Reference
+
+### AI Services
+- `lib/ai/provider.ts` - Multi-provider system
+- `lib/services/ai-review-service.ts` - Review AI
+- `server/actions/auto-reply.ts` - Auto-reply logic
+
+### Database
+- `google-api-docs/DATABASE_SCHEMA.md` - Complete schema
+- `supabase/migrations/` - All migrations
+
+### Components
+- `components/common/beta-badge.tsx` - BETA banner
+- `components/reviews/` - Reviews components
+- `components/ai/` - AI components
+
+### Settings
+- `app/[locale]/(dashboard)/settings/auto-pilot/page.tsx` - Auto-Pilot settings
+
+---
+
+## ⚡ Quick Commands
+
+```bash
+# Development
+npm run dev              # Start dev server (port 5050)
+
+# Database
+npm run db:push          # Apply migrations
+npm run db:update-docs   # Update schema documentation
+
+# Production
+npm run build            # Build for production
+npm run start            # Start production server (port 5000)
+
+# Testing
+npm run test             # Run tests
+npm run lint             # Lint code
+```
+
+---
+
+## 🆘 When in Doubt
+
+1. Check `.beta-reminder` file
+2. Check `google-api-docs/DATABASE_SCHEMA.md`
+3. Check existing similar code
+4. Ask before making breaking changes
+5. Test thoroughly before PR
+
+---
+
+**Remember**: Quality > Speed. Tab by Tab. 100% or Nothing. 🎯
+
