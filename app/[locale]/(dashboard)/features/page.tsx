@@ -238,13 +238,13 @@ export default function BusinessProfilePage() {
                   
                   if (response.ok) {
                     toast.success('Successfully imported from GMB', {
-                      id: loadingToast
+                      id: loadingToast,
+                      description: 'Refreshing page...'
                     });
-                    // Reload profile after a short delay
+                    // Hard reload to ensure fresh data
                     setTimeout(() => {
-                      setSelectedLocationId(null);
-                      setTimeout(() => setSelectedLocationId(selectedLocationId), 100);
-                    }, 1000);
+                      window.location.reload();
+                    }, 1500);
                   } else {
                     toast.error(data.error || `Import failed (${response.status})`, {
                       id: loadingToast
