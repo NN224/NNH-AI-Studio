@@ -89,9 +89,8 @@ async function checkRateLimit(key: string, limit: number, windowMs: number) {
 const intlMiddleware = createIntlMiddleware({
   locales: ['en', 'ar'],
   defaultLocale: 'en',
-  localePrefix: 'as-needed',
-  // Disable automatic locale detection to prevent redirects when switching to default locale
-  localeDetection: false,
+  localePrefix: 'always', // Always show locale in URL (/en/ or /ar/)
+  localeDetection: true, // Enable browser language detection
 });
 
 function extractUserId(request: NextRequest): string {
