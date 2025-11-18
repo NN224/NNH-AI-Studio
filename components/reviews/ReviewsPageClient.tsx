@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useInView } from 'react-intersection-observer';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   RefreshCw,
@@ -60,6 +61,7 @@ type ReviewsFilters = ReviewsHookState['filters'];
 type UpdateFilterFn = ReviewsHookState['updateFilter'];
 
 export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClientProps) {
+  const t = useTranslations('Reviews');
   const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -823,7 +825,7 @@ function ReviewsFeedSection({
               </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <ArrowUpRight className="h-3.5 w-3.5 text-orange-400" />
-          Real-time sync enabled
+          {t('realtimeSyncEnabled')}
           </div>
       </header>
 
@@ -867,7 +869,7 @@ function ReviewsFeedSection({
                     variant="ghost"
                     className="text-zinc-400 hover:text-zinc-200"
                   >
-                    Load more
+                    {t('loadMore')}
                   </Button>
                   )}
                 </div>
@@ -876,7 +878,7 @@ function ReviewsFeedSection({
             {!hasNextPage && (
               <div className="text-center py-6">
                   <p className="text-zinc-500 text-sm">
-                  You&apos;re all caught up — no more reviews to load.
+                  {t('allCaughtUp')}
                   </p>
                 </div>
               )}
