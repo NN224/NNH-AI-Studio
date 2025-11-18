@@ -29,6 +29,7 @@ import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import { BulkActionBar } from './bulk-action-bar';
+import { AutoReplySettingsPanel } from './auto-reply-settings-panel';
 import { useReviews } from '@/hooks/use-reviews';
 import { syncReviewsFromGoogle } from '@/server/actions/reviews-management';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
@@ -460,7 +461,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
             reviewTrendPct={reviewTrendPct}
             pendingCount={reviewStatsSummary?.pending ?? 0}
           />
-          <AutoReplySettingsCard />
+          <AutoReplySettingsPanel locationId={filters.locationId} />
         </div>
       </main>
 
