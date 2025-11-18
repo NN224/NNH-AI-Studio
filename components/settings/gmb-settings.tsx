@@ -74,31 +74,10 @@ export function GMBSettings() {
         setLanguage(settings.language || 'en')
         setReviewNotifications(settings.reviewNotifications !== false)
         setEmailDigest(settings.emailDigest || 'never')
-        setReplyReminders(settings.replyReminders !== false)
-        setBrowserNotifications(settings.browserNotifications || false)
-        setSoundAlerts(settings.soundAlerts || false)
-        setQuietHours(settings.quietHours || false)
-        setQuietHoursStart(settings.quietHoursStart || '22:00')
-        setQuietHoursEnd(settings.quietHoursEnd || '08:00')
-        setNotifyReviews(settings.notifyReviews !== false)
-        setNotifyQuestions(settings.notifyQuestions !== false)
-        setNotifyMessages(settings.notifyMessages !== false)
-        setNotifyMentions(settings.notifyMentions || false)
-        setNotifyInsights(settings.notifyInsights !== false)
-        setNotifyTips(settings.notifyTips || false)
 
         // Data Management
         setRetentionDays(settings.retentionDays || 30)
         setDeleteOnDisconnect(settings.deleteOnDisconnect || false)
-
-        // Branding
-        if (settings.branding) {
-          setBrandName(settings.branding.brandName || '')
-          setPrimaryColor(settings.branding.primaryColor || '#FFA500')
-          setSecondaryColor(settings.branding.secondaryColor || '#1A1A1A')
-          setLogoUrl(settings.branding.logoUrl || null)
-          setCoverImageUrl(settings.branding.coverImageUrl || null)
-        }
       }
     } catch (error) {
       console.error('Error loading settings:', error)
