@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GMBSettings } from '@/components/settings/gmb-settings';
 import { toast } from 'sonner';
+import { forceGmbRefresh } from '@/lib/utils/gmb-events';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
@@ -18,8 +19,8 @@ export default function SettingsPage() {
         description: 'Your account is now connected and ready to sync.'
       });
       
-      // Dispatch reconnected event to update UI
-      window.dispatchEvent(new Event('gmb-reconnected'));
+      // Force refresh of all GMB-related data
+      forceGmbRefresh();
       
       // Clean up URL
       const url = new URL(window.location.href);

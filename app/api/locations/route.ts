@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
     
     // ✅ Input validation
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20', 10)));
+    // Support both 'pageSize' and 'limit' parameters for backward compatibility
+    const limitParam = searchParams.get('limit') || searchParams.get('pageSize') || '20';
+    const pageSize = Math.min(100, Math.max(1, parseInt(limitParam, 10)));
     
     // Validate sortBy
     const validSortFields = ['location_name', 'rating', 'review_count', 'created_at', 'updated_at'];

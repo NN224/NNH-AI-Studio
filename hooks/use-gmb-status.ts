@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { listenForGmbEvents } from '@/lib/utils/gmb-events';
 
 interface GmbAccountRecord {
   id: string;
@@ -103,7 +104,18 @@ export function useGmbStatus(): UseGmbStatusResult {
   useEffect(() => {
     mountedRef.current = true;
     load();
-    return () => { mountedRef.current = false; };
+    
+    // Listen for GMB connection events using utility
+    const cleanup = listenForGmbEvents(() => {
+      if (mountedRef.current) {
+        load();
+      }
+    });
+    
+    return () => { 
+      mountedRef.current = false;
+      cleanup();
+    };
   }, [load]);
 
   return {

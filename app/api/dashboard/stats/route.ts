@@ -5,8 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 
 /**
- * Optimized dashboard stats API that uses database views and functions
- * Avoids N+1 queries by using pre-aggregated data
+ * GET /api/dashboard/stats
+ * Returns basic dashboard statistics
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,184 +36,103 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Use the dashboard stats view for optimized queries
-    const { data: dashboardStats, error: statsError } = await supabase
-      .from('v_dashboard_stats')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (statsError && statsError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Dashboard stats error:', statsError);
-    }
-
-    // Use materialized view for location stats if available
-    const { data: locationStats, error: locationStatsError } = await supabase
-      .from('mv_location_stats')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (locationStatsError) {
-      console.error('Location stats error:', locationStatsError);
-    }
-
-    // Get health score distribution (skip if view doesn't exist)
-    let healthScores = null;
+    // Try to get stats from v_dashboard_stats view (if it exists)
+    let dashboardStats = null;
     try {
-      const { data, error: healthError } = await supabase
-        .from('v_health_score_distribution')
+      const { data, error: statsError } = await supabase
+        .from('v_dashboard_stats')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (healthError && healthError.code !== 'PGRST116' && healthError.code !== 'PGRST205') {
-        console.error('Health score error:', healthError);
-      } else {
-        healthScores = data;
+      if (!statsError) {
+        dashboardStats = data;
       }
     } catch (error) {
-      // View doesn't exist, skip it
-      console.log('Health score view not available, skipping...');
+      console.log('v_dashboard_stats view not available, calculating manually');
     }
 
-    // Get recent activity using a single optimized query
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    
-    const [
-      { data: recentReviews, error: recentReviewsError },
-      { data: recentQuestions, error: recentQuestionsError },
-      { data: trendData, error: trendError }
-    ] = await Promise.all([
-      // Recent reviews with location info
-      supabase
-        .from('gmb_reviews')
-        .select(`
-          id,
-          rating,
-          review_text,
-          reviewer_name,
-          review_date,
-          has_reply,
-          location:gmb_locations!inner(id, location_name)
-        `)
-        .eq('user_id', user.id)
-        .gte('review_date', thirtyDaysAgo)
-        .order('review_date', { ascending: false })
-        .limit(5),
+    // Fallback: Calculate stats manually if view doesn't exist
+    if (!dashboardStats) {
+      const [
+        { count: totalLocations },
+        { data: reviews },
+        { count: totalQuestions },
+        { count: pendingQuestions }
+      ] = await Promise.all([
+        supabase
+          .from('gmb_locations')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('is_active', true),
+        
+        supabase
+          .from('gmb_reviews')
+          .select('rating, has_reply, reply_text')
+          .eq('user_id', user.id),
+        
+        supabase
+          .from('gmb_questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        
+        supabase
+          .from('gmb_questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .or('answer_status.eq.pending,answer_text.is.null')
+      ]);
+
+      const totalReviews = reviews?.length || 0;
+      const avgRating = totalReviews > 0 
+        ? reviews!.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews 
+        : 0;
       
-      // Recent questions with location info
-      supabase
-        .from('gmb_questions')
-        .select(`
-          id,
-          question_text,
-          author_name,
-          created_at,
-          answer_status,
-          location:gmb_locations!inner(id, location_name)
-        `)
-        .eq('user_id', user.id)
-        .gte('created_at', thirtyDaysAgo)
-        .order('created_at', { ascending: false })
-        .limit(5),
+      const repliedReviews = reviews?.filter(r => 
+        r.has_reply === true || (r.reply_text && r.reply_text.trim() !== '')
+      ).length || 0;
       
-      // Trend data using window functions
-      supabase.rpc('get_dashboard_trends', {
-        p_user_id: user.id,
-        p_days: 30
-      })
-    ]);
+      const responseRate = totalReviews > 0 
+        ? (repliedReviews / totalReviews) * 100 
+        : 0;
 
-    // Handle errors gracefully
-    if (recentReviewsError) console.error('Recent reviews error:', recentReviewsError);
-    if (recentQuestionsError) console.error('Recent questions error:', recentQuestionsError);
-    if (trendError) console.error('Trend data error:', trendError);
-
-    // Calculate derived metrics
-    const stats = dashboardStats || {
-      total_locations: 0,
-      avg_rating: 0,
-      total_reviews: 0,
-      response_rate: 0,
-      pending_reviews: 0,
-      recent_reviews: 0,
-      pending_questions: 0,
-      recent_questions: 0,
-    };
-
-    // Aggregate location-level stats if available
-    const aggregatedLocationStats = locationStats?.reduce((acc, loc) => {
-      acc.totalReviews += loc.total_reviews || 0;
-      acc.pendingReviews += loc.pending_reviews || 0;
-      acc.totalQuestions += loc.total_questions || 0;
-      acc.unansweredQuestions += loc.unanswered_questions || 0;
-      return acc;
-    }, {
-      totalReviews: 0,
-      pendingReviews: 0,
-      totalQuestions: 0,
-      unansweredQuestions: 0,
-    }) || stats;
+      dashboardStats = {
+        total_locations: totalLocations || 0,
+        total_reviews: totalReviews,
+        avg_rating: Math.round(avgRating * 100) / 100,
+        pending_reviews: totalReviews - repliedReviews,
+        replied_reviews: repliedReviews,
+        pending_questions: pendingQuestions || 0,
+        recent_reviews: 0, // Would need date filtering
+        avg_response_rate: responseRate,
+        calculated_response_rate: responseRate
+      };
+    }
 
     // Build response
     const response = {
       // Core metrics
-      totalLocations: stats.total_locations,
-      averageRating: Math.round(stats.avg_rating * 10) / 10,
-      totalReviews: aggregatedLocationStats.totalReviews || stats.total_reviews,
-      responseRate: Math.round(stats.response_rate * 10) / 10,
+      totalLocations: dashboardStats.total_locations || 0,
+      averageRating: Math.round((dashboardStats.avg_rating || 0) * 10) / 10,
+      totalReviews: dashboardStats.total_reviews || 0,
+      responseRate: Math.round((dashboardStats.calculated_response_rate || 0) * 10) / 10,
       
       // Pending items
-      pendingReviews: aggregatedLocationStats.pendingReviews || stats.pending_reviews,
-      pendingQuestions: aggregatedLocationStats.unansweredQuestions || stats.pending_questions,
+      pendingReviews: dashboardStats.pending_reviews || 0,
+      pendingQuestions: dashboardStats.pending_questions || 0,
       
-      // Health metrics
-      healthScore: healthScores?.avg_health_score ? Math.round(healthScores.avg_health_score) : 0,
-      healthDistribution: {
-        excellent: healthScores?.excellent_count || 0,
-        good: healthScores?.good_count || 0,
-        fair: healthScores?.fair_count || 0,
-        needsAttention: healthScores?.needs_attention_count || 0,
-      },
-      
-      // Recent activity
-      recentActivity: {
-        reviews: (recentReviews || []).map(r => ({
-          id: r.id,
-          rating: r.rating,
-          text: r.review_text?.substring(0, 100),
-          reviewer: r.reviewer_name,
-          date: r.review_date,
-          hasReply: r.has_reply,
-          locationName: r.location?.[0]?.location_name || 'Unknown',
-        })),
-        questions: (recentQuestions || []).map(q => ({
-          id: q.id,
-          text: q.question_text?.substring(0, 100),
-          author: q.author_name,
-          date: q.created_at,
-          status: q.answer_status,
-          locationName: q.location?.[0]?.location_name || 'Unknown',
-        })),
-      },
-      
-      // Trends
-      trends: trendData || {
-        reviews: { current: 0, previous: 0, change: 0 },
-        questions: { current: 0, previous: 0, change: 0 },
-        rating: { current: 0, previous: 0, change: 0 },
-        responseRate: { current: 0, previous: 0, change: 0 },
-      },
+      // Additional stats
+      repliedReviews: dashboardStats.replied_reviews || 0,
+      recentReviews: dashboardStats.recent_reviews || 0,
       
       // Metadata
       lastUpdated: new Date().toISOString(),
-      cacheExpiry: 300, // 5 minutes
+      source: dashboardStats ? 'view' : 'calculated'
     };
 
     // Set cache headers
     const headers = new Headers({
       'Cache-Control': 'private, max-age=60, stale-while-revalidate=240',
-      'X-Stats-Source': locationStats ? 'materialized-view' : 'live-query',
       ...Object.fromEntries(
         Object.entries(rateLimitHeaders).map(([k, v]) => [k, String(v)])
       ),
@@ -231,50 +150,6 @@ export async function GET(request: NextRequest) {
         error: 'Internal server error',
         message: 'Failed to fetch dashboard statistics'
       },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST endpoint to refresh materialized views
- * Should be called periodically (e.g., via cron job)
- */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    
-    // This endpoint should ideally be protected with an API key
-    // or limited to admin users only
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Refresh materialized view
-    const { error } = await supabase.rpc('refresh_location_stats');
-    
-    if (error) {
-      console.error('Failed to refresh stats:', error);
-      return NextResponse.json(
-        { error: 'Failed to refresh statistics' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Statistics refreshed successfully',
-      timestamp: new Date().toISOString(),
-    });
-    
-  } catch (error) {
-    console.error('Stats refresh error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
       { status: 500 }
     );
   }

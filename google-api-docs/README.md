@@ -144,6 +144,27 @@ cat mybusinessbusinessinformation-api.json | jq '.schemas.Location'
 
 ---
 
+## 🗄️ Database Schema Reference
+
+**⚠️ مهم:** بالإضافة للـ Google APIs، راجع دائماً Database Schema!
+
+**الملف:** `DATABASE_SCHEMA.md`
+
+يحتوي على:
+- ✅ جميع الجداول (24 جدول)
+- ✅ جميع الأعمدة (462 عمود)
+- ✅ العلاقات (Foreign Keys)
+- ✅ Indexes (253 index)
+- ✅ RLS Policies (100 policy)
+- ✅ التوافق مع Google APIs
+
+**قاعدة ذهبية:**
+```
+Google API Schema + Database Schema = التوافق الكامل ✅
+```
+
+---
+
 ## 📖 أمثلة على الاستخدام
 
 ### مثال 1: التحقق من حقول Location

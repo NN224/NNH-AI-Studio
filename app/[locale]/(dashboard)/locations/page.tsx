@@ -129,7 +129,20 @@ export default function LocationsPage() {
 
         // Handle specific HTTP error codes
         if (response.status === 401) {
-          toast.error('Session expired. Please sign in again.');
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.message || errorData.error || 'Session expired';
+          
+          if (errorMessage.includes('expired') || errorMessage.includes('reconnect')) {
+            toast.error('🔗 Google connection expired. Go to Settings → Connect Google Account to reconnect.', {
+              duration: 8000,
+              action: {
+                label: 'Go to Settings',
+                onClick: () => window.location.href = '/settings'
+              }
+            });
+          } else {
+            toast.error('Session expired. Please sign in again.');
+          }
           return;
         }
         

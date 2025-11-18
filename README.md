@@ -260,11 +260,17 @@ We welcome feedback and contributions! Since this is in BETA, your input is valu
 - **BETA Status Guide:** `BETA_STATUS_GUIDE.md` - Detailed BETA implementation guide
 - **Quick Reference:** `BETA_QUICK_REFERENCE.md` - Quick checklist for BETA rules
 
-### 📚 API Documentation
+### 📚 API & Database Documentation
 - **Google API Docs:** `google-api-docs/README.md` - **Official Google My Business API Documentation**
   - ⚠️ **Always check here before modifying Dashboard features!**
   - Contains official API schemas and specifications
   - 8 different APIs documented
+- **Database Schema:** `google-api-docs/DATABASE_SCHEMA.md` - **Complete Database Reference**
+  - 🗄️ **24 tables, 462 columns, full schema documentation**
+  - Includes relationships, indexes, RLS policies
+  - Shows compatibility with Google APIs
+  - Detailed CSV: `database-schema.csv`
+  - **⚠️ Schema Update Guide:** `SCHEMA_UPDATE_GUIDE.md` - How to update docs when schema changes
 
 > **⚠️ New to the project?** Read `IMPORTANT_READ_THIS.md` first, then check `DOCUMENTATION_INDEX.md` for the complete guide!
 

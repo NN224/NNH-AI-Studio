@@ -2,6 +2,7 @@ import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { validateCSRF } from '@/lib/security/csrf';
+import { generateNonce } from '@/lib/security/csp-nonce';
 
 // Upstash Ratelimit configuration with fallback to in-memory
 import { Redis } from '@upstash/redis';
@@ -218,6 +219,12 @@ export async function middleware(request: NextRequest) {
   // Add CSRF token to response headers if available (for GET requests)
   if (!isOAuthRoute && csrfToken && request.method === 'GET') {
     response.headers.set('X-CSRF-Token', csrfToken);
+  }
+
+  // Add nonce for CSP (for HTML pages)
+  if (request.nextUrl.pathname.match(/\.(html|htm)$/) || !request.nextUrl.pathname.includes('.')) {
+    const nonce = generateNonce();
+    response.headers.set('X-Nonce', nonce);
   }
 
   return response;
