@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner'
 import type { AutoReplySettings } from '@/server/actions/auto-reply'
 import { ActivityStatsCard } from '@/components/settings/activity-stats-card'
+import { TestAutoReplySection } from '@/components/settings/test-auto-reply-section'
 
 export default function AutoPilotPage() {
   const [settings, setSettings] = useState<AutoReplySettings | null>(null)
@@ -238,6 +239,9 @@ export default function AutoPilotPage() {
 
       {/* Activity Stats */}
       {settings.enabled && <ActivityStatsCard />}
+
+      {/* Test Auto-Reply Section */}
+      {settings.enabled && <TestAutoReplySection />}
 
       {/* Save Button */}
       <div className="flex gap-3">
