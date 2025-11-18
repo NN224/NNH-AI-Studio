@@ -16,18 +16,20 @@ export interface ReviewContext {
   previousReplies?: string[];
 }
 
-export interface ReplyResult {
-  success: true;
-  reply: string;
-  confidence: number; // 0-100
-  provider: string;
-  model: string;
-  latency: number;
-} | {
-  success: false;
-  error: string;
-  provider?: string;
-}
+export type ReplyResult = 
+  | {
+      success: true;
+      reply: string;
+      confidence: number; // 0-100
+      provider: string;
+      model: string;
+      latency: number;
+    }
+  | {
+      success: false;
+      error: string;
+      provider?: string;
+    };
 
 /**
  * Generate AI reply with multi-provider routing and confidence scoring
