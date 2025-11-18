@@ -96,7 +96,7 @@ export function BusinessHoursDisplay({ regularHours, moreHours }: BusinessHoursD
                     <span className="text-red-400">مغلق</span>
                   ) : (
                     <span className="text-zinc-400 font-mono">
-                      {hours.open} - {hours.close}
+                      {String(hours.open || '')} - {String(hours.close || '')}
                     </span>
                   )}
                 </div>
@@ -125,9 +125,9 @@ export function BusinessHoursDisplay({ regularHours, moreHours }: BusinessHoursD
                       key={periodIdx}
                       className="flex justify-between items-center py-1 text-sm"
                     >
-                      <span className="text-zinc-400">{dayNames[period.openDay] || period.openDay}</span>
+                      <span className="text-zinc-400">{dayNames[period.openDay] || String(period.openDay || '')}</span>
                       <span className="text-zinc-500 font-mono">
-                        {period.openTime} - {period.closeTime}
+                        {String(period.openTime || '')} - {String(period.closeTime || '')}
                       </span>
                     </div>
                   ))}

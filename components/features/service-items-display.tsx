@@ -43,7 +43,7 @@ export function ServiceItemsDisplay({ serviceItems }: ServiceItemsDisplayProps) 
             {item.price && (
               <div className="flex items-center gap-1 text-green-400 font-semibold ml-3">
                 <DollarSign className="w-4 h-4" />
-                <span>{item.price.units} {item.price.currencyCode}</span>
+                <span>{String(item.price.units || '')} {String(item.price.currencyCode || '')}</span>
               </div>
             )}
           </div>
