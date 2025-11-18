@@ -98,6 +98,7 @@ export default function BusinessProfilePage() {
             primaryCategory: payload.primaryCategory,
             additionalCategories: payload.additionalCategories,
             specialLinks: payload.specialLinks,
+            socialLinks: payload.socialLinks,
             features: {
               amenities: payload.features?.amenities?.length || 0,
               payment_methods: payload.features?.payment_methods?.length || 0,

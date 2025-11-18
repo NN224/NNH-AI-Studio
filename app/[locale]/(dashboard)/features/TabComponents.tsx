@@ -192,12 +192,12 @@ export function BusinessInfoTab({ profile, onChange, onDirty, disabled = false }
   }
 
   // Social Links
-  const handleSocialLinkChange = (key: keyof typeof profile.socialLinks, value: string) => {
+  const handleSocialLinkChange = (key: string, value: string) => {
     if (disabled) return
     onChange({
       ...profile,
       socialLinks: {
-        ...profile.socialLinks,
+        ...(profile.socialLinks || {}),
         [key]: value ? sanitizeUrl(value) : null,
       },
     })
