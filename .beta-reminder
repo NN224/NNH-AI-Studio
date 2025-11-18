@@ -1,0 +1,22 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ⚠️  THIS PROJECT IS IN BETA STATUS  ⚠️                     ║
+║                                                              ║
+║   🌍 ENVIRONMENTS:                                           ║
+║   🖥️  Development: localhost:5050 (LOCAL ONLY)              ║
+║   🌐 Production: nnh.ae (LIVE - PUBLIC FOR THE WORLD) ✅     ║
+║                                                              ║
+║   📌 IMPORTANT REMINDERS:                                    ║
+║                                                              ║
+║   1. BETA banner must ALWAYS be visible at top              ║
+║   2. Use top-8 instead of top-0 for headers                 ║
+║   3. Use pt-8 for main containers                           ║
+║   4. Test all pages to ensure banner doesn't cover content  ║
+║   5. Remember: nnh.ae is PUBLIC and accessible worldwide!   ║
+║                                                              ║
+║   📚 Quick Reference: BETA_QUICK_REFERENCE.md               ║
+║   📖 Full Guide: BETA_STATUS_GUIDE.md                       ║
+║                                                              ║
+║   Version: 0.9.0-beta                                        ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
