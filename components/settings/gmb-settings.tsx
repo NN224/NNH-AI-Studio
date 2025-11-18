@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, Shield, Globe, Sparkles, Bell, Database, Palette } from "lucide-react"
+import { Save, Shield, Globe, Sparkles, Bell, Database, Palette, Bot } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -229,9 +229,9 @@ export function GMBSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Settings Tabs - Simplified to 3 tabs only */}
+      {/* Settings Tabs - 4 tabs */}
       <Tabs defaultValue={firstTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-secondary/50" role="tablist">
+        <TabsList className="grid w-full grid-cols-4 bg-secondary/50" role="tablist">
           <TabsTrigger
             value="account"
             className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
@@ -243,6 +243,17 @@ export function GMBSettings() {
           <TabsTrigger value="app" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">App Settings</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="auto-pilot" 
+            className="gap-2 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push('/settings/auto-pilot');
+            }}
+          >
+            <Bot className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Auto-Pilot</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Database className="h-4 w-4" aria-hidden="true" />
