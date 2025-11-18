@@ -7,7 +7,7 @@ function resolveBaseUrl(request: Request) {
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    'http://localhost:5050'
+    (process.env.NODE_ENV === 'production' ? 'https://nnh.ae' : 'http://localhost:5050')
   )
 }
 

@@ -53,8 +53,11 @@ export async function POST(
     // Generate AI reply if requested
     if (generate_ai_reply && !reply_text) {
       try {
+        const baseUrl = 
+          process.env.NEXT_PUBLIC_APP_URL || 
+          (process.env.NODE_ENV === 'production' ? 'https://nnh.ae' : 'http://localhost:5050');
         const aiResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5050'}/api/reviews/ai-response`,
+          `${baseUrl}/api/reviews/ai-response`,
           {
             method: 'POST',
             headers: {

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getBaseUrl } from "@/lib/utils/get-base-url";
 
 export interface AutoReplySettings {
   enabled: boolean;
@@ -269,7 +270,9 @@ interface ReviewRecord {
   status: string | null;
 }
 
-const DEFAULT_APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5050";
+// Get base URL - use utility function that handles production/development
+// This will return https://nnh.ae in production, localhost:5050 in development
+const DEFAULT_APP_URL = getBaseUrl();
 
 async function fetchReviewRecord(
   supabase: SupabaseClient,

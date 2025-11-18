@@ -184,6 +184,7 @@ function isOriginAllowed(origin: string): boolean {
   const allowedOrigins = [
     'http://localhost:5050',
     'http://localhost:3001',
+    'https://nnh.ae',
     process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean);
 

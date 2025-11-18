@@ -461,7 +461,8 @@ export async function bulkSyncLocations(locationIds: string[]) {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5050')
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    (process.env.NODE_ENV === 'production' ? 'https://nnh.ae' : 'http://localhost:5050')
 
   const response = await fetch(`${baseUrl}/api/gmb/sync`, {
     method: 'POST',

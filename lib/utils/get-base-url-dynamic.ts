@@ -22,5 +22,5 @@ export function getBaseUrlDynamic(request: NextRequest): string {
   }
 
   // Fallback for local development or if headers are missing
-  return 'http://localhost:5050';
+  return process.env.NODE_ENV === 'production' ? 'https://nnh.ae' : 'http://localhost:5050';
 }
