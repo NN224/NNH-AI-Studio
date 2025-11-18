@@ -214,10 +214,21 @@ function buildSocialLinks(raw: Record<string, any>): SocialLinks {
   const socialLinks: SocialLinks = {}
   
   attributes.forEach((attr: any) => {
-    if (!attr || !attr.name || !attr.values) return
+    if (!attr || !attr.name) return
     
     const attrName = attr.name
-    const value = Array.isArray(attr.values) ? attr.values[0] : attr.values
+    
+    // Social links are stored in uriValues, not values!
+    let value: string | null = null
+    
+    // Check uriValues first (for URL type attributes)
+    if (Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
+      value = attr.uriValues[0]?.uri || null
+    }
+    // Fallback to values (for backward compatibility)
+    else if (attr.values) {
+      value = Array.isArray(attr.values) ? attr.values[0] : attr.values
+    }
     
     // Skip if value is null or empty
     if (!value || typeof value !== 'string') return
