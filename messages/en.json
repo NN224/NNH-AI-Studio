@@ -355,6 +355,10 @@
     "empty": "No reviews found",
     "aiCopilot": "AI Copilot",
     "loadMore": "Load more",
+    "error": {
+      "title": "Something went wrong while loading Reviews",
+      "tryAgain": "Try Again"
+    },
     "allCaughtUp": "You're all caught up — no more reviews to load.",
     "realtimeSyncEnabled": "Real-time sync enabled",
     "autoReply": {

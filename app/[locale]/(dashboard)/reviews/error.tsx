@@ -1,11 +1,13 @@
-
-
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 export default function ReviewsError({ reset }: { reset: () => void }) {
+  const t = useTranslations('Reviews.error');
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px]">
-      <h2 className="text-lg font-semibold mb-4 text-red-400">Something went wrong while loading Reviews</h2>
+      <h2 className="text-lg font-semibold mb-4 text-red-400">{t('title')}</h2>
       <button
         onClick={() => {
           reset();
@@ -14,7 +16,7 @@ export default function ReviewsError({ reset }: { reset: () => void }) {
         }}
         className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition"
       >
-        Try Again
+        {t('tryAgain')}
       </button>
     </div>
   );
