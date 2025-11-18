@@ -110,12 +110,35 @@ export async function generateAIReviewReply(
 }
 
 /**
+ * Detect language of the review text
+ */
+function detectLanguage(text: string): 'ar' | 'en' {
+  // Check for Arabic characters
+  const arabicPattern = /[\u0600-\u06FF]/;
+  const hasArabic = arabicPattern.test(text);
+  
+  // Count Arabic vs Latin characters
+  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const latinCount = (text.match(/[a-zA-Z]/g) || []).length;
+  
+  // If more than 30% Arabic characters, consider it Arabic
+  if (hasArabic && arabicCount > latinCount * 0.3) {
+    return 'ar';
+  }
+  
+  return 'en';
+}
+
+/**
  * Build context-aware prompt for review reply
  */
 function buildReviewReplyPrompt(
   context: ReviewContext,
   settings: AutoReplySettings
 ): string {
+  // Detect review language
+  const reviewLang = detectLanguage(context.reviewText);
+  
   const toneInstructions: Record<string, string> = {
     friendly: 'Use a warm, friendly, and approachable tone. Be conversational and personable.',
     professional: 'Use a formal, professional, and business-like tone. Maintain respect and courtesy.',
@@ -139,6 +162,11 @@ function buildReviewReplyPrompt(
     ? `Category: ${context.businessCategory}`
     : '';
 
+  // Language-specific instructions
+  const languageInstruction = reviewLang === 'ar' 
+    ? `CRITICAL: The review is in ARABIC. You MUST respond ONLY in ARABIC (العربية). Do NOT mix English words or use Latin characters.`
+    : `CRITICAL: The review is in ENGLISH. You MUST respond ONLY in ENGLISH. Do NOT mix Arabic words or use Arabic characters.`;
+
   return `You are a professional customer service representative responding to a Google Business Profile review.
 
 ${businessContext}
@@ -148,13 +176,15 @@ ${ratingContext}
 
 TONE: ${tone}
 
+${languageInstruction}
+
 REVIEW (${context.rating} stars):
 "${context.reviewText}"
 
 ${context.customerName ? `Customer: ${context.customerName}` : ''}
 
 INSTRUCTIONS:
-1. Respond in the same language as the review (Arabic or English)
+1. ${reviewLang === 'ar' ? 'رد بالعربية فقط - لا تخلط الإنجليزية' : 'Respond in English only - do not mix Arabic'}
 2. Keep the response concise (2-4 sentences for positive, 3-5 for negative)
 3. Personalize the response - reference specific points from the review
 4. For negative reviews: acknowledge the issue, apologize, and offer to resolve
@@ -162,6 +192,7 @@ INSTRUCTIONS:
 6. Sign off professionally but warmly
 7. Do NOT include any markdown, quotes, or special formatting
 8. Do NOT include your name or title - just the response text
+9. IMPORTANT: Write ONLY in ${reviewLang === 'ar' ? 'Arabic (العربية)' : 'English'}
 
 Generate the response now:`;
 }
@@ -184,12 +215,32 @@ function calculateConfidenceScore(
   }
 
   // Language match (check if reply matches review language)
-  const reviewIsArabic = /[\u0600-\u06FF]/.test(context.reviewText);
-  const replyIsArabic = /[\u0600-\u06FF]/.test(reply);
-  if (reviewIsArabic === replyIsArabic) {
-    score += 15;
+  const reviewLang = detectLanguage(context.reviewText);
+  const replyLang = detectLanguage(reply);
+  
+  if (reviewLang === replyLang) {
+    // Correct language - bonus points
+    score += 20;
   } else {
-    score -= 10;
+    // Wrong language - major penalty
+    score -= 30;
+  }
+  
+  // Check for language mixing (both Arabic and English in reply)
+  const hasArabic = /[\u0600-\u06FF]/.test(reply);
+  const hasEnglish = /[a-zA-Z]/.test(reply);
+  const arabicCount = (reply.match(/[\u0600-\u06FF]/g) || []).length;
+  const englishCount = (reply.match(/[a-zA-Z]/g) || []).length;
+  
+  // If both languages exist with significant presence (more than just a few words)
+  if (hasArabic && hasEnglish) {
+    const minCount = Math.min(arabicCount, englishCount);
+    const totalCount = arabicCount + englishCount;
+    
+    // If minority language is more than 20% of total, it's mixing
+    if (minCount > totalCount * 0.2) {
+      score -= 25; // Heavy penalty for language mixing
+    }
   }
 
   // Tone appropriateness for rating
