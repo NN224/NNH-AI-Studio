@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { redirect } from "@/lib/navigation"
 import { getRecentActivity } from "@/lib/monitoring/audit"
 import { getMetricsSummary } from "@/lib/monitoring/metrics"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,7 +14,12 @@ function formatTimestamp(value: string) {
   }
 }
 
-export default async function MetricsPage() {
+export default async function MetricsPage({
+  params
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
   const supabase = await createClient()
   const {
     data: { user },

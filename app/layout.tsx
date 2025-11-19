@@ -1,9 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Providers } from "./providers"
-import { Toaster } from "sonner"
 import "./globals.css"
-import { BrandProfileProvider } from "@/contexts/BrandProfileContext"
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/react'
 
@@ -43,12 +40,7 @@ export default function RootLayout({
   return (
     <html className="dark" lang="en" dir="ltr">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <BrandProfileProvider>
-          <Providers>
-            {children}
-            <Toaster position="top-right" richColors closeButton />
-          </Providers>
-        </BrandProfileProvider>
+        {children}
         <SpeedInsights />
         <Analytics />
       </body>
