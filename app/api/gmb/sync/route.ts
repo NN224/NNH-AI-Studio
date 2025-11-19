@@ -226,11 +226,6 @@ function convertStarRatingToNumber(starRating: string | undefined | null): numbe
     'STAR_RATING_UNSPECIFIED': 0,
   };
   
-  // If it's already a number (legacy support), return it
-  if (typeof starRating === 'number') {
-    return starRating >= 1 && starRating <= 5 ? starRating : 0;
-  }
-  
   // Convert enum string to number
   return ratingMap[starRating.toUpperCase()] || 0;
 }
@@ -656,7 +651,7 @@ async function fetchReviews(
   }
   
   return {
-    reviews: reviews || [],
+    reviews,
     nextPageToken: data.nextPageToken, // v4 API supports pagination
   };
 }
@@ -807,7 +802,7 @@ async function fetchMedia(
   }
   
   return {
-    media: media || [],
+    media,
     nextPageToken: data.nextPageToken,
   };
 }
@@ -817,7 +812,7 @@ async function fetchMedia(
 async function fetchQuestions(
   accessToken: string,
   locationResource: string,
-  accountResource?: string,
+  _accountResource?: string, // Unused parameter kept for API compatibility
   pageToken?: string
 ): Promise<{ questions: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
@@ -826,7 +821,7 @@ async function fetchQuestions(
   
   // Extract location ID from various formats
   // Q&A API expects just: locations/{location_id} (NOT accounts/.../locations/...)
-  let locationId = locationResource;
+  let locationId: string;
   
   // Handle different input formats
   if (locationResource.startsWith('accounts/')) {
@@ -926,7 +921,7 @@ async function fetchQuestions(
   }
   
   return {
-    questions: questions || [],
+    questions,
     nextPageToken: data.nextPageToken,
   };
 }
@@ -1198,7 +1193,7 @@ async function fetchSearchKeywords(
   }
   
   return {
-    keywords: keywords || [],
+    keywords,
     nextPageToken: data.nextPageToken,
   };
 }
@@ -1629,14 +1624,14 @@ export async function POST(request: NextRequest) {
                 }
               } else if (actionType === 'SHOP_ONLINE') {
                 // Could be menu or order
-                if (!menuUrl && !orderUrl) {
+                if (!orderUrl) {
                   orderUrl = uri;
                 }
               }
             }
             
             // Priority 2: Check attributes for URL-type attributes (fallback)
-            if (!menuUrl || !bookingUrl || !orderUrl || !appointmentUrl) {
+            if (!bookingUrl || !orderUrl || !appointmentUrl) {
               for (const attr of fetchedAttributes) {
                 if (attr.name && attr.uriValues && Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
                   const attrName = attr.name.toLowerCase();
@@ -1677,9 +1672,6 @@ export async function POST(request: NextRequest) {
               : null;
             
             // Extract status and type
-            // Temporarily set status to NULL to avoid constraint violations
-            // TODO: Fix status constraint in database to allow proper GMB status values
-            const locationStatus = null;
             const locationType = location.type || metadata.type || null;
             
             return {
@@ -1705,7 +1697,7 @@ export async function POST(request: NextRequest) {
               order_url: orderUrl || null,
               appointment_url: appointmentUrl || null,
               regularhours: location.regularHours || null,
-              status: locationStatus || null,
+              status: null, // TODO: Fix status constraint in database to allow proper GMB status values
               type: locationType || null,
               account_id: accountResource || null,
               location_id_external: locationIdExternal || null,
@@ -2127,8 +2119,7 @@ export async function POST(request: NextRequest) {
                 question_text: question.text || '',
               author_name: question.author?.displayName || 'Anonymous',
               author_type: question.author?.type === 'MERCHANT' ? 'MERCHANT' : 
-                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' :
-                            question.author?.type === 'REGULAR_USER' ? 'CUSTOMER' : 'CUSTOMER',
+                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER',
                 answer_text: answerText,
                 answered_at: answeredAt,
                 answer_status: answerStatus,
@@ -2394,17 +2385,14 @@ export async function POST(request: NextRequest) {
       console.warn(`[GMB Sync API] Sync completed in ${took}ms`, counts);
     }
 
-    if (accountId) {
-      await logAction('sync', 'gmb_account', accountId, {
-        status: 'success',
-        took_ms: took,
-        sync_type: syncType,
-        counts,
-      });
-    }
-    if (userId) {
-      await trackSyncResult(userId ?? null, true, took);
-    }
+    // accountId and userId are guaranteed to be truthy at this point
+    await logAction('sync', 'gmb_account', accountId, {
+      status: 'success',
+      took_ms: took,
+      sync_type: syncType,
+      counts,
+    });
+    await trackSyncResult(userId, true, took);
 
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
 

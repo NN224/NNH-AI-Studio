@@ -1,6 +1,22 @@
 import { useState } from 'react';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, Alert } from '@components/ui';
-import { useAutoAnswerService } from '@lib/services/ai-question-answer-service';
+
+async function callAutoAnswerService(question: string): Promise<{ answer: string }> {
+  // Call the backend service to generate an answer
+  const response = await fetch('/api/questions/auto-answer', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ question }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch answer from backend.');
+  }
+
+  return response.json();
+}
 
 export function AutoAnswerTesting() {
   const [question, setQuestion] = useState('');
@@ -9,7 +25,7 @@ export function AutoAnswerTesting() {
 
   const handleTest = async () => {
     try {
-      const result = await useAutoAnswerService(question);
+      const result = await callAutoAnswerService(question);
       setAnswer(result.answer);
       setError(null);
     } catch (e) {
@@ -48,18 +64,4 @@ export function AutoAnswerTesting() {
       </Card>
     </div>
   );
-}
-
-async function useAutoAnswerService(question: string): Promise<{ answer: string }> {
-  // Call the backend service to generate an answer
-  const response = await fetch('/api/questions/auto-answer', {
-    method: 'POST',
-    body: JSON.stringify({ question }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch answer from backend.');
-  }
-
-  return response.json();
 }
