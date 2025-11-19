@@ -11,9 +11,8 @@ export const isSupabaseConfigured =
 
 export function createClient() {
   if (!isSupabaseConfigured) {
-    throw new Error(
-      "Supabase environment variables are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-    )
+    console.error("Supabase environment variables are not configured on the client. Auth and DB functionality will be disabled.");
+    return null;
   }
 
   return createBrowserClient(supabaseUrl as string, supabaseAnonKey as string)
