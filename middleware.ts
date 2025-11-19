@@ -134,11 +134,6 @@ function extractUserId(request: NextRequest): string {
 }
 
 export async function middleware(request: NextRequest) {
-  // Explicit redirect from root to /en (guaranteed solution)
-  if (request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/en', request.url));
-  }
-
   // 🚨 EMERGENCY: Block webhook spam attack
   if (request.nextUrl.pathname === '/api/webhooks/gmb-notifications') {
     return NextResponse.json(
