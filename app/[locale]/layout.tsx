@@ -17,7 +17,7 @@ export default async function LocaleLayout({
   if (locale !== 'en' && locale !== 'ar') {
     notFound();
   }
-  const messages = await getMessages();
+  const messages = await getMessages({ locale });
   const direction = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
