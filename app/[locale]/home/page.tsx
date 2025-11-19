@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
-  ArrowRight, Building2, BarChart3, MessageSquare, LogOut, 
-  Star, TrendingUp, Zap, Shield, Clock, Users,
+  Building2, BarChart3, MessageSquare, LogOut, 
+  Star, TrendingUp, Zap, Shield, Users,
   Sparkles, Target, Award, CheckCircle2, Headphones, Globe, Play
 } from 'lucide-react'
 import Image from 'next/image'
@@ -37,8 +37,10 @@ export default async function HomePage() {
     redirect('/auth/login')
   }
 
-  const userId = user!.id
-  const userEmail = user?.email || ''
+  // TypeScript doesn't know that user is not null after redirect
+  // but we've already checked and redirected if null, so it's safe
+  const userId = user.id
+  const userEmail = user.email || ''
 
   // Get user profile (platform identity for Home only)
   const { data: profile } = await supabase
@@ -97,8 +99,6 @@ export default async function HomePage() {
 
   const youtubeStats = youtubeToken?.metadata as any
   const youtubeSubs = youtubeStats?.statistics?.subscriberCount ? Number(youtubeStats.statistics.subscriberCount) : 0
-  const youtubeViews = youtubeStats?.statistics?.viewCount ? Number(youtubeStats.statistics.viewCount) : 0
-  const youtubeVideos = youtubeStats?.statistics?.videoCount ? Number(youtubeStats.statistics.videoCount) : 0
   const hasYouTube = !!youtubeToken
 
   return (
