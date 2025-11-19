@@ -228,7 +228,7 @@ export default function BusinessProfilePage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                      accountId: locationData.accountId || locationData.gmb_account_id,
+                      accountId: locationData.accountId,
                       locationIds: [selectedLocationId],
                       syncType: 'locations'  // Fixed: was 'location', should be 'locations'
                     })

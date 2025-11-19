@@ -202,3 +202,5 @@ export const StatsCards = memo(function StatsCards({
   );
 });
 
+// Default export for dynamic imports
+export default StatsCards;

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { syncAllGmbData } from '@/app/[locale]/(dashboard)/dashboard/DashboardClient';
+import { syncAllLocations } from '@/server/actions/gmb-sync';
 import { cacheUtils } from '@/hooks/use-dashboard-cache';
 
 export function QuickActionButtons() {
@@ -17,12 +17,7 @@ export function QuickActionButtons() {
     setLoading(true);
 
     try {
-      const result = await syncAllGmbData('full');
-
-      if (result.rateLimited) {
-        toast.error(`⏳ ${result.error || 'Sync temporarily limited. Try again shortly.'}`);
-        return;
-      }
+      const result = await syncAllLocations();
 
       if (result.success) {
         toast.success(result.message || 'All data synced successfully!');
@@ -34,7 +29,7 @@ export function QuickActionButtons() {
         router.refresh();
       } else {
         const errorMsg = result.error || 'Failed to sync data. Please try again.';
-        if (errorMsg.includes('expired') || errorMsg.includes('reconnect')) {
+        if (errorMsg.includes('expired') || errorMsg.includes('reconnect') || errorMsg.includes('connect your account')) {
           toast.error('🔗 Google connection expired. Go to Settings to reconnect.', {
             duration: 8000,
             action: {

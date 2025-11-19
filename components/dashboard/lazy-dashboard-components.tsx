@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 // Lazy loading components with proper loading fallbacks
 export const LazyStatsCards = dynamic(
-  () => import('./stats-cards').then(mod => ({ default: mod.StatsCards })),
+  () => import('./stats-cards'),
   {
     loading: () => (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

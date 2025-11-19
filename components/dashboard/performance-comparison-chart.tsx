@@ -334,3 +334,6 @@ export function PerformanceComparisonChart({
     </Card>
   );
 }
+
+// Default export for dynamic imports
+export default PerformanceComparisonChart;

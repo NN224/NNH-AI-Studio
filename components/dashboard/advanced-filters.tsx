@@ -198,13 +198,15 @@ export function AdvancedFilters({
                 <PopoverContent className="w-auto p-0" align="start">
                   <CalendarComponent
                     mode="single"
-                    selected={filters.dateRange?.from}
-                    onSelect={(date) =>
-                      updateFilter('dateRange', {
-                        from: date || new Date(),
-                        to: filters.dateRange?.to || new Date(),
-                      })
-                    }
+                    selected={filters.dateRange?.from as Date | undefined}
+                    onSelect={(date) => {
+                      if (date && date instanceof Date) {
+                        updateFilter('dateRange', {
+                          from: date,
+                          to: filters.dateRange?.to || new Date(),
+                        });
+                      }
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -230,13 +232,15 @@ export function AdvancedFilters({
                 <PopoverContent className="w-auto p-0" align="start">
                   <CalendarComponent
                     mode="single"
-                    selected={filters.dateRange?.to}
-                    onSelect={(date) =>
-                      updateFilter('dateRange', {
-                        from: filters.dateRange?.from || new Date(),
-                        to: date || new Date(),
-                      })
-                    }
+                    selected={filters.dateRange?.to as Date | undefined}
+                    onSelect={(date) => {
+                      if (date && date instanceof Date) {
+                        updateFilter('dateRange', {
+                          from: filters.dateRange?.from || new Date(),
+                          to: date,
+                        });
+                      }
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -428,4 +432,3 @@ export function AdvancedFilters({
     </Sheet>
   )
 }
-

@@ -116,14 +116,18 @@ export function MonitoringDashboard() {
   }, []);
 
   // Auto-refresh every 30 seconds
-  useSafeInterval(() => {
-    Promise.all([
-      fetchHealthStatus(),
-      fetchAlerts(),
-      fetchMetrics()
-    ]);
-    setLastRefresh(new Date());
-  }, 30000);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Promise.all([
+        fetchHealthStatus(),
+        fetchAlerts(),
+        fetchMetrics()
+      ]);
+      setLastRefresh(new Date());
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -162,14 +166,14 @@ export function MonitoringDashboard() {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): 'default' | 'destructive' | 'secondary' | 'outline' => {
     switch (severity) {
       case 'critical':
         return 'destructive';
       case 'high':
         return 'destructive';
       case 'medium':
-        return 'warning';
+        return 'secondary'; // Changed from 'warning'
       case 'low':
         return 'secondary';
       default:
@@ -376,7 +380,7 @@ export function MonitoringDashboard() {
                           <Badge variant="secondary">Acknowledged</Badge>
                         )}
                         {alert.resolved && (
-                          <Badge variant="success">Resolved</Badge>
+                          <Badge variant="secondary">Resolved</Badge>
                         )}
                       </div>
                     </CardContent>
