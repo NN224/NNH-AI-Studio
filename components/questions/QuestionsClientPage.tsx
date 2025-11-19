@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { QuestionCard } from './question-card';
 import { AnswerDialog } from './answer-dialog';
+import { QuestionAISettings } from './QuestionAISettings';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
 import type { GMBQuestion } from '@/lib/types/database';
@@ -110,6 +111,7 @@ export function QuestionsClientPage({
   const [autoAnswerLoading, setAutoAnswerLoading] = useState(false);
   const [bulkAnswering, setBulkAnswering] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const { data: dashboardSnapshot } = useDashboardSnapshot();
 
   const stats = useMemo<QuestionStatsSnapshot | null>(() => {
@@ -438,6 +440,7 @@ export function QuestionsClientPage({
         isSyncing={isSyncing}
         canSync={canSync}
         onOpenAssistant={() => setAiPanelOpen(true)}
+        onOpenAISettings={() => setAiSettingsOpen(true)}
       />
 
       <BulkActionsBar
@@ -466,6 +469,8 @@ export function QuestionsClientPage({
             selectedQuestion={selectedQuestion}
             onSelectQuestion={setSelectedQuestion}
             onAnswer={handleAnswer}
+            selectedIds={selectedIds}
+            onCheckChange={handleSelectQuestion}
           />
 
           <AutoAnswerSidebar
@@ -542,6 +547,12 @@ export function QuestionsClientPage({
           </div>
         </SheetContent>
       </Sheet>
+
+      <QuestionAISettings
+        open={aiSettingsOpen}
+        onOpenChange={setAiSettingsOpen}
+        locationId={currentFilters.locationId}
+      />
     </div>
   );
 }
@@ -553,6 +564,7 @@ interface QuestionsOverviewHeaderProps {
   isSyncing: boolean;
   canSync: boolean;
   onOpenAssistant: () => void;
+  onOpenAISettings?: () => void;
 }
 
 function QuestionsOverviewHeader({
@@ -562,6 +574,7 @@ function QuestionsOverviewHeader({
   isSyncing,
   canSync,
   onOpenAssistant,
+  onOpenAISettings,
 }: QuestionsOverviewHeaderProps) {
   return (
     <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
@@ -581,6 +594,16 @@ function QuestionsOverviewHeader({
             <Bot className="mr-2 h-4 w-4" />
             AI Assistant
           </Button>
+          {onOpenAISettings && (
+            <Button
+              onClick={onOpenAISettings}
+              variant="outline"
+              className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10"
+            >
+              <Bot className="mr-2 h-4 w-4" />
+              إعدادات AI
+            </Button>
+          )}
           <Button
             onClick={onSync}
             disabled={isSyncing || !canSync}
@@ -827,6 +850,8 @@ interface QuestionsFeedSectionProps {
   selectedQuestion: QuestionEntity | null;
   onSelectQuestion: (question: QuestionEntity) => void;
   onAnswer: (question: QuestionEntity) => void;
+  selectedIds?: Set<string>;
+  onCheckChange?: (questionId: string, checked: boolean) => void;
 }
 
 function QuestionsFeedSection({
@@ -835,6 +860,8 @@ function QuestionsFeedSection({
   selectedQuestion,
   onSelectQuestion,
   onAnswer,
+  selectedIds,
+  onCheckChange,
 }: QuestionsFeedSectionProps) {
   if (isPending) {
     return (
@@ -863,16 +890,16 @@ function QuestionsFeedSection({
   return (
     <section className="space-y-4">
       {safeQuestions.map((question) => (
-                <QuestionCard
-                  key={question.id}
-                  question={question}
-                  isSelected={selectedQuestion?.id === question.id}
-                  isChecked={selectedIds.has(question.id)}
+        <QuestionCard
+          key={question.id}
+          question={question}
+          isSelected={selectedQuestion?.id === question.id}
+          isChecked={selectedIds?.has(question.id) ?? false}
           onClick={() => onSelectQuestion(question)}
           onAnswer={() => onAnswer(question)}
-                  onCheckChange={(checked) => handleSelectQuestion(question.id, checked)}
-                />
-              ))}
+          onCheckChange={onCheckChange ? (checked) => onCheckChange(question.id, checked) : undefined}
+        />
+      ))}
     </section>
   );
 }
