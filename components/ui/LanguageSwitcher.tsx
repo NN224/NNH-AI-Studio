@@ -24,15 +24,8 @@ export default function LanguageSwitcher() {
       const hash = typeof window !== 'undefined' ? window.location.hash : '';
       
       // Build new path with new locale
-      // For default locale (en), don't add prefix if localePrefix is 'as-needed'
-      let newPath: string;
-      if (newLocale === 'en') {
-        // Default locale - no prefix needed
-        newPath = pathWithoutLocale === '/' ? '/' : pathWithoutLocale;
-      } else {
-        // Non-default locale - add prefix
-        newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
-      }
+      // localePrefix is 'always', so always add locale prefix
+      const newPath = `/${newLocale}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
       
       // Build full URL with search params and hash
       const fullPath = newPath + searchParams + hash;
