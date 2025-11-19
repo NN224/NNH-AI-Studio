@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { saveAutoReplySettings, getAutoReplySettings, type AutoReplySettings } from '@/server/actions/auto-reply';
+import { saveAutoReplySettings, getAutoReplySettings, type AutoReplySettings as AutoReplySettingsType } from '@/server/actions/auto-reply';
 
 interface AutoReplySettingsProps {
   locationId?: string;
@@ -13,7 +13,7 @@ export function AutoReplySettings({ locationId }: AutoReplySettingsProps) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<AutoReplySettings>({
+  const [settings, setSettings] = useState<AutoReplySettingsType>({
     enabled: false,
     minRating: 4,
     replyToPositive: true,

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import type { QuestionData } from "@/lib/gmb/sync-types";
-import type { QuestionData } from "@/lib/gmb/sync-types";
 import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 
 const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
