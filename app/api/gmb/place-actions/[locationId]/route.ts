@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getValidAccessToken } from '@/app/api/gmb/sync/route';
+import { getValidAccessToken } from '@/lib/gmb/helpers';
 
 export const dynamic = 'force-dynamic';
 
