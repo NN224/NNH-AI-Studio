@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import Image from "next/image";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import {
   Video,
@@ -62,11 +63,17 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">N</span>
-              </div>
-              <span className="text-xl font-bold">NNH AI Studio</span>
+            <Link href="/" className="flex items-center gap-3 group">
+              <Image
+                src="/nnh-logo.png"
+                alt="NNH Logo"
+                width={40}
+                height={40}
+                className="object-contain group-hover:scale-110 transition-transform"
+              />
+              <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                NNH - AI Studio
+              </span>
             </Link>
 
             {/* Navigation */}
