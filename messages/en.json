@@ -435,8 +435,25 @@
   },
   "home": {
     "header": {
-      "welcome": "Welcome back to NNH - AI Studio",
+      "welcome": "Welcome back",
+      "lastLogin": "Last login",
       "signOut": "Sign Out"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "uploadVideo": "Upload Video",
+      "viewAnalytics": "View Analytics",
+      "replyReviews": "Reply Reviews",
+      "manageLocations": "Manage Locations",
+      "createPost": "Create Post",
+      "aiStudio": "AI Studio"
+    },
+    "emptyState": {
+      "title": "Welcome to Your Dashboard!",
+      "description": "Get started by connecting your Google My Business account or YouTube channel to unlock all features and start managing your online presence.",
+      "connectGMB": "Connect Google My Business",
+      "connectYouTube": "Connect YouTube",
+      "helpText": "Need help? Check our getting started guide."
     },
     "hero": {
       "badge": "AI-Powered Business Management",
@@ -451,17 +468,41 @@
       }
     },
     "stats": {
-      "emptyState": {
-        "title": "Get Started with NNH AI Studio",
-        "description": "Connect your Google My Business account or YouTube channel to start managing your online presence.",
-        "connectGmb": "Connect GMB",
-        "connectYoutube": "Connect YouTube"
-      },
-      "totalLocations": "Total Locations",
-      "totalReviews": "Total Reviews",
-      "averageRating": "Average Rating",
-      "activeAccounts": "Active Accounts",
+      "locations": "Total Locations",
+      "reviews": "Total Reviews",
+      "avgRating": "Average Rating",
+      "accounts": "Active Accounts",
       "youtubeSubscribers": "YouTube Subscribers"
+    },
+    "activityFeed": {
+      "title": "Recent Activity",
+      "empty": "No recent activity to show",
+      "viewAll": "View All",
+      "takeAction": "Take Action",
+      "types": {
+        "review": "Review",
+        "youtube": "YouTube",
+        "location": "Location",
+        "post": "Post"
+      }
+    },
+    "recentActivity": {
+      "title": "Activity Timeline",
+      "empty": "No recent activity",
+      "more": "more activities"
+    },
+    "aiInsights": {
+      "title": "AI Insights & Recommendations",
+      "subtitle": "Smart suggestions powered by AI",
+      "empty": "AI is analyzing your data. Check back soon for personalized insights.",
+      "insights": "insights",
+      "viewAll": "View All Insights",
+      "impact": "Impact",
+      "priority": {
+        "high": "High Priority",
+        "medium": "Medium",
+        "low": "Low"
+      }
     },
     "features": {
       "title": {
@@ -560,17 +601,6 @@
           "title": "Always Updated",
           "description": "Automatic updates with the latest Google My Business features and improvements"
         }
-      }
-    },
-    "quickActions": {
-      "title": "Quick Actions",
-      "description": "Jump to the most common tasks",
-      "items": {
-        "gmbDashboard": "GMB Dashboard",
-        "analytics": "View Analytics",
-        "reviews": "Manage Reviews",
-        "youtube": "YouTube Dashboard",
-        "posts": "GMB Posts"
       }
     },
     "footer": {

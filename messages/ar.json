@@ -459,8 +459,25 @@
   },
   "home": {
     "header": {
-      "welcome": "مرحباً بك في NNH - AI Studio",
+      "welcome": "مرحباً بعودتك",
+      "lastLogin": "آخر تسجيل دخول",
       "signOut": "تسجيل الخروج"
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "uploadVideo": "رفع فيديو",
+      "viewAnalytics": "عرض التحليلات",
+      "replyReviews": "الرد على المراجعات",
+      "manageLocations": "إدارة المواقع",
+      "createPost": "إنشاء منشور",
+      "aiStudio": "استوديو الذكاء الاصطناعي"
+    },
+    "emptyState": {
+      "title": "مرحباً بك في لوحة التحكم!",
+      "description": "ابدأ بربط حسابك في Google My Business أو قناتك على YouTube لفتح جميع الميزات وبدء إدارة حضورك الإلكتروني.",
+      "connectGMB": "ربط Google My Business",
+      "connectYouTube": "ربط YouTube",
+      "helpText": "هل تحتاج مساعدة؟ راجع دليل البدء."
     },
     "hero": {
       "badge": "إدارة أعمال مدعومة بالذكاء الاصطناعي",
@@ -475,17 +492,41 @@
       }
     },
     "stats": {
-      "emptyState": {
-        "title": "ابدأ مع NNH AI Studio",
-        "description": "اربط حساب Google My Business أو قناة YouTube لبدء إدارة حضورك عبر الإنترنت.",
-        "connectGmb": "ربط GMB",
-        "connectYoutube": "ربط يوتيوب"
-      },
-      "totalLocations": "إجمالي المواقع",
-      "totalReviews": "إجمالي المراجعات",
-      "averageRating": "متوسط التقييم",
-      "activeAccounts": "الحسابات النشطة",
+      "locations": "إجمالي المواقع",
+      "reviews": "إجمالي المراجعات",
+      "avgRating": "متوسط التقييم",
+      "accounts": "الحسابات النشطة",
       "youtubeSubscribers": "مشتركو يوتيوب"
+    },
+    "activityFeed": {
+      "title": "النشاطات الأخيرة",
+      "empty": "لا توجد نشاطات حديثة",
+      "viewAll": "عرض الكل",
+      "takeAction": "اتخاذ إجراء",
+      "types": {
+        "review": "مراجعة",
+        "youtube": "يوتيوب",
+        "location": "موقع",
+        "post": "منشور"
+      }
+    },
+    "recentActivity": {
+      "title": "الجدول الزمني للنشاطات",
+      "empty": "لا توجد نشاطات حديثة",
+      "more": "نشاطات إضافية"
+    },
+    "aiInsights": {
+      "title": "رؤى وتوصيات الذكاء الاصطناعي",
+      "subtitle": "اقتراحات ذكية مدعومة بالذكاء الاصطناعي",
+      "empty": "الذكاء الاصطناعي يحلل بياناتك. تحقق لاحقاً للحصول على رؤى مخصصة.",
+      "insights": "رؤى",
+      "viewAll": "عرض جميع الرؤى",
+      "impact": "التأثير",
+      "priority": {
+        "high": "أولوية عالية",
+        "medium": "متوسطة",
+        "low": "منخفضة"
+      }
     },
     "features": {
       "title": {
@@ -584,17 +625,6 @@
           "title": "محدث دائماً",
           "description": "تحديثات تلقائية بأحدث ميزات وتحسينات Google My Business"
         }
-      }
-    },
-    "quickActions": {
-      "title": "إجراءات سريعة",
-      "description": "انتقل إلى المهام الأكثر شيوعاً",
-      "items": {
-        "gmbDashboard": "لوحة تحكم GMB",
-        "analytics": "عرض التحليلات",
-        "reviews": "إدارة المراجعات",
-        "youtube": "لوحة تحكم يوتيوب",
-        "posts": "منشورات GMB"
       }
     },
     "footer": {
