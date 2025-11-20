@@ -97,6 +97,9 @@ export async function getValidAccessToken(
   const needsRefresh = !accessToken || !expiresAt || now >= expiresAt;
 
   if (!needsRefresh) {
+    if (!accessToken) {
+      throw new Error('Access token is null after decryption');
+    }
     return accessToken;
   }
 

@@ -70,7 +70,7 @@ async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promis
       answer_text: topAnswer?.text || null,
       answer_date: topAnswer?.updateTime || null,
       answer_author: topAnswer?.author?.displayName || null,
-      answer_id,
+      answer_id: answerId,
       upvote_count: googleQuestion.upvoteCount || 0,
       total_answer_count: googleQuestion.totalAnswerCount || 0,
       status,
