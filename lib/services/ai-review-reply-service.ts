@@ -49,11 +49,14 @@ export async function generateAIReviewReply(
     // Get AI provider
     const provider = await getAIProvider(userId);
     if (!provider) {
+      console.error('[AI Review Reply] No AI provider configured for user:', userId);
       return {
         success: false,
-        error: 'No AI provider configured',
+        error: 'No AI provider configured. Please set up an API key in Settings > AI Configuration.',
       };
     }
+
+    console.log('[AI Review Reply] Using provider for rating:', context.rating);
 
     // Build context-aware prompt
     const prompt = buildReviewReplyPrompt(context, settings);
@@ -95,17 +98,21 @@ export async function generateAIReviewReply(
       model: 'auto-detected',
       latency,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AI Review Reply Service] Error:', error);
-    
-    // Try fallback provider
-    return await tryFallbackProvider(
-      context,
-      settings,
+    console.error('[AI Review Reply Service] Error details:', {
+      message: error.message,
+      status: error.status,
       userId,
-      startTime,
-      0
-    );
+      rating: context.rating,
+    });
+    
+    // Return specific error message instead of trying fallback again
+    return {
+      success: false,
+      error: error.message || 'Failed to generate AI reply. Please check your API key configuration.',
+      provider: preferredProvider,
+    };
   }
 }
 
@@ -284,12 +291,12 @@ async function tryFallbackProvider(
   startTime: number,
   previousConfidence: number
 ): Promise<ReplyResult> {
-  // For now, return error - can be enhanced with actual fallback logic
-  // The main provider already has fallback built-in via getAIProvider
+  console.warn('[AI Review Reply] Confidence too low, trying fallback:', previousConfidence);
   
+  // Return error with helpful message
   return {
     success: false,
-    error: `Confidence too low (${previousConfidence}%) or provider error. Please try again or adjust settings.`,
+    error: `Confidence score too low (${previousConfidence}%). The AI couldn't generate a high-quality response. Please try manual reply or adjust the review text.`,
     provider: 'fallback',
   };
 }

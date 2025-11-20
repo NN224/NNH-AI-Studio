@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { getAIProvider } from '@/lib/ai/provider';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,55 +64,39 @@ export async function POST(request: NextRequest) {
       6. Make it sound natural and human.
     `;
 
-    // Generate AI response with failover models and sentiment analysis
-    const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'AI API key not configured' }, { status: 500 });
-    }
-
-    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-pro'];
-    let generatedResponse = '';
-    let usedModel = '';
-    let aiError = null;
-
-    for (const model of MODELS) {
-      try {
-        const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: `
-                BUSINESS NAME: ${finalLocationName}
-                RATING: ${rating} / 5 Stars
-                REVIEW: "${reviewText}"
-                Generate a natural, professional, short reply (max 500 chars). 
-                Tone: friendly and authentic.
-              ` }] }],
-              config: {
-                systemInstruction,
-                temperature: 0.7,
-              },
-            }),
-          }
+    // Generate AI response using unified provider system
+    console.log('[AI Response] Generating reply for review:', reviewId);
+    
+    try {
+      const aiProvider = await getAIProvider(user.id);
+      if (!aiProvider) {
+        console.error('[AI Response] No AI provider configured for user:', user.id);
+        return NextResponse.json(
+          { error: 'No AI provider configured. Please set up an API key in Settings > AI Configuration.' },
+          { status: 500 }
         );
-
-        const aiData = await aiResponse.json();
-        generatedResponse = aiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        usedModel = model;
-
-        if (generatedResponse) break;
-      } catch (err) {
-        aiError = err;
-        console.error(`[AI Response] Model ${model} failed:`, err);
       }
-    }
 
-    if (!generatedResponse) {
-      console.error('[AI Response] All AI models failed', aiError);
-      return NextResponse.json({ error: 'AI service failed to generate content' }, { status: 500 });
-    }
+      const prompt = `${systemInstruction}
+
+BUSINESS NAME: ${finalLocationName}
+RATING: ${rating} / 5 Stars
+REVIEW: "${reviewText}"
+
+Generate a natural, professional, short reply (max 500 chars). Tone: friendly and authentic.`;
+
+      const { content: generatedResponse, usage } = await aiProvider.generateCompletion(
+        prompt,
+        'review_auto_reply',
+        review.location_id
+      );
+
+      if (!generatedResponse) {
+        throw new Error('AI provider returned empty response');
+      }
+
+      const usedModel = 'auto-detected';
+      console.log('[AI Response] Successfully generated reply, tokens used:', usage?.total_tokens);
 
     // Quality check and sentiment analysis
     const positiveWords = ['great', 'excellent', 'amazing', 'love', 'happy', 'perfect'];
@@ -186,10 +171,17 @@ export async function POST(request: NextRequest) {
       logged: true,
     });
 
+    } catch (aiError: any) {
+      console.error('[AI Response] AI generation failed:', aiError);
+      return NextResponse.json(
+        { error: 'AI service failed to generate content', details: aiError.message },
+        { status: 500 }
+      );
+    }
   } catch (error: any) {
-    console.error('AI Response API error:', error);
+    console.error('[AI Response] Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Failed to generate AI response', details: error.message },
       { status: 500 }
     );
   }

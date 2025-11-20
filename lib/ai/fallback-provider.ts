@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase/server';
 
 interface AIProviderConfig {
-  provider: 'openai' | 'anthropic' | 'google';
+  provider: 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek';
   apiKey: string;
   model: string;
 }
@@ -77,11 +77,27 @@ async function getSystemAPIKey(): Promise<AIProviderConfig | null> {
     };
   }
 
-  if (process.env.SYSTEM_GOOGLE_API_KEY) {
+  if (process.env.SYSTEM_GOOGLE_API_KEY || process.env.GOOGLE_GEMINI_API_KEY) {
     return {
       provider: 'google',
-      apiKey: process.env.SYSTEM_GOOGLE_API_KEY,
-      model: 'gemini-pro',
+      apiKey: process.env.SYSTEM_GOOGLE_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || '',
+      model: 'gemini-1.5-pro',
+    };
+  }
+
+  if (process.env.SYSTEM_GROQ_API_KEY || process.env.GROQ_API_KEY) {
+    return {
+      provider: 'groq',
+      apiKey: process.env.SYSTEM_GROQ_API_KEY || process.env.GROQ_API_KEY || '',
+      model: 'llama-3.3-70b-versatile',
+    };
+  }
+
+  if (process.env.SYSTEM_DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY) {
+    return {
+      provider: 'deepseek',
+      apiKey: process.env.SYSTEM_DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY || '',
+      model: 'deepseek-chat',
     };
   }
 
@@ -153,11 +169,13 @@ async function checkUsageLimits(userId: string): Promise<boolean> {
  */
 function getDefaultModel(provider: string): string {
   const models: Record<string, string> = {
-    openai: 'gpt-3.5-turbo',
-    anthropic: 'claude-3-haiku-20240307',
-    google: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    anthropic: 'claude-3-5-sonnet-latest',
+    google: 'gemini-1.5-pro',
+    groq: 'llama-3.3-70b-versatile',
+    deepseek: 'deepseek-chat',
   };
-  return models[provider] || 'gpt-3.5-turbo';
+  return models[provider] || 'gpt-4o-mini';
 }
 
 /**

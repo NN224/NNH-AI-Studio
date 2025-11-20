@@ -73,6 +73,12 @@ export class AIProvider {
         case 'gemini':
           ({ content, usage } = await this.callGoogle(prompt));
           break;
+        case 'groq':
+          ({ content, usage } = await this.callGroq(prompt));
+          break;
+        case 'deepseek':
+          ({ content, usage } = await this.callDeepSeek(prompt));
+          break;
         default:
           throw new Error(`Unsupported provider: ${this.config.provider}`);
       }
@@ -179,9 +185,17 @@ export class AIProvider {
 
     if (!response.ok) {
       let errText = '';
-      try { errText = await response.text(); } catch {}
+      try { 
+        errText = await response.text(); 
+      } catch (e) {
+        // Ignore text parsing errors
+      }
       let errMsg = 'Unknown error';
-      try { errMsg = JSON.parse(errText)?.error?.message || errText; } catch { errMsg = errText || errMsg; }
+      try { 
+        errMsg = JSON.parse(errText)?.error?.message || errText; 
+      } catch (e) { 
+        errMsg = errText || errMsg; 
+      }
       throw new Error(`Anthropic API error: ${errMsg}`);
     }
 
@@ -247,6 +261,84 @@ export class AIProvider {
   }
 
   /**
+   * Call Groq API (OpenAI-compatible)
+   */
+  private async callGroq(prompt: string): Promise<{ content: string; usage: any }> {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant specialized in Google My Business analytics and insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: this.config.maxTokens,
+        temperature: this.config.temperature,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Groq API error: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage,
+    };
+  }
+
+  /**
+   * Call DeepSeek API (OpenAI-compatible)
+   */
+  private async callDeepSeek(prompt: string): Promise<{ content: string; usage: any }> {
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant specialized in Google My Business analytics and insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: this.config.maxTokens,
+        temperature: this.config.temperature,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`DeepSeek API error: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage,
+    };
+  }
+
+  /**
    * Calculate cost based on usage
    */
   private calculateCost(usage: any): number {
@@ -306,6 +398,8 @@ export async function getAIProvider(userId: string): Promise<AIProvider | null> 
     openai: { model: 'gpt-4o-mini', maxTokens: 4000, temperature: 0.7 },
     anthropic: { model: 'claude-3-5-sonnet-latest', maxTokens: 4000, temperature: 0.7 },
     google: { model: 'gemini-1.5-pro', maxTokens: 4000, temperature: 0.7 },
+    groq: { model: 'llama-3.3-70b-versatile', maxTokens: 4000, temperature: 0.7 },
+    deepseek: { model: 'deepseek-chat', maxTokens: 4000, temperature: 0.7 },
   };
 
   // 1) If user has explicit settings in DB, use them

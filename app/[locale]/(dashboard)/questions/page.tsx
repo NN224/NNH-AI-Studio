@@ -2,10 +2,13 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { QuestionsClientPage } from '@/components/questions/QuestionsClientPage';
 import { getQuestions } from '@/server/actions/questions-management';
+import { getAuthUrl } from '@/lib/utils/navigation';
 
 export default async function QuestionsPage({
+  params,
   searchParams,
 }: {
+  params: { locale: string };
   searchParams: {
     location?: string;
     status?: string;
@@ -24,7 +27,8 @@ export default async function QuestionsPage({
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/login');
+    const locale = params.locale || 'en';
+    redirect(getAuthUrl(locale as 'en' | 'ar', 'login'));
   }
 
   // Parse search params

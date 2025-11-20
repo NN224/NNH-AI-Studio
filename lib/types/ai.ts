@@ -181,7 +181,7 @@ export interface AutomationLog {
 export interface AIProviderConfig {
   provider: AIProvider;
   model: AIModel;
-  apiKey?: string;
+  apiKey: string; // Make required
   baseUrl?: string;
   temperature?: number;
   maxTokens?: number;
@@ -195,11 +195,18 @@ export interface AIProviderConfig {
 }
 
 export interface AIRequest {
-  prompt: string;
-  context?: Record<string, any>;
-  config?: Partial<AIProviderConfig>;
-  stream?: boolean;
-  userId?: string;
-  sessionId?: string;
-  metadata?: Record<string, any>;
+  id?: string;
+  user_id?: string;
+  provider: string;
+  model: string;
+  feature: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  cost_usd?: number;
+  latency_ms?: number;
+  success: boolean;
+  error?: string;
+  location_id?: string;
+  created_at?: string;
 }

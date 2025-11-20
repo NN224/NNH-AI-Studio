@@ -104,6 +104,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const {
     formState: { errors },
@@ -133,9 +134,8 @@ export default function SignupPage() {
       setSuccess(true);
       toast.success('Account created successfully!');
 
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      // Don't auto-redirect, let user read the message
+      // They can click the link when ready
     } catch (err) {
       console.error('Signup error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
@@ -147,6 +147,27 @@ export default function SignupPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    try {
+      await authService.resendVerificationEmail(email);
+      toast.success('Verification email sent!');
+      setResendCooldown(60); // 60 seconds cooldown
+      
+      const interval = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error('Resend email error:', error);
+      toast.error('Failed to resend email. Please try again.');
     }
   };
 
@@ -167,16 +188,41 @@ export default function SignupPage() {
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6 shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]">
               <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-4 font-mono">Check your email</h2>
-            <p className="text-muted-foreground mb-6 font-mono text-sm">
-              We've sent you a verification link. Please check your email to activate your account.
+            <h2 className="text-2xl font-bold mb-2 font-mono">Check your email</h2>
+            <p className="text-muted-foreground mb-2 font-mono text-sm">
+              We sent a verification link to:
             </p>
-            <Link
-              href="/login"
-              className="text-[#ff1493] hover:underline font-mono text-sm"
-            >
-              Back to sign in
-            </Link>
+            <p className="font-semibold mb-4 font-mono text-sm">{email}</p>
+            <p className="text-xs text-muted-foreground mb-6 font-mono">
+              The link will expire in 24 hours.
+            </p>
+            
+            <div className="w-full space-y-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleResendEmail}
+                disabled={resendCooldown > 0}
+                className={`w-full py-3 bg-[hsl(var(--neuro-bg))] rounded-2xl text-sm shadow-[8px_8px_16px_hsl(var(--shadow-dark)),-8px_-8px_16px_hsl(var(--shadow-light))] hover:shadow-[6px_6px_12px_hsl(var(--shadow-dark)),-6px_-6px_12px_hsl(var(--shadow-light))] active:shadow-[inset_4px_4px_8px_hsl(var(--shadow-dark)),inset_-4px_-4px_8px_hsl(var(--shadow-light))] transition-all duration-200 font-mono ${
+                  resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {resendCooldown > 0 
+                  ? `Resend in ${resendCooldown}s` 
+                  : 'Resend verification email'
+                }
+              </motion.button>
+              
+              <Link href="/login">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3 bg-transparent rounded-2xl text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
+                >
+                  Already verified? Sign in
+                </motion.button>
+              </Link>
+            </div>
           </div>
         </motion.div>
       </div>

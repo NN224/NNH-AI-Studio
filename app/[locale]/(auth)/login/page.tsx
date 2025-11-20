@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getRedirectUrl, getLocaleFromPathname } from '@/lib/utils/navigation';
 
 const Logo = () => {
   return (
@@ -97,8 +98,10 @@ const LoginButton = ({ isLoading }: { isLoading: boolean }) => {
 
 function LoginPageContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const redirectTo = (searchParams?.get('redirectedFrom') as string | null) ?? '/dashboard';
+  const locale = getLocaleFromPathname(pathname);
+  const redirectTo = getRedirectUrl(searchParams, locale);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +129,8 @@ function LoginPageContent() {
       await authService.signIn(email, password, false);
 
       toast.success('Welcome back!');
+      
+      // Use the redirect URL from params or default to dashboard
       router.push(redirectTo);
       router.refresh();
     } catch (err) {

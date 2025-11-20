@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { ReviewsPageClient } from '@/components/reviews/ReviewsPageClient';
+import { getAuthUrl } from '@/lib/utils/navigation';
 
 export default async function ReviewsPage({
+  params,
   searchParams,
 }: {
+  params: { locale: string };
   searchParams: {
     location?: string;
     rating?: string;
@@ -23,7 +26,8 @@ export default async function ReviewsPage({
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/login');
+    const locale = params.locale || 'en';
+    redirect(getAuthUrl(locale as 'en' | 'ar', 'login'));
   }
 
   // Fetch locations for the filter dropdown

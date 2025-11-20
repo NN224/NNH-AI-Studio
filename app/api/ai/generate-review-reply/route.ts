@@ -2,10 +2,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getAIProvider } from '@/lib/ai/provider';
 
 export const dynamic = 'force-dynamic';
-
-const AI_MODEL = 'gemini-2.5-flash';
 
 /**
  * مسار API لتوليد رد/إجابة باستخدام نموذج Gemini.
@@ -19,17 +18,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY; 
-
-    if (!GEMINI_API_KEY) {
-        return NextResponse.json({ error: 'AI API key not configured' }, { status: 500 });
-    }
-
     try {
         const { reviewText, rating, tone, locationName, isQuestion } = await request.json();
 
         if (!reviewText || !tone || !locationName) {
             return NextResponse.json({ error: 'Missing required fields for AI generation.' }, { status: 400 });
+        }
+
+        // Get AI provider
+        const aiProvider = await getAIProvider(user.id);
+        if (!aiProvider) {
+            console.error('[AI Generate Reply] No AI provider configured for user:', user.id);
+            return NextResponse.json(
+                { error: 'No AI provider configured. Please set up an API key in Settings > AI Configuration.' },
+                { status: 500 }
+            );
         }
 
         // ⭐️ منطق تحديد الهدف والموجه بناءً على ما إذا كان السؤال أم مراجعة ⭐️
@@ -55,37 +58,33 @@ export async function POST(request: NextRequest) {
             4. Do not include any introductory phrases like "Here is your response:".
         `;
 
-        const userPrompt = `
-            BUSINESS NAME: ${locationName}
-            ${promptHeader}
-        `;
+        const userPrompt = `${systemInstruction}
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-                config: {
-                    systemInstruction: systemInstruction,
-                    temperature: 0.7,
-                }
-            })
-        });
+BUSINESS NAME: ${locationName}
+${promptHeader}`;
 
-        const data = await response.json();
+        const { content: aiReplyText, usage } = await aiProvider.generateCompletion(
+            userPrompt,
+            isQuestion ? 'question_auto_answer' : 'review_auto_reply'
+        );
 
-        if (!response.ok || data.candidates?.[0]?.content?.parts[0]?.text === undefined) {
-            console.error('Gemini API Error:', data);
-            throw new Error(data.error?.message || "AI service failed to generate content.");
+        if (!aiReplyText) {
+            throw new Error('AI provider returned empty response');
         }
 
-        const aiReplyText = data.candidates[0].content.parts[0].text;
+        console.log('[AI Generate Reply] Successfully generated, tokens used:', usage?.total_tokens);
 
         // إرجاع الرد
-        return NextResponse.json({ success: true, reply: aiReplyText });
+        return NextResponse.json({ success: true, reply: aiReplyText.trim() });
 
     } catch (error: any) {
-        console.error('AI Generation API Error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to communicate with AI service.' }, { status: 500 });
+        console.error('[AI Generate Reply] Error:', error);
+        console.error('[AI Generate Reply] Error details:', {
+            message: error.message,
+            userId: user?.id,
+        });
+        return NextResponse.json({ 
+            error: error.message || 'Failed to communicate with AI service.' 
+        }, { status: 500 });
     }
 }

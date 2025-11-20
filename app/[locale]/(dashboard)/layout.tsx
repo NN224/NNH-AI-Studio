@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -11,10 +12,24 @@ import { KeyboardProvider } from '@/components/keyboard/keyboard-provider';
 import { BrandProfileProvider } from '@/contexts/BrandProfileContext';
 import { DynamicThemeProvider } from '@/components/theme/DynamicThemeProvider';
 import { createClient } from '@/lib/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { getAuthUrl, getLocaleFromPathname } from '@/lib/utils/navigation';
 
 interface UserProfile {
     name: string | null;
     avatarUrl: string | null;
+}
+
+// Loading Screen Component
+function DashboardLoadingScreen() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardLayout({
@@ -22,37 +37,49 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
-  // Sidebar should be open by default on desktop, closed on mobile
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>({ 
+    name: 'User', 
+    avatarUrl: null 
+  });
 
-  // User profile state
-  const [userProfile, setUserProfile] = useState<UserProfile>({ name: 'User', avatarUrl: null });
-
-  // Fetch user profile
-  const fetchUserProfile = async () => {
-    if (!supabase) return; // Do nothing if supabase client is not initialized
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
-        const avatarUrl = user.user_metadata?.avatar_url || null;
-
-        setUserProfile({
-            name: name,
-            avatarUrl: avatarUrl,
-        });
-    }
-  };
-
-  // On mobile, close sidebar by default
+  // Check authentication
   useEffect(() => {
-    if (supabase) {
-      fetchUserProfile();
-    }
+    const checkAuth = async () => {
+      if (!supabase) {
+        const locale = getLocaleFromPathname(pathname);
+        router.push(getAuthUrl(locale, 'login'));
+        return;
+      }
 
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        const locale = getLocaleFromPathname(pathname);
+        const loginUrl = getAuthUrl(locale, 'login');
+        router.push(`${loginUrl}?redirectedFrom=${pathname}`);
+        return;
+      }
+
+      // Set user profile
+      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+      const avatarUrl = user.user_metadata?.avatar_url || null;
+
+      setUserProfile({ name, avatarUrl });
+      setIsAuthenticated(true);
+    };
+
+    checkAuth();
+  }, [router, pathname, supabase]);
+
+  // Handle responsive sidebar
+  useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarOpen(false);
@@ -61,12 +88,20 @@ export default function DashboardLayout({
       }
     };
 
-    // Set initial state
     handleResize();
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Show loading screen while checking auth
+  if (isAuthenticated === null) {
+    return <DashboardLoadingScreen />;
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <BrandProfileProvider>

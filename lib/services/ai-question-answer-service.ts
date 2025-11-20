@@ -43,52 +43,73 @@ export class AIQuestionAnswerService {
   async generateAnswer(context: QuestionContext): Promise<AnswerResult> {
     const startTime = Date.now();
 
-    // 1. تحليل السؤال وتحديد الفئة
-    const category = this.categorizeQuestion(context.question);
+    try {
+      // 1. تحليل السؤال وتحديد الفئة
+      const category = this.categorizeQuestion(context.question);
+      console.log('[AI Q&A] Question category:', category);
 
-    // 2. جمع المعلومات ذات الصلة
-    const relevantInfo = this.extractRelevantInfo(category, context.businessInfo);
+      // 2. جمع المعلومات ذات الصلة
+      const relevantInfo = this.extractRelevantInfo(category, context.businessInfo);
 
-    // 3. تحديد المزود (Gemini للأسئلة الواقعية، Anthropic للعامة)
-    const preferredProvider: AIProviderType = 
-      category === 'general' ? 'anthropic' : 'gemini';
+      // 3. تحديد المزود (Gemini للأسئلة الواقعية، Anthropic للعامة)
+      const preferredProvider: AIProviderType = 
+        category === 'general' ? 'anthropic' : 'gemini';
 
-    // 4. بناء prompt محسّن
-    const prompt = this.buildPrompt(context, category, relevantInfo);
+      // 4. بناء prompt محسّن
+      const prompt = this.buildPrompt(context, category, relevantInfo);
 
-    // 5. الحصول على AI provider
-    const aiProvider = await getAIProvider(context.userId);
-    if (!aiProvider) {
-      throw new Error('No AI provider configured');
+      // 5. الحصول على AI provider
+      const aiProvider = await getAIProvider(context.userId);
+      if (!aiProvider) {
+        console.error('[AI Q&A] No AI provider configured for user:', context.userId);
+        throw new Error('No AI provider configured. Please set up an API key in Settings > AI Configuration.');
+      }
+
+      // 6. توليد الإجابة
+      const aiResponse = await aiProvider.generateCompletion(
+        prompt,
+        'question_auto_answer',
+        context.locationId
+      );
+
+      // 7. حساب درجة الثقة
+      const confidence = this.calculateConfidence(
+        aiResponse.content,
+        category,
+        relevantInfo,
+        context.question
+      );
+
+      const processingTime = Date.now() - startTime;
+
+      console.log('[AI Q&A] Answer generated successfully:', {
+        category,
+        confidence,
+        processingTime,
+        tokensUsed: aiResponse.usage?.total_tokens,
+      });
+
+      return {
+        answer: aiResponse.content,
+        confidence,
+        category,
+        provider: preferredProvider,
+        model: 'AI-generated',
+        processingTime,
+        tokensUsed: aiResponse.usage?.total_tokens,
+        contextUsed: relevantInfo
+      };
+    } catch (error: any) {
+      console.error('[AI Q&A Service] Error generating answer:', error);
+      console.error('[AI Q&A Service] Error details:', {
+        message: error.message,
+        userId: context.userId,
+        question: context.question,
+      });
+      
+      // Re-throw with user-friendly message
+      throw new Error(error.message || 'Failed to generate answer. Please check your AI configuration.');
     }
-
-    // 6. توليد الإجابة
-    const aiResponse = await aiProvider.generateCompletion(
-      prompt,
-      'question_auto_answer',
-      context.locationId
-    );
-
-    // 7. حساب درجة الثقة
-    const confidence = this.calculateConfidence(
-      aiResponse.content,
-      category,
-      relevantInfo,
-      context.question
-    );
-
-    const processingTime = Date.now() - startTime;
-
-    return {
-      answer: aiResponse.content,
-      confidence,
-      category,
-      provider: preferredProvider,
-      model: 'AI-generated',
-      processingTime,
-      tokensUsed: aiResponse.usage?.total_tokens,
-      contextUsed: relevantInfo
-    };
   }
 
   private categorizeQuestion(question: string): QuestionCategory {
