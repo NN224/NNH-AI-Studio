@@ -36,6 +36,7 @@ import { ScreenshotsSection } from "@/components/landing/screenshots";
 import { LiveChat } from "@/components/landing/live-chat";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { LandingJsonLd } from "@/components/seo/landing-seo";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export default function LandingPage() {
   const t = useTranslations("landing");
@@ -378,11 +379,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-orange-500/20">
-        <div className="max-w-7xl mx-auto text-center text-gray-400">
-          <p>{t("footer.copyright")}</p>
-        </div>
-      </footer>
+      <PublicFooter />
 
       {/* Scroll to Top Button */}
       {showScrollTop && (
