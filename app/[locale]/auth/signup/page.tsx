@@ -1,376 +1,361 @@
 "use client";
 
-import type React from "react";
-
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
 import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Lock, User } from "lucide-react";
-import { getBaseUrlClient } from "@/lib/utils/get-base-url-client";
-import { PublicHeader } from "@/components/layout/public-header";
-import { PublicFooter } from "@/components/layout/public-footer";
+import {
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  Mail,
+} from "lucide-react";
+import Link from "next/link";
+import { authService } from "@/lib/services/auth-service";
+import { toast } from "sonner";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getLocaleFromPathname } from "@/lib/utils/navigation";
+import { AuthLayout } from "@/components/auth/auth-layout";
+import { PasswordStrength } from "@/components/auth/password-strength";
+import { useTranslations } from "next-intl";
 
-export default function SignUpPage() {
+export default function SignupPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname);
+  const t = useTranslations("auth.signup");
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Form fields
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const router = useRouter();
-  const params = useParams();
-  const locale = (params.locale as string) || "en";
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
-    if (!supabase) {
-      setError("Failed to initialize authentication client");
+
+    if (!fullName || !email || !password || !confirmPassword) {
+      setError(t("errors.fillAllFields"));
       return;
     }
-
-    const baseUrl = getBaseUrlClient();
-    setIsLoading(true);
-    setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
+      setError(t("errors.passwordMismatch"));
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      setIsLoading(false);
+    if (!acceptedTerms) {
+      setError(t("errors.acceptTerms"));
+      return;
+    }
+
+    // Check password strength
+    const hasMinLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber) {
+      setError(t("errors.weakPassword"));
       return;
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${baseUrl}/${locale}/home`,
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-      if (error) throw error;
-      router.push(`/${locale}/home`);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      setIsLoading(true);
+      setError(null);
+
+      await authService.signUp(email, password, fullName);
+
+      setUserEmail(email);
+      setShowSuccess(true);
+      toast.success(t("accountCreated"));
+    } catch (err) {
+      console.error("Signup error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to sign up";
+
+      if (errorMessage.includes("already registered")) {
+        setError(t("errors.emailExists"));
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogle = async () => {
-    const supabase = createClient();
-    if (!supabase) {
-      setError("Failed to initialize authentication client");
-      return;
-    }
+  const handleResendEmail = async () => {
+    if (resendCooldown > 0) return;
 
-    const baseUrl = getBaseUrlClient();
-    setIsGoogleLoading(true);
-    setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${baseUrl}/${locale}/auth/callback` },
-      });
-      if (error) throw error;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Google sign-up failed");
-      setIsGoogleLoading(false);
+      setResendCooldown(60);
+      await authService.resendVerificationEmail(userEmail);
+      toast.success("Verification email sent!");
+
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error("Resend error:", err);
+      toast.error("Failed to resend email");
+      setResendCooldown(0);
     }
   };
 
+  if (showSuccess) {
+    return (
+      <AuthLayout title={t("verifyEmail")} showBenefits={false}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail className="w-10 h-10 text-green-500" />
+          </div>
+
+          <h2 className="text-2xl font-bold mb-4">{t("verifyEmail")}</h2>
+          <p className="text-gray-400 mb-2">{t("verifyEmailMessage")}</p>
+          <p className="text-orange-500 font-semibold mb-6">{userEmail}</p>
+          <p className="text-gray-400 text-sm mb-8">{t("checkInbox")}</p>
+
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={handleResendEmail}
+              disabled={resendCooldown > 0}
+              className="text-sm text-orange-500 hover:text-orange-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {resendCooldown > 0
+                ? `${t("resendIn")} ${resendCooldown} ${t("seconds")}`
+                : `${t("didntReceive")} ${t("resend")}`}
+            </button>
+
+            <Link
+              href={`/${locale}/login`}
+              className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              Back to login
+            </Link>
+          </div>
+        </motion.div>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <PublicHeader />
-      <main className="flex-1 relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black p-6">
-        {/* Animated Background Gradients */}
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 90, 0],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-          <motion.div
-            className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-accent/20 to-transparent rounded-full blur-3xl"
-            animate={{
-              scale: [1.2, 1, 1.2],
-              rotate: [90, 0, 90],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+    <AuthLayout title={t("title")} subtitle={t("subtitle")}>
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={onSubmit} className="space-y-6">
+        {/* Full Name */}
+        <div>
+          <label
+            htmlFor="fullName"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("fullName")}
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="John Doe"
+            autoComplete="name"
           />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 w-full max-w-lg"
-        >
-          {/* Logo Header */}
-          <motion.div
-            className="mb-10 text-center"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+        {/* Email */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-300 mb-2"
           >
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <motion.img
-                src="/nnh-logo.png"
-                alt="NNH Logo"
-                className="w-14 h-14 object-contain"
-                animate={{
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <h1 className="text-2xl font-bold text-foreground">
-                NNH AI Studio
-              </h1>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Empowering Your Business with AI
+            {t("email")}
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+        </div>
+
+        {/* Password */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("password")}
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          {password && <PasswordStrength password={password} />}
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("confirmPassword")}
+          </label>
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isLoading}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          {confirmPassword && password === confirmPassword && (
+            <p className="text-sm text-green-500 mt-2 flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4" />
+              Passwords match
             </p>
-          </motion.div>
+          )}
+        </div>
 
-          <Card className="relative bg-card border-border shadow-xl">
-            <CardHeader className="space-y-2 pb-8 pt-8">
-              <CardTitle className="text-2xl font-bold text-center text-foreground">
-                Create Account
-              </CardTitle>
-              <CardDescription className="text-center text-muted-foreground">
-                Get started with your free account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Google OAuth - Primary Option */}
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    type="button"
-                    className="w-full h-11 bg-white text-black hover:bg-gray-50 border border-gray-300 shadow-sm font-medium transition-all"
-                    onClick={handleGoogle}
-                    disabled={isGoogleLoading}
-                  >
-                    {isGoogleLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        {/* Google "G" icon */}
-                        <svg
-                          className="mr-3 h-5 w-5"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fill="#EA4335"
-                            d="M12 10.2v3.9h5.5c-.24 1.4-1.66 4.1-5.5 4.1-3.31 0-6-2.73-6-6.1s2.69-6.1 6-6.1c1.89 0 3.16.8 3.89 1.49l2.64-2.55C16.91 3.4 14.69 2.5 12 2.5 6.99 2.5 2.9 6.59 2.9 11.6S6.99 20.7 12 20.7c6.36 0 8.1-4.45 8.1-6.65 0-.45-.05-.74-.11-1.06H12z"
-                          />
-                        </svg>
-                        Continue with Google
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
+        {/* Terms & Privacy */}
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            disabled={isLoading}
+            className="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-900 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+            {t("agreeToTerms")}{" "}
+            <Link
+              href="/terms"
+              className="text-orange-500 hover:text-orange-400"
+            >
+              {t("terms")}
+            </Link>{" "}
+            {t("and")}{" "}
+            <Link
+              href="/privacy"
+              className="text-orange-500 hover:text-orange-400"
+            >
+              {t("privacy")}
+            </Link>
+          </span>
+        </label>
 
-                {/* Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      or continue with email
-                    </span>
-                  </div>
-                </div>
+        {/* Submit Button */}
+        <motion.button
+          type="submit"
+          disabled={isLoading}
+          whileHover={{ scale: isLoading ? 1 : 1.02 }}
+          whileTap={{ scale: isLoading ? 1 : 0.98 }}
+          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              {t("creatingAccount")}
+            </>
+          ) : (
+            t("createAccount")
+          )}
+        </motion.button>
 
-                {/* Registration Form */}
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="fullName"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Full Name
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="John Doe"
-                        required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="h-11 pl-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="email"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Email address
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-11 pl-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="password"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Create a password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="h-11 pl-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="confirmPassword"
-                      className="text-sm font-medium text-foreground"
-                    >
-                      Confirm Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="Confirm your password"
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="h-11 pl-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 rounded-lg bg-destructive/10 border border-destructive/30"
-                    >
-                      <p className="text-sm text-destructive">{error}</p>
-                    </motion.div>
-                  )}
-                  <Button
-                    type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium shadow-md hover:shadow-lg transition-all"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-                </form>
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-800" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-black text-gray-500">
+              {t("orContinueWith")}
+            </span>
+          </div>
+        </div>
 
-                {/* Footer */}
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <p className="text-center text-xs text-muted-foreground">
-                    By signing up, you agree to our{" "}
-                    <Link
-                      href={`/${locale}/terms`}
-                      className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors"
-                    >
-                      Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link
-                      href={`/${locale}/privacy`}
-                      className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors"
-                    >
-                      Privacy Policy
-                    </Link>
-                  </p>
-                  <p className="text-center text-sm text-muted-foreground">
-                    Already have an account?{" "}
-                    <Link
-                      href={`/${locale}/auth/login`}
-                      className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors"
-                    >
-                      Sign in
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      <PublicFooter />
-    </div>
+        {/* OAuth Buttons */}
+        <OAuthButtons mode="signup" />
+
+        {/* Login Link */}
+        <p className="text-center text-sm text-gray-400">
+          {t("haveAccount")}{" "}
+          <Link
+            href={`/${locale}/login`}
+            className="text-orange-500 hover:text-orange-400 font-semibold transition-colors"
+          >
+            {t("signIn")}
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }
