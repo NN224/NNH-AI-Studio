@@ -28,11 +28,7 @@ const nextConfig = {
     optimizeCss: false,
     scrollRestoration: true,
   },
-  typescript: {
-    // Skip type checking temporarily for deployment
-    ignoreBuildErrors: true,
-  },
-  
+
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
     // Production optimizations
