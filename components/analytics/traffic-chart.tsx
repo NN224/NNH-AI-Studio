@@ -16,6 +16,9 @@ export function TrafficChart({ dateRange = "30", locationIds }: TrafficChartProp
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchTrafficData() {

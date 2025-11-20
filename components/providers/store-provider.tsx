@@ -14,6 +14,9 @@ interface StoreProviderProps {
 export function StoreProvider({ children }: StoreProviderProps) {
   const setUserId = useDashboardStore((state) => state.setUserId);
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     // Initialize user session

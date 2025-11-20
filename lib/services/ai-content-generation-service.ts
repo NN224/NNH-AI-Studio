@@ -256,6 +256,9 @@ Optimized content:`;
     if (cached) return cached;
 
     const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
     const { data } = await supabase
       .from('brand_profiles')
       .select('*')

@@ -105,6 +105,9 @@ export function CustomReportBuilder({
   const [scheduleFrequency, setScheduleFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   const handleMetricToggle = (metric: string) => {
     setSelectedMetrics(prev => 

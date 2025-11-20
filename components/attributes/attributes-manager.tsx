@@ -17,6 +17,9 @@ export function AttributesManager() {
   const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(null)
   const [attributesDialogOpen, setAttributesDialogOpen] = useState(false)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     fetchLocations()

@@ -83,6 +83,9 @@ export function NotificationsTab({
 }: NotificationsTabProps) {
   const t = useTranslations('Settings.notifications')
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
 
   useEffect(() => {

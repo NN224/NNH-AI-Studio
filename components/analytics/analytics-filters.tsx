@@ -81,6 +81,9 @@ export function AnalyticsFilters({
   const [metric, setMetric] = useState<string>('all');
 
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   // Load locations
   useEffect(() => {

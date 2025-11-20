@@ -21,6 +21,9 @@ export function PerformanceMetricsChart({ dateRange = "30", locationIds, compari
   const [hasBookings, setHasBookings] = useState(false)
   const [hasFoodOrders, setHasFoodOrders] = useState(false)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchPerformanceData() {

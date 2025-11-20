@@ -25,6 +25,9 @@ export function ImpressionsBreakdownChart({ dateRange = "30", locationIds }: Imp
   } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchBreakdownData() {

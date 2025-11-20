@@ -23,6 +23,9 @@ export function useDashboardRealtime(
     if (!userId) return;
 
     const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
     // Cleanup previous subscription
     if (channelRef.current) {

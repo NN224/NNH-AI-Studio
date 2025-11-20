@@ -35,6 +35,9 @@ export function MediaGallery({ locationId }: MediaGalleryProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
   
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     fetchMedia()

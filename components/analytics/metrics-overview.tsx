@@ -83,6 +83,9 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
   })
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchMetrics() {

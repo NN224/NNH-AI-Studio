@@ -11,6 +11,9 @@ export function useAccountsManagement() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const { toast } = useToast();
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   const fetchAccounts = useCallback(async (): Promise<GmbAccount[]> => { // تحديد نوع الإرجاع
     setLoading(true);

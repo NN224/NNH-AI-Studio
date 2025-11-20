@@ -53,6 +53,9 @@ export function LocationAttributesDialog({
   const [isLocked, setIsLocked] = useState(false)
   
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     if (location && open) {

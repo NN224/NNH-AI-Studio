@@ -46,6 +46,9 @@ interface Post {
 
 export function GMBPostsSection() {
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [locations, setLocations] = useState<LocationItem[]>([])
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
   const [loading, setLoading] = useState(true)

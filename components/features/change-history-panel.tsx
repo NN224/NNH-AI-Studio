@@ -62,6 +62,9 @@ export function ChangeHistoryPanel({
   const [rollbackLoading, setRollbackLoading] = useState(false);
   
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     loadHistory();

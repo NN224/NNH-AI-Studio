@@ -26,6 +26,9 @@ export function ReviewsList() {
   const [refreshing, setRefreshing] = useState(false)
   
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     fetchReviews()

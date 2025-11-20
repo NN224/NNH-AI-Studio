@@ -21,6 +21,9 @@ export function UserButton() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     const getUser = async () => {

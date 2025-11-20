@@ -33,6 +33,9 @@ export default function AutopilotStatus() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const router = useRouter();
 
   // Fetch autopilot stats and settings

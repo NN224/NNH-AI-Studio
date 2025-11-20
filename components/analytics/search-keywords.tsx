@@ -22,6 +22,9 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
   const [keywords, setKeywords] = useState<SearchKeyword[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchKeywords() {

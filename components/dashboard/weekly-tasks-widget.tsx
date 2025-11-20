@@ -40,6 +40,9 @@ export function WeeklyTasksWidget() {
   const [generating, setGenerating] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     loadTasks();

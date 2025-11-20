@@ -112,6 +112,9 @@ const [notifications, setNotifications] = useSafeState<Notification[]>([]);
 const [unreadCount, setUnreadCount] = useSafeState(0);
 const [loadingNotifications, setLoadingNotifications] = useSafeState(true);
 const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 const router = useRouter(); 
 
 // دالة تسجيل الخروج

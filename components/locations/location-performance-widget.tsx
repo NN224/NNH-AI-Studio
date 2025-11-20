@@ -24,6 +24,9 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchMetrics() {

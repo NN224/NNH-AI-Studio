@@ -121,6 +121,9 @@ class PerformanceTracker {
 
     try {
       const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
       
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()

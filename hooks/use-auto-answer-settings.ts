@@ -18,6 +18,9 @@ export function useAutoAnswerSettings(locationId?: string) {
   useEffect(() => {
     async function init() {
       const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
@@ -33,6 +36,9 @@ export function useAutoAnswerSettings(locationId?: string) {
       setIsLoading(true);
       try {
         const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
         const { data, error } = await supabase
           .from('auto_reply_settings')
           .select('*')
@@ -63,6 +69,9 @@ export function useAutoAnswerSettings(locationId?: string) {
     setIsLoading(true);
     try {
       const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
       const { error } = await supabase
         .from('auto_reply_settings')
         .update(updates)

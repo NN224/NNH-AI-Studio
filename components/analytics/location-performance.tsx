@@ -16,6 +16,9 @@ export function LocationPerformance({ locationIds }: LocationPerformanceProps = 
   const [locations, setLocations] = useState<GMBLocationWithRating[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchLocations() {

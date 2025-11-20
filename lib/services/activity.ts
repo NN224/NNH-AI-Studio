@@ -26,6 +26,9 @@ type LogParams = {
 export async function logActivity({ type, message, metadata = {}, actionable = false }: LogParams) {
   try {
     const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
     const {
       data: { user },
     } = await supabase.auth.getUser()

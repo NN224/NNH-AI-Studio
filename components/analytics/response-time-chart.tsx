@@ -14,6 +14,9 @@ export function ResponseTimeChart({ dateRange, locationIds }: ResponseTimeChartP
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchResponseData() {

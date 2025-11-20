@@ -34,6 +34,9 @@ export function LocationsList() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const router = useRouter()
   
   // Check for location query param

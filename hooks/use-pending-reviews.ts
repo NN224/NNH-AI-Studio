@@ -24,6 +24,9 @@ export interface UsePendingReviewsResult {
 
 export function usePendingReviews(): UsePendingReviewsResult {
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [reviews, setReviews] = useState<(GMBReview & { location_name?: string })[]>([]);
   const [stats, setStats] = useState<PendingReviewsStats>({
     pending: 0,
