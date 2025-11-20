@@ -211,16 +211,16 @@ function buildSpecialLinks(raw: Record<string, any>, row: Record<string, any>): 
 function buildSocialLinks(raw: Record<string, any>): SocialLinks {
   // Extract social media links from GMB attributes
   const attributes = Array.isArray(raw.attributes) ? raw.attributes : []
-  const socialLinks: SocialLinks = {}
-  
+  const links: Record<string, string | null | undefined> = {}
+
   attributes.forEach((attr: any) => {
     if (!attr || !attr.name) return
-    
+
     const attrName = attr.name
-    
+
     // Social links are stored in uriValues, not values!
     let value: string | null = null
-    
+
     // Check uriValues first (for URL type attributes)
     if (Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
       value = attr.uriValues[0]?.uri || null
@@ -229,22 +229,22 @@ function buildSocialLinks(raw: Record<string, any>): SocialLinks {
     else if (attr.values) {
       value = Array.isArray(attr.values) ? attr.values[0] : attr.values
     }
-    
+
     // Skip if value is null or empty
     if (!value || typeof value !== 'string') return
-    
+
     // Map GMB attribute names to social link fields
-    if (attrName === 'attributes/url_facebook') socialLinks.facebook = value
-    else if (attrName === 'attributes/url_instagram') socialLinks.instagram = value
-    else if (attrName === 'attributes/url_twitter') socialLinks.twitter = value
-    else if (attrName === 'attributes/url_whatsapp') socialLinks.whatsapp = value
-    else if (attrName === 'attributes/url_youtube') socialLinks.youtube = value
-    else if (attrName === 'attributes/url_linkedin') socialLinks.linkedin = value
-    else if (attrName === 'attributes/url_tiktok') socialLinks.tiktok = value
-    else if (attrName === 'attributes/url_pinterest') socialLinks.pinterest = value
+    if (attrName === 'attributes/url_facebook') links.facebook = value
+    else if (attrName === 'attributes/url_instagram') links.instagram = value
+    else if (attrName === 'attributes/url_twitter') links.twitter = value
+    else if (attrName === 'attributes/url_whatsapp') links.whatsapp = value
+    else if (attrName === 'attributes/url_youtube') links.youtube = value
+    else if (attrName === 'attributes/url_linkedin') links.linkedin = value
+    else if (attrName === 'attributes/url_tiktok') links.tiktok = value
+    else if (attrName === 'attributes/url_pinterest') links.pinterest = value
   })
-  
-  return socialLinks
+
+  return links as SocialLinks
 }
 
 function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayload {
@@ -253,7 +253,7 @@ function normalizeBusinessProfile(row: Record<string, any>): BusinessProfilePayl
   // But also check if metadata itself is the profile object (legacy format)
   const profileMetadata = parseRecord(metadata.profile ?? metadata)
 
-  const baseProfile: BusinessProfile = {
+  const baseProfile: BusinessProfilePayload = {
     id: String(row.id ?? row.location_id ?? ''),
     locationResourceId: typeof row.location_id === 'string' ? row.location_id : metadata.location_id ?? null,
     locationName:
@@ -708,6 +708,7 @@ export async function PUT(
         order: specialLinksPayload.order ? sanitizeWebsite(specialLinksPayload.order) : null,
         appointment: specialLinksPayload.appointment ? sanitizeWebsite(specialLinksPayload.appointment) : null,
       },
+      socialLinks: payload.socialLinks ?? {},
       fromTheBusiness: Array.from(new Set(fromBusinessPayload.map((item) => item.trim()))),
       openingDate: payload.openingDate ?? null,
       serviceAreaEnabled: payload.serviceAreaEnabled,

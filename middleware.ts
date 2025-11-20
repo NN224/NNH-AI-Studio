@@ -134,12 +134,17 @@ function extractUserId(request: NextRequest): string {
 }
 
 export async function middleware(request: NextRequest) {
-  // 🚨 EMERGENCY: Block webhook spam attack
+  // Monitor webhook requests (for security auditing)
   if (request.nextUrl.pathname === '/api/webhooks/gmb-notifications') {
-    return NextResponse.json(
-      { error: 'Endpoint disabled' },
-      { status: 410 } // 410 Gone - permanently removed
-    );
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    console.log('[Middleware] GMB webhook request:', {
+      ip,
+      method: request.method,
+      userAgent: userAgent.substring(0, 100), // Truncate to prevent log spam
+      hasSignature: !!request.headers.get('x-goog-signature'),
+    });
+    // Note: Actual security verification happens in the route handler
   }
 
   // Handle i18n routing for non-API routes
