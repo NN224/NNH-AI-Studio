@@ -1,8 +1,11 @@
-import {withSentryConfig} from '@sentry/nextjs';
-import bundleAnalyzer from '@next/bundle-analyzer';
+import { withSentryConfig } from "@sentry/nextjs";
+import bundleAnalyzer from "@next/bundle-analyzer";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n.ts");
 
 const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
+  enabled: process.env.ANALYZE === "true",
 });
 
 /** @type {import('next').NextConfig} */
@@ -19,7 +22,7 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   compress: true,
-  
+
   // Optimize bundle size
   experimental: {
     optimizeCss: false,
@@ -33,48 +36,48 @@ const nextConfig = {
     // if (!dev && !isServer) {
     //   // Add production optimizations here if needed
     // }
-    
+
     return config;
   },
   async headers() {
     return [
       {
         // Apply security headers to all routes
-        source: '/:path*',
+        source: "/:path*",
         headers: [
           // Prevent iframes to protect against clickjacking
           {
-            key: 'X-Frame-Options',
-            value: 'DENY',
+            key: "X-Frame-Options",
+            value: "DENY",
           },
           // Prevent MIME type sniffing
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
           // Enable XSS protection (legacy browsers)
           {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
           },
           // Referrer policy for privacy
           {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
           },
           // Permissions policy (formerly Feature Policy)
           {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(*), payment=()',
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(*), payment=()",
           },
           // HSTS (Strict Transport Security) - enforce HTTPS
           {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
           // Content Security Policy - comprehensive protection
           {
-            key: 'Content-Security-Policy',
+            key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.googletagmanager.com https://accounts.google.com https://apis.google.com https://www.gstatic.com https://ssl.gstatic.com",
@@ -89,11 +92,14 @@ const nextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "upgrade-insecure-requests",
-            ].join('; '),
+            ].join("; "),
           },
-        ].filter(header => {
+        ].filter((header) => {
           // Remove HSTS header in development to allow HTTP
-          if (process.env.NODE_ENV !== 'production' && header.key === 'Strict-Transport-Security') {
+          if (
+            process.env.NODE_ENV !== "production" &&
+            header.key === "Strict-Transport-Security"
+          ) {
             return false;
           }
           return true;
@@ -101,31 +107,33 @@ const nextConfig = {
       },
       {
         // Additional headers for API routes
-        source: '/api/:path*',
+        source: "/api/:path*",
         headers: [
           // CORS headers for API (adjust origin as needed)
           {
-            key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'production'
-              ? 'https://nnh.ae'
-              : 'http://localhost:5050',
+            key: "Access-Control-Allow-Origin",
+            value:
+              process.env.NODE_ENV === "production"
+                ? "https://nnh.ae"
+                : "http://localhost:5050",
           },
           {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
           },
           {
-            key: 'Access-Control-Allow-Headers',
-            value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
+            key: "Access-Control-Allow-Headers",
+            value:
+              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
           },
           {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
+            key: "Access-Control-Allow-Credentials",
+            value: "true",
           },
           // Cache control for API responses
           {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, proxy-revalidate",
           },
         ],
       },
@@ -133,9 +141,9 @@ const nextConfig = {
       // For custom caching, use _headers file or middleware
     ];
   },
-}
+};
 
-export default withSentryConfig(withBundleAnalyzer(nextConfig), {
+export default withSentryConfig(withNextIntl(withBundleAnalyzer(nextConfig)), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
