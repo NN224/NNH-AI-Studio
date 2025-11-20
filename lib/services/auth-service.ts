@@ -4,6 +4,9 @@ import type { Provider } from '@supabase/supabase-js';
 export const authService = {
   async signUp(email: string, password: string, fullName?: string) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -24,6 +27,9 @@ export const authService = {
 
   async signIn(email: string, password: string, rememberMe?: boolean) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -44,6 +50,10 @@ export const authService = {
 
   async signInWithOAuth(provider: Provider) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const redirectTo = typeof window !== 'undefined' 
       ? `${window.location.origin}/auth/callback`
       : '/auth/callback';
@@ -62,12 +72,20 @@ export const authService = {
 
   async signOut() {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
 
   async resetPassword(email: string) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const redirectTo = typeof window !== 'undefined' 
       ? `${window.location.origin}/auth/reset-password`
       : '/auth/reset-password';
@@ -81,6 +99,9 @@ export const authService = {
 
   async updatePassword(newPassword: string) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
 
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
@@ -103,6 +124,10 @@ export const authService = {
    */
   async getSession() {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const { data, error } = await supabase.auth.getSession();
 
     if (error) throw error;
@@ -113,6 +138,10 @@ export const authService = {
 
   async getUser() {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const { data, error } = await supabase.auth.getUser();
 
     if (error) throw error;
@@ -121,6 +150,10 @@ export const authService = {
 
   async resendVerificationEmail(email: string) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error('Failed to initialize Supabase client');
+    }
+
     const redirectTo = typeof window !== 'undefined' 
       ? `${window.location.origin}/auth/callback`
       : '/auth/callback';

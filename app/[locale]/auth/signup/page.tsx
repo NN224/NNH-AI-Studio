@@ -29,6 +29,11 @@ export default function SignUpPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     const baseUrl = getBaseUrlClient()
     setIsLoading(true)
     setError(null)
@@ -67,6 +72,11 @@ export default function SignUpPage() {
 
   const handleGoogle = async () => {
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     const baseUrl = getBaseUrlClient()
     setIsGoogleLoading(true)
     setError(null)
