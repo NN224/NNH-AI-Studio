@@ -63,7 +63,7 @@ export function MediaGallery({ locationId }: MediaGalleryProps) {
       const {
         data: { user },
         error: authError
-      } = await supabase.auth.getUser()
+      } = await supabase!.auth.getUser()
 
       if (authError || !user) {
         setError("Please sign in to view media")

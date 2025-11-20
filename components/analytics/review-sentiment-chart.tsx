@@ -22,14 +22,14 @@ export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentiment
     async function fetchSentimentData() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active GMB account IDs first
-        const { data: accounts } = await supabase
+        const { data: accounts } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -42,7 +42,7 @@ export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentiment
         }
 
         // Get active location IDs
-        const { data: locations } = await supabase
+        const { data: locations } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -51,7 +51,7 @@ export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentiment
         const locationIds = locations?.map(loc => loc.id).filter(Boolean) || []
 
         const { data: reviews, error: queryError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_reviews")
               .select("ai_sentiment, created_at, rating")
               .eq("user_id", user.id)
@@ -63,7 +63,7 @@ export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentiment
           console.error("Error fetching reviews for sentiment:", queryError)
           // If ai_sentiment column doesn't exist, use rating as fallback
           const { data: reviewsFallback } = locationIds.length > 0
-            ? await supabase
+            ? await supabase!
                 .from("gmb_reviews")
                 .select("rating, created_at")
                 .eq("user_id", user.id)
@@ -139,7 +139,7 @@ export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentiment
 
     fetchSentimentData()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("sentiment-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_reviews" }, fetchSentimentData)
       .subscribe()

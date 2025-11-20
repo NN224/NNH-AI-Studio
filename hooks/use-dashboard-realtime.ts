@@ -76,7 +76,7 @@ export function useDashboardRealtime({
     const supabase = supabaseRef.current
 
     // Create channel for dashboard updates
-    const channel = supabase
+    const channel = supabase!
       .channel(`dashboard-updates-${userId}`)
       .on(
         'postgres_changes',
@@ -140,7 +140,7 @@ export function useDashboardRealtime({
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+        supabase!.removeChannel(channelRef.current)
         channelRef.current = null
         setIsConnected(false)
       }
@@ -150,7 +150,7 @@ export function useDashboardRealtime({
   const reconnect = useCallback(() => {
     if (channelRef.current) {
       const supabase = supabaseRef.current
-      supabase.removeChannel(channelRef.current)
+      supabase!.removeChannel(channelRef.current)
       channelRef.current = null
     }
     // Trigger re-subscription by toggling enabled

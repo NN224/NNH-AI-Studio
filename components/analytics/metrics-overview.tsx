@@ -91,14 +91,14 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
     async function fetchMetrics() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active account IDs
-        const { data: accounts, error: accountsError } = await supabase
+        const { data: accounts, error: accountsError } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -117,7 +117,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
         }
 
         // Get locations
-        const { data: locations, error: locationsError } = await supabase
+        const { data: locations, error: locationsError } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -133,7 +133,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
 
         // Get reviews for response rate
         const { data: reviews, error: reviewsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_reviews")
               .select("rating, reply_text, review_reply")
               .eq("user_id", user.id)
@@ -164,7 +164,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
 
         // Fetch current period metrics
         const { data: currentMetrics, error: currentMetricsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
               .eq("user_id", user.id)
@@ -175,7 +175,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
 
         // Fetch previous period metrics for comparison
         const { data: previousMetrics, error: previousMetricsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
               .eq("user_id", user.id)
@@ -258,7 +258,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
 
     fetchMetrics()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("analytics-metrics")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_locations" }, fetchMetrics)
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_reviews" }, fetchMetrics)
@@ -266,7 +266,7 @@ export function MetricsOverview({ dateRange = "30", locationIds, comparison }: M
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase!.removeChannel(channel)
     }
   }, [supabase, dateRange])
 

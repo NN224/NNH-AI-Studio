@@ -29,14 +29,14 @@ export function PerformanceMetricsChart({ dateRange = "30", locationIds, compari
     async function fetchPerformanceData() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active account IDs
-        const { data: accounts, error: accountsError } = await supabase
+        const { data: accounts, error: accountsError } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -55,7 +55,7 @@ export function PerformanceMetricsChart({ dateRange = "30", locationIds, compari
         }
 
         // Get locations
-        const { data: locations, error: locationsError } = await supabase
+        const { data: locations, error: locationsError } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -75,7 +75,7 @@ export function PerformanceMetricsChart({ dateRange = "30", locationIds, compari
 
         // Get performance metrics
         const { data: metrics, error: metricsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
               .eq("user_id", user.id)
@@ -214,7 +214,7 @@ export function PerformanceMetricsChart({ dateRange = "30", locationIds, compari
 
     fetchPerformanceData()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("performance-metrics-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_performance_metrics" }, fetchPerformanceData)
       .subscribe()

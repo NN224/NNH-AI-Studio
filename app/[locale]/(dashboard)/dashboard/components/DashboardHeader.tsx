@@ -23,7 +23,7 @@ export function DashboardHeader({ onPreferencesChange }: DashboardHeaderProps) {
     const fetchUserName = async () => {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase!.auth.getUser();
         
         if (user?.email) {
           // Extract name from email or use email prefix

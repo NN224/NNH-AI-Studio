@@ -42,7 +42,7 @@ export function ReviewsList() {
       const {
         data: { user },
         error: authError
-      } = await supabase.auth.getUser()
+      } = await supabase!.auth.getUser()
 
       if (authError || !user) {
         setError("Please sign in to view reviews")
@@ -51,7 +51,7 @@ export function ReviewsList() {
       }
 
       // First get active GMB account IDs and their locations
-      const { data: activeAccounts, error: accountsError } = await supabase
+      const { data: activeAccounts, error: accountsError } = await supabase!
         .from("gmb_accounts")
         .select("id")
         .eq("user_id", user.id)
@@ -66,7 +66,7 @@ export function ReviewsList() {
 
       let activeLocationIds: string[] = []
       if (activeAccountIds.length > 0) {
-        const { data: activeLocations, error: locationsError } = await supabase
+        const { data: activeLocations, error: locationsError } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -86,8 +86,8 @@ export function ReviewsList() {
       
       if (activeLocationIds.length > 0) {
         console.log(`[ReviewsList] Fetching reviews for ${activeLocationIds.length} active locations`);
-        
-        const result = await supabase
+
+        const result = await supabase!
           .from("gmb_reviews")
           .select("*")
           .eq("user_id", user.id)

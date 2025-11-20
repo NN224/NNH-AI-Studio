@@ -89,10 +89,10 @@ export function AnalyticsFilters({
   useEffect(() => {
     async function loadLocations() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase!.auth.getUser();
         if (!user) return;
 
-        const { data } = await supabase
+        const { data } = await supabase!
           .from('gmb_locations')
           .select('id, location_name, is_active')
           .eq('user_id', user.id)

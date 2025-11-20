@@ -62,7 +62,7 @@ export function LocationsList() {
 
         const {
           data: { user },
-        } = await supabase.auth.getUser()
+        } = await supabase!.auth.getUser()
 
         if (!user) {
           setError("Please sign in to view locations")
@@ -70,7 +70,7 @@ export function LocationsList() {
         }
 
         // First get active GMB account IDs
-        const { data: activeAccounts } = await supabase
+        const { data: activeAccounts } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -83,7 +83,7 @@ export function LocationsList() {
         let fetchError = null
         
         if (activeAccountIds.length > 0) {
-          const result = await supabase
+          const result = await supabase!
             .from("gmb_locations")
             .select("*")
             .eq("user_id", user.id)
@@ -243,7 +243,7 @@ export function LocationsList() {
       }
 
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const { data: { user }, error: authError } = await supabase!.auth.getUser()
         if (authError || !user) {
           console.error("Authentication error in overview stats:", authError)
           return
@@ -254,7 +254,7 @@ export function LocationsList() {
 
         // Get location IDs
         const locationIds = locations.map(loc => loc.id)
-        
+
         if (locationIds.length === 0) {
           setOverviewStats({
             totalImpressions: 0,
@@ -266,7 +266,7 @@ export function LocationsList() {
         }
 
         // Get performance metrics with error handling - Fixed N+1 query by using single aggregated query with grouping
-        const { data: metrics, error: metricsError } = await supabase
+        const { data: metrics, error: metricsError } = await supabase!
           .from("gmb_performance_metrics")
           .select(`
             location_id,
@@ -397,10 +397,10 @@ export function LocationsList() {
           onRefresh={() => {
             // Refresh locations list
             const fetchLocations = async () => {
-              const { data: { user } } = await supabase.auth.getUser()
+              const { data: { user } } = await supabase!.auth.getUser()
               if (!user) return
-              
-              const { data: activeAccounts } = await supabase
+
+              const { data: activeAccounts } = await supabase!
                 .from("gmb_accounts")
                 .select("id")
                 .eq("user_id", user.id)
@@ -409,7 +409,7 @@ export function LocationsList() {
               const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
               
               if (activeAccountIds.length > 0) {
-                const { data } = await supabase
+                const { data } = await supabase!
                   .from("gmb_locations")
                   .select("*")
                   .eq("user_id", user.id)

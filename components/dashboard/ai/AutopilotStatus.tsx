@@ -48,7 +48,7 @@ export default function AutopilotStatus() {
         // Fetch stats from API
         const statsRes = await fetch('/api/auto-pilot/stats', { cache: 'no-store' });
         if (!statsRes.ok) throw new Error('Failed to fetch stats');
-        
+
         const statsData = await statsRes.json();
         if (!mounted) return;
 
@@ -77,9 +77,9 @@ export default function AutopilotStatus() {
   async function toggleGlobal(enabled: boolean) {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase!.auth.getUser();
       if (!user) return;
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('gmb_accounts')
         .update({ 
           settings: { 

@@ -90,10 +90,10 @@ export function NotificationsTab({
 
   useEffect(() => {
     async function loadGMBAccount() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase!.auth.getUser()
       if (!user) return
 
-      const { data: accounts } = await supabase
+      const { data: accounts } = await supabase!
         .from('gmb_accounts')
         .select('account_id')
         .eq('user_id', user.id)

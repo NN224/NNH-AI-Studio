@@ -30,14 +30,14 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
     async function fetchKeywords() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active account IDs
-        const { data: accounts, error: accountsError } = await supabase
+        const { data: accounts, error: accountsError } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -56,7 +56,7 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
         }
 
         // Get locations
-        const { data: locations, error: locationsError } = await supabase
+        const { data: locations, error: locationsError } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -75,7 +75,7 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
         const { data: searchKeywords, error: keywordsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_search_keywords")
               .select("search_keyword, impressions_count, month_year")
               .eq("user_id", user.id)
@@ -121,7 +121,7 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
 
     fetchKeywords()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("search-keywords")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_search_keywords" }, fetchKeywords)
       .subscribe()
