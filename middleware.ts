@@ -1,7 +1,7 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
-import createIntlMiddleware from 'next-intl/middleware';
-import { locales } from './i18n';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
+import { locales } from "./i18n";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -13,11 +13,11 @@ export async function middleware(request: NextRequest) {
   // 1. Handle i18n first
   const handleI18nRouting = createIntlMiddleware({
     locales,
-    defaultLocale: 'en',
+    defaultLocale: "en",
   });
 
   const i18nResponse = handleI18nRouting(request);
-  
+
   // 2. Create Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,58 +29,69 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value: '', ...options });
+          request.cookies.set({ name, value: "", ...options });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          response.cookies.set({ name, value: "", ...options });
         },
       },
-    }
+    },
   );
 
   // 3. Check auth for protected routes
   const pathname = request.nextUrl.pathname;
-  const locale = pathname.split('/')[1] || 'en';
-  
+  const locale = pathname.split("/")[1] || "en";
+
   const protectedPaths = [
-    '/dashboard',
-    '/reviews',
-    '/questions',
-    '/posts',
-    '/settings',
-    '/metrics',
-    '/media',
-    '/locations',
-    '/youtube-dashboard',
-    '/home',
+    "/dashboard",
+    "/reviews",
+    "/questions",
+    "/posts",
+    "/settings",
+    "/metrics",
+    "/media",
+    "/locations",
+    "/youtube-dashboard",
+    "/home",
   ];
 
-  const isProtectedRoute = protectedPaths.some(path => 
-    pathname.includes(path)
+  const isProtectedRoute = protectedPaths.some((path) =>
+    pathname.includes(path),
   );
 
   if (isProtectedRoute) {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
     if (error || !user) {
       const loginUrl = new URL(`/${locale}/auth/login`, request.url);
-      loginUrl.searchParams.set('redirectedFrom', pathname);
+      loginUrl.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
 
   // 4. Redirect authenticated users away from auth pages
-  const authPaths = ['/auth/login', '/auth/signup'];
-  const isAuthRoute = authPaths.some(path => pathname.includes(path));
+  const authPaths = ["/auth/login", "/auth/signup"];
+  const isAuthRoute = authPaths.some((path) => pathname.includes(path));
 
   if (isAuthRoute) {
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (user) {
-      return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+      return NextResponse.redirect(
+        new URL(`/${locale}/dashboard`, request.url),
+      );
     }
   }
 
@@ -89,6 +100,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
+  runtime: "nodejs",
 };
