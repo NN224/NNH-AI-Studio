@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { Link } from "@/lib/navigation";
 import Image from "next/image";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import {
@@ -96,12 +96,12 @@ export default function LandingPage() {
               >
                 {t("nav.pricing")}
               </a>
-              <a
-                href="#contact"
+              <Link
+                href="/contact"
                 className="text-gray-300 hover:text-orange-500 transition-colors"
               >
                 {t("nav.contact")}
-              </a>
+              </Link>
             </div>
 
             {/* CTA */}

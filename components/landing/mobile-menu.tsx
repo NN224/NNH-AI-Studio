@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
@@ -16,11 +16,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const t = useTranslations("landing");
 
   const menuItems = [
-    { label: t("nav.features"), href: "#features" },
-    { label: t("nav.howItWorks"), href: "#how-it-works" },
-    { label: t("nav.pricing"), href: "#pricing" },
-    { label: t("nav.faq"), href: "#faq" },
-    { label: t("nav.contact"), href: "#contact" },
+    { label: t("nav.features"), href: "#features", isAnchor: true },
+    { label: t("nav.howItWorks"), href: "#how-it-works", isAnchor: true },
+    { label: t("nav.pricing"), href: "#pricing", isAnchor: true },
+    { label: t("nav.faq"), href: "#faq", isAnchor: true },
+    { label: t("nav.contact"), href: "/contact", isAnchor: false },
   ];
 
   return (
@@ -63,24 +63,41 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
               {/* Menu Items */}
               <nav className="space-y-4 mb-8">
-                {menuItems.map((item, index) => (
-                  <motion.a
-                    key={index}
-                    href={item.href}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onClose();
-                      const element = document.querySelector(item.href);
-                      element?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="block text-lg text-gray-300 hover:text-orange-500 transition-colors py-2"
-                  >
-                    {item.label}
-                  </motion.a>
-                ))}
+                {menuItems.map((item, index) =>
+                  item.isAnchor ? (
+                    <motion.a
+                      key={index}
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onClose();
+                        const element = document.querySelector(item.href);
+                        element?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="block text-lg text-gray-300 hover:text-orange-500 transition-colors py-2"
+                    >
+                      {item.label}
+                    </motion.a>
+                  ) : (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={onClose}
+                        className="block text-lg text-gray-300 hover:text-orange-500 transition-colors py-2"
+                      >
+                        {item.label}
+                      </Link>
+                    </motion.div>
+                  ),
+                )}
               </nav>
 
               {/* Language Switcher */}
