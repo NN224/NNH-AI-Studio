@@ -1,4 +1,13 @@
 {
+  "metadata": {
+    "title": "NNH AI Studio - منصة إدارة Google My Business و YouTube",
+    "description": "أدر مواقع Google My Business وقناة YouTube الخاصة بك بأدوات مدعومة بالذكاء الاصطناعي. أتمت المراجعات، أنشئ المحتوى، ونمِّ عملك.",
+    "keywords": "Google My Business, إدارة يوتيوب, مراجعات بالذكاء الاصطناعي, إدارة الأعمال, تحسين محركات البحث المحلية",
+    "og": {
+      "title": "NNH AI Studio - إدارة أعمال مدعومة بالذكاء الاصطناعي",
+      "description": "حوّل عملك بأدوات إدارة Google My Business و YouTube المدعومة بالذكاء الاصطناعي."
+    }
+  },
   "common": {
     "loading": "جاري التحميل...",
     "error": "خطأ",
@@ -7,7 +16,57 @@
     "save": "حفظ",
     "delete": "حذف",
     "edit": "تعديل",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "plurals": {
+      "items": {
+        "zero": "لا توجد عناصر",
+        "one": "عنصر واحد",
+        "two": "عنصران",
+        "few": "{count} عناصر",
+        "many": "{count} عنصراً",
+        "other": "{count} عنصر"
+      },
+      "locations": {
+        "zero": "لا توجد مواقع",
+        "one": "موقع واحد",
+        "two": "موقعان",
+        "few": "{count} مواقع",
+        "many": "{count} موقعاً",
+        "other": "{count} موقع"
+      },
+      "reviews": {
+        "zero": "لا توجد مراجعات",
+        "one": "مراجعة واحدة",
+        "two": "مراجعتان",
+        "few": "{count} مراجعات",
+        "many": "{count} مراجعة",
+        "other": "{count} مراجعة"
+      },
+      "days": {
+        "zero": "لا توجد أيام",
+        "one": "يوم واحد",
+        "two": "يومان",
+        "few": "{count} أيام",
+        "many": "{count} يوماً",
+        "other": "{count} يوم"
+      },
+      "hours": {
+        "zero": "لا توجد ساعات",
+        "one": "ساعة واحدة",
+        "two": "ساعتان",
+        "few": "{count} ساعات",
+        "many": "{count} ساعة",
+        "other": "{count} ساعة"
+      },
+      "minutes": {
+        "zero": "لا توجد دقائق",
+        "one": "دقيقة واحدة",
+        "two": "دقيقتان",
+        "few": "{count} دقائق",
+        "many": "{count} دقيقة",
+        "other": "{count} دقيقة"
+      }
+    }
   },
   "auth": {
     "login": {
@@ -355,6 +414,47 @@
     },
     "footer": {
       "copyright": "© 2025 NNH AI Studio. جميع الحقوق محفوظة."
+    }
+  },
+  "dashboard": {
+    "metrics": {
+      "title": "المراقبة",
+      "description": "رؤى أساسية حول مهام المزامنة ونشاط حسابك الأخير.",
+      "syncSuccessRate": {
+        "title": "معدل نجاح المزامنة",
+        "description": "بناءً على محاولات المزامنة الأخيرة"
+      },
+      "platformHealth": {
+        "title": "صحة المنصة",
+        "description": "معدل نجاح المزامنة العالمي اليوم"
+      },
+      "dailyActiveUsers": {
+        "title": "المستخدمون النشطون يومياً",
+        "description": "الحسابات الفريدة النشطة اليوم"
+      },
+      "recentActivity": {
+        "title": "النشاط الأخير",
+        "description": "آخر 10 إجراءات مسجلة لحسابك",
+        "noActivity": "لم يتم تسجيل أي نشاط بعد.",
+        "averageResponse": "متوسط استجابة المزامنة",
+        "successes": "نجاحات",
+        "failures": "إخفاقات",
+        "syncsToday": "مزامنات اليوم"
+      }
+    },
+    "posts": {
+      "title": "إدارة المنشورات",
+      "description": "أنشئ وأدر منشورات Google My Business هنا. قريباً!"
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "description": "أدر حسابك وإعدادات اتصال GMB",
+      "gmbConnected": "تم ربط Google My Business بنجاح!",
+      "gmbConnectedDesc": "حسابك الآن متصل وجاهز للمزامنة."
+    },
+    "comingSoon": {
+      "badge": "قريباً",
+      "defaultDescription": "هذه الوحدة قيد الإنشاء حالياً. ترقب الإطلاق."
     }
   },
   "home": {

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/lib/navigation";
 import { getRecentActivity } from "@/lib/monitoring/audit";
 import { getMetricsSummary } from "@/lib/monitoring/metrics";
+import { getTranslations } from "next-intl/server";
 import {
   Card,
   CardContent,
@@ -12,9 +13,9 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-function formatTimestamp(value: string) {
+function formatTimestamp(value: string, locale: string) {
   try {
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleString(locale);
   } catch {
     return value;
   }
@@ -25,15 +26,17 @@ export default async function MetricsPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  await params; // Locale is not used but required by Next.js routing
+  const resolvedParams = await params;
+  const locale = resolvedParams.locale;
+  const t = await getTranslations({ locale, namespace: "dashboard.metrics" });
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const resolvedParams = await params;
-    redirect(`/${resolvedParams.locale}/auth/login`);
+    redirect(`/${locale}/auth/login`);
   }
 
   const userId = user!.id;
@@ -46,51 +49,52 @@ export default async function MetricsPage({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <header>
-        <h1 className="text-2xl font-semibold text-foreground">Monitoring</h1>
-        <p className="text-sm text-muted-foreground">
-          Essential insight into your sync jobs and recent account activity.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Sync Success Rate</CardTitle>
+            <CardTitle>{t("syncSuccessRate.title")}</CardTitle>
             <CardDescription>
-              Based on your recent sync attempts
+              {t("syncSuccessRate.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{metrics.sync.userRate}%</p>
             <p className="text-sm text-muted-foreground">
-              {metrics.sync.userSuccess} successes · {metrics.sync.userFailure}{" "}
-              failures
+              {metrics.sync.userSuccess} {t("recentActivity.successes")} ·{" "}
+              {metrics.sync.userFailure} {t("recentActivity.failures")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Platform Health</CardTitle>
-            <CardDescription>Global sync success rate today</CardDescription>
+            <CardTitle>{t("platformHealth.title")}</CardTitle>
+            <CardDescription>{t("platformHealth.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{metrics.sync.globalRate}%</p>
             <p className="text-sm text-muted-foreground">
-              {metrics.sync.total} syncs today
+              {metrics.sync.total} {t("recentActivity.syncsToday")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Daily Active Users</CardTitle>
-            <CardDescription>Unique accounts active today</CardDescription>
+            <CardTitle>{t("dailyActiveUsers.title")}</CardTitle>
+            <CardDescription>
+              {t("dailyActiveUsers.description")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{metrics.dailyActiveUsers}</p>
             <p className="text-sm text-muted-foreground">
-              Avg sync response: {metrics.api.averageResponseMs} ms
+              {t("recentActivity.averageResponse")}:{" "}
+              {metrics.api.averageResponseMs} ms
             </p>
           </CardContent>
         </Card>
@@ -98,15 +102,13 @@ export default async function MetricsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            Last 10 recorded actions for your account
-          </CardDescription>
+          <CardTitle>{t("recentActivity.title")}</CardTitle>
+          <CardDescription>{t("recentActivity.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {activity.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No activity recorded yet.
+              {t("recentActivity.noActivity")}
             </p>
           ) : (
             <ul className="space-y-4">
@@ -118,7 +120,7 @@ export default async function MetricsPage({
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{entry.action}</span>
                     <span className="text-xs text-muted-foreground">
-                      {formatTimestamp(entry.created_at)}
+                      {formatTimestamp(entry.created_at, locale)}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">

@@ -1,4 +1,13 @@
 {
+  "metadata": {
+    "title": "NNH AI Studio - Google My Business & YouTube Management Platform",
+    "description": "Manage your Google My Business locations and YouTube channel with AI-powered tools. Automate reviews, create content, and grow your business.",
+    "keywords": "Google My Business, YouTube Management, AI Reviews, Business Management, Local SEO",
+    "og": {
+      "title": "NNH AI Studio - AI-Powered Business Management",
+      "description": "Transform your business with AI-powered Google My Business and YouTube management tools."
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
@@ -7,7 +16,33 @@
     "save": "Save",
     "delete": "Delete",
     "edit": "Edit",
-    "close": "Close"
+    "close": "Close",
+    "plurals": {
+      "items": {
+        "one": "{count} item",
+        "other": "{count} items"
+      },
+      "locations": {
+        "one": "{count} location",
+        "other": "{count} locations"
+      },
+      "reviews": {
+        "one": "{count} review",
+        "other": "{count} reviews"
+      },
+      "days": {
+        "one": "{count} day",
+        "other": "{count} days"
+      },
+      "hours": {
+        "one": "{count} hour",
+        "other": "{count} hours"
+      },
+      "minutes": {
+        "one": "{count} minute",
+        "other": "{count} minutes"
+      }
+    }
   },
   "auth": {
     "login": {
@@ -355,6 +390,47 @@
     },
     "footer": {
       "copyright": "© 2025 NNH AI Studio. All rights reserved."
+    }
+  },
+  "dashboard": {
+    "metrics": {
+      "title": "Monitoring",
+      "description": "Essential insight into your sync jobs and recent account activity.",
+      "syncSuccessRate": {
+        "title": "Sync Success Rate",
+        "description": "Based on your recent sync attempts"
+      },
+      "platformHealth": {
+        "title": "Platform Health",
+        "description": "Global sync success rate today"
+      },
+      "dailyActiveUsers": {
+        "title": "Daily Active Users",
+        "description": "Unique accounts active today"
+      },
+      "recentActivity": {
+        "title": "Recent Activity",
+        "description": "Last 10 recorded actions for your account",
+        "noActivity": "No activity recorded yet.",
+        "averageResponse": "Avg sync response",
+        "successes": "successes",
+        "failures": "failures",
+        "syncsToday": "syncs today"
+      }
+    },
+    "posts": {
+      "title": "Posts Management",
+      "description": "Create and manage your Google My Business posts here. Coming soon!"
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your account and GMB connection settings",
+      "gmbConnected": "Google My Business connected successfully!",
+      "gmbConnectedDesc": "Your account is now connected and ready to sync."
+    },
+    "comingSoon": {
+      "badge": "Coming Soon",
+      "defaultDescription": "This module is currently under construction. Stay tuned for the rollout."
     }
   },
   "home": {
