@@ -142,6 +142,11 @@ export function useLocations(
   pageSize: number = 20
 ): UseLocationsResult {
   const supabase = createClient();
+
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client');
+  }
+
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

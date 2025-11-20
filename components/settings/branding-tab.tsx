@@ -41,6 +41,11 @@ export function BrandingTab({
 }: BrandingTabProps) {
   const t = useTranslations('Settings.branding')
   const supabase = createClient();
+
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client');
+  }
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
