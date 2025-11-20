@@ -169,7 +169,7 @@ export default function SignupPage() {
         </Alert>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="space-y-6">
         {/* Full Name */}
         <div>
           <label
