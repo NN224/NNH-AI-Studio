@@ -125,9 +125,11 @@ export async function POST(request: NextRequest) {
 
     // Refresh materialized view if significant updates
     if (successCount > 10) {
-      await supabase.rpc('refresh_sentiment_summary').catch(err => {
+      try {
+        await supabase.rpc('refresh_sentiment_summary');
+      } catch (err) {
         console.error('Failed to refresh sentiment summary:', err);
-      });
+      }
     }
 
     // Return results

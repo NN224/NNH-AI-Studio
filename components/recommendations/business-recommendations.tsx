@@ -26,6 +26,10 @@ export function BusinessRecommendations() {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
+
   useEffect(() => {
     fetchRecommendations()
   }, [])

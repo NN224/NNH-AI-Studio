@@ -9,9 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface ImpressionsBreakdownChartProps {
   dateRange?: string // "7", "30", "90", "365"
+  locationIds?: string[]
 }
 
-export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreakdownChartProps) {
+export function ImpressionsBreakdownChart({ dateRange = "30", locationIds }: ImpressionsBreakdownChartProps) {
   const [breakdownData, setBreakdownData] = useState<{
     desktopMaps: number
     desktopSearch: number
@@ -24,19 +25,22 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
   } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchBreakdownData() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active account IDs
-        const { data: accounts, error: accountsError } = await supabase
+        const { data: accounts, error: accountsError } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -55,7 +59,7 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
         }
 
         // Get locations
-        const { data: locations, error: locationsError } = await supabase
+        const { data: locations, error: locationsError } = await supabase!
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
@@ -75,7 +79,7 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
 
         // Get performance metrics for impressions only
         const { data: metrics, error: metricsError } = locationIds.length > 0
-          ? await supabase
+          ? await supabase!
               .from("gmb_performance_metrics")
               .select("metric_type, metric_value, metric_date")
               .eq("user_id", user.id)
@@ -122,7 +126,7 @@ export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreak
 
     fetchBreakdownData()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("impressions-breakdown-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_performance_metrics" }, fetchBreakdownData)
       .subscribe()

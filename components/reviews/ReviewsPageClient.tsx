@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ReviewCard } from './review-card';
 import { ReplyDialog } from './reply-dialog';
+import { ReviewAISettings } from './ReviewAISettings';
 import { AIAssistantSidebar } from './ai-assistant-sidebar';
 import { BulkActionBar } from './bulk-action-bar';
 import { AutoReplySettingsPanel } from './auto-reply-settings-panel';
@@ -72,6 +73,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   const [bulkDrafting, setBulkDrafting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
   const [autoReplyLoading, setAutoReplyLoading] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
 
   const { data: dashboardSnapshot } = useDashboardSnapshot();
   const reviewStatsSummary: ReviewStats | null = useMemo(() => {
@@ -394,6 +396,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
         selectedCount={selectedReviewIds.size}
         totalVisible={reviews.length}
         onOpenAiSidebar={() => setAiSidebarOpen(true)}
+        onOpenAISettings={() => setAiSettingsOpen(true)}
         onSync={handleSync}
         canSync={Boolean(filters.locationId)}
         isSyncing={isSyncing}
@@ -497,6 +500,12 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
         onClearSelection={clearSelection}
         onActionComplete={handleBulkActionComplete}
       />
+
+      <ReviewAISettings
+        open={aiSettingsOpen}
+        onOpenChange={setAiSettingsOpen}
+        locationId={filters.locationId}
+      />
     </div>
   );
 }
@@ -509,6 +518,7 @@ interface ReviewsOverviewHeaderProps {
   selectedCount: number;
   totalVisible: number;
   onOpenAiSidebar: () => void;
+  onOpenAISettings?: () => void;
   onSync: () => void;
   canSync: boolean;
   isSyncing: boolean;
@@ -522,6 +532,7 @@ function ReviewsOverviewHeader({
   selectedCount,
   totalVisible,
   onOpenAiSidebar,
+  onOpenAISettings,
   onSync,
   canSync,
   isSyncing,
@@ -571,6 +582,16 @@ function ReviewsOverviewHeader({
             <Bot className="w-4 h-4 mr-2" aria-hidden="true" />
             Open AI Copilot
             </Button>
+          {onOpenAISettings && (
+            <Button
+              onClick={onOpenAISettings}
+              variant="outline"
+              className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10"
+            >
+              <Bot className="w-4 h-4 mr-2" aria-hidden="true" />
+              إعدادات AI
+            </Button>
+          )}
           <Button
             onClick={onSync}
             disabled={isSyncing || !canSync}

@@ -26,7 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import LocationInsightsCard from "./location-insights-card";
 import { GMBLocation } from "@/lib/types/gmb-types";
-import { SyncButton, ViewDetailsButton } from "@/app/[locale]/(dashboard)/dashboard/DashboardClient";
+import { syncLocation } from "@/server/actions/gmb-sync";
+import { toast } from "sonner";
 
 type NumericMetric = number | null | undefined;
 
@@ -356,8 +357,28 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                 <span className="font-medium text-zinc-200">{metrics.lastSyncRelative}</span>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <SyncButton locationId={location.id} />
-                <ViewDetailsButton href={`/locations/${location.id}`} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    const result = await syncLocation(location.id);
+                    if (result.success) {
+                      toast.success(result.message || 'تمت المزامنة بنجاح');
+                    } else {
+                      toast.error(result.error || 'فشلت المزامنة');
+                    }
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  مزامنة الآن
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/locations/${location.id}`}>
+                    <Activity className="h-4 w-4 mr-2" />
+                    عرض التفاصيل
+                  </Link>
+                </Button>
               </div>
               <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 p-3 text-xs text-zinc-400">
                 <p className="flex items-center gap-2">
@@ -573,4 +594,3 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
 }
 
 export default LocationAICommandCenter;
-

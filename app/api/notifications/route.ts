@@ -41,7 +41,15 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10));
 
     // Try to get notifications from activity_logs table (if it exists)
-    let notifications = [];
+    let notifications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      timestamp: string;
+      read: boolean;
+      metadata: any;
+    }> = [];
     try {
       const { data, error: notificationsError } = await supabase
         .from('activity_logs')

@@ -256,6 +256,9 @@ Optimized content:`;
     if (cached) return cached;
 
     const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
     const { data } = await supabase
       .from('brand_profiles')
       .select('*')
@@ -371,8 +374,8 @@ Keywords: [comma separated SEO keywords]`;
     return PostContentSchema.parse(content);
   }
 
-  private mapCTAType(type: string): PostContent['callToAction']['type'] {
-    const mapping: Record<string, PostContent['callToAction']['type']> = {
+  private mapCTAType(type: string): NonNullable<PostContent['callToAction']>['type'] {
+    const mapping: Record<string, NonNullable<PostContent['callToAction']>['type']> = {
       'learn': 'LEARN_MORE',
       'call': 'CALL',
       'book': 'BOOK',
@@ -441,7 +444,7 @@ Keywords: [comma separated SEO keywords]`;
     
     return {
       ...template,
-      tone: brandProfile.toneOfVoice || 'professional',
+      tone: (brandProfile.toneOfVoice || 'professional') as 'professional' | 'friendly' | 'casual' | 'urgent' | 'promotional',
       keywords: [options.topic, brandProfile.brandName, options.type.toLowerCase()],
       hashtags: options.includeHashtags ? [
         `#${brandProfile.brandName.replace(/\s+/g, '')}`,

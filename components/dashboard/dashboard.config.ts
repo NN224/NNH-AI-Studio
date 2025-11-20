@@ -123,7 +123,14 @@ export function isFeatureEnabled(feature: keyof typeof dashboardConfig.features)
 }
 
 export function getWidgetLimit(widget: WidgetType) {
-  return dashboardConfig.widgets[widget].limit
+  const config = dashboardConfig.widgets[widget];
+  if ('limit' in config) {
+    return config.limit;
+  }
+  if ('count' in config) {
+    return config.count;
+  }
+  return 5; // default fallback
 }
 
 export function getAnimationDuration() {
@@ -135,4 +142,3 @@ export function getAnimationDuration() {
 export function shouldShowErrors() {
   return dashboardConfig.errorHandling.showDetails
 }
-

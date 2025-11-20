@@ -81,15 +81,18 @@ export function AnalyticsFilters({
   const [metric, setMetric] = useState<string>('all');
 
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   // Load locations
   useEffect(() => {
     async function loadLocations() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase!.auth.getUser();
         if (!user) return;
 
-        const { data } = await supabase
+        const { data } = await supabase!
           .from('gmb_locations')
           .select('id, location_name, is_active')
           .eq('user_id', user.id)
@@ -97,10 +100,11 @@ export function AnalyticsFilters({
           .order('location_name');
 
         if (data) {
-          setLocations(data);
+          const locations = data as GMBLocation[];
+          setLocations(locations);
           // Select all locations by default if none selected
           if (selectedLocationIds.length === 0) {
-            setSelectedLocationIds(data.map(l => l.id));
+            setSelectedLocationIds(locations.map(l => l.id));
           }
         }
       } catch (error) {
@@ -226,7 +230,7 @@ export function AnalyticsFilters({
                   initialFocus
                   mode="range"
                   selected={dateRange}
-                  onSelect={handleCustomDateSelect}
+                  onSelect={handleCustomDateSelect as any}
                   numberOfMonths={2}
                 />
               </PopoverContent>

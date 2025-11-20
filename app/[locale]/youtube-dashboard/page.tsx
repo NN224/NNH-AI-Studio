@@ -168,6 +168,9 @@ const languages = [
 
 export default function YoutubeDashboardPage() {
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)

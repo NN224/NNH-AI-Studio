@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getValidAccessToken } from '@/lib/gmb/helpers'
-import { errorResponse, successResponse } from '@/utils/api-error'
+import { ApiError, errorResponse, successResponse } from '@/utils/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
+      return errorResponse(new ApiError('Authentication required', 401))
     }
 
     // Get active GMB account
@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
 
     if (accountError) {
       console.error('[Notifications Setup API] Failed to load GMB account:', accountError)
-      return errorResponse('DATABASE_ERROR', 'Failed to load GMB account', 500, accountError)
+      return errorResponse(new ApiError('Failed to load GMB account', 500, accountError))
     }
 
     if (!account) {
-      return errorResponse('NOT_FOUND', 'No active GMB account found', 404)
+      return errorResponse(new ApiError('No active GMB account found', 404))
     }
 
     const accessToken = await getValidAccessToken(supabase, account.id)
@@ -72,10 +72,11 @@ export async function GET(request: NextRequest) {
 
       if (response.status === 401) {
         return errorResponse(
-          'AUTH_EXPIRED',
-          'Authentication expired. Please reconnect your Google account.',
-          401,
-          errorData
+          new ApiError(
+            'Authentication expired. Please reconnect your Google account.',
+            401,
+            errorData
+          )
         )
       }
 
@@ -89,10 +90,11 @@ export async function GET(request: NextRequest) {
       }
 
       return errorResponse(
-        'GOOGLE_API_ERROR',
-        errorData.error?.message || errorData.message || 'Failed to fetch notification settings',
-        response.status,
-        errorData
+        new ApiError(
+          errorData.error?.message || errorData.message || 'Failed to fetch notification settings',
+          response.status,
+          errorData
+        )
       )
     }
 
@@ -109,9 +111,10 @@ export async function GET(request: NextRequest) {
     })
 
     return errorResponse(
-      'INTERNAL_ERROR',
-      error?.message || 'Failed to fetch notification settings',
-      500
+      new ApiError(
+        error?.message || 'Failed to fetch notification settings',
+        500
+      )
     )
   }
 }
@@ -129,7 +132,7 @@ export async function PATCH(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
+      return errorResponse(new ApiError('Authentication required', 401))
     }
 
     const body = await request.json()
@@ -137,7 +140,7 @@ export async function PATCH(request: NextRequest) {
 
     // Validate input
     if (!Array.isArray(notificationTypes)) {
-      return errorResponse('BAD_REQUEST', 'notificationTypes must be an array', 400)
+      return errorResponse(new ApiError('notificationTypes must be an array', 400))
     }
 
     // Get active GMB account
@@ -152,11 +155,11 @@ export async function PATCH(request: NextRequest) {
 
     if (accountError) {
       console.error('[Notifications Setup API] Failed to load GMB account:', accountError)
-      return errorResponse('DATABASE_ERROR', 'Failed to load GMB account', 500, accountError)
+      return errorResponse(new ApiError('Failed to load GMB account', 500, accountError))
     }
 
     if (!account) {
-      return errorResponse('NOT_FOUND', 'No active GMB account found', 404)
+      return errorResponse(new ApiError('No active GMB account found', 404))
     }
 
     const accessToken = await getValidAccessToken(supabase, account.id)
@@ -201,18 +204,20 @@ export async function PATCH(request: NextRequest) {
 
       if (response.status === 401) {
         return errorResponse(
-          'AUTH_EXPIRED',
-          'Authentication expired. Please reconnect your Google account.',
-          401,
-          errorData
+          new ApiError(
+            'Authentication expired. Please reconnect your Google account.',
+            401,
+            errorData
+          )
         )
       }
 
       return errorResponse(
-        'GOOGLE_API_ERROR',
-        errorData.error?.message || errorData.message || 'Failed to update notification settings',
-        response.status,
-        errorData
+        new ApiError(
+          errorData.error?.message || errorData.message || 'Failed to update notification settings',
+          response.status,
+          errorData
+        )
       )
     }
 
@@ -238,9 +243,10 @@ export async function PATCH(request: NextRequest) {
     })
 
     return errorResponse(
-      'INTERNAL_ERROR',
-      error?.message || 'Failed to update notification settings',
-      500
+      new ApiError(
+        error?.message || 'Failed to update notification settings',
+        500
+      )
     )
   }
 }

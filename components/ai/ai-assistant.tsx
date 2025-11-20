@@ -27,6 +27,9 @@ export function AIAssistant() {
   const [analyzing, setAnalyzing] = useState(true)
   const [aiTips, setAiTips] = useState<AITip[]>([])
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     analyzeBusiness()

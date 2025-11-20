@@ -9,8 +9,8 @@ import { MediaFilters } from './MediaFilters';
 export function MediaGalleryClient({ locations, initialMedia }) {
   const [media, setMedia] = useState(initialMedia);
   const [filters, setFilters] = useState({ locationId: '' });
-  
-  const filteredMedia = media.filter(item => 
+
+  const filteredMedia = media.filter((item: any) =>
     !filters.locationId || item.location_id === filters.locationId
   );
 
@@ -29,8 +29,8 @@ export function MediaGalleryClient({ locations, initialMedia }) {
         onFiltersChange={setFilters}
       />
       
-      <MediaGrid media={filteredMedia} onDelete={(id) => {
-        setMedia(media.filter(m => m.id !== id));
+      <MediaGrid media={filteredMedia} onDelete={(id: string) => {
+        setMedia(media.filter((m: any) => m.id !== id));
       }} />
     </div>
   );

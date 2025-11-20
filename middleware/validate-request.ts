@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import type { ZodSchema, ZodError } from 'zod'
+import type { ZodSchema } from 'zod'
+import { ZodError } from 'zod'
 
 type ValidationErrorResponse = {
   success: false

@@ -260,9 +260,19 @@ export async function GET(request: NextRequest) {
       ); // Keep redirect for user-facing error
       }
       
-      const existingRefreshToken = existingAccount?.refresh_token
-        ? resolveTokenValue(existingAccount.refresh_token, { context: `gmb_accounts.refresh_token:${accountId}` })
-        : null;
+      // Try to decrypt existing refresh token, but don't fail if decryption fails
+      // (we're getting a new token anyway, so corruption of old token is acceptable)
+      let existingRefreshToken: string | null = null;
+      if (existingAccount?.refresh_token) {
+        try {
+          existingRefreshToken = resolveTokenValue(existingAccount.refresh_token, {
+            context: `gmb_accounts.refresh_token:${accountId}`,
+          });
+        } catch (error) {
+          console.warn('[OAuth Callback] Failed to decrypt existing refresh token, will use new token:', error);
+          // Continue with null - new refresh_token from OAuth will be used
+        }
+      }
 
       let encryptedAccessToken: string;
       let encryptedRefreshToken: string | null = null;

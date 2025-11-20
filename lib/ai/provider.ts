@@ -56,7 +56,7 @@ export class AIProvider {
             } else if (sysGoogle) {
               const fallback = new AIProvider(
                 {
-                  provider: 'google',
+                  provider: 'gemini',
                   model: 'gemini-1.5-pro',
                   maxTokens: this.config.maxTokens,
                   temperature: this.config.temperature,
@@ -70,7 +70,7 @@ export class AIProvider {
             throw primaryError;
           }
           break;
-        case 'google':
+        case 'gemini':
           ({ content, usage } = await this.callGoogle(prompt));
           break;
         default:
@@ -81,7 +81,7 @@ export class AIProvider {
 
       // Log request to database
       await this.logRequest({
-        user_id: this.userId,
+        userId: this.userId,
         provider: this.config.provider,
         model: this.config.model,
         feature,
@@ -92,7 +92,7 @@ export class AIProvider {
         latency_ms: latency,
         success: true,
         location_id: locationId,
-      });
+      } as any);
 
       return { content, usage };
     } catch (error) {
@@ -100,14 +100,14 @@ export class AIProvider {
 
       // Log failed request
       await this.logRequest({
-        user_id: this.userId,
+        userId: this.userId,
         provider: this.config.provider,
         model: this.config.model,
         feature,
         success: false,
         latency_ms: latency,
         location_id: locationId,
-      });
+      } as any);
 
       throw error;
     }
@@ -162,7 +162,7 @@ export class AIProvider {
         'Content-Type': 'application/json',
         'x-api-key': this.config.apiKey,
         'anthropic-version': '2023-06-01',
-      },
+      } as HeadersInit,
       body: JSON.stringify({
         model: this.config.model,
         max_tokens: this.config.maxTokens,
@@ -313,7 +313,7 @@ export async function getAIProvider(userId: string): Promise<AIProvider | null> 
     const cfg = modelConfig[settings.provider];
     return new AIProvider(
       {
-        provider: settings.provider as 'openai' | 'anthropic' | 'google',
+        provider: settings.provider as any,
         model: cfg.model,
         maxTokens: cfg.maxTokens,
         temperature: cfg.temperature,
@@ -362,7 +362,7 @@ export async function getAIProvider(userId: string): Promise<AIProvider | null> 
     const cfg = modelConfig['google'];
     return new AIProvider(
       {
-        provider: 'google',
+        provider: 'gemini',
         model: cfg.model,
         maxTokens: cfg.maxTokens,
         temperature: cfg.temperature,

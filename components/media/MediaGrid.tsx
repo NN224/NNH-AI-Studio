@@ -15,7 +15,7 @@ export function MediaGrid({ media, onDelete }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {media.map(item => (
+      {media.map((item: any) => (
         <MediaCard key={item.id} mediaItem={item} onDelete={onDelete} />
       ))}
     </div>

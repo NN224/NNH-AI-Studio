@@ -12,6 +12,10 @@ export function useSupabase() {
   const supabase = createClient()
   const router = useRouter()
 
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client');
+  }
+
   useEffect(() => {
     const getUser = async () => {
       try {

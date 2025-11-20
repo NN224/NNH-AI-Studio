@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { saveAutoReplySettings, getAutoReplySettings, type AutoReplySettings } from '@/server/actions/auto-reply';
+import { saveAutoReplySettings, getAutoReplySettings, type AutoReplySettings as AutoReplySettingsType } from '@/server/actions/auto-reply';
 
 interface AutoReplySettingsProps {
   locationId?: string;
@@ -13,7 +13,7 @@ export function AutoReplySettings({ locationId }: AutoReplySettingsProps) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<AutoReplySettings>({
+  const [settings, setSettings] = useState<AutoReplySettingsType>({
     enabled: false,
     minRating: 4,
     replyToPositive: true,
@@ -160,7 +160,7 @@ export function AutoReplySettings({ locationId }: AutoReplySettingsProps) {
             <label className="block text-sm text-gray-300 mb-2">Tone:</label>
             <select
               value={settings.tone}
-              onChange={(e) => setSettings({ ...settings, tone: e.target.value as AutoReplySettings['tone'] })}
+              onChange={(e) => setSettings({ ...settings, tone: e.target.value as typeof settings.tone })}
               disabled={loading || saving}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
             >

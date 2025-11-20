@@ -34,6 +34,11 @@ export default function UpdatePasswordPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 

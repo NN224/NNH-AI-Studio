@@ -29,7 +29,7 @@ import AutopilotStatus from '@/components/dashboard/ai/AutopilotStatus';
 import PerformancePredictor from '@/components/dashboard/ai/PerformancePredictor';
 import AutoReplyMonitoring from '@/components/dashboard/ai/AutoReplyMonitoring';
 
-// Animation variants
+// Animation variants - Fixed TypeScript compatibility with framer-motion v12
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -38,7 +38,7 @@ const containerVariants = {
       staggerChildren: 0.1
     }
   }
-};
+} as const;
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -47,10 +47,10 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: 'easeOut'
+      ease: 'easeOut' as const
     }
   }
-};
+} as const;
 
 const NewDashboardClient = () => {
   const router = useRouter();

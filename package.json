@@ -26,7 +26,8 @@
     "test:all": "npm run test:coverage && npm run test:e2e",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "db:update-docs": "bash scripts/update-schema-docs.sh"
+    "db:update-docs": "bash scripts/update-schema-docs.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -87,6 +88,8 @@
     "embla-carousel-react": "8.5.1",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
     "input-otp": "1.4.1",
     "isomorphic-dompurify": "^2.32.0",
     "jest-axe": "^10.0.0",
@@ -103,6 +106,7 @@
     "react-dom": "18.3.1",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.60.0",
+    "react-i18next": "^16.3.4",
     "react-intersection-observer": "^10.0.0",
     "react-is": "^18.3.1",
     "react-resizable-panels": "^2.1.7",
@@ -134,8 +138,8 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^22",
-    "@types/react": "^18.3.26",
-    "@types/react-dom": "^18",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
     "@vitest/browser-playwright": "4.0.9",
@@ -144,15 +148,31 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-storybook": "^10.0.7",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "lint-staged": "^16.2.7",
     "playwright": "^1.56.1",
     "postcss": "^8.5",
+    "prettier": "^3.6.2",
     "storybook": "^10.0.7",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.46.3",
     "vitest": "^4.0.9"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,scss}": [
+      "prettier --write"
+    ]
   }
 }

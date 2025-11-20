@@ -29,8 +29,11 @@ export default function BusinessHeader({ className }: { className?: string }) {
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const { toast } = useToast();
-  
+
   async function fetchFromGMB() {
     if (!loc?.id) return;
     try {

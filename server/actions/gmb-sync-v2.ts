@@ -38,7 +38,7 @@ const BASE_STAGES: SyncStage[] = [
 ]
 
 function createProgressEmitter(options: { userId: string; accountId: string; includeQuestions: boolean }) {
-  let activeSyncId = randomUUID()
+  let activeSyncId: string = randomUUID()
   const stageOrder: SyncStage[] = options.includeQuestions
     ? [...BASE_STAGES]
     : BASE_STAGES.filter((stage) => stage !== "questions_fetch")
@@ -518,7 +518,6 @@ export async function performTransactionalSync(accountId: string, includeQuestio
     await trackSyncResult(user.id, true, durationMs)
 
     return {
-      success: true,
       ...transactionResult,
     }
   } catch (error) {

@@ -33,6 +33,7 @@ export default function DashboardLayout({
 
   // Fetch user profile
   const fetchUserProfile = async () => {
+    if (!supabase) return; // Do nothing if supabase client is not initialized
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
@@ -48,7 +49,9 @@ export default function DashboardLayout({
 
   // On mobile, close sidebar by default
   useEffect(() => {
-    fetchUserProfile();
+    if (supabase) {
+      fetchUserProfile();
+    }
 
     const handleResize = () => {
       if (window.innerWidth < 1024) {

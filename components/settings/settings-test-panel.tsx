@@ -32,6 +32,9 @@ interface SettingsTest {
 
 export function SettingsTestPanel() {
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [testing, setTesting] = useState(false)
   const [currentTest, setCurrentTest] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<SettingsTest[]>([])

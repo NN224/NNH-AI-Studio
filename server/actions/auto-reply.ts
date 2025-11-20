@@ -446,7 +446,7 @@ async function generateReviewReply(
         }
         return {
           success: false,
-          error: lastError,
+          error: lastError || 'Failed to generate reply',
         };
       }
 
@@ -461,7 +461,7 @@ async function generateReviewReply(
         }
         return {
           success: false,
-          error: lastError,
+          error: lastError || 'Failed to generate reply',
         };
       }
 

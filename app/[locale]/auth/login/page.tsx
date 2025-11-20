@@ -37,6 +37,12 @@ export default function LoginPage() {
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           { auth: { persistSession: false, autoRefreshToken: false } }
         )
+
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -66,6 +72,11 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     const baseUrl = getBaseUrlClient()
     setIsGoogleLoading(true)
     setError(null)
@@ -89,6 +100,11 @@ export default function LoginPage() {
     }
 
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     const baseUrl = getBaseUrlClient()
     setIsMagicLoading(true)
     setError(null)

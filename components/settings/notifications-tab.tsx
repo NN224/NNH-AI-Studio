@@ -81,14 +81,17 @@ export function NotificationsTab({
   setNotifyTips
 }: NotificationsTabProps) {
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadGMBAccount() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase!.auth.getUser()
       if (!user) return
 
-      const { data: accounts } = await supabase
+      const { data: accounts } = await supabase!
         .from('gmb_accounts')
         .select('account_id')
         .eq('user_id', user.id)

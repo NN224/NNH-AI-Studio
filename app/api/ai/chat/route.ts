@@ -208,17 +208,24 @@ function parseChatResponse(content: string): ChatResponse {
     const parsed = JSON.parse(cleanContent);
 
     return {
-      message: parsed.message || content,
+      message: {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: parsed.message || content,
+        timestamp: new Date().toISOString(),
+      },
       suggestions: parsed.suggestions || [],
-      actions: parsed.actions || [],
-      data: parsed.data || {},
     };
   } catch (error) {
     // If parsing fails, return the raw content
     return {
-      message: content,
+      message: {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content,
+        timestamp: new Date().toISOString(),
+      },
       suggestions: [],
-      actions: [],
     };
   }
 }

@@ -20,6 +20,9 @@ export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   const fetchProfile = async () => {
     try {

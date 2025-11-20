@@ -65,7 +65,7 @@ export async function syncLocation(locationId: string) {
     if (reviewsResult.success) {
       results.reviews.synced = reviewsResult.data?.synced ?? 0
     } else {
-      results.reviews.error = reviewsResult.error
+      results.reviews.error = (reviewsResult.error || null) as null
     }
 
     // Sync questions

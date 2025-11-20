@@ -71,11 +71,12 @@ export async function GET(request: NextRequest) {
       const nextRun = new Date();
       nextRun.setHours(nextRun.getHours() + index + 1);
 
+      const actionType = setting.smart_posting_enabled ? 'post_creation' : 'review_reply';
       return {
         id: setting.id,
-        type: setting.smart_posting_enabled ? 'smart_post' : 'auto_reply',
-        scheduledAt: nextRun,
-        locationName: setting.gmb_locations?.location_name || 'Unknown Location',
+        type: actionType as 'review_reply' | 'question_answer' | 'post_creation' | 'report_generation' | 'sync',
+        scheduledFor: nextRun.toISOString(),
+        status: 'scheduled' as const,
         description: setting.smart_posting_enabled
           ? 'Generate and publish smart post'
           : 'Auto-reply to pending reviews',
@@ -85,20 +86,26 @@ export async function GET(request: NextRequest) {
     // Format recent logs
     const formattedLogs = (recentLogs || []).map((log) => ({
       id: log.id,
-      action_type: log.action_type,
-      action_description: getActionDescription(log.action_type, log.details),
-      status: log.status,
-      created_at: log.created_at,
+      action: getActionDescription(log.action_type, log.details),
+      type: (log.action_type || 'sync') as 'review_reply' | 'question_answer' | 'post_creation' | 'report_generation' | 'sync',
+      status: (log.status || 'success') as 'success' | 'failed' | 'skipped' | 'partial',
+      executedAt: log.created_at,
       metadata: log.details,
     }));
 
     const status: AutomationStatus = {
-      totalAutomations: totalAutomations || 0,
-      activeAutomations: activeAutomations || 0,
-      successRate,
-      timeSavedHours,
+      enabled: (activeAutomations || 0) > 0,
+      activeRules: activeAutomations || 0,
+      totalActions: totalAutomations || 0,
+      status: (activeAutomations || 0) > 0 ? 'active' : 'idle',
       upcomingActions,
       recentLogs: formattedLogs,
+      statistics: {
+        successRate,
+        totalExecutions: totalLogs,
+        failedExecutions: totalLogs - successfulLogs,
+        avgExecutionTime: 5, // 5 minutes estimated
+      },
     };
 
     return NextResponse.json(status);

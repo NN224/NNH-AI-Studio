@@ -145,7 +145,7 @@ export class MLQuestionsService {
     }
     
     // Reduce confidence for sensitive topics
-    if (analysis.category === 'complaint' || analysis.urgency === 'high') {
+    if (analysis.urgency === 'high') {
       confidence *= 0.8;
     }
     

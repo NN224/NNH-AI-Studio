@@ -51,15 +51,15 @@ export class AnalyticsRealtimeService {
     
     if (!subscription) {
       // Create new subscription
-      const channel = this.supabase
+      const channel = this.supabase!
         .channel(`analytics-${key}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'gmb_performance_metrics',
-          filter: locationIds.length > 0 
-            ? `location_id=in.(${locationIds.join(',')})` 
-            : undefined
+          filter: locationIds.length > 0
+            ? `location_id=in.(${locationIds.join(',')})`
+            : undefined!
         }, (payload) => {
           this.handleMetricChange(payload, 'performance');
         })
@@ -67,9 +67,9 @@ export class AnalyticsRealtimeService {
           event: 'INSERT',
           schema: 'public',
           table: 'gmb_reviews',
-          filter: locationIds.length > 0 
-            ? `location_id=in.(${locationIds.join(',')})` 
-            : undefined
+          filter: locationIds.length > 0
+            ? `location_id=in.(${locationIds.join(',')})`
+            : undefined!
         }, (payload) => {
           this.handleMetricChange(payload, 'review');
         })
@@ -77,9 +77,9 @@ export class AnalyticsRealtimeService {
           event: 'INSERT',
           schema: 'public',
           table: 'gmb_questions',
-          filter: locationIds.length > 0 
-            ? `location_id=in.(${locationIds.join(',')})` 
-            : undefined
+          filter: locationIds.length > 0
+            ? `location_id=in.(${locationIds.join(',')})`
+            : undefined!
         }, (payload) => {
           this.handleMetricChange(payload, 'question');
         })
@@ -130,14 +130,14 @@ export class AnalyticsRealtimeService {
   ): () => void {
     const timer = setInterval(async () => {
       try {
-        const { data: { user } } = await this.supabase.auth.getUser();
+        const { data: { user } } = await this.supabase!.auth.getUser();
         if (!user) return;
 
         // Fetch latest metrics
         const now = new Date();
         const since = new Date(now.getTime() - interval);
 
-        const { data: metrics } = await this.supabase
+        const { data: metrics } = await this.supabase!
           .from('gmb_performance_metrics')
           .select('impressions_total, clicks_total, calls_total')
           .eq('user_id', user.id)
@@ -146,13 +146,13 @@ export class AnalyticsRealtimeService {
           .limit(1)
           .single();
 
-        const { data: reviewCount } = await this.supabase
+        const { data: reviewCount } = await this.supabase!
           .from('gmb_reviews')
           .select('id', { count: 'exact' })
           .eq('user_id', user.id)
           .gte('created_at', since.toISOString());
 
-        const { data: questionCount } = await this.supabase
+        const { data: questionCount } = await this.supabase!
           .from('gmb_questions')
           .select('id', { count: 'exact' })
           .eq('user_id', user.id)

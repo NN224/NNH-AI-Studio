@@ -97,6 +97,9 @@ export function ActivityFeed() {
   const [activities, setActivities] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const channelRef = useRef<any>(null)
   const isMountedRef = useRef(true)
 

@@ -32,12 +32,46 @@ describe('lib/security/encryption', () => {
     expect(() => encryption.encryptToken('')).toThrow('Cannot encrypt empty token');
   });
 
-  it('falls back to plaintext for legacy tokens when resolved', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const legacyValue = 'legacy-plain-token';
-    expect(encryption.resolveTokenValue(legacyValue)).toEqual(legacyValue);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
+  // SECURITY FIX: No longer falls back to plaintext - throws error instead
+  it('throws error on decryption failure, not return plaintext', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const corruptedToken = 'corrupted-encrypted-token-xxx';
+
+    expect(() => {
+      encryption.resolveTokenValue(corruptedToken, { context: 'test' });
+    }).toThrow('Token decryption failed');
+
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it('throws error with bilingual message on decryption failure', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const badToken = 'bad-token-value';
+
+    try {
+      encryption.resolveTokenValue(badToken, { context: 'test' });
+      fail('Should have thrown EncryptionError');
+    } catch (error: any) {
+      expect(error.message).toContain('Token decryption failed');
+      expect(error.message).toContain('re-authentication required');
+      expect(error.message).toContain('يُرجى إعادة المصادقة');
+      expect(error.name).toBe('EncryptionError');
+    }
+
+    errorSpy.mockRestore();
+  });
+
+  it('returns null for null/undefined tokens without throwing', () => {
+    expect(encryption.resolveTokenValue(null)).toBeNull();
+    expect(encryption.resolveTokenValue(undefined)).toBeNull();
+  });
+
+  it('successfully decrypts properly encrypted tokens', () => {
+    const plaintext = 'my-access-token-12345';
+    const encrypted = encryption.encryptToken(plaintext);
+    const resolved = encryption.resolveTokenValue(encrypted, { context: 'test' });
+
+    expect(resolved).toEqual(plaintext);
   });
 });
-

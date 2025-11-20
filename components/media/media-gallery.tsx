@@ -35,6 +35,9 @@ export function MediaGallery({ locationId }: MediaGalleryProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
   
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     fetchMedia()
@@ -60,7 +63,7 @@ export function MediaGallery({ locationId }: MediaGalleryProps) {
       const {
         data: { user },
         error: authError
-      } = await supabase.auth.getUser()
+      } = await supabase!.auth.getUser()
 
       if (authError || !user) {
         setError("Please sign in to view media")

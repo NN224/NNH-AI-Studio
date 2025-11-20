@@ -22,6 +22,11 @@ export default function ResetPasswordPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     const supabase = createClient()
+    if (!supabase) {
+      setError('Failed to initialize authentication client')
+      return
+    }
+
     const baseUrl = getBaseUrlClient()
     setIsLoading(true)
     setError(null)

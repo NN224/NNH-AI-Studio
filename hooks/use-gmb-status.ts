@@ -28,6 +28,9 @@ interface UseGmbStatusResult {
  */
 export function useGmbStatus(): UseGmbStatusResult {
   const supabase = createClient();
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const mountedRef = useRef(true);
 
   const [loading, setLoading] = useState(true);

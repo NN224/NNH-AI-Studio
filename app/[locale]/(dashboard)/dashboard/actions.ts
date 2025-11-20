@@ -204,12 +204,38 @@ export async function syncLocation(locationId: string) {
     const now = Date.now();
     const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0;
     const bufferMs = 5 * 60 * 1000;
-    const decryptedAccessToken = resolveTokenValue(account.access_token, {
-      context: `dashboard.actions.access_token:${account.id}`,
-    });
-    const decryptedRefreshToken = resolveTokenValue(account.refresh_token, {
-      context: `dashboard.actions.refresh_token:${account.id}`,
-    });
+
+    // Decrypt tokens - will throw EncryptionError if decryption fails
+    let decryptedAccessToken: string | null;
+    let decryptedRefreshToken: string | null;
+
+    try {
+      decryptedAccessToken = resolveTokenValue(account.access_token, {
+        context: `dashboard.actions.access_token:${account.id}`,
+      });
+      decryptedRefreshToken = resolveTokenValue(account.refresh_token, {
+        context: `dashboard.actions.refresh_token:${account.id}`,
+      });
+    } catch (error) {
+      console.error('[Dashboard Actions] Token decryption failed for account:', account.id);
+
+      // Mark account as inactive - requires reconnection
+      await adminClient
+        .from('gmb_accounts')
+        .update({
+          is_active: false,
+          last_error: 'Token decryption failed - reconnection required',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', account.id);
+
+      return {
+        success: false,
+        error: 'Your Google account connection has expired. Please reconnect in Settings. ' +
+               'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.',
+      };
+    }
+
     let accessToken: string | null = decryptedAccessToken;
 
     const needsRefresh = !accessToken || !expiresAt || expiresAt - bufferMs <= now;

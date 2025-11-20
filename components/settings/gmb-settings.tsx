@@ -23,6 +23,10 @@ export function GMBSettings() {
   const supabase = createClient()
   const router = useRouter()
 
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
+
   // GMB Accounts
   const [gmbAccounts, setGmbAccounts] = useState<GMBAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +36,45 @@ export function GMBSettings() {
   const [language, setLanguage] = useState<string>('en')
   const [reviewNotifications, setReviewNotifications] = useState(true)
   const [emailDigest, setEmailDigest] = useState("never")
-  
+
+  // General Settings
+  const [businessName, setBusinessName] = useState<string>('')
+  const [primaryCategory, setPrimaryCategory] = useState<string>('')
+  const [businessDescription, setBusinessDescription] = useState<string>('')
+  const [defaultReplyTemplate, setDefaultReplyTemplate] = useState<string>('')
+  const [timezone, setTimezone] = useState<string>('utc')
+  const [syncSchedule, setSyncSchedule] = useState<string>('manual')
+  const [autoPublish, setAutoPublish] = useState(false)
+
+  // AI & Automation Settings
+  const [autoReply, setAutoReply] = useState(false)
+  const [aiResponseTone, setAiResponseTone] = useState<string>('professional')
+  const [responseLength, setResponseLength] = useState<string>('medium')
+  const [creativityLevel, setCreativityLevel] = useState<string>('medium')
+
+  // Notification Settings
+  const [emailDeliveryTime, setEmailDeliveryTime] = useState<string>('09:00')
+  const [negativePriority, setNegativePriority] = useState(false)
+  const [replyReminders, setReplyReminders] = useState(false)
+  const [browserNotifications, setBrowserNotifications] = useState(false)
+  const [soundAlerts, setSoundAlerts] = useState(false)
+  const [quietHours, setQuietHours] = useState(false)
+  const [quietHoursStart, setQuietHoursStart] = useState<string>('22:00')
+  const [quietHoursEnd, setQuietHoursEnd] = useState<string>('08:00')
+  const [notifyReviews, setNotifyReviews] = useState(true)
+  const [notifyQuestions, setNotifyQuestions] = useState(true)
+  const [notifyMessages, setNotifyMessages] = useState(true)
+  const [notifyMentions, setNotifyMentions] = useState(false)
+  const [notifyInsights, setNotifyInsights] = useState(true)
+  const [notifyTips, setNotifyTips] = useState(false)
+
+  // Branding Settings
+  const [brandName, setBrandName] = useState<string>('')
+  const [primaryColor, setPrimaryColor] = useState<string>('#FFA500')
+  const [secondaryColor, setSecondaryColor] = useState<string>('#1A1A1A')
+  const [logoUrl, setLogoUrl] = useState<string>('')
+  const [coverImageUrl, setCoverImageUrl] = useState<string>('')
+
   // Data Management Settings
   const [retentionDays, setRetentionDays] = useState<number>(30)
   const [deleteOnDisconnect, setDeleteOnDisconnect] = useState(false)

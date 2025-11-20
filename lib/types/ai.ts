@@ -1,151 +1,205 @@
-/**
- * AI Types for Dashboard
- * Types for AI-powered features including insights, chat, and automation
- */
+export type AIProvider = 'gemini' | 'anthropic' | 'openai' | 'groq' | 'deepseek';
+export type AIModel = string;
 
-export interface AIInsight {
-  id: string;
-  type: 'prediction' | 'anomaly' | 'recommendation' | 'competitor' | 'trend';
-  title: string;
-  description: string;
-  impact: 'high' | 'medium' | 'low';
-  confidence: number; // 0-100
-  category: string;
-  suggestedActions: AIAction[];
-  metadata: Record<string, any>;
-  createdAt: Date;
+export interface QuestionContext {
+  question: string;
+  businessInfo: {
+    name: string;
+    category: string;
+    description?: string;
+    hours?: BusinessHours;
+    services?: string[];
+    attributes?: Record<string, any>;
+    location?: {
+      address: string;
+      phone?: string;
+      website?: string;
+    };
+  };
+  previousQuestions?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  language: 'ar' | 'en' | 'auto';
+  tone: string;
 }
 
-export interface AIAction {
-  id: string;
-  label: string;
-  description: string;
-  actionType: 'navigate' | 'api_call' | 'external_link';
-  actionUrl?: string;
-  actionPayload?: Record<string, any>;
-  icon?: string;
-}
-
-export interface AIPrediction {
-  metric: string;
-  currentValue: number;
-  predictedValue: number;
-  change: number;
-  changePercent: number;
+export interface AnswerResult {
+  text: string;
   confidence: number;
-  timeframe: string;
-  factors: string[];
+  category: QuestionCategory;
+  provider: AIProvider;
+  processingTime: number;
 }
 
-export interface AIAnomaly {
-  metric: string;
-  expectedValue: number;
-  actualValue: number;
-  deviation: number;
-  severity: 'critical' | 'warning' | 'info';
-  detectedAt: Date;
-  possibleCauses: string[];
+export type QuestionCategory = 'hours' | 'location' | 'services' | 'pricing' | 'general';
+
+export interface BusinessHours {
+  [day: string]: {
+    open: string;
+    close: string;
+  };
 }
+
+// ============================================================================
+// Chat & Messaging Types
+// ============================================================================
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: Date;
+  timestamp: Date | string;
   metadata?: Record<string, any>;
 }
 
-export interface ChatContext {
-  userId: string;
-  conversationId: string;
-  messages: ChatMessage[];
-  dashboardData?: Record<string, any>;
+export interface ChatResponse {
+  message: ChatMessage;
+  suggestions?: string[];
+  error?: string;
+  processingTime?: number;
 }
 
-export interface AIRequest {
-  id?: string;
-  user_id: string;
-  provider: 'openai' | 'anthropic' | 'google';
-  model: string;
-  feature: string;
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  total_tokens?: number;
-  cost_usd?: number;
-  latency_ms?: number;
-  success: boolean;
-  location_id?: string;
-  created_at?: Date;
-}
+// ============================================================================
+// AI Insights & Analytics Types
+// ============================================================================
 
-export interface AISettings {
+export interface AIInsight {
   id: string;
-  user_id: string;
-  provider: 'openai' | 'anthropic' | 'google';
-  api_key: string;
-  is_active: boolean;
-  priority: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface AutomationStatus {
-  totalAutomations: number;
-  activeAutomations: number;
-  successRate: number;
-  timeSavedHours: number;
-  upcomingActions: UpcomingAction[];
-  recentLogs: AutomationLog[];
-}
-
-export interface UpcomingAction {
-  id: string;
-  type: string;
-  scheduledAt: Date;
-  locationName: string;
+  type: 'positive' | 'negative' | 'neutral' | 'warning' | 'info';
+  category: 'reviews' | 'engagement' | 'performance' | 'trends' | 'opportunities';
+  title: string;
   description: string;
+  impact: 'high' | 'medium' | 'low';
+  confidence: number;
+  data?: {
+    metric?: string;
+    value?: number | string;
+    change?: number;
+    period?: string;
+  };
+  recommendations?: string[];
+  suggestedActions?: Array<{
+    label: string;
+    action: string;
+    data?: any;
+  }>;
+  createdAt: Date | string;
 }
 
-export interface AutomationLog {
+export interface AIPrediction {
   id: string;
-  action_type: string;
-  action_description: string;
-  status: 'success' | 'failed' | 'pending';
-  created_at: Date;
-  metadata?: Record<string, any>;
+  metric: string;
+  predictedValue: number;
+  currentValue: number;
+  change: number;
+  changePercent: number;
+  confidence: number;
+  timeframe: string;
+  factors: Array<{
+    name: string;
+    impact: number;
+    description?: string;
+  }>;
+}
+
+export interface AIAnomaly {
+  id: string;
+  metric: string;
+  detectedValue: number;
+  expectedValue: number;
+  deviation: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  timestamp: Date | string;
+  possibleCauses: string[];
+  suggestedActions?: string[];
 }
 
 export interface AIInsightsResponse {
   insights: AIInsight[];
   predictions: AIPrediction[];
   anomalies: AIAnomaly[];
-  summary: string;
-  generatedAt: Date;
-  cacheKey: string;
+  summary: {
+    totalInsights: number;
+    criticalItems: number;
+    opportunitiesCount: number;
+    overallScore?: number;
+  };
+  generatedAt: Date | string;
+  error?: string;
 }
 
-export interface ChatResponse {
-  message: string;
-  suggestions?: string[];
-  actions?: AIAction[];
-  data?: Record<string, any>;
+// ============================================================================
+// Automation Types
+// ============================================================================
+
+export interface AutomationStatus {
+  enabled: boolean;
+  activeRules: number;
+  totalActions: number;
+  lastRunAt?: Date | string;
+  nextRunAt?: Date | string;
+  status: 'active' | 'paused' | 'error' | 'idle';
+  upcomingActions: UpcomingAction[];
+  recentLogs: AutomationLog[];
+  statistics?: {
+    successRate: number;
+    totalExecutions: number;
+    failedExecutions: number;
+    avgExecutionTime: number;
+  };
 }
+
+export interface UpcomingAction {
+  id: string;
+  type: 'review_reply' | 'question_answer' | 'post_creation' | 'report_generation' | 'sync';
+  scheduledFor: Date | string;
+  targetId?: string;
+  targetType?: string;
+  status: 'pending' | 'scheduled' | 'processing';
+  priority?: 'high' | 'medium' | 'low';
+  description?: string;
+}
+
+export interface AutomationLog {
+  id: string;
+  action: string;
+  type: UpcomingAction['type'];
+  status: 'success' | 'failed' | 'skipped' | 'partial';
+  executedAt: Date | string;
+  duration?: number;
+  targetId?: string;
+  error?: string;
+  details?: string;
+  metadata?: Record<string, any>;
+}
+
+// ============================================================================
+// AI Provider Configuration Types
+// ============================================================================
 
 export interface AIProviderConfig {
-  provider: 'openai' | 'anthropic' | 'google';
-  model: string;
-  maxTokens: number;
-  temperature: number;
-  apiKey: string;
+  provider: AIProvider;
+  model: AIModel;
+  apiKey?: string;
+  baseUrl?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  systemPrompt?: string;
+  customHeaders?: Record<string, string>;
+  timeout?: number;
+  retryAttempts?: number;
 }
 
-export interface AIUsageStats {
-  totalRequests: number;
-  successfulRequests: number;
-  failedRequests: number;
-  totalCost: number;
-  avgLatency: number;
-  requestsByFeature: Record<string, number>;
-  costByFeature: Record<string, number>;
+export interface AIRequest {
+  prompt: string;
+  context?: Record<string, any>;
+  config?: Partial<AIProviderConfig>;
+  stream?: boolean;
+  userId?: string;
+  sessionId?: string;
+  metadata?: Record<string, any>;
 }
-

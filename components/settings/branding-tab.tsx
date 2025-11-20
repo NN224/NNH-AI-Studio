@@ -39,6 +39,11 @@ export function BrandingTab({
   setCoverImageUrl: setCoverImageUrlProp
 }: BrandingTabProps) {
   const supabase = createClient();
+
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client');
+  }
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   

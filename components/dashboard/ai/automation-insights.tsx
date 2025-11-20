@@ -92,9 +92,9 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Automations</p>
-                <p className="text-2xl font-bold">{status.activeAutomations}</p>
+                <p className="text-2xl font-bold">{status.activeRules}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  of {status.totalAutomations} total
+                  of {status.totalActions} total
                 </p>
               </div>
               <Activity className="h-8 w-8 text-blue-500" />
@@ -107,7 +107,7 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Success Rate</p>
-                <p className="text-2xl font-bold">{(status.successRate * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{((status.statistics?.successRate ?? 0) * 100).toFixed(1)}%</p>
                 <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
                   Excellent
@@ -123,7 +123,7 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Time Saved</p>
-                <p className="text-2xl font-bold">{status.timeSavedHours.toFixed(1)}h</p>
+                <p className="text-2xl font-bold">{((status.statistics?.totalExecutions ?? 0) * 0.25).toFixed(1)}h</p>
                 <p className="text-xs text-muted-foreground mt-1">this week</p>
               </div>
               <Clock className="h-8 w-8 text-purple-500" />
@@ -201,14 +201,14 @@ function UpcomingActionCard({ action }: { action: UpcomingAction }) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <p className="font-medium text-sm">{action.description}</p>
-            <p className="text-xs text-muted-foreground mt-1">{action.locationName}</p>
+            <p className="text-xs text-muted-foreground mt-1">{action.targetId ?? 'All locations'}</p>
           </div>
           <Badge variant="outline" className="flex-shrink-0">
             {action.type}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Scheduled for {formatDistanceToNow(new Date(action.scheduledAt), { addSuffix: true })}
+          Scheduled for {formatDistanceToNow(new Date(action.scheduledFor), { addSuffix: true })}
         </p>
       </div>
     </div>
@@ -251,14 +251,14 @@ function AutomationLogCard({ log }: { log: AutomationLog }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <p className="font-medium text-sm">{log.action_description}</p>
+            <p className="font-medium text-sm">{log.action}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+              {formatDistanceToNow(new Date(log.executedAt), { addSuffix: true })}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Badge className={getStatusColor(log.status)}>{log.status}</Badge>
-            <Badge variant="outline">{log.action_type}</Badge>
+            <Badge variant="outline">{log.type}</Badge>
           </div>
         </div>
       </div>

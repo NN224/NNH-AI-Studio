@@ -8,12 +8,12 @@ import { toast } from 'sonner';
 
 export function MediaUploader({ onUploadComplete }) {
   const [uploading, setUploading] = useState(false);
-  
-  const onDrop = useCallback(async (acceptedFiles) => {
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setUploading(true);
     const formData = new FormData();
-    
-    acceptedFiles.forEach(file => {
+
+    acceptedFiles.forEach((file: File) => {
       formData.append('files', file);
     });
     

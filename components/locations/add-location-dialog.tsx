@@ -46,6 +46,9 @@ export function AddLocationDialog({ open: externalOpen, onOpenChange }: AddLocat
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     fetchCategories()

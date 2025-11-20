@@ -37,6 +37,9 @@ interface SecurityCheck {
 
 export function SecurityReviewPanel() {
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
   const [reviewing, setReviewing] = useState(false)
   const [securityChecks, setSecurityChecks] = useState<SecurityCheck[]>([])
   const [overallScore, setOverallScore] = useState(0)

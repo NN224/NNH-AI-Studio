@@ -24,13 +24,16 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchMetrics() {
       try {
         setLoading(true)
 
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) return
 
         // Get metrics for last 30 days
@@ -40,7 +43,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
         sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
         // Current period metrics
-        const { data: currentMetrics, error: currentError } = await supabase
+        const { data: currentMetrics, error: currentError } = await supabase!
           .from("gmb_performance_metrics")
           .select("metric_type, metric_value")
           .eq("location_id", locationId)
@@ -48,7 +51,7 @@ export function LocationPerformanceWidget({ locationId, compact = false }: Locat
           .gte("metric_date", thirtyDaysAgo.toISOString().split('T')[0])
 
         // Previous period metrics (for comparison)
-        const { data: previousMetrics, error: previousError } = await supabase
+        const { data: previousMetrics, error: previousError } = await supabase!
           .from("gmb_performance_metrics")
           .select("metric_type, metric_value")
           .eq("location_id", locationId)

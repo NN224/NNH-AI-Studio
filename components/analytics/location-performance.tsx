@@ -8,23 +8,30 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { GMBLocationWithRating } from "@/lib/types/database"
 
-export function LocationPerformance() {
+interface LocationPerformanceProps {
+  locationIds?: string[]
+}
+
+export function LocationPerformance({ locationIds }: LocationPerformanceProps = {}) {
   const [locations, setLocations] = useState<GMBLocationWithRating[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   useEffect(() => {
     async function fetchLocations() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { user } } = await supabase!.auth.getUser()
         if (!user) {
           setIsLoading(false)
           return
         }
 
         // Get active GMB account IDs first
-        const { data: accounts } = await supabase
+        const { data: accounts } = await supabase!
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
@@ -37,7 +44,7 @@ export function LocationPerformance() {
         }
 
         // Try to use view if available, otherwise use regular query with join
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from("gmb_locations")
           .select(`
             id,
@@ -54,7 +61,7 @@ export function LocationPerformance() {
         if (error) {
           console.error("Error fetching locations:", error)
           // Fallback: try without join
-          const { data: fallbackData } = await supabase
+          const { data: fallbackData } = await supabase!
             .from("gmb_locations")
             .select("id, location_name, rating, review_count")
             .eq("user_id", user.id)
@@ -89,7 +96,7 @@ export function LocationPerformance() {
 
     fetchLocations()
 
-    const channel = supabase
+    const channel = supabase!
       .channel("location-performance")
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_locations" }, fetchLocations)
       .on("postgres_changes", { event: "*", schema: "public", table: "gmb_reviews" }, fetchLocations)

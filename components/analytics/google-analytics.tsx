@@ -25,7 +25,7 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
     // Initialize gtag
     window.dataLayer = window.dataLayer || [];
     function gtag(...args: any[]) {
-      window.dataLayer.push(args);
+      window.dataLayer?.push(args);
     }
 
     gtag('js', new Date());
@@ -67,7 +67,7 @@ export function trackPageView(url: string, title?: string) {
 // Extend Window interface for TypeScript
 declare global {
   interface Window {
-    dataLayer: any[];
-    gtag: (...args: any[]) => void;
+    dataLayer?: any[];
+    gtag?: (...args: any[]) => void;
   }
 }

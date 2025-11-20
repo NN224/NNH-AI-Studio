@@ -25,6 +25,9 @@ export function LocationMediaUpload({
   const logoInputRef = useRef<HTMLInputElement>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+  if (!supabase) {
+    throw new Error('Failed to initialize Supabase client')
+  }
 
   const handleUpload = async (file: File, type: 'logo' | 'cover') => {
     if (!file) return

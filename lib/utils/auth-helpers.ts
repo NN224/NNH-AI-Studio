@@ -32,7 +32,9 @@ export async function handleAuthError(error: any, redirectToLogin = true): Promi
   if (isSessionExpiredError(error)) {
     // Clear any stale auth data
     const supabase = createClient()
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     
     // Show user-friendly message
     toast.error('Your session has expired. Please log in again.')
