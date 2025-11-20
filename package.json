@@ -26,7 +26,8 @@
     "test:all": "npm run test:coverage && npm run test:e2e",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "db:update-docs": "bash scripts/update-schema-docs.sh"
+    "db:update-docs": "bash scripts/update-schema-docs.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -148,15 +149,31 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-storybook": "^10.0.7",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "lint-staged": "^16.2.7",
     "playwright": "^1.56.1",
     "postcss": "^8.5",
+    "prettier": "^3.6.2",
     "storybook": "^10.0.7",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.46.3",
     "vitest": "^4.0.9"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,scss}": [
+      "prettier --write"
+    ]
   }
 }
