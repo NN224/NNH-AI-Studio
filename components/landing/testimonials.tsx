@@ -1,36 +1,38 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Star, Quote } from "lucide-react";
 import { useState } from "react";
 
 export function TestimonialsSection() {
+  const t = useTranslations("landing.testimonials");
   const [activeIndex, setActiveIndex] = useState(0);
 
   const testimonials = [
     {
-      name: "Sarah Johnson",
-      role: "Restaurant Owner",
-      company: "Bella Italia",
+      name: t("items.item1.name"),
+      role: t("items.item1.role"),
+      company: t("items.item1.company"),
       image: "👩‍💼",
       rating: 5,
-      text: "NNH AI Studio transformed how we manage customer reviews. We've seen a 40% increase in positive ratings and save 10 hours per week!",
+      text: t("items.item1.text"),
     },
     {
-      name: "Michael Chen",
-      role: "Marketing Director",
-      company: "TechStart Inc",
+      name: t("items.item2.name"),
+      role: t("items.item2.role"),
+      company: t("items.item2.company"),
       image: "👨‍💼",
       rating: 5,
-      text: "The AI responses are incredibly natural. Our customers can't tell the difference, and our response time went from days to minutes.",
+      text: t("items.item2.text"),
     },
     {
-      name: "Ahmed Al-Rashid",
-      role: "Franchise Owner",
-      company: "Coffee Corner",
+      name: t("items.item3.name"),
+      role: t("items.item3.role"),
+      company: t("items.item3.company"),
       image: "👨‍💼",
       rating: 5,
-      text: "Managing 12 locations was a nightmare. Now everything is centralized and automated. Best investment we've made this year!",
+      text: t("items.item3.text"),
     },
   ];
 
@@ -45,13 +47,13 @@ export function TestimonialsSection() {
           className="text-center mb-16"
         >
           <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
-            Testimonials
+            {t("title")}
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold mb-6">
-            Loved by Businesses Worldwide
+            {t("subtitle")}
           </h3>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            See what our customers have to say
+            {t("description")}
           </p>
         </motion.div>
 

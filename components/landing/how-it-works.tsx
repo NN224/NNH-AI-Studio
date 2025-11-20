@@ -1,39 +1,38 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Link2, Settings, Zap, TrendingUp } from "lucide-react";
 
 export function HowItWorksSection() {
+  const t = useTranslations("landing.howItWorks");
+
   const steps = [
     {
       number: "01",
-      title: "Connect Your Business",
-      description:
-        "Link your Google Business Profile in seconds with our secure OAuth integration",
+      title: t("step1.title"),
+      description: t("step1.description"),
       icon: <Link2 className="w-8 h-8" />,
       color: "from-blue-500 to-blue-600",
     },
     {
       number: "02",
-      title: "Configure AI Settings",
-      description:
-        "Customize your AI assistant's tone, style, and response preferences",
+      title: t("step2.title"),
+      description: t("step2.description"),
       icon: <Settings className="w-8 h-8" />,
       color: "from-purple-500 to-purple-600",
     },
     {
       number: "03",
-      title: "Automate Responses",
-      description:
-        "Let AI handle reviews and questions automatically with personalized replies",
+      title: t("step3.title"),
+      description: t("step3.description"),
       icon: <Zap className="w-8 h-8" />,
       color: "from-orange-500 to-orange-600",
     },
     {
       number: "04",
-      title: "Watch Your Business Grow",
-      description:
-        "Track metrics, improve ratings, and scale across multiple locations",
+      title: t("step4.title"),
+      description: t("step4.description"),
       icon: <TrendingUp className="w-8 h-8" />,
       color: "from-green-500 to-green-600",
     },
@@ -50,13 +49,13 @@ export function HowItWorksSection() {
           className="text-center mb-16"
         >
           <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
-            How It Works
+            {t("title")}
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold mb-6">
-            Get Started in 4 Simple Steps
+            {t("subtitle")}
           </h3>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            From setup to success in minutes, not hours
+            {t("description")}
           </p>
         </motion.div>
 

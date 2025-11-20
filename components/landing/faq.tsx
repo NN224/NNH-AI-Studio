@@ -1,52 +1,46 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export function FAQSection() {
+  const t = useTranslations("landing.faq");
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const faqs = [
     {
-      question: "How does the AI generate responses?",
-      answer:
-        "Our AI uses advanced natural language processing to understand the context of reviews and questions, then generates personalized, human-like responses based on your business tone and preferences. You can customize the AI's style and review all responses before they're sent.",
+      question: t("items.item1.question"),
+      answer: t("items.item1.answer"),
     },
     {
-      question: "Can I review responses before they're posted?",
-      answer:
-        "Absolutely! You have full control. You can set the AI to auto-post, require approval, or use a hybrid approach where only certain types of responses need review. Most customers start with manual approval and gradually trust the AI more.",
+      question: t("items.item2.question"),
+      answer: t("items.item2.answer"),
     },
     {
-      question: "How many locations can I manage?",
-      answer:
-        "It depends on your plan. The Free plan supports 1 location, Pro supports up to 5 locations, and Enterprise supports unlimited locations. You can easily upgrade as your business grows.",
+      question: t("items.item3.question"),
+      answer: t("items.item3.answer"),
     },
     {
-      question: "Is my data secure?",
-      answer:
-        "Yes! We use bank-level encryption (AES-256) for all data. We're SOC 2 compliant and never share your data with third parties. Your Google Business Profile credentials are stored securely using OAuth 2.0.",
+      question: t("items.item4.question"),
+      answer: t("items.item4.answer"),
     },
     {
-      question: "What languages are supported?",
-      answer:
-        "We support 50+ languages including English, Arabic, Spanish, French, German, Chinese, and more. The AI can automatically detect the language of incoming reviews and respond in the same language.",
+      question: t("items.item5.question"),
+      answer: t("items.item5.answer"),
     },
     {
-      question: "Can I cancel anytime?",
-      answer:
-        "Yes, you can cancel your subscription at any time with no penalties or fees. Your data will remain accessible for 30 days after cancellation, giving you time to export if needed.",
+      question: t("items.item6.question"),
+      answer: t("items.item6.answer"),
     },
     {
-      question: "Do you offer a free trial?",
-      answer:
-        "Yes! All paid plans come with a 14-day free trial. No credit card required. You can test all features and see the value before committing.",
+      question: t("items.item7.question"),
+      answer: t("items.item7.answer"),
     },
     {
-      question: "How long does setup take?",
-      answer:
-        "Most businesses are up and running in under 10 minutes. Simply connect your Google Business Profile, configure your AI preferences, and you're ready to go. We also offer free onboarding support for Enterprise customers.",
+      question: t("items.item8.question"),
+      answer: t("items.item8.answer"),
     },
   ];
 
@@ -61,12 +55,12 @@ export function FAQSection() {
           className="text-center mb-16"
         >
           <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
-            FAQ
+            {t("title")}
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold mb-6">
-            Frequently Asked Questions
+            {t("subtitle")}
           </h3>
-          <p className="text-xl text-gray-400">Everything you need to know</p>
+          <p className="text-xl text-gray-400">{t("description")}</p>
         </motion.div>
 
         <div className="space-y-4">

@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -11,12 +13,14 @@ interface MobileMenuProps {
 }
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+  const t = useTranslations("landing");
+
   const menuItems = [
-    { label: "Features", href: "#features" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
-    { label: "Contact", href: "#contact" },
+    { label: t("nav.features"), href: "#features" },
+    { label: t("nav.howItWorks"), href: "#how-it-works" },
+    { label: t("nav.pricing"), href: "#pricing" },
+    { label: t("nav.faq"), href: "#faq" },
+    { label: t("nav.contact"), href: "#contact" },
   ];
 
   return (
@@ -79,6 +83,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 ))}
               </nav>
 
+              {/* Language Switcher */}
+              <div className="mb-6">
+                <LanguageSwitcher />
+              </div>
+
               {/* CTAs */}
               <div className="space-y-3">
                 <Link href="/auth/login" onClick={onClose}>
@@ -86,12 +95,12 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     variant="outline"
                     className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
                   >
-                    Sign In
+                    {t("nav.signIn")}
                   </Button>
                 </Link>
                 <Link href="/auth/signup" onClick={onClose}>
                   <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                    Get Started Free
+                    {t("hero.getStarted")}
                   </Button>
                 </Link>
               </div>

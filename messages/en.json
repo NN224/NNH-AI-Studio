@@ -244,29 +244,109 @@
       "free": {
         "name": "Free",
         "description": "Perfect for trying out",
-        "cta": "Get Started"
+        "cta": "Get Started",
+        "features": {
+          "location": "1 Location",
+          "responses": "50 AI Responses/month",
+          "analytics": "Basic Analytics",
+          "support": "Email Support",
+          "responseTime": "7-day Response Time"
+        }
       },
       "pro": {
         "name": "Pro",
         "description": "For growing businesses",
         "cta": "Start Free Trial",
-        "popular": "Most Popular"
+        "popular": "Most Popular",
+        "features": {
+          "locations": "5 Locations",
+          "responses": "Unlimited AI Responses",
+          "analytics": "Advanced Analytics",
+          "support": "Priority Support",
+          "training": "Custom AI Training",
+          "multilanguage": "Multi-language Support",
+          "api": "API Access"
+        }
       },
       "enterprise": {
         "name": "Enterprise",
         "description": "For large organizations",
-        "cta": "Contact Sales"
+        "cta": "Contact Sales",
+        "features": {
+          "locations": "Unlimited Locations",
+          "everything": "Unlimited Everything",
+          "whitelabel": "White-label Solution",
+          "manager": "Dedicated Account Manager",
+          "integrations": "Custom Integrations",
+          "sla": "SLA Guarantee",
+          "security": "Advanced Security",
+          "training": "Training & Onboarding"
+        }
       }
     },
     "testimonials": {
       "title": "Testimonials",
       "subtitle": "Loved by Businesses Worldwide",
-      "description": "See what our customers have to say"
+      "description": "See what our customers have to say",
+      "items": {
+        "item1": {
+          "name": "Sarah Johnson",
+          "role": "Restaurant Owner",
+          "company": "Bella Italia",
+          "text": "NNH AI Studio transformed how we manage customer reviews. We've seen a 40% increase in positive ratings and save 10 hours per week!"
+        },
+        "item2": {
+          "name": "Michael Chen",
+          "role": "Marketing Director",
+          "company": "TechStart Inc",
+          "text": "The AI responses are incredibly natural. Our customers can't tell the difference, and our response time went from days to minutes."
+        },
+        "item3": {
+          "name": "Ahmed Al-Rashid",
+          "role": "Franchise Owner",
+          "company": "Coffee Corner",
+          "text": "Managing 12 locations was a nightmare. Now everything is centralized and automated. Best investment we've made this year!"
+        }
+      }
     },
     "faq": {
       "title": "FAQ",
       "subtitle": "Frequently Asked Questions",
-      "description": "Everything you need to know"
+      "description": "Everything you need to know",
+      "items": {
+        "item1": {
+          "question": "How does the AI generate responses?",
+          "answer": "Our AI uses advanced natural language processing to understand the context of reviews and questions, then generates personalized, human-like responses based on your business tone and preferences. You can customize the AI's style and review all responses before they're sent."
+        },
+        "item2": {
+          "question": "Can I review responses before they're posted?",
+          "answer": "Absolutely! You have full control. You can set the AI to auto-post, require approval, or use a hybrid approach where only certain types of responses need review. Most customers start with manual approval and gradually trust the AI more."
+        },
+        "item3": {
+          "question": "How many locations can I manage?",
+          "answer": "It depends on your plan. The Free plan supports 1 location, Pro supports up to 5 locations, and Enterprise supports unlimited locations. You can easily upgrade as your business grows."
+        },
+        "item4": {
+          "question": "Is my data secure?",
+          "answer": "Yes! We use bank-level encryption (AES-256) for all data. We're SOC 2 compliant and never share your data with third parties. Your Google Business Profile credentials are stored securely using OAuth 2.0."
+        },
+        "item5": {
+          "question": "What languages are supported?",
+          "answer": "We support 50+ languages including English, Arabic, Spanish, French, German, Chinese, and more. The AI can automatically detect the language of incoming reviews and respond in the same language."
+        },
+        "item6": {
+          "question": "Can I cancel anytime?",
+          "answer": "Yes, you can cancel your subscription at any time with no penalties or fees. Your data will remain accessible for 30 days after cancellation, giving you time to export if needed."
+        },
+        "item7": {
+          "question": "Do you offer a free trial?",
+          "answer": "Yes! All paid plans come with a 14-day free trial. No credit card required. You can test all features and see the value before committing."
+        },
+        "item8": {
+          "question": "How long does setup take?",
+          "answer": "Most businesses are up and running in under 10 minutes. Simply connect your Google Business Profile, configure your AI preferences, and you're ready to go. We also offer free onboarding support for Enterprise customers."
+        }
+      }
     },
     "cta": {
       "title": "Ready to Transform Your Business?",
@@ -275,6 +355,169 @@
     },
     "footer": {
       "copyright": "© 2025 NNH AI Studio. All rights reserved."
+    }
+  },
+  "home": {
+    "header": {
+      "welcome": "Welcome back to NNH - AI Studio",
+      "signOut": "Sign Out"
+    },
+    "hero": {
+      "badge": "AI-Powered Business Management",
+      "title": {
+        "main": "Manage Your Business",
+        "highlight": "Smarter, Faster, Better"
+      },
+      "description": "Harness the power of AI to manage your Google My Business presence, YouTube channel, respond to reviews, and grow your local reach—all from one intelligent dashboard.",
+      "buttons": {
+        "youtube": "YouTube Dashboard",
+        "gmb": "GMB Dashboard"
+      }
+    },
+    "stats": {
+      "emptyState": {
+        "title": "Get Started with NNH AI Studio",
+        "description": "Connect your Google My Business account or YouTube channel to start managing your online presence.",
+        "connectGmb": "Connect GMB",
+        "connectYoutube": "Connect YouTube"
+      },
+      "totalLocations": "Total Locations",
+      "totalReviews": "Total Reviews",
+      "averageRating": "Average Rating",
+      "activeAccounts": "Active Accounts",
+      "youtubeSubscribers": "YouTube Subscribers"
+    },
+    "features": {
+      "title": {
+        "main": "Powerful Features",
+        "suffix": "at Your Fingertips"
+      },
+      "subtitle": "Everything you need to manage and grow your Google My Business presence",
+      "items": {
+        "multiLocation": {
+          "title": "Multi-Location Management",
+          "description": "Manage all your business locations from one centralized dashboard with real-time sync"
+        },
+        "aiReview": {
+          "title": "AI Review Management",
+          "description": "Respond to customer reviews instantly with AI-powered suggestions and sentiment analysis"
+        },
+        "analytics": {
+          "title": "Advanced Analytics",
+          "description": "Track performance metrics with detailed insights, charts, and actionable reports"
+        },
+        "contentGen": {
+          "title": "AI Content Generation",
+          "description": "Create engaging posts, descriptions, and responses with our AI writing assistant"
+        },
+        "sentiment": {
+          "title": "Sentiment Analysis",
+          "description": "Understand customer sentiment with AI-powered analysis of reviews and feedback"
+        },
+        "autoResponse": {
+          "title": "Auto-Responses",
+          "description": "Set up automated review responses with customizable templates and AI assistance"
+        },
+        "youtube": {
+          "title": "YouTube Management",
+          "description": "Manage your YouTube channel with analytics, video insights, comments, and AI content generation"
+        }
+      }
+    },
+    "aiAssistant": {
+      "badge": "AI-Powered Assistant",
+      "title": {
+        "prefix": "Your",
+        "highlight": "Intelligent Business",
+        "suffix": "Assistant"
+      },
+      "description": "Let AI handle the heavy lifting while you focus on growing your business",
+      "items": {
+        "smartResponses": {
+          "title": "Smart Review Responses",
+          "description": "Generate professional, personalized responses to customer reviews in seconds"
+        },
+        "contentCreation": {
+          "title": "Content Creation",
+          "description": "Create engaging posts, updates, and descriptions that resonate with your audience"
+        },
+        "sentimentInsights": {
+          "title": "Sentiment Insights",
+          "description": "Understand customer emotions and trends to improve your service"
+        },
+        "performanceTips": {
+          "title": "Performance Tips",
+          "description": "Get AI-powered recommendations to boost your local SEO and visibility"
+        }
+      },
+      "cta": "Try AI Studio"
+    },
+    "whyChoose": {
+      "title": {
+        "prefix": "Why Choose",
+        "highlight": "NNH - AI Studio",
+        "suffix": "?"
+      },
+      "subtitle": "The most comprehensive Google My Business management platform",
+      "items": {
+        "seo": {
+          "title": "Local SEO Expert",
+          "description": "Optimize your local presence with AI-powered SEO recommendations and insights"
+        },
+        "fast": {
+          "title": "Lightning Fast",
+          "description": "Real-time synchronization with Google My Business for instant updates and notifications"
+        },
+        "security": {
+          "title": "Enterprise Security",
+          "description": "Bank-level encryption and security to protect your business data"
+        },
+        "support": {
+          "title": "24/7 Support",
+          "description": "Round-the-clock customer support to help you succeed"
+        },
+        "multiUser": {
+          "title": "Multi-User Access",
+          "description": "Collaborate with your team with role-based permissions and access control"
+        },
+        "updates": {
+          "title": "Always Updated",
+          "description": "Automatic updates with the latest Google My Business features and improvements"
+        }
+      }
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "description": "Jump to the most common tasks",
+      "items": {
+        "gmbDashboard": "GMB Dashboard",
+        "analytics": "View Analytics",
+        "reviews": "Manage Reviews",
+        "youtube": "YouTube Dashboard",
+        "posts": "GMB Posts"
+      }
+    },
+    "footer": {
+      "description": "Empowering businesses with AI-powered Google My Business and YouTube management.",
+      "columns": {
+        "product": "Product",
+        "company": "Company",
+        "support": "Support"
+      },
+      "links": {
+        "features": "Features",
+        "pricing": "Pricing",
+        "analytics": "Analytics",
+        "youtube": "YouTube Dashboard",
+        "about": "About",
+        "contact": "Contact",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "gmb": "GMB Dashboard",
+        "settings": "Settings",
+        "support": "Contact Support"
+      },
+      "copyright": "All rights reserved."
     }
   }
 }

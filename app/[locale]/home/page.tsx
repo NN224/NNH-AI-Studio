@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { Link } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import {
   Card,
   CardContent,
@@ -139,6 +141,8 @@ export default async function HomePage({
     : 0;
   const hasYouTube = !!youtubeToken;
 
+  const t = await getTranslations("home");
+
   return (
     <div className="min-h-screen bg-background">
       {/* Premium Animated Background with Orange Glow */}
@@ -181,20 +185,23 @@ export default async function HomePage({
                   {profile?.full_name || userEmail}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Welcome back to NNH - AI Studio
+                  {t("header.welcome")}
                 </p>
               </div>
             </div>
-            <form action="/auth/signout" method="post">
-              <Button
-                variant="ghost"
-                type="submit"
-                className="gap-2 hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </Button>
-            </form>
+            <div className="flex items-center gap-4">
+              <LanguageSwitcher />
+              <form action="/auth/signout" method="post">
+                <Button
+                  variant="ghost"
+                  type="submit"
+                  className="gap-2 hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {t("header.signOut")}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </header>
@@ -207,21 +214,19 @@ export default async function HomePage({
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">
-                AI-Powered Business Management
+                {t("hero.badge")}
               </span>
             </div>
 
             <h2 className="text-5xl md:text-6xl font-bold tracking-tight">
               <span className="block mb-2 text-foreground">
-                Manage Your Business
+                {t("hero.title.main")}
               </span>
-              <span className="gradient-text">Smarter, Faster, Better</span>
+              <span className="gradient-text">{t("hero.title.highlight")}</span>
             </h2>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Harness the power of AI to manage your Google My Business
-              presence, YouTube channel, respond to reviews, and grow your local
-              reach—all from one intelligent dashboard.
+              {t("hero.description")}
             </p>
 
             <div className="flex gap-4 justify-center pt-4">
@@ -231,7 +236,7 @@ export default async function HomePage({
                   className="gap-2 gradient-orange hover:opacity-90 transition-all duration-300 hover:scale-105 shadow-lg shadow-primary/20 hover:shadow-primary/40"
                 >
                   <Play className="w-5 h-5" />
-                  YouTube Dashboard
+                  {t("hero.buttons.youtube")}
                 </Button>
               </Link>
               <Link href="/dashboard">
@@ -241,7 +246,7 @@ export default async function HomePage({
                   className="gap-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
                 >
                   <Building2 className="w-5 h-5" />
-                  GMB Dashboard
+                  {t("hero.buttons.gmb")}
                 </Button>
               </Link>
             </div>
@@ -259,17 +264,16 @@ export default async function HomePage({
                     <Building2 className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground">
-                    Get Started with NNH AI Studio
+                    {t("stats.emptyState.title")}
                   </h3>
                   <p className="text-muted-foreground">
-                    Connect your Google My Business account or YouTube channel
-                    to start managing your online presence.
+                    {t("stats.emptyState.description")}
                   </p>
                   <div className="flex gap-3 justify-center pt-4">
                     <Link href="/settings">
                       <Button className="gap-2 gradient-orange hover:opacity-90">
                         <Building2 className="w-4 h-4" />
-                        Connect GMB
+                        {t("stats.emptyState.connectGmb")}
                       </Button>
                     </Link>
                     <Link href="/youtube-dashboard">
@@ -278,7 +282,7 @@ export default async function HomePage({
                         className="gap-2 border-primary/30 hover:bg-primary/10"
                       >
                         <Play className="w-4 h-4" />
-                        Connect YouTube
+                        {t("stats.emptyState.connectYoutube")}
                       </Button>
                     </Link>
                   </div>
@@ -291,7 +295,7 @@ export default async function HomePage({
             {[
               {
                 icon: Building2,
-                label: "Total Locations",
+                label: t("stats.totalLocations"),
                 value: locationsCount || 0,
                 suffix: "+",
                 color: "text-primary",
@@ -299,7 +303,7 @@ export default async function HomePage({
               },
               {
                 icon: MessageSquare,
-                label: "Total Reviews",
+                label: t("stats.totalReviews"),
                 value: reviewsCount || 0,
                 suffix: "+",
                 color: "text-accent",
@@ -307,7 +311,7 @@ export default async function HomePage({
               },
               {
                 icon: Star,
-                label: "Average Rating",
+                label: t("stats.averageRating"),
                 value: averageRating,
                 suffix: "/5.0",
                 color: "text-yellow-500",
@@ -315,7 +319,7 @@ export default async function HomePage({
               },
               {
                 icon: TrendingUp,
-                label: "Active Accounts",
+                label: t("stats.activeAccounts"),
                 value: accountsCount || 0,
                 suffix: "",
                 color: "text-green-500",
@@ -325,7 +329,7 @@ export default async function HomePage({
                 ? [
                     {
                       icon: Play,
-                      label: "YouTube Subscribers",
+                      label: t("stats.youtubeSubscribers"),
                       value: youtubeSubs.toLocaleString(),
                       suffix: "",
                       color: "text-red-500",
@@ -368,12 +372,11 @@ export default async function HomePage({
         <section className="container mx-auto px-6 py-12">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold mb-4">
-              <span className="gradient-text">Powerful Features</span> at Your
-              Fingertips
+              <span className="gradient-text">{t("features.title.main")}</span>{" "}
+              {t("features.title.suffix")}
             </h3>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage and grow your Google My Business
-              presence
+              {t("features.subtitle")}
             </p>
           </div>
 
@@ -381,51 +384,44 @@ export default async function HomePage({
             {[
               {
                 icon: Building2,
-                title: "Multi-Location Management",
-                description:
-                  "Manage all your business locations from one centralized dashboard with real-time sync",
+                title: t("features.items.multiLocation.title"),
+                description: t("features.items.multiLocation.description"),
                 gradient: "from-primary/20 to-primary/5",
               },
               {
                 icon: MessageSquare,
-                title: "AI Review Management",
-                description:
-                  "Respond to customer reviews instantly with AI-powered suggestions and sentiment analysis",
+                title: t("features.items.aiReview.title"),
+                description: t("features.items.aiReview.description"),
                 gradient: "from-accent/20 to-accent/5",
               },
               {
                 icon: BarChart3,
-                title: "Advanced Analytics",
-                description:
-                  "Track performance metrics with detailed insights, charts, and actionable reports",
+                title: t("features.items.analytics.title"),
+                description: t("features.items.analytics.description"),
                 gradient: "from-primary/20 to-accent/5",
               },
               {
                 icon: Sparkles,
-                title: "AI Content Generation",
-                description:
-                  "Create engaging posts, descriptions, and responses with our AI writing assistant",
+                title: t("features.items.contentGen.title"),
+                description: t("features.items.contentGen.description"),
                 gradient: "from-purple-500/20 to-purple-500/5",
               },
               {
                 icon: Target,
-                title: "Sentiment Analysis",
-                description:
-                  "Understand customer sentiment with AI-powered analysis of reviews and feedback",
+                title: t("features.items.sentiment.title"),
+                description: t("features.items.sentiment.description"),
                 gradient: "from-blue-500/20 to-blue-500/5",
               },
               {
                 icon: Zap,
-                title: "Auto-Responses",
-                description:
-                  "Set up automated review responses with customizable templates and AI assistance",
+                title: t("features.items.autoResponse.title"),
+                description: t("features.items.autoResponse.description"),
                 gradient: "from-green-500/20 to-green-500/5",
               },
               {
                 icon: Play,
-                title: "YouTube Management",
-                description:
-                  "Manage your YouTube channel with analytics, video insights, comments, and AI content generation",
+                title: t("features.items.youtube.title"),
+                description: t("features.items.youtube.description"),
                 gradient: "from-red-500/20 to-red-500/5",
               },
             ].map((feature, index) => (
@@ -468,16 +464,18 @@ export default async function HomePage({
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 mx-auto mb-4 hover:bg-primary/30 transition-colors">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-primary">
-                  AI-Powered Assistant
+                  {t("aiAssistant.badge")}
                 </span>
               </div>
               <CardTitle className="text-3xl font-bold mb-4">
-                Your <span className="gradient-text">Intelligent Business</span>{" "}
-                Assistant
+                {t("aiAssistant.title.prefix")}{" "}
+                <span className="gradient-text">
+                  {t("aiAssistant.title.highlight")}
+                </span>{" "}
+                {t("aiAssistant.title.suffix")}
               </CardTitle>
               <CardDescription className="text-base max-w-2xl mx-auto">
-                Let AI handle the heavy lifting while you focus on growing your
-                business
+                {t("aiAssistant.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
@@ -485,27 +483,31 @@ export default async function HomePage({
                 {[
                   {
                     icon: MessageSquare,
-                    title: "Smart Review Responses",
-                    description:
-                      "Generate professional, personalized responses to customer reviews in seconds",
+                    title: t("aiAssistant.items.smartResponses.title"),
+                    description: t(
+                      "aiAssistant.items.smartResponses.description",
+                    ),
                   },
                   {
                     icon: Sparkles,
-                    title: "Content Creation",
-                    description:
-                      "Create engaging posts, updates, and descriptions that resonate with your audience",
+                    title: t("aiAssistant.items.contentCreation.title"),
+                    description: t(
+                      "aiAssistant.items.contentCreation.description",
+                    ),
                   },
                   {
                     icon: Target,
-                    title: "Sentiment Insights",
-                    description:
-                      "Understand customer emotions and trends to improve your service",
+                    title: t("aiAssistant.items.sentimentInsights.title"),
+                    description: t(
+                      "aiAssistant.items.sentimentInsights.description",
+                    ),
                   },
                   {
                     icon: Award,
-                    title: "Performance Tips",
-                    description:
-                      "Get AI-powered recommendations to boost your local SEO and visibility",
+                    title: t("aiAssistant.items.performanceTips.title"),
+                    description: t(
+                      "aiAssistant.items.performanceTips.description",
+                    ),
                   },
                 ].map((item, index) => (
                   <div key={index} className="flex gap-4 group cursor-pointer">
@@ -529,7 +531,7 @@ export default async function HomePage({
                     size="lg"
                     className="gap-2 gradient-orange hover:opacity-90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
                   >
-                    Try AI Studio
+                    {t("aiAssistant.cta")}
                     <Sparkles className="w-5 h-5" />
                   </Button>
                 </Link>
@@ -542,10 +544,14 @@ export default async function HomePage({
         <section className="container mx-auto px-6 py-12">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold mb-4">
-              Why Choose <span className="gradient-text">NNH - AI Studio</span>?
+              {t("whyChoose.title.prefix")}{" "}
+              <span className="gradient-text">
+                {t("whyChoose.title.highlight")}
+              </span>
+              {t("whyChoose.title.suffix")}
             </h3>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              The most comprehensive Google My Business management platform
+              {t("whyChoose.subtitle")}
             </p>
           </div>
 
@@ -553,39 +559,33 @@ export default async function HomePage({
             {[
               {
                 icon: Globe,
-                title: "Local SEO Expert",
-                description:
-                  "Optimize your local presence with AI-powered SEO recommendations and insights",
+                title: t("whyChoose.items.seo.title"),
+                description: t("whyChoose.items.seo.description"),
               },
               {
                 icon: Zap,
-                title: "Lightning Fast",
-                description:
-                  "Real-time synchronization with Google My Business for instant updates and notifications",
+                title: t("whyChoose.items.fast.title"),
+                description: t("whyChoose.items.fast.description"),
               },
               {
                 icon: Shield,
-                title: "Enterprise Security",
-                description:
-                  "Bank-level encryption and security to protect your business data",
+                title: t("whyChoose.items.security.title"),
+                description: t("whyChoose.items.security.description"),
               },
               {
                 icon: Headphones,
-                title: "24/7 Support",
-                description:
-                  "Round-the-clock customer support to help you succeed",
+                title: t("whyChoose.items.support.title"),
+                description: t("whyChoose.items.support.description"),
               },
               {
                 icon: Users,
-                title: "Multi-User Access",
-                description:
-                  "Collaborate with your team with role-based permissions and access control",
+                title: t("whyChoose.items.multiUser.title"),
+                description: t("whyChoose.items.multiUser.description"),
               },
               {
                 icon: CheckCircle2,
-                title: "Always Updated",
-                description:
-                  "Automatic updates with the latest Google My Business features and improvements",
+                title: t("whyChoose.items.updates.title"),
+                description: t("whyChoose.items.updates.description"),
               },
             ].map((item, index) => (
               <Card
@@ -613,34 +613,38 @@ export default async function HomePage({
           <Card className="border border-primary/30 glass-strong">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">
-                <span className="gradient-text">Quick Actions</span>
+                <span className="gradient-text">{t("quickActions.title")}</span>
               </CardTitle>
-              <CardDescription>Jump to the most common tasks</CardDescription>
+              <CardDescription>{t("quickActions.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
                   {
                     icon: Building2,
-                    label: "GMB Dashboard",
+                    label: t("quickActions.items.gmbDashboard"),
                     href: "/dashboard",
                   },
                   {
                     icon: BarChart3,
-                    label: "View Analytics",
+                    label: t("quickActions.items.analytics"),
                     href: "/analytics",
                   },
                   {
                     icon: MessageSquare,
-                    label: "Manage Reviews",
+                    label: t("quickActions.items.reviews"),
                     href: "/reviews",
                   },
                   {
                     icon: Play,
-                    label: "YouTube Dashboard",
+                    label: t("quickActions.items.youtube"),
                     href: "/youtube-dashboard",
                   },
-                  { icon: Sparkles, label: "GMB Posts", href: "/posts" },
+                  {
+                    icon: Sparkles,
+                    label: t("quickActions.items.posts"),
+                    href: "/posts",
+                  },
                 ].map((action, index) => (
                   <Link key={index} href={action.href}>
                     <Button
@@ -678,20 +682,21 @@ export default async function HomePage({
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Empowering businesses with AI-powered Google My Business and
-                  YouTube management.
+                  {t("footer.description")}
                 </p>
               </div>
 
               <div>
-                <h5 className="font-semibold mb-4">Product</h5>
+                <h5 className="font-semibold mb-4">
+                  {t("footer.columns.product")}
+                </h5>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>
                     <Link
                       href="/features"
                       className="hover:text-primary transition-colors"
                     >
-                      Features
+                      {t("footer.links.features")}
                     </Link>
                   </li>
                   <li>
@@ -699,7 +704,7 @@ export default async function HomePage({
                       href="/pricing"
                       className="hover:text-primary transition-colors"
                     >
-                      Pricing
+                      {t("footer.links.pricing")}
                     </Link>
                   </li>
                   <li>
@@ -707,7 +712,7 @@ export default async function HomePage({
                       href="/analytics"
                       className="hover:text-primary transition-colors"
                     >
-                      Analytics
+                      {t("footer.links.analytics")}
                     </Link>
                   </li>
                   <li>
@@ -715,21 +720,23 @@ export default async function HomePage({
                       href="/youtube-dashboard"
                       className="hover:text-primary transition-colors"
                     >
-                      YouTube Dashboard
+                      {t("footer.links.youtube")}
                     </Link>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <h5 className="font-semibold mb-4">Company</h5>
+                <h5 className="font-semibold mb-4">
+                  {t("footer.columns.company")}
+                </h5>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>
                     <Link
                       href="/about"
                       className="hover:text-primary transition-colors"
                     >
-                      About
+                      {t("footer.links.about")}
                     </Link>
                   </li>
                   <li>
@@ -737,7 +744,7 @@ export default async function HomePage({
                       href="/contact"
                       className="hover:text-primary transition-colors"
                     >
-                      Contact
+                      {t("footer.links.contact")}
                     </Link>
                   </li>
                   <li>
@@ -745,7 +752,7 @@ export default async function HomePage({
                       href="/privacy"
                       className="hover:text-primary transition-colors"
                     >
-                      Privacy Policy
+                      {t("footer.links.privacy")}
                     </Link>
                   </li>
                   <li>
@@ -753,21 +760,23 @@ export default async function HomePage({
                       href="/terms"
                       className="hover:text-primary transition-colors"
                     >
-                      Terms of Service
+                      {t("footer.links.terms")}
                     </Link>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <h5 className="font-semibold mb-4">Support</h5>
+                <h5 className="font-semibold mb-4">
+                  {t("footer.columns.support")}
+                </h5>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>
                     <Link
                       href="/dashboard"
                       className="hover:text-primary transition-colors"
                     >
-                      GMB Dashboard
+                      {t("footer.links.gmb")}
                     </Link>
                   </li>
                   <li>
@@ -775,7 +784,7 @@ export default async function HomePage({
                       href="/settings"
                       className="hover:text-primary transition-colors"
                     >
-                      Settings
+                      {t("footer.links.settings")}
                     </Link>
                   </li>
                   <li>
@@ -783,7 +792,7 @@ export default async function HomePage({
                       href="/contact"
                       className="hover:text-primary transition-colors"
                     >
-                      Contact Support
+                      {t("footer.links.support")}
                     </Link>
                   </li>
                 </ul>
@@ -796,7 +805,7 @@ export default async function HomePage({
                 <span className="text-primary font-medium">
                   NNH - AI Studio
                 </span>
-                . All rights reserved.
+                . {t("footer.copyright")}
               </p>
             </div>
           </div>

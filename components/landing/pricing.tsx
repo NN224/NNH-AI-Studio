@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,54 +9,55 @@ import Link from "next/link";
 import { useState } from "react";
 
 export function PricingSection() {
+  const t = useTranslations("landing.pricing");
   const [isAnnual, setIsAnnual] = useState(false);
 
   const plans = [
     {
-      name: "Free",
+      name: t("free.name"),
       price: { monthly: 0, annual: 0 },
-      description: "Perfect for trying out",
+      description: t("free.description"),
       features: [
-        "1 Location",
-        "50 AI Responses/month",
-        "Basic Analytics",
-        "Email Support",
-        "7-day Response Time",
+        t("free.features.location"),
+        t("free.features.responses"),
+        t("free.features.analytics"),
+        t("free.features.support"),
+        t("free.features.responseTime"),
       ],
-      cta: "Get Started",
+      cta: t("free.cta"),
       popular: false,
     },
     {
-      name: "Pro",
+      name: t("pro.name"),
       price: { monthly: 49, annual: 470 },
-      description: "For growing businesses",
+      description: t("pro.description"),
       features: [
-        "5 Locations",
-        "Unlimited AI Responses",
-        "Advanced Analytics",
-        "Priority Support",
-        "Custom AI Training",
-        "Multi-language Support",
-        "API Access",
+        t("pro.features.locations"),
+        t("pro.features.responses"),
+        t("pro.features.analytics"),
+        t("pro.features.support"),
+        t("pro.features.training"),
+        t("pro.features.multilanguage"),
+        t("pro.features.api"),
       ],
-      cta: "Start Free Trial",
+      cta: t("pro.cta"),
       popular: true,
     },
     {
-      name: "Enterprise",
+      name: t("enterprise.name"),
       price: { monthly: 199, annual: 1910 },
-      description: "For large organizations",
+      description: t("enterprise.description"),
       features: [
-        "Unlimited Locations",
-        "Unlimited Everything",
-        "White-label Solution",
-        "Dedicated Account Manager",
-        "Custom Integrations",
-        "SLA Guarantee",
-        "Advanced Security",
-        "Training & Onboarding",
+        t("enterprise.features.locations"),
+        t("enterprise.features.everything"),
+        t("enterprise.features.whitelabel"),
+        t("enterprise.features.manager"),
+        t("enterprise.features.integrations"),
+        t("enterprise.features.sla"),
+        t("enterprise.features.security"),
+        t("enterprise.features.training"),
       ],
-      cta: "Contact Sales",
+      cta: t("enterprise.cta"),
       popular: false,
     },
   ];
@@ -71,13 +73,13 @@ export function PricingSection() {
           className="text-center mb-16"
         >
           <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
-            Pricing
+            {t("title")}
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold mb-6">
-            Choose Your Plan
+            {t("subtitle")}
           </h3>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-            Start free, scale as you grow
+            {t("description")}
           </p>
 
           {/* Toggle */}
@@ -90,7 +92,7 @@ export function PricingSection() {
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Monthly
+              {t("monthly")}
             </button>
             <button
               onClick={() => setIsAnnual(true)}
@@ -100,9 +102,9 @@ export function PricingSection() {
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Annual
+              {t("annual")}
               <Badge className="ml-2 bg-green-500 text-white border-0">
-                Save 20%
+                {t("save")}
               </Badge>
             </button>
           </div>
@@ -126,7 +128,7 @@ export function PricingSection() {
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-orange-500 text-white border-0 px-4 py-1">
                     <Sparkles className="w-3 h-3 mr-1 inline" />
-                    Most Popular
+                    {t("pro.popular")}
                   </Badge>
                 </div>
               )}
