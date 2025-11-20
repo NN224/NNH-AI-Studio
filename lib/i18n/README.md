@@ -147,24 +147,26 @@ formatPlural(5, {
 
 ### Navigation
 
-Locale-aware navigation helpers from `next-intl`:
+Navigation helpers:
 
-- **`Link`** - Locale-aware Link component
-- **`redirect(path)`** - Locale-aware redirect
+- **`Link`** - Next.js Link component
+- **`redirect(path)`** - Client-side redirect
 - **`usePathname()`** - Get current pathname
-- **`useRouter()`** - Get locale-aware router
+- **`useRouter()`** - Next.js router
 
 ```typescript
 import { Link, redirect, usePathname } from '@/lib/i18n';
+import { useLocale } from 'next-intl';
 
-// Link automatically includes locale
-<Link href="/dashboard">Dashboard</Link>
+// Link with locale
+const locale = useLocale();
+<Link href={`/${locale}/dashboard`}>Dashboard</Link>
 
-// Redirect preserves locale
-redirect('/auth/login');
+// Redirect with locale
+redirect(`/${locale}/auth/login`);
 
-// Get pathname without locale prefix
-const pathname = usePathname(); // "/dashboard" instead of "/en/dashboard"
+// Get pathname
+const pathname = usePathname();
 ```
 
 ## 🌍 Supported Locales

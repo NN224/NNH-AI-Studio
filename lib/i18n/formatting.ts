@@ -15,10 +15,7 @@ export function useI18nFormatter() {
 
   return {
     // Date formatting
-    formatDate: (
-      date: Date | string | number,
-      options?: Intl.DateTimeFormatOptions,
-    ) => {
+    formatDate: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
           ? new Date(date)
@@ -34,10 +31,7 @@ export function useI18nFormatter() {
     },
 
     // Time formatting
-    formatTime: (
-      date: Date | string | number,
-      options?: Intl.DateTimeFormatOptions,
-    ) => {
+    formatTime: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
           ? new Date(date)
@@ -52,10 +46,7 @@ export function useI18nFormatter() {
     },
 
     // DateTime formatting
-    formatDateTime: (
-      date: Date | string | number,
-      options?: Intl.DateTimeFormatOptions,
-    ) => {
+    formatDateTime: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
           ? new Date(date)
@@ -82,7 +73,7 @@ export function useI18nFormatter() {
     },
 
     // Number formatting
-    formatNumber: (value: number, options?: Intl.NumberFormatOptions) => {
+    formatNumber: (value: number, options?: any) => {
       return format.number(value, options);
     },
 
@@ -90,7 +81,7 @@ export function useI18nFormatter() {
     formatCurrency: (
       value: number,
       currency: string = "USD",
-      options?: Intl.NumberFormatOptions,
+      options?: any,
     ) => {
       return format.number(value, {
         style: "currency",
@@ -100,7 +91,7 @@ export function useI18nFormatter() {
     },
 
     // Percentage formatting
-    formatPercent: (value: number, options?: Intl.NumberFormatOptions) => {
+    formatPercent: (value: number, options?: any) => {
       return format.number(value / 100, {
         style: "percent",
         ...options,
