@@ -1,100 +1,17 @@
-'use client';
+"use client";
 
-import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
-import { authService } from '@/lib/services/auth-service';
-import { toast } from 'sonner';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getRedirectUrl, getLocaleFromPathname } from '@/lib/utils/navigation';
-
-const Logo = () => {
-  return (
-    <div className="w-20 h-20 rounded-full bg-[hsl(var(--neuro-bg))] flex items-center justify-center mb-8 shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]">
-      <div className="text-4xl font-bold text-[#ff1493]">G</div>
-    </div>
-  );
-};
-
-interface InputFieldProps {
-  type: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  showPasswordToggle?: boolean;
-  error?: string;
-  disabled?: boolean;
-  name: string;
-}
-
-const InputField = ({
-  type,
-  placeholder,
-  value,
-  onChange,
-  showPasswordToggle = false,
-  error,
-  disabled = false,
-  name
-}: InputFieldProps) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const inputType = showPasswordToggle ? (showPassword ? 'text' : 'password') : type;
-
-  return (
-    <div className="relative mb-6">
-      <input
-        type={inputType}
-        placeholder={placeholder}
-        value={value}
-        name={name}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        disabled={disabled}
-        className={`w-full px-6 py-4 bg-[hsl(var(--neuro-bg))] rounded-2xl text-foreground placeholder-muted-foreground outline-none transition-all duration-200 font-mono ${
-          isFocused
-            ? 'shadow-[inset_6px_6px_12px_hsl(var(--shadow-dark)),inset_-6px_-6px_12px_hsl(var(--shadow-light))] ring-2 ring-[#ff149380]'
-            : 'shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      />
-      {showPasswordToggle && (
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          disabled={disabled}
-        >
-          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-        </button>
-      )}
-      {error && <p className="text-sm text-destructive mt-1 ml-2">{error}</p>}
-    </div>
-  );
-};
-
-const LoginButton = ({ isLoading }: { isLoading: boolean }) => {
-  return (
-    <motion.button
-      type="submit"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      disabled={isLoading}
-      className={`w-full py-4 bg-[hsl(var(--neuro-bg))] rounded-2xl text-[#ff1493] text-lg mb-6 shadow-[8px_8px_16px_hsl(var(--shadow-dark)),-8px_-8px_16px_hsl(var(--shadow-light))] hover:shadow-[6px_6px_12px_hsl(var(--shadow-dark)),-6px_-6px_12px_hsl(var(--shadow-light))] active:shadow-[inset_4px_4px_8px_hsl(var(--shadow-dark)),inset_-4px_-4px_8px_hsl(var(--shadow-light))] transition-all duration-200 font-mono font-normal ${
-        isLoading ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
-    >
-      {isLoading ? 'Signing in...' : 'Sign In'}
-    </motion.button>
-  );
-};
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { authService } from "@/lib/services/auth-service";
+import { toast } from "sonner";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getRedirectUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { AuthLayout } from "@/components/auth/auth-layout";
+import { useTranslations } from "next-intl";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -102,23 +19,20 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const locale = getLocaleFromPathname(pathname);
   const redirectTo = getRedirectUrl(searchParams, locale);
+  const t = useTranslations("auth.login");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const {
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError(t("errors.fillAllFields"));
       return;
     }
 
@@ -126,21 +40,20 @@ function LoginPageContent() {
       setIsLoading(true);
       setError(null);
 
-      await authService.signIn(email, password, false);
+      await authService.signIn(email, password, rememberMe);
 
-      toast.success('Welcome back!');
-      
-      // Use the redirect URL from params or default to dashboard
+      toast.success(t("welcomeBack"));
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
-      console.error('Login error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+      console.error("Login error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to sign in";
 
-      if (errorMessage.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please try again.');
-      } else if (errorMessage.includes('Email not confirmed')) {
-        setError('Please verify your email address before signing in.');
+      if (errorMessage.includes("Invalid login credentials")) {
+        setError(t("errors.invalidCredentials"));
+      } else if (errorMessage.includes("Email not confirmed")) {
+        setError(t("errors.emailNotConfirmed"));
       } else {
         setError(errorMessage);
       }
@@ -150,95 +63,150 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="fixed top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
+    <AuthLayout title={t("title")} subtitle={t("subtitle")}>
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <h1 className="text-3xl text-center font-mono font-black text-muted-foreground mt-20 mb-6">
-        Sign In
-      </h1>
+      <form onSubmit={onSubmit} className="space-y-6">
+        {/* Email Input */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("email")}
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md mx-auto bg-[hsl(var(--neuro-bg))] rounded-3xl p-8 shadow-[20px_20px_40px_hsl(var(--shadow-dark)),-20px_-20px_40px_hsl(var(--shadow-light))] mt-4"
-      >
-        <div className="flex flex-col items-center">
-          <Logo />
-
-          {error && (
-            <Alert variant="destructive" className="mb-4 w-full">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={onSubmit} className="w-full">
-            <InputField
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={email}
-              onChange={setEmail}
-              disabled={isLoading}
-              error={errors.email?.message}
-            />
-
-            <InputField
-              type="password"
-              name="password"
-              placeholder="Password"
+        {/* Password Input */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("password")}
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
               value={password}
-              onChange={setPassword}
-              showPasswordToggle={true}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              error={errors.password?.message}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-10 sm:pr-12"
+              placeholder="••••••••"
+              autoComplete="current-password"
             />
-
-            <LoginButton isLoading={isLoading} />
-          </form>
-
-          <div className="w-full flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-muted-foreground text-sm font-mono">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="w-full mb-6">
-            <OAuthButtons mode="signin" />
-          </div>
-
-          <div className="flex justify-between items-center text-sm w-full">
-            <Link
-              href="/forgot-password"
-              className="text-muted-foreground hover:text-[#ff1493] hover:underline transition-all duration-200 font-mono"
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={isLoading}
+              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50 p-1"
             >
-              Forgot password?
-            </Link>
-            <Link
-              href="/signup"
-              className="text-muted-foreground hover:text-[#ff1493] hover:underline transition-all duration-200 font-mono"
-            >
-              or Sign up
-            </Link>
+              {showPassword ? (
+                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
+            </button>
           </div>
         </div>
-      </motion.div>
-    </div>
+
+        {/* Remember Me & Forgot Password */}
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={isLoading}
+              className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+              {t("rememberMe")}
+            </span>
+          </label>
+
+          <Link
+            href={`/${locale}/forgot-password`}
+            className="text-sm text-orange-500 hover:text-orange-400 transition-colors"
+          >
+            {t("forgotPassword")}
+          </Link>
+        </div>
+
+        {/* Submit Button */}
+        <motion.button
+          type="submit"
+          disabled={isLoading}
+          whileHover={{ scale: isLoading ? 1 : 1.02 }}
+          whileTap={{ scale: isLoading ? 1 : 0.98 }}
+          className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+              <span className="text-sm sm:text-base">{t("signingIn")}</span>
+            </>
+          ) : (
+            t("signIn")
+          )}
+        </motion.button>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-800" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-black text-gray-500">
+              {t("orContinueWith")}
+            </span>
+          </div>
+        </div>
+
+        {/* OAuth Buttons */}
+        <OAuthButtons mode="signin" />
+
+        {/* Sign Up Link */}
+        <p className="text-center text-sm text-gray-400">
+          {t("noAccount")}{" "}
+          <Link
+            href={`/${locale}/signup`}
+            className="text-orange-500 hover:text-orange-400 font-semibold transition-colors"
+          >
+            {t("signUp")}
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="w-full flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+        </div>
+      }
+    >
       <LoginPageContent />
     </Suspense>
   );
 }
-

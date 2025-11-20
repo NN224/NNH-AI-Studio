@@ -1,127 +1,74 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
-import { signupSchema, type SignupFormData } from '@/lib/validations/auth';
-import { authService } from '@/lib/services/auth-service';
-import { toast } from 'sonner';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { OAuthButtons } from '@/components/auth/oauth-buttons';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-const Logo = () => {
-  return (
-    <div className="w-20 h-20 rounded-full bg-[hsl(var(--neuro-bg))] flex items-center justify-center mb-8 shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]">
-      <div className="text-4xl font-bold text-[#ff1493]">G</div>
-    </div>
-  );
-};
-
-interface InputFieldProps {
-  type: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  showPasswordToggle?: boolean;
-  error?: string;
-  disabled?: boolean;
-  name: string;
-}
-
-const InputField = ({
-  type,
-  placeholder,
-  value,
-  onChange,
-  showPasswordToggle = false,
-  error,
-  disabled = false,
-  name
-}: InputFieldProps) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const inputType = showPasswordToggle ? (showPassword ? 'text' : 'password') : type;
-
-  return (
-    <div className="relative mb-6">
-      <input
-        type={inputType}
-        placeholder={placeholder}
-        value={value}
-        name={name}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        disabled={disabled}
-        className={`w-full px-6 py-4 bg-[hsl(var(--neuro-bg))] rounded-2xl text-foreground placeholder-muted-foreground outline-none transition-all duration-200 font-mono ${
-          isFocused
-            ? 'shadow-[inset_6px_6px_12px_hsl(var(--shadow-dark)),inset_-6px_-6px_12px_hsl(var(--shadow-light))] ring-2 ring-[#ff149380]'
-            : 'shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-      />
-      {showPasswordToggle && (
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          disabled={disabled}
-        >
-          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-        </button>
-      )}
-      {error && <p className="text-sm text-destructive mt-1 ml-2">{error}</p>}
-    </div>
-  );
-};
-
-const SignupButton = ({ isLoading }: { isLoading: boolean }) => {
-  return (
-    <motion.button
-      type="submit"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      disabled={isLoading}
-      className={`w-full py-4 bg-[hsl(var(--neuro-bg))] rounded-2xl text-[#ff1493] text-lg mb-6 shadow-[8px_8px_16px_hsl(var(--shadow-dark)),-8px_-8px_16px_hsl(var(--shadow-light))] hover:shadow-[6px_6px_12px_hsl(var(--shadow-dark)),-6px_-6px_12px_hsl(var(--shadow-light))] active:shadow-[inset_4px_4px_8px_hsl(var(--shadow-dark)),inset_-4px_-4px_8px_hsl(var(--shadow-light))] transition-all duration-200 font-mono font-normal ${
-        isLoading ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
-    >
-      {isLoading ? 'Creating account...' : 'Create Account'}
-    </motion.button>
-  );
-};
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  Mail,
+} from "lucide-react";
+import Link from "next/link";
+import { authService } from "@/lib/services/auth-service";
+import { toast } from "sonner";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getLocaleFromPathname } from "@/lib/utils/navigation";
+import { AuthLayout } from "@/components/auth/auth-layout";
+import { PasswordStrength } from "@/components/auth/password-strength";
+import { useTranslations } from "next-intl";
 
 export default function SignupPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname);
+  const t = useTranslations("auth.signup");
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const {
-    formState: { errors },
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-  });
+  // Form fields
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!fullName || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
+      setError(t("errors.fillAllFields"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t("errors.passwordMismatch"));
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setError(t("errors.acceptTerms"));
+      return;
+    }
+
+    // Check password strength
+    const hasMinLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber) {
+      setError(t("errors.weakPassword"));
       return;
     }
 
@@ -131,17 +78,16 @@ export default function SignupPage() {
 
       await authService.signUp(email, password, fullName);
 
-      setSuccess(true);
-      toast.success('Account created successfully!');
-
-      // Don't auto-redirect, let user read the message
-      // They can click the link when ready
+      setUserEmail(email);
+      setShowSuccess(true);
+      toast.success(t("accountCreated"));
     } catch (err) {
-      console.error('Signup error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
+      console.error("Signup error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to sign up";
 
-      if (errorMessage.includes('already registered')) {
-        setError('This email is already registered. Please sign in or use a different email.');
+      if (errorMessage.includes("already registered")) {
+        setError(t("errors.emailExists"));
       } else {
         setError(errorMessage);
       }
@@ -151,13 +97,15 @@ export default function SignupPage() {
   };
 
   const handleResendEmail = async () => {
+    if (resendCooldown > 0) return;
+
     try {
-      await authService.resendVerificationEmail(email);
-      toast.success('Verification email sent!');
-      setResendCooldown(60); // 60 seconds cooldown
-      
+      setResendCooldown(60);
+      await authService.resendVerificationEmail(userEmail);
+      toast.success("Verification email sent!");
+
       const interval = setInterval(() => {
-        setResendCooldown(prev => {
+        setResendCooldown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
             return 0;
@@ -165,163 +113,249 @@ export default function SignupPage() {
           return prev - 1;
         });
       }, 1000);
-    } catch (error) {
-      console.error('Resend email error:', error);
-      toast.error('Failed to resend email. Please try again.');
+    } catch (err) {
+      console.error("Resend error:", err);
+      toast.error("Failed to resend email");
+      setResendCooldown(0);
     }
   };
 
-  if (success) {
+  if (showSuccess) {
     return (
-      <div className="w-full flex flex-col items-center">
-        <div className="fixed top-6 right-6 z-50">
-          <ThemeToggle />
-        </div>
-
+      <AuthLayout title={t("verifyEmail")} showBenefits={false}>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md mx-auto bg-[hsl(var(--neuro-bg))] rounded-3xl p-8 shadow-[20px_20px_40px_hsl(var(--shadow-dark)),-20px_-20px_40px_hsl(var(--shadow-light))] mt-20"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
         >
-          <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6 shadow-[inset_8px_8px_16px_hsl(var(--shadow-dark)),inset_-8px_-8px_16px_hsl(var(--shadow-light))]">
-              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2 font-mono">Check your email</h2>
-            <p className="text-muted-foreground mb-2 font-mono text-sm">
-              We sent a verification link to:
-            </p>
-            <p className="font-semibold mb-4 font-mono text-sm">{email}</p>
-            <p className="text-xs text-muted-foreground mb-6 font-mono">
-              The link will expire in 24 hours.
-            </p>
-            
-            <div className="w-full space-y-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleResendEmail}
-                disabled={resendCooldown > 0}
-                className={`w-full py-3 bg-[hsl(var(--neuro-bg))] rounded-2xl text-sm shadow-[8px_8px_16px_hsl(var(--shadow-dark)),-8px_-8px_16px_hsl(var(--shadow-light))] hover:shadow-[6px_6px_12px_hsl(var(--shadow-dark)),-6px_-6px_12px_hsl(var(--shadow-light))] active:shadow-[inset_4px_4px_8px_hsl(var(--shadow-dark)),inset_-4px_-4px_8px_hsl(var(--shadow-light))] transition-all duration-200 font-mono ${
-                  resendCooldown > 0 ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {resendCooldown > 0 
-                  ? `Resend in ${resendCooldown}s` 
-                  : 'Resend verification email'
-                }
-              </motion.button>
-              
-              <Link href="/login">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-3 bg-transparent rounded-2xl text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
-                >
-                  Already verified? Sign in
-                </motion.button>
-              </Link>
-            </div>
+          <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail className="w-10 h-10 text-green-500" />
+          </div>
+
+          <h2 className="text-2xl font-bold mb-4">{t("verifyEmail")}</h2>
+          <p className="text-gray-400 mb-2">{t("verifyEmailMessage")}</p>
+          <p className="text-orange-500 font-semibold mb-6">{userEmail}</p>
+          <p className="text-gray-400 text-sm mb-8">{t("checkInbox")}</p>
+
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={handleResendEmail}
+              disabled={resendCooldown > 0}
+              className="text-sm text-orange-500 hover:text-orange-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {resendCooldown > 0
+                ? `${t("resendIn")} ${resendCooldown} ${t("seconds")}`
+                : `${t("didntReceive")} ${t("resend")}`}
+            </button>
+
+            <Link
+              href={`/${locale}/login`}
+              className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+            >
+              Back to login
+            </Link>
           </div>
         </motion.div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="fixed top-6 right-6 z-50">
-        <ThemeToggle />
-      </div>
+    <AuthLayout title={t("title")} subtitle={t("subtitle")}>
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <h1 className="text-3xl text-center font-mono font-black text-muted-foreground mt-20 mb-6">
-        Create Account
-      </h1>
+      <form onSubmit={onSubmit} className="space-y-6">
+        {/* Full Name */}
+        <div>
+          <label
+            htmlFor="fullName"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("fullName")}
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="John Doe"
+            autoComplete="name"
+          />
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md mx-auto bg-[hsl(var(--neuro-bg))] rounded-3xl p-8 shadow-[20px_20px_40px_hsl(var(--shadow-dark)),-20px_-20px_40px_hsl(var(--shadow-light))] mt-4"
-      >
-        <div className="flex flex-col items-center">
-          <Logo />
+        {/* Email */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("email")}
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+        </div>
 
-          {error && (
-            <Alert variant="destructive" className="mb-4 w-full">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={onSubmit} className="w-full">
-            <InputField
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={setFullName}
-              disabled={isLoading}
-              error={errors.fullName?.message}
-            />
-
-            <InputField
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={email}
-              onChange={setEmail}
-              disabled={isLoading}
-              error={errors.email?.message}
-            />
-
-            <InputField
-              type="password"
-              name="password"
-              placeholder="Password"
+        {/* Password */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("password")}
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
               value={password}
-              onChange={setPassword}
-              showPasswordToggle={true}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              error={errors.password?.message}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
+              placeholder="••••••••"
+              autoComplete="new-password"
             />
-
-            <InputField
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              showPasswordToggle={true}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
               disabled={isLoading}
-            />
-
-            <SignupButton isLoading={isLoading} />
-          </form>
-
-          <div className="w-full flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-muted-foreground text-sm font-mono">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="w-full mb-6">
-            <OAuthButtons mode="signup" />
-          </div>
-
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground font-mono">Already have an account? </span>
-            <Link
-              href="/login"
-              className="text-[#ff1493] hover:underline font-mono"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50"
             >
-              Sign in
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          {password && <PasswordStrength password={password} />}
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t("confirmPassword")}
+          </label>
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isLoading}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          {confirmPassword && password === confirmPassword && (
+            <p className="text-sm text-green-500 mt-2 flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4" />
+              Passwords match
+            </p>
+          )}
+        </div>
+
+        {/* Terms & Privacy */}
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            disabled={isLoading}
+            className="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-900 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+            {t("agreeToTerms")}{" "}
+            <Link
+              href="/terms"
+              className="text-orange-500 hover:text-orange-400"
+            >
+              {t("terms")}
+            </Link>{" "}
+            {t("and")}{" "}
+            <Link
+              href="/privacy"
+              className="text-orange-500 hover:text-orange-400"
+            >
+              {t("privacy")}
             </Link>
+          </span>
+        </label>
+
+        {/* Submit Button */}
+        <motion.button
+          type="submit"
+          disabled={isLoading}
+          whileHover={{ scale: isLoading ? 1 : 1.02 }}
+          whileTap={{ scale: isLoading ? 1 : 0.98 }}
+          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              {t("creatingAccount")}
+            </>
+          ) : (
+            t("createAccount")
+          )}
+        </motion.button>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-800" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-black text-gray-500">
+              {t("orContinueWith")}
+            </span>
           </div>
         </div>
-      </motion.div>
-    </div>
+
+        {/* OAuth Buttons */}
+        <OAuthButtons mode="signup" />
+
+        {/* Login Link */}
+        <p className="text-center text-sm text-gray-400">
+          {t("haveAccount")}{" "}
+          <Link
+            href={`/${locale}/login`}
+            className="text-orange-500 hover:text-orange-400 font-semibold transition-colors"
+          >
+            {t("signIn")}
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }
-

@@ -9,6 +9,131 @@
     "edit": "تعديل",
     "close": "إغلاق"
   },
+  "auth": {
+    "login": {
+      "title": "مرحباً بعودتك",
+      "subtitle": "سجل دخولك للمتابعة",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "rememberMe": "تذكرني",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "signIn": "تسجيل الدخول",
+      "signingIn": "جاري تسجيل الدخول...",
+      "noAccount": "ليس لديك حساب؟",
+      "signUp": "إنشاء حساب",
+      "orContinueWith": "أو تابع باستخدام",
+      "welcomeBack": "مرحباً بعودتك!",
+      "errors": {
+        "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        "emailNotConfirmed": "يرجى تأكيد بريدك الإلكتروني أولاً",
+        "fillAllFields": "يرجى ملء جميع الحقول"
+      }
+    },
+    "signup": {
+      "title": "إنشاء حساب",
+      "subtitle": "ابدأ تجربتك المجانية اليوم",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "agreeToTerms": "أوافق على",
+      "terms": "شروط الخدمة",
+      "and": "و",
+      "privacy": "سياسة الخصوصية",
+      "createAccount": "إنشاء حساب",
+      "creatingAccount": "جاري إنشاء الحساب...",
+      "haveAccount": "لديك حساب بالفعل؟",
+      "signIn": "تسجيل الدخول",
+      "orContinueWith": "أو تابع باستخدام",
+      "verifyEmail": "تأكيد بريدك الإلكتروني",
+      "verifyEmailMessage": "لقد أرسلنا رابط التأكيد إلى",
+      "checkInbox": "يرجى التحقق من بريدك الوارد والنقر على الرابط لتأكيد حسابك.",
+      "didntReceive": "لم تستلم البريد؟",
+      "resend": "إعادة إرسال",
+      "resendIn": "إعادة الإرسال خلال",
+      "seconds": "ثانية",
+      "accountCreated": "تم إنشاء الحساب بنجاح!",
+      "errors": {
+        "passwordMismatch": "كلمات المرور غير متطابقة",
+        "emailExists": "البريد الإلكتروني مسجل مسبقاً",
+        "weakPassword": "كلمة المرور ضعيفة جداً",
+        "fillAllFields": "يرجى ملء جميع الحقول",
+        "acceptTerms": "يرجى الموافقة على الشروط والأحكام"
+      }
+    },
+    "forgotPassword": {
+      "title": "نسيت كلمة المرور",
+      "subtitle": "أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور",
+      "email": "البريد الإلكتروني",
+      "sendLink": "إرسال رابط إعادة التعيين",
+      "sending": "جاري الإرسال...",
+      "backToLogin": "العودة لتسجيل الدخول",
+      "emailSent": "تم إرسال الرابط!",
+      "checkEmail": "تحقق من بريدك الإلكتروني للحصول على تعليمات إعادة تعيين كلمة المرور",
+      "errors": {
+        "emailNotFound": "البريد الإلكتروني غير موجود",
+        "invalidEmail": "البريد الإلكتروني غير صالح"
+      }
+    },
+    "resetPassword": {
+      "title": "إعادة تعيين كلمة المرور",
+      "subtitle": "أدخل كلمة المرور الجديدة",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "resetting": "جاري إعادة التعيين...",
+      "passwordReset": "تم إعادة تعيين كلمة المرور بنجاح!",
+      "errors": {
+        "passwordMismatch": "كلمات المرور غير متطابقة",
+        "weakPassword": "كلمة المرور ضعيفة جداً",
+        "invalidToken": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية"
+      }
+    },
+    "passwordStrength": {
+      "label": "قوة كلمة المرور",
+      "weak": "ضعيفة",
+      "fair": "مقبولة",
+      "good": "جيدة",
+      "strong": "قوية",
+      "requirements": {
+        "minLength": "8 أحرف على الأقل",
+        "uppercase": "تحتوي على حرف كبير",
+        "lowercase": "تحتوي على حرف صغير",
+        "number": "تحتوي على رقم",
+        "special": "تحتوي على رمز خاص"
+      }
+    },
+    "benefits": {
+      "title": "لماذا تختار NNH AI Studio؟",
+      "aiPowered": {
+        "title": "أتمتة بالذكاء الاصطناعي",
+        "description": "أتمتة الردود على المراجعات بذكاء اصطناعي متقدم"
+      },
+      "users": {
+        "title": "أكثر من 10,000 مستخدم سعيد",
+        "description": "انضم إلى آلاف الشركات الناجحة"
+      },
+      "security": {
+        "title": "أمان على مستوى المؤسسات",
+        "description": "تشفير وحماية بيانات على مستوى البنوك"
+      },
+      "fast": {
+        "title": "سريع كالبرق",
+        "description": "ابدأ في أقل من 5 دقائق"
+      }
+    },
+    "testimonial": {
+      "text": "غيّر NNH AI Studio طريقة إدارتنا لمراجعات العملاء. انخفض وقت الاستجابة بنسبة 80٪!",
+      "author": "سارة جونسون",
+      "role": "مديرة التسويق",
+      "company": "TechCorp"
+    },
+    "stats": {
+      "users": "مستخدم نشط",
+      "countries": "دولة",
+      "uptime": "وقت التشغيل"
+    }
+  },
   "landing": {
     "nav": {
       "features": "المميزات",

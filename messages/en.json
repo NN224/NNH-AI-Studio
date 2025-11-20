@@ -9,6 +9,131 @@
     "edit": "Edit",
     "close": "Close"
   },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your account to continue",
+      "email": "Email address",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "signIn": "Sign In",
+      "signingIn": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "orContinueWith": "Or continue with",
+      "welcomeBack": "Welcome back!",
+      "errors": {
+        "invalidCredentials": "Invalid email or password",
+        "emailNotConfirmed": "Please verify your email first",
+        "fillAllFields": "Please fill in all fields"
+      }
+    },
+    "signup": {
+      "title": "Create Account",
+      "subtitle": "Start your free trial today",
+      "fullName": "Full name",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "agreeToTerms": "I agree to the",
+      "terms": "Terms of Service",
+      "and": "and",
+      "privacy": "Privacy Policy",
+      "createAccount": "Create Account",
+      "creatingAccount": "Creating account...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "orContinueWith": "Or continue with",
+      "verifyEmail": "Verify Your Email",
+      "verifyEmailMessage": "We've sent a verification link to",
+      "checkInbox": "Please check your inbox and click the link to verify your account.",
+      "didntReceive": "Didn't receive the email?",
+      "resend": "Resend",
+      "resendIn": "Resend in",
+      "seconds": "seconds",
+      "accountCreated": "Account created successfully!",
+      "errors": {
+        "passwordMismatch": "Passwords don't match",
+        "emailExists": "Email already registered",
+        "weakPassword": "Password is too weak",
+        "fillAllFields": "Please fill in all fields",
+        "acceptTerms": "Please accept the terms and conditions"
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to reset your password",
+      "email": "Email address",
+      "sendLink": "Send Reset Link",
+      "sending": "Sending...",
+      "backToLogin": "Back to login",
+      "emailSent": "Reset link sent!",
+      "checkEmail": "Check your email for password reset instructions",
+      "errors": {
+        "emailNotFound": "Email not found",
+        "invalidEmail": "Invalid email address"
+      }
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your new password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "resetPassword": "Reset Password",
+      "resetting": "Resetting...",
+      "passwordReset": "Password reset successfully!",
+      "errors": {
+        "passwordMismatch": "Passwords don't match",
+        "weakPassword": "Password is too weak",
+        "invalidToken": "Invalid or expired reset link"
+      }
+    },
+    "passwordStrength": {
+      "label": "Password Strength",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong",
+      "requirements": {
+        "minLength": "At least 8 characters",
+        "uppercase": "Contains uppercase letter",
+        "lowercase": "Contains lowercase letter",
+        "number": "Contains number",
+        "special": "Contains special character"
+      }
+    },
+    "benefits": {
+      "title": "Why Choose NNH AI Studio?",
+      "aiPowered": {
+        "title": "AI-Powered Automation",
+        "description": "Automate review responses with advanced AI"
+      },
+      "users": {
+        "title": "10,000+ Happy Users",
+        "description": "Join thousands of successful businesses"
+      },
+      "security": {
+        "title": "Enterprise Security",
+        "description": "Bank-level encryption & data protection"
+      },
+      "fast": {
+        "title": "Lightning Fast",
+        "description": "Get started in under 5 minutes"
+      }
+    },
+    "testimonial": {
+      "text": "NNH AI Studio transformed how we manage customer reviews. Response time decreased by 80%!",
+      "author": "Sarah Johnson",
+      "role": "Marketing Director",
+      "company": "TechCorp"
+    },
+    "stats": {
+      "users": "Active Users",
+      "countries": "Countries",
+      "uptime": "Uptime"
+    }
+  },
   "landing": {
     "nav": {
       "features": "Features",
