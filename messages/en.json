@@ -8,5 +8,148 @@
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "signIn": "Sign In",
+      "beta": "BETA"
+    },
+    "hero": {
+      "rating": "5-star rating",
+      "trustedBy": "Trusted by 10,000+ businesses",
+      "title": "Manage Your Business with AI Power",
+      "subtitle": "Automate reviews, manage multiple locations, and grow your business with AI-powered insights",
+      "getStarted": "Get Started",
+      "signIn": "Sign In"
+    },
+    "features": {
+      "title": "Features",
+      "videoAnalytics": {
+        "title": "Video Analytics",
+        "description": "Track and analyze your video performance across platforms"
+      },
+      "monitoring": {
+        "title": "Real-time Monitoring",
+        "description": "Monitor your business metrics in real-time with AI insights"
+      },
+      "aiStudio": {
+        "title": "AI Studio",
+        "description": "Generate content and responses with advanced AI technology"
+      },
+      "commentManagement": {
+        "title": "Comment Management",
+        "description": "Manage and respond to comments automatically with AI"
+      },
+      "multiLocation": {
+        "title": "Multi Location",
+        "description": "Manage multiple business locations from one dashboard"
+      },
+      "youtubeManagement": {
+        "title": "YouTube Management",
+        "description": "Optimize your YouTube channel with AI-powered tools"
+      },
+      "aiReviews": {
+        "title": "AI Reviews",
+        "description": "Automatically respond to reviews with personalized AI replies"
+      },
+      "analytics": {
+        "title": "Advanced Analytics",
+        "description": "Get detailed insights and reports on your business performance"
+      }
+    },
+    "trust": {
+      "moneyBack": "Money Back Guarantee",
+      "worldwide": "Worldwide Coverage",
+      "noCommitment": "No Commitment",
+      "trusted": "Trusted by 10,000+",
+      "support": "24/7 Support"
+    },
+    "stats": {
+      "title": "Our Impact",
+      "subtitle": "Trusted by Businesses Worldwide",
+      "activeUsers": "Active Users",
+      "reviewsManaged": "Reviews Managed",
+      "countries": "Countries",
+      "uptime": "Uptime"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Get Started in 4 Simple Steps",
+      "description": "From setup to success in minutes, not hours",
+      "step1": {
+        "title": "Connect Your Business",
+        "description": "Link your Google Business Profile in seconds with our secure OAuth integration"
+      },
+      "step2": {
+        "title": "Configure AI Settings",
+        "description": "Customize your AI assistant's tone, style, and response preferences"
+      },
+      "step3": {
+        "title": "Automate Responses",
+        "description": "Let AI handle reviews and questions automatically with personalized replies"
+      },
+      "step4": {
+        "title": "Watch Your Business Grow",
+        "description": "Track metrics, improve ratings, and scale across multiple locations"
+      }
+    },
+    "dashboardPreview": {
+      "title": "See It In Action",
+      "subtitle": "Powerful Dashboard, Simple Interface",
+      "description": "Everything you need to manage your business, all in one place",
+      "features": {
+        "realtime": "Real-time Analytics",
+        "aiInsights": "AI-Powered Insights",
+        "multiLocation": "Multi-location View",
+        "reports": "Custom Reports"
+      }
+    },
+    "pricing": {
+      "title": "Pricing",
+      "subtitle": "Choose Your Plan",
+      "description": "Start free, scale as you grow",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "save": "Save 20%",
+      "free": {
+        "name": "Free",
+        "description": "Perfect for trying out",
+        "cta": "Get Started"
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For growing businesses",
+        "cta": "Start Free Trial",
+        "popular": "Most Popular"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "description": "For large organizations",
+        "cta": "Contact Sales"
+      }
+    },
+    "testimonials": {
+      "title": "Testimonials",
+      "subtitle": "Loved by Businesses Worldwide",
+      "description": "See what our customers have to say"
+    },
+    "faq": {
+      "title": "FAQ",
+      "subtitle": "Frequently Asked Questions",
+      "description": "Everything you need to know"
+    },
+    "cta": {
+      "title": "Ready to Transform Your Business?",
+      "subtitle": "Join thousands of businesses using AI to grow faster",
+      "button": "Start Free Trial"
+    },
+    "footer": {
+      "copyright": "© 2025 NNH AI Studio. All rights reserved."
+    }
   }
 }

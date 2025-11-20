@@ -19,9 +19,38 @@ import {
   Users,
   Headphones,
   ArrowRight,
+  Menu,
+  ArrowUp,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { HowItWorksSection } from "@/components/landing/how-it-works";
+import { PricingSection } from "@/components/landing/pricing";
+import { TestimonialsSection } from "@/components/landing/testimonials";
+import { FAQSection } from "@/components/landing/faq";
+import { DashboardPreviewSection } from "@/components/landing/dashboard-preview";
+import { MobileMenu } from "@/components/landing/mobile-menu";
+import { VideoSection } from "@/components/landing/video-section";
+import { ScreenshotsSection } from "@/components/landing/screenshots";
+import { LiveChat } from "@/components/landing/live-chat";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { LandingJsonLd } from "@/components/seo/landing-seo";
 
 export default function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 500);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
       {/* Navbar */}
@@ -68,11 +97,11 @@ export default function LandingPage() {
             <div className="flex items-center space-x-4">
               <Badge
                 variant="outline"
-                className="border-orange-500 text-orange-500"
+                className="hidden sm:inline-flex border-orange-500 text-orange-500"
               >
-                BETA - New features weekly
+                BETA
               </Badge>
-              <Link href="/auth/login">
+              <Link href="/auth/login" className="hidden sm:block">
                 <Button
                   variant="outline"
                   className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
@@ -80,10 +109,24 @@ export default function LandingPage() {
                   Sign In
                 </Button>
               </Link>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden text-gray-300 hover:text-orange-500 transition-colors"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
@@ -269,6 +312,27 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <HowItWorksSection />
+
+      {/* Dashboard Preview Section */}
+      <DashboardPreviewSection />
+
+      {/* Video Section */}
+      <VideoSection />
+
+      {/* Screenshots Section */}
+      <ScreenshotsSection />
+
+      {/* Pricing Section */}
+      <PricingSection />
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* FAQ Section */}
+      <FAQSection />
+
       {/* CTA Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-y border-orange-500/20">
         <div className="max-w-4xl mx-auto text-center">
@@ -303,6 +367,28 @@ export default function LandingPage() {
           <p>&copy; 2025 NNH AI Studio. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0 }}
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/50 z-50 transition-colors"
+        >
+          <ArrowUp className="w-6 h-6 text-white" />
+        </motion.button>
+      )}
+
+      {/* Live Chat */}
+      <LiveChat />
+
+      {/* Google Analytics */}
+      <GoogleAnalytics />
+
+      {/* SEO JSON-LD */}
+      <LandingJsonLd />
     </div>
   );
 }

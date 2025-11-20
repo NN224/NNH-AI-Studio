@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OG Image Generator - NNH AI Studio</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .controls h2 {
+            margin-top: 0;
+            color: #FF6B35;
+        }
+
+        .controls input, .controls textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #1a1a1a;
+            border: 1px solid #FF6B35;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .controls button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .controls button:hover {
+            background: #ff5520;
+        }
+
+        #canvas {
+            border: 2px solid #FF6B35;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(255, 107, 53, 0.3);
+        }
+
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .info p {
+            margin: 5px 0;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 OG Image Generator</h1>
+    
+    <div class="controls">
+        <h2>Customize Your Image</h2>
+        <input type="text" id="title" placeholder="Main Title" value="Manage Your Business with AI">
+        <input type="text" id="subtitle" placeholder="Subtitle" value="Automate reviews, manage locations, and grow faster">
+        <input type="text" id="feature1" placeholder="Feature 1" value="✓ AI-Powered Review Responses">
+        <input type="text" id="feature2" placeholder="Feature 2" value="✓ Multi-Location Management">
+        <input type="text" id="feature3" placeholder="Feature 3" value="✓ Real-time Analytics & Insights">
+        <button onclick="generateImage()">🎨 Generate Image</button>
+        <button onclick="downloadImage()">💾 Download PNG</button>
+    </div>
+
+    <canvas id="canvas" width="1200" height="630"></canvas>
+
+    <div class="info">
+        <p><strong>Size:</strong> 1200 x 630 pixels (Perfect for Facebook, LinkedIn, Twitter)</p>
+        <p><strong>Format:</strong> PNG</p>
+        <p><strong>Usage:</strong> Save as /public/og-image.png</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function generateImage() {
+            // Get values
+            const title = document.getElementById('title').value;
+            const subtitle = document.getElementById('subtitle').value;
+            const feature1 = document.getElementById('feature1').value;
+            const feature2 = document.getElementById('feature2').value;
+            const feature3 = document.getElementById('feature3').value;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#000000');
+            gradient.addColorStop(0.5, '#1a1a1a');
+            gradient.addColorStop(1, '#000000');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add decorative circles
+            ctx.fillStyle = 'rgba(255, 107, 53, 0.1)';
+            ctx.beginPath();
+            ctx.arc(100, 100, 150, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 107, 53, 0.05)';
+            ctx.beginPath();
+            ctx.arc(1100, 530, 200, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Logo/Brand
+            ctx.fillStyle = '#FF6B35';
+            ctx.fillRect(80, 60, 60, 60);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 40px Arial';
+            ctx.fillText('N', 95, 105);
+
+            // Brand Name
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 36px Arial';
+            ctx.fillText('NNH AI Studio', 160, 105);
+
+            // Main Title
+            ctx.fillStyle = '#FF6B35';
+            ctx.font = 'bold 64px Arial';
+            ctx.textAlign = 'left';
+            wrapText(ctx, title, 80, 220, 1040, 80);
+
+            // Subtitle
+            ctx.fillStyle = '#cccccc';
+            ctx.font = '32px Arial';
+            wrapText(ctx, subtitle, 80, 320, 1040, 45);
+
+            // Features
+            ctx.fillStyle = 'white';
+            ctx.font = '28px Arial';
+            ctx.fillText(feature1, 80, 420);
+            ctx.fillText(feature2, 80, 470);
+            ctx.fillText(feature3, 80, 520);
+
+            // CTA
+            ctx.fillStyle = '#FF6B35';
+            ctx.fillRect(80, 560, 280, 50);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText('Start Free Trial →', 110, 593);
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let testLine = '';
+            let lineArray = [];
+
+            for (let n = 0; n < words.length; n++) {
+                testLine += words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    lineArray.push(line);
+                    line = words[n] + ' ';
+                    testLine = words[n] + ' ';
+                } else {
+                    line += words[n] + ' ';
+                }
+            }
+            lineArray.push(line);
+
+            for (let k = 0; k < lineArray.length; k++) {
+                context.fillText(lineArray[k], x, y + (k * lineHeight));
+            }
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'og-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Generate initial image
+        generateImage();
+    </script>
+</body>
+</html>

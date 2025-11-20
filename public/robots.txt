@@ -1,0 +1,28 @@
+# robots.txt for NNH AI Studio
+# https://nnh.ae
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /onboarding/
+Disallow: /_next/
+Disallow: /admin/
+
+# Sitemaps
+Sitemap: https://nnh.ae/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Google
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
