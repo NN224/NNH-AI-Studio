@@ -1,0 +1,427 @@
+app/[locale]/(dashboard)/dashboard/components/DashboardHeader.tsx(26,42): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/(dashboard)/dashboard/page.tsx(17,40): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/(dashboard)/metrics/page.tsx(29,14): error TS2345: Argument of type 'string' is not assignable to parameter of type '{ href: string | { pathname: string; query?: QueryParams | undefined; }; locale: string; forcePrefix?: boolean | undefined; }'.
+app/[locale]/(dashboard)/metrics/page.tsx(34,18): error TS18047: 'user' is possibly 'null'.
+app/[locale]/auth/login/page.tsx(44,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/login/page.tsx(73,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/login/page.tsx(96,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/reset/page.tsx(29,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/signup/page.tsx(49,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/signup/page.tsx(74,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/auth/update-password/page.tsx(52,31): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/youtube-dashboard/page.tsx(302,38): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/youtube-dashboard/page.tsx(304,41): error TS18047: 'supabase' is possibly 'null'.
+app/[locale]/youtube-dashboard/page.tsx(746,52): error TS18047: 'supabase' is possibly 'null'.
+app/api/ai/automation-status/route.ts(8,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AutomationStatus'.
+app/api/ai/chat/route.ts(9,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'ChatMessage'.
+app/api/ai/chat/route.ts(9,28): error TS2305: Module '"@/lib/types/ai"' has no exported member 'ChatResponse'.
+app/api/ai/insights/route.ts(9,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIInsightsResponse'.
+app/api/ai/insights/route.ts(9,35): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIInsight'.
+app/api/ai/insights/route.ts(9,46): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIPrediction'.
+app/api/ai/insights/route.ts(9,60): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIAnomaly'.
+app/api/features/profile/[locationId]/route.ts(237,61): error TS2540: Cannot assign to 'facebook' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(238,67): error TS2540: Cannot assign to 'instagram' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(239,65): error TS2540: Cannot assign to 'twitter' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(240,66): error TS2540: Cannot assign to 'whatsapp' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(241,65): error TS2540: Cannot assign to 'youtube' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(242,66): error TS2540: Cannot assign to 'linkedin' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(243,64): error TS2540: Cannot assign to 'tiktok' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(244,67): error TS2540: Cannot assign to 'pinterest' because it is a read-only property.
+app/api/features/profile/[locationId]/route.ts(476,5): error TS2353: Object literal may only specify known properties, and 'regularHours' does not exist in type 'BusinessProfile'.
+app/api/features/profile/[locationId]/route.ts(694,11): error TS2741: Property 'socialLinks' is missing in type '{ id: string; locationResourceId: string | null; locationName: string; description: string; shortDescription: string; phone: string; website: string; primaryCategory: string; additionalCategories: string[]; ... 5 more ...; profileCompleteness: number; }' but required in type 'BusinessProfile'.
+app/api/gmb/notifications/setup/route.ts(23,44): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(38,46): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(42,41): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(76,11): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(93,9): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(113,7): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(132,44): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(140,43): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(155,46): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(159,41): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/notifications/setup/route.ts(205,11): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(213,9): error TS2554: Expected 1 arguments, but got 4.
+app/api/gmb/notifications/setup/route.ts(242,7): error TS2554: Expected 1 arguments, but got 3.
+app/api/gmb/questions/route.ts(31,21): error TS18048: 'page' is possibly 'undefined'.
+app/api/gmb/questions/route.ts(31,33): error TS18048: 'limit' is possibly 'undefined'.
+app/api/gmb/questions/route.ts(109,14): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+app/api/gmb/questions/route.ts(110,31): error TS18048: 'limit' is possibly 'undefined'.
+app/api/notifications/route.ts(44,9): error TS7034: Variable 'notifications' implicitly has type 'any[]' in some locations where its type cannot be determined.
+app/api/notifications/route.ts(85,7): error TS7005: Variable 'notifications' implicitly has an 'any[]' type.
+app/api/reviews/analyze-sentiment/route.ts(128,55): error TS2551: Property 'catch' does not exist on type 'PostgrestFilterBuilder<any, any, any, any, "refresh_sentiment_summary", null, "RPC">'. Did you mean 'match'?
+app/api/reviews/analyze-sentiment/route.ts(128,61): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/api/webhooks/gmb-notifications/route.ts(204,49): error TS7017: Element implicitly has an 'any' type because type 'typeof globalThis' has no index signature.
+app/api/webhooks/gmb-notifications/route.ts(205,14): error TS7017: Element implicitly has an 'any' type because type 'typeof globalThis' has no index signature.
+components/ai-studio/content-history.tsx(23,21): error TS18047: 'supabase' is possibly 'null'.
+components/ai-studio/content-history.tsx(51,7): error TS18047: 'supabase' is possibly 'null'.
+components/ai-studio/content-history.tsx(58,37): error TS18047: 'supabase' is possibly 'null'.
+components/ai-studio/content-history.tsx(83,31): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(40,17): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(44,40): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(66,64): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(103,19): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(119,17): error TS18047: 'supabase' is possibly 'null'.
+components/ai/ai-assistant.tsx(133,17): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/analytics-dashboard.tsx(62,9): error TS2322: Type '{ dateRange: string; locationIds: string[]; comparison: "none" | "previous_period" | "previous_year" | undefined; }' is not assignable to type 'IntrinsicAttributes & MetricsOverviewProps'.
+  Property 'locationIds' does not exist on type 'IntrinsicAttributes & MetricsOverviewProps'.
+components/analytics/analytics-dashboard.tsx(69,30): error TS2322: Type '{ locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'locationIds' does not exist on type 'IntrinsicAttributes'.
+components/analytics/analytics-dashboard.tsx(74,11): error TS2322: Type '{ dateRange: string; locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes & ImpressionsBreakdownChartProps'.
+  Property 'locationIds' does not exist on type 'IntrinsicAttributes & ImpressionsBreakdownChartProps'.
+components/analytics/analytics-dashboard.tsx(81,9): error TS2322: Type '{ dateRange: string; locationIds: string[]; comparison: "none" | "previous_period" | "previous_year" | undefined; }' is not assignable to type 'IntrinsicAttributes & PerformanceMetricsChartProps'.
+  Property 'locationIds' does not exist on type 'IntrinsicAttributes & PerformanceMetricsChartProps'.
+components/analytics/analytics-dashboard.tsx(90,11): error TS2322: Type '{ dateRange: string; locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes & TrafficChartProps'.
+  Property 'locationIds' does not exist on type 'IntrinsicAttributes & TrafficChartProps'.
+components/analytics/analytics-dashboard.tsx(95,11): error TS2322: Type '{ dateRange: { preset?: string | undefined; from: Date; to: Date; }; locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'dateRange' does not exist on type 'IntrinsicAttributes'.
+components/analytics/analytics-dashboard.tsx(103,11): error TS2322: Type '{ dateRange: { preset?: string | undefined; from: Date; to: Date; }; locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'dateRange' does not exist on type 'IntrinsicAttributes'.
+components/analytics/analytics-dashboard.tsx(110,9): error TS2322: Type '{ dateRange: { preset?: string | undefined; from: Date; to: Date; }; locationIds: string[]; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'dateRange' does not exist on type 'IntrinsicAttributes'.
+components/analytics/analytics-dashboard.tsx(116,9): error TS2322: Type '{ filters: AnalyticsFilters; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'filters' does not exist on type 'IntrinsicAttributes'.
+components/analytics/analytics-filters.tsx(89,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/analytics-filters.tsx(92,32): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/analytics-filters.tsx(100,24): error TS2345: Argument of type '{ id: any; location_name: any; is_active: any; }[]' is not assignable to parameter of type 'SetStateAction<GMBLocation[]>'.
+  Type '{ id: any; location_name: any; is_active: any; }[]' is not assignable to type 'GMBLocation[]'.
+    Type '{ id: any; location_name: any; is_active: any; }' is missing the following properties from type 'GMBLocation': gmb_account_id, user_id, location_id, normalized_location_id, and 3 more.
+components/analytics/analytics-filters.tsx(229,19): error TS2322: Type '(dates: { from?: Date; to?: Date; } | undefined) => void' is not assignable to type '(date: Date | Date[] | { from: Date; to: Date; } | undefined) => void'.
+  Types of parameters 'dates' and 'date' are incompatible.
+    Type 'Date | Date[] | { from: Date; to: Date; } | undefined' is not assignable to type '{ from?: Date | undefined; to?: Date | undefined; } | undefined'.
+      Type 'Date' has no properties in common with type '{ from?: Date | undefined; to?: Date | undefined; }'.
+components/analytics/custom-report-builder.tsx(154,31): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/custom-report-builder.tsx(159,30): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/custom-report-builder.tsx(186,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/google-analytics.tsx(71,5): error TS2687: All declarations of 'gtag' must have identical modifiers.
+components/analytics/google-analytics.tsx(71,5): error TS2717: Subsequent property declarations must have the same type.  Property 'gtag' must be of type '((...args: any[]) => void) | undefined', but here has type '(...args: any[]) => void'.
+components/analytics/impressions-breakdown-chart.tsx(32,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/impressions-breakdown-chart.tsx(39,64): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/impressions-breakdown-chart.tsx(58,66): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/impressions-breakdown-chart.tsx(78,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/impressions-breakdown-chart.tsx(125,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/impressions-breakdown-chart.tsx(131,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(20,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(27,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(40,39): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(57,48): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(92,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/location-performance.tsx(99,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(89,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(96,64): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(115,66): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(131,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(162,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(173,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(256,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/metrics-overview.tsx(264,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(27,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(34,64): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(53,66): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(73,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(212,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/performance-metrics-chart.tsx(218,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/response-time-chart.tsx(17,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/response-time-chart.tsx(24,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/response-time-chart.tsx(37,43): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/response-time-chart.tsx(46,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(17,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(24,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(37,43): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(46,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(58,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(134,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/review-sentiment-chart.tsx(140,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(25,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(32,64): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(51,66): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(70,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(116,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/search-keywords.tsx(122,7): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(25,42): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(32,64): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(51,66): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(75,19): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(143,21): error TS18047: 'supabase' is possibly 'null'.
+components/analytics/traffic-chart.tsx(153,7): error TS18047: 'supabase' is possibly 'null'.
+components/attributes/attributes-manager.tsx(30,58): error TS18047: 'supabase' is possibly 'null'.
+components/attributes/attributes-manager.tsx(38,68): error TS18047: 'supabase' is possibly 'null'.
+components/attributes/attributes-manager.tsx(58,53): error TS18047: 'supabase' is possibly 'null'.
+components/auth/user-button.tsx(27,40): error TS18047: 'supabase' is possibly 'null'.
+components/auth/user-button.tsx(32,40): error TS18047: 'supabase' is possibly 'null'.
+components/auth/user-button.tsx(43,13): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/activity-feed.tsx(123,19): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/activity-feed.tsx(134,39): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/activity-feed.tsx(152,27): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/activity-feed.tsx(194,9): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/ai/ai-insights-panel.tsx(28,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIInsightsResponse'.
+components/dashboard/ai/ai-insights-panel.tsx(28,35): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIInsight'.
+components/dashboard/ai/ai-insights-panel.tsx(28,46): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIPrediction'.
+components/dashboard/ai/ai-insights-panel.tsx(28,60): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIAnomaly'.
+components/dashboard/ai/ai-insights-panel.tsx(165,42): error TS7006: Parameter 'prediction' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(165,54): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(185,40): error TS7006: Parameter 'anomaly' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(185,49): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(205,39): error TS7006: Parameter 'insight' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(276,42): error TS7006: Parameter 'action' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(276,50): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(330,50): error TS7006: Parameter 'factor' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(330,58): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(392,42): error TS7006: Parameter 'cause' implicitly has an 'any' type.
+components/dashboard/ai/ai-insights-panel.tsx(392,49): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/dashboard/ai/automation-insights.tsx(23,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AutomationStatus'.
+components/dashboard/ai/automation-insights.tsx(23,33): error TS2305: Module '"@/lib/types/ai"' has no exported member 'UpcomingAction'.
+components/dashboard/ai/automation-insights.tsx(23,49): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AutomationLog'.
+components/dashboard/ai/automation-insights.tsx(160,44): error TS7006: Parameter 'action' implicitly has an 'any' type.
+components/dashboard/ai/automation-insights.tsx(180,39): error TS7006: Parameter 'log' implicitly has an 'any' type.
+components/dashboard/ai/AutopilotStatus.tsx(77,40): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/ai/AutopilotStatus.tsx(79,31): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/ai/chat-assistant.tsx(25,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'ChatMessage'.
+components/dashboard/ai/chat-assistant.tsx(25,28): error TS2305: Module '"@/lib/types/ai"' has no exported member 'ChatResponse'.
+components/dashboard/BusinessHeader.tsx(79,42): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/BusinessHeader.tsx(82,42): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/gmb-posts-section.tsx(303,42): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/gmb-posts-section.tsx(311,70): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/gmb-posts-section.tsx(328,74): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/weekly-tasks-widget.tsx(53,17): error TS18047: 'supabase' is possibly 'null'.
+components/dashboard/weekly-tasks-widget.tsx(65,37): error TS18047: 'supabase' is possibly 'null'.
+components/features/bulk-update-dialog.tsx(148,34): error TS2339: Property 'error' does not exist on type 'Response'.
+components/features/bulk-update-dialog.tsx(154,43): error TS2339: Property 'summary' does not exist on type 'Response'.
+components/features/bulk-update-dialog.tsx(307,46): error TS2339: Property 'label' does not exist on type 'FeatureDefinition'.
+components/features/change-history-panel.tsx(74,37): error TS18047: 'supabase' is possibly 'null'.
+components/features/change-history-panel.tsx(106,40): error TS18047: 'supabase' is possibly 'null'.
+components/features/change-history-panel.tsx(109,37): error TS18047: 'supabase' is possibly 'null'.
+components/insights/business-insights.tsx(51,17): error TS18047: 'supabase' is possibly 'null'.
+components/insights/business-insights.tsx(67,40): error TS18047: 'supabase' is possibly 'null'.
+components/insights/business-insights.tsx(81,41): error TS18047: 'supabase' is possibly 'null'.
+components/insights/business-insights.tsx(91,19): error TS18047: 'supabase' is possibly 'null'.
+components/insights/business-insights.tsx(231,17): error TS18047: 'supabase' is possibly 'null'.
+components/layout/header.tsx(119,7): error TS18047: 'supabase' is possibly 'null'.
+components/layout/header.tsx(134,34): error TS18047: 'supabase' is possibly 'null'.
+components/locations/add-location-dialog.tsx(76,17): error TS18047: 'supabase' is possibly 'null'.
+components/locations/add-location-dialog.tsx(79,31): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-attributes-dialog.tsx(181,31): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-media-upload.tsx(49,58): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-media-upload.tsx(58,62): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-media-upload.tsx(67,39): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-media-upload.tsx(76,44): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-performance-widget.tsx(33,42): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-performance-widget.tsx(43,69): error TS18047: 'supabase' is possibly 'null'.
+components/locations/location-performance-widget.tsx(51,71): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(62,19): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(70,48): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(83,32): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(243,60): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(266,62): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(397,48): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(400,54): error TS18047: 'supabase' is possibly 'null'.
+components/locations/locations-list.tsx(409,40): error TS18047: 'supabase' is possibly 'null'.
+components/media/media-gallery.tsx(63,17): error TS18047: 'supabase' is possibly 'null'.
+components/media/MediaCard.tsx(10,29): error TS7031: Binding element 'mediaItem' implicitly has an 'any' type.
+components/media/MediaCard.tsx(10,40): error TS7031: Binding element 'onDelete' implicitly has an 'any' type.
+components/media/MediaFilters.tsx(6,32): error TS7031: Binding element 'locations' implicitly has an 'any' type.
+components/media/MediaFilters.tsx(6,43): error TS7031: Binding element 'filters' implicitly has an 'any' type.
+components/media/MediaFilters.tsx(6,52): error TS7031: Binding element 'onFiltersChange' implicitly has an 'any' type.
+components/media/MediaFilters.tsx(20,26): error TS7006: Parameter 'location' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(10,38): error TS7031: Binding element 'locations' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(10,49): error TS7031: Binding element 'initialMedia' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(15,38): error TS7006: Parameter 'item' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(23,43): error TS7006: Parameter 'newMedia' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(34,51): error TS7006: Parameter 'id' implicitly has an 'any' type.
+components/media/MediaGalleryClient.tsx(35,31): error TS7006: Parameter 'm' implicitly has an 'any' type.
+components/media/MediaGrid.tsx(6,29): error TS7031: Binding element 'media' implicitly has an 'any' type.
+components/media/MediaGrid.tsx(6,36): error TS7031: Binding element 'onDelete' implicitly has an 'any' type.
+components/media/MediaGrid.tsx(20,18): error TS7006: Parameter 'item' implicitly has an 'any' type.
+components/media/MediaUploader.tsx(10,33): error TS7031: Binding element 'onUploadComplete' implicitly has an 'any' type.
+components/media/MediaUploader.tsx(14,37): error TS7006: Parameter 'acceptedFiles' implicitly has an 'any' type.
+components/media/MediaUploader.tsx(18,27): error TS7006: Parameter 'file' implicitly has an 'any' type.
+components/providers/store-provider.tsx(21,40): error TS18047: 'supabase' is possibly 'null'.
+components/providers/store-provider.tsx(36,9): error TS18047: 'supabase' is possibly 'null'.
+components/questions/AutoAnswerMonitoring.tsx(3,52): error TS2305: Module '"@/components/ui"' has no exported member 'Badge'.
+components/questions/AutoAnswerMonitoring.tsx(27,8): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(28,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(29,12): error TS2559: Type '{ children: string; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(31,10): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(39,8): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(40,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(41,12): error TS2559: Type '{ children: string; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(43,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(48,8): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(49,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(50,12): error TS2559: Type '{ children: string; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(52,10): error TS2559: Type '{ children: Element[]; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(61,8): error TS2322: Type '{ children: Element[]; className: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'children' does not exist on type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(62,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(63,12): error TS2559: Type '{ children: string; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(65,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(87,8): error TS2322: Type '{ children: Element[]; className: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'children' does not exist on type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(88,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(89,12): error TS2559: Type '{ children: string; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerMonitoring.tsx(91,10): error TS2559: Type '{ children: Element; }' has no properties in common with type 'IntrinsicAttributes'.
+components/questions/AutoAnswerTesting.tsx(2,80): error TS2307: Cannot find module '@components/ui' or its corresponding type declarations.
+components/questions/AutoAnswerTesting.tsx(47,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/questions/bulk-actions-bar.tsx(74,34): error TS2339: Property 'error' does not exist on type 'Response'.
+components/questions/bulk-actions-bar.tsx(77,15): error TS2339: Property 'results' does not exist on type 'Response'.
+components/recommendations/business-recommendations.tsx(38,17): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(42,40): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(56,64): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(73,19): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(87,19): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(105,17): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(114,17): error TS18047: 'supabase' is possibly 'null'.
+components/recommendations/business-recommendations.tsx(132,17): error TS18047: 'supabase' is possibly 'null'.
+components/reviews/auto-reply-settings.tsx(163,83): error TS2749: 'AutoReplySettings' refers to a value, but is being used as a type here. Did you mean 'typeof AutoReplySettings'?
+components/reviews/reviews-list.tsx(42,17): error TS18047: 'supabase' is possibly 'null'.
+components/reviews/reviews-list.tsx(51,68): error TS18047: 'supabase' is possibly 'null'.
+components/reviews/reviews-list.tsx(66,72): error TS18047: 'supabase' is possibly 'null'.
+components/reviews/reviews-list.tsx(87,30): error TS18047: 'supabase' is possibly 'null'.
+components/reviews/reviews-list.tsx(162,44): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(82,42): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(86,39): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(116,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(127,13): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(132,44): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(144,39): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(223,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(230,47): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(247,33): error TS18047: 'supabase' is possibly 'null'.
+components/settings/branding-tab.tsx(255,33): error TS18047: 'supabase' is possibly 'null'.
+components/settings/gmb-notifications-setup.tsx(423,16): error TS2552: Cannot find name 'GMBNotificationsSetup'. Did you mean 'GmbNotificationsSetup'?
+components/settings/gmb-settings.tsx(45,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/gmb-settings.tsx(49,62): error TS18047: 'supabase' is possibly 'null'.
+components/settings/gmb-settings.tsx(97,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/gmb-settings.tsx(113,23): error TS2304: Cannot find name 'businessName'.
+components/settings/gmb-settings.tsx(114,26): error TS2304: Cannot find name 'primaryCategory'.
+components/settings/gmb-settings.tsx(115,30): error TS2304: Cannot find name 'businessDescription'.
+components/settings/gmb-settings.tsx(116,31): error TS2304: Cannot find name 'defaultReplyTemplate'.
+components/settings/gmb-settings.tsx(117,19): error TS2304: Cannot find name 'timezone'.
+components/settings/gmb-settings.tsx(119,23): error TS2304: Cannot find name 'syncSchedule'.
+components/settings/gmb-settings.tsx(120,22): error TS2304: Cannot find name 'autoPublish'.
+components/settings/gmb-settings.tsx(123,20): error TS2304: Cannot find name 'autoReply'.
+components/settings/gmb-settings.tsx(124,25): error TS2304: Cannot find name 'aiResponseTone'.
+components/settings/gmb-settings.tsx(125,25): error TS2304: Cannot find name 'responseLength'.
+components/settings/gmb-settings.tsx(126,26): error TS2304: Cannot find name 'creativityLevel'.
+components/settings/gmb-settings.tsx(131,28): error TS2304: Cannot find name 'emailDeliveryTime'.
+components/settings/gmb-settings.tsx(132,27): error TS2304: Cannot find name 'negativePriority'.
+components/settings/gmb-settings.tsx(133,25): error TS2304: Cannot find name 'replyReminders'.
+components/settings/gmb-settings.tsx(134,31): error TS2304: Cannot find name 'browserNotifications'.
+components/settings/gmb-settings.tsx(135,22): error TS2304: Cannot find name 'soundAlerts'.
+components/settings/gmb-settings.tsx(136,21): error TS2304: Cannot find name 'quietHours'.
+components/settings/gmb-settings.tsx(137,26): error TS2304: Cannot find name 'quietHoursStart'.
+components/settings/gmb-settings.tsx(138,24): error TS2304: Cannot find name 'quietHoursEnd'.
+components/settings/gmb-settings.tsx(139,24): error TS2304: Cannot find name 'notifyReviews'.
+components/settings/gmb-settings.tsx(140,26): error TS2304: Cannot find name 'notifyQuestions'.
+components/settings/gmb-settings.tsx(141,25): error TS2304: Cannot find name 'notifyMessages'.
+components/settings/gmb-settings.tsx(142,25): error TS2304: Cannot find name 'notifyMentions'.
+components/settings/gmb-settings.tsx(143,25): error TS2304: Cannot find name 'notifyInsights'.
+components/settings/gmb-settings.tsx(144,21): error TS2304: Cannot find name 'notifyTips'.
+components/settings/gmb-settings.tsx(152,22): error TS2304: Cannot find name 'brandName'.
+components/settings/gmb-settings.tsx(153,25): error TS2304: Cannot find name 'primaryColor'.
+components/settings/gmb-settings.tsx(154,27): error TS2304: Cannot find name 'secondaryColor'.
+components/settings/gmb-settings.tsx(155,20): error TS2304: Cannot find name 'logoUrl'.
+components/settings/gmb-settings.tsx(156,26): error TS2304: Cannot find name 'coverImageUrl'.
+components/settings/notifications-tab.tsx(90,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/notifications-tab.tsx(93,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/security-review-panel.tsx(149,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/security-review-panel.tsx(174,48): error TS18047: 'supabase' is possibly 'null'.
+components/settings/security-review-panel.tsx(227,53): error TS18047: 'supabase' is possibly 'null'.
+components/settings/security-review-panel.tsx(243,52): error TS18047: 'supabase' is possibly 'null'.
+components/settings/security-review-panel.tsx(261,70): error TS18047: 'supabase' is possibly 'null'.
+components/settings/settings-test-panel.tsx(69,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/settings-test-panel.tsx(72,40): error TS18047: 'supabase' is possibly 'null'.
+components/settings/settings-test-panel.tsx(106,44): error TS18047: 'supabase' is possibly 'null'.
+components/settings/settings-test-panel.tsx(121,58): error TS18047: 'supabase' is possibly 'null'.
+components/settings/settings-test-panel.tsx(158,46): error TS18047: 'supabase' is possibly 'null'.
+components/sync/sync-progress-modal.tsx(129,18): error TS2304: Cannot find name 'Loader2'.
+components/ui/calendar.tsx(6,18): error TS2430: Interface 'CalendarProps' incorrectly extends interface 'HTMLAttributes<HTMLDivElement>'.
+  Types of property 'onSelect' are incompatible.
+    Type '((date: Date | Date[] | { from: Date; to: Date; } | undefined) => void) | undefined' is not assignable to type 'ReactEventHandler<HTMLDivElement> | undefined'.
+      Type '(date: Date | Date[] | { from: Date; to: Date; } | undefined) => void' is not assignable to type 'ReactEventHandler<HTMLDivElement>'.
+        Types of parameters 'date' and 'event' are incompatible.
+          Type 'SyntheticEvent<HTMLDivElement, Event>' is not assignable to type 'Date | Date[] | { from: Date; to: Date; } | undefined'.
+components/ui/index.ts(1,80): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+contexts/BrandProfileContext.tsx(27,40): error TS18047: 'supabase' is possibly 'null'.
+contexts/BrandProfileContext.tsx(35,37): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-auto-answer-settings.ts(21,40): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-auto-answer-settings.ts(36,39): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-auto-answer-settings.ts(66,31): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-auto-save.ts(90,13): error TS2345: Argument of type '() => (() => boolean) | undefined' is not assignable to parameter of type 'EffectCallback'.
+  Type '(() => boolean) | undefined' is not assignable to type 'void | Destructor'.
+    Type '() => boolean' is not assignable to type 'void | Destructor'.
+      Type '() => boolean' is not assignable to type 'Destructor'.
+        Type 'boolean' is not assignable to type 'void | { [UNDEFINED_VOID_ONLY]: never; }'.
+hooks/use-dashboard-realtime.ts(79,21): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-dashboard-realtime.ts(143,9): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-dashboard-realtime.ts(153,7): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-gmb-status.ts(44,40): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-gmb-status.ts(55,55): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(193,58): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(205,62): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(219,19): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(337,11): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(343,11): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(705,60): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(714,11): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(718,25): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-locations.ts(811,9): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-pending-reviews.ts(98,42): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-pending-reviews.ts(103,11): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-pending-reviews.ts(107,25): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-pending-reviews.ts(140,9): error TS18047: 'supabase' is possibly 'null'.
+hooks/use-performance-monitor.ts(253,5): error TS2687: All declarations of 'gtag' must have identical modifiers.
+hooks/use-questions-cache.ts(125,56): error TS2367: This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.
+lib/ai/provider.ts(7,15): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIProviderConfig'.
+lib/ai/provider.ts(7,33): error TS2305: Module '"@/lib/types/ai"' has no exported member 'AIRequest'.
+lib/gmb/helpers.ts(100,5): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/hooks/use-dashboard-realtime.ts(29,7): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-dashboard-realtime.ts(35,23): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-dashboard-realtime.ts(98,13): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-dashboard-realtime.ts(150,9): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-supabase.ts(21,19): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-supabase.ts(47,9): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/use-supabase.ts(62,21): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/useAccountsManagement.ts(19,40): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/useAccountsManagement.ts(27,51): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/useAccountsManagement.ts(51,54): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/useAccountsManagement.ts(160,40): error TS18047: 'supabase' is possibly 'null'.
+lib/hooks/useAccountsManagement.ts(163,31): error TS18047: 'supabase' is possibly 'null'.
+lib/performance-tracking.ts(126,40): error TS18047: 'supabase' is possibly 'null'.
+lib/performance-tracking.ts(131,31): error TS18047: 'supabase' is possibly 'null'.
+lib/security/input-sanitizer.ts(229,7): error TS2862: Type 'T' is generic and can only be indexed for reading.
+lib/services/activity.ts(31,15): error TS18047: 'supabase' is possibly 'null'.
+lib/services/activity.ts(34,11): error TS18047: 'supabase' is possibly 'null'.
+lib/services/ai-content-generation-service.ts(259,28): error TS18047: 'supabase' is possibly 'null'.
+lib/services/ai-content-generation-service.ts(374,65): error TS2339: Property 'type' does not exist on type '{ type: "BOOK" | "LEARN_MORE" | "SIGN_UP" | "CALL" | "ORDER_ONLINE" | "GET_OFFER"; text: string; } | undefined'.
+lib/services/ai-content-generation-service.ts(375,63): error TS2339: Property 'type' does not exist on type '{ type: "BOOK" | "LEARN_MORE" | "SIGN_UP" | "CALL" | "ORDER_ONLINE" | "GET_OFFER"; text: string; } | undefined'.
+lib/services/ai-content-generation-service.ts(444,7): error TS2322: Type '"friendly" | "professional" | "casual" | "formal"' is not assignable to type '"friendly" | "professional" | "urgent" | "casual" | "promotional"'.
+  Type '"formal"' is not assignable to type '"friendly" | "professional" | "urgent" | "casual" | "promotional"'.
+lib/services/analytics-realtime-service.ts(54,23): error TS2531: Object is possibly 'null'.
+lib/services/analytics-realtime-service.ts(133,42): error TS2531: Object is possibly 'null'.
+lib/services/analytics-realtime-service.ts(140,41): error TS2531: Object is possibly 'null'.
+lib/services/analytics-realtime-service.ts(149,45): error TS2531: Object is possibly 'null'.
+lib/services/analytics-realtime-service.ts(155,47): error TS2531: Object is possibly 'null'.
+lib/services/auth-service.ts(8,35): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(28,35): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(36,13): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(51,35): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(65,29): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(75,29): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(85,29): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(106,35): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(116,35): error TS18047: 'supabase' is possibly 'null'.
+lib/services/auth-service.ts(128,29): error TS18047: 'supabase' is possibly 'null'.
+lib/services/ml-questions-service.ts(148,9): error TS2367: This comparison appears to be unintentional because the types '"hours" | "location" | "pricing" | "general" | "product" | "service" | "availability"' and '"complaint"' have no overlap.
+lib/services/ml-sentiment-service.ts(95,19): error TS2551: Property 'getBasicSentiment' does not exist on type 'MLSentimentService'. Did you mean 'getTopicSentiment'?
+lib/utils/auth-helpers.ts(35,11): error TS18047: 'supabase' is possibly 'null'.
+lib/utils/get-base-url.ts(21,6): error TS2367: This comparison appears to be unintentional because the types '"development" | "test"' and '"production"' have no overlap.
+middleware/validate-request.ts(82,26): error TS1361: 'ZodError' cannot be used as a value because it was imported using 'import type'.
+server/actions/auto-reply.ts(449,11): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+server/actions/gmb-sync-v2.ts(82,9): error TS2322: Type 'string' is not assignable to type '`${string}-${string}-${string}-${string}-${string}`'.
+server/actions/gmb-sync-v2.ts(521,7): error TS2783: 'success' is specified more than once, so this usage will be overwritten.
+server/actions/gmb-sync.ts(68,7): error TS2322: Type 'string | undefined' is not assignable to type 'null'.
+  Type 'undefined' is not assignable to type 'null'.
+server/actions/questions-management.ts(73,7): error TS2552: Cannot find name 'answer_id'. Did you mean 'answerId'?

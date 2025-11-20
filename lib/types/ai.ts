@@ -40,3 +40,161 @@ export interface BusinessHours {
     close: string;
   };
 }
+
+// ============================================================================
+// Chat & Messaging Types
+// ============================================================================
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date | string;
+  metadata?: Record<string, any>;
+}
+
+export interface ChatResponse {
+  message: ChatMessage;
+  suggestions?: string[];
+  error?: string;
+  processingTime?: number;
+}
+
+// ============================================================================
+// AI Insights & Analytics Types
+// ============================================================================
+
+export interface AIInsight {
+  id: string;
+  type: 'positive' | 'negative' | 'neutral' | 'warning' | 'info';
+  category: 'reviews' | 'engagement' | 'performance' | 'trends' | 'opportunities';
+  title: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  confidence: number;
+  data?: {
+    metric?: string;
+    value?: number | string;
+    change?: number;
+    period?: string;
+  };
+  recommendations?: string[];
+  createdAt: Date | string;
+}
+
+export interface AIPrediction {
+  id: string;
+  metric: string;
+  predictedValue: number;
+  currentValue: number;
+  change: number;
+  changePercent: number;
+  confidence: number;
+  timeframe: string;
+  factors: Array<{
+    name: string;
+    impact: number;
+    description?: string;
+  }>;
+}
+
+export interface AIAnomaly {
+  id: string;
+  metric: string;
+  detectedValue: number;
+  expectedValue: number;
+  deviation: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  timestamp: Date | string;
+  possibleCauses: string[];
+  suggestedActions?: string[];
+}
+
+export interface AIInsightsResponse {
+  insights: AIInsight[];
+  predictions: AIPrediction[];
+  anomalies: AIAnomaly[];
+  summary: {
+    totalInsights: number;
+    criticalItems: number;
+    opportunitiesCount: number;
+    overallScore?: number;
+  };
+  generatedAt: Date | string;
+  error?: string;
+}
+
+// ============================================================================
+// Automation Types
+// ============================================================================
+
+export interface AutomationStatus {
+  enabled: boolean;
+  activeRules: number;
+  totalActions: number;
+  lastRunAt?: Date | string;
+  nextRunAt?: Date | string;
+  status: 'active' | 'paused' | 'error' | 'idle';
+  upcomingActions: UpcomingAction[];
+  recentLogs: AutomationLog[];
+  statistics?: {
+    successRate: number;
+    totalExecutions: number;
+    failedExecutions: number;
+    avgExecutionTime: number;
+  };
+}
+
+export interface UpcomingAction {
+  id: string;
+  type: 'review_reply' | 'question_answer' | 'post_creation' | 'report_generation' | 'sync';
+  scheduledFor: Date | string;
+  targetId?: string;
+  targetType?: string;
+  status: 'pending' | 'scheduled' | 'processing';
+  priority?: 'high' | 'medium' | 'low';
+  description?: string;
+}
+
+export interface AutomationLog {
+  id: string;
+  action: string;
+  type: UpcomingAction['type'];
+  status: 'success' | 'failed' | 'skipped' | 'partial';
+  executedAt: Date | string;
+  duration?: number;
+  targetId?: string;
+  error?: string;
+  details?: string;
+  metadata?: Record<string, any>;
+}
+
+// ============================================================================
+// AI Provider Configuration Types
+// ============================================================================
+
+export interface AIProviderConfig {
+  provider: AIProvider;
+  model: AIModel;
+  apiKey?: string;
+  baseUrl?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  systemPrompt?: string;
+  customHeaders?: Record<string, string>;
+  timeout?: number;
+  retryAttempts?: number;
+}
+
+export interface AIRequest {
+  prompt: string;
+  context?: Record<string, any>;
+  config?: Partial<AIProviderConfig>;
+  stream?: boolean;
+  userId?: string;
+  sessionId?: string;
+  metadata?: Record<string, any>;
+}
