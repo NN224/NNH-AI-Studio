@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -9,15 +9,14 @@ import { authService } from "@/lib/services/auth-service";
 import { toast } from "sonner";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getRedirectUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { getRedirectUrl } from "@/lib/utils/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 function LoginPageContent() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const locale = getLocaleFromPathname(pathname);
+  const locale = useLocale() as "en" | "ar";
   const redirectTo = getRedirectUrl(searchParams, locale);
   const t = useTranslations("auth.login");
 
@@ -71,12 +70,12 @@ function LoginPageContent() {
         </Alert>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-5">
         {/* Email Input */}
         <div>
           <label
             htmlFor="email"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("email")}
           </label>
@@ -86,7 +85,7 @@ function LoginPageContent() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="you@example.com"
             autoComplete="email"
           />
@@ -96,7 +95,7 @@ function LoginPageContent() {
         <div>
           <label
             htmlFor="password"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("password")}
           </label>
@@ -107,7 +106,7 @@ function LoginPageContent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-10 sm:pr-12"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
               placeholder="••••••••"
               autoComplete="current-password"
             />
@@ -115,7 +114,7 @@ function LoginPageContent() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               disabled={isLoading}
-              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50 p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50"
             >
               {showPassword ? (
                 <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -186,7 +185,7 @@ function LoginPageContent() {
         <p className="text-center text-sm text-gray-400">
           {t("noAccount")}{" "}
           <Link
-            href={`/${locale}/signup`}
+            href={`/${locale}/auth/signup`}
             className="text-orange-500 hover:text-orange-400 font-semibold transition-colors"
           >
             {t("signUp")}

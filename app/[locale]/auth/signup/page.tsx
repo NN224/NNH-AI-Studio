@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -16,14 +15,12 @@ import { authService } from "@/lib/services/auth-service";
 import { toast } from "sonner";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getLocaleFromPathname } from "@/lib/utils/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { PasswordStrength } from "@/components/auth/password-strength";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 export default function SignupPage() {
-  const pathname = usePathname();
-  const locale = getLocaleFromPathname(pathname);
+  const locale = useLocale() as "en" | "ar";
   const t = useTranslations("auth.signup");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -147,7 +144,7 @@ export default function SignupPage() {
             </button>
 
             <Link
-              href={`/${locale}/login`}
+              href={`/${locale}/auth/login`}
               className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
             >
               Back to login
@@ -167,12 +164,12 @@ export default function SignupPage() {
         </Alert>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-5">
         {/* Full Name */}
         <div>
           <label
             htmlFor="fullName"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("fullName")}
           </label>
@@ -182,7 +179,7 @@ export default function SignupPage() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             disabled={isLoading}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 text-base bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="John Doe"
             autoComplete="name"
           />
@@ -192,7 +189,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("email")}
           </label>
@@ -202,7 +199,7 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 text-base bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             placeholder="you@example.com"
             autoComplete="email"
           />
@@ -212,7 +209,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("password")}
           </label>
@@ -223,7 +220,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-10 sm:pr-12"
+              className="w-full px-4 py-3 text-base bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
               placeholder="••••••••"
               autoComplete="new-password"
             />
@@ -231,12 +228,12 @@ export default function SignupPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               disabled={isLoading}
-              className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50 p-1"
+              className="absolute right-2 lg:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors disabled:opacity-50 p-1"
             >
               {showPassword ? (
-                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
               ) : (
-                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
               )}
             </button>
           </div>
@@ -247,7 +244,7 @@ export default function SignupPage() {
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-xs sm:text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-gray-300 mb-2.5"
           >
             {t("confirmPassword")}
           </label>
@@ -258,7 +255,7 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-10 sm:pr-12"
+              className="w-full px-4 py-3 text-base bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed pr-12"
               placeholder="••••••••"
               autoComplete="new-password"
             />
@@ -347,7 +344,7 @@ export default function SignupPage() {
         <p className="text-center text-sm text-gray-400">
           {t("haveAccount")}{" "}
           <Link
-            href={`/${locale}/login`}
+            href={`/${locale}/auth/login`}
             className="text-orange-500 hover:text-orange-400 font-semibold transition-colors"
           >
             {t("signIn")}
