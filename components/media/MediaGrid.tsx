@@ -1,14 +1,26 @@
-'use client';
+"use client";
 
-import { MediaCard } from './MediaCard';
+import { MediaCard } from "./MediaCard";
 
-export function MediaGrid({ media, onDelete }) {
+interface MediaItem {
+  id: string;
+  url: string;
+  metadata?: any;
+}
 
+interface MediaGridProps {
+  media: MediaItem[];
+  onDelete: (id: string) => void;
+}
+
+export function MediaGrid({ media, onDelete }: MediaGridProps) {
   if (media.length === 0) {
     return (
       <div className="text-center py-16 border-2 border-dashed border-zinc-800 rounded-lg">
         <p className="text-zinc-500">No media found.</p>
-        <p className="text-zinc-600 text-sm">Upload some images to get started.</p>
+        <p className="text-zinc-600 text-sm">
+          Upload some images to get started.
+        </p>
       </div>
     );
   }

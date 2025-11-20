@@ -1,34 +1,41 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Layers } from 'lucide-react';
-import { toast } from 'sonner';
+import { t } from "@/lib/i18n/stub";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "@/lib/navigation";
+import { Button } from "@/components/ui/button";
+import { Plus, RefreshCw, Layers } from "lucide-react";
+import { toast } from "sonner";
 
 // Import optimized components
-import { LocationsSection } from '@/components/locations/locations-error-boundary';
-import { 
-  useIsMobile, 
+import { LocationsSection } from "@/components/locations/locations-error-boundary";
+import {
+  useIsMobile,
   useResponsiveGrid,
   MobileLocationsToolbar,
   MobileFiltersDrawer,
-  ResponsiveStatsGrid
-} from '@/components/locations/responsive-locations-layout';
-import { 
-  useLocationsData, 
-  useLocationsStats, 
-  locationsCacheUtils 
-} from '@/hooks/use-locations-cache';
-import { 
-  Location, 
-  formatLargeNumber
-} from '@/components/locations/location-types';
-import { LazyLocationCard, LocationCardSkeleton } from '@/components/locations/lazy-locations-components';
-import { LocationsStats } from '@/components/locations/locations-stats';
-import { LocationsFilters } from '@/components/locations/locations-filters';
-import { GMBConnectionBanner, EmptyLocationsState } from '@/components/locations/gmb-connection-banner';
-import { LocationsErrorAlert } from '@/components/locations/locations-error-alert';
+  ResponsiveStatsGrid,
+} from "@/components/locations/responsive-locations-layout";
+import {
+  useLocationsData,
+  useLocationsStats,
+  locationsCacheUtils,
+} from "@/hooks/use-locations-cache";
+import {
+  Location,
+  formatLargeNumber,
+} from "@/components/locations/location-types";
+import {
+  LazyLocationCard,
+  LocationCardSkeleton,
+} from "@/components/locations/lazy-locations-components";
+import { LocationsStats } from "@/components/locations/locations-stats";
+import { LocationsFilters } from "@/components/locations/locations-filters";
+import {
+  GMBConnectionBanner,
+  EmptyLocationsState,
+} from "@/components/locations/gmb-connection-banner";
+import { LocationsErrorAlert } from "@/components/locations/locations-error-alert";
 
 // Main Optimized Locations Page
 export default function OptimizedLocationsPage() {
@@ -37,23 +44,28 @@ export default function OptimizedLocationsPage() {
   const gridCols = useResponsiveGrid();
 
   // State management
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [syncing, setSyncing] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [hasGmbAccount, setHasGmbAccount] = useState<boolean | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Data fetching with caching
-  const filters = { 
+  const filters = {
     search: searchTerm || undefined,
-    status: selectedStatus !== 'all' ? selectedStatus : undefined,
-    category: selectedCategory !== 'all' ? selectedCategory : undefined
+    status: selectedStatus !== "all" ? selectedStatus : undefined,
+    category: selectedCategory !== "all" ? selectedCategory : undefined,
   };
 
-  const { data: locationsData, loading, error, refetch: refetchLocations } = useLocationsData(filters);
+  const {
+    data: locationsData,
+    loading,
+    error,
+    refetch: refetchLocations,
+  } = useLocationsData(filters);
   const { data: statsData, loading: statsLoading } = useLocationsStats();
 
   const locations = locationsData?.data || [];
@@ -63,12 +75,12 @@ export default function OptimizedLocationsPage() {
   useEffect(() => {
     const checkGMBAccount = async () => {
       try {
-        const accountRes = await fetch('/api/gmb/accounts');
+        const accountRes = await fetch("/api/gmb/accounts");
         const accountData = await accountRes.json();
         const hasAccount = accountData && accountData.length > 0;
         setHasGmbAccount(hasAccount);
       } catch (error) {
-        console.error('Failed to check GMB account:', error);
+        console.error("Failed to check GMB account:", error);
         setHasGmbAccount(false);
       }
     };
@@ -80,7 +92,7 @@ export default function OptimizedLocationsPage() {
   useEffect(() => {
     if (locations.length > 0) {
       const uniqueCategories = Array.from(
-        new Set(locations.map((loc: Location) => loc.category).filter(Boolean))
+        new Set(locations.map((loc: Location) => loc.category).filter(Boolean)),
       ) as string[];
       setCategories(uniqueCategories);
     }
@@ -90,21 +102,23 @@ export default function OptimizedLocationsPage() {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      
+
       // Invalidate cache to force fresh data
       locationsCacheUtils.invalidateLocationsList();
-      
+
       // Wait a moment to simulate sync
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Refetch data
       await refetchLocations();
-      
-      toast.success('Locations synced successfully!');
-      window.dispatchEvent(new Event('dashboard:refresh'));
-      console.log('[OptimizedLocationsPage] Locations synced, dashboard refresh triggered');
+
+      toast.success("Locations synced successfully!");
+      window.dispatchEvent(new Event("dashboard:refresh"));
+      console.log(
+        "[OptimizedLocationsPage] Locations synced, dashboard refresh triggered",
+      );
     } catch (error) {
-      toast.error('Failed to sync locations');
+      toast.error("Failed to sync locations");
     } finally {
       setSyncing(false);
     }
@@ -112,18 +126,35 @@ export default function OptimizedLocationsPage() {
 
   // Calculate stats from locations data
   const getOverallStats = () => {
-    if (!locations.length) return { totalViews: 0, totalClicks: 0, avgRating: 0, avgHealthScore: 0 };
-    
-    const totalViews = locations.reduce((sum: number, loc: Location) => sum + (loc.insights?.views || 0), 0);
-    const totalClicks = locations.reduce((sum: number, loc: Location) => sum + (loc.insights?.clicks || 0), 0);
-    const avgRating = locations.reduce((sum: number, loc: Location) => sum + (loc.rating || 0), 0) / locations.length;
-    const avgHealthScore = locations.reduce((sum: number, loc: Location) => sum + (loc.healthScore || 0), 0) / locations.length;
-    
+    if (!locations.length)
+      return { totalViews: 0, totalClicks: 0, avgRating: 0, avgHealthScore: 0 };
+
+    const totalViews = locations.reduce(
+      (sum: number, loc: Location) => sum + (loc.insights?.views || 0),
+      0,
+    );
+    const totalClicks = locations.reduce(
+      (sum: number, loc: Location) => sum + (loc.insights?.clicks || 0),
+      0,
+    );
+    const avgRating =
+      locations.reduce(
+        (sum: number, loc: Location) => sum + (loc.rating || 0),
+        0,
+      ) / locations.length;
+    const avgHealthScore =
+      locations.reduce(
+        (sum: number, loc: Location) => sum + (loc.healthScore || 0),
+        0,
+      ) / locations.length;
+
     return { totalViews, totalClicks, avgRating, avgHealthScore };
   };
 
   const stats = getOverallStats();
-  const hasFilters = Boolean(searchTerm || selectedStatus !== 'all' || selectedCategory !== 'all');
+  const hasFilters = Boolean(
+    searchTerm || selectedStatus !== "all" || selectedCategory !== "all",
+  );
 
   // Event handlers with proper server action naming
   const handleEditAction = (id: string) => {
@@ -135,7 +166,7 @@ export default function OptimizedLocationsPage() {
   };
 
   const handleAddLocationAction = () => {
-    toast.info('Add new location');
+    toast.info("Add new location");
   };
 
   const handleRetryAction = () => {
@@ -162,19 +193,19 @@ export default function OptimizedLocationsPage() {
     }
     // Clear all filters
     if (Object.keys(newFilters).length === 0) {
-      setSearchTerm('');
-      setSelectedStatus('all');
-      setSelectedCategory('all');
+      setSearchTerm("");
+      setSelectedStatus("all");
+      setSelectedCategory("all");
     }
   };
 
-  const handleViewModeChangeAction = (mode: 'grid' | 'list') => {
+  const handleViewModeChangeAction = (mode: "grid" | "list") => {
     setViewMode(mode);
   };
 
   const handleSearchFocusAction = () => {
     // Focus search input (would be implemented with ref in real app)
-    toast.info('Search focused');
+    toast.info("Search focused");
   };
 
   // Show loading skeleton during initial load
@@ -205,12 +236,17 @@ export default function OptimizedLocationsPage() {
         </LocationsSection>
 
         {/* Cards Grid Skeleton */}
-        <div className={`grid gap-6 ${
-          gridCols === 1 ? 'grid-cols-1' :
-          gridCols === 2 ? 'md:grid-cols-2' :
-          gridCols === 3 ? 'md:grid-cols-2 lg:grid-cols-3' :
-          'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-        }`}>
+        <div
+          className={`grid gap-6 ${
+            gridCols === 1
+              ? "grid-cols-1"
+              : gridCols === 2
+                ? "md:grid-cols-2"
+                : gridCols === 3
+                  ? "md:grid-cols-2 lg:grid-cols-3"
+                  : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          }`}
+        >
           {Array.from({ length: 6 }, (_, i) => (
             <LocationCardSkeleton key={i} />
           ))}
@@ -222,11 +258,14 @@ export default function OptimizedLocationsPage() {
   // Show No GMB Account state
   if (!loading && hasGmbAccount === false) {
     return (
-      <LocationsSection section="GMB Connection" fallback={() => (
-        <div className="text-center p-8">
-          <p>Failed to load GMB connection banner</p>
-        </div>
-      )}>
+      <LocationsSection
+        section="GMB Connection"
+        fallback={() => (
+          <div className="text-center p-8">
+            <p>Failed to load GMB connection banner</p>
+          </div>
+        )}
+      >
         <GMBConnectionBanner />
       </LocationsSection>
     );
@@ -237,8 +276,8 @@ export default function OptimizedLocationsPage() {
       {/* Error Alert */}
       {error && (
         <LocationsSection section="Error Display">
-          <LocationsErrorAlert 
-            error={error.message} 
+          <LocationsErrorAlert
+            error={error.message}
             onRetryAction={handleRetryAction}
           />
         </LocationsSection>
@@ -260,7 +299,7 @@ export default function OptimizedLocationsPage() {
       <MobileFiltersDrawer
         isOpen={showMobileFilters}
         onCloseAction={handleFiltersCloseAction}
-        filters={{ healthScore: 'All', status: selectedStatus, reviews: 'All' }}
+        filters={{ healthScore: "All", status: selectedStatus, reviews: "All" }}
         onFiltersChangeAction={handleFiltersChangeAction}
       />
 
@@ -268,39 +307,58 @@ export default function OptimizedLocationsPage() {
       {!isMobile && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-            <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSync} disabled={syncing} variant="outline">
-              <RefreshCw className={`w-4 h-4 mr-2 ${syncing && 'animate-spin'}`} />
-              {syncing ? t('actions.syncing') : t('actions.syncAll')}
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${syncing && "animate-spin"}`}
+              />
+              {syncing ? t("actions.syncing") : t("actions.syncAll")}
             </Button>
-            <Button onClick={() => router.push('/locations')} variant="secondary">
+            <Button
+              onClick={() => router.push("/locations")}
+              variant="secondary"
+            >
               <Layers className="w-4 h-4 mr-2" />
-              {t('actions.mapView')}
+              {t("actions.mapView")}
             </Button>
             <Button onClick={handleAddLocationAction}>
               <Plus className="w-4 h-4 mr-2" />
-              {t('actions.addLocation')}
+              {t("actions.addLocation")}
             </Button>
           </div>
         </div>
       )}
 
       {/* Stats Cards */}
-      <LocationsSection section="Statistics" fallback={() => (
-        <div className="text-center p-8">
-          <p>Failed to load statistics</p>
-        </div>
-      )}>
+      <LocationsSection
+        section="Statistics"
+        fallback={() => (
+          <div className="text-center p-8">
+            <p>Failed to load statistics</p>
+          </div>
+        )}
+      >
         {isMobile ? (
-          <ResponsiveStatsGrid stats={[
-            { value: locations.length, label: t('stats.totalLocations') },
-            { value: formatLargeNumber(stats.totalViews), label: t('stats.totalViews') },
-            { value: (stats.avgRating || 0).toFixed(1), label: t('stats.avgRating') },
-            { value: Math.round(stats.avgHealthScore || 0) + '%', label: t('stats.avgHealthScore') }
-          ]} />
+          <ResponsiveStatsGrid
+            stats={[
+              { value: locations.length, label: t("stats.totalLocations") },
+              {
+                value: formatLargeNumber(stats.totalViews),
+                label: t("stats.totalViews"),
+              },
+              {
+                value: (stats.avgRating || 0).toFixed(1),
+                label: t("stats.avgRating"),
+              },
+              {
+                value: Math.round(stats.avgHealthScore || 0) + "%",
+                label: t("stats.avgHealthScore"),
+              },
+            ]}
+          />
         ) : (
           <LocationsStats
             totalLocations={locations.length}
@@ -327,30 +385,44 @@ export default function OptimizedLocationsPage() {
       )}
 
       {/* Locations Grid */}
-      <LocationsSection section="Locations Grid" fallback={() => (
-        <div className="text-center p-8">
-          <p>Failed to load locations</p>
-        </div>
-      )}>
+      <LocationsSection
+        section="Locations Grid"
+        fallback={() => (
+          <div className="text-center p-8">
+            <p>Failed to load locations</p>
+          </div>
+        )}
+      >
         {loading ? (
-          <div className={`grid gap-6 ${
-            gridCols === 1 ? 'grid-cols-1' :
-            gridCols === 2 ? 'md:grid-cols-2' :
-            gridCols === 3 ? 'md:grid-cols-2 lg:grid-cols-3' :
-            'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          }`}>
+          <div
+            className={`grid gap-6 ${
+              gridCols === 1
+                ? "grid-cols-1"
+                : gridCols === 2
+                  ? "md:grid-cols-2"
+                  : gridCols === 3
+                    ? "md:grid-cols-2 lg:grid-cols-3"
+                    : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            }`}
+          >
             {Array.from({ length: 6 }, (_, i) => (
               <LocationCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className={`grid gap-6 ${
-            viewMode === 'list' ? 'grid-cols-1' :
-            gridCols === 1 ? 'grid-cols-1' :
-            gridCols === 2 ? 'md:grid-cols-2' :
-            gridCols === 3 ? 'md:grid-cols-2 lg:grid-cols-3' :
-            'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          }`}>
+          <div
+            className={`grid gap-6 ${
+              viewMode === "list"
+                ? "grid-cols-1"
+                : gridCols === 1
+                  ? "grid-cols-1"
+                  : gridCols === 2
+                    ? "md:grid-cols-2"
+                    : gridCols === 3
+                      ? "md:grid-cols-2 lg:grid-cols-3"
+                      : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            }`}
+          >
             {locations.map((location: Location) => (
               <LazyLocationCard
                 key={location.id}

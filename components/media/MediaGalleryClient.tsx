@@ -1,37 +1,63 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { MediaUploader } from './MediaUploader';
-import { MediaGrid } from './MediaGrid';
-import { MediaFilters } from './MediaFilters';
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { MediaUploader } from "./MediaUploader";
+import { MediaGrid } from "./MediaGrid";
+import { MediaFilters } from "./MediaFilters";
 
-export function MediaGalleryClient({ locations, initialMedia }) {
+interface Location {
+  id: string;
+  location_name: string;
+}
+
+interface MediaItem {
+  id: string;
+  url: string;
+  location_id?: string;
+  metadata?: any;
+}
+
+interface MediaGalleryClientProps {
+  locations: Location[];
+  initialMedia: MediaItem[];
+}
+
+export function MediaGalleryClient({
+  locations,
+  initialMedia,
+}: MediaGalleryClientProps) {
   const [media, setMedia] = useState(initialMedia);
-  const [filters, setFilters] = useState({ locationId: '' });
+  const [filters, setFilters] = useState({ locationId: "" });
 
-  const filteredMedia = media.filter((item: any) =>
-    !filters.locationId || item.location_id === filters.locationId
+  const filteredMedia = media.filter(
+    (item: any) =>
+      !filters.locationId || item.location_id === filters.locationId,
   );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Media Library</h1>
-        <MediaUploader onUploadComplete={(newMedia) => {
-          setMedia([...newMedia, ...media]);
-        }} />
+        <MediaUploader
+          onUploadComplete={(newMedia: MediaItem[]) => {
+            setMedia([...newMedia, ...media]);
+          }}
+        />
       </div>
-      
-      <MediaFilters 
+
+      <MediaFilters
         locations={locations}
         filters={filters}
         onFiltersChange={setFilters}
       />
-      
-      <MediaGrid media={filteredMedia} onDelete={(id: string) => {
-        setMedia(media.filter((m: any) => m.id !== id));
-      }} />
+
+      <MediaGrid
+        media={filteredMedia}
+        onDelete={(id: string) => {
+          setMedia(media.filter((m: any) => m.id !== id));
+        }}
+      />
     </div>
   );
 }

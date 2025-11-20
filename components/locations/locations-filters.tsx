@@ -1,19 +1,26 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { t } from "@/lib/i18n/stub";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search } from "lucide-react";
 
 // Filters Component
-export const LocationsFilters = ({ 
-  searchTerm, 
-  onSearchChange, 
-  selectedStatus, 
-  onStatusChange, 
-  selectedCategory, 
-  onCategoryChange, 
-  categories 
+export const LocationsFilters = ({
+  searchTerm,
+  onSearchChange,
+  selectedStatus,
+  onStatusChange,
+  selectedCategory,
+  onCategoryChange,
+  categories,
 }: {
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -23,7 +30,6 @@ export const LocationsFilters = ({
   onCategoryChange: (value: string) => void;
   categories: string[];
 }) => {
-
   return (
     <Card>
       <CardContent className="p-6">
@@ -32,7 +38,7 @@ export const LocationsFilters = ({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder={t('filters.searchPlaceholder')}
+                placeholder={t("filters.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="pl-10"
@@ -42,24 +48,28 @@ export const LocationsFilters = ({
 
           <Select onValueChange={onStatusChange} value={selectedStatus}>
             <SelectTrigger className="md:w-[180px]">
-              <SelectValue placeholder={t('filters.status')} />
+              <SelectValue placeholder={t("filters.status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
-              <SelectItem value="verified">{t('filters.verified')}</SelectItem>
-              <SelectItem value="pending">{t('filters.pending')}</SelectItem>
-              <SelectItem value="suspended">{t('filters.suspended')}</SelectItem>
+              <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
+              <SelectItem value="verified">{t("filters.verified")}</SelectItem>
+              <SelectItem value="pending">{t("filters.pending")}</SelectItem>
+              <SelectItem value="suspended">
+                {t("filters.suspended")}
+              </SelectItem>
             </SelectContent>
           </Select>
 
           <Select onValueChange={onCategoryChange} value={selectedCategory}>
             <SelectTrigger className="md:w-[180px]">
-              <SelectValue placeholder={t('filters.category')} />
+              <SelectValue placeholder={t("filters.category")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
+              <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

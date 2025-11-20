@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { t } from "@/lib/i18n/stub";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CommandDialog,
   CommandEmpty,
@@ -10,8 +11,8 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from '@/components/ui/command';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   MapPin,
@@ -26,7 +27,7 @@ import {
   Plus,
   Download,
   Upload,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -46,105 +47,105 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigationCommands = [
     {
       icon: LayoutDashboard,
-      label: t('commands.dashboard'),
-      action: '/dashboard',
-      shortcut: 'G D',
+      label: t("commands.dashboard"),
+      action: "/dashboard",
+      shortcut: "G D",
     },
     {
       icon: MapPin,
-      label: t('commands.locations'),
-      action: '/locations',
-      shortcut: 'G L',
+      label: t("commands.locations"),
+      action: "/locations",
+      shortcut: "G L",
     },
     {
       icon: Star,
-      label: t('commands.reviews'),
-      action: '/reviews',
-      shortcut: 'G R',
+      label: t("commands.reviews"),
+      action: "/reviews",
+      shortcut: "G R",
     },
     {
       icon: MessageSquare,
-      label: t('commands.questions'),
-      action: '/questions',
+      label: t("commands.questions"),
+      action: "/questions",
     },
     {
       icon: FileText,
-      label: t('commands.gmbPosts'),
-      action: '/posts',
-      shortcut: 'G P',
+      label: t("commands.gmbPosts"),
+      action: "/posts",
+      shortcut: "G P",
     },
     {
       icon: BarChart3,
-      label: t('commands.analytics'),
-      action: '/analytics',
-      shortcut: 'G A',
+      label: t("commands.analytics"),
+      action: "/analytics",
+      shortcut: "G A",
     },
     {
       icon: Zap,
-      label: t('commands.automation'),
-      action: '/automation',
+      label: t("commands.automation"),
+      action: "/automation",
     },
     {
       icon: Settings,
-      label: t('commands.settings'),
-      action: '/settings',
-      shortcut: 'G S',
+      label: t("commands.settings"),
+      action: "/settings",
+      shortcut: "G S",
     },
   ];
 
   const actionCommands = [
     {
       icon: Plus,
-      label: t('commands.createGmbPost'),
-      action: '/posts',
+      label: t("commands.createGmbPost"),
+      action: "/posts",
     },
     {
       icon: Download,
-      label: t('commands.exportData'),
-      action: 'export',
+      label: t("commands.exportData"),
+      action: "export",
     },
     {
       icon: Upload,
-      label: t('commands.importLocations'),
-      action: 'import',
+      label: t("commands.importLocations"),
+      action: "import",
     },
   ];
 
   const searchCommands = [
     {
       icon: Search,
-      label: t('commands.searchLocations'),
-      action: 'search-locations',
+      label: t("commands.searchLocations"),
+      action: "search-locations",
     },
     {
       icon: Search,
-      label: t('commands.searchReviews'),
-      action: 'search-reviews',
+      label: t("commands.searchReviews"),
+      action: "search-reviews",
     },
     {
       icon: Search,
-      label: t('commands.searchPosts'),
-      action: 'search-posts',
+      label: t("commands.searchPosts"),
+      action: "search-posts",
     },
   ];
 
   const handleSelect = (action: string) => {
     onOpenChange(false);
 
-    if (action.startsWith('/')) {
+    if (action.startsWith("/")) {
       router.push(action);
     } else {
-      console.log('Action:', action);
+      console.log("Action:", action);
     }
   };
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder={t('placeholder')} />
+      <CommandInput placeholder={t("placeholder")} />
       <CommandList>
-        <CommandEmpty>{t('empty')}</CommandEmpty>
+        <CommandEmpty>{t("empty")}</CommandEmpty>
 
-        <CommandGroup heading={t('navigation')}>
+        <CommandGroup heading={t("navigation")}>
           {navigationCommands.map((command) => {
             const Icon = command.icon;
             return (
@@ -169,7 +170,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandSeparator />
 
-        <CommandGroup heading={t('actions')}>
+        <CommandGroup heading={t("actions")}>
           {actionCommands.map((command) => {
             const Icon = command.icon;
             return (
@@ -187,7 +188,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <CommandSeparator />
 
-        <CommandGroup heading={t('search')}>
+        <CommandGroup heading={t("search")}>
           {searchCommands.map((command) => {
             const Icon = command.icon;
             return (
@@ -206,4 +207,3 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     </CommandDialog>
   );
 }
-

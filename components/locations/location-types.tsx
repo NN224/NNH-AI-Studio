@@ -1,15 +1,41 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  MapPin, Star, TrendingUp, TrendingDown, Shield, Eye, BarChart3,
-  Edit3, MessageSquare, Info, Phone, Globe, Tag, Utensils, Calendar,
-  Video, Image, FileText, MessageCircle, Megaphone, AlertCircle,
-  Clock, Camera, CheckCircle2, Plus, Sparkles, HelpCircle, Bot, Lock
-} from 'lucide-react';
-import { useRouter, Link } from '@/lib/navigation';
+import { t } from "@/lib/i18n/stub";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  MapPin,
+  Star,
+  TrendingUp,
+  TrendingDown,
+  Shield,
+  Eye,
+  BarChart3,
+  Edit3,
+  MessageSquare,
+  Info,
+  Phone,
+  Globe,
+  Tag,
+  Utensils,
+  Calendar,
+  Video,
+  Image,
+  FileText,
+  MessageCircle,
+  Megaphone,
+  AlertCircle,
+  Clock,
+  Camera,
+  CheckCircle2,
+  Plus,
+  Sparkles,
+  HelpCircle,
+  Bot,
+  Lock,
+} from "lucide-react";
+import { useRouter, Link } from "@/lib/navigation";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 // Types for location data
 export interface Location {
@@ -28,7 +54,7 @@ export interface Location {
   website?: string;
   rating?: number;
   reviewCount?: number;
-  status: 'verified' | 'pending' | 'suspended';
+  status: "verified" | "pending" | "suspended";
   isActive?: boolean;
   hasIssues?: boolean;
   pendingReviews?: number;
@@ -88,29 +114,33 @@ export interface LocationInsights {
 
 // Helper functions
 export const formatLargeNumber = (num: number) => {
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
   return num.toString();
 };
 
 export const getStatusColor = (status: string) => {
   switch (status) {
-    case 'verified': return 'bg-success/20 text-success border-success/50';
-    case 'pending': return 'bg-warning/20 text-warning border-warning/50';
-    case 'suspended': return 'bg-destructive/20 text-destructive border-destructive/50';
-    default: return 'bg-muted/20 text-muted-foreground border-muted/50';
+    case "verified":
+      return "bg-success/20 text-success border-success/50";
+    case "pending":
+      return "bg-warning/20 text-warning border-warning/50";
+    case "suspended":
+      return "bg-destructive/20 text-destructive border-destructive/50";
+    default:
+      return "bg-muted/20 text-muted-foreground border-muted/50";
   }
 };
 
 export const getHealthScoreColor = (score: number) => {
-  if (score >= 80) return 'text-success';
-  if (score >= 60) return 'text-warning';
-  return 'text-destructive';
+  if (score >= 80) return "text-success";
+  if (score >= 60) return "text-warning";
+  return "text-destructive";
 };
 
 export const getTrendColor = (trend: number) => {
-  if (trend > 0) return 'text-success';
-  if (trend < 0) return 'text-destructive';
-  return 'text-muted-foreground';
+  if (trend > 0) return "text-success";
+  if (trend < 0) return "text-destructive";
+  return "text-muted-foreground";
 };
 
 // Calculate Health Score Breakdown (17 sections)
@@ -118,10 +148,12 @@ export const getHealthScoreBreakdown = (location: Location) => {
   // Check each section
   const hasPhone = location?.phone && location.phone.length > 0;
   const hasWebsite = location?.website && location.website.length > 0;
-  const hasCategories = location.additionalCategories && location.additionalCategories.length > 0;
+  const hasCategories =
+    location.additionalCategories && location.additionalCategories.length > 0;
   const hasMenuLink = location.menuLink && location.menuLink.length > 0;
   const hasMenuItems = (location.menuItems || 0) > 0;
-  const hasOpeningDate = location.openingDate && location.openingDate.length > 0;
+  const hasOpeningDate =
+    location.openingDate && location.openingDate.length > 0;
   const hasHours = location.hours && Object.keys(location.hours).length > 0;
   const hasAttributes = location.attributes && location.attributes.length > 0;
   const hasPhotos = (location.photos || 0) >= 5;
@@ -137,131 +169,131 @@ export const getHealthScoreBreakdown = (location: Location) => {
   const hasProtection = location.profileProtection || false;
 
   const items = [
-    { 
-      key: 'phoneNumber',
+    {
+      key: "phoneNumber",
       icon: Phone,
       complete: hasPhone,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'websiteLink',
+      key: "websiteLink",
       icon: Globe,
       complete: hasWebsite,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'categories',
+      key: "categories",
       icon: Tag,
       complete: hasCategories,
       count: location.additionalCategories?.length || 0,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'menuLink',
+      key: "menuLink",
       icon: Utensils,
       complete: hasMenuLink,
-      category: 'menu'
+      category: "menu",
     },
     {
-      key: 'menuItems',
+      key: "menuItems",
       icon: Utensils,
       complete: hasMenuItems,
       count: location.menuItems || 0,
-      category: 'menu'
+      category: "menu",
     },
     {
-      key: 'openingDate',
+      key: "openingDate",
       icon: Calendar,
       complete: hasOpeningDate,
-      category: 'basic'
-    },
-    { 
-      key: 'hours',
-      icon: Clock,
-      complete: hasHours,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'attributes',
+      key: "hours",
+      icon: Clock,
+      complete: hasHours,
+      category: "basic",
+    },
+    {
+      key: "attributes",
       icon: Tag,
       complete: hasAttributes,
       count: location.attributes?.length || 0,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'photos',
+      key: "photos",
       icon: Camera,
       complete: hasPhotos,
       count: location.photos || 0,
-      category: 'media'
+      category: "media",
     },
     {
-      key: 'videos',
+      key: "videos",
       icon: Video,
       complete: hasVideos,
       count: location.videos || 0,
-      category: 'media'
+      category: "media",
     },
     {
-      key: 'businessLogo',
+      key: "businessLogo",
       icon: Image,
       complete: hasLogo,
-      category: 'media'
+      category: "media",
     },
     {
-      key: 'menuPhotos',
+      key: "menuPhotos",
       icon: Camera,
       complete: hasMenuPhotos,
       count: location.menuPhotos || 0,
-      category: 'menu'
+      category: "menu",
     },
     {
-      key: 'description',
+      key: "description",
       icon: FileText,
       complete: hasDescription,
-      category: 'basic'
+      category: "basic",
     },
     {
-      key: 'reviews',
+      key: "reviews",
       icon: Star,
       complete: hasEnoughReviews,
       count: location.reviewCount || 0,
-      category: 'engagement'
+      category: "engagement",
     },
     {
-      key: 'posts',
+      key: "posts",
       icon: Megaphone,
       complete: hasRecentPosts,
       count: location.posts || 0,
-      category: 'engagement'
+      category: "engagement",
     },
     {
-      key: 'responses',
+      key: "responses",
       icon: MessageCircle,
       complete: hasGoodResponseRate,
-      category: 'engagement'
+      category: "engagement",
     },
     {
-      key: 'qna',
+      key: "qna",
       icon: HelpCircle,
       complete: hasQnA,
-      category: 'engagement'
+      category: "engagement",
     },
     {
-      key: 'autoReply',
+      key: "autoReply",
       icon: Bot,
       complete: hasAutoReply,
-      category: 'automation'
+      category: "automation",
     },
     {
-      key: 'profileProtection',
+      key: "profileProtection",
       icon: Lock,
       complete: hasProtection,
-      category: 'security'
+      category: "security",
     },
   ];
 
-  const completedCount = items.filter(item => item.complete).length;
+  const completedCount = items.filter((item) => item.complete).length;
   const totalCount = items.length;
   const completionPercentage = Math.round((completedCount / totalCount) * 100);
 
@@ -279,81 +311,97 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
   const router = useRouter();
 
   const getActionButton = (itemKey: string) => {
-    const actions: Record<string, { label: string; onClick: () => void } | null> = {
+    const actions: Record<
+      string,
+      { label: string; onClick: () => void } | null
+    > = {
       phoneNumber: {
-        label: t('actions.addPhone'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=phone`),
+        label: t("actions.addPhone"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=phone`),
       },
       websiteLink: {
-        label: t('actions.addWebsite'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=website`),
+        label: t("actions.addWebsite"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=website`),
       },
       categories: {
-        label: t('actions.addCategories'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=categories`),
+        label: t("actions.addCategories"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=categories`),
       },
       menuLink: {
-        label: t('actions.addMenu'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=menu`),
+        label: t("actions.addMenu"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=menu`),
       },
       menuItems: {
-        label: t('actions.addItems'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=menu-items`),
+        label: t("actions.addItems"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=menu-items`),
       },
       openingDate: {
-        label: t('actions.setDate'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=opening-date`),
+        label: t("actions.setDate"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=opening-date`),
       },
       hours: {
-        label: t('actions.addHours'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=hours`),
+        label: t("actions.addHours"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=hours`),
       },
       attributes: {
-        label: t('actions.addAttributes'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=attributes`),
+        label: t("actions.addAttributes"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=attributes`),
       },
       photos: {
-        label: t('actions.uploadPhotos'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=photos`),
+        label: t("actions.uploadPhotos"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=photos`),
       },
       videos: {
-        label: t('actions.uploadVideos'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=videos`),
+        label: t("actions.uploadVideos"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=videos`),
       },
       businessLogo: {
-        label: t('actions.uploadLogo'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=logo`),
+        label: t("actions.uploadLogo"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=logo`),
       },
       menuPhotos: {
-        label: t('actions.uploadMenuPhotos'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=menu-photos`),
+        label: t("actions.uploadMenuPhotos"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=menu-photos`),
       },
       description: {
-        label: t('actions.addDescription'),
-        onClick: () => router.push(`/locations/${location.id}/edit?section=description`),
+        label: t("actions.addDescription"),
+        onClick: () =>
+          router.push(`/locations/${location.id}/edit?section=description`),
       },
       reviews: {
-        label: t('actions.viewReviews'),
+        label: t("actions.viewReviews"),
         onClick: () => router.push(`/reviews?location=${location.id}`),
       },
       posts: {
-        label: t('actions.createPost'),
+        label: t("actions.createPost"),
         onClick: () => router.push(`/posts?location=${location.id}`),
       },
       responses: {
-        label: t('actions.viewReviews'),
+        label: t("actions.viewReviews"),
         onClick: () => router.push(`/reviews?location=${location.id}`),
       },
       qna: {
-        label: t('actions.enableQA'),
+        label: t("actions.enableQA"),
         onClick: () => router.push(`/questions?location=${location.id}`),
       },
       autoReply: {
-        label: t('actions.setupAutoReply'),
+        label: t("actions.setupAutoReply"),
         onClick: () => router.push(`/settings?tab=auto-reply`),
       },
       profileProtection: {
-        label: t('actions.enableProtection'),
+        label: t("actions.enableProtection"),
         onClick: () => router.push(`/settings?tab=protection`),
       },
     };
@@ -363,7 +411,11 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-auto p-0 hover:bg-transparent">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 hover:bg-transparent"
+        >
           <Info className="w-4 h-4 ml-1 text-muted-foreground hover:text-primary" />
         </Button>
       </DialogTrigger>
@@ -371,21 +423,29 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            {t('title')}
+            {t("title")}
           </DialogTitle>
-          <DialogDescription>
-            {location.name}
-          </DialogDescription>
+          <DialogDescription>{location.name}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Overall Score */}
           <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
             <div>
-              <p className="text-sm text-muted-foreground">{t('outOf', { current: breakdown.completedCount, total: breakdown.totalCount })}</p>
-              <p className="text-3xl font-bold text-primary">{breakdown.completionPercentage}%</p>
+              <p className="text-sm text-muted-foreground">
+                {t("outOf", {
+                  current: breakdown.completedCount,
+                  total: breakdown.totalCount,
+                })}
+              </p>
+              <p className="text-3xl font-bold text-primary">
+                {breakdown.completionPercentage}%
+              </p>
             </div>
-            <Progress value={breakdown.completionPercentage} className="w-32 h-3" />
+            <Progress
+              value={breakdown.completionPercentage}
+              className="w-32 h-3"
+            />
           </div>
 
           {/* Breakdown Items in Grid */}
@@ -401,8 +461,8 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
                   key={item.key}
                   className={`p-3 rounded-lg border transition-all ${
                     item.complete
-                      ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900'
-                      : 'bg-muted/30 border-muted hover:border-muted-foreground/30'
+                      ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                      : "bg-muted/30 border-muted hover:border-muted-foreground/30"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -410,13 +470,15 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
                       <div
                         className={`p-1.5 rounded ${
                           item.complete
-                            ? 'bg-green-100 dark:bg-green-900/40'
-                            : 'bg-muted'
+                            ? "bg-green-100 dark:bg-green-900/40"
+                            : "bg-muted"
                         }`}
                       >
                         <Icon
                           className={`w-4 h-4 ${
-                            item.complete ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+                            item.complete
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-muted-foreground"
                           }`}
                         />
                       </div>
@@ -427,7 +489,10 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
                       </div>
                     </div>
                     {item.complete ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 flex-shrink-0">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 flex-shrink-0"
+                      >
                         <CheckCircle2 className="w-3 h-3" />
                       </Badge>
                     ) : (
@@ -462,10 +527,11 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
                 <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    {t('improve')}
+                    {t("improve")}
                   </h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Complete the missing items above to improve your profile visibility and attract more customers.
+                    Complete the missing items above to improve your profile
+                    visibility and attract more customers.
                   </p>
                 </div>
               </div>
@@ -479,35 +545,37 @@ export const HealthScoreDetails = ({ location }: { location: Location }) => {
 
 // Utility functions for safe date handling
 export function formatSafeDate(dateValue: Date | string | null): string {
-  if (!dateValue) return 'Never synced';
-  
+  if (!dateValue) return "Never synced";
+
   try {
-    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
-    
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+
     if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return 'Invalid date';
+      return "Invalid date";
     }
-    
+
     return date.toLocaleTimeString();
   } catch (error) {
-    console.warn('Date formatting error:', error);
-    return 'Invalid date';
+    console.warn("Date formatting error:", error);
+    return "Invalid date";
   }
 }
 
 export function formatSafeDatetime(dateValue: Date | string | null): string {
-  if (!dateValue) return 'Never synced';
-  
+  if (!dateValue) return "Never synced";
+
   try {
-    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
-    
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+
     if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return 'Invalid date';
+      return "Invalid date";
     }
-    
+
     return date.toLocaleString();
   } catch (error) {
-    console.warn('Datetime formatting error:', error);
-    return 'Invalid date';
+    console.warn("Datetime formatting error:", error);
+    return "Invalid date";
   }
 }

@@ -1,41 +1,47 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "@/lib/navigation"
-import { getRecentActivity } from "@/lib/monitoring/audit"
-import { getMetricsSummary } from "@/lib/monitoring/metrics"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "@/lib/navigation";
+import { getRecentActivity } from "@/lib/monitoring/audit";
+import { getMetricsSummary } from "@/lib/monitoring/metrics";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 function formatTimestamp(value: string) {
   try {
-    return new Date(value).toLocaleString()
+    return new Date(value).toLocaleString();
   } catch {
-    return value
+    return value;
   }
 }
 
 export default async function MetricsPage({
-  params
+  params,
 }: {
-  params: Promise<{ locale: string }>
+  params: Promise<{ locale: string }>;
 }) {
-  await params // Locale is not used but required by Next.js routing
-  const supabase = await createClient()
+  await params; // Locale is not used but required by Next.js routing
+  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    const resolvedParams = await params
-    redirect({ href: "/auth/login", locale: resolvedParams.locale })
+    const resolvedParams = await params;
+    redirect(`/${resolvedParams.locale}/auth/login`);
   }
 
-  const userId = user!.id
+  const userId = user!.id;
 
   const [activity, metrics] = await Promise.all([
     getRecentActivity(userId, 10),
     getMetricsSummary(userId),
-  ])
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
@@ -50,12 +56,15 @@ export default async function MetricsPage({
         <Card>
           <CardHeader>
             <CardTitle>Sync Success Rate</CardTitle>
-            <CardDescription>Based on your recent sync attempts</CardDescription>
+            <CardDescription>
+              Based on your recent sync attempts
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{metrics.sync.userRate}%</p>
             <p className="text-sm text-muted-foreground">
-              {metrics.sync.userSuccess} successes · {metrics.sync.userFailure} failures
+              {metrics.sync.userSuccess} successes · {metrics.sync.userFailure}{" "}
+              failures
             </p>
           </CardContent>
         </Card>
@@ -67,7 +76,9 @@ export default async function MetricsPage({
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{metrics.sync.globalRate}%</p>
-            <p className="text-sm text-muted-foreground">{metrics.sync.total} syncs today</p>
+            <p className="text-sm text-muted-foreground">
+              {metrics.sync.total} syncs today
+            </p>
           </CardContent>
         </Card>
 
@@ -88,11 +99,15 @@ export default async function MetricsPage({
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Last 10 recorded actions for your account</CardDescription>
+          <CardDescription>
+            Last 10 recorded actions for your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {activity.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No activity recorded yet.
+            </p>
           ) : (
             <ul className="space-y-4">
               {activity.map((entry) => (
@@ -107,7 +122,8 @@ export default async function MetricsPage({
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {entry.resource_type || "general"} · {entry.resource_id || "n/a"}
+                    {entry.resource_type || "general"} ·{" "}
+                    {entry.resource_id || "n/a"}
                   </div>
                   {entry.metadata && (
                     <pre className="mt-2 overflow-x-auto rounded bg-muted/50 p-2 text-xs text-muted-foreground">
@@ -121,6 +137,5 @@ export default async function MetricsPage({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

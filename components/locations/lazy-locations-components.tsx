@@ -1,25 +1,33 @@
-'use client';
+"use client";
 
+import { t } from "@/lib/i18n/stub";
 // Removed unused dynamic import from next/dynamic
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import React, { useMemo } from 'react';
-import { 
-  Location, 
-  formatLargeNumber, 
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import React, { useMemo } from "react";
+import {
+  Location,
+  formatLargeNumber,
   getStatusColor,
-  formatSafeDate, 
-  getHealthScoreColor, 
+  formatSafeDate,
+  getHealthScoreColor,
   getTrendColor,
-  HealthScoreDetails 
-} from './location-types';
-import { Button } from '@/components/ui/button';
-import { 
-  MapPin, Star, TrendingUp, TrendingDown, Shield, Eye, BarChart3,
-  Edit3, MessageSquare
-} from 'lucide-react';
-import { Link } from '@/lib/navigation';
+  HealthScoreDetails,
+} from "./location-types";
+import { Button } from "@/components/ui/button";
+import {
+  MapPin,
+  Star,
+  TrendingUp,
+  TrendingDown,
+  Shield,
+  Eye,
+  BarChart3,
+  Edit3,
+  MessageSquare,
+} from "lucide-react";
+import { Link } from "@/lib/navigation";
 
 // Helper function to safely access insights - memoized to prevent recalculation
 const getSafeInsights = (location: Location) => {
@@ -37,159 +45,220 @@ const getSafeInsights = (location: Location) => {
 // For now, these return the skeleton components
 
 // Memoized LocationCard component to prevent unnecessary re-renders
-export const LazyLocationCard = React.memo(({ 
-  location, 
-  onEditAction, 
-  onViewDetailsAction 
-}: {
-  location: Location;
-  onEditAction: (id: string) => void;
-  onViewDetailsAction: (id: string) => void;
-}) => {
-  
-  // Memoize insights calculation to avoid recalculation on every render
-  const insights = useMemo(() => getSafeInsights(location), [location.insights]);
-  
-  return (
-    <Card className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20 hover:border-l-primary">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
-                {location.name}
-              </h3>
-              <Badge className={`text-xs border ${getStatusColor(location.status)}`}>
-                {location.status}
+export const LazyLocationCard = React.memo(
+  ({
+    location,
+    onEditAction,
+    onViewDetailsAction,
+  }: {
+    location: Location;
+    onEditAction: (id: string) => void;
+    onViewDetailsAction: (id: string) => void;
+  }) => {
+    // Memoize insights calculation to avoid recalculation on every render
+    const insights = useMemo(
+      () => getSafeInsights(location),
+      [location.insights],
+    );
+
+    return (
+      <Card className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20 hover:border-l-primary">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
+                  {location.name}
+                </h3>
+                <Badge
+                  className={`text-xs border ${getStatusColor(location.status)}`}
+                >
+                  {location.status}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-warning fill-warning" />
+                  <span className="font-medium text-foreground">
+                    {(location.rating || 0).toFixed(1)}
+                  </span>
+                  <span>({formatLargeNumber(location.reviewCount || 0)})</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  <span className="truncate max-w-[150px]">
+                    {(location.address || "").split(",")[0] || "No address"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onEditAction(location.id)}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onViewDetailsAction(location.id)}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Health Score */}
+          <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-1">
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">
+                {t("labels.healthScore")}
+              </span>
+              <HealthScoreDetails location={location} />
+            </div>
+            <span
+              className={`text-xl font-bold ${getHealthScoreColor(location.healthScore || 0)}`}
+            >
+              {location.healthScore}%
+            </span>
+          </div>
+
+          {/* Insights Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="text-center p-2 rounded-lg border border-muted">
+              <div className="text-base font-bold text-foreground">
+                {formatLargeNumber(getSafeInsights(location).views)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("labels.views")}
+              </div>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                {getSafeInsights(location).viewsTrend > 0 ? (
+                  <TrendingUp
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).viewsTrend)}`}
+                  />
+                ) : (
+                  <TrendingDown
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).viewsTrend)}`}
+                  />
+                )}
+                <span
+                  className={getTrendColor(
+                    getSafeInsights(location).viewsTrend,
+                  )}
+                >
+                  {Math.abs(getSafeInsights(location).viewsTrend)}%
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center p-2 rounded-lg border border-muted">
+              <div className="text-base font-bold text-foreground">
+                {formatLargeNumber(getSafeInsights(location).clicks)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("labels.clicks")}
+              </div>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                {getSafeInsights(location).clicksTrend > 0 ? (
+                  <TrendingUp
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).clicksTrend)}`}
+                  />
+                ) : (
+                  <TrendingDown
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).clicksTrend)}`}
+                  />
+                )}
+                <span
+                  className={getTrendColor(
+                    getSafeInsights(location).clicksTrend,
+                  )}
+                >
+                  {Math.abs(getSafeInsights(location).clicksTrend)}%
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center p-2 rounded-lg border border-muted">
+              <div className="text-base font-bold text-foreground">
+                {formatLargeNumber(getSafeInsights(location).calls)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("labels.calls")}
+              </div>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                {getSafeInsights(location).callsTrend > 0 ? (
+                  <TrendingUp
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).callsTrend)}`}
+                  />
+                ) : (
+                  <TrendingDown
+                    className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).callsTrend)}`}
+                  />
+                )}
+                <span
+                  className={getTrendColor(
+                    getSafeInsights(location).callsTrend,
+                  )}
+                >
+                  {Math.abs(getSafeInsights(location).callsTrend)}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Attributes */}
+          <div className="flex flex-wrap gap-1">
+            {(location.attributes || []).slice(0, 3).map((attr, index) => (
+              <Badge key={index} variant="secondary" className="text-xs">
+                {attr}
               </Badge>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 text-warning fill-warning" />
-                <span className="font-medium text-foreground">{(location.rating || 0).toFixed(1)}</span>
-                <span>({formatLargeNumber(location.reviewCount || 0)})</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span className="truncate max-w-[150px]">{(location.address || '').split(',')[0] || 'No address'}</span>
-              </div>
-            </div>
+            ))}
+            {(location.attributes || []).length > 3 && (
+              <Badge variant="secondary" className="text-xs">
+                {t("labels.attributesMore", {
+                  count: (location.attributes || []).length - 3,
+                })}
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={() => onEditAction(location.id)}>
-              <Edit3 className="w-4 h-4" />
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Button size="sm" variant="outline" className="flex-1" asChild>
+              <Link href={`/reviews?location=${location.id}`}>
+                <MessageSquare className="w-4 h-4 mr-1" />
+                {t("card.reviews")} (
+                {formatLargeNumber(location.reviewCount || 0)})
+              </Link>
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => onViewDetailsAction(location.id)}>
-              <Eye className="w-4 h-4" />
+            <Button size="sm" variant="outline" className="flex-1" asChild>
+              <Link href={`/analytics?location=${location.id}`}>
+                <BarChart3 className="w-4 h-4 mr-1" />
+                {t("card.insights")}
+              </Link>
             </Button>
           </div>
-        </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Health Score */}
-        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-primary/20">
-          <div className="flex items-center gap-1">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">{t('labels.healthScore')}</span>
-            <HealthScoreDetails location={location} />
+          {/* Last Sync */}
+          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+            {t("labels.lastSync")}: {formatSafeDate(location.lastSync || null)}
           </div>
-          <span className={`text-xl font-bold ${getHealthScoreColor(location.healthScore || 0)}`}>
-            {location.healthScore}%
-          </span>
-        </div>
-
-        {/* Insights Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="text-center p-2 rounded-lg border border-muted">
-            <div className="text-base font-bold text-foreground">{formatLargeNumber(getSafeInsights(location).views)}</div>
-            <div className="text-xs text-muted-foreground">{t('labels.views')}</div>
-            <div className="flex items-center justify-center gap-1 text-xs">
-              {getSafeInsights(location).viewsTrend > 0 ? (
-                <TrendingUp className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).viewsTrend)}`} />
-              ) : (
-                <TrendingDown className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).viewsTrend)}`} />
-              )}
-              <span className={getTrendColor(getSafeInsights(location).viewsTrend)}>
-                {Math.abs(getSafeInsights(location).viewsTrend)}%
-              </span>
-            </div>
-          </div>
-
-          <div className="text-center p-2 rounded-lg border border-muted">
-            <div className="text-base font-bold text-foreground">{formatLargeNumber(getSafeInsights(location).clicks)}</div>
-            <div className="text-xs text-muted-foreground">{t('labels.clicks')}</div>
-            <div className="flex items-center justify-center gap-1 text-xs">
-              {getSafeInsights(location).clicksTrend > 0 ? (
-                <TrendingUp className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).clicksTrend)}`} />
-              ) : (
-                <TrendingDown className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).clicksTrend)}`} />
-              )}
-              <span className={getTrendColor(getSafeInsights(location).clicksTrend)}>
-                {Math.abs(getSafeInsights(location).clicksTrend)}%
-              </span>
-            </div>
-          </div>
-
-          <div className="text-center p-2 rounded-lg border border-muted">
-            <div className="text-base font-bold text-foreground">{formatLargeNumber(getSafeInsights(location).calls)}</div>
-            <div className="text-xs text-muted-foreground">{t('labels.calls')}</div>
-            <div className="flex items-center justify-center gap-1 text-xs">
-              {getSafeInsights(location).callsTrend > 0 ? (
-                <TrendingUp className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).callsTrend)}`} />
-              ) : (
-                <TrendingDown className={`w-3 h-3 ${getTrendColor(getSafeInsights(location).callsTrend)}`} />
-              )}
-              <span className={getTrendColor(getSafeInsights(location).callsTrend)}>
-                {Math.abs(getSafeInsights(location).callsTrend)}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Attributes */}
-        <div className="flex flex-wrap gap-1">
-          {(location.attributes || []).slice(0, 3).map((attr, index) => (
-            <Badge key={index} variant="secondary" className="text-xs">
-              {attr}
-            </Badge>
-          ))}
-          {(location.attributes || []).length > 3 && (
-            <Badge variant="secondary" className="text-xs">
-              {t('labels.attributesMore', { count: (location.attributes || []).length - 3 })}
-            </Badge>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
-          <Button size="sm" variant="outline" className="flex-1" asChild>
-            <Link href={`/reviews?location=${location.id}`}>
-              <MessageSquare className="w-4 h-4 mr-1" />
-              {t('card.reviews')} ({formatLargeNumber(location.reviewCount || 0)})
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" className="flex-1" asChild>
-            <Link href={`/analytics?location=${location.id}`}>
-              <BarChart3 className="w-4 h-4 mr-1" />
-              {t('card.insights')}
-            </Link>
-          </Button>
-        </div>
-
-        {/* Last Sync */}
-        <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-          {t('labels.lastSync')}: {formatSafeDate(location.lastSync || null)}
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
+        </CardContent>
+      </Card>
+    );
+  },
+);
 
 // Display name for debugging
-LazyLocationCard.displayName = 'LazyLocationCard';
+LazyLocationCard.displayName = "LazyLocationCard";
 
-// HealthScoreDetails Placeholder 
+// HealthScoreDetails Placeholder
 export const LazyHealthScoreDetails = () => (
   <div className="w-4 h-4 bg-muted animate-pulse rounded" />
 );
@@ -285,7 +354,10 @@ export const LocationCardSkeleton = () => {
         {/* Stats Grid Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="text-center p-2 rounded-lg border border-muted">
+            <div
+              key={i}
+              className="text-center p-2 rounded-lg border border-muted"
+            >
               <Skeleton className="h-5 w-8 mx-auto mb-1" />
               <Skeleton className="h-3 w-12 mx-auto mb-1" />
               <Skeleton className="h-3 w-10 mx-auto" />
@@ -296,7 +368,11 @@ export const LocationCardSkeleton = () => {
         {/* Attributes Skeleton */}
         <div className="flex flex-wrap gap-1">
           {[1, 2, 3].map((i) => (
-            <Badge key={i} variant="secondary" className="bg-muted animate-pulse">
+            <Badge
+              key={i}
+              variant="secondary"
+              className="bg-muted animate-pulse"
+            >
               <Skeleton className="h-3 w-16" />
             </Badge>
           ))}

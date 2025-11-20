@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import type { ComponentType } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useInView } from 'react-intersection-observer';
-import { toast } from 'sonner';
+import { t } from "@/lib/i18n/stub";
+import type { ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useInView } from "react-intersection-observer";
+import { toast } from "sonner";
 import {
   RefreshCw,
   Search,
@@ -20,21 +21,26 @@ import {
   Pause,
   XCircle,
   Download,
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ReviewCard } from './review-card';
-import { ReplyDialog } from './reply-dialog';
-import { ReviewAISettings } from './ReviewAISettings';
-import { AIAssistantSidebar } from './ai-assistant-sidebar';
-import { BulkActionBar } from './bulk-action-bar';
-import { AutoReplySettingsPanel } from './auto-reply-settings-panel';
-import { useReviews } from '@/hooks/use-reviews';
-import { syncReviewsFromGoogle } from '@/server/actions/reviews-management';
-import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
-import type { GMBReview } from '@/lib/types/database';
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ReviewCard } from "./review-card";
+import { ReplyDialog } from "./reply-dialog";
+import { ReviewAISettings } from "./ReviewAISettings";
+import { AIAssistantSidebar } from "./ai-assistant-sidebar";
+import { BulkActionBar } from "./bulk-action-bar";
+import { AutoReplySettingsPanel } from "./auto-reply-settings-panel";
+import { useReviews } from "@/hooks/use-reviews";
+import { syncReviewsFromGoogle } from "@/server/actions/reviews-management";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import type { GMBReview } from "@/lib/types/database";
 
 interface ReviewStats {
   total: number;
@@ -50,26 +56,36 @@ interface ReviewsPageClientProps {
   readonly initialFilters?: {
     readonly locationId?: string;
     readonly rating?: number;
-    readonly status?: 'pending' | 'replied' | 'responded' | 'flagged' | 'archived';
-    readonly sentiment?: 'positive' | 'neutral' | 'negative';
+    readonly status?:
+      | "pending"
+      | "replied"
+      | "responded"
+      | "flagged"
+      | "archived";
+    readonly sentiment?: "positive" | "neutral" | "negative";
     readonly search?: string;
   };
 }
 
 type ReviewsHookState = ReturnType<typeof useReviews>;
-type ReviewsFilters = ReviewsHookState['filters'];
-type UpdateFilterFn = ReviewsHookState['updateFilter'];
+type ReviewsFilters = ReviewsHookState["filters"];
+type UpdateFilterFn = ReviewsHookState["updateFilter"];
 
-export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClientProps) {
+export function ReviewsPageClient({
+  locations,
+  initialFilters,
+}: ReviewsPageClientProps) {
   const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState(initialFilters?.search || '');
-  
+  const [searchInput, setSearchInput] = useState(initialFilters?.search || "");
+
   // Bulk selection state
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedReviewIds, setSelectedReviewIds] = useState<Set<string>>(new Set());
+  const [selectedReviewIds, setSelectedReviewIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [bulkDrafting, setBulkDrafting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
   const [autoReplyLoading, setAutoReplyLoading] = useState(false);
@@ -86,11 +102,11 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       averageRating: reviewStats.averageRating ?? 0,
       responseRate: reviewStats.responseRate ?? 0,
       byRating: {
-        5: reviewStats.byRating?.['5'] ?? 0,
-        4: reviewStats.byRating?.['4'] ?? 0,
-        3: reviewStats.byRating?.['3'] ?? 0,
-        2: reviewStats.byRating?.['2'] ?? 0,
-        1: reviewStats.byRating?.['1'] ?? 0,
+        5: reviewStats.byRating?.["5"] ?? 0,
+        4: reviewStats.byRating?.["4"] ?? 0,
+        3: reviewStats.byRating?.["3"] ?? 0,
+        2: reviewStats.byRating?.["2"] ?? 0,
+        1: reviewStats.byRating?.["1"] ?? 0,
       },
     };
   }, [dashboardSnapshot?.reviewStats]);
@@ -115,7 +131,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   // Infinite scroll trigger
   const { ref: infiniteScrollRef, inView } = useInView({
     threshold: 0,
-    rootMargin: '100px',
+    rootMargin: "100px",
   });
 
   // Load more when scroll trigger is in view
@@ -129,14 +145,14 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput !== filters.search) {
-        updateFilter('search', searchInput || undefined);
+        updateFilter("search", searchInput || undefined);
       }
     }, 500);
     return () => clearTimeout(timer);
   }, [searchInput, filters.search, updateFilter]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -144,19 +160,19 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       refresh();
     };
 
-    window.addEventListener('dashboard:refresh', handleGlobalRefresh);
-    window.addEventListener('gmb-sync-complete', handleGlobalRefresh);
+    window.addEventListener("dashboard:refresh", handleGlobalRefresh);
+    window.addEventListener("gmb-sync-complete", handleGlobalRefresh);
 
     return () => {
-      window.removeEventListener('dashboard:refresh', handleGlobalRefresh);
-      window.removeEventListener('gmb-sync-complete', handleGlobalRefresh);
+      window.removeEventListener("dashboard:refresh", handleGlobalRefresh);
+      window.removeEventListener("gmb-sync-complete", handleGlobalRefresh);
     };
   }, [refresh]);
 
   // Handle sync
   const handleSync = async () => {
     if (!filters.locationId) {
-      toast.error('Select a location to sync reviews');
+      toast.error("Select a location to sync reviews");
       return;
     }
 
@@ -166,21 +182,21 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       const result = await syncReviewsFromGoogle(filters.locationId);
 
       if (result.success) {
-        toast.success('Reviews synced!', {
+        toast.success("Reviews synced!", {
           description: result.message,
         });
         await refresh();
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('dashboard:refresh'));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("dashboard:refresh"));
         }
       } else {
-        toast.error('Sync failed', {
+        toast.error("Sync failed", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('Sync error:', error);
-      toast.error('An unexpected error occurred');
+      console.error("Sync error:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSyncing(false);
     }
@@ -194,7 +210,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
 
   // Handle checkbox change
   const handleCheckChange = (reviewId: string, checked: boolean) => {
-    setSelectedReviewIds(prev => {
+    setSelectedReviewIds((prev) => {
       const newSet = new Set(prev);
       if (checked) {
         newSet.add(reviewId);
@@ -215,7 +231,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
 
   // Select all visible reviews
   const selectAll = () => {
-    setSelectedReviewIds(new Set(reviews.map(r => r.id)));
+    setSelectedReviewIds(new Set(reviews.map((r) => r.id)));
   };
 
   // Clear all selections
@@ -225,21 +241,21 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
 
   // Get selected review objects
   const selectedReviews = useMemo(
-    () => reviews.filter(r => selectedReviewIds.has(r.id)),
-    [reviews, selectedReviewIds]
+    () => reviews.filter((r) => selectedReviewIds.has(r.id)),
+    [reviews, selectedReviewIds],
   );
 
   const pendingReviews = useMemo(
     () => reviews.filter((review) => !review.has_reply),
-    [reviews]
+    [reviews],
   );
 
   const hasActiveFilters = Boolean(
     filters.locationId ||
-    filters.rating ||
-    filters.status ||
-    filters.sentiment ||
-    filters.search
+      filters.rating ||
+      filters.status ||
+      filters.sentiment ||
+      filters.search,
   );
 
   // Handle bulk action complete
@@ -249,7 +265,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   };
 
   const handleAutoReplyControl = useCallback(
-    async (action: 'pause' | 'resume' | 'reset') => {
+    async (action: "pause" | "resume" | "reset") => {
       if (autoReplyLoading) {
         return false;
       }
@@ -258,9 +274,9 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       let success = false;
 
       try {
-        const response = await fetch('/api/reviews/auto-reply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/reviews/auto-reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action,
             locationId: filters.locationId ?? null,
@@ -271,38 +287,39 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
 
         if (!response.ok) {
           const description =
-            body?.error || 'Failed to update auto-reply settings';
-          toast.error('Auto-reply update failed', { description });
+            body?.error || "Failed to update auto-reply settings";
+          toast.error("Auto-reply update failed", { description });
           return false;
         }
 
-        if (action === 'reset') {
+        if (action === "reset") {
           await refresh();
         }
 
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('ai:auto-reply:refresh'));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("ai:auto-reply:refresh"));
         }
 
-        toast.success(body?.message || 'Auto-reply settings updated');
+        toast.success(body?.message || "Auto-reply settings updated");
         success = true;
       } catch (error) {
-        console.error('[Reviews] Auto-reply control error:', error);
-        toast.error('Unable to update auto-reply settings right now');
+        console.error("[Reviews] Auto-reply control error:", error);
+        toast.error("Unable to update auto-reply settings right now");
       } finally {
         setAutoReplyLoading(false);
       }
       return success;
     },
-    [autoReplyLoading, filters.locationId, refresh]
+    [autoReplyLoading, filters.locationId, refresh],
   );
 
   const handleBulkDrafts = useCallback(async () => {
     if (bulkDrafting) return;
 
-    const targets = pendingReviews.length > 0 ? pendingReviews : selectedReviews;
+    const targets =
+      pendingReviews.length > 0 ? pendingReviews : selectedReviews;
     if (targets.length === 0) {
-      toast.info('No pending reviews available for AI drafting');
+      toast.info("No pending reviews available for AI drafting");
       return;
     }
 
@@ -312,11 +329,13 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
     try {
       for (const review of targets) {
         try {
-          const reviewText = (review.review_text ?? '').trim() || 'The customer left a rating without additional comments.';
+          const reviewText =
+            (review.review_text ?? "").trim() ||
+            "The customer left a rating without additional comments.";
 
-          const response = await fetch('/api/reviews/ai-response', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const response = await fetch("/api/reviews/ai-response", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               reviewId: review.id,
               reviewText,
@@ -327,7 +346,7 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
 
           if (!response.ok) {
             const body = await response.json().catch(() => ({}));
-            throw new Error(body?.error || 'Failed to generate reply');
+            throw new Error(body?.error || "Failed to generate reply");
           }
 
           setBulkProgress((prev) => ({
@@ -335,19 +354,21 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
             completed: prev.completed + 1,
           }));
         } catch (error) {
-          console.error('[Reviews] AI draft error:', error);
-          toast.error('Some replies failed to generate. Check console for details.');
+          console.error("[Reviews] AI draft error:", error);
+          toast.error(
+            "Some replies failed to generate. Check console for details.",
+          );
         }
       }
 
-      toast.success('AI drafts generated');
+      toast.success("AI drafts generated");
       refresh();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('dashboard:refresh'));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("dashboard:refresh"));
       }
     } catch (error) {
-      console.error('[Reviews] Bulk AI draft failure:', error);
-      toast.error('Failed to generate AI drafts');
+      console.error("[Reviews] Bulk AI draft failure:", error);
+      toast.error("Failed to generate AI drafts");
     } finally {
       setBulkDrafting(false);
       setBulkProgress({ completed: 0, total: 0 });
@@ -366,23 +387,23 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
   const handleExport = useCallback(() => {
     try {
       const params = new URLSearchParams({
-        export: 'csv',
-        pageSize: '5000',
+        export: "csv",
+        pageSize: "5000",
       });
 
-      if (filters.locationId) params.set('locationId', filters.locationId);
-      if (filters.rating) params.set('rating', String(filters.rating));
-      if (filters.status) params.set('status', filters.status);
-      if (filters.sentiment) params.set('sentiment', filters.sentiment);
-      if (filters.search) params.set('search', filters.search);
-      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.set('dateTo', filters.dateTo);
+      if (filters.locationId) params.set("locationId", filters.locationId);
+      if (filters.rating) params.set("rating", String(filters.rating));
+      if (filters.status) params.set("status", filters.status);
+      if (filters.sentiment) params.set("sentiment", filters.sentiment);
+      if (filters.search) params.set("search", filters.search);
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+      if (filters.dateTo) params.set("dateTo", filters.dateTo);
 
       const url = `/api/reviews?${params.toString()}`;
-      window.open(url, '_blank', 'noopener');
+      window.open(url, "_blank", "noopener");
     } catch (error) {
-      console.error('[Reviews] Export error:', error);
-      toast.error('Unable to export reviews right now');
+      console.error("[Reviews] Export error:", error);
+      toast.error("Unable to export reviews right now");
     }
   }, [filters]);
 
@@ -409,12 +430,12 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         onClearFilters={() => {
-          updateFilter('locationId', undefined);
-          updateFilter('rating', undefined);
-          updateFilter('status', undefined);
-          updateFilter('sentiment', undefined);
-          updateFilter('search', undefined);
-          setSearchInput('');
+          updateFilter("locationId", undefined);
+          updateFilter("rating", undefined);
+          updateFilter("status", undefined);
+          updateFilter("sentiment", undefined);
+          updateFilter("search", undefined);
+          setSearchInput("");
         }}
         hasActiveFilters={hasActiveFilters}
         stats={reviewStatsSummary}
@@ -448,9 +469,9 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
             bulkProgressPct={bulkProgressPct}
             autoReplyLoading={autoReplyLoading}
             onBulkDrafts={handleBulkDrafts}
-            onPause={() => handleAutoReplyControl('pause')}
-            onResume={() => handleAutoReplyControl('resume')}
-            onCancel={() => handleAutoReplyControl('reset')}
+            onPause={() => handleAutoReplyControl("pause")}
+            onResume={() => handleAutoReplyControl("resume")}
+            onCancel={() => handleAutoReplyControl("reset")}
             onOpenAssistant={() => setAiSidebarOpen(true)}
             locationId={filters.locationId}
           />
@@ -481,7 +502,10 @@ export function ReviewsPageClient({ locations, initialFilters }: ReviewsPageClie
       />
 
       <Sheet open={aiSidebarOpen} onOpenChange={setAiSidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-96 bg-zinc-950 border-l border-zinc-800 p-0 overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:w-96 bg-zinc-950 border-l border-zinc-800 p-0 overflow-y-auto"
+        >
           <SheetHeader className="p-6 border-b border-zinc-800">
             <SheetTitle className="text-white">AI Assistant</SheetTitle>
           </SheetHeader>
@@ -541,30 +565,39 @@ function ReviewsOverviewHeader({
     <section className="border-b border-zinc-800 px-6 py-6 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wider text-orange-400 mb-1">AI Command Center</p>
-          <h1 className="text-3xl font-semibold text-white">Reviews Management</h1>
+          <p className="text-xs uppercase tracking-wider text-orange-400 mb-1">
+            AI Command Center
+          </p>
+          <h1 className="text-3xl font-semibold text-white">
+            Reviews Management
+          </h1>
           <p className="text-sm text-zinc-400 mt-2">
-            Monitor incoming feedback, orchestrate AI auto-replies, and keep response quality on track.
+            Monitor incoming feedback, orchestrate AI auto-replies, and keep
+            response quality on track.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-            <Button
+          <Button
             onClick={onToggleSelectionMode}
-            variant={selectionMode ? 'default' : 'outline'}
-            className={selectionMode ? 'bg-orange-500 hover:bg-orange-600 border-none' : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'}
-            >
-              {selectionMode ? (
-                <>
+            variant={selectionMode ? "default" : "outline"}
+            className={
+              selectionMode
+                ? "bg-orange-500 hover:bg-orange-600 border-none"
+                : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            }
+          >
+            {selectionMode ? (
+              <>
                 <CheckSquare className="w-4 h-4 mr-2" aria-hidden="true" />
                 Exit Selection ({selectedCount})
-                </>
-              ) : (
-                <>
+              </>
+            ) : (
+              <>
                 <Square className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Select Reviews
-                </>
-              )}
-            </Button>
+                Select Reviews
+              </>
+            )}
+          </Button>
           {selectionMode && (
             <Button
               onClick={onSelectAll}
@@ -574,14 +607,14 @@ function ReviewsOverviewHeader({
               Select All ({totalVisible})
             </Button>
           )}
-            <Button
+          <Button
             onClick={onOpenAiSidebar}
-              variant="outline"
+            variant="outline"
             className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-            >
+          >
             <Bot className="w-4 h-4 mr-2" aria-hidden="true" />
             Open AI Copilot
-            </Button>
+          </Button>
           {onOpenAISettings && (
             <Button
               onClick={onOpenAISettings}
@@ -598,8 +631,11 @@ function ReviewsOverviewHeader({
             variant="outline"
             className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-            {isSyncing ? 'Syncing...' : 'Sync Selected Location'}
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {isSyncing ? "Syncing..." : "Sync Selected Location"}
           </Button>
         </div>
       </div>
@@ -620,12 +656,12 @@ function ReviewsOverviewHeader({
         <MetricCard
           icon={ShieldCheck}
           label="Avg Rating"
-          value={stats?.averageRating ? stats.averageRating.toFixed(1) : '—'}
+          value={stats?.averageRating ? stats.averageRating.toFixed(1) : "—"}
         />
         <MetricCard
           icon={Clock3}
           label="Response Rate"
-          value={`${stats?.responseRate?.toFixed(1) ?? '0'}%`}
+          value={`${stats?.responseRate?.toFixed(1) ?? "0"}%`}
         />
       </div>
     </section>
@@ -646,13 +682,17 @@ function MetricCard({
   return (
     <Card className="bg-zinc-900/60 border border-orange-500/10">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-zinc-400">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-zinc-400">
+          {label}
+        </CardTitle>
         <Icon className="h-4 w-4 text-orange-400" aria-hidden="true" />
       </CardHeader>
       <CardContent>
-        <p className={`text-3xl font-semibold ${accent ?? 'text-white'}`}>{value}</p>
-              </CardContent>
-            </Card>
+        <p className={`text-3xl font-semibold ${accent ?? "text-white"}`}>
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -681,14 +721,14 @@ function ReviewsFilterBar({
 }: ReviewsFilterBarProps) {
   const ratingCounts = stats?.byRating ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   const ratingButtons: Array<{ value: number; label: string }> = [
-    { value: 5, label: '⭐ 5' },
-    { value: 4, label: '⭐ 4' },
-    { value: 3, label: '⭐ 3' },
-    { value: 2, label: '⭐ 2' },
-    { value: 1, label: '⭐ 1' },
+    { value: 5, label: "⭐ 5" },
+    { value: 4, label: "⭐ 4" },
+    { value: 3, label: "⭐ 3" },
+    { value: 2, label: "⭐ 2" },
+    { value: 1, label: "⭐ 1" },
   ];
 
-  const selectedStatus = filters.status ?? 'all';
+  const selectedStatus = filters.status ?? "all";
   const selectedRating = filters.rating ?? null;
 
   return (
@@ -696,35 +736,40 @@ function ReviewsFilterBar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <FilterChip
-            active={selectedStatus === 'all'}
-            onClick={() => updateFilter('status', undefined)}
+            active={selectedStatus === "all"}
+            onClick={() => updateFilter("status", undefined)}
             label="All"
           />
           <FilterChip
-            active={selectedStatus === 'pending'}
-            onClick={() => updateFilter('status', 'pending')}
+            active={selectedStatus === "pending"}
+            onClick={() => updateFilter("status", "pending")}
             label="Pending"
             badge={stats?.pending ?? 0}
           />
           <FilterChip
-            active={selectedStatus === 'replied'}
-            onClick={() => updateFilter('status', 'replied')}
+            active={selectedStatus === "replied"}
+            onClick={() => updateFilter("status", "replied")}
             label="Replied"
             badge={stats?.replied ?? 0}
           />
           <FilterChip
-            active={selectedStatus === 'flagged'}
-            onClick={() => updateFilter('status', 'flagged')}
+            active={selectedStatus === "flagged"}
+            onClick={() => updateFilter("status", "flagged")}
             label="Flagged"
           />
-          </div>
+        </div>
         <div className="flex items-center gap-2">
           {ratingButtons.map((ratingButton) => (
             <FilterChip
               key={ratingButton.value}
               active={selectedRating === ratingButton.value}
               onClick={() =>
-                updateFilter('rating', selectedRating === ratingButton.value ? undefined : ratingButton.value)
+                updateFilter(
+                  "rating",
+                  selectedRating === ratingButton.value
+                    ? undefined
+                    : ratingButton.value,
+                )
               }
               label={ratingButton.label}
               badge={ratingCounts[ratingButton.value] ?? 0}
@@ -736,8 +781,10 @@ function ReviewsFilterBar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <select
-            value={filters.locationId || ''}
-            onChange={(e) => updateFilter('locationId', e.target.value || undefined)}
+            value={filters.locationId || ""}
+            onChange={(e) =>
+              updateFilter("locationId", e.target.value || undefined)
+            }
             className="w-full sm:w-56 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All Locations</option>
@@ -749,8 +796,10 @@ function ReviewsFilterBar({
           </select>
 
           <select
-            value={filters.sentiment || ''}
-            onChange={(e) => updateFilter('sentiment', e.target.value || undefined)}
+            value={filters.sentiment || ""}
+            onChange={(e) =>
+              updateFilter("sentiment", e.target.value || undefined)
+            }
             className="w-full sm:w-48 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All Sentiments</option>
@@ -762,7 +811,10 @@ function ReviewsFilterBar({
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 sm:flex-none">
           <div className="relative flex-1 sm:flex-none sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" aria-hidden="true" />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"
+              aria-hidden="true"
+            />
             <Input
               type="text"
               placeholder="Search reviews, keywords, or people…"
@@ -839,71 +891,76 @@ function ReviewsFeedSection({
         <div>
           <h2 className="text-xl font-semibold text-white">Reviews Feed</h2>
           <p className="text-sm text-zinc-500">
-            {reviewStats?.pending ?? 0} awaiting response · {reviewStats?.replied ?? 0} completed this month
-                </p>
-              </div>
+            {reviewStats?.pending ?? 0} awaiting response ·{" "}
+            {reviewStats?.replied ?? 0} completed this month
+          </p>
+        </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <ArrowUpRight className="h-3.5 w-3.5 text-orange-400" />
-          {t('realtimeSyncEnabled')}
-          </div>
+          {t("realtimeSyncEnabled")}
+        </div>
       </header>
 
       <div className="max-h-[calc(100vh-320px)] overflow-y-auto px-6 py-6">
         {error && <ErrorBanner message={error} />}
 
         {loading && !hasReviews && (
-            <div className="flex items-center justify-center py-12">
-            <RefreshCw className="w-8 h-8 animate-spin text-orange-500" aria-hidden="true" />
-            </div>
-          )}
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw
+              className="w-8 h-8 animate-spin text-orange-500"
+              aria-hidden="true"
+            />
+          </div>
+        )}
 
         {!loading && !hasReviews && <EmptyState filters={filters} />}
 
         {hasReviews && (
-              <div className="space-y-4">
-                {reviews.map((review) => (
-                  <ReviewCard
-                    key={review.id}
-                    review={review}
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
                 onClick={() => {
                   if (!selectionMode) {
                     onSelectReview(review);
                   }
                 }}
-                    isSelected={selectedReview?.id === review.id}
+                isSelected={selectedReview?.id === review.id}
                 onReply={() => onReply(review)}
-                    showCheckbox={selectionMode}
-                    isChecked={selectedReviewIds.has(review.id)}
+                showCheckbox={selectionMode}
+                isChecked={selectedReviewIds.has(review.id)}
                 onCheckChange={(checked) => onCheckChange(review.id, checked)}
-                  />
-                ))}
+              />
+            ))}
 
-              {hasNextPage && (
+            {hasNextPage && (
               <div ref={infiniteScrollRef} className="flex justify-center py-6">
                 {isLoadingMore ? (
-                  <Loader2 className="w-6 h-6 animate-spin text-orange-500" aria-hidden="true" />
+                  <Loader2
+                    className="w-6 h-6 animate-spin text-orange-500"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <Button
                     onClick={() => loadMore()}
                     variant="ghost"
                     className="text-zinc-400 hover:text-zinc-200"
                   >
-                    {t('loadMore')}
+                    {t("loadMore")}
                   </Button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
             {!hasNextPage && (
               <div className="text-center py-6">
-                  <p className="text-zinc-500 text-sm">
-                  {t('allCaughtUp')}
-                  </p>
-                </div>
-              )}
+                <p className="text-zinc-500 text-sm">{t("allCaughtUp")}</p>
+              </div>
+            )}
           </div>
-          )}
-        </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -912,7 +969,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
       <p className="text-red-400">{message}</p>
-            </div>
+    </div>
   );
 }
 
@@ -920,11 +977,13 @@ function EmptyState({ filters }: { filters: ReviewsFilters }) {
   return (
     <Card className="bg-zinc-900/60 border border-zinc-800">
       <CardContent className="text-center py-12">
-        <p className="text-zinc-400 text-lg font-medium mb-2">No reviews found</p>
+        <p className="text-zinc-400 text-lg font-medium mb-2">
+          No reviews found
+        </p>
         <p className="text-zinc-500 text-sm">
           {filters.locationId
-            ? 'Try syncing reviews or adjusting filters'
-            : 'Select a location to view reviews'}
+            ? "Try syncing reviews or adjusting filters"
+            : "Select a location to view reviews"}
         </p>
       </CardContent>
     </Card>
@@ -948,13 +1007,17 @@ function FilterChip({
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm transition ${
         active
-          ? 'bg-orange-500 text-white shadow-orange-500/30 shadow-sm'
-          : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800'
+          ? "bg-orange-500 text-white shadow-orange-500/30 shadow-sm"
+          : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
       }`}
     >
       <span>{label}</span>
       {badge !== undefined && (
-        <span className={`text-xs ${active ? 'text-white/80' : 'text-zinc-500'}`}>{badge}</span>
+        <span
+          className={`text-xs ${active ? "text-white/80" : "text-zinc-500"}`}
+        >
+          {badge}
+        </span>
       )}
     </button>
   );
@@ -999,19 +1062,19 @@ function AutoReplySidebar({
     try {
       const params = new URLSearchParams();
       if (locationId) {
-        params.set('locationId', locationId);
+        params.set("locationId", locationId);
       }
       const query = params.toString();
       const response = await fetch(
-        `/api/reviews/auto-reply${query ? `?${query}` : ''}`,
-        { cache: 'no-store' }
+        `/api/reviews/auto-reply${query ? `?${query}` : ""}`,
+        { cache: "no-store" },
       );
       if (response.ok) {
         const data = await response.json().catch(() => null);
         setAutoReplyEnabled(Boolean(data?.settings?.enabled));
       }
     } catch (error) {
-      console.error('[Reviews] Failed to load auto-reply state', error);
+      console.error("[Reviews] Failed to load auto-reply state", error);
     } finally {
       setAutoReplyFetching(false);
     }
@@ -1022,15 +1085,15 @@ function AutoReplySidebar({
   }, [fetchAutoReplyState]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
     const handler = () => {
       fetchAutoReplyState();
     };
-    window.addEventListener('ai:auto-reply:refresh', handler);
+    window.addEventListener("ai:auto-reply:refresh", handler);
     return () => {
-      window.removeEventListener('ai:auto-reply:refresh', handler);
+      window.removeEventListener("ai:auto-reply:refresh", handler);
     };
   }, [fetchAutoReplyState]);
 
@@ -1057,13 +1120,13 @@ function AutoReplySidebar({
   }, [autoReplyBusy, onCancel, fetchAutoReplyState]);
 
   const statusLabel = autoReplyFetching
-    ? 'Syncing…'
+    ? "Syncing…"
     : autoReplyEnabled
-      ? 'Active Mode'
-      : 'Standby';
+      ? "Active Mode"
+      : "Standby";
   const statusBadgeClass = autoReplyEnabled
-    ? 'bg-green-500/15 text-green-300'
-    : 'bg-zinc-800 text-zinc-400';
+    ? "bg-green-500/15 text-green-300"
+    : "bg-zinc-800 text-zinc-400";
 
   return (
     <section className="space-y-4">
@@ -1071,40 +1134,67 @@ function AutoReplySidebar({
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-orange-400" aria-hidden="true" />
+              <Sparkles
+                className="h-5 w-5 text-orange-400"
+                aria-hidden="true"
+              />
               AI Auto-Reply Engine
             </CardTitle>
-            <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadgeClass}`}>
+            <span
+              className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadgeClass}`}
+            >
               {statusLabel}
             </span>
           </div>
           <p className="text-sm text-zinc-400">
-            Automate gratitude, escalate issues, and keep consistency across every response.
+            Automate gratitude, escalate issues, and keep consistency across
+            every response.
           </p>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-            <PreferenceRow label="⭐ 5" description="Auto-send immediately with warm thank you." active />
-            <PreferenceRow label="⭐ 4" description="Auto-draft + needs quick glance." active />
-            <PreferenceRow label="⭐ 3" description="Manual review with AI draft suggestion." active />
-            <PreferenceRow label="⭐ 2" description="Escalate with urgency, AI draft ready." />
-            <PreferenceRow label="⭐ 1" description="Alert team + manual response required." />
+            <PreferenceRow
+              label="⭐ 5"
+              description="Auto-send immediately with warm thank you."
+              active
+            />
+            <PreferenceRow
+              label="⭐ 4"
+              description="Auto-draft + needs quick glance."
+              active
+            />
+            <PreferenceRow
+              label="⭐ 3"
+              description="Manual review with AI draft suggestion."
+              active
+            />
+            <PreferenceRow
+              label="⭐ 2"
+              description="Escalate with urgency, AI draft ready."
+            />
+            <PreferenceRow
+              label="⭐ 1"
+              description="Alert team + manual response required."
+            />
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-white">Bulk actions</p>
               <span className="text-xs text-zinc-500">
-                {selectedDisplay} {selectedDisplay === 1 ? 'review' : 'reviews'} queued
+                {selectedDisplay} {selectedDisplay === 1 ? "review" : "reviews"}{" "}
+                queued
               </span>
-        </div>
+            </div>
             <Button
               onClick={onBulkDrafts}
               disabled={bulkDrafting || autoReplyBusy}
               className="w-full bg-orange-500 hover:bg-orange-600"
             >
-              {bulkDrafting ? 'Generating AI drafts…' : `Generate AI Drafts (${selectedDisplay})`}
+              {bulkDrafting
+                ? "Generating AI drafts…"
+                : `Generate AI Drafts (${selectedDisplay})`}
             </Button>
             <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
               <div
@@ -1112,7 +1202,11 @@ function AutoReplySidebar({
                 style={{ width: `${bulkProgressPct}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-500">{bulkDrafting ? `${bulkProgressPct}% complete` : 'Ready for next batch'}</p>
+            <p className="text-xs text-zinc-500">
+              {bulkDrafting
+                ? `${bulkProgressPct}% complete`
+                : "Ready for next batch"}
+            </p>
             <div className="flex items-center gap-2">
               <Button
                 onClick={handlePrimaryAction}
@@ -1121,7 +1215,7 @@ function AutoReplySidebar({
                 className="flex-1 border-zinc-700 text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
               >
                 <Pause className="w-4 h-4 mr-2" />
-                {autoReplyEnabled ? 'Pause Auto-Reply' : 'Resume Auto-Reply'}
+                {autoReplyEnabled ? "Pause Auto-Reply" : "Resume Auto-Reply"}
               </Button>
               <Button
                 onClick={handleCancelAutomation}
@@ -1150,16 +1244,25 @@ function AutoReplySidebar({
           </Button>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-zinc-300">
-          <PerformanceMetric label="Today" value={`${reviewStats?.replied ?? 0} auto-replies`} />
+          <PerformanceMetric
+            label="Today"
+            value={`${reviewStats?.replied ?? 0} auto-replies`}
+          />
           <PerformanceMetric label="Accuracy" value="94%" />
           <PerformanceMetric label="Edited" value="2 / 15 drafts" />
-          <PerformanceMetric label="Customer happiness" value="↑ 12%" trending="up" />
+          <PerformanceMetric
+            label="Customer happiness"
+            value="↑ 12%"
+            trending="up"
+          />
         </CardContent>
       </Card>
 
       <Card className="border border-zinc-800 bg-zinc-900/40">
         <CardHeader>
-          <CardTitle className="text-base text-white">Reply Templates</CardTitle>
+          <CardTitle className="text-base text-white">
+            Reply Templates
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-zinc-300">
           <TemplateItem title="Thankful (Positive)" />
@@ -1168,7 +1271,7 @@ function AutoReplySidebar({
           <Button
             variant="ghost"
             className="w-full justify-start px-0 text-orange-300 hover:text-orange-200 hover:bg-orange-500/10"
-            onClick={() => toast.info('Template builder coming soon')}
+            onClick={() => toast.info("Template builder coming soon")}
           >
             + Add custom template
           </Button>
@@ -1192,11 +1295,13 @@ function PreferenceRow({
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-white">{label}</span>
         {active && (
-          <span className="text-[10px] uppercase tracking-wide text-green-400">Auto</span>
+          <span className="text-[10px] uppercase tracking-wide text-green-400">
+            Auto
+          </span>
         )}
       </div>
       <p className="text-xs text-zinc-500">{description}</p>
-          </div>
+    </div>
   );
 }
 
@@ -1207,20 +1312,24 @@ function PerformanceMetric({
 }: {
   label: string;
   value: string;
-  trending?: 'up' | 'down';
+  trending?: "up" | "down";
 }) {
   return (
     <div className="flex items-center justify-between border-b border-zinc-800 pb-2 last:border-b-0 last:pb-0">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <span className="text-sm font-medium text-white">
-        {value}{' '}
+        {value}{" "}
         {trending ? (
-          <span className={trending === 'up' ? 'text-green-400' : 'text-red-400'}>
-            {trending === 'up' ? '↑' : '↓'}
+          <span
+            className={trending === "up" ? "text-green-400" : "text-red-400"}
+          >
+            {trending === "up" ? "↑" : "↓"}
           </span>
         ) : null}
       </span>
-        </div>
+    </div>
   );
 }
 
@@ -1228,7 +1337,7 @@ function TemplateItem({ title }: { title: string }) {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2">
       <span className="text-sm text-white">{title}</span>
-          </div>
+    </div>
   );
 }
 
@@ -1245,19 +1354,19 @@ function AIAnalyticsCard({
   pendingCount: number;
   autoReplySuccessRate: number | null;
 }) {
-  const trendDirection: 'up' | 'down' | null =
+  const trendDirection: "up" | "down" | null =
     Number.isFinite(reviewTrendPct) && reviewTrendPct !== 0
       ? reviewTrendPct > 0
-        ? 'up'
-        : 'down'
+        ? "up"
+        : "down"
       : null;
-  const trendValue = `${reviewTrendPct > 0 ? '+' : reviewTrendPct < 0 ? '-' : ''}${Math.abs(
-    Math.round(reviewTrendPct)
+  const trendValue = `${reviewTrendPct > 0 ? "+" : reviewTrendPct < 0 ? "-" : ""}${Math.abs(
+    Math.round(reviewTrendPct),
   )}% vs last month`;
   const automationSuccess =
     autoReplySuccessRate !== null && Number.isFinite(autoReplySuccessRate)
       ? `${autoReplySuccessRate.toFixed(1)}%`
-      : '—';
+      : "—";
 
   return (
     <Card className="border border-zinc-800 bg-zinc-900/40">
@@ -1269,7 +1378,10 @@ function AIAnalyticsCard({
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-zinc-300">
         <AnalyticsRow label="Pending reviews" value={`${pendingCount}`} />
-        <AnalyticsRow label="Response rate" value={`${responseRate.toFixed(1)}%`} />
+        <AnalyticsRow
+          label="Response rate"
+          value={`${responseRate.toFixed(1)}%`}
+        />
         <AnalyticsRow
           label="Review trend"
           value={trendValue}
@@ -1280,9 +1392,9 @@ function AIAnalyticsCard({
           value={automationSuccess}
           trend={
             autoReplySuccessRate !== null && autoReplySuccessRate >= 70
-              ? 'up'
+              ? "up"
               : autoReplySuccessRate !== null && autoReplySuccessRate < 40
-                ? 'down'
+                ? "down"
                 : undefined
           }
         />
@@ -1296,30 +1408,38 @@ function AutoReplySettingsCard() {
   const router = useRouter();
 
   const handleConfigureRules = () => {
-    router.push('/settings?tab=ai');
+    router.push("/settings?tab=ai");
   };
 
   const handleTemplates = () => {
-    router.push('/settings?tab=ai&section=templates');
+    router.push("/settings?tab=ai&section=templates");
   };
 
   const handleTrainingHistory = () => {
-    router.push('/automation');
+    router.push("/automation");
   };
 
   const handleExportLogs = () => {
-    router.push('/automation?view=logs');
+    router.push("/automation?view=logs");
   };
 
   return (
     <Card className="border border-zinc-800 bg-zinc-900/40">
       <CardHeader>
-        <CardTitle className="text-lg text-white">Auto-Reply Settings</CardTitle>
+        <CardTitle className="text-lg text-white">
+          Auto-Reply Settings
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
-        <SettingsButton label="Configure Rules" onClick={handleConfigureRules} />
+        <SettingsButton
+          label="Configure Rules"
+          onClick={handleConfigureRules}
+        />
         <SettingsButton label="Templates" onClick={handleTemplates} />
-        <SettingsButton label="Training History" onClick={handleTrainingHistory} />
+        <SettingsButton
+          label="Training History"
+          onClick={handleTrainingHistory}
+        />
         <SettingsButton label="Export Logs" onClick={handleExportLogs} />
       </CardContent>
     </Card>
@@ -1333,16 +1453,18 @@ function AnalyticsRow({
 }: {
   label: string;
   value: string;
-  trend?: 'up' | 'down';
+  trend?: "up" | "down";
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/30 px-3 py-2">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <span className="text-sm font-medium text-white flex items-center gap-1">
         {value}
         {trend ? (
-          <span className={trend === 'up' ? 'text-green-400' : 'text-red-400'}>
-            {trend === 'up' ? '↑' : '↓'}
+          <span className={trend === "up" ? "text-green-400" : "text-red-400"}>
+            {trend === "up" ? "↑" : "↓"}
           </span>
         ) : null}
       </span>
@@ -1350,7 +1472,13 @@ function AnalyticsRow({
   );
 }
 
-function SettingsButton({ label, onClick }: { label: string; onClick: () => void }) {
+function SettingsButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <Button
       variant="outline"

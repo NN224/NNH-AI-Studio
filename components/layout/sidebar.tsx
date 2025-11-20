@@ -1,15 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Link, usePathname } from '@/lib/navigation';
-import { motion } from 'framer-motion';
-import { LayoutDashboard, MapPin, Star, FileText, ChartBar as BarChart3, Settings, Zap, Users, Image as ImageIcon, MessageSquare, Layers, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { UserButton } from '@/components/auth/user-button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { useBrandProfile } from '@/contexts/BrandProfileContext';
-import Image from 'next/image';
+import { useState, useEffect } from "react";
+import { Link, usePathname } from "@/lib/navigation";
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  MapPin,
+  Star,
+  FileText,
+  ChartBar as BarChart3,
+  Settings,
+  Zap,
+  Users,
+  Image as ImageIcon,
+  MessageSquare,
+  Layers,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { UserButton } from "@/components/auth/user-button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useBrandProfile } from "@/contexts/BrandProfileContext";
+import Image from "next/image";
 
 interface UserProfile {
   name: string | null;
@@ -32,51 +45,51 @@ interface NavigationItem {
 export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
   const pathname = usePathname();
   const { profile: brandProfile, loading: brandLoading } = useBrandProfile();
-  
+
   const navigation: NavigationItem[] = [
     {
-      name: 'Dashboard',
-      href: '/dashboard',
+      name: "Dashboard",
+      href: "/dashboard",
       icon: LayoutDashboard,
     },
     {
-      name: 'Locations',
-      href: '/locations',
+      name: "Locations",
+      href: "/locations",
       icon: MapPin,
     },
     {
-      name: 'Business Info',
-      href: '/features',
+      name: "Business Info",
+      href: "/features",
       icon: Layers,
     },
     {
-      name: 'Reviews',
-      href: '/reviews',
+      name: "Reviews",
+      href: "/reviews",
       icon: Star,
     },
     {
-      name: 'Questions',
-      href: '/questions',
+      name: "Questions",
+      href: "/questions",
       icon: MessageSquare,
     },
     {
-      name: 'Posts',
-      href: '/posts',
+      name: "Posts",
+      href: "/posts",
       icon: FileText,
     },
     {
-      name: 'Media',
-      href: '/media',
+      name: "Media",
+      href: "/media",
       icon: ImageIcon,
     },
     {
-      name: 'Analytics',
-      href: '/analytics',
+      name: "Analytics",
+      href: "/analytics",
       icon: BarChart3,
     },
     {
-      name: 'Automation',
-      href: '/automation',
+      name: "Automation",
+      href: "/automation",
       icon: Zap,
     },
   ];
@@ -84,27 +97,27 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
   const bottomNavigation: NavigationItem[] = [
     {
       name: "What's New",
-      href: '/changelog',
+      href: "/changelog",
       icon: Sparkles,
     },
     {
-      name: 'Settings',
-      href: '/settings',
+      name: "Settings",
+      href: "/settings",
       icon: Settings,
     },
   ];
-  
+
   // On desktop (lg and above), always show sidebar regardless of isOpen
   // On mobile, hide/show based on isOpen
   const [isDesktop, setIsDesktop] = useState(false);
-  
+
   useEffect(() => {
     const checkDesktop = () => {
       setIsDesktop(window.innerWidth >= 1024);
     };
     checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
   }, []);
 
   return (
@@ -112,15 +125,15 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       <motion.aside
         initial={false}
         // On desktop: always x:0, on mobile: animate based on isOpen
-        animate={{ x: isDesktop ? 0 : (isOpen ? 0 : -280) }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        animate={{ x: isDesktop ? 0 : isOpen ? 0 : -280 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
-          'fixed left-0 top-8 z-40 h-[calc(100vh-2rem)] w-[280px]',
-          'border-r bg-background shadow-sm',
+          "fixed left-0 top-8 z-40 h-[calc(100vh-2rem)] w-[280px]",
+          "border-r bg-background shadow-sm",
           // Always visible on desktop (lg and above)
-          'block',
+          "block",
           // On desktop, ensure sidebar is always visible
-          'lg:translate-x-0'
+          "lg:translate-x-0",
         )}
       >
         <div className="flex h-full flex-col">
@@ -141,7 +154,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
             )}
             <div className="flex flex-col">
               <span className="text-lg font-bold">
-                {brandProfile?.brand_name || 'NNH AI Studio'}
+                {brandProfile?.brand_name || "NNH AI Studio"}
               </span>
               <span className="text-xs text-muted-foreground">
                 AI-Powered Business Management
@@ -156,15 +169,15 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                 const Icon = item.icon;
 
                 return (
-                  <Link key={item.nameKey} href={item.href} onClick={onClose}>
+                  <Link key={item.href} href={item.href} onClick={onClose}>
                     <motion.div
                       whileHover={{ x: 4 }}
                       whileTap={{ scale: 0.98 }}
                       className={cn(
-                        'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
@@ -172,10 +185,10 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                       {item.badge && (
                         <span
                           className={cn(
-                            'flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-medium',
+                            "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-medium",
                             isActive
-                              ? 'bg-primary-foreground text-primary'
-                              : 'bg-primary text-primary-foreground'
+                              ? "bg-primary-foreground text-primary"
+                              : "bg-primary text-primary-foreground",
                           )}
                         >
                           {item.badge}
@@ -195,15 +208,15 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                 const Icon = item.icon;
 
                 return (
-                  <Link key={item.nameKey} href={item.href} onClick={onClose}>
+                  <Link key={item.href} href={item.href} onClick={onClose}>
                     <motion.div
                       whileHover={{ x: 4 }}
                       whileTap={{ scale: 0.98 }}
                       className={cn(
-                        'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
