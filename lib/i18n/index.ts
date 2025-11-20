@@ -10,5 +10,8 @@ export * from "./formatting";
 // Pluralization utilities
 export * from "./pluralization";
 
+// Utility functions
+export * from "./utils";
+
 // Re-export navigation helpers
 export { Link, redirect, usePathname, useRouter, locales } from "../navigation";
