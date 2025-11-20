@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { Component, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { errorLogger } from '@/lib/services/error-logger';
+import { Component, ReactNode } from "react";
+import * as Sentry from "@sentry/nextjs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { errorLogger } from "@/lib/services/error-logger";
 
 interface Props {
   children: ReactNode;
@@ -28,34 +29,33 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     // ✅ Enhanced error logging with structured data
-    console.error('Error caught by boundary:', {
+    console.error("Error caught by boundary:", {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
       errorInfo,
       timestamp: new Date().toISOString(),
-      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+      userAgent:
+        typeof window !== "undefined" ? window.navigator.userAgent : "unknown",
     });
-    
+
     // Log error using centralized error logger
     errorLogger.logError(error, {
-      component: 'ErrorBoundary',
-      action: 'componentDidCatch',
+      component: "ErrorBoundary",
+      action: "componentDidCatch",
       metadata: {
         componentStack: errorInfo.componentStack,
-        errorBoundary: 'root',
-      }
+        errorBoundary: "root",
+      },
     });
-    
-    // Send to monitoring service (e.g., Sentry)
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, { 
-        extra: {
-          ...errorInfo,
-          timestamp: new Date().toISOString(),
-        }
-      });
-    }
+
+    // Send to Sentry monitoring service
+    Sentry.captureException(error, {
+      extra: {
+        ...errorInfo,
+        timestamp: new Date().toISOString(),
+      },
+    });
   }
 
   render() {
@@ -75,15 +75,16 @@ export class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We encountered an unexpected error. Please try refreshing the page.
+                We encountered an unexpected error. Please try refreshing the
+                page.
               </p>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === "development" && this.state.error && (
                 <pre className="text-xs bg-muted p-3 rounded overflow-auto">
                   {this.state.error.message}
                 </pre>
               )}
-              <Button 
-                onClick={() => window.location.reload()} 
+              <Button
+                onClick={() => window.location.reload()}
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -98,4 +99,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-

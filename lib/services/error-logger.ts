@@ -2,6 +2,8 @@
  * Centralized error logging service
  */
 
+import React from "react";
+
 export interface ErrorContext {
   userId?: string;
   sessionId?: string;
@@ -14,7 +16,7 @@ export interface ErrorLog {
   id: string;
   message: string;
   stack?: string;
-  level: 'error' | 'warning' | 'info';
+  level: "error" | "warning" | "info";
   timestamp: Date;
   context?: ErrorContext;
   userAgent?: string;
@@ -29,13 +31,13 @@ class ErrorLogger {
 
   private constructor() {
     // Listen for online/offline events
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", () => {
         this.isOnline = true;
         this.flushQueue();
       });
-      
-      window.addEventListener('offline', () => {
+
+      window.addEventListener("offline", () => {
         this.isOnline = false;
       });
     }
@@ -54,7 +56,7 @@ class ErrorLogger {
   async logError(
     error: Error | string,
     context?: ErrorContext,
-    level: 'error' | 'warning' | 'info' = 'error'
+    level: "error" | "warning" | "info" = "error",
   ): Promise<void> {
     const errorLog: ErrorLog = {
       id: this.generateId(),
@@ -63,13 +65,14 @@ class ErrorLogger {
       level,
       timestamp: new Date(),
       context,
-      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
-      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      userAgent:
+        typeof window !== "undefined" ? window.navigator.userAgent : undefined,
+      url: typeof window !== "undefined" ? window.location.href : undefined,
     };
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[ErrorLogger]', errorLog);
+    if (process.env.NODE_ENV === "development") {
+      console.error("[ErrorLogger]", errorLog);
     }
 
     // Add to queue
@@ -85,14 +88,14 @@ class ErrorLogger {
    * Log a warning
    */
   async logWarning(message: string, context?: ErrorContext): Promise<void> {
-    return this.logError(message, context, 'warning');
+    return this.logError(message, context, "warning");
   }
 
   /**
    * Log info
    */
   async logInfo(message: string, context?: ErrorContext): Promise<void> {
-    return this.logError(message, context, 'info');
+    return this.logError(message, context, "info");
   }
 
   /**
@@ -118,9 +121,9 @@ class ErrorLogger {
     this.queue = [];
 
     try {
-      const response = await fetch('/api/log-errors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/log-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ errors }),
       });
 
@@ -131,7 +134,7 @@ class ErrorLogger {
     } catch (error) {
       // Put errors back in queue if network failed
       this.queue.unshift(...errors);
-      console.error('Failed to send error logs:', error);
+      console.error("Failed to send error logs:", error);
     }
   }
 
@@ -168,21 +171,21 @@ export function useErrorLogger() {
     (error: Error | string, context?: ErrorContext) => {
       errorLogger.logError(error, context);
     },
-    []
+    [],
   );
 
   const logWarning = React.useCallback(
     (message: string, context?: ErrorContext) => {
       errorLogger.logWarning(message, context);
     },
-    []
+    [],
   );
 
   const logInfo = React.useCallback(
     (message: string, context?: ErrorContext) => {
       errorLogger.logInfo(message, context);
     },
-    []
+    [],
   );
 
   return { logError, logWarning, logInfo };
@@ -193,7 +196,7 @@ export function useErrorLogger() {
  */
 export function withErrorLogging<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  context?: ErrorContext
+  context?: ErrorContext,
 ): T {
   return (async (...args: Parameters<T>) => {
     try {
@@ -201,12 +204,9 @@ export function withErrorLogging<T extends (...args: any[]) => Promise<any>>(
     } catch (error) {
       await errorLogger.logError(
         error instanceof Error ? error : new Error(String(error)),
-        context
+        context,
       );
       throw error;
     }
   }) as T;
 }
-
-// Import React only if needed
-import React from 'react';
