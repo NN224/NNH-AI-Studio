@@ -7,15 +7,15 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
-export function MediaUploader({ onUploadComplete }) {
+export function MediaUploader({ onUploadComplete }: { onUploadComplete: (media: any[]) => void }) {
   const t = useTranslations('Media.uploader');
   const [uploading, setUploading] = useState(false);
-  
-  const onDrop = useCallback(async (acceptedFiles) => {
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setUploading(true);
     const formData = new FormData();
-    
-    acceptedFiles.forEach(file => {
+
+    acceptedFiles.forEach((file: File) => {
       formData.append('files', file);
     });
     

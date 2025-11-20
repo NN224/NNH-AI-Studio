@@ -146,7 +146,26 @@ export function AIInsightsPanel({ userId }: AIInsightsPanelProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{insights.summary}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Insights</p>
+              <p className="text-2xl font-bold">{insights.summary.totalInsights}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Critical Items</p>
+              <p className="text-2xl font-bold text-red-600">{insights.summary.criticalItems}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Opportunities</p>
+              <p className="text-2xl font-bold text-green-600">{insights.summary.opportunitiesCount}</p>
+            </div>
+            {insights.summary.overallScore && (
+              <div>
+                <p className="text-sm text-muted-foreground">Overall Score</p>
+                <p className="text-2xl font-bold">{insights.summary.overallScore}</p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -330,7 +349,7 @@ function PredictionCard({ prediction }: { prediction: AIPrediction }) {
             {prediction.factors.slice(0, 3).map((factor, index) => (
               <li key={index} className="flex items-start gap-1">
                 <span className="text-muted-foreground">•</span>
-                <span>{factor}</span>
+                <span>{factor.name} ({factor.impact}%)</span>
               </li>
             ))}
           </ul>
@@ -374,7 +393,7 @@ function AnomalyCard({ anomaly }: { anomaly: AIAnomaly }) {
         </div>
         <div>
           <p className="text-muted-foreground">Actual</p>
-          <p className="font-medium">{anomaly.actualValue.toFixed(2)}</p>
+          <p className="font-medium">{anomaly.detectedValue.toFixed(2)}</p>
         </div>
         <div>
           <p className="text-muted-foreground">Deviation</p>

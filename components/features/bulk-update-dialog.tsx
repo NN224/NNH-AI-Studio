@@ -144,14 +144,16 @@ export function BulkUpdateDialog({
         }
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(response.error || 'Bulk update failed');
+        throw new Error(data.error || 'Bulk update failed');
       }
 
-      setResults(response);
-      
+      setResults(data);
+
       if (!dryRun) {
-        toast.success(`Updated ${response.summary.successful} locations successfully`);
+        toast.success(`Updated ${data.summary.successful} locations successfully`);
         onComplete?.();
         onOpenChange(false);
       }
@@ -304,7 +306,7 @@ export function BulkUpdateDialog({
                                     {field.value[category]?.includes(feature.key) && (
                                       <Check className="h-3 w-3 mr-1" />
                                     )}
-                                    {feature.label}
+                                    {feature.name}
                                   </Badge>
                                 ))}
                               </div>

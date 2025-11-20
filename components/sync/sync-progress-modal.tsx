@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, Clock, PauseCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle, Clock, PauseCircle, Loader2 } from "lucide-react"
 import type { SyncProgressState, SyncProgressStage } from "@/hooks/use-sync-progress"
 
 type SyncProgressModalProps = {

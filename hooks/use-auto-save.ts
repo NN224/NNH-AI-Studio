@@ -89,7 +89,7 @@ export function useAutoSave({
 
   useEffect(() => {
     if (!enabled || !key) {
-      return
+      return undefined
     }
 
     const unsubscribe = subscribeToDraftEvents((event) => {
@@ -107,7 +107,9 @@ export function useAutoSave({
       }
     })
 
-    return unsubscribe
+    return () => {
+      unsubscribe()
+    }
   }, [key, showRestorePrompt, enabled])
 
   useEffect(() => {

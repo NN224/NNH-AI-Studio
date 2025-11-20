@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { MediaCard } from './MediaCard';
 
-export function MediaGrid({ media, onDelete }) {
+export function MediaGrid({ media, onDelete }: { media: any[]; onDelete: (id: string) => void }) {
   const t = useTranslations('Media.grid');
 
   if (media.length === 0) {
@@ -17,7 +17,7 @@ export function MediaGrid({ media, onDelete }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {media.map(item => (
+      {media.map((item: any) => (
         <MediaCard key={item.id} mediaItem={item} onDelete={onDelete} />
       ))}
     </div>

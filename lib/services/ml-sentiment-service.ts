@@ -92,7 +92,7 @@ export class MLSentimentService {
   async analyzeSentiment(text: string, rating?: number): Promise<SentimentAnalysisResult> {
     // If no API key configured, return basic sentiment based on rating
     if (!this.apiKey) {
-      return this.getBasicSentiment(text, rating);
+      return this.fallbackAnalysis(text, rating);
     }
     
     try {

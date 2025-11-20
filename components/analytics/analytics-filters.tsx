@@ -100,10 +100,11 @@ export function AnalyticsFilters({
           .order('location_name');
 
         if (data) {
-          setLocations(data);
+          const locations = data as GMBLocation[];
+          setLocations(locations);
           // Select all locations by default if none selected
           if (selectedLocationIds.length === 0) {
-            setSelectedLocationIds(data.map(l => l.id));
+            setSelectedLocationIds(locations.map(l => l.id));
           }
         }
       } catch (error) {
@@ -229,7 +230,7 @@ export function AnalyticsFilters({
                   initialFocus
                   mode="range"
                   selected={dateRange}
-                  onSelect={handleCustomDateSelect}
+                  onSelect={handleCustomDateSelect as any}
                   numberOfMonths={2}
                 />
               </PopoverContent>

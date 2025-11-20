@@ -222,7 +222,7 @@ export function sanitizeObject<T extends Record<string, any>>(
   obj: T,
   schema: Record<keyof T, 'html' | 'text' | 'url' | 'email' | 'phone' | 'sql' | 'filename'>
 ): T {
-  const sanitized = { ...obj }
+  const sanitized = { ...obj } as Record<string, any>
 
   for (const [key, type] of Object.entries(schema)) {
     if (typeof sanitized[key] === 'string') {
@@ -230,6 +230,6 @@ export function sanitizeObject<T extends Record<string, any>>(
     }
   }
 
-  return sanitized
+  return sanitized as T
 }
 

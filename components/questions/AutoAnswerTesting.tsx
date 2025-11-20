@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Button, Input, Card, CardHeader, CardTitle, CardContent, Alert } from '@components/ui';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 async function callAutoAnswerService(question: string): Promise<{ answer: string }> {
   // Call the backend service to generate an answer
@@ -28,7 +31,7 @@ export function AutoAnswerTesting() {
       const result = await callAutoAnswerService(question);
       setAnswer(result.answer);
       setError(null);
-    } catch (e) {
+    } catch (e: any) {
       setError('Failed to generate answer. Please try again.');
     }
   };
@@ -48,15 +51,15 @@ export function AutoAnswerTesting() {
             />
             <Button onClick={handleTest}>اختبار</Button>
             {answer && (
-              <Alert variant="success">
-                <Alert.Title>الرد:</Alert.Title>
-                <Alert.Description>{answer}</Alert.Description>
+              <Alert>
+                <AlertTitle>الرد:</AlertTitle>
+                <AlertDescription>{answer}</AlertDescription>
               </Alert>
             )}
             {error && (
-              <Alert variant="error">
-                <Alert.Title>خطأ:</Alert.Title>
-                <Alert.Description>{error}</Alert.Description>
+              <Alert variant="destructive">
+                <AlertTitle>خطأ:</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
           </div>

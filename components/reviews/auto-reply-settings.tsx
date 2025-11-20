@@ -160,7 +160,7 @@ export function AutoReplySettings({ locationId }: AutoReplySettingsProps) {
             <label className="block text-sm text-gray-300 mb-2">Tone:</label>
             <select
               value={settings.tone}
-              onChange={(e) => setSettings({ ...settings, tone: e.target.value as AutoReplySettings['tone'] })}
+              onChange={(e) => setSettings({ ...settings, tone: e.target.value as typeof settings.tone })}
               disabled={loading || saving}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
             >

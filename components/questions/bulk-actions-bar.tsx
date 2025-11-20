@@ -70,11 +70,13 @@ export function BulkActionsBar({
         options
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(response.error || 'Bulk action failed');
+        throw new Error(data.error || 'Bulk action failed');
       }
 
-      const { results } = response;
+      const { results } = data;
       
       toast.success(`Bulk ${action} completed!`, {
         description: `${results.success.length} succeeded, ${results.failed.length} failed`

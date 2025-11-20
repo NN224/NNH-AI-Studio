@@ -3,12 +3,13 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export interface CalendarProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface CalendarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   mode?: "single" | "multiple" | "range";
-  selected?: Date | Date[] | { from: Date; to: Date };
-  onSelect?: (date: Date | Date[] | { from: Date; to: Date } | undefined) => void;
+  selected?: Date | Date[] | { from: Date; to: Date } | { from?: Date; to?: Date };
+  onSelect?: (date: Date | Date[] | { from: Date; to: Date } | { from?: Date; to?: Date } | undefined) => void;
   disabled?: (date: Date) => boolean;
   initialFocus?: boolean;
+  numberOfMonths?: number;
 }
 
 export function Calendar({

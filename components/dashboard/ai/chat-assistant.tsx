@@ -91,12 +91,10 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.message,
+        content: typeof data.message === 'string' ? data.message : data.message.content,
         timestamp: new Date(),
         metadata: {
           suggestions: data.suggestions,
-          actions: data.actions,
-          data: data.data,
         },
       };
 

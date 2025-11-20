@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
-export function MediaCard({ mediaItem, onDelete }) {
+export function MediaCard({ mediaItem, onDelete }: { mediaItem: any; onDelete: (id: string) => void }) {
   const t = useTranslations('Media.card');
 
   const handleDelete = async () => {

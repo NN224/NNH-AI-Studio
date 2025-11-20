@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function MediaFilters({ locations, filters, onFiltersChange }) {
+export function MediaFilters({ locations, filters, onFiltersChange }: { locations: any[]; filters: any; onFiltersChange: (filters: any) => void }) {
   const t = useTranslations('Media.filters');
 
   return (
@@ -17,7 +17,7 @@ export function MediaFilters({ locations, filters, onFiltersChange }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t('allLocations')}</SelectItem>
-          {locations.map(location => (
+          {locations.map((location: any) => (
             <SelectItem key={location.id} value={location.id}>
               {location.location_name}
             </SelectItem>

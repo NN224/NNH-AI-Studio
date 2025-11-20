@@ -122,7 +122,7 @@ export function useQuestionsCache(filters: Record<string, any> = {}) {
       queryFn: async () => {
         const params = new URLSearchParams();
         Object.entries(nextFilters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+          if (value !== undefined && value !== null && String(value) !== '' && String(value) !== '0') {
             params.append(key, String(value));
           }
         });

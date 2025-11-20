@@ -26,12 +26,11 @@ export default async function MetricsPage({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/auth/login")
+    const resolvedParams = await params
+    redirect({ href: "/auth/login", locale: resolvedParams.locale })
   }
 
-  // TypeScript doesn't know that user is not null after redirect
-  // but we've already checked and redirected if null, so it's safe
-  const userId = user.id
+  const userId = user!.id
 
   const [activity, metrics] = await Promise.all([
     getRecentActivity(userId, 10),

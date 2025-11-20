@@ -79,6 +79,11 @@ export interface AIInsight {
     period?: string;
   };
   recommendations?: string[];
+  suggestedActions?: Array<{
+    label: string;
+    action: string;
+    data?: any;
+  }>;
   createdAt: Date | string;
 }
 
