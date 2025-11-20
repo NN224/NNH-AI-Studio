@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -22,7 +22,6 @@ import { PasswordStrength } from "@/components/auth/password-strength";
 import { useTranslations } from "next-intl";
 
 export default function SignupPage() {
-  const router = useRouter();
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname);
   const t = useTranslations("auth.signup");
@@ -65,7 +64,6 @@ export default function SignupPage() {
     const hasUppercase = /[A-Z]/.test(password);
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
     if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber) {
       setError(t("errors.weakPassword"));

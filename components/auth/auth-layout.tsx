@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
-import { Sparkles, Shield, Users, Zap, Star, TrendingUp } from "lucide-react";
+import { Sparkles, Shield, Users, Zap, Star } from "lucide-react";
 import Link from "next/link";
 
 interface AuthLayoutProps {
