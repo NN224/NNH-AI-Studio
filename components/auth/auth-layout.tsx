@@ -111,7 +111,7 @@ export function AuthLayout({
         {/* Footer */}
         <div className="p-4 sm:p-6 text-center text-xs sm:text-sm text-gray-400">
           <p>
-            © 2024 NNH AI Studio. All rights reserved.{" "}
+            © 2025 NNH AI Studio. All rights reserved.{" "}
             <Link
               href="/privacy"
               className="hover:text-orange-500 transition-colors"

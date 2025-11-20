@@ -147,7 +147,7 @@ export default withSentryConfig(withNextIntl(withBundleAnalyzer(nextConfig)), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "nnh-official",
+  org: "nnh-ai-studio",
 
   project: "javascript-nextjs",
 

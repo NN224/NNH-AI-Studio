@@ -45,7 +45,7 @@ export function DashboardPreviewSection() {
                 <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
               </div>
               <div className="flex-1 bg-gray-700/50 rounded px-4 py-1.5 text-xs text-gray-400 font-mono">
-                app.nnhstudio.com/dashboard
+                https://www.nnh.ae/dashboard
               </div>
             </div>
 
