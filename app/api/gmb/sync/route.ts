@@ -29,6 +29,88 @@ type SyncStatusState = 'running' | 'success' | 'failed'
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 type PhaseCounts = Record<string, number | undefined>
 type JsonRecord = Record<string, unknown>
+
+// Google My Business API response types
+interface GmbLocationAddress {
+  addressLines?: string[];
+  locality?: string | null;
+  administrativeArea?: string | null;
+  postalCode?: string | null;
+}
+
+interface GmbLocationMetadata {
+  placeId?: string;
+  mapsUri?: string;
+  newReviewUri?: string;
+  canHaveFoodMenus?: boolean;
+  canHaveBusinessCalls?: boolean;
+  hasVoiceOfMerchant?: boolean;
+  hasPendingEdits?: boolean;
+  canDelete?: boolean;
+  canOperateHealthData?: boolean;
+  canOperateLodgingData?: boolean;
+  canModifyServiceList?: boolean;
+  averageRating?: number;
+  totalReviewCount?: number;
+  type?: string;
+  serviceAreaEnabled?: boolean;
+}
+
+interface GmbLocationLatLng {
+  latitude?: number;
+  longitude?: number;
+}
+
+interface GmbLocationOpenInfo {
+  status?: string;
+  openingDate?: string | { year?: number; month?: number; day?: number };
+}
+
+interface GmbLocationCategories {
+  primaryCategory?: { displayName?: string };
+  additionalCategories?: unknown[];
+}
+
+interface GmbLocationPhoneNumbers {
+  primaryPhone?: string;
+}
+
+interface GmbLocationProfile {
+  description?: string;
+  shortDescription?: string;
+  merchantDescription?: string;
+  openingDate?: string | { year?: number; month?: number; day?: number };
+}
+
+interface GmbLocationHours {
+  periods?: unknown[];
+}
+
+interface RawGoogleLocation {
+  name?: string | null;
+  title?: string | null;
+  storefrontAddress?: GmbLocationAddress | null;
+  phoneNumbers?: GmbLocationPhoneNumbers | null;
+  websiteUri?: string | null;
+  categories?: GmbLocationCategories | null;
+  profile?: GmbLocationProfile | null;
+  regularHours?: GmbLocationHours | null;
+  specialHours?: GmbLocationHours | null;
+  moreHours?: GmbLocationHours | null;
+  serviceItems?: unknown[] | null;
+  openInfo?: GmbLocationOpenInfo | null;
+  metadata?: GmbLocationMetadata | null;
+  latlng?: GmbLocationLatLng | null;
+  labels?: string[] | null;
+  type?: string | null;
+  averageRating?: number | null;
+  totalReviewCount?: number | null;
+  serviceArea?: { enabled?: boolean } | null;
+  // Extended properties for media URLs
+  cover_photo_url?: string | null;
+  logo_url?: string | null;
+}
+
 type ApiDisplayValue = { displayName?: string; name?: string; merchantDescription?: string }
 type ApiMediaItem = { mediaFormat?: string; googleUrl?: string | null }
 const SYNC_LIMIT_PER_HOUR = 10
@@ -294,12 +376,36 @@ async function getValidAccessToken(
   throw new ApiError('Account not found', 404);
   }
 
-  const accessToken = resolveTokenValue(account.access_token, {
-    context: `gmb_accounts.access_token:${accountId}`,
-  });
-  const refreshToken = resolveTokenValue(account.refresh_token, {
-    context: `gmb_accounts.refresh_token:${accountId}`,
-  });
+  // Decrypt tokens - will throw EncryptionError if decryption fails
+  let accessToken: string | null;
+  let refreshToken: string | null;
+
+  try {
+    accessToken = resolveTokenValue(account.access_token, {
+      context: `gmb_accounts.access_token:${accountId}`,
+    });
+    refreshToken = resolveTokenValue(account.refresh_token, {
+      context: `gmb_accounts.refresh_token:${accountId}`,
+    });
+  } catch (error) {
+    console.error('[GMB Sync] Token decryption failed for account:', accountId);
+
+    // Mark account as inactive - requires reconnection
+    await supabase
+      .from('gmb_accounts')
+      .update({
+        is_active: false,
+        last_error: 'Token decryption failed - reconnection required',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', accountId);
+
+    throw new ApiError(
+      'Your Google account connection has expired. Please reconnect in Settings. ' +
+      'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.',
+      401
+    );
+  }
 
   const now = new Date();
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
@@ -354,7 +460,6 @@ async function getValidAccessToken(
 }
 
 // Fetch locations from Google My Business
-type RawGoogleLocation = Record<string, JsonRecord | string | number | boolean | null>;
 
 // Fetch attributes for a specific location
 async function fetchLocationAttributes(
@@ -494,8 +599,19 @@ async function fetchLocations(
     }
 
     console.error('[GMB Sync] Failed to fetch locations:', errorData);
+    let errorMessage = 'Unknown error';
+    if (errorData.error && typeof errorData.error === 'object' && errorData.error !== null) {
+      if ('message' in errorData.error && typeof errorData.error.message === 'string') {
+        errorMessage = errorData.error.message;
+      } else if ('error' in errorData.error && typeof errorData.error.error === 'object' && errorData.error.error !== null) {
+        const nestedError = errorData.error.error as Record<string, unknown>;
+        if ('message' in nestedError && typeof nestedError.message === 'string') {
+          errorMessage = nestedError.message;
+        }
+      }
+    }
     throw new ApiError(
-      `Failed to fetch locations: ${errorData.error?.message || 'Unknown error'}`,
+      `Failed to fetch locations: ${errorMessage}`,
       500,
       errorData.error
     );
@@ -1424,7 +1540,18 @@ export async function POST(request: NextRequest) {
         );
         // Fetch cover photo and attributes for each location
         for (const loc of locations) {
+          // Check if loc.name is valid before using it
+          if (!loc.name) {
+            console.warn('[GMB Sync API] Skipping location with null/undefined name');
+            continue;
+          }
+          
           const locationId = loc.name.split('/').pop();
+          if (!locationId) {
+            console.warn('[GMB Sync API] Could not extract location ID from name:', loc.name);
+            continue;
+          }
+          
           const mediaUrl = `${GMB_V4_BASE}/${accountResource}/locations/${locationId}/media`;
           let coverPhotoUrl = null;
 
@@ -1437,14 +1564,14 @@ export async function POST(request: NextRequest) {
               const data = await res.json();
               const mediaItems = Array.isArray(data.mediaItems) ? data.mediaItems : [];
               const cover = mediaItems.find(
-                (item): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'COVER'
+                (item: unknown): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'COVER'
               );
               const logo = mediaItems.find(
-                (item): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'LOGO'
+                (item: unknown): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'LOGO'
               );
               coverPhotoUrl = cover?.googleUrl || null;
               const logoUrl = logo?.googleUrl || null;
-              loc.logo_url = logoUrl;
+              (loc as RawGoogleLocation).logo_url = logoUrl;
             } else {
               console.warn(`[GMB Sync API] Failed to fetch media for location ${locationId}`);
             }
@@ -1458,7 +1585,7 @@ export async function POST(request: NextRequest) {
           if (attributesData?.attributes) {
             // Attach attributes to location object for later processing
             (loc as any).fetchedAttributes = attributesData.attributes;
-            console.log(`[GMB Sync] ✅ Fetched ${attributesData.attributes.length} attributes for ${loc.name}`);
+            console.warn(`[GMB Sync] ✅ Fetched ${attributesData.attributes.length} attributes for ${loc.name}`);
           } else {
             console.warn(`[GMB Sync] ⚠️ No attributes returned for ${loc.name}`);
           }
@@ -1468,13 +1595,13 @@ export async function POST(request: NextRequest) {
           if (placeActionLinks && placeActionLinks.length > 0) {
             // Attach place action links to location object for later processing
             (loc as any).placeActionLinks = placeActionLinks;
-            console.log(`[GMB Sync] ✅ Fetched ${placeActionLinks.length} place action links for ${loc.name}:`, placeActionLinks.map(l => ({ type: l.placeActionType, uri: l.uri })));
+            console.warn(`[GMB Sync] ✅ Fetched ${placeActionLinks.length} place action links for ${loc.name}:`, placeActionLinks.map((l: any) => ({ type: l.placeActionType, uri: l.uri })));
           } else {
             console.warn(`[GMB Sync] ⚠️ No place action links returned for ${loc.name}`);
           }
 
           // Attach cover photo URL to location object for database insert
-          loc.cover_photo_url = coverPhotoUrl;
+          (loc as RawGoogleLocation).cover_photo_url = coverPhotoUrl;
         }
         if (locations.length > 0) {
           if (IS_DEV) {
@@ -1484,6 +1611,12 @@ export async function POST(request: NextRequest) {
             });
           }
           const locationRows = locations.map((location, index) => {
+            // Skip location if name is null/undefined
+            if (!location.name) {
+              console.warn('[GMB Sync] Skipping location with null/undefined name');
+              return null;
+            }
+            
             // Log first location data in dev to understand structure
             if (IS_DEV && index === 0) {
               console.warn('[GMB Sync] Sample location structure:');
@@ -1509,7 +1642,7 @@ export async function POST(request: NextRequest) {
             const placeActionLinks = (location as any).placeActionLinks || [];
             
             // Debug log what we're about to save
-            console.log(`[GMB Sync] Saving location ${location.name} with:`, {
+            console.warn(`[GMB Sync] Saving location ${location.name} with:`, {
               attributesCount: fetchedAttributes.length,
               placeActionLinksCount: placeActionLinks.length,
               hasRegularHours: !!location.regularHours,
@@ -1712,7 +1845,7 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
               last_synced_at: new Date().toISOString(),
             };
-          });
+          }).filter((row): row is NonNullable<typeof row> => row !== null);
           for (const chunk of chunks(locationRows)) {
             const { error } = await supabase
               .from('gmb_locations')
@@ -1805,10 +1938,19 @@ export async function POST(request: NextRequest) {
 
               const reviewRows = reviews
                 .map((review) => {
+                  // Type guard for review object
+                  if (typeof review !== 'object' || review === null) {
+                    console.warn('[GMB Sync API] Skipping invalid review object');
+                    return null;
+                  }
+                  const reviewObj = review as Record<string, unknown>;
+                  
                   const externalReviewId =
-                    review.reviewId ||
-                    review.name?.split('/').pop() ||
-                    review.reviewReply?.reviewId ||
+                    (typeof reviewObj.reviewId === 'string' ? reviewObj.reviewId : undefined) ||
+                    (typeof reviewObj.name === 'string' ? reviewObj.name.split('/').pop() : undefined) ||
+                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null ? 
+                      (typeof (reviewObj.reviewReply as Record<string, unknown>).reviewId === 'string' ? 
+                        (reviewObj.reviewReply as Record<string, unknown>).reviewId : undefined) : undefined) ||
                     null;
 
                   if (!externalReviewId) {
@@ -1816,14 +1958,24 @@ export async function POST(request: NextRequest) {
                     return null;
                   }
 
-                  const rating = convertStarRatingToNumber(review.starRating);
+                  const rating = convertStarRatingToNumber(reviewObj.starRating as string | undefined);
                   const reviewerName =
-                    review.reviewer?.displayName?.trim() || 'Anonymous';
+                    (reviewObj.reviewer && typeof reviewObj.reviewer === 'object' && reviewObj.reviewer !== null && 
+                     typeof (reviewObj.reviewer as Record<string, unknown>).displayName === 'string') 
+                      ? (reviewObj.reviewer as Record<string, unknown>).displayName as string
+                      : 'Anonymous';
                   const reviewCreateTime =
-                    review.createTime || new Date().toISOString();
+                    (typeof reviewObj.createTime === 'string' ? reviewObj.createTime : new Date().toISOString());
                   const replyUpdateTime =
-                    review.reviewReply?.updateTime || null;
-                  const replyComment = review.reviewReply?.comment?.trim() || null;
+                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null && 
+                     typeof (reviewObj.reviewReply as Record<string, unknown>).updateTime === 'string')
+                      ? (reviewObj.reviewReply as Record<string, unknown>).updateTime as string
+                      : null;
+                  const replyComment = 
+                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null && 
+                     typeof (reviewObj.reviewReply as Record<string, unknown>).comment === 'string')
+                      ? (reviewObj.reviewReply as Record<string, unknown>).comment as string
+                      : null;
                   const hasReply = Boolean(replyComment);
                   const normalizedStatus = hasReply ? 'responded' : 'pending';
 
@@ -1833,12 +1985,15 @@ export async function POST(request: NextRequest) {
                     user_id: userId,
                     external_review_id: externalReviewId,
                     rating,
-                    review_text: review.comment || null,
+                    review_text: (typeof reviewObj.comment === 'string' ? reviewObj.comment : null),
                     review_date: reviewCreateTime,
                     reviewer_name: reviewerName,
                     reviewer_display_name: reviewerName,
                     reviewer_profile_photo_url:
-                      review.reviewer?.profilePhotoUrl || null,
+                      (reviewObj.reviewer && typeof reviewObj.reviewer === 'object' && reviewObj.reviewer !== null && 
+                       typeof (reviewObj.reviewer as Record<string, unknown>).profilePhotoUrl === 'string')
+                        ? (reviewObj.reviewer as Record<string, unknown>).profilePhotoUrl
+                        : null,
                     review_reply: replyComment,
                     response_text: replyComment,
                     reply_date: replyUpdateTime,
@@ -1846,8 +2001,8 @@ export async function POST(request: NextRequest) {
                     has_reply: hasReply,
                     has_response: hasReply,
                     status: normalizedStatus,
-                    google_my_business_name: review.name || null,
-                    review_url: review.reviewUrl || null,
+                    google_my_business_name: (typeof reviewObj.name === 'string' ? reviewObj.name : null),
+                    review_url: (typeof reviewObj.reviewUrl === 'string' ? reviewObj.reviewUrl : null),
                     synced_at: new Date().toISOString(),
                     metadata: review,
                   };
@@ -1926,32 +2081,44 @@ export async function POST(request: NextRequest) {
             }
             
             const mediaRows = media.map((item) => {
+              // Type guard for media item
+              const mediaItem = item as Record<string, unknown>;
+              
               // Log first item structure for debugging
               if (media.indexOf(item) === 0 && IS_DEV) {
                 console.warn('[GMB Sync API] First media item structure:', {
-                  name: item.name,
-                  mediaFormat: item.mediaFormat,
-                  type: item.type,
-                  googleUrl: item.googleUrl,
-                  sourceUrl: item.sourceUrl,
-                  thumbnailUrl: item.thumbnailUrl,
-                  createTime: item.createTime,
-                  updateTime: item.updateTime,
-                  allKeys: Object.keys(item),
+                  name: typeof mediaItem.name === 'string' ? mediaItem.name : 'not string',
+                  mediaFormat: typeof mediaItem.mediaFormat === 'string' ? mediaItem.mediaFormat : 'not string',
+                  type: typeof mediaItem.type === 'string' ? mediaItem.type : 'not string',
+                  googleUrl: typeof mediaItem.googleUrl === 'string' ? mediaItem.googleUrl : 'not string',
+                  sourceUrl: typeof mediaItem.sourceUrl === 'string' ? mediaItem.sourceUrl : 'not string',
+                  thumbnailUrl: typeof mediaItem.thumbnailUrl === 'string' ? mediaItem.thumbnailUrl : 'not string',
+                  createTime: typeof mediaItem.createTime === 'string' ? mediaItem.createTime : 'not string',
+                  updateTime: typeof mediaItem.updateTime === 'string' ? mediaItem.updateTime : 'not string',
+                  allKeys: Object.keys(mediaItem),
                 });
               }
+              
+              // Extract locationAssociation safely
+              const locationAssociation = mediaItem.locationAssociation && typeof mediaItem.locationAssociation === 'object' && mediaItem.locationAssociation !== null 
+                ? mediaItem.locationAssociation as Record<string, unknown>
+                : null;
               
               return {
                 gmb_account_id: accountId,
                 location_id: location.id,
                 user_id: userId,
-                external_media_id: item.name || item.mediaId || null,
-                type: item.mediaFormat || item.type || null,
-                category: item.locationAssociation?.category || null,
-                url: item.googleUrl || item.sourceUrl || null,
-                thumbnail_url: item.thumbnailUrl || null,
-                created_at: item.createTime || null,
-                updated_at: item.updateTime || null,
+                external_media_id: (typeof mediaItem.name === 'string' ? mediaItem.name : 
+                                  (typeof mediaItem.mediaId === 'string' ? mediaItem.mediaId : null)),
+                type: (typeof mediaItem.mediaFormat === 'string' ? mediaItem.mediaFormat : 
+                      (typeof mediaItem.type === 'string' ? mediaItem.type : null)),
+                category: (locationAssociation && typeof locationAssociation.category === 'string' 
+                          ? locationAssociation.category : null),
+                url: (typeof mediaItem.googleUrl === 'string' ? mediaItem.googleUrl : 
+                     (typeof mediaItem.sourceUrl === 'string' ? mediaItem.sourceUrl : null)),
+                thumbnail_url: (typeof mediaItem.thumbnailUrl === 'string' ? mediaItem.thumbnailUrl : null),
+                created_at: (typeof mediaItem.createTime === 'string' ? mediaItem.createTime : null),
+                updated_at: (typeof mediaItem.updateTime === 'string' ? mediaItem.updateTime : null),
                 metadata: item,
               };
             }).filter((item) => {
@@ -2094,45 +2261,70 @@ export async function POST(request: NextRequest) {
             }
             
             const questionRows = questions.map((question) => {
+              // Type guard for question object
+              if (typeof question !== 'object' || question === null) {
+                console.warn('[GMB Sync API] Skipping invalid question object');
+                return null;
+              }
+              const questionObj = question as Record<string, unknown>;
+              
               // Get the best answer (first from topAnswers, or use existing answer)
-              const bestAnswer = question.topAnswers && question.topAnswers.length > 0 
-                ? question.topAnswers[0] 
-                : null;
+              const topAnswers = questionObj.topAnswers && Array.isArray(questionObj.topAnswers) 
+                ? questionObj.topAnswers 
+                : [];
+              const bestAnswer = topAnswers.length > 0 ? topAnswers[0] as Record<string, unknown> : null;
               
               // Determine answer status
               let answerStatus: 'pending' | 'answered' | 'draft' = 'pending';
               let answerText: string | null = null;
               let answeredAt: string | null = null;
               
-              if (bestAnswer && bestAnswer.text) {
+              if (bestAnswer && typeof bestAnswer.text === 'string') {
                 answerText = bestAnswer.text;
-                answeredAt = bestAnswer.createTime || bestAnswer.updateTime || null;
+                answeredAt = (typeof bestAnswer.createTime === 'string' ? bestAnswer.createTime : 
+                             (typeof bestAnswer.updateTime === 'string' ? bestAnswer.updateTime : null));
                 // If answered by merchant, mark as answered, otherwise it's a customer answer
-                answerStatus = bestAnswer.author?.type === 'MERCHANT' ? 'answered' : 'pending';
+                answerStatus = (bestAnswer.author && typeof bestAnswer.author === 'object' && bestAnswer.author !== null && 
+                               (bestAnswer.author as Record<string, unknown>).type === 'MERCHANT') 
+                              ? 'answered' : 'pending';
               }
+
+              // Extract author information safely
+              const author = questionObj.author && typeof questionObj.author === 'object' && questionObj.author !== null
+                ? questionObj.author as Record<string, unknown>
+                : null;
+                
+              const authorDisplayName = author && typeof author.displayName === 'string' 
+                ? author.displayName 
+                : 'Anonymous';
+                
+              const authorType = author && typeof author.type === 'string'
+                ? (author.type === 'MERCHANT' ? 'MERCHANT' : 
+                   author.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER')
+                : 'CUSTOMER';
 
               return {
                 gmb_account_id: accountId,
                 user_id: userId,
                 location_id: location.id,  // Use UUID id, not location_id (resource name)
-                external_question_id: question.name,
-                question_text: question.text || '',
-              author_name: question.author?.displayName || 'Anonymous',
-              author_type: question.author?.type === 'MERCHANT' ? 'MERCHANT' : 
-                            question.author?.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER',
+                external_question_id: (typeof questionObj.name === 'string' ? questionObj.name : null),
+                question_text: (typeof questionObj.text === 'string' ? questionObj.text : ''),
+                author_name: authorDisplayName,
+                author_type: authorType,
                 answer_text: answerText,
                 answered_at: answeredAt,
                 answer_status: answerStatus,
-                upvote_count: question.upvoteCount || 0,
-                created_at: question.createTime || new Date().toISOString(),
-                updated_at: question.updateTime || question.createTime || new Date().toISOString(),
+                upvote_count: (typeof questionObj.upvoteCount === 'number' ? questionObj.upvoteCount : 0),
+                created_at: (typeof questionObj.createTime === 'string' ? questionObj.createTime : new Date().toISOString()),
+                updated_at: (typeof questionObj.updateTime === 'string' ? questionObj.updateTime : 
+                           (typeof questionObj.createTime === 'string' ? questionObj.createTime : new Date().toISOString())),
               };
-            }).filter((q) => {
+            }).filter((q): q is NonNullable<typeof q> => {
               // Filter out questions without question_text
-              if (!q.question_text || q.question_text.trim().length === 0) {
+              if (!q || !q.question_text || q.question_text.trim().length === 0) {
                 console.warn(
                   '[GMB Sync API] Skipping question without question_text:',
-                  q.external_question_id,
+                  q?.external_question_id,
                 );
                 return false;
               }

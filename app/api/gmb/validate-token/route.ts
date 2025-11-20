@@ -35,9 +35,35 @@ export async function POST(request: Request) {
     // Check token validity
     const now = new Date();
     const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
-    
-    const accessToken = resolveTokenValue(account.access_token, { context: `gmb_accounts.access_token:${accountId}` });
-    const refreshToken = resolveTokenValue(account.refresh_token, { context: `gmb_accounts.refresh_token:${accountId}` });
+
+    // Decrypt tokens - if decryption fails, account needs reconnection
+    let accessToken: string | null;
+    let refreshToken: string | null;
+
+    try {
+      accessToken = resolveTokenValue(account.access_token, { context: `gmb_accounts.access_token:${accountId}` });
+      refreshToken = resolveTokenValue(account.refresh_token, { context: `gmb_accounts.refresh_token:${accountId}` });
+    } catch (error) {
+      console.error('[Validate Token] Token decryption failed for account:', accountId);
+
+      // Mark account as inactive - requires reconnection
+      await supabase
+        .from('gmb_accounts')
+        .update({
+          is_active: false,
+          last_error: 'Token decryption failed - reconnection required',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', accountId);
+
+      return NextResponse.json({
+        valid: false,
+        canRefresh: false,
+        needsReconnection: true,
+        error: 'Token decryption failed. Please reconnect your Google account. ' +
+               'فشل فك تشفير الرمز. يُرجى إعادة توصيل حساب Google الخاص بك.',
+      }, { status: 401 });
+    }
 
     const valid = !!(
       accessToken && 

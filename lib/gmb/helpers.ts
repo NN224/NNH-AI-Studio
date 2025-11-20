@@ -45,6 +45,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 /**
  * Get a valid access token for a GMB account, refreshing if necessary.
  * Assumes gmb_accounts schema contains: access_token, refresh_token, token_expires_at.
+ * @throws Error if account not found or token decryption fails (requires re-authentication)
  */
 export async function getValidAccessToken(
   supabase: any,
@@ -60,8 +61,31 @@ export async function getValidAccessToken(
     throw new Error('Account not found');
   }
 
-  const accessToken = resolveTokenValue(account.access_token, { context: 'gmb_accounts.access_token' });
-  const refreshToken = resolveTokenValue(account.refresh_token, { context: 'gmb_accounts.refresh_token' });
+  // Decrypt tokens - will throw EncryptionError if decryption fails
+  let accessToken: string | null;
+  let refreshToken: string | null;
+
+  try {
+    accessToken = resolveTokenValue(account.access_token, { context: 'gmb_accounts.access_token' });
+    refreshToken = resolveTokenValue(account.refresh_token, { context: 'gmb_accounts.refresh_token' });
+  } catch (error) {
+    console.error('[GMB Helpers] Token decryption failed for account:', accountId);
+
+    // Mark account as inactive - requires reconnection
+    await supabase
+      .from('gmb_accounts')
+      .update({
+        is_active: false,
+        last_error: 'Token decryption failed - reconnection required',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', accountId);
+
+    throw new Error(
+      'Your Google account connection has expired. Please reconnect in Settings. ' +
+      'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.'
+    );
+  }
 
   const now = Date.now();
   const expiresAt = account.token_expires_at

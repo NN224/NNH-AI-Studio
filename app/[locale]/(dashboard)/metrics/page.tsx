@@ -19,7 +19,7 @@ export default async function MetricsPage({
 }: {
   params: Promise<{ locale: string }>
 }) {
-  const { locale } = await params
+  await params // Locale is not used but required by Next.js routing
   const supabase = await createClient()
   const {
     data: { user },
@@ -29,9 +29,13 @@ export default async function MetricsPage({
     redirect("/auth/login")
   }
 
+  // TypeScript doesn't know that user is not null after redirect
+  // but we've already checked and redirected if null, so it's safe
+  const userId = user.id
+
   const [activity, metrics] = await Promise.all([
-    getRecentActivity(user.id, 10),
-    getMetricsSummary(user.id),
+    getRecentActivity(userId, 10),
+    getMetricsSummary(userId),
   ])
 
   return (

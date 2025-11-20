@@ -87,6 +87,28 @@ export function decryptToken(encryptedToken?: string | null): string | null {
   }
 }
 
+/**
+ * Resolves token value by decrypting if it appears to be encrypted
+ *
+ * @param token - Token value (must be encrypted)
+ * @param options - Options including context for logging
+ * @returns Decrypted token value or null if token is null/undefined
+ * @throws EncryptionError if decryption fails - caller must handle re-authentication
+ *
+ * Security: Does NOT fall back to plaintext on decryption failure.
+ * Callers must catch errors and trigger user re-authentication flow.
+ *
+ * Example:
+ * ```typescript
+ * try {
+ *   const token = resolveTokenValue(account.access_token, { context: 'gmb_accounts' });
+ * } catch (error) {
+ *   // Token decryption failed - trigger re-authentication
+ *   await deactivateAccount(accountId);
+ *   throw new ApiError('Please reconnect your account', 401);
+ * }
+ * ```
+ */
 export function resolveTokenValue(
   token?: string | null,
   options?: { context?: string }
@@ -99,11 +121,15 @@ export function resolveTokenValue(
     return decryptToken(token);
   } catch (error) {
     const contextSuffix = options?.context ? ` (${options.context})` : '';
-    console.warn(
-      `[Encryption] Legacy plaintext token detected${contextSuffix}. Please run scripts/encrypt-existing-tokens.ts.`,
-      error
+    console.error(
+      `[Encryption] Token decryption failed${contextSuffix}. Re-authentication required.`,
+      error instanceof Error ? error.message : 'Unknown error'
     );
-    return token;
+
+    throw new EncryptionError(
+      'Token decryption failed - re-authentication required. ' +
+      'فشل فك تشفير الرمز - يُرجى إعادة المصادقة.',
+      { cause: error }
+    );
   }
 }
-
