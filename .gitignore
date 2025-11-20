@@ -47,3 +47,23 @@ storybook-static
 # Testing
 coverage/
 .nyc_output/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.md.backup
+tsconfig.tsbuildinfo
+
+# Documentation (keep only README)
+*_SUMMARY.md
+*_PROGRESS.md
+*_COMPLETE.md
+*_FIXES*.md
+*_ISSUES.md
+COMMIT_MESSAGE*.txt
