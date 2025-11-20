@@ -84,7 +84,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://www.google-analytics.com https://*.googleapis.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://mybusinessbusinessinformation.googleapis.com https://mybusinessqanda.googleapis.com https://mybusinessaccountmanagement.googleapis.com https://analytics.google.com https://analyticsreporting.googleapis.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://www.google-analytics.com https://*.googleapis.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://mybusinessbusinessinformation.googleapis.com https://mybusinessqanda.googleapis.com https://mybusinessaccountmanagement.googleapis.com https://analytics.google.com https://analyticsreporting.googleapis.com https://*.sentry.io https://*.ingest.sentry.io",
               "media-src 'self'",
               "object-src 'none'",
               "frame-src 'self' https://www.google.com https://maps.google.com https://accounts.google.com https://*.google.com",
