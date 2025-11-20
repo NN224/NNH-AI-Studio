@@ -1,10 +1,6 @@
-import { redirect } from "next/navigation";
+import LandingPage from "./landing";
 
-export default function LocaleRootPage({
-  params,
-}: {
-  params: { locale: string };
-}) {
-  // Redirect to home page with the locale
-  redirect(`/${params.locale}/home`);
+export default function LocaleRootPage() {
+  // Show landing page directly - no redirect needed
+  return <LandingPage />;
 }

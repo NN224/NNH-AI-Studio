@@ -52,15 +52,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  params,
+}: {
+  params: { locale: string };
+}) {
   const supabase = await createClient();
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
 
+  // Get locale from params (await if it's a Promise)
+  const locale =
+    typeof params.locale === "string" ? params.locale : (await params).locale;
+
   if (error || !user) {
-    redirect("/en/auth/login");
+    redirect(`/${locale}/auth/login`);
   }
 
   // TypeScript doesn't know that user is not null after redirect
