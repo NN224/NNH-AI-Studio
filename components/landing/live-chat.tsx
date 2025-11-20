@@ -91,7 +91,7 @@ export function LiveChat() {
       return "We offer email support for Free users, priority support for Pro, and 24/7 dedicated support for Enterprise customers. We're here to help! 🎧";
     }
 
-    return "That's a great question! For detailed information, please check our FAQ section or sign up for a free trial. You can also email us at support@nnhstudio.com. 😊";
+    return "That's a great question! For detailed information, please check our FAQ section or sign up for a free trial. You can also email us at support@nnh.ae. 😊";
   };
 
   const handleQuickReply = (reply: string) => {

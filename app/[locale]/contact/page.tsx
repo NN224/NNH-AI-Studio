@@ -244,10 +244,10 @@ export default function ContactPage() {
                       <div>
                         <h3 className="font-semibold mb-1">Email</h3>
                         <a
-                          href="mailto:support@nnhstudio.com"
+                          href="mailto:support@nnh.ae"
                           className="text-muted-foreground hover:text-primary transition-colors"
                         >
-                          support@nnhstudio.com
+                          support@nnh.ae
                         </a>
                       </div>
                     </div>
@@ -264,10 +264,10 @@ export default function ContactPage() {
                       <div>
                         <h3 className="font-semibold mb-1">Phone</h3>
                         <a
-                          href="tel:+1234567890"
+                          href="tel:+971543665548"
                           className="text-muted-foreground hover:text-primary transition-colors"
                         >
-                          +1 (234) 567-890
+                          +971 543-6655-48
                         </a>
                       </div>
                     </div>
