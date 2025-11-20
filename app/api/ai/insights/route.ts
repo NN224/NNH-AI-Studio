@@ -91,8 +91,7 @@ export async function GET(request: NextRequest) {
     // Cache results
     const response: AIInsightsResponse = {
       ...insights,
-      generatedAt: new Date(),
-      cacheKey,
+      generatedAt: new Date().toISOString(),
     };
 
     insightsCache.set(cacheKey, {
@@ -264,28 +263,23 @@ function parseAIResponse(content: string): Omit<AIInsightsResponse, 'generatedAt
       insights: [
         {
           id: `insight_${Date.now()}`,
-          type: 'recommendation',
+          type: 'info',
           title: 'Review Your Dashboard',
           description: 'Check your recent reviews and respond to pending ones to improve customer engagement.',
           impact: 'medium',
           confidence: 100,
           category: 'reviews',
-          suggestedActions: [
-            {
-              id: 'action_1',
-              label: 'View Pending Reviews',
-              description: 'Navigate to reviews page',
-              actionType: 'navigate',
-              actionUrl: '/reviews',
-            },
-          ],
-          metadata: {},
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
         },
       ],
       predictions: [],
       anomalies: [],
-      summary: 'Keep monitoring your metrics and responding to reviews to maintain a strong online presence.',
+      summary: {
+        totalInsights: 1,
+        criticalItems: 0,
+        opportunitiesCount: 1,
+        overallScore: 75,
+      },
     };
   }
 }

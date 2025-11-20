@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return queryValidation.response;
     }
 
-    const { locationId, status, page, limit, search } = queryValidation.data;
+    const { locationId, status, page = 1, limit = 20, search } = queryValidation.data;
     const offset = (page - 1) * limit;
 
     // First get active GMB account IDs
