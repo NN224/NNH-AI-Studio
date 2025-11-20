@@ -9,9 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface PerformanceMetricsChartProps {
   dateRange?: string // "7", "30", "90", "365"
+  locationIds?: string[]
+  comparison?: 'none' | 'previous_period' | 'previous_year'
 }
 
-export function PerformanceMetricsChart({ dateRange = "30" }: PerformanceMetricsChartProps) {
+export function PerformanceMetricsChart({ dateRange = "30", locationIds, comparison }: PerformanceMetricsChartProps) {
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalImpressions, setTotalImpressions] = useState(0)

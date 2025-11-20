@@ -13,7 +13,12 @@ interface SearchKeyword {
   month_year: string
 }
 
-export function SearchKeywords() {
+interface SearchKeywordsProps {
+  dateRange?: { preset?: string; from: Date; to: Date }
+  locationIds?: string[]
+}
+
+export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps = {}) {
   const [keywords, setKeywords] = useState<SearchKeyword[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()

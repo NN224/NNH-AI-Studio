@@ -8,7 +8,11 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { GMBLocationWithRating } from "@/lib/types/database"
 
-export function LocationPerformance() {
+interface LocationPerformanceProps {
+  locationIds?: string[]
+}
+
+export function LocationPerformance({ locationIds }: LocationPerformanceProps = {}) {
   const [locations, setLocations] = useState<GMBLocationWithRating[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()

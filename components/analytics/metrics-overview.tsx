@@ -62,9 +62,11 @@ export function MetricCard({ title, value, change, period, isLoading }: MetricCa
 
 interface MetricsOverviewProps {
   dateRange?: string // "7" | "30" | "90" | "365"
+  locationIds?: string[]
+  comparison?: 'none' | 'previous_period' | 'previous_year'
 }
 
-export function MetricsOverview({ dateRange = "30" }: MetricsOverviewProps) {
+export function MetricsOverview({ dateRange = "30", locationIds, comparison }: MetricsOverviewProps) {
   const [metrics, setMetrics] = useState({
     totalImpressions: 0,
     totalConversations: 0,

@@ -5,7 +5,12 @@ import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianG
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 
-export function ResponseTimeChart() {
+interface ResponseTimeChartProps {
+  dateRange?: { preset?: string; from: Date; to: Date }
+  locationIds?: string[]
+}
+
+export function ResponseTimeChart({ dateRange, locationIds }: ResponseTimeChartProps = {}) {
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()

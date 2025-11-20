@@ -9,9 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface ImpressionsBreakdownChartProps {
   dateRange?: string // "7", "30", "90", "365"
+  locationIds?: string[]
 }
 
-export function ImpressionsBreakdownChart({ dateRange = "30" }: ImpressionsBreakdownChartProps) {
+export function ImpressionsBreakdownChart({ dateRange = "30", locationIds }: ImpressionsBreakdownChartProps) {
   const [breakdownData, setBreakdownData] = useState<{
     desktopMaps: number
     desktopSearch: number

@@ -5,7 +5,12 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Cart
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 
-export function ReviewSentimentChart() {
+interface ReviewSentimentChartProps {
+  dateRange?: { preset?: string; from: Date; to: Date }
+  locationIds?: string[]
+}
+
+export function ReviewSentimentChart({ dateRange, locationIds }: ReviewSentimentChartProps = {}) {
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()

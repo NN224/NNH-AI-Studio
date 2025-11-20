@@ -9,9 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface TrafficChartProps {
   dateRange?: string // "7" | "30" | "90" | "365"
+  locationIds?: string[]
 }
 
-export function TrafficChart({ dateRange = "30" }: TrafficChartProps) {
+export function TrafficChart({ dateRange = "30", locationIds }: TrafficChartProps) {
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()

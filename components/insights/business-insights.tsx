@@ -33,7 +33,11 @@ interface Insight {
   }
 }
 
-export function BusinessInsights() {
+interface BusinessInsightsProps {
+  filters?: any
+}
+
+export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
   const [insights, setInsights] = useState<Insight[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
