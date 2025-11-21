@@ -19,42 +19,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useMessages, Message } from "@/hooks/use-messages";
 import { useLocations } from "@/hooks/use-locations";
-
-// Types for Reviews (keeping mock for now as it wasn't part of the migration plan to replace reviews fully yet, or we can reuse existing hooks if available, but sticking to plan)
-type Review = {
-  id: string;
-  author: string;
-  avatar?: string;
-  rating: number;
-  content: string;
-  timestamp: string;
-  replied: boolean;
-};
-
-const MOCK_REVIEWS: Review[] = [
-  {
-    id: "1",
-    author: "Michael Jordan",
-    rating: 5,
-    content: "Absolutely fantastic experience! Highly recommended.",
-    timestamp: "2 days ago",
-    replied: false,
-  },
-  {
-    id: "2",
-    author: "LeBron James",
-    rating: 4,
-    content: "Great service, but parking was a bit difficult.",
-    timestamp: "1 week ago",
-    replied: true,
-  },
-];
+import { useReviews } from "@/hooks/use-reviews";
 
 export function MessagesCenter() {
   const { locations } = useLocations();
   const locationId = locations?.[0]?.id || "";
 
   const { messages, isLoading, sendMessage } = useMessages(locationId);
+  const { reviews, isLoading: reviewsLoading } = useReviews(locationId);
 
   const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -72,7 +44,7 @@ export function MessagesCenter() {
     setReplyText("");
   };
 
-  if (isLoading) {
+  if (isLoading || reviewsLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -162,8 +134,12 @@ export function MessagesCenter() {
                     </button>
                   ))
                 )
+              ) : reviews?.length === 0 ? (
+                <div className="p-4 text-center text-zinc-500 text-sm">
+                  No reviews yet
+                </div>
               ) : (
-                MOCK_REVIEWS.map((review) => (
+                reviews?.map((review) => (
                   <div
                     key={review.id}
                     className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition cursor-pointer"
@@ -171,28 +147,34 @@ export function MessagesCenter() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
-                          <AvatarFallback>{review.author[0]}</AvatarFallback>
+                          <AvatarFallback>
+                            {review.reviewer_display_name?.[0] ||
+                              review.reviewer_name?.[0] ||
+                              "U"}
+                          </AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-sm">
-                          {review.author}
+                          {review.reviewer_display_name ||
+                            review.reviewer_name ||
+                            "Anonymous"}
                         </span>
                       </div>
                       <span className="text-xs text-zinc-500">
-                        {review.timestamp}
+                        {new Date(review.created_at).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex text-yellow-500 mb-2">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-3 h-3 ${i < review.rating ? "fill-current" : "text-zinc-700"}`}
+                          className={`w-3 h-3 ${i < (review.rating || 0) ? "fill-current" : "text-zinc-700"}`}
                         />
                       ))}
                     </div>
                     <p className="text-sm text-zinc-400 line-clamp-2">
-                      {review.content}
+                      {review.comment || "No comment"}
                     </p>
-                    {!review.replied && (
+                    {!review.reply_comment && (
                       <Badge
                         variant="secondary"
                         className="mt-2 text-[10px] bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"

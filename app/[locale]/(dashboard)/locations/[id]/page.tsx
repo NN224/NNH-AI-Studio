@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowLeft, AlertCircle } from "lucide-react";
 import { useLocationDetails } from "@/hooks/use-locations-cache";
 import { LocationDetailHeader } from "@/components/locations/location-detail-header";
-import { LocationOverviewSection } from "@/components/locations/location-overview-section";
+import { BusinessInfoEditor } from "@/components/locations/business-info-editor";
 import { LocationReviewsSection } from "@/components/locations/location-reviews-section";
 import { LocationMediaSection } from "@/components/locations/location-media-section";
 import { LocationMetricsSection } from "@/components/locations/location-metrics-section";
@@ -124,11 +124,13 @@ export default function LocationDetailPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6 mt-6">
-            <LocationOverviewSection
+            <BusinessInfoEditor
+              locationId={locationId}
               location={locationData}
-              metadata={metadata}
-              attributes={data.attributes || []}
-              googleUpdated={data.googleUpdated}
+              onUpdate={() => {
+                refetch();
+                window.dispatchEvent(new Event("dashboard:refresh"));
+              }}
             />
 
             {/* Media Upload Section */}
