@@ -54,6 +54,10 @@ export default function AICommandCenterPage() {
     }
   };
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   // Error state
   if (error) {
     return (
@@ -68,7 +72,7 @@ export default function AICommandCenterPage() {
               {error.message ||
                 "An unexpected error occurred. Please try again."}
             </p>
-            <Button onClick={refetch} className="gap-2">
+            <Button onClick={handleRefresh} className="gap-2">
               <RefreshCw className="h-4 w-4" />
               Try Again
             </Button>
@@ -165,7 +169,7 @@ export default function AICommandCenterPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={refetch}
+              onClick={handleRefresh}
               disabled={isFetching}
               className="gap-2 border-orange-500/30 hover:bg-orange-500/10"
             >
