@@ -18,6 +18,144 @@ interface RateLimitResult {
   headers: Record<string, string>;
 }
 
+type UpstashRateLimitModule = typeof import("@upstash/ratelimit");
+type UpstashRedisModule = typeof import("@upstash/redis");
+
+type RedisConstructor = UpstashRedisModule["Redis"];
+type RedisInstance = InstanceType<RedisConstructor>;
+
+type UpstashDeps = {
+  Ratelimit: UpstashRateLimitModule["Ratelimit"];
+  Redis: RedisConstructor;
+};
+
+type UpstashConfig = {
+  url: string;
+  token: string;
+};
+
+type EdgeAwareGlobal = typeof globalThis & { EdgeRuntime?: string };
+
+const globalWithEdgeRuntime = globalThis as EdgeAwareGlobal;
+const isEdgeRuntime = typeof globalWithEdgeRuntime.EdgeRuntime === "string";
+
+let cachedUpstashConfig: UpstashConfig | null = null;
+let upstashDepsPromise: Promise<UpstashDeps> | null = null;
+let redisClient: RedisInstance | null = null;
+let upstashDisabledAfterFailure = false;
+let edgeRuntimeWarningLogged = false;
+
+function validateUpstashConfig(): UpstashConfig | null {
+  if (cachedUpstashConfig) {
+    return cachedUpstashConfig;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (!url || !token) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    if (!parsedUrl.protocol.startsWith("http")) {
+      throw new Error("Only HTTP(S) URLs are supported");
+    }
+  } catch (error) {
+    console.warn(
+      `[RateLimit] Invalid UPSTASH_REDIS_REST_URL "${url}". Expected an absolute HTTP(S) URL. Falling back to in-memory rate limiting.`,
+      error,
+    );
+    return null;
+  }
+
+  cachedUpstashConfig = { url, token };
+  return cachedUpstashConfig;
+}
+
+async function loadUpstashDeps(): Promise<UpstashDeps> {
+  if (!upstashDepsPromise) {
+    upstashDepsPromise = Promise.all([
+      import("@upstash/ratelimit"),
+      import("@upstash/redis"),
+    ])
+      .then(([ratelimitModule, redisModule]) => ({
+        Ratelimit: ratelimitModule.Ratelimit,
+        Redis: redisModule.Redis,
+      }))
+      .catch((error) => {
+        upstashDepsPromise = null;
+        throw error;
+      });
+  }
+
+  return upstashDepsPromise;
+}
+
+async function tryApplyUpstashRateLimit(
+  identifier: string,
+  { limit, windowMs, prefix }: ApplyRateLimitOptions,
+): Promise<RateLimitResult | null> {
+  if (upstashDisabledAfterFailure) {
+    return null;
+  }
+
+  if (isEdgeRuntime) {
+    if (!edgeRuntimeWarningLogged) {
+      console.warn(
+        "[RateLimit] Upstash Redis is not supported in the Edge runtime (middleware). Using in-memory rate limit fallback.",
+      );
+      edgeRuntimeWarningLogged = true;
+    }
+    return null;
+  }
+
+  const upstashConfig = validateUpstashConfig();
+  if (!upstashConfig) {
+    return null;
+  }
+
+  try {
+    const { Ratelimit, Redis } = await loadUpstashDeps();
+
+    if (!redisClient) {
+      redisClient = new Redis({
+        url: upstashConfig.url,
+        token: upstashConfig.token,
+      });
+    }
+
+    const limiter = new Ratelimit({
+      redis: redisClient,
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
+      analytics: true,
+      prefix,
+    });
+
+    const result = await limiter.limit(identifier);
+
+    return {
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+      headers: {
+        "X-RateLimit-Limit": result.limit.toString(),
+        "X-RateLimit-Remaining": result.remaining.toString(),
+        "X-RateLimit-Reset": result.reset.toString(),
+      },
+    };
+  } catch (error) {
+    upstashDisabledAfterFailure = true;
+    console.warn(
+      "Upstash rate limiting failed, falling back to memory:",
+      error,
+    );
+    return null;
+  }
+}
+
 // In-memory rate limit store (fallback)
 class MemoryRateLimitStore {
   private store: Map<string, { count: number; resetTime: number }> = new Map();
@@ -78,37 +216,15 @@ interface ApplyRateLimitOptions {
 
 async function applyRateLimit(
   identifier: string,
-  { limit, windowMs, prefix }: ApplyRateLimitOptions
+  options: ApplyRateLimitOptions,
 ): Promise<RateLimitResult> {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    try {
-      const { Ratelimit } = await import('@upstash/ratelimit');
-      const { Redis } = await import('@upstash/redis');
+  const upstashResult = await tryApplyUpstashRateLimit(identifier, options);
 
-      const rateLimiter = new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
-        analytics: true,
-        prefix,
-      });
-
-      const result = await rateLimiter.limit(identifier);
-      return {
-        success: result.success,
-        limit: result.limit,
-        remaining: result.remaining,
-        reset: result.reset,
-        headers: {
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toString(),
-        },
-      };
-    } catch (error) {
-      console.warn('Upstash rate limiting failed, falling back to memory:', error);
-    }
+  if (upstashResult) {
+    return upstashResult;
   }
 
+  const { limit, windowMs, prefix } = options;
   const namespacedKey = `${prefix}:${identifier}`;
   const count = memoryStore.increment(namespacedKey, windowMs);
   const entry = memoryStore.get(namespacedKey);
