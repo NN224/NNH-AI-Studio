@@ -20,23 +20,34 @@ export default function NewDashboardPage() {
     else if (hour < 18) setTimeOfDay("afternoon");
     else setTimeOfDay("evening");
 
-    // Get user name from localStorage or API
-    const storedUserName = localStorage.getItem("userName");
-    if (storedUserName) {
-      setUserName(storedUserName);
-    } else {
-      setUserName("User"); // Fallback
-    }
+    // Get user name from Supabase
+    const getUserName = async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const name =
+          user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+        setUserName(name);
+        localStorage.setItem("userName", name);
+      }
+    };
+
+    getUserName();
   }, []);
 
-  // Example data - would come from API in real app
+  // TODO: Replace with real API data
+  // For now, using placeholder data that makes sense for BETA
   const aiStatus = {
-    autoReplyEnabled: false,
-    autoAnswerEnabled: false,
-    profileOptimizerEnabled: false,
-    reviewsAnalyzed: 412,
-    avgResponseTime: 45,
-    responseRate: 98,
+    autoReplyEnabled: false, // User needs to enable
+    autoAnswerEnabled: false, // User needs to enable
+    profileOptimizerEnabled: false, // User needs to enable
+    reviewsAnalyzed: 0, // No data yet (new user)
+    avgResponseTime: 0, // No data yet
+    responseRate: 0, // No data yet
   };
 
   const nextSteps = [
@@ -63,33 +74,20 @@ export default function NewDashboardPage() {
     },
   ];
 
-  const recentActions = [
-    {
-      id: "1",
-      type: "reply" as const,
-      content: 'Replied to "Great service!"',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    },
-    {
-      id: "2",
-      type: "answer" as const,
-      content: 'Answered "Are you open on Sunday?"',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-    },
-    {
-      id: "3",
-      type: "suggestion" as const,
-      content: "Suggested profile update",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-    },
-  ];
+  // Empty initially - will show "No AI actions yet" message
+  const recentActions: Array<{
+    id: string;
+    type: "reply" | "answer" | "suggestion";
+    content: string;
+    timestamp: Date;
+  }> = [];
 
   const statsData = {
     totalLocations: 1,
-    avgRating: 4.2,
-    ratingChange: 0.4,
-    weeklyReviews: 23,
-    weeklyReplies: 12,
+    avgRating: 0, // No reviews yet
+    ratingChange: 0,
+    weeklyReviews: 0,
+    weeklyReplies: 0,
   };
 
   return (

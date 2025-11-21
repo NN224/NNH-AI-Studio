@@ -137,7 +137,10 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center gap-3 border-b px-6">
+          <Link
+            href="/dashboard"
+            className="flex h-16 items-center gap-3 border-b px-6 hover:bg-accent/50 transition-colors"
+          >
             <div className="relative h-10 w-10 overflow-hidden rounded-lg">
               <Image
                 src={brandProfile?.logo_url || "/nnh-logo.png"}
@@ -155,7 +158,7 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
                 AI-Powered Business Management
               </span>
             </div>
-          </div>
+          </Link>
 
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="space-y-1">
