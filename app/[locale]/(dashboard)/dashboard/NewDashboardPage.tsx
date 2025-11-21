@@ -22,17 +22,32 @@ export default function NewDashboardPage() {
 
     // Get user name from Supabase
     const getUserName = async () => {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
 
-      if (user) {
-        const name =
-          user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-        setUserName(name);
-        localStorage.setItem("userName", name);
+        if (!supabase) {
+          setUserName("User");
+          return;
+        }
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          const name =
+            user.user_metadata?.full_name ||
+            user.email?.split("@")[0] ||
+            "User";
+          setUserName(name);
+          localStorage.setItem("userName", name);
+        } else {
+          setUserName("User");
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setUserName("User");
       }
     };
 
