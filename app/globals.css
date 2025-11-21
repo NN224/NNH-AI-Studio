@@ -11,74 +11,74 @@
 
 :root {
   /* Background Colors - Pure Black Theme */
-  --background: 0 0 0;              /* #000000 - True Black */
-  --foreground: 255 255 255;        /* #FFFFFF - White Text */
-  
+  --background: 0 0 0; /* #000000 - True Black */
+  --foreground: 255 255 255; /* #FFFFFF - White Text */
+
   /* Card Colors - Dark Surfaces */
-  --card: 17 17 17;                 /* #111111 - Card Background */
-  --card-foreground: 255 255 255;   /* #FFFFFF - White Text */
-  
+  --card: 17 17 17; /* #111111 - Card Background */
+  --card-foreground: 255 255 255; /* #FFFFFF - White Text */
+
   /* Popover Colors */
   --popover: 17 17 17;
   --popover-foreground: 255 255 255;
-  
+
   /* Primary Orange - Electric Orange */
-  --primary: 255 107 0;             /* #FF6B00 - Electric Orange */
+  --primary: 255 107 0; /* #FF6B00 - Electric Orange */
   --primary-foreground: 255 255 255;
-  
+
   /* Secondary - Space Dark */
-  --secondary: 10 10 10;            /* #0A0A0A - Space */
-  --secondary-foreground: 226 232 240;  /* #E2E8F0 */
-  
+  --secondary: 10 10 10; /* #0A0A0A - Space */
+  --secondary-foreground: 226 232 240; /* #E2E8F0 */
+
   /* Muted - Subtle Gray */
-  --muted: 13 13 13;                /* #0D0D0D - Navy */
-  --muted-foreground: 148 163 184;  /* #94A3B8 */
-  
+  --muted: 13 13 13; /* #0D0D0D - Navy */
+  --muted-foreground: 148 163 184; /* #94A3B8 */
+
   /* Accent Orange - Deep Orange */
-  --accent: 255 140 0;              /* #FF8C00 - Deep Orange */
+  --accent: 255 140 0; /* #FF8C00 - Deep Orange */
   --accent-foreground: 255 255 255;
-  
+
   /* Destructive - Red */
-  --destructive: 239 68 68;         /* #EF4444 - Error */
+  --destructive: 239 68 68; /* #EF4444 - Error */
   --destructive-foreground: 255 255 255;
-  
+
   /* Success - Green */
-  --success: 16 185 129;            /* #10B981 */
+  --success: 16 185 129; /* #10B981 */
   --success-foreground: 255 255 255;
-  
+
   /* Warning - Orange Yellow */
-  --warning: 245 158 11;            /* #F59E0B */
+  --warning: 245 158 11; /* #F59E0B */
   --warning-foreground: 255 255 255;
-  
+
   /* Info - Blue */
-  --info: 59 130 246;               /* #3B82F6 - Vetra Blue */
+  --info: 59 130 246; /* #3B82F6 - Vetra Blue */
   --info-foreground: 255 255 255;
-  
+
   /* Border & Input - Orange Borders */
-  --border: 255 107 0;              /* #FF6B00 - Orange Borders */
+  --border: 255 107 0; /* #FF6B00 - Orange Borders */
   --border-opacity: 0.3;
-  --input: 17 17 17;                /* #111111 */
-  --ring: 255 107 0;                /* #FF6B00 */
-  
+  --input: 17 17 17; /* #111111 */
+  --ring: 255 107 0; /* #FF6B00 */
+
   /* Extended Colors - Neon Accents */
-  --neon-pink: 255 46 151;          /* #FF2E97 */
-  --gold: 255 215 0;                /* #FFD700 */
-  --cyan: 0 229 255;                /* #00E5FF */
-  --blue-light: 96 165 250;         /* #60A5FA */
-  
+  --neon-pink: 255 46 151; /* #FF2E97 */
+  --gold: 255 215 0; /* #FFD700 */
+  --cyan: 0 229 255; /* #00E5FF */
+  --blue-light: 96 165 250; /* #60A5FA */
+
   /* Chart Colors - Vibrant Palette */
-  --chart-1: 255 107 0;             /* Electric Orange */
-  --chart-2: 59 130 246;            /* Vetra Blue */
-  --chart-3: 168 85 247;            /* Purple */
-  --chart-4: 16 185 129;            /* Green */
-  --chart-5: 255 215 0;             /* Gold */
-  
+  --chart-1: 255 107 0; /* Electric Orange */
+  --chart-2: 59 130 246; /* Vetra Blue */
+  --chart-3: 168 85 247; /* Purple */
+  --chart-4: 16 185 129; /* Green */
+  --chart-5: 255 215 0; /* Gold */
+
   /* Radius */
   --radius: 0.75rem;
 
   /* Brand Colors - Default fallbacks, overridden by DynamicThemeProvider */
-  --brand-primary: #FFA500;
-  --brand-secondary: #1A1A1A;
+  --brand-primary: #ffa500;
+  --brand-secondary: #1a1a1a;
 }
 
 .dark {
@@ -118,7 +118,7 @@
 
 @theme inline {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  
+
   /* Map RGB to color classes */
   --color-background: rgb(var(--background));
   --color-foreground: rgb(var(--foreground));
@@ -144,7 +144,7 @@
   --color-chart-3: rgb(var(--chart-3));
   --color-chart-4: rgb(var(--chart-4));
   --color-chart-5: rgb(var(--chart-5));
-  
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -167,7 +167,9 @@
 body {
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
 }
 
 /* ===================================
@@ -212,7 +214,7 @@ body {
 .glass-header {
   background: rgba(17, 17, 17, 0.85);
   backdrop-filter: blur(24px);
-  border-bottom: 2px solid #FF6B00;
+  border-bottom: 2px solid #ff6b00;
   box-shadow: 0 4px 24px rgba(255, 107, 0, 0.1);
 }
 
@@ -220,34 +222,34 @@ body {
    Gradient Effects - GMB Orange Theme
    =================================== */
 .gradient-orange {
-  background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
 }
 
 .gradient-orange-vertical {
-  background: linear-gradient(180deg, #FF6B00 0%, #FF8C00 100%);
+  background: linear-gradient(180deg, #ff6b00 0%, #ff8c00 100%);
 }
 
 .gradient-orange-radial {
-  background: radial-gradient(circle at center, #FF6B00 0%, #FF8C00 100%);
+  background: radial-gradient(circle at center, #ff6b00 0%, #ff8c00 100%);
 }
 
 .gradient-gold {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA000 100%);
+  background: linear-gradient(135deg, #ffd700 0%, #ffa000 100%);
 }
 
 .gradient-blue {
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-orange {
-  background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 50%, #FFD700 100%);
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 50%, #ffd700 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -256,13 +258,14 @@ body {
 .gradient-border {
   position: relative;
   border: 2px solid transparent;
-  background: linear-gradient(rgb(var(--card)), rgb(var(--card))) padding-box,
-              linear-gradient(135deg, #FF6B00, #FF8C00) border-box;
+  background:
+    linear-gradient(rgb(var(--card)), rgb(var(--card))) padding-box,
+    linear-gradient(135deg, #ff6b00, #ff8c00) border-box;
 }
 
 /* Background Mesh Gradient */
 .gradient-mesh {
-  background: 
+  background:
     radial-gradient(at 0% 0%, rgba(255, 107, 0, 0.15) 0%, transparent 50%),
     radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
@@ -338,7 +341,8 @@ body {
 
 /* Pulse glow animation */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
   }
   50% {
@@ -402,7 +406,9 @@ body {
 
 /* Hover lift effect */
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
@@ -537,4 +543,147 @@ body {
 
 .border-brand-secondary {
   border-color: var(--brand-secondary) !important;
+}
+
+/* ===================================
+   Phase 2: Responsive Utilities
+   =================================== */
+
+/* Mobile-first responsive spacing */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .mobile-compact {
+    padding: 0.75rem !important;
+  }
+
+  /* Stack elements on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* Full width buttons on mobile */
+  .mobile-full-button {
+    width: 100% !important;
+  }
+
+  /* Hide on mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* Smaller text on mobile */
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .tablet-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .tablet-padding {
+    padding: 1.5rem !important;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1024px) {
+  /* Sticky sidebars on desktop */
+  .desktop-sticky {
+    position: sticky;
+    top: 5rem;
+  }
+
+  /* Larger spacing on desktop */
+  .desktop-spacing {
+    gap: 2rem !important;
+  }
+
+  /* Show only on desktop */
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+/* Ultra-wide adjustments */
+@media (min-width: 1536px) {
+  /* Max width for content */
+  .max-content-width {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
+/* Responsive card adjustments */
+.responsive-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-card {
+    padding: 1.5rem;
+    border-radius: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-card {
+    padding: 2rem;
+    border-radius: 1.25rem;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  button,
+  a {
+    min-height: 44px;
+  }
+}
+
+/* Responsive animations - reduce on mobile */
+@media (max-width: 640px) {
+  .animate-float,
+  .animate-gradient,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+
+  /* Simpler transitions on mobile */
+  * {
+    transition-duration: 0.2s !important;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-compact {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .landscape-hide {
+    display: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  * {
+    background: white !important;
+    color: black !important;
+  }
 }
