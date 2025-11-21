@@ -211,7 +211,7 @@ export function AIInsights({ insights }: AIInsightsProps) {
         {/* View All Button */}
         <div className="pt-4 border-t border-border/50">
           <Button variant="outline" className="w-full gap-2" asChild>
-            <Link href="/ai-studio">
+            <Link href="/ai-command-center">
               <Sparkles className="h-4 w-4" />
               {t("viewAll")}
             </Link>

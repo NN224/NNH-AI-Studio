@@ -52,7 +52,7 @@ const quickActions = [
   {
     icon: Sparkles,
     label: "aiStudio",
-    href: "/ai-studio",
+    href: "/ai-command-center",
     color: "text-primary",
     bgColor: "bg-primary/10",
   },
