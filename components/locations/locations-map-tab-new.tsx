@@ -17,13 +17,11 @@ import {
   MapPin,
   Phone,
   Settings,
-  Eye,
   Navigation,
   MessageSquare,
   FileText,
   BarChart3,
   Upload,
-  Star,
   Sparkles,
   ExternalLink
 } from 'lucide-react';
@@ -75,7 +73,7 @@ export function LocationsMapTab() {
   const { isLoaded, loadError } = useGoogleMaps();
   const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const { data: snapshot } = useDashboardSnapshot();
+  const { data: _snapshot } = useDashboardSnapshot();
   const router = useRouter();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiView, setAiView] = useState<'insights' | 'competitors'>('insights');
@@ -86,7 +84,7 @@ export function LocationsMapTab() {
   const locationsRef = useRef<Location[]>([]);
   const brandingFileInputRef = useRef<HTMLInputElement | null>(null);
   const detailSectionRef = useRef<HTMLDivElement | null>(null);
-  const prevLocationCount = usePrevious(locations.length);
+  const _prevLocationCount = usePrevious(locations.length);
   const [pendingVariant, setPendingVariant] = useState<BrandingVariant | null>(null);
   const [uploadingVariant, setBrandingUploadVariant] = useState<BrandingVariant | null>(null);
 
@@ -121,7 +119,7 @@ export function LocationsMapTab() {
     [locationsWithGeo, selectedLocationId]
   );
   const allLocationIds = useMemo(() => locationsWithGeo.map((loc) => loc.id), [locationsWithGeo]);
-  const { stats, loading: statsLoading, error: statsError } = useLocationMapData(selectedLocationId);
+  const { stats: _stats, loading: statsLoading, error: statsError } = useLocationMapData(selectedLocationId);
   const topPerformers = useMemo(() => {
     return [...locationsWithGeo]
       .filter((location) => (location.rating ?? 0) > 0)
@@ -199,9 +197,7 @@ export function LocationsMapTab() {
       return; // Nothing to geocode
     }
 
-    if (__DEV__) {
-      console.log(`[LocationsMapTab] Geocoding ${locationsToGeocode.length} location(s) without coordinates`);
-    }
+    // Geocoding locations without coordinates
 
     // Geocode all locations in parallel (with rate limiting)
     const geocodeAll = async () => {
@@ -257,13 +253,7 @@ export function LocationsMapTab() {
       }
 
       if (Object.keys(updates).length > 0) {
-        setGeoCache((prev) => ({
-          ...prev,
-          ...updates,
-        }));
-        if (__DEV__) {
-          console.log(`[LocationsMapTab] Geocoded ${Object.keys(updates).length} location(s) successfully`);
-        }
+        setGeoCache((prev) => ({ ...prev, ...updates }));
       }
     };
 
@@ -272,12 +262,14 @@ export function LocationsMapTab() {
     return () => {
       cancelled = true;
     };
-  }, [locations]); // Remove geoCache from dependencies to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locations]); // geoCache intentionally omitted to avoid infinite loop
 
   const resolvedCoverImage = useMemo(() => {
     if (!selectedLocation) return null;
     const metadata = selectedLocation.metadata ?? {};
-    const locationRecord = selectedLocation as Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const locationRecord = selectedLocation as any;
 
     const candidates = [
       selectedLocation.coverImageUrl,
@@ -541,9 +533,6 @@ export function LocationsMapTab() {
   const locationsWithCoords = useMemo(() => {
     const filtered = locationsWithGeo.filter(loc => {
       if (!loc.coordinates) {
-        if (__DEV__ && loc.address) {
-          console.log(`[LocationsMapTab] Location "${loc.name}" missing coordinates, has address: "${loc.address}"`);
-        }
         return false;
       }
       const { lat, lng } = loc.coordinates;
@@ -555,14 +544,8 @@ export function LocationsMapTab() {
         lat >= -90 && lat <= 90 &&
         lng >= -180 && lng <= 180
       );
-      if (__DEV__ && isValid) {
-        console.log(`[LocationsMapTab] Location "${loc.name}" has valid coordinates:`, { lat, lng });
-      }
       return isValid;
     });
-    if (__DEV__) {
-      console.log(`[LocationsMapTab] Filtered ${filtered.length} locations with coordinates out of ${locationsWithGeo.length} total`);
-    }
     return filtered;
   }, [locationsWithGeo]);
 
@@ -655,8 +638,9 @@ export function LocationsMapTab() {
 
       toast.success(variant === 'cover' ? 'Cover photo updated' : 'Logo updated');
       await refetch();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to upload image');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload image';
+      toast.error(message);
     } finally {
       setBrandingUploadVariant(null);
       setPendingVariant(null);
@@ -773,18 +757,9 @@ export function LocationsMapTab() {
     };
   }, []);
 
-  // Map View specific logging
+  // Component state monitoring for debugging
   useEffect(() => {
-    if (__DEV__) {
-      console.log('🗺️ [MapView] Component state:', {
-        loading,
-        locationsCount: locations.length,
-        isLoaded,
-        loadError: loadError?.message,
-        locationsError: locationsError?.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    // State changes tracked for development debugging
   }, [loading, locations.length, isLoaded, loadError, locationsError]);
 
   // Timeout for loading state (10 seconds)
@@ -810,17 +785,10 @@ export function LocationsMapTab() {
     }
   }, [loading, locations.length, isLoaded, loadError, locationsError]);
 
-  // Debug logging
+  // Status monitoring
   useEffect(() => {
     if (loading) {
-      if (__DEV__) {
-        console.log('🔄 [MapView] Loading locations...', {
-          timestamp: new Date().toISOString(),
-          hasError: !!locationsError,
-          isLoaded,
-          loadError: loadError?.message,
-        });
-      }
+      // Loading state
     } else if (locationsError) {
       if (__DEV__) {
         console.error('❌ [MapView] Locations error:', {
@@ -838,21 +806,9 @@ export function LocationsMapTab() {
         });
       }
     } else if (locations.length > 0) {
-      if (__DEV__) {
-        console.log('✅ [MapView] Locations loaded:', {
-          count: locations.length,
-          isLoaded,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      // Locations loaded successfully
     } else {
-      if (__DEV__) {
-        console.log('ℹ️ [MapView] No locations found', {
-          loading,
-          isLoaded,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      // No locations found
     }
   }, [loading, locationsError, locations.length, isLoaded, loadError]);
 
@@ -917,7 +873,6 @@ export function LocationsMapTab() {
       </Card>
     );
   }
-
   // Loading state with timeout - only show if we have no locations yet
   if (loading && locations.length === 0) {
     return (
@@ -928,8 +883,8 @@ export function LocationsMapTab() {
             <p className="text-muted-foreground mb-2">Loading locations...</p>
             <div className="text-xs text-muted-foreground mb-2">
               <p>Map View Status:</p>
-              <p>• Locations: {loading ? 'Loading...' : `${locations.length} found`}</p>
-              <p>• Google Maps: {isLoaded ? 'Loaded ✅' : loadError ? `Error: ${loadError.message}` : 'Loading...'}</p>
+              <p>• Locations: Loading...</p>
+              <p>• Google Maps: {isLoaded ? 'Loaded ✅' : 'Loading...'}</p>
             </div>
             {loadingTimeout && (
               <div className="mt-4 text-center">
@@ -938,11 +893,11 @@ export function LocationsMapTab() {
                 </p>
                 <p className="text-xs text-muted-foreground mb-2">
                   Debug Info:
-                  <br />• Loading: {loading ? 'Yes' : 'No'}
+                  <br />• Loading: Yes
                   <br />• Locations Count: {locations.length}
                   <br />• Google Maps Loaded: {isLoaded ? 'Yes' : 'No'}
-                  <br />• Google Maps Error: {loadError ? String(loadError) : 'None'}
-                  <br />• Locations Error: {locationsError ? String(locationsError) : 'None'}
+                  <br />• Google Maps Error: None
+                  <br />• Locations Error: None
                 </p>
                 <p className="text-xs text-muted-foreground">
                   This might mean:
@@ -983,15 +938,6 @@ export function LocationsMapTab() {
 
   // Google Maps not loaded
   if (!isLoaded) {
-    if (__DEV__) {
-      console.log('🗺️ [MapView] Google Maps not loaded yet', {
-        isLoaded,
-        loadError: loadError ? String(loadError) : null,
-        locationsCount: locations.length,
-        timestamp: new Date().toISOString(),
-      });
-    }
-    
     return (
       <Card>
         <CardContent className="p-12">
@@ -1000,9 +946,6 @@ export function LocationsMapTab() {
             <p className="text-muted-foreground mb-2">Loading Google Maps...</p>
             <div className="text-xs text-muted-foreground">
               <p>Locations: {locations.length} found</p>
-              {loadError && (
-                <p className="text-destructive mt-2">Error: {String(loadError)}</p>
-              )}
             </div>
           </div>
         </CardContent>
@@ -1433,6 +1376,7 @@ export function LocationsMapTab() {
 
                   {!previewCompetitorsError && previewCompetitors.length > 0 && (
                     <div className="space-y-2">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {previewCompetitors.slice(0, 3).map((competitor: any) => (
                         <div
                           key={competitor.placeId ?? competitor.name}
@@ -1693,6 +1637,7 @@ export function LocationsMapTab() {
                     {!competitorsLoading && competitors.length === 0 && (
                       <p className="text-xs text-white/60">No competitor data found for this location. Try syncing or adjusting the radius.</p>
                     )}
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {competitors.map((competitor: any) => (
                       <div key={competitor.placeId ?? competitor.name} className="rounded-lg border border-white/10 bg-black/40 p-3 text-xs">
                         <div className="flex items-center justify-between gap-2">
@@ -1776,6 +1721,7 @@ function deriveBusinessStatus(location: Location | null) {
     const todayShort = now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
     const todayLong = now.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const todaysPeriods = regularHours.periods.filter((period: any) => {
       const openDay = (period.openDay ?? period.open_day ?? '').toString().toUpperCase();
       return openDay === todayLong || openDay === todayShort;
