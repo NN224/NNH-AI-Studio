@@ -1,4 +1,20 @@
 import { withSentryConfig } from "@sentry/nextjs";
+// [stringer:auto-locales:start]
+import fs from "fs";
+import path from "path";
+
+const LOCALES_DIR = "i18n/locales";
+const resolvedLocalesDir = path.resolve(process.cwd(), LOCALES_DIR);
+const localeFiles = fs.existsSync(resolvedLocalesDir)
+  ? fs
+      .readdirSync(resolvedLocalesDir)
+      .filter((f) => f.endsWith(".json") && !f.startsWith("."))
+  : [];
+const autoLocales = localeFiles.map((f) => path.basename(f, ".json"));
+const autoDefaultLocale =
+  autoLocales.find((l) => l === "en") || autoLocales[0] || "en";
+// [stringer:auto-locales:end]
+
 import bundleAnalyzer from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
 
