@@ -5,18 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  MapPin,
-  Phone,
   Globe,
   Edit2,
   Save,
   X,
   Loader2,
-  Building2,
-  Mail,
   Facebook,
   Instagram,
   Twitter,
@@ -69,11 +64,13 @@ export function BusinessInfoEditor({
   const [contactInfo, setContactInfo] = useState({
     phone:
       ((
-        (location as Record<string, unknown>)?.phoneNumbers as Record<
-          string,
-          unknown
-        >
-      )?.primaryPhoneNumber?.phoneNumber as string) ||
+        (
+          (location as Record<string, unknown>)?.phoneNumbers as Record<
+            string,
+            unknown
+          >
+        )?.primaryPhoneNumber as Record<string, unknown>
+      )?.phoneNumber as string) ||
       (location?.phone as string) ||
       "",
     website:
@@ -147,11 +144,13 @@ export function BusinessInfoEditor({
       setContactInfo({
         phone:
           ((
-            (location as Record<string, unknown>)?.phoneNumbers as Record<
-              string,
-              unknown
-            >
-          )?.primaryPhoneNumber?.phoneNumber as string) ||
+            (
+              (location as Record<string, unknown>)?.phoneNumbers as Record<
+                string,
+                unknown
+              >
+            )?.primaryPhoneNumber as Record<string, unknown>
+          )?.phoneNumber as string) ||
           (location?.phone as string) ||
           "",
         website:
