@@ -80,7 +80,7 @@ interface NotificationSettings {
   notificationTypes: string[]
 }
 
-export function GmbNotificationsSetup() {
+export function GMBNotificationsSetup() {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [pubsubTopic, setPubsubTopic] = useState('')
@@ -420,4 +420,4 @@ export function GmbNotificationsSetup() {
   )
 }
 
-export default GmbNotificationsSetup
+export default GMBNotificationsSetup
