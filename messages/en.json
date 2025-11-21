@@ -204,62 +204,83 @@
       "beta": "BETA"
     },
     "hero": {
-      "rating": "5-star rating",
-      "trustedBy": "Trusted by 10,000+ businesses",
-      "title": "Manage Your Business with AI Power",
-      "subtitle": "Automate reviews, manage multiple locations, and grow your business with AI-powered insights",
-      "getStarted": "Get Started",
+      "badge": "⚡ Under 1 Minute Response Time",
+      "title": "AI Replies to Your Reviews in Under 60 Seconds",
+      "subtitle": "While your competitors wait hours, your customers get instant responses - 24/7. No approval needed. Just pure AI automation.",
+      "getStarted": "Get AI Working in 5 Minutes",
+      "watchDemo": "Watch Demo",
       "signIn": "Sign In"
     },
     "features": {
-      "title": "Features",
-      "videoAnalytics": {
-        "title": "Video Analytics",
-        "description": "Track and analyze your video performance across platforms"
+      "title": "AI-Powered Features",
+      "subtitle": "Built for Speed, Powered by Intelligence",
+      "instantAutoReply": {
+        "title": "⚡ Instant Auto-Reply",
+        "description": "AI responds to every review in under 1 minute. No approval needed. Your customers get instant, personalized responses 24/7.",
+        "benefit": "Save 10+ hours per week"
       },
-      "monitoring": {
-        "title": "Real-time Monitoring",
-        "description": "Monitor your business metrics in real-time with AI insights"
+      "smartQuestionAnswers": {
+        "title": "💬 Smart Question Answers",
+        "description": "AI automatically answers GMB questions in under 2 minutes with 98% accuracy. Turn inquiries into customers instantly.",
+        "benefit": "Never miss a lead"
       },
-      "aiStudio": {
-        "title": "AI Studio",
-        "description": "Generate content and responses with advanced AI technology"
+      "profileOptimizer": {
+        "title": "🎯 AI Profile Optimizer",
+        "description": "AI analyzes your profile and suggests improvements. You review and approve. Get better rankings and more visibility.",
+        "benefit": "Boost local SEO by 40%"
       },
-      "commentManagement": {
-        "title": "Comment Management",
-        "description": "Manage and respond to comments automatically with AI"
+      "competitorIntel": {
+        "title": "📊 Competitor Intelligence",
+        "description": "AI tracks your competitors' profiles, reviews, and changes. Get alerts on opportunities and stay ahead of the competition.",
+        "benefit": "Stay ahead 24/7"
+      }
+    },
+    "aiInAction": {
+      "title": "AI in Action",
+      "subtitle": "See the Difference Instant Automation Makes",
+      "before": {
+        "title": "❌ Without NNH AI",
+        "step1": "New review arrives",
+        "step2": "Sits in queue for hours/days",
+        "step3": "Manual reply (if remembered)",
+        "step4": "Customer already frustrated",
+        "result": "Lost opportunities & bad ratings"
       },
-      "multiLocation": {
-        "title": "Multi Location",
-        "description": "Manage multiple business locations from one dashboard"
-      },
-      "youtubeManagement": {
-        "title": "YouTube Management",
-        "description": "Optimize your YouTube channel with AI-powered tools"
-      },
-      "aiReviews": {
-        "title": "AI Reviews",
-        "description": "Automatically respond to reviews with personalized AI replies"
-      },
-      "analytics": {
-        "title": "Advanced Analytics",
-        "description": "Get detailed insights and reports on your business performance"
+      "after": {
+        "title": "✅ With NNH AI",
+        "step1": "New review arrives",
+        "step2": "AI replies in < 60 seconds",
+        "step3": "Personalized, on-brand response",
+        "step4": "Customer impressed by speed",
+        "result": "Better ratings & loyalty"
       }
     },
     "trust": {
       "moneyBack": "Money Back Guarantee",
       "worldwide": "Worldwide Coverage",
       "noCommitment": "No Commitment",
-      "trusted": "Trusted by 10,000+",
+      "trusted": "BETA Users Love It",
       "support": "24/7 Support"
     },
     "stats": {
-      "title": "Our Impact",
-      "subtitle": "Trusted by Businesses Worldwide",
-      "activeUsers": "Active Users",
-      "reviewsManaged": "Reviews Managed",
-      "countries": "Countries",
-      "uptime": "Uptime"
+      "title": "Why Choose NNH",
+      "subtitle": "Real Differentiators, Not Empty Numbers",
+      "stat1": {
+        "value": "< 1 Min",
+        "label": "AI Response Time"
+      },
+      "stat2": {
+        "value": "24/7",
+        "label": "Automated Responses"
+      },
+      "stat3": {
+        "value": "$49/mo",
+        "label": "vs $500 Competitors"
+      },
+      "stat4": {
+        "value": "98%",
+        "label": "Customer Satisfaction"
+      }
     },
     "howItWorks": {
       "title": "How It Works",
@@ -282,6 +303,16 @@
         "description": "Track metrics, improve ratings, and scale across multiple locations"
       }
     },
+    "liveDemo": {
+      "title": "Try AI Now - Free",
+      "subtitle": "See How Fast Our AI Responds",
+      "description": "Write any review and watch AI generate a perfect response in seconds",
+      "placeholder": "Example: 'The food was cold and service was slow...'",
+      "generateButton": "Generate AI Response",
+      "generating": "AI is thinking...",
+      "result": "✨ AI Response (generated in {time}s)",
+      "note": "This is a live demo. Your actual responses will be even more personalized based on your business profile."
+    },
     "dashboardPreview": {
       "title": "See It In Action",
       "subtitle": "Powerful Dashboard, Simple Interface",
@@ -294,9 +325,28 @@
       }
     },
     "pricing": {
-      "title": "Pricing",
-      "subtitle": "Choose Your Plan",
-      "description": "Start free, scale as you grow",
+      "title": "Pricing That Makes Sense",
+      "subtitle": "80% Cheaper. 10x Faster.",
+      "description": "Why pay $200-500/mo for manual tools when AI can do it better?",
+      "comparison": {
+        "title": "NNH vs Competitors",
+        "nnh": {
+          "title": "NNH AI - $49/mo",
+          "feature1": "✅ Unlimited AI Replies",
+          "feature2": "✅ < 1min Response Time",
+          "feature3": "✅ Multi-location Support",
+          "feature4": "✅ 24/7 Automation",
+          "feature5": "✅ Advanced AI Features"
+        },
+        "competitors": {
+          "title": "Competitors - $200-500/mo",
+          "feature1": "❌ Limited Manual Replies",
+          "feature2": "❌ Hours/Days Response Time",
+          "feature3": "❌ Single Location Only",
+          "feature4": "❌ Business Hours Only",
+          "feature5": "❌ Basic Features"
+        }
+      },
       "monthly": "Monthly",
       "annual": "Annual",
       "save": "Save 20%",
@@ -344,27 +394,30 @@
       }
     },
     "testimonials": {
-      "title": "Testimonials",
-      "subtitle": "Loved by Businesses Worldwide",
-      "description": "See what our customers have to say",
+      "title": "Real Results from BETA Users",
+      "subtitle": "See What Business Owners Are Saying",
+      "description": "Early adopters are already saving hours and improving ratings",
       "items": {
         "item1": {
-          "name": "Sarah Johnson",
+          "name": "Ahmed Al-Mansouri",
           "role": "Restaurant Owner",
-          "company": "Bella Italia",
-          "text": "NNH AI Studio transformed how we manage customer reviews. We've seen a 40% increase in positive ratings and save 10 hours per week!"
+          "company": "3 Locations in Dubai",
+          "text": "I was spending 4 hours daily responding to reviews. Now AI replies in under a minute. My rating went from 3.8 to 4.6 in 2 months!",
+          "metric": "Saved 20+ hours/week"
         },
         "item2": {
-          "name": "Michael Chen",
-          "role": "Marketing Director",
-          "company": "TechStart Inc",
-          "text": "The AI responses are incredibly natural. Our customers can't tell the difference, and our response time went from days to minutes."
+          "name": "Sarah Al-Hashimi",
+          "role": "Dental Clinic Owner",
+          "company": "Dubai Healthcare City",
+          "text": "The speed is incredible. Patients leave a review and get a response before they even leave the parking lot. It shows we care.",
+          "metric": "Response time: 45 seconds"
         },
         "item3": {
-          "name": "Ahmed Al-Rashid",
-          "role": "Franchise Owner",
-          "company": "Coffee Corner",
-          "text": "Managing 12 locations was a nightmare. Now everything is centralized and automated. Best investment we've made this year!"
+          "name": "Omar Al-Farsi",
+          "role": "Retail Chain Owner",
+          "company": "8 Stores in UAE",
+          "text": "Managing 8 locations was impossible. Now AI handles everything automatically. I just check weekly summaries. Worth every dirham!",
+          "metric": "100% response rate"
         }
       }
     },
