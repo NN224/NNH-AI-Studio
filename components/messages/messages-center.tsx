@@ -26,7 +26,9 @@ export function MessagesCenter() {
   const locationId = locations?.[0]?.id || "";
 
   const { messages, isLoading, sendMessage } = useMessages(locationId);
-  const { reviews, isLoading: reviewsLoading } = useReviews(locationId);
+  const { reviews, loading: reviewsLoading } = useReviews({
+    initialFilters: { locationId },
+  });
 
   const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -148,15 +150,11 @@ export function MessagesCenter() {
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
                           <AvatarFallback>
-                            {review.reviewer_display_name?.[0] ||
-                              review.reviewer_name?.[0] ||
-                              "U"}
+                            {review.reviewer_name?.[0] || "U"}
                           </AvatarFallback>
                         </Avatar>
                         <span className="font-medium text-sm">
-                          {review.reviewer_display_name ||
-                            review.reviewer_name ||
-                            "Anonymous"}
+                          {review.reviewer_name || "Anonymous"}
                         </span>
                       </div>
                       <span className="text-xs text-zinc-500">
@@ -172,9 +170,9 @@ export function MessagesCenter() {
                       ))}
                     </div>
                     <p className="text-sm text-zinc-400 line-clamp-2">
-                      {review.comment || "No comment"}
+                      {review.review_text || "No comment"}
                     </p>
-                    {!review.reply_comment && (
+                    {!review.reply_text && (
                       <Badge
                         variant="secondary"
                         className="mt-2 text-[10px] bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
