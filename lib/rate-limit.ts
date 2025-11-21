@@ -208,6 +208,55 @@ const memoryStore = new MemoryRateLimitStore();
 const RATE_LIMIT_REQUESTS = 100; // requests per window
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
+type UpstashConfig = {
+  url: string;
+  token: string;
+};
+
+const runtimeInfo = globalThis as { EdgeRuntime?: string };
+const isEdgeRuntime = typeof runtimeInfo.EdgeRuntime === 'string';
+let cachedUpstashConfig: UpstashConfig | null | undefined;
+
+function getUpstashConfig(): UpstashConfig | null {
+  if (cachedUpstashConfig !== undefined) {
+    return cachedUpstashConfig;
+  }
+
+  if (isEdgeRuntime) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  if (typeof process === 'undefined' || !process?.env) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  try {
+    const parsed = new URL(url);
+    cachedUpstashConfig = {
+      url: parsed.toString(),
+      token,
+    };
+  } catch (error) {
+    console.warn(
+      '[RateLimit] Invalid UPSTASH_REDIS_REST_URL, falling back to in-memory store',
+      error,
+    );
+    cachedUpstashConfig = null;
+  }
+
+  return cachedUpstashConfig;
+}
+
 interface ApplyRateLimitOptions {
   limit: number;
   windowMs: number;
