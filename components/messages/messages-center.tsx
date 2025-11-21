@@ -81,7 +81,7 @@ export function MessagesCenter() {
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col gap-4 p-6">
+    <div className="h-[calc(100vh-8rem)] flex flex-col gap-4 p-4 lg:p-0">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
