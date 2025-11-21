@@ -70,6 +70,55 @@ const memoryStore = new MemoryRateLimitStore();
 const RATE_LIMIT_REQUESTS = 100; // requests per window
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
+type UpstashConfig = {
+  url: string;
+  token: string;
+};
+
+const runtimeInfo = globalThis as { EdgeRuntime?: string };
+const isEdgeRuntime = typeof runtimeInfo.EdgeRuntime === 'string';
+let cachedUpstashConfig: UpstashConfig | null | undefined;
+
+function getUpstashConfig(): UpstashConfig | null {
+  if (cachedUpstashConfig !== undefined) {
+    return cachedUpstashConfig;
+  }
+
+  if (isEdgeRuntime) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  if (typeof process === 'undefined' || !process?.env) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    cachedUpstashConfig = null;
+    return cachedUpstashConfig;
+  }
+
+  try {
+    const parsed = new URL(url);
+    cachedUpstashConfig = {
+      url: parsed.toString(),
+      token,
+    };
+  } catch (error) {
+    console.warn(
+      '[RateLimit] Invalid UPSTASH_REDIS_REST_URL, falling back to in-memory store',
+      error,
+    );
+    cachedUpstashConfig = null;
+  }
+
+  return cachedUpstashConfig;
+}
+
 interface ApplyRateLimitOptions {
   limit: number;
   windowMs: number;
@@ -80,13 +129,18 @@ async function applyRateLimit(
   identifier: string,
   { limit, windowMs, prefix }: ApplyRateLimitOptions
 ): Promise<RateLimitResult> {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  const upstashConfig = getUpstashConfig();
+
+  if (upstashConfig) {
     try {
       const { Ratelimit } = await import('@upstash/ratelimit');
       const { Redis } = await import('@upstash/redis');
 
       const rateLimiter = new Ratelimit({
-        redis: Redis.fromEnv(),
+        redis: new Redis({
+          url: upstashConfig.url,
+          token: upstashConfig.token,
+        }),
         limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
         analytics: true,
         prefix,
