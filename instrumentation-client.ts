@@ -11,15 +11,86 @@ import {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Custom integrations for client
-const clientIntegrations = [Sentry.replayIntegration()];
+type IntegrationLookupClient = {
+  getIntegrationByName?: (name: string) => unknown;
+  getIntegrationById?: (id: string) => unknown;
+};
 
-// Initialize Sentry with validation
-const sentryInitialized = initSentryWithValidation({
-  runtime: "client",
-  dsn: getRuntimeDSN("client"),
-  customIntegrations: clientIntegrations,
-});
+type GlobalSentryState = typeof globalThis & {
+  __NNH_SENTRY_CLIENT_INITIALIZED__?: boolean;
+  __NNH_SENTRY_REPLAY_CONFIGURED__?: boolean;
+  __NNH_GLOBAL_ERROR_HANDLERS_INITIALIZED__?: boolean;
+};
+
+const globalState = globalThis as GlobalSentryState;
+
+const detectReplayIntegration = (
+  client: IntegrationLookupClient | undefined,
+): boolean => {
+  if (!client) {
+    return false;
+  }
+
+  if (typeof client.getIntegrationByName === "function") {
+    const replay = client.getIntegrationByName("Replay");
+    if (replay) {
+      return true;
+    }
+  }
+
+  if (typeof client.getIntegrationById === "function") {
+    const replay = client.getIntegrationById("Replay");
+    if (replay) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const existingClient = Sentry.getClient() as IntegrationLookupClient | undefined;
+
+if (existingClient && !globalState.__NNH_SENTRY_CLIENT_INITIALIZED__) {
+  globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ = true;
+}
+
+if (
+  existingClient &&
+  detectReplayIntegration(existingClient) &&
+  !globalState.__NNH_SENTRY_REPLAY_CONFIGURED__
+) {
+  globalState.__NNH_SENTRY_REPLAY_CONFIGURED__ = true;
+}
+
+const shouldInitializeClient =
+  globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ !== true;
+const shouldAttachReplay = !globalState.__NNH_SENTRY_REPLAY_CONFIGURED__;
+
+let sentryInitialized =
+  globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ === true;
+
+if (shouldInitializeClient) {
+  const customIntegrations = shouldAttachReplay
+    ? [Sentry.replayIntegration()]
+    : [];
+
+  sentryInitialized = initSentryWithValidation({
+    runtime: "client",
+    dsn: getRuntimeDSN("client"),
+    customIntegrations,
+  });
+
+  if (sentryInitialized) {
+    globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ = true;
+    if (shouldAttachReplay) {
+      globalState.__NNH_SENTRY_REPLAY_CONFIGURED__ = true;
+    }
+  }
+} else if (shouldAttachReplay) {
+  console.warn(
+    "Sentry client already initialized; skipping additional Replay integration to avoid duplicate instances.",
+  );
+}
 
 // Apply client-specific configuration if Sentry initialized successfully
 if (sentryInitialized) {
@@ -54,8 +125,18 @@ if (sentryInitialized) {
 }
 
 // Initialize global error handlers after Sentry is configured
-if (typeof window !== "undefined") {
+if (
+  typeof window !== "undefined" &&
+  !globalState.__NNH_GLOBAL_ERROR_HANDLERS_INITIALIZED__
+) {
   initGlobalErrorHandlers();
+  globalState.__NNH_GLOBAL_ERROR_HANDLERS_INITIALIZED__ = true;
 }
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+
+declare global {
+  var __NNH_SENTRY_CLIENT_INITIALIZED__: boolean | undefined;
+  var __NNH_SENTRY_REPLAY_CONFIGURED__: boolean | undefined;
+  var __NNH_GLOBAL_ERROR_HANDLERS_INITIALIZED__: boolean | undefined;
+}
