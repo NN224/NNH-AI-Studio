@@ -12,9 +12,13 @@ import {
   User,
   Bot,
   MessageSquare,
+  AlertCircle,
+  ArrowRight,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export interface ChatMessage {
   id: string;
@@ -31,6 +35,7 @@ interface BusinessInfo {
   name: string;
   logo?: string;
   category?: string;
+  locationId?: string;
 }
 
 interface AIHeroChatProps {
@@ -45,6 +50,12 @@ export function AIHeroChat({
   onSendMessage,
 }: AIHeroChatProps) {
   const t = useTranslations("aiCommandCenter.chat");
+  const params = useParams();
+  const locale = params?.locale || "en";
+
+  // Check if GMB is connected
+  const hasGMBConnection =
+    businessInfo?.locationId && businessInfo?.name !== "Your Business";
 
   // Default business info if not provided
   const defaultBusinessInfo: BusinessInfo = {
@@ -195,6 +206,33 @@ export function AIHeroChat({
         className,
       )}
     >
+      {/* GMB Connection Banner */}
+      {!hasGMBConnection && (
+        <div className="bg-linear-to-r from-orange-500/20 to-amber-500/20 border-b border-orange-500/30 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-orange-100 mb-1">
+                Connect GMB to unlock full features
+              </h3>
+              <p className="text-xs text-orange-200/80 mb-3">
+                Connect your Google My Business account to access real reviews,
+                posts, Q&A, and AI-powered insights.
+              </p>
+              <Link href={`/${locale}/settings`}>
+                <Button
+                  size="sm"
+                  className="bg-orange-500 hover:bg-orange-600 text-white gap-2 h-8 text-xs"
+                >
+                  Connect Google My Business
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Business Header */}
       <div className="bg-linear-to-r from-orange-500/20 via-purple-500/10 to-blue-500/20 border-b border-orange-500/30 p-6">
         <div className="flex items-center gap-4">
