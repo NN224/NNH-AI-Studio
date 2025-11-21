@@ -35,6 +35,8 @@ import { MobileMenu } from "@/components/landing/mobile-menu";
 import { VideoSection } from "@/components/landing/video-section";
 import { ScreenshotsSection } from "@/components/landing/screenshots";
 import { LiveChat } from "@/components/landing/live-chat";
+import { LiveDemoSection } from "@/components/landing/live-demo-section";
+import { PricingComparisonSection } from "@/components/landing/pricing-comparison";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { LandingJsonLd } from "@/components/seo/landing-seo";
 import { PublicFooter } from "@/components/layout/public-footer";
@@ -145,26 +147,16 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          {/* Rating Badge */}
+          {/* Speed Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center space-x-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-6 py-2 mb-8"
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/50 rounded-full px-6 py-3 mb-8 shadow-lg shadow-orange-500/20"
           >
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="w-4 h-4 fill-orange-500 text-orange-500"
-                />
-              ))}
-            </div>
-            <span className="text-sm text-orange-500 font-medium">
-              {t("hero.rating")}
-            </span>
-            <span className="text-sm text-gray-400">
-              • {t("hero.trustedBy")}
+            <Sparkles className="w-5 h-5 text-orange-500 animate-pulse" />
+            <span className="text-sm text-orange-400 font-bold">
+              {t("hero.badge")}
             </span>
           </motion.div>
 
@@ -173,7 +165,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500 bg-clip-text text-transparent"
+            className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500 bg-clip-text text-transparent leading-tight"
           >
             {t("hero.title")}
           </motion.h1>
@@ -183,7 +175,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto"
+            className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed"
           >
             {t("hero.subtitle")}
           </motion.p>
@@ -193,26 +185,27 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex items-center justify-center space-x-4"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link href="/auth/signup">
               <Button
                 size="lg"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-10 py-7 text-lg font-bold shadow-lg shadow-orange-500/50 hover:shadow-xl hover:shadow-orange-500/60 transition-all"
               >
                 {t("hero.getStarted")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/auth/login">
+            <a href="#demo">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-orange-500 text-orange-500 hover:bg-orange-500/10 px-8 py-6 text-lg"
+                className="border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-10 py-7 text-lg font-bold transition-all"
               >
-                {t("hero.signIn")}
+                <Play className="mr-2 h-5 w-5" />
+                {t("hero.watchDemo")}
               </Button>
-            </Link>
+            </a>
           </motion.div>
         </div>
       </section>
@@ -220,69 +213,57 @@ export default function LandingPage() {
       {/* Features Grid */}
       <section id="features" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Feature 1: Video Analytics */}
-            <FeatureCard
-              icon={<Video className="w-6 h-6" />}
-              title={t("features.videoAnalytics.title")}
-              description={t("features.videoAnalytics.description")}
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
+              {t("features.title")}
+            </h2>
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">
+              {t("features.subtitle")}
+            </h3>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Feature 1: Instant Auto-Reply */}
+            <AIFeatureCard
+              icon="⚡"
+              title={t("features.instantAutoReply.title")}
+              description={t("features.instantAutoReply.description")}
+              benefit={t("features.instantAutoReply.benefit")}
               delay={0}
             />
 
-            {/* Feature 2: Monitoring */}
-            <FeatureCard
-              icon={<Activity className="w-6 h-6" />}
-              title={t("features.monitoring.title")}
-              description={t("features.monitoring.description")}
+            {/* Feature 2: Smart Question Answers */}
+            <AIFeatureCard
+              icon="💬"
+              title={t("features.smartQuestionAnswers.title")}
+              description={t("features.smartQuestionAnswers.description")}
+              benefit={t("features.smartQuestionAnswers.benefit")}
               delay={0.1}
             />
 
-            {/* Feature 3: AI Studio */}
-            <FeatureCard
-              icon={<Sparkles className="w-6 h-6" />}
-              title={t("features.aiStudio.title")}
-              description={t("features.aiStudio.description")}
+            {/* Feature 3: Profile Optimizer */}
+            <AIFeatureCard
+              icon="🎯"
+              title={t("features.profileOptimizer.title")}
+              description={t("features.profileOptimizer.description")}
+              benefit={t("features.profileOptimizer.benefit")}
               delay={0.2}
             />
 
-            {/* Feature 4: Comment Management */}
-            <FeatureCard
-              icon={<MessageSquare className="w-6 h-6" />}
-              title={t("features.commentManagement.title")}
-              description={t("features.commentManagement.description")}
+            {/* Feature 4: Competitor Intelligence */}
+            <AIFeatureCard
+              icon="📊"
+              title={t("features.competitorIntel.title")}
+              description={t("features.competitorIntel.description")}
+              benefit={t("features.competitorIntel.benefit")}
               delay={0.3}
-            />
-
-            {/* Feature 5: Multi Location */}
-            <FeatureCard
-              icon={<MapPin className="w-6 h-6" />}
-              title={t("features.multiLocation.title")}
-              description={t("features.multiLocation.description")}
-              delay={0.4}
-            />
-
-            {/* Feature 6: YouTube Management */}
-            <FeatureCard
-              icon={<Play className="w-6 h-6" />}
-              title={t("features.youtubeManagement.title")}
-              description={t("features.youtubeManagement.description")}
-              delay={0.5}
-            />
-
-            {/* Feature 7: AI Reviews */}
-            <FeatureCard
-              icon={<Star className="w-6 h-6" />}
-              title={t("features.aiReviews.title")}
-              description={t("features.aiReviews.description")}
-              delay={0.6}
-            />
-
-            {/* Feature 8: Analytics */}
-            <FeatureCard
-              icon={<BarChart3 className="w-6 h-6" />}
-              title={t("features.analytics.title")}
-              description={t("features.analytics.description")}
-              delay={0.7}
             />
           </div>
         </div>
@@ -300,6 +281,124 @@ export default function LandingPage() {
             />
             <TrustIndicator icon={<Users />} text={t("trust.trusted")} />
             <TrustIndicator icon={<Headphones />} text={t("trust.support")} />
+          </div>
+        </div>
+      </section>
+
+      {/* AI in Action Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-black via-gray-900/50 to-black">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-sm text-orange-500 font-semibold mb-4 uppercase tracking-wider">
+              {t("aiInAction.title")}
+            </h2>
+            <h3 className="text-4xl md:text-5xl font-bold mb-4">
+              {t("aiInAction.subtitle")}
+            </h3>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Before */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-2 border-red-500/30 rounded-2xl p-8"
+            >
+              <h4 className="text-2xl font-bold text-red-400 mb-6">
+                {t("aiInAction.before.title")}
+              </h4>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-red-400 font-bold">1</span>
+                  </div>
+                  <p className="text-gray-300">
+                    {t("aiInAction.before.step1")}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-red-400 font-bold">2</span>
+                  </div>
+                  <p className="text-gray-300">
+                    {t("aiInAction.before.step2")}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-red-400 font-bold">3</span>
+                  </div>
+                  <p className="text-gray-300">
+                    {t("aiInAction.before.step3")}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-red-400 font-bold">4</span>
+                  </div>
+                  <p className="text-gray-300">
+                    {t("aiInAction.before.step4")}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 pt-6 border-t border-red-500/30">
+                <p className="text-red-400 font-bold text-lg">
+                  {t("aiInAction.before.result")}
+                </p>
+              </div>
+            </motion.div>
+
+            {/* After */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-2 border-green-500/30 rounded-2xl p-8"
+            >
+              <h4 className="text-2xl font-bold text-green-400 mb-6">
+                {t("aiInAction.after.title")}
+              </h4>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-green-400 font-bold">1</span>
+                  </div>
+                  <p className="text-gray-300">{t("aiInAction.after.step1")}</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <Sparkles className="w-4 h-4 text-green-400" />
+                  </div>
+                  <p className="text-gray-300">{t("aiInAction.after.step2")}</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-green-400 font-bold">3</span>
+                  </div>
+                  <p className="text-gray-300">{t("aiInAction.after.step3")}</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-green-400 font-bold">4</span>
+                  </div>
+                  <p className="text-gray-300">{t("aiInAction.after.step4")}</p>
+                </div>
+              </div>
+              <div className="mt-6 pt-6 border-t border-green-500/30">
+                <p className="text-green-400 font-bold text-lg">
+                  {t("aiInAction.after.result")}
+                </p>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -323,23 +422,34 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <StatCard
-              number="10,000+"
-              label={t("stats.activeUsers")}
+              number={t("stats.stat1.value")}
+              label={t("stats.stat1.label")}
               delay={0}
             />
             <StatCard
-              number="1M+"
-              label={t("stats.reviewsManaged")}
+              number={t("stats.stat2.value")}
+              label={t("stats.stat2.label")}
               delay={0.1}
             />
-            <StatCard number="50+" label={t("stats.countries")} delay={0.2} />
-            <StatCard number="99.9%" label={t("stats.uptime")} delay={0.3} />
+            <StatCard
+              number={t("stats.stat3.value")}
+              label={t("stats.stat3.label")}
+              delay={0.2}
+            />
+            <StatCard
+              number={t("stats.stat4.value")}
+              label={t("stats.stat4.label")}
+              delay={0.3}
+            />
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
       <HowItWorksSection />
+
+      {/* Live Demo Section */}
+      <LiveDemoSection />
 
       {/* Dashboard Preview Section */}
       <DashboardPreviewSection />
@@ -349,6 +459,9 @@ export default function LandingPage() {
 
       {/* Screenshots Section */}
       <ScreenshotsSection />
+
+      {/* Pricing Comparison Section */}
+      <PricingComparisonSection />
 
       {/* Pricing Section */}
       <PricingSection />
@@ -487,6 +600,44 @@ function StatCard({
         {number}
       </div>
       <div className="text-gray-400">{label}</div>
+    </motion.div>
+  );
+}
+
+// AI Feature Card Component
+function AIFeatureCard({
+  icon,
+  title,
+  description,
+  benefit,
+  delay,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+  benefit: string;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay }}
+      whileHover={{ scale: 1.02, y: -5 }}
+      className="bg-gradient-to-br from-gray-900 via-gray-900/80 to-black border-2 border-orange-500/30 rounded-2xl p-8 hover:border-orange-500 transition-all duration-300 cursor-pointer group"
+    >
+      <div className="text-5xl mb-4">{icon}</div>
+      <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-orange-400 transition-colors">
+        {title}
+      </h3>
+      <p className="text-gray-400 mb-4 leading-relaxed">{description}</p>
+      <div className="mt-4 pt-4 border-t border-orange-500/20">
+        <p className="text-orange-500 font-semibold flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" />
+          {benefit}
+        </p>
+      </div>
     </motion.div>
   );
 }

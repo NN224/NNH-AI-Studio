@@ -15,6 +15,7 @@ import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 // Create a client instance for React Query
 const queryClient = new QueryClient({
@@ -144,6 +145,9 @@ export default function DashboardLayout({
                 <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
                   <div className="mx-auto max-w-7xl">{children}</div>
                 </main>
+
+                {/* Footer */}
+                <PublicFooter />
               </div>
 
               <MobileNav />
