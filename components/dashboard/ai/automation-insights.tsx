@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
 /**
  * Automation Insights Component
  * Displays AI autopilot status and automation metrics
  */
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Zap,
   CheckCircle2,
@@ -18,9 +24,13 @@ import {
   Activity,
   AlertCircle,
   Calendar,
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import type { AutomationStatus, UpcomingAction, AutomationLog } from '@/lib/types/ai';
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type {
+  AutomationStatus,
+  UpcomingAction,
+  AutomationLog,
+} from "@/lib/types/ai";
 
 interface AutomationInsightsProps {
   userId: string;
@@ -40,17 +50,19 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/ai/automation-status');
-      
+      const response = await fetch("/api/ai/automation-status");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch automation status');
+        throw new Error("Failed to fetch automation status");
       }
 
       const data: AutomationStatus = await response.json();
       setStatus(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load automation status');
-      console.error('Failed to fetch automation status:', err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load automation status",
+      );
+      console.error("Failed to fetch automation status:", err);
     } finally {
       setLoading(false);
     }
@@ -91,7 +103,9 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Automations</p>
+                <p className="text-sm text-muted-foreground">
+                  Active Automations
+                </p>
                 <p className="text-2xl font-bold">{status.activeRules}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   of {status.totalActions} total
@@ -107,7 +121,9 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Success Rate</p>
-                <p className="text-2xl font-bold">{((status.statistics?.successRate ?? 0) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">
+                  {((status.statistics?.successRate ?? 0) * 100).toFixed(1)}%
+                </p>
                 <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
                   Excellent
@@ -123,7 +139,12 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Time Saved</p>
-                <p className="text-2xl font-bold">{((status.statistics?.totalExecutions ?? 0) * 0.25).toFixed(1)}h</p>
+                <p className="text-2xl font-bold">
+                  {((status.statistics?.totalExecutions ?? 0) * 0.25).toFixed(
+                    1,
+                  )}
+                  h
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">this week</p>
               </div>
               <Clock className="h-8 w-8 text-purple-500" />
@@ -136,8 +157,12 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Upcoming</p>
-                <p className="text-2xl font-bold">{status.upcomingActions.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">scheduled actions</p>
+                <p className="text-2xl font-bold">
+                  {status.upcomingActions?.length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  scheduled actions
+                </p>
               </div>
               <Calendar className="h-8 w-8 text-amber-500" />
             </div>
@@ -153,7 +178,9 @@ export function AutomationInsights({ userId }: AutomationInsightsProps) {
               <Calendar className="h-5 w-5" />
               Upcoming Scheduled Actions
             </CardTitle>
-            <CardDescription>AI-powered actions scheduled to run</CardDescription>
+            <CardDescription>
+              AI-powered actions scheduled to run
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -201,14 +228,19 @@ function UpcomingActionCard({ action }: { action: UpcomingAction }) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <p className="font-medium text-sm">{action.description}</p>
-            <p className="text-xs text-muted-foreground mt-1">{action.targetId ?? 'All locations'}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {action.targetId ?? "All locations"}
+            </p>
           </div>
           <Badge variant="outline" className="flex-shrink-0">
             {action.type}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Scheduled for {formatDistanceToNow(new Date(action.scheduledFor), { addSuffix: true })}
+          Scheduled for{" "}
+          {formatDistanceToNow(new Date(action.scheduledFor), {
+            addSuffix: true,
+          })}
         </p>
       </div>
     </div>
@@ -221,24 +253,24 @@ function UpcomingActionCard({ action }: { action: UpcomingAction }) {
 function AutomationLogCard({ log }: { log: AutomationLog }) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case "success":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "failed":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success':
+      case "success":
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case 'failed':
+      case "failed":
         return <AlertCircle className="h-4 w-4 text-red-600" />;
-      case 'pending':
+      case "pending":
         return <Clock className="h-4 w-4 text-yellow-600" />;
       default:
         return <Activity className="h-4 w-4 text-gray-600" />;
@@ -253,7 +285,9 @@ function AutomationLogCard({ log }: { log: AutomationLog }) {
           <div className="flex-1">
             <p className="font-medium text-sm">{log.action}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatDistanceToNow(new Date(log.executedAt), { addSuffix: true })}
+              {formatDistanceToNow(new Date(log.executedAt), {
+                addSuffix: true,
+              })}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -298,4 +332,3 @@ function AutomationInsightsSkeleton() {
     </div>
   );
 }
-

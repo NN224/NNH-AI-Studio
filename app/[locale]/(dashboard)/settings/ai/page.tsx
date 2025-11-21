@@ -1,9 +1,15 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { AISettingsForm } from '@/components/settings/ai-settings-form';
-import { AIUsageStats } from '@/components/settings/ai-usage-stats';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles } from 'lucide-react';
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { AISettingsForm } from "@/components/settings/ai-settings-form";
+import { AIUsageStats } from "@/components/settings/ai-usage-stats";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 
 export default async function AISettingsPage() {
   const supabase = await createClient();
@@ -15,22 +21,25 @@ export default async function AISettingsPage() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/auth/login');
+    redirect("/auth/login");
   }
+
+  // Type assertion: user is guaranteed to be non-null after the redirect check
+  const userId = user!.id;
 
   // Fetch existing AI settings
   const { data: aiSettings } = await supabase
-    .from('ai_settings')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('priority', { ascending: true });
+    .from("ai_settings")
+    .select("*")
+    .eq("user_id", userId)
+    .order("priority", { ascending: true });
 
   // Fetch AI usage stats
   const { data: usageStats } = await supabase
-    .from('ai_requests')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    .from("ai_requests")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
     .limit(100);
 
   return (
@@ -55,19 +64,12 @@ export default async function AISettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AISettingsForm 
-            userId={user.id} 
-            existingSettings={aiSettings || []} 
-          />
+          <AISettingsForm userId={userId} existingSettings={aiSettings || []} />
         </CardContent>
       </Card>
 
       {/* Usage Statistics */}
-      <AIUsageStats 
-        userId={user.id} 
-        usageData={usageStats || []} 
-      />
+      <AIUsageStats userId={userId} usageData={usageStats || []} />
     </div>
   );
 }
-

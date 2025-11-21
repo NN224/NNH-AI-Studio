@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import { QuestionsClientPage } from '@/components/questions/QuestionsClientPage';
-import { getQuestions } from '@/server/actions/questions-management';
-import { getAuthUrl } from '@/lib/utils/navigation';
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { QuestionsClientPage } from "@/components/questions/QuestionsClientPage";
+import { getQuestions } from "@/server/actions/questions-management";
+import { getAuthUrl } from "@/lib/utils/navigation";
 
 export default async function QuestionsPage({
   params,
@@ -27,17 +27,26 @@ export default async function QuestionsPage({
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    const locale = params.locale || 'en';
-    redirect(getAuthUrl(locale as 'en' | 'ar', 'login'));
+    const locale = params.locale || "en";
+    redirect(getAuthUrl(locale as "en" | "ar", "login"));
   }
+
+  // Type assertion: user is guaranteed to be non-null after the redirect check
+  const userId = user!.id;
 
   // Parse search params
   const locationId = searchParams.location;
-  const status = searchParams.status as 'unanswered' | 'answered' | 'all' | undefined;
+  const status = searchParams.status as
+    | "unanswered"
+    | "answered"
+    | "all"
+    | undefined;
   const priority = searchParams.priority;
-  const searchQuery = searchParams.search || '';
+  const searchQuery = searchParams.search || "";
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const sortBy = (searchParams.sortBy as 'newest' | 'oldest' | 'most_upvoted' | 'urgent') || 'newest';
+  const sortBy =
+    (searchParams.sortBy as "newest" | "oldest" | "most_upvoted" | "urgent") ||
+    "newest";
   const limit = 50;
   const offset = (page - 1) * limit;
 
@@ -53,15 +62,17 @@ export default async function QuestionsPage({
       offset,
     }),
     supabase
-      .from('gmb_locations')
-      .select('id, location_name')
-      .eq('user_id', user.id)
-      .eq('is_active', true),
+      .from("gmb_locations")
+      .select("id, location_name")
+      .eq("user_id", userId)
+      .eq("is_active", true),
   ]);
 
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('dashboard:refresh'));
-    console.log('[QuestionsPage] Questions data loaded, dashboard refresh triggered');
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("dashboard:refresh"));
+    console.log(
+      "[QuestionsPage] Questions data loaded, dashboard refresh triggered",
+    );
   }
 
   return (

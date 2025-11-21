@@ -32,7 +32,8 @@ export default async function HomePage({
     redirect(`/${locale}/auth/login`);
   }
 
-  const userId = user.id;
+  // Type assertion: user is guaranteed to be non-null after the redirect check
+  const userId = user!.id;
 
   // Fetch user profile
   const { data: profile } = await supabase
