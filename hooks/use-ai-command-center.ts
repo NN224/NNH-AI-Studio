@@ -352,7 +352,10 @@ export function useAICommandCenterData() {
 export function useAIChat() {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const sendMessage = async (message: string): Promise<string> => {
+  const sendMessage = async (
+    message: string,
+    provider: string = "openai",
+  ): Promise<string> => {
     setIsProcessing(true);
     try {
       const response = await fetch("/api/ai/chat", {
@@ -363,18 +366,21 @@ export function useAIChat() {
         body: JSON.stringify({
           message,
           conversationHistory: [],
+          provider, // Add provider selection
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send message");
       }
 
       const data = await response.json();
       return data.message?.content || data.message || "I'm here to help!";
     } catch (error) {
       console.error("Chat error:", error);
-      throw error;
+      // Return error message instead of throwing
+      return `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again or switch to a different AI provider.`;
     } finally {
       setIsProcessing(false);
     }
