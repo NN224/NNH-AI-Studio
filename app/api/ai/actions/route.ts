@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type AIActionResult = {
+  success: boolean;
+  message: string;
+  draft?: string;
+  scheduledTime?: string;
+  analysis?: {
+    sentiment: string;
+    keyIssues: string[];
+    suggestedActions: string[];
+  };
+};
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -24,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process different action types
-    let result = { success: false, message: "" };
+    let result: AIActionResult = { success: false, message: "" };
 
     switch (actionType) {
       case "draft":
