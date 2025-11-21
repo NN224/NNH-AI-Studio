@@ -16,6 +16,7 @@ import {
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 
 interface Activity {
   id: string;
@@ -96,109 +97,115 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
   }
 
   return (
-    <Card className="border-border/40">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">{t("title")}</CardTitle>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard">
-            {t("viewAll")}
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {activities.map((activity) => {
-          const Icon = getActivityIcon(activity.type);
-          const colorClass = getActivityColor(activity.type);
-          const badge = getActivityBadge(activity.type);
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.6 }}
+    >
+      <Card className="border-border/40">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">{t("title")}</CardTitle>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard">
+              {t("viewAll")}
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {activities.map((activity) => {
+            const Icon = getActivityIcon(activity.type);
+            const colorClass = getActivityColor(activity.type);
+            const badge = getActivityBadge(activity.type);
 
-          return (
-            <div
-              key={activity.id}
-              className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-accent/50 transition-all group"
-            >
-              {/* Icon */}
+            return (
               <div
-                className={`flex-shrink-0 w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                key={activity.id}
+                className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-accent/50 transition-all group"
               >
-                <Icon className="h-5 w-5" />
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
-                    {activity.title}
-                  </h4>
-                  <Badge
-                    variant={badge.variant}
-                    className="flex-shrink-0 text-xs"
-                  >
-                    {badge.text}
-                  </Badge>
+                {/* Icon */}
+                <div
+                  className={`flex-shrink-0 w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                >
+                  <Icon className="h-5 w-5" />
                 </div>
 
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {activity.description}
-                </p>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h4 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                      {activity.title}
+                    </h4>
+                    <Badge
+                      variant={badge.variant}
+                      className="flex-shrink-0 text-xs"
+                    >
+                      {badge.text}
+                    </Badge>
+                  </div>
 
-                {/* Metadata */}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(activity.timestamp, {
-                      addSuffix: true,
-                    })}
-                  </span>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                    {activity.description}
+                  </p>
 
-                  {activity.metadata?.rating && (
+                  {/* Metadata */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                      {activity.metadata.rating}/5
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(activity.timestamp, {
+                        addSuffix: true,
+                      })}
                     </span>
-                  )}
 
-                  {activity.metadata?.views && (
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      {activity.metadata.views.toLocaleString()} views
-                    </span>
-                  )}
+                    {activity.metadata?.rating && (
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        {activity.metadata.rating}/5
+                      </span>
+                    )}
 
-                  {activity.metadata?.likes && (
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="h-3 w-3" />
-                      {activity.metadata.likes.toLocaleString()}
-                    </span>
-                  )}
+                    {activity.metadata?.views && (
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        {activity.metadata.views.toLocaleString()} views
+                      </span>
+                    )}
 
-                  {activity.metadata?.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {activity.metadata.location}
-                    </span>
+                    {activity.metadata?.likes && (
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="h-3 w-3" />
+                        {activity.metadata.likes.toLocaleString()}
+                      </span>
+                    )}
+
+                    {activity.metadata?.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {activity.metadata.location}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  {activity.actionUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 h-7 text-xs"
+                      asChild
+                    >
+                      <Link href={activity.actionUrl}>
+                        {t("takeAction")}
+                        <ExternalLink className="ml-1 h-3 w-3" />
+                      </Link>
+                    </Button>
                   )}
                 </div>
-
-                {/* Action Button */}
-                {activity.actionUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 h-7 text-xs"
-                    asChild
-                  >
-                    <Link href={activity.actionUrl}>
-                      {t("takeAction")}
-                      <ExternalLink className="ml-1 h-3 w-3" />
-                    </Link>
-                  </Button>
-                )}
               </div>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

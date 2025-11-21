@@ -7,6 +7,7 @@ import { Bell, LogOut, Settings } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { useTranslations } from "next-intl";
+import { motion } from "framer-motion";
 
 interface SmartHeaderProps {
   user: {
@@ -26,7 +27,12 @@ export function SmartHeader({
   const t = useTranslations("home.header");
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <motion.header
+      className="sticky top-0 z-50 border-b border-orange-500/20 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80"
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <div className="container flex h-16 items-center justify-between px-4">
         {/* User Info */}
         <div className="flex items-center gap-4">
@@ -81,6 +87,6 @@ export function SmartHeader({
           </form>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }

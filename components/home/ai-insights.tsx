@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/navigation";
+import { motion } from "framer-motion";
 
 interface Insight {
   id: string;
@@ -127,97 +128,143 @@ export function AIInsights({ insights }: AIInsightsProps) {
   }
 
   return (
-    <Card className="border-border/40">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Brain className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">{t("title")}</CardTitle>
-              <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
-            </div>
-          </div>
-          <Badge variant="secondary" className="gap-1">
-            <TrendingUp className="h-3 w-3" />
-            {insights.length} {t("insights")}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {insights.map((insight) => {
-          const Icon = getInsightIcon(insight.type);
-          const style = getInsightStyle(insight.type, insight.priority);
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.4 }}
+    >
+      <Card className="border-border/40 relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-orange-500/5 to-transparent opacity-50" />
 
-          return (
-            <div
-              key={insight.id}
-              className={`p-4 rounded-lg border ${style.border} ${style.bg} hover:shadow-md transition-all group`}
-            >
-              <div className="flex gap-3">
-                {/* Icon */}
-                <div
-                  className={`flex-shrink-0 w-10 h-10 rounded-lg ${style.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform`}
-                >
-                  <Icon className={`h-5 w-5 ${style.icon}`} />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-sm">{insight.title}</h4>
-                    {insight.priority !== "low" && (
-                      <Badge className={`${style.badge} text-xs flex-shrink-0`}>
-                        {getPriorityLabel(insight.priority)}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {insight.description}
-                  </p>
-
-                  {/* Impact Badge */}
-                  {insight.impact && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp className="h-3 w-3 text-green-500" />
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        {t("impact")}: {insight.impact}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Action Button */}
-                  {insight.actionText && insight.actionUrl && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-xs mt-2 hover:bg-primary/10"
-                      asChild
-                    >
-                      <Link href={insight.actionUrl}>
-                        {insight.actionText}
-                        <ArrowRight className="ml-1 h-3 w-3" />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
+        <CardHeader className="relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <motion.div
+                className="p-2 rounded-lg bg-primary/10"
+                animate={{
+                  boxShadow: [
+                    "0 0 0 0 rgba(249, 115, 22, 0)",
+                    "0 0 0 8px rgba(249, 115, 22, 0.1)",
+                    "0 0 0 0 rgba(249, 115, 22, 0)",
+                  ],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Brain className="h-5 w-5 text-primary" />
+              </motion.div>
+              <div>
+                <CardTitle className="text-lg">{t("title")}</CardTitle>
+                <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
               </div>
             </div>
-          );
-        })}
+            <Badge variant="secondary" className="gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {insights.length} {t("insights")}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 relative z-10">
+          {insights.map((insight, index) => {
+            const Icon = getInsightIcon(insight.type);
+            const style = getInsightStyle(insight.type, insight.priority);
+            const isHighPriority = insight.priority === "high";
 
-        {/* View All Button */}
-        <div className="pt-4 border-t border-border/50">
-          <Button variant="outline" className="w-full gap-2" asChild>
-            <Link href="/ai-command-center">
-              <Sparkles className="h-4 w-4" />
-              {t("viewAll")}
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            return (
+              <motion.div
+                key={insight.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, x: 5 }}
+              >
+                <div
+                  className={`p-4 rounded-lg border ${style.border} ${style.bg} hover:shadow-md transition-all group relative overflow-hidden`}
+                >
+                  {/* Pulse effect for high priority */}
+                  {isHighPriority && (
+                    <motion.div
+                      className="absolute inset-0 border-2 border-orange-500/20 rounded-lg"
+                      animate={{
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.02, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
+                  )}
+                  <div className="flex gap-3">
+                    {/* Icon */}
+                    <div
+                      className={`flex-shrink-0 w-10 h-10 rounded-lg ${style.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                    >
+                      <Icon className={`h-5 w-5 ${style.icon}`} />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-semibold text-sm">
+                          {insight.title}
+                        </h4>
+                        {insight.priority !== "low" && (
+                          <Badge
+                            className={`${style.badge} text-xs flex-shrink-0`}
+                          >
+                            {getPriorityLabel(insight.priority)}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {insight.description}
+                      </p>
+
+                      {/* Impact Badge */}
+                      {insight.impact && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <TrendingUp className="h-3 w-3 text-green-500" />
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                            {t("impact")}: {insight.impact}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Action Button */}
+                      {insight.actionText && insight.actionUrl && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs mt-2 hover:bg-primary/10"
+                          asChild
+                        >
+                          <Link href={insight.actionUrl}>
+                            {insight.actionText}
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* View All Button */}
+          <div className="pt-4 border-t border-border/50">
+            <Button variant="outline" className="w-full gap-2" asChild>
+              <Link href="/ai-command-center">
+                <Sparkles className="h-4 w-4" />
+                {t("viewAll")}
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

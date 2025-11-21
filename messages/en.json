@@ -480,6 +480,20 @@
       "helpText": "Need help? Check our getting started guide."
     },
     "hero": {
+      "greeting": {
+        "morning": "Good morning",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening",
+        "night": "Good night"
+      },
+      "subtitle": "Welcome back to your AI-powered dashboard",
+      "motivation": "You're doing great! Keep up the excellent work.",
+      "stats": {
+        "today": "Today",
+        "reviews": "reviews",
+        "growth": "Growth",
+        "thisWeek": "this week"
+      },
       "badge": "AI-Powered Business Management",
       "title": {
         "main": "Manage Your Business",
@@ -490,6 +504,14 @@
         "youtube": "YouTube Dashboard",
         "gmb": "GMB Dashboard"
       }
+    },
+    "progress": {
+      "title": "Complete Your Profile",
+      "subtitle": "Just a few more steps to unlock all features",
+      "complete": "Profile Complete!",
+      "tasks": "tasks",
+      "motivation": "Complete your profile to get the most out of NNH AI Studio!",
+      "completeTask": "Complete"
     },
     "stats": {
       "locations": "Total Locations",
@@ -526,6 +548,25 @@
         "high": "High Priority",
         "medium": "Medium",
         "low": "Low"
+      }
+    },
+    "aiChat": {
+      "title": "AI Assistant",
+      "subtitle": "Always here to help",
+      "welcomeMessage": "Hi! I'm your AI assistant. How can I help you today?",
+      "placeholder": "Type your message...",
+      "quickActions": {
+        "reviews": "Review Tips",
+        "analytics": "Analytics",
+        "youtube": "YouTube Help"
+      },
+      "responses": {
+        "reviews": "To respond to reviews, go to the Reviews page. I can help you generate AI-powered responses that are professional and personalized!",
+        "analytics": "Check the Analytics page to see detailed insights about your business performance, including review trends, rating analysis, and more.",
+        "youtube": "For YouTube management, visit the YouTube Dashboard where you can view your videos, analytics, and manage comments with AI assistance.",
+        "locations": "Manage your Google My Business locations from the Locations page. You can update information, view reviews, and track performance.",
+        "help": "I'm here to help! You can ask me about reviews, analytics, YouTube, locations, or any other feature. Just type your question!",
+        "default": "I'm not sure about that, but I'm learning! Try asking about reviews, analytics, YouTube, or locations. Or check our Help Center for more information."
       }
     },
     "features": {

@@ -8,6 +8,13 @@ import { EmptyState } from "@/components/home/empty-state";
 import { ActivityFeed } from "@/components/home/activity-feed";
 import { RecentActivity } from "@/components/home/recent-activity";
 import { AIInsights } from "@/components/home/ai-insights";
+import { AnimatedBackground } from "@/components/home/animated-background";
+import { DashboardHero } from "@/components/home/dashboard-hero";
+import { ProgressTracker } from "@/components/home/progress-tracker";
+import { AIChatWidget } from "@/components/home/ai-chat-widget";
+import { AchievementsBadge } from "@/components/home/achievements-badge";
+import { OnboardingTour } from "@/components/home/onboarding-tour";
+import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -101,6 +108,103 @@ export default async function HomePage({
     : 0;
   const hasYouTube = !!youtubeToken;
   const hasAccounts = (accountsCount || 0) > 0 || hasYouTube;
+
+  // Calculate today's reviews count
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const { count: todayReviewsCount } = await supabase
+    .from("gmb_reviews")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("create_time", today.toISOString());
+
+  // Calculate weekly growth (comparing this week vs last week)
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+  const [{ count: thisWeekCount }, { count: lastWeekCount }] =
+    await Promise.all([
+      supabase
+        .from("gmb_reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("create_time", weekAgo.toISOString()),
+      supabase
+        .from("gmb_reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("create_time", twoWeeksAgo.toISOString())
+        .lt("create_time", weekAgo.toISOString()),
+    ]);
+
+  const weeklyGrowth =
+    lastWeekCount && lastWeekCount > 0
+      ? Math.round(
+          (((thisWeekCount || 0) - lastWeekCount) / lastWeekCount) * 100,
+        )
+      : 0;
+
+  // Calculate trend data for last 7 days (for sparkline charts)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString().split("T")[0];
+  });
+
+  // Fetch reviews count per day for last 7 days
+  const reviewsTrendPromises = last7Days.map(async (date) => {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const { count } = await supabase
+      .from("gmb_reviews")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("create_time", date)
+      .lt("create_time", nextDate.toISOString().split("T")[0]);
+    return count || 0;
+  });
+
+  const reviewsTrend = await Promise.all(reviewsTrendPromises);
+
+  // Calculate time of day for greeting
+  const getTimeOfDay = (): "morning" | "afternoon" | "evening" | "night" => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "morning";
+    if (hour >= 12 && hour < 17) return "afternoon";
+    if (hour >= 17 && hour < 21) return "evening";
+    return "night";
+  };
+
+  // Build progress tracker items
+  const progressItems = [
+    {
+      id: "profile-complete",
+      label: "Complete your profile information",
+      completed: !!(profile?.full_name && profile?.avatar_url),
+      href: "/settings",
+    },
+    {
+      id: "connect-gmb",
+      label: "Connect Google My Business account",
+      completed: (accountsCount || 0) > 0,
+      href: "/settings",
+    },
+    {
+      id: "connect-youtube",
+      label: "Connect YouTube channel",
+      completed: hasYouTube,
+      href: "/youtube-dashboard",
+    },
+    {
+      id: "first-review",
+      label: "Respond to your first review",
+      completed: (reviewsCount || 0) > 0,
+      href: "/reviews",
+    },
+  ];
 
   // Fetch recent activities
   const { data: recentReviews } = await supabase
@@ -207,12 +311,9 @@ export default async function HomePage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Subtle Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-primary/20 to-accent/10 rounded-full blur-3xl animate-blob" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-accent/20 to-primary/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
-      </div>
+    <div className="min-h-screen bg-black relative">
+      {/* Animated Background */}
+      <AnimatedBackground />
 
       {/* Smart Header */}
       <SmartHeader
@@ -227,6 +328,25 @@ export default async function HomePage({
 
       {/* Main Content */}
       <main className="relative container mx-auto px-4 py-6 space-y-6">
+        {/* Dashboard Hero - Personalized Greeting */}
+        <DashboardHero
+          userName={profile?.full_name}
+          timeOfDay={getTimeOfDay()}
+          stats={{
+            todayReviews: todayReviewsCount || 0,
+            weeklyGrowth: weeklyGrowth,
+          }}
+        />
+
+        {/* Progress Tracker - Shows incomplete tasks */}
+        <ProgressTracker items={progressItems} hideWhenComplete={true} />
+
+        {/* Dashboard CTA Buttons - Quick access to main dashboards */}
+        <DashboardCTAButtons />
+
+        {/* Achievements Badge */}
+        <AchievementsBadge />
+
         {/* Quick Actions */}
         <QuickActions />
 
@@ -242,7 +362,10 @@ export default async function HomePage({
                 reviews: reviewsCount || 0,
                 avgRating: averageRating,
                 accounts: accountsCount || 0,
-                youtubeSubscribers: hasYouTube ? youtubeSubs : undefined,
+                youtubeSubscribers: youtubeSubs,
+              }}
+              trends={{
+                reviewsTrend: reviewsTrend,
               }}
             />
 
@@ -264,6 +387,12 @@ export default async function HomePage({
           </>
         )}
       </main>
+
+      {/* AI Chat Widget - Floating Assistant */}
+      <AIChatWidget />
+
+      {/* Onboarding Tour - First time users */}
+      <OnboardingTour />
     </div>
   );
 }
