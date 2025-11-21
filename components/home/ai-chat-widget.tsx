@@ -305,7 +305,7 @@ export function AIChatWidget() {
                     disabled={isLoading}
                   />
                   <Button
-                    onClick={handleSend}
+                    onClick={() => handleSend()}
                     disabled={!input.trim() || isLoading}
                     className="bg-orange-500 hover:bg-orange-600"
                   >

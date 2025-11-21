@@ -86,7 +86,6 @@ export function StatsOverview({ stats, trends }: StatsOverviewProps) {
       icon: Building2,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      change: 5, // TODO: Calculate from real data
     },
     {
       label: t("reviews"),
@@ -94,8 +93,7 @@ export function StatsOverview({ stats, trends }: StatsOverviewProps) {
       icon: MessageSquare,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
-      trend: trends?.reviewsTrend, // Real trend data from database
-      change: 12, // TODO: Calculate from real data
+      trend: trends?.reviewsTrend,
     },
     {
       label: t("avgRating"),
@@ -103,8 +101,6 @@ export function StatsOverview({ stats, trends }: StatsOverviewProps) {
       icon: Star,
       color: "text-yellow-500",
       bgColor: "bg-yellow-500/10",
-      // trend: [], // Add real trend data from backend
-      change: 3, // TODO: Calculate from real data
     },
     {
       label: t("accounts"),
@@ -112,8 +108,6 @@ export function StatsOverview({ stats, trends }: StatsOverviewProps) {
       icon: TrendingUp,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
-      // trend: [], // Add real trend data from backend
-      change: 0,
     },
   ];
 
