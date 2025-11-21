@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/server/auth";
+import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import Groq from "groq-sdk";
@@ -37,8 +36,14 @@ const getAIClient = (provider: AIProvider) => {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    // Use Supabase Auth
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
