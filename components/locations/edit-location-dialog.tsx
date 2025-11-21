@@ -1,28 +1,55 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { toast } from "sonner"
-import { Loader2, MapPin, Phone, Globe, FileText, Clock, CheckCircle2, Plus, X } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { GMBLocation } from "@/lib/types/database"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import {
+  Loader2,
+  MapPin,
+  Phone,
+  Globe,
+  FileText,
+  Clock,
+  CheckCircle2,
+  Plus,
+  X,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { GMBLocation } from "@/lib/types/database";
 
 interface EditLocationDialogProps {
-  location: GMBLocation | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  location: GMBLocation | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: EditLocationDialogProps) {
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("basic")
-  
+export function EditLocationDialog({
+  location,
+  open,
+  onOpenChange,
+  onSuccess,
+}: EditLocationDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
+
   // Form state
   const [formData, setFormData] = useState({
     title: "",
@@ -34,45 +61,45 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
     administrativeArea: "",
     postalCode: "",
     regionCode: "US",
-  })
+  });
 
   // Business hours state
-  const [businessHours, setBusinessHours] = useState<any[]>([])
-  
+  const [businessHours, setBusinessHours] = useState<any[]>([]);
+
   // Service items state
-  const [serviceItems, setServiceItems] = useState<any[]>([])
+  const [serviceItems, setServiceItems] = useState<any[]>([]);
   const [newServiceItem, setNewServiceItem] = useState({
     type: "freeForm" as "freeForm" | "structured",
     category: "",
     displayName: "",
     description: "",
     serviceTypeId: "",
-  })
-  
+  });
+
   // Special hours state
-  const [specialHours, setSpecialHours] = useState<any[]>([])
+  const [specialHours, setSpecialHours] = useState<any[]>([]);
   const [newSpecialHour, setNewSpecialHour] = useState({
     startDate: "",
     endDate: "",
     closed: false,
     openTime: { hours: 9, minutes: 0 },
     closeTime: { hours: 17, minutes: 0 },
-  })
-  
+  });
+
   // More hours state
-  const [moreHours, setMoreHours] = useState<any[]>([])
+  const [moreHours, setMoreHours] = useState<any[]>([]);
   const [newMoreHours, setNewMoreHours] = useState({
     hoursTypeId: "",
     periods: [] as any[],
-  })
+  });
 
   useEffect(() => {
     if (location && open) {
-      const metadata = (location.metadata as any) || {}
-      const address = metadata.storefrontAddress || {}
-      const phoneNumbers = metadata.phoneNumbers || {}
-      const profile = metadata.profile || {}
-      const regularHours = metadata.regularHours || {}
+      const metadata = (location.metadata as any) || {};
+      const address = metadata.storefrontAddress || {};
+      const phoneNumbers = metadata.phoneNumbers || {};
+      const profile = metadata.profile || {};
+      const regularHours = metadata.regularHours || {};
 
       setFormData({
         title: location.location_name || "",
@@ -84,86 +111,90 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
         administrativeArea: address.administrativeArea || "",
         postalCode: address.postalCode || "",
         regionCode: address.regionCode || "US",
-      })
+      });
 
-      setBusinessHours(regularHours.periods || [])
-      
+      setBusinessHours(regularHours.periods || []);
+
       // Load service items
-      setServiceItems(metadata.serviceItems || [])
-      
+      setServiceItems(metadata.serviceItems || []);
+
       // Load special hours
-      setSpecialHours(metadata.specialHours?.specialHourPeriods || [])
-      
+      setSpecialHours(metadata.specialHours?.specialHourPeriods || []);
+
       // Load more hours
-      setMoreHours(metadata.moreHours || [])
+      setMoreHours(metadata.moreHours || []);
     }
-  }, [location, open])
+  }, [location, open]);
 
   const handleSubmit = async () => {
-    if (!location) return
+    if (!location) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
       // Prepare update data based on active tab
-      let updateData: any = {}
-      let updateMask = ""
+      let updateData: any = {};
+      let updateMask = "";
 
       if (activeTab === "basic") {
         updateData = {
           title: formData.title,
-          profile: formData.description ? { description: formData.description } : undefined,
-          phoneNumbers: formData.primaryPhone ? {
-            primaryPhone: formData.primaryPhone,
-          } : undefined,
+          profile: formData.description
+            ? { description: formData.description }
+            : undefined,
+          phoneNumbers: formData.primaryPhone
+            ? {
+                primaryPhone: formData.primaryPhone,
+              }
+            : undefined,
           websiteUri: formData.websiteUri || undefined,
-        }
-        
+        };
+
         // Build update mask
-        const maskParts = ["title"]
-        if (formData.description) maskParts.push("profile")
-        if (formData.primaryPhone) maskParts.push("phoneNumbers")
-        if (formData.websiteUri) maskParts.push("websiteUri")
-        updateMask = maskParts.join(",")
+        const maskParts = ["title"];
+        if (formData.description) maskParts.push("profile");
+        if (formData.primaryPhone) maskParts.push("phoneNumbers");
+        if (formData.websiteUri) maskParts.push("websiteUri");
+        updateMask = maskParts.join(",");
       } else if (activeTab === "address") {
         updateData = {
           storefrontAddress: {
-            addressLines: formData.addressLines.filter(line => line.trim()),
+            addressLines: formData.addressLines.filter((line) => line.trim()),
             locality: formData.locality || undefined,
             administrativeArea: formData.administrativeArea || undefined,
             postalCode: formData.postalCode || undefined,
             regionCode: formData.regionCode,
           },
-        }
-        updateMask = "storefrontAddress"
+        };
+        updateMask = "storefrontAddress";
       } else if (activeTab === "hours") {
         updateData = {
           regularHours: {
             periods: businessHours,
           },
-        }
+        };
         if (specialHours.length > 0) {
           updateData.specialHours = {
             specialHourPeriods: specialHours,
-          }
-          updateMask = "regularHours,specialHours"
+          };
+          updateMask = "regularHours,specialHours";
         } else {
-          updateMask = "regularHours"
+          updateMask = "regularHours";
         }
         if (moreHours.length > 0) {
-          updateData.moreHours = moreHours
-          updateMask = updateMask ? `${updateMask},moreHours` : "moreHours"
+          updateData.moreHours = moreHours;
+          updateMask = `${updateMask},moreHours`;
         }
       } else if (activeTab === "services") {
         updateData = {
           serviceItems: serviceItems,
-        }
-        updateMask = "serviceItems"
+        };
+        updateMask = "serviceItems";
       }
 
       // Remove undefined fields
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) delete updateData[key]
-      })
+      Object.keys(updateData).forEach((key) => {
+        if (updateData[key] === undefined) delete updateData[key];
+      });
 
       const response = await fetch(`/api/gmb/location/${location.id}/update`, {
         method: "PATCH",
@@ -175,25 +206,25 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
           location: updateData,
           validateOnly: false,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to update location")
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update location");
       }
 
-      toast.success("Location updated successfully")
-      onSuccess?.()
-      onOpenChange(false)
+      toast.success("Location updated successfully");
+      onSuccess?.();
+      onOpenChange(false);
     } catch (error: any) {
-      console.error("Error updating location:", error)
-      toast.error(error.message || "Failed to update location")
+      console.error("Error updating location:", error);
+      toast.error(error.message || "Failed to update location");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  if (!location) return null
+  if (!location) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,7 +252,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               <Input
                 id="title"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 className="bg-secondary border-primary/30 text-foreground"
                 placeholder="Your Business Name"
                 required
@@ -235,14 +268,19 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="bg-secondary border-primary/30 text-foreground min-h-[100px]"
                 placeholder="Describe your business..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="primaryPhone" className="text-foreground flex items-center gap-2">
+              <Label
+                htmlFor="primaryPhone"
+                className="text-foreground flex items-center gap-2"
+              >
                 <Phone className="w-4 h-4" />
                 Primary Phone
               </Label>
@@ -250,14 +288,19 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 id="primaryPhone"
                 type="tel"
                 value={formData.primaryPhone}
-                onChange={(e) => setFormData({ ...formData, primaryPhone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, primaryPhone: e.target.value })
+                }
                 className="bg-secondary border-primary/30 text-foreground"
                 placeholder="+1 234 567 8900"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="websiteUri" className="text-foreground flex items-center gap-2">
+              <Label
+                htmlFor="websiteUri"
+                className="text-foreground flex items-center gap-2"
+              >
                 <Globe className="w-4 h-4" />
                 Website
               </Label>
@@ -265,7 +308,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 id="websiteUri"
                 type="url"
                 value={formData.websiteUri}
-                onChange={(e) => setFormData({ ...formData, websiteUri: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, websiteUri: e.target.value })
+                }
                 className="bg-secondary border-primary/30 text-foreground"
                 placeholder="https://yourwebsite.com"
               />
@@ -274,17 +319,24 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
 
           <TabsContent value="address" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="addressLines" className="text-foreground flex items-center gap-2">
+              <Label
+                htmlFor="addressLines"
+                className="text-foreground flex items-center gap-2"
+              >
                 <MapPin className="w-4 h-4" />
                 Street Address
               </Label>
               <Textarea
                 id="addressLines"
                 value={formData.addressLines.join("\n")}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  addressLines: e.target.value.split("\n").filter(line => line.trim()),
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    addressLines: e.target.value
+                      .split("\n")
+                      .filter((line) => line.trim()),
+                  })
+                }
                 className="bg-secondary border-primary/30 text-foreground min-h-[80px]"
                 placeholder="Street address line 1&#10;Street address line 2 (optional)"
               />
@@ -301,7 +353,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 <Input
                   id="locality"
                   value={formData.locality}
-                  onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, locality: e.target.value })
+                  }
                   className="bg-secondary border-primary/30 text-foreground"
                   placeholder="City"
                 />
@@ -314,7 +368,12 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 <Input
                   id="administrativeArea"
                   value={formData.administrativeArea}
-                  onChange={(e) => setFormData({ ...formData, administrativeArea: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      administrativeArea: e.target.value,
+                    })
+                  }
                   className="bg-secondary border-primary/30 text-foreground"
                   placeholder="State"
                 />
@@ -329,7 +388,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 <Input
                   id="postalCode"
                   value={formData.postalCode}
-                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, postalCode: e.target.value })
+                  }
                   className="bg-secondary border-primary/30 text-foreground"
                   placeholder="12345"
                 />
@@ -342,7 +403,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 <Input
                   id="regionCode"
                   value={formData.regionCode}
-                  onChange={(e) => setFormData({ ...formData, regionCode: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, regionCode: e.target.value })
+                  }
                   className="bg-secondary border-primary/30 text-foreground"
                   placeholder="US"
                 />
@@ -359,14 +422,29 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                   Regular Business Hours
                 </Label>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Regular operating hours. Editing regular hours requires full time period configuration and will be available in a future update.
+                  Regular operating hours. Editing regular hours requires full
+                  time period configuration and will be available in a future
+                  update.
                 </p>
                 {businessHours.length > 0 && (
                   <div className="space-y-2">
                     {businessHours.map((period: any, idx: number) => (
-                      <div key={idx} className="p-3 rounded-lg bg-secondary border border-primary/20">
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-secondary border border-primary/20"
+                      >
                         <p className="text-sm text-foreground">
-                          {period.openDay} - {period.closeDay}: {period.openTime?.hours || 0}:{String(period.openTime?.minutes || 0).padStart(2, '0')} - {period.closeTime?.hours || 0}:{String(period.closeTime?.minutes || 0).padStart(2, '0')}
+                          {period.openDay} - {period.closeDay}:{" "}
+                          {period.openTime?.hours || 0}:
+                          {String(period.openTime?.minutes || 0).padStart(
+                            2,
+                            "0",
+                          )}{" "}
+                          - {period.closeTime?.hours || 0}:
+                          {String(period.closeTime?.minutes || 0).padStart(
+                            2,
+                            "0",
+                          )}
                         </p>
                       </div>
                     ))}
@@ -376,28 +454,44 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
 
               {/* Special Hours */}
               <div className="space-y-2">
-                <Label className="text-foreground">Special Hours (Holidays, etc.)</Label>
+                <Label className="text-foreground">
+                  Special Hours (Holidays, etc.)
+                </Label>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Hours that differ from regular hours for specific dates (e.g., holidays, special events)
+                  Hours that differ from regular hours for specific dates (e.g.,
+                  holidays, special events)
                 </p>
-                
+
                 {specialHours.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {specialHours.map((period: any, idx: number) => (
-                      <div key={idx} className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between">
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between"
+                      >
                         <div>
                           <p className="text-sm text-foreground font-medium">
-                            {period.closed ? 'Closed' : `${period.openTime?.hours || 0}:${String(period.openTime?.minutes || 0).padStart(2, '0')} - ${period.closeTime?.hours || 0}:${String(period.closeTime?.minutes || 0).padStart(2, '0')}`}
+                            {period.closed
+                              ? "Closed"
+                              : `${period.openTime?.hours || 0}:${String(period.openTime?.minutes || 0).padStart(2, "0")} - ${period.closeTime?.hours || 0}:${String(period.closeTime?.minutes || 0).padStart(2, "0")}`}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {period.startDate} {period.endDate && period.endDate !== period.startDate ? `to ${period.endDate}` : ''}
+                            {period.startDate}{" "}
+                            {period.endDate &&
+                            period.endDate !== period.startDate
+                              ? `to ${period.endDate}`
+                              : ""}
                           </p>
                         </div>
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          onClick={() => setSpecialHours(specialHours.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setSpecialHours(
+                              specialHours.filter((_, i) => i !== idx),
+                            )
+                          }
                           className="h-8 w-8 p-0"
                         >
                           <X className="w-4 h-4" />
@@ -408,23 +502,39 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                 )}
 
                 <div className="p-4 rounded-lg bg-secondary border border-primary/20 space-y-3">
-                  <Label className="text-foreground">Add Special Hour Period</Label>
+                  <Label className="text-foreground">
+                    Add Special Hour Period
+                  </Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Start Date</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Start Date
+                      </Label>
                       <Input
                         type="date"
                         value={newSpecialHour.startDate}
-                        onChange={(e) => setNewSpecialHour({ ...newSpecialHour, startDate: e.target.value })}
+                        onChange={(e) =>
+                          setNewSpecialHour({
+                            ...newSpecialHour,
+                            startDate: e.target.value,
+                          })
+                        }
                         className="bg-card border-primary/30 text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">End Date (optional)</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        End Date (optional)
+                      </Label>
                       <Input
                         type="date"
                         value={newSpecialHour.endDate}
-                        onChange={(e) => setNewSpecialHour({ ...newSpecialHour, endDate: e.target.value })}
+                        onChange={(e) =>
+                          setNewSpecialHour({
+                            ...newSpecialHour,
+                            endDate: e.target.value,
+                          })
+                        }
                         className="bg-card border-primary/30 text-foreground"
                       />
                     </div>
@@ -433,25 +543,39 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                     <input
                       type="checkbox"
                       checked={newSpecialHour.closed}
-                      onChange={(e) => setNewSpecialHour({ ...newSpecialHour, closed: e.target.checked })}
+                      onChange={(e) =>
+                        setNewSpecialHour({
+                          ...newSpecialHour,
+                          closed: e.target.checked,
+                        })
+                      }
                       className="rounded border-primary/30"
                     />
-                    <Label className="text-sm text-foreground cursor-pointer">Closed on this date</Label>
+                    <Label className="text-sm text-foreground cursor-pointer">
+                      Closed on this date
+                    </Label>
                   </div>
                   {!newSpecialHour.closed && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Open Time</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Open Time
+                        </Label>
                         <div className="flex gap-2">
                           <Input
                             type="number"
                             min="0"
                             max="23"
                             value={newSpecialHour.openTime.hours}
-                            onChange={(e) => setNewSpecialHour({
-                              ...newSpecialHour,
-                              openTime: { ...newSpecialHour.openTime, hours: parseInt(e.target.value) || 0 }
-                            })}
+                            onChange={(e) =>
+                              setNewSpecialHour({
+                                ...newSpecialHour,
+                                openTime: {
+                                  ...newSpecialHour.openTime,
+                                  hours: parseInt(e.target.value) || 0,
+                                },
+                              })
+                            }
                             className="bg-card border-primary/30 text-foreground"
                             placeholder="Hour"
                           />
@@ -460,27 +584,39 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                             min="0"
                             max="59"
                             value={newSpecialHour.openTime.minutes}
-                            onChange={(e) => setNewSpecialHour({
-                              ...newSpecialHour,
-                              openTime: { ...newSpecialHour.openTime, minutes: parseInt(e.target.value) || 0 }
-                            })}
+                            onChange={(e) =>
+                              setNewSpecialHour({
+                                ...newSpecialHour,
+                                openTime: {
+                                  ...newSpecialHour.openTime,
+                                  minutes: parseInt(e.target.value) || 0,
+                                },
+                              })
+                            }
                             className="bg-card border-primary/30 text-foreground"
                             placeholder="Min"
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Close Time</Label>
+                        <Label className="text-xs text-muted-foreground">
+                          Close Time
+                        </Label>
                         <div className="flex gap-2">
                           <Input
                             type="number"
                             min="0"
                             max="23"
                             value={newSpecialHour.closeTime.hours}
-                            onChange={(e) => setNewSpecialHour({
-                              ...newSpecialHour,
-                              closeTime: { ...newSpecialHour.closeTime, hours: parseInt(e.target.value) || 0 }
-                            })}
+                            onChange={(e) =>
+                              setNewSpecialHour({
+                                ...newSpecialHour,
+                                closeTime: {
+                                  ...newSpecialHour.closeTime,
+                                  hours: parseInt(e.target.value) || 0,
+                                },
+                              })
+                            }
                             className="bg-card border-primary/30 text-foreground"
                             placeholder="Hour"
                           />
@@ -489,10 +625,15 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                             min="0"
                             max="59"
                             value={newSpecialHour.closeTime.minutes}
-                            onChange={(e) => setNewSpecialHour({
-                              ...newSpecialHour,
-                              closeTime: { ...newSpecialHour.closeTime, minutes: parseInt(e.target.value) || 0 }
-                            })}
+                            onChange={(e) =>
+                              setNewSpecialHour({
+                                ...newSpecialHour,
+                                closeTime: {
+                                  ...newSpecialHour.closeTime,
+                                  minutes: parseInt(e.target.value) || 0,
+                                },
+                              })
+                            }
                             className="bg-card border-primary/30 text-foreground"
                             placeholder="Min"
                           />
@@ -508,37 +649,50 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                       if (newSpecialHour.startDate) {
                         const period: any = {
                           startDate: {
-                            year: parseInt(newSpecialHour.startDate.split('-')[0]),
-                            month: parseInt(newSpecialHour.startDate.split('-')[1]),
-                            day: parseInt(newSpecialHour.startDate.split('-')[2]),
+                            year: parseInt(
+                              newSpecialHour.startDate.split("-")[0],
+                            ),
+                            month: parseInt(
+                              newSpecialHour.startDate.split("-")[1],
+                            ),
+                            day: parseInt(
+                              newSpecialHour.startDate.split("-")[2],
+                            ),
                           },
                           closed: newSpecialHour.closed,
-                        }
-                        if (newSpecialHour.endDate && newSpecialHour.endDate !== newSpecialHour.startDate) {
+                        };
+                        if (
+                          newSpecialHour.endDate &&
+                          newSpecialHour.endDate !== newSpecialHour.startDate
+                        ) {
                           period.endDate = {
-                            year: parseInt(newSpecialHour.endDate.split('-')[0]),
-                            month: parseInt(newSpecialHour.endDate.split('-')[1]),
-                            day: parseInt(newSpecialHour.endDate.split('-')[2]),
-                          }
+                            year: parseInt(
+                              newSpecialHour.endDate.split("-")[0],
+                            ),
+                            month: parseInt(
+                              newSpecialHour.endDate.split("-")[1],
+                            ),
+                            day: parseInt(newSpecialHour.endDate.split("-")[2]),
+                          };
                         }
                         if (!newSpecialHour.closed) {
                           period.openTime = {
                             hours: newSpecialHour.openTime.hours,
                             minutes: newSpecialHour.openTime.minutes,
-                          }
+                          };
                           period.closeTime = {
                             hours: newSpecialHour.closeTime.hours,
                             minutes: newSpecialHour.closeTime.minutes,
-                          }
+                          };
                         }
-                        setSpecialHours([...specialHours, period])
+                        setSpecialHours([...specialHours, period]);
                         setNewSpecialHour({
                           startDate: "",
                           endDate: "",
                           closed: false,
                           openTime: { hours: 9, minutes: 0 },
                           closeTime: { hours: 17, minutes: 0 },
-                        })
+                        });
                       }
                     }}
                     disabled={!newSpecialHour.startDate}
@@ -552,15 +706,21 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
 
               {/* More Hours */}
               <div className="space-y-2 mt-6">
-                <Label className="text-foreground">More Hours (Additional Hours Types)</Label>
+                <Label className="text-foreground">
+                  More Hours (Additional Hours Types)
+                </Label>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Additional hours for different departments or customer types (e.g., delivery hours, drive-through hours)
+                  Additional hours for different departments or customer types
+                  (e.g., delivery hours, drive-through hours)
                 </p>
-                
+
                 {moreHours.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {moreHours.map((moreHour: any, idx: number) => (
-                      <div key={idx} className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between">
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between"
+                      >
                         <div>
                           <p className="text-sm text-foreground font-medium">
                             {moreHour.hoursTypeId || `Hours Type ${idx + 1}`}
@@ -573,7 +733,9 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                           type="button"
                           size="sm"
                           variant="ghost"
-                          onClick={() => setMoreHours(moreHours.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setMoreHours(moreHours.filter((_, i) => i !== idx))
+                          }
                           className="h-8 w-8 p-0"
                         >
                           <X className="w-4 h-4" />
@@ -588,11 +750,17 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                   <Input
                     placeholder="Hours Type ID"
                     value={newMoreHours.hoursTypeId}
-                    onChange={(e) => setNewMoreHours({ ...newMoreHours, hoursTypeId: e.target.value })}
+                    onChange={(e) =>
+                      setNewMoreHours({
+                        ...newMoreHours,
+                        hoursTypeId: e.target.value,
+                      })
+                    }
                     className="bg-card border-primary/30 text-foreground"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Note: Hours Type ID should match available types for your business category.
+                    Note: Hours Type ID should match available types for your
+                    business category.
                   </p>
                   <Button
                     type="button"
@@ -606,8 +774,8 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                             hoursTypeId: newMoreHours.hoursTypeId,
                             periods: [],
                           },
-                        ])
-                        setNewMoreHours({ hoursTypeId: "", periods: [] })
+                        ]);
+                        setNewMoreHours({ hoursTypeId: "", periods: [] });
                       }
                     }}
                     disabled={!newMoreHours.hoursTypeId}
@@ -627,28 +795,38 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               <p className="text-xs text-muted-foreground mb-4">
                 Services offered by your business
               </p>
-              
+
               {/* Existing service items */}
               {serviceItems.length > 0 && (
                 <div className="space-y-2 mb-4">
                   {serviceItems.map((item: any, idx: number) => {
-                    const displayName = item.structuredServiceItem?.description || 
-                                      item.freeFormServiceItem?.label?.displayName || 
-                                      'Service'
+                    const displayName =
+                      item.structuredServiceItem?.description ||
+                      item.freeFormServiceItem?.label?.displayName ||
+                      "Service";
                     return (
-                      <div key={idx} className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between">
-                        <span className="text-sm text-foreground">{displayName}</span>
+                      <div
+                        key={idx}
+                        className="p-3 rounded-lg bg-secondary border border-primary/20 flex items-center justify-between"
+                      >
+                        <span className="text-sm text-foreground">
+                          {displayName}
+                        </span>
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          onClick={() => setServiceItems(serviceItems.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setServiceItems(
+                              serviceItems.filter((_, i) => i !== idx),
+                            )
+                          }
                           className="h-8 w-8 p-0"
                         >
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -656,7 +834,7 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
               {/* Add new service item */}
               <div className="p-4 rounded-lg bg-secondary border border-primary/20 space-y-3">
                 <Label className="text-foreground">Add Service</Label>
-                
+
                 <Select
                   value={newServiceItem.type}
                   onValueChange={(value: "freeForm" | "structured") =>
@@ -677,13 +855,23 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                     <Input
                       placeholder="Service Name"
                       value={newServiceItem.displayName}
-                      onChange={(e) => setNewServiceItem({ ...newServiceItem, displayName: e.target.value })}
+                      onChange={(e) =>
+                        setNewServiceItem({
+                          ...newServiceItem,
+                          displayName: e.target.value,
+                        })
+                      }
                       className="bg-card border-primary/30 text-foreground"
                     />
                     <Input
                       placeholder="Category"
                       value={newServiceItem.category}
-                      onChange={(e) => setNewServiceItem({ ...newServiceItem, category: e.target.value })}
+                      onChange={(e) =>
+                        setNewServiceItem({
+                          ...newServiceItem,
+                          category: e.target.value,
+                        })
+                      }
                       className="bg-card border-primary/30 text-foreground"
                     />
                   </>
@@ -691,7 +879,12 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                   <Input
                     placeholder="Service Type ID"
                     value={newServiceItem.serviceTypeId}
-                    onChange={(e) => setNewServiceItem({ ...newServiceItem, serviceTypeId: e.target.value })}
+                    onChange={(e) =>
+                      setNewServiceItem({
+                        ...newServiceItem,
+                        serviceTypeId: e.target.value,
+                      })
+                    }
                     className="bg-card border-primary/30 text-foreground"
                   />
                 )}
@@ -701,7 +894,11 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    if (newServiceItem.type === "freeForm" && newServiceItem.displayName && newServiceItem.category) {
+                    if (
+                      newServiceItem.type === "freeForm" &&
+                      newServiceItem.displayName &&
+                      newServiceItem.category
+                    ) {
                       setServiceItems([
                         ...serviceItems,
                         {
@@ -712,9 +909,18 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                             },
                           },
                         },
-                      ])
-                      setNewServiceItem({ type: "freeForm", category: "", displayName: "", description: "", serviceTypeId: "" })
-                    } else if (newServiceItem.type === "structured" && newServiceItem.serviceTypeId) {
+                      ]);
+                      setNewServiceItem({
+                        type: "freeForm",
+                        category: "",
+                        displayName: "",
+                        description: "",
+                        serviceTypeId: "",
+                      });
+                    } else if (
+                      newServiceItem.type === "structured" &&
+                      newServiceItem.serviceTypeId
+                    ) {
                       setServiceItems([
                         ...serviceItems,
                         {
@@ -723,8 +929,14 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
                             description: newServiceItem.description,
                           },
                         },
-                      ])
-                      setNewServiceItem({ type: "freeForm", category: "", displayName: "", description: "", serviceTypeId: "" })
+                      ]);
+                      setNewServiceItem({
+                        type: "freeForm",
+                        category: "",
+                        displayName: "",
+                        description: "",
+                        serviceTypeId: "",
+                      });
                     }
                   }}
                   className="w-full border-primary/30"
@@ -766,6 +978,5 @@ export function EditLocationDialog({ location, open, onOpenChange, onSuccess }: 
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

@@ -1,56 +1,64 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { z } from "zod"
-import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
-import type { ReviewData } from "@/lib/gmb/sync-types"
-import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager"
-import { logAction } from "@/lib/monitoring/audit"
-import { trackApiResponse } from "@/lib/monitoring/metrics"
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
+import type { ReviewData } from "@/lib/gmb/sync-types";
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
+import { logAction } from "@/lib/monitoring/audit";
+import { trackApiResponse } from "@/lib/monitoring/metrics";
 
-const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE
+const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const STAR_RATING_TO_SCORE: Record<string, number> = {
   FIVE: 5,
   FOUR: 4,
   THREE: 3,
   TWO: 2,
   ONE: 1,
-}
+};
 
 function mapStarRating(value?: string | null): number {
   if (!value) {
-    return 1
+    return 1;
   }
-  return STAR_RATING_TO_SCORE[value as keyof typeof STAR_RATING_TO_SCORE] ?? 1
+  return STAR_RATING_TO_SCORE[value as keyof typeof STAR_RATING_TO_SCORE] ?? 1;
 }
 
-function buildLocationResourceName(accountId: string, locationId: string): string {
-  const cleanAccountId = accountId.replace(/^accounts\//, "")
-  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "")
-  return `accounts/${cleanAccountId}/locations/${cleanLocationId}`
+function buildLocationResourceName(
+  accountId: string,
+  locationId: string,
+): string {
+  const cleanAccountId = accountId.replace(/^accounts\//, "");
+  const cleanLocationId = locationId.replace(
+    /^(accounts\/[^/]+\/)?locations\//,
+    "",
+  );
+  return `accounts/${cleanAccountId}/locations/${cleanLocationId}`;
 }
 
 interface ReviewFetchContext {
-  userId: string
-  accountId: string
-  googleLocationId: string
-  accessToken: string
-  internalLocationId?: string
+  userId: string;
+  accountId: string;
+  googleLocationId: string;
+  accessToken: string;
+  internalLocationId?: string;
 }
 
-async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<ReviewData[]> {
-  const locationResource = context.googleLocationId.startsWith('accounts/')
+async function collectReviewsFromGoogle(
+  context: ReviewFetchContext,
+): Promise<ReviewData[]> {
+  const locationResource = context.googleLocationId.startsWith("accounts/")
     ? context.googleLocationId
-    : buildLocationResourceName(context.accountId, context.googleLocationId)
-  const reviews: ReviewData[] = []
-  let nextPageToken: string | undefined = undefined
+    : buildLocationResourceName(context.accountId, context.googleLocationId);
+  const reviews: ReviewData[] = [];
+  let nextPageToken: string | undefined = undefined;
 
   do {
-    const url = new URL(`${GMB_API_BASE}/${locationResource}/reviews`)
-    url.searchParams.set("pageSize", "50")
+    const url = new URL(`${GMB_API_BASE}/${locationResource}/reviews`);
+    url.searchParams.set("pageSize", "50");
     if (nextPageToken) {
-      url.searchParams.set("pageToken", nextPageToken)
+      url.searchParams.set("pageToken", nextPageToken);
     }
 
     const response = await fetch(url.toString(), {
@@ -58,20 +66,21 @@ async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<Re
         Authorization: `Bearer ${context.accessToken}`,
         Accept: "application/json",
       },
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error("[Reviews] Google API error:", errorData)
-      throw new Error("Failed to fetch reviews from Google")
+      const errorData = await response.json().catch(() => ({}));
+      console.error("[Reviews] Google API error:", errorData);
+      throw new Error("Failed to fetch reviews from Google");
     }
 
-    const payload = await response.json()
-    const googleReviews = payload.reviews || []
+    const payload = await response.json();
+    const googleReviews = payload.reviews || [];
 
     for (const googleReview of googleReviews) {
-      const reviewId = googleReview.reviewId || googleReview.name?.split("/").pop()
-      if (!reviewId) continue
+      const reviewId =
+        googleReview.reviewId || googleReview.name?.split("/").pop();
+      if (!reviewId) continue;
 
       reviews.push({
         user_id: context.userId,
@@ -92,47 +101,55 @@ async function collectReviewsFromGoogle(context: ReviewFetchContext): Promise<Re
         sentiment: null,
         google_name: googleReview.name || null,
         review_url: googleReview.reviewUrl || null,
-      })
+      });
     }
 
-    nextPageToken = payload.nextPageToken
-  } while (nextPageToken)
+    nextPageToken = payload.nextPageToken;
+  } while (nextPageToken);
 
-  return reviews
+  return reviews;
 }
 
 // Validation schemas
 const ReplySchema = z.object({
   reviewId: z.string().uuid(),
-  replyText: z.string().min(1).max(4096, "Reply must be less than 4096 characters"),
-})
+  replyText: z
+    .string()
+    .min(1)
+    .max(4096, "Reply must be less than 4096 characters"),
+});
 
 function resolveErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
+  return error instanceof Error ? error.message : fallback;
 }
 
 const FilterSchema = z.object({
   locationId: z.string().uuid().optional(),
   rating: z.number().min(1).max(5).optional(),
   hasReply: z.boolean().optional(),
-  status: z.enum(['pending', 'replied', 'responded', 'flagged', 'archived']).optional(),
-  sentiment: z.enum(['positive', 'neutral', 'negative']).optional(),
+  status: z
+    .enum(["pending", "replied", "responded", "flagged", "archived"])
+    .optional(),
+  sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
   searchQuery: z.string().optional(),
-  sortBy: z.enum(['newest', 'oldest', 'highest', 'lowest']).optional(),
+  sortBy: z.enum(["newest", "oldest", "highest", "lowest"]).optional(),
   limit: z.number().min(1).max(100).optional(),
   offset: z.number().min(0).optional(),
-})
+});
 
-export async function fetchReviewsFromGoogle(locationId: string, accessToken: string): Promise<ReviewData[]> {
-  const supabase = await createClient()
+export async function fetchReviewsFromGoogle(
+  locationId: string,
+  accessToken: string,
+): Promise<ReviewData[]> {
+  const supabase = await createClient();
   const { data: location, error } = await supabase
     .from("gmb_locations")
     .select("id, location_id, gmb_account_id, user_id")
     .eq("id", locationId)
-    .single()
+    .single();
 
   if (error || !location) {
-    throw new Error("Location not found")
+    throw new Error("Location not found");
   }
 
   return collectReviewsFromGoogle({
@@ -141,11 +158,13 @@ export async function fetchReviewsFromGoogle(locationId: string, accessToken: st
     googleLocationId: location.location_id,
     accessToken,
     internalLocationId: location.id,
-  })
+  });
 }
 
-export async function fetchReviewsForLocationResource(params: ReviewFetchContext): Promise<ReviewData[]> {
-  return collectReviewsFromGoogle(params)
+export async function fetchReviewsForLocationResource(
+  params: ReviewFetchContext,
+): Promise<ReviewData[]> {
+  return collectReviewsFromGoogle(params);
 }
 
 /**
@@ -153,13 +172,13 @@ export async function fetchReviewsForLocationResource(params: ReviewFetchContext
  */
 export async function getReviews(params: z.infer<typeof FilterSchema>) {
   try {
-    const validatedParams = FilterSchema.parse(params)
-    const supabase = await createClient()
+    const validatedParams = FilterSchema.parse(params);
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -167,7 +186,7 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
         error: "Not authenticated",
         data: [],
         count: 0,
-      }
+      };
     }
 
     // Build query with location join
@@ -182,86 +201,86 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
           address
         )
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
-      .eq("user_id", user.id)
+      .eq("user_id", user.id);
 
     // Apply filters
     if (validatedParams.locationId) {
-      query = query.eq("location_id", validatedParams.locationId)
+      query = query.eq("location_id", validatedParams.locationId);
     }
 
     if (validatedParams.rating) {
-      query = query.eq("rating", validatedParams.rating)
+      query = query.eq("rating", validatedParams.rating);
     }
 
     if (validatedParams.hasReply !== undefined) {
-      query = query.eq("has_reply", validatedParams.hasReply)
+      query = query.eq("has_reply", validatedParams.hasReply);
     }
 
     if (validatedParams.status) {
-      query = query.eq("status", validatedParams.status)
+      query = query.eq("status", validatedParams.status);
     }
 
     if (validatedParams.sentiment) {
-      query = query.eq("ai_sentiment", validatedParams.sentiment)
+      query = query.eq("ai_sentiment", validatedParams.sentiment);
     }
 
     if (validatedParams.searchQuery) {
       query = query.or(
-        `review_text.ilike.%${validatedParams.searchQuery}%,reviewer_name.ilike.%${validatedParams.searchQuery}%`
-      )
+        `review_text.ilike.%${validatedParams.searchQuery}%,reviewer_name.ilike.%${validatedParams.searchQuery}%`,
+      );
     }
 
     // Apply sorting
     switch (validatedParams.sortBy) {
       case "newest":
-        query = query.order("review_date", { ascending: false })
-        break
+        query = query.order("review_date", { ascending: false });
+        break;
       case "oldest":
-        query = query.order("review_date", { ascending: true })
-        break
+        query = query.order("review_date", { ascending: true });
+        break;
       case "highest":
-        query = query.order("rating", { ascending: false })
-        break
+        query = query.order("rating", { ascending: false });
+        break;
       case "lowest":
-        query = query.order("rating", { ascending: true })
-        break
+        query = query.order("rating", { ascending: true });
+        break;
       default:
-        query = query.order("review_date", { ascending: false })
+        query = query.order("review_date", { ascending: false });
     }
 
     // Apply pagination
-    const limit = validatedParams.limit || 50
-    const offset = validatedParams.offset || 0
+    const limit = validatedParams.limit || 50;
+    const offset = validatedParams.offset || 0;
 
-    query = query.range(offset, offset + limit - 1)
+    query = query.range(offset, offset + limit - 1);
 
-    const { data, error, count } = await query
+    const { data, error, count } = await query;
 
     if (error) {
-      console.error("[Reviews] Fetch error:", error)
+      console.error("[Reviews] Fetch error:", error);
       return {
         success: false,
         error: error.message,
         data: [],
         count: 0,
-      }
+      };
     }
 
     return {
       success: true,
       data: data || [],
       count: count || 0,
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Error:", error)
+    console.error("[Reviews] Error:", error);
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to fetch reviews"),
       data: [],
       count: 0,
-    }
+    };
   }
 }
 
@@ -269,18 +288,18 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
  * 2. REPLY TO REVIEW
  */
 export async function replyToReview(reviewId: string, replyText: string) {
-  const operationStart = Date.now()
+  const operationStart = Date.now();
   try {
-    const validatedData = ReplySchema.parse({ reviewId, replyText })
-    const supabase = await createClient()
+    const validatedData = ReplySchema.parse({ reviewId, replyText });
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     // Get review with location and account details
@@ -295,72 +314,65 @@ export async function replyToReview(reviewId: string, replyText: string) {
           gmb_account_id,
           gmb_accounts!inner(id, account_id, is_active)
         )
-      `
+      `,
       )
       .eq("id", validatedData.reviewId)
       .eq("user_id", user.id)
-      .single()
+      .single();
 
     if (fetchError || !review) {
       return {
         success: false,
         error: "Review not found or you don't have permission",
-      }
+      };
     }
 
     if (review.has_reply) {
       return {
         success: false,
         error: "This review already has a reply. Use updateReply to modify it.",
-      }
+      };
     }
 
     const location = Array.isArray(review.gmb_locations)
       ? review.gmb_locations[0]
-      : review.gmb_locations
+      : review.gmb_locations;
 
     if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
-      }
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
+      };
     }
 
     const account =
-      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
-      null
+      (Array.isArray(location.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location.gmb_accounts) || null;
 
     if (!account?.account_id) {
       return {
         success: false,
-        error: "Google account details missing. Please reconnect your Google account.",
-      }
+        error:
+          "Google account details missing. Please reconnect your Google account.",
+      };
     }
 
     if (account.is_active === false) {
       return {
         success: false,
-        error: "Linked Google account is inactive. Please reconnect your Google account.",
-      }
+        error:
+          "Linked Google account is inactive. Please reconnect your Google account.",
+      };
     }
 
-    if (account.is_active === false) {
-      return {
-        success: false,
-        error: "Linked Google account is inactive. Please reconnect your Google account.",
-      }
-    }
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
-    if (account.is_active === false) {
-      return {
-        success: false,
-        error: "Linked Google account is inactive. Please reconnect your Google account.",
-      }
-    }
-
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
-
-    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}:reply`
+    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}:reply`;
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -371,47 +383,48 @@ export async function replyToReview(reviewId: string, replyText: string) {
       body: JSON.stringify({
         comment: validatedData.replyText.trim(),
       }),
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
         return {
           success: false,
-          error: "Authentication expired. Please reconnect your Google account.",
-        }
+          error:
+            "Authentication expired. Please reconnect your Google account.",
+        };
       } else if (response.status === 403) {
         return {
           success: false,
           error: "Permission denied. Verify you have access to this location.",
-        }
+        };
       } else if (response.status === 404) {
         return {
           success: false,
           error: "Review not found on Google. It may have been deleted.",
-        }
+        };
       } else if (response.status === 429) {
         return {
           success: false,
           error: "Too many requests. Please try again in a few minutes.",
-        }
+        };
       }
 
-      console.error("[Reviews] API error:", errorData)
+      console.error("[Reviews] API error:", errorData);
       return {
         success: false,
         error:
           errorData.error?.message ||
           `Failed to post reply (${response.status})`,
-      }
+      };
     }
 
-    const result = await response.json()
+    const result = await response.json();
 
     // Update database – keep legacy and new reply fields in sync
-    const replyValue = validatedData.replyText.trim()
-    const nowIso = new Date().toISOString()
+    const replyValue = validatedData.replyText.trim();
+    const nowIso = new Date().toISOString();
 
     const { error: updateError } = await supabase
       .from("gmb_reviews")
@@ -430,52 +443,52 @@ export async function replyToReview(reviewId: string, replyText: string) {
         status: "replied",
         updated_at: nowIso,
       })
-      .eq("id", validatedData.reviewId)
+      .eq("id", validatedData.reviewId);
 
     if (updateError) {
-      console.error("[Reviews] Database update error:", updateError)
+      console.error("[Reviews] Database update error:", updateError);
     }
 
-    revalidatePath("/dashboard")
-    revalidatePath("/reviews")
+    revalidatePath("/dashboard");
+    revalidatePath("/reviews");
 
-    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id)
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
 
-    const durationMs = Date.now() - operationStart
+    const durationMs = Date.now() - operationStart;
     await logAction("review_reply", "gmb_review", validatedData.reviewId, {
       status: "success",
       type: "create",
       location_id: location?.id,
-    })
-    await trackApiResponse("review_reply", durationMs)
+    });
+    await trackApiResponse("review_reply", durationMs);
 
     return {
       success: true,
       data: result,
       message: "Reply posted successfully!",
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Reply error:", error)
-    const durationMs = Date.now() - operationStart
-    const errorMessage = resolveErrorMessage(error, "Failed to post reply")
+    console.error("[Reviews] Reply error:", error);
+    const durationMs = Date.now() - operationStart;
+    const errorMessage = resolveErrorMessage(error, "Failed to post reply");
     await logAction("review_reply", "gmb_review", reviewId, {
       status: "failed",
       type: "create",
       error: errorMessage,
-    })
-    await trackApiResponse("review_reply", durationMs)
+    });
+    await trackApiResponse("review_reply", durationMs);
 
     if (error instanceof z.ZodError) {
       return {
         success: false,
         error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
-      }
+      };
     }
 
     return {
       success: false,
       error: errorMessage,
-    }
+    };
   }
 }
 
@@ -483,18 +496,21 @@ export async function replyToReview(reviewId: string, replyText: string) {
  * 3. UPDATE EXISTING REPLY
  */
 export async function updateReply(reviewId: string, newReplyText: string) {
-  const operationStart = Date.now()
+  const operationStart = Date.now();
   try {
-    const validatedData = ReplySchema.parse({ reviewId, replyText: newReplyText })
-    const supabase = await createClient()
+    const validatedData = ReplySchema.parse({
+      reviewId,
+      replyText: newReplyText,
+    });
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     // Get review
@@ -509,56 +525,63 @@ export async function updateReply(reviewId: string, newReplyText: string) {
           gmb_account_id,
           gmb_accounts!inner(id, account_id, is_active)
         )
-      `
+      `,
       )
       .eq("id", validatedData.reviewId)
       .eq("user_id", user.id)
-      .single()
+      .single();
 
     if (fetchError || !review) {
-      return { success: false, error: "Review not found" }
+      return { success: false, error: "Review not found" };
     }
 
     if (!review.has_reply) {
       return {
         success: false,
         error: "No existing reply to update. Use replyToReview instead.",
-      }
+      };
     }
 
     const location = Array.isArray(review.gmb_locations)
       ? review.gmb_locations[0]
-      : review.gmb_locations
+      : review.gmb_locations;
 
     if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
-      }
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
+      };
     }
 
     const account =
-      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
-      null
+      (Array.isArray(location.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location.gmb_accounts) || null;
 
     if (!account?.account_id) {
       return {
         success: false,
-        error: "Google account details missing. Please reconnect your Google account.",
-      }
+        error:
+          "Google account details missing. Please reconnect your Google account.",
+      };
     }
 
     if (account.is_active === false) {
       return {
         success: false,
-        error: "Linked Google account is inactive. Please reconnect your Google account.",
-      }
+        error:
+          "Linked Google account is inactive. Please reconnect your Google account.",
+      };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
     // Call Google API to update reply
-    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`
+    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`;
 
     const response = await fetch(endpoint, {
       method: "PUT",
@@ -569,23 +592,21 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       body: JSON.stringify({
         comment: validatedData.replyText.trim(),
       }),
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error:
-          errorData.error?.message ||
-          "Failed to update reply on Google",
-      }
+        error: errorData.error?.message || "Failed to update reply on Google",
+      };
     }
 
-    const result = await response.json()
+    const result = await response.json();
 
     // Update database – keep reply fields in sync
-    const replyValue = validatedData.replyText.trim()
-    const nowIso = new Date().toISOString()
+    const replyValue = validatedData.replyText.trim();
+    const nowIso = new Date().toISOString();
 
     const { error: updateError } = await supabase
       .from("gmb_reviews")
@@ -598,40 +619,40 @@ export async function updateReply(reviewId: string, newReplyText: string) {
         responded_at: nowIso,
         updated_at: nowIso,
       })
-      .eq("id", validatedData.reviewId)
+      .eq("id", validatedData.reviewId);
 
-    if (updateError) console.error("[Reviews] DB update error:", updateError)
+    if (updateError) console.error("[Reviews] DB update error:", updateError);
 
-    revalidatePath("/dashboard")
-    revalidatePath("/reviews")
+    revalidatePath("/dashboard");
+    revalidatePath("/reviews");
 
-    const durationMs = Date.now() - operationStart
+    const durationMs = Date.now() - operationStart;
     await logAction("review_reply", "gmb_review", validatedData.reviewId, {
       status: "success",
       type: "update",
       location_id: location?.id,
-    })
-    await trackApiResponse("review_reply", durationMs)
+    });
+    await trackApiResponse("review_reply", durationMs);
 
     return {
       success: true,
       data: result,
       message: "Reply updated successfully!",
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Update reply error:", error)
-    const durationMs = Date.now() - operationStart
-    const errorMessage = resolveErrorMessage(error, "Failed to update reply")
+    console.error("[Reviews] Update reply error:", error);
+    const durationMs = Date.now() - operationStart;
+    const errorMessage = resolveErrorMessage(error, "Failed to update reply");
     await logAction("review_reply", "gmb_review", reviewId, {
       status: "failed",
       type: "update",
       error: errorMessage,
-    })
-    await trackApiResponse("review_reply", durationMs)
+    });
+    await trackApiResponse("review_reply", durationMs);
     return {
       success: false,
       error: errorMessage,
-    }
+    };
   }
 }
 
@@ -640,15 +661,15 @@ export async function updateReply(reviewId: string, newReplyText: string) {
  */
 export async function deleteReply(reviewId: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     // Get review
@@ -663,65 +684,71 @@ export async function deleteReply(reviewId: string) {
           gmb_account_id,
           gmb_accounts!inner(id, account_id, is_active)
         )
-      `
+      `,
       )
       .eq("id", reviewId)
       .eq("user_id", user.id)
-      .single()
+      .single();
 
     if (fetchError || !review) {
-      return { success: false, error: "Review not found" }
+      return { success: false, error: "Review not found" };
     }
 
     if (!review.has_reply) {
-      return { success: false, error: "No reply to delete" }
+      return { success: false, error: "No reply to delete" };
     }
 
     const location = Array.isArray(review.gmb_locations)
       ? review.gmb_locations[0]
-      : review.gmb_locations
+      : review.gmb_locations;
 
     if (!location || !location.gmb_account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
-      }
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
+      };
     }
 
     const account =
-      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
-      null
+      (Array.isArray(location.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location.gmb_accounts) || null;
 
     if (!account?.account_id) {
       return {
         success: false,
-        error: "Google account details missing. Please reconnect your Google account.",
-      }
+        error:
+          "Google account details missing. Please reconnect your Google account.",
+      };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
     // Call Google API to delete
-    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`
+    const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`;
 
     const response = await fetch(endpoint, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    })
+    });
 
     // 404 is OK - means already deleted
     if (!response.ok && response.status !== 404) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
         error: errorData.error?.message || "Failed to delete reply",
-      }
+      };
     }
 
     // Update database – clear all reply-related fields
-    const nowIso = new Date().toISOString()
+    const nowIso = new Date().toISOString();
 
     const { error: updateError } = await supabase
       .from("gmb_reviews")
@@ -737,24 +764,24 @@ export async function deleteReply(reviewId: string) {
         status: "pending",
         updated_at: nowIso,
       })
-      .eq("id", reviewId)
+      .eq("id", reviewId);
 
-    if (updateError) console.error("[Reviews] DB update error:", updateError)
+    if (updateError) console.error("[Reviews] DB update error:", updateError);
 
-    revalidatePath("/dashboard")
-    revalidatePath("/reviews")
+    revalidatePath("/dashboard");
+    revalidatePath("/reviews");
 
     return {
       success: true,
       message: "Reply deleted successfully!",
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Delete reply error:", error)
-    const errorMessage = resolveErrorMessage(error, "Failed to delete reply")
+    console.error("[Reviews] Delete reply error:", error);
+    const errorMessage = resolveErrorMessage(error, "Failed to delete reply");
     return {
       success: false,
       error: errorMessage,
-    }
+    };
   }
 }
 
@@ -763,57 +790,57 @@ export async function deleteReply(reviewId: string) {
  */
 export async function bulkReplyToReviews(
   reviewIds: string[],
-  replyTemplate: string
+  replyTemplate: string,
 ) {
   try {
     if (!reviewIds || reviewIds.length === 0) {
       return {
         success: false,
         error: "No reviews selected",
-      }
+      };
     }
 
     if (reviewIds.length > 50) {
       return {
         success: false,
         error: "Cannot reply to more than 50 reviews at once",
-      }
+      };
     }
 
     const results = {
       success: [] as string[],
       failed: [] as { id: string; error: string }[],
-    }
+    };
 
     // Reply to each review with delay
     for (const reviewId of reviewIds) {
-      const result = await replyToReview(reviewId, replyTemplate)
+      const result = await replyToReview(reviewId, replyTemplate);
 
       if (result.success) {
-        results.success.push(reviewId)
+        results.success.push(reviewId);
       } else {
         results.failed.push({
           id: reviewId,
           error: result.error || "Unknown error",
-        })
+        });
       }
 
       // 500ms delay to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     return {
       success: true,
       data: results,
       message: `Replied to ${results.success.length} of ${reviewIds.length} reviews`,
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Bulk reply error:", error)
-    const errorMessage = resolveErrorMessage(error, "Failed to bulk reply")
+    console.error("[Reviews] Bulk reply error:", error);
+    const errorMessage = resolveErrorMessage(error, "Failed to bulk reply");
     return {
       success: false,
       error: errorMessage,
-    }
+    };
   }
 }
 
@@ -822,15 +849,15 @@ export async function bulkReplyToReviews(
  */
 export async function flagReview(reviewId: string, reason: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     const { error } = await supabase
@@ -841,24 +868,24 @@ export async function flagReview(reviewId: string, reason: string) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", reviewId)
-      .eq("user_id", user.id)
+      .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Reviews] Flag error:", error)
-      return { success: false, error: error.message }
+      console.error("[Reviews] Flag error:", error);
+      return { success: false, error: error.message };
     }
 
-    revalidatePath("/reviews")
+    revalidatePath("/reviews");
 
     return {
       success: true,
       message: "Review flagged successfully",
-    }
+    };
   } catch (error: unknown) {
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to flag review"),
-    }
+    };
   }
 }
 
@@ -869,15 +896,15 @@ export async function flagReview(reviewId: string, reason: string) {
  */
 export async function syncReviewsFromGoogle(locationId: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     // Get location details
@@ -891,52 +918,57 @@ export async function syncReviewsFromGoogle(locationId: string) {
         gmb_account_id,
         metadata,
         gmb_accounts!inner(account_id)
-      `
+      `,
       )
       .eq("id", locationId)
       .eq("user_id", user.id)
-      .single()
+      .single();
 
     if (locError || !location) {
-      return { success: false, error: "Location not found" }
+      return { success: false, error: "Location not found" };
     }
 
     const account =
-      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
-      null
+      (Array.isArray(location.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location.gmb_accounts) || null;
 
     if (!account?.account_id) {
       return {
         success: false,
-        error: "Google account details missing. Please reconnect your Google account.",
-      }
+        error:
+          "Google account details missing. Please reconnect your Google account.",
+      };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
     const reviewsPayload = await collectReviewsFromGoogle({
       userId: user.id,
       accountId: location.gmb_account_id,
       googleLocationId: location.location_id,
       accessToken,
       internalLocationId: location.id,
-    })
+    });
 
     if (reviewsPayload.length === 0) {
       // Update last sync time even if no reviews found
       await supabase
         .from("gmb_locations")
         .update({ last_synced_at: new Date().toISOString() })
-        .eq("id", locationId)
+        .eq("id", locationId);
 
       return {
         success: true,
         message: "No reviews found",
         data: { synced: 0 },
-      }
+      };
     }
 
     // Prepare all review data for batch upsert
-    const nowIso = new Date().toISOString()
+    const nowIso = new Date().toISOString();
     const reviewsToUpsert = reviewsPayload.map((review) => ({
       location_id: review.location_id ?? locationId,
       user_id: review.user_id,
@@ -956,20 +988,22 @@ export async function syncReviewsFromGoogle(locationId: string) {
       google_my_business_name: review.google_name || null,
       review_url: review.review_url || null,
       synced_at: nowIso,
-    }))
+    }));
 
     // Get existing review IDs to identify new reviews for auto-reply
-    const existingReviewIds = new Set<string>()
+    const existingReviewIds = new Set<string>();
     const { data: existingReviews } = await supabase
       .from("gmb_reviews")
       .select("external_review_id")
       .in(
         "external_review_id",
-        reviewsToUpsert.map((r) => r.external_review_id)
-      )
+        reviewsToUpsert.map((r) => r.external_review_id),
+      );
 
     if (existingReviews) {
-      existingReviews.forEach((r) => existingReviewIds.add(r.external_review_id))
+      existingReviews.forEach((r) =>
+        existingReviewIds.add(r.external_review_id),
+      );
     }
 
     // Perform batch upsert
@@ -979,32 +1013,32 @@ export async function syncReviewsFromGoogle(locationId: string) {
         onConflict: "external_review_id",
         ignoreDuplicates: false,
       })
-      .select()
+      .select();
 
     if (upsertError) {
-      console.error("[Reviews] Batch upsert error:", upsertError)
+      console.error("[Reviews] Batch upsert error:", upsertError);
       return {
         success: false,
         error: "Failed to save reviews to database",
-      }
+      };
     }
 
-    const synced = upsertedReviews?.length || 0
+    const synced = upsertedReviews?.length || 0;
 
     // Trigger auto-reply for new reviews (if enabled)
     if (upsertedReviews) {
       for (const review of upsertedReviews) {
-        const isNewReview = !existingReviewIds.has(review.external_review_id)
+        const isNewReview = !existingReviewIds.has(review.external_review_id);
         if (isNewReview && !review.has_reply) {
           try {
-            const { processAutoReply } = await import("./auto-reply")
+            const { processAutoReply } = await import("./auto-reply");
             // Process auto-reply in background (don't wait for it)
             processAutoReply(review.id).catch((error) => {
-              console.error("[Reviews] Auto-reply error:", error)
+              console.error("[Reviews] Auto-reply error:", error);
               // Don't fail the sync if auto-reply fails
-            })
+            });
           } catch (error) {
-            console.error("[Reviews] Failed to trigger auto-reply:", error)
+            console.error("[Reviews] Failed to trigger auto-reply:", error);
             // Don't fail the sync if auto-reply fails
           }
         }
@@ -1015,22 +1049,22 @@ export async function syncReviewsFromGoogle(locationId: string) {
     await supabase
       .from("gmb_locations")
       .update({ last_synced_at: new Date().toISOString() })
-      .eq("id", locationId)
+      .eq("id", locationId);
 
-    revalidatePath("/dashboard")
-    revalidatePath("/reviews")
+    revalidatePath("/dashboard");
+    revalidatePath("/reviews");
 
     return {
       success: true,
       message: `Synced ${synced} reviews`,
       data: { synced },
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Sync error:", error)
+    console.error("[Reviews] Sync error:", error);
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to sync reviews"),
-    }
+    };
   }
 }
 
@@ -1038,41 +1072,44 @@ export async function syncReviewsFromGoogle(locationId: string) {
  * 8. GET REVIEW STATISTICS
  */
 type StatsContext = {
-  supabase?: Awaited<ReturnType<typeof createClient>>
-  userId?: string
-}
+  supabase?: Awaited<ReturnType<typeof createClient>>;
+  userId?: string;
+};
 
-export async function getReviewStats(locationId?: string, context?: StatsContext) {
+export async function getReviewStats(
+  locationId?: string,
+  context?: StatsContext,
+) {
   try {
-    const supabase = context?.supabase ?? (await createClient())
-    let resolvedUserId = context?.userId
+    const supabase = context?.supabase ?? (await createClient());
+    let resolvedUserId = context?.userId;
 
     if (!resolvedUserId) {
       const {
         data: { user },
         error: authError,
-      } = await supabase.auth.getUser()
+      } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        return { success: false, error: "Not authenticated", data: null }
+        return { success: false, error: "Not authenticated", data: null };
       }
-      resolvedUserId = user.id
+      resolvedUserId = user.id;
     }
 
     let query = supabase
       .from("gmb_reviews")
       .select("rating, has_reply, status, ai_sentiment")
-      .eq("user_id", resolvedUserId)
+      .eq("user_id", resolvedUserId);
 
     if (locationId && locationId !== "all") {
-      query = query.eq("location_id", locationId)
+      query = query.eq("location_id", locationId);
     }
 
-    const { data, error } = await query
+    const { data, error } = await query;
 
     if (error) {
-      console.error("[Reviews] Stats error:", error)
-      return { success: false, error: error.message, data: null }
+      console.error("[Reviews] Stats error:", error);
+      return { success: false, error: error.message, data: null };
     }
 
     const stats = {
@@ -1094,20 +1131,21 @@ export async function getReviewStats(locationId?: string, context?: StatsContext
       },
       averageRating:
         data.reduce((sum, r) => sum + r.rating, 0) / (data.length || 1),
-      responseRate: (data.filter((r) => r.has_reply).length / (data.length || 1)) * 100,
-    }
+      responseRate:
+        (data.filter((r) => r.has_reply).length / (data.length || 1)) * 100,
+    };
 
     return {
       success: true,
       data: stats,
-    }
+    };
   } catch (error: unknown) {
-    console.error("[Reviews] Stats error:", error)
+    console.error("[Reviews] Stats error:", error);
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to get stats"),
       data: null,
-    }
+    };
   }
 }
 
@@ -1116,15 +1154,15 @@ export async function getReviewStats(locationId?: string, context?: StatsContext
  */
 export async function archiveReview(reviewId: string) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" }
+      return { success: false, error: "Not authenticated" };
     }
 
     const { error } = await supabase
@@ -1134,24 +1172,23 @@ export async function archiveReview(reviewId: string) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", reviewId)
-      .eq("user_id", user.id)
+      .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Reviews] Archive error:", error)
-      return { success: false, error: error.message }
+      console.error("[Reviews] Archive error:", error);
+      return { success: false, error: error.message };
     }
 
-    revalidatePath("/reviews")
+    revalidatePath("/reviews");
 
     return {
       success: true,
       message: "Review archived successfully",
-    }
+    };
   } catch (error: unknown) {
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to archive review"),
-    }
+    };
   }
 }
-
