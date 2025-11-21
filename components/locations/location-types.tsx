@@ -150,23 +150,23 @@ export const getHealthScoreBreakdown = (location: Location) => {
   const hasWebsite = location?.website && location.website.length > 0;
   const hasCategories =
     location?.additionalCategories && location.additionalCategories.length > 0;
-  const hasMenuLink = location.menuLink && location.menuLink.length > 0;
-  const hasMenuItems = (location.menuItems || 0) > 0;
+  const hasMenuLink = location?.menuLink && location.menuLink.length > 0;
+  const hasMenuItems = (location?.menuItems || 0) > 0;
   const hasOpeningDate =
-    location.openingDate && location.openingDate.length > 0;
-  const hasHours = location.hours && Object.keys(location.hours).length > 0;
-  const hasAttributes = location.attributes && location.attributes.length > 0;
-  const hasPhotos = (location.photos || 0) >= 5;
-  const hasVideos = (location.videos || 0) > 0;
-  const hasLogo = location.hasLogo || false;
-  const hasMenuPhotos = (location.menuPhotos || 0) > 0;
+    location?.openingDate && location.openingDate.length > 0;
+  const hasHours = location?.hours && Object.keys(location.hours).length > 0;
+  const hasAttributes = location?.attributes && location.attributes.length > 0;
+  const hasPhotos = (location?.photos || 0) >= 5;
+  const hasVideos = (location?.videos || 0) > 0;
+  const hasLogo = location?.hasLogo || false;
+  const hasMenuPhotos = (location?.menuPhotos || 0) > 0;
   const hasDescription = hasWebsite; // Using website as proxy for description
-  const hasEnoughReviews = (location.reviewCount || 0) >= 10;
-  const hasRecentPosts = (location.posts || 0) > 0;
-  const hasGoodResponseRate = (location.reviewCount || 0) > 0;
-  const hasQnA = location.qnaEnabled || false;
-  const hasAutoReply = location.autoReplyEnabled || false;
-  const hasProtection = location.profileProtection || false;
+  const hasEnoughReviews = (location?.reviewCount || 0) >= 10;
+  const hasRecentPosts = (location?.posts || 0) > 0;
+  const hasGoodResponseRate = (location?.reviewCount || 0) > 0;
+  const hasQnA = location?.qnaEnabled || false;
+  const hasAutoReply = location?.autoReplyEnabled || false;
+  const hasProtection = location?.profileProtection || false;
 
   const items = [
     {

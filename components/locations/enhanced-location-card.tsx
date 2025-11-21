@@ -52,7 +52,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
             // Fetch cover image (silently fail if not found)
             try {
               const coverRes = await fetch(
-                `/api/locations/${location.id}/cover`,
+                `/api/locations/${location?.id}/cover`,
               );
               if (coverRes.ok && isMountedRef.current) {
                 const coverData = await coverRes.json();
@@ -67,7 +67,9 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
 
             // Fetch logo image (silently fail if not found)
             try {
-              const logoRes = await fetch(`/api/locations/${location.id}/logo`);
+              const logoRes = await fetch(
+                `/api/locations/${location?.id}/logo`,
+              );
               if (logoRes.ok && isMountedRef.current) {
                 const logoData = await logoRes.json();
                 if (logoData.url) {
@@ -88,7 +90,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
           }
         };
 
-        if (location.id) {
+        if (location?.id) {
           fetchImages();
         }
 
@@ -96,7 +98,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
         return () => {
           isMountedRef.current = false;
         };
-      }, [location.id]);
+      }, [location?.id]);
 
       // Safe insights access - Added null check for location object before accessing properties
       const insights = location?.insights || {
@@ -106,9 +108,9 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
         directions: 0,
       };
 
-      const healthScore = location.healthScore || 0;
-      const rating = location.rating || 0;
-      const reviewCount = location.reviewCount || 0;
+      const healthScore = location?.healthScore || 0;
+      const rating = location?.rating || 0;
+      const reviewCount = location?.reviewCount || 0;
 
       return (
         <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 glass-strong relative">
@@ -121,7 +123,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
                 src={coverUrl}
                 alt={
                   location?.name
-                    ? `Cover image for ${location.name}`
+                    ? `Cover image for ${location?.name}`
                     : "Location cover image"
                 }
                 className="w-full h-full object-cover"
@@ -141,7 +143,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
                 ) : logoUrl ? (
                   <img
                     src={logoUrl}
-                    alt={location.name || "Logo"}
+                    alt={location?.name || "Logo"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -159,9 +161,9 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-xl font-bold text-foreground leading-tight">
-                    {location.name}
+                    {location?.name}
                   </h3>
-                  {location.status === "verified" && (
+                  {location?.status === "verified" && (
                     <Badge
                       variant="default"
                       className="bg-success/20 text-success border-success/30 gap-1"
@@ -188,7 +190,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
                 {/* Location */}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="w-4 h-4" />
-                  <span className="truncate">{location.address || "N/A"}</span>
+                  <span className="truncate">{location?.address || "N/A"}</span>
                 </div>
               </div>
 
@@ -261,7 +263,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
                   variant="outline"
                   className="flex-1 border-primary/30 hover:bg-primary/10 hover:border-primary/50 min-h-[44px] md:min-h-0"
                 >
-                  <Link href={`/locations/${location.id}/insights`}>
+                  <Link href={`/locations/${location?.id}/insights`}>
                     <BarChart3 className="w-4 h-4 mr-2" aria-hidden="true" />
                     {t("card.viewInsights")}
                   </Link>
@@ -270,7 +272,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
                 <Button
                   variant="default"
                   className="flex-1 min-h-[44px] md:min-h-0"
-                  onClick={() => onEdit?.(location.id)}
+                  onClick={() => onEdit?.(location?.id)}
                   aria-label={`Edit location ${location?.name || location?.id}`}
                 >
                   <Edit3 className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -286,7 +288,7 @@ export const EnhancedLocationCard: React.FC<EnhancedLocationCardProps> =
       // Custom comparison function to prevent unnecessary re-renders
       // Only re-render if these specific props change
       return (
-        prevProps.location.id === nextProps.location.id &&
+        prevProps.location?.id === nextProps.location?.id &&
         prevProps.onEdit === nextProps.onEdit
       );
     },

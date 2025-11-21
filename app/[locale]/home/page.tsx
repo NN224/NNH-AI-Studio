@@ -218,11 +218,11 @@ export default async function HomePage({
       <SmartHeader
         user={{
           name: profile?.full_name,
-          email: user.email || "",
+          email: user!.email || "",
           avatar: profile?.avatar_url,
         }}
         notifications={0}
-        lastLogin={new Date(user.last_sign_in_at || "").toLocaleString()}
+        lastLogin={new Date(user!.last_sign_in_at || "").toLocaleString()}
       />
 
       {/* Main Content */}
