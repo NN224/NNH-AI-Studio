@@ -100,7 +100,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">{t("title")}</CardTitle>
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/activity">
+          <Link href="/dashboard">
             {t("viewAll")}
             <ExternalLink className="ml-2 h-4 w-4" />
           </Link>
