@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ReactNode } from "react";
 import { Sparkles, Shield, Users, Zap, Star, Globe } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 
@@ -66,11 +67,17 @@ export function AuthLayout({
       <div className="w-full lg:w-1/2 flex flex-col min-h-screen">
         {/* Header */}
         <div className="p-4 sm:p-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-xl font-bold text-white">N</span>
-            </div>
-            <span className="text-lg sm:text-xl font-bold">NNH AI Studio</span>
+          <Link href="/" className="flex items-center gap-3 group">
+            <Image
+              src="/nnh-logo.png"
+              alt="NNH Logo"
+              width={40}
+              height={40}
+              className="object-contain group-hover:scale-110 transition-transform"
+            />
+            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+              NNH - AI Studio
+            </span>
           </Link>
 
           {/* Language Switcher */}
