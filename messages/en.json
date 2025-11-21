@@ -508,6 +508,71 @@
     "comingSoon": {
       "badge": "Coming Soon",
       "defaultDescription": "This module is currently under construction. Stay tuned for the rollout."
+    },
+    "aiStatus": {
+      "title": "AI Auto-Pilot Status",
+      "settings": "Settings",
+      "active": "Active",
+      "setupRequired": "Setup Required",
+      "autoReply": {
+        "title": "Auto-Reply",
+        "description": "AI responds to reviews in < 1 minute"
+      },
+      "autoAnswer": {
+        "title": "Auto-Answer",
+        "description": "AI answers questions in < 2 minutes"
+      },
+      "profileOptimizer": {
+        "title": "Profile Optimizer",
+        "description": "AI suggests profile improvements"
+      },
+      "stats": {
+        "reviewsAnalyzed": "Reviews analyzed",
+        "avgResponse": "Avg response",
+        "responseRate": "Response rate"
+      }
+    },
+    "nextSteps": {
+      "title": "What to Do Next",
+      "allDone": {
+        "title": "All done!",
+        "description": "You're all set. Check back for new suggestions."
+      },
+      "steps": {
+        "enableAutoReply": "Enable AI Auto-Reply",
+        "replyToPending": "Reply to pending reviews",
+        "connectYouTube": "Connect YouTube channel",
+        "addLocation": "Add more locations",
+        "completeProfile": "Complete your profile"
+      }
+    },
+    "recentAIActions": {
+      "title": "Recent AI Actions",
+      "viewAll": "View All",
+      "empty": {
+        "title": "No AI actions yet",
+        "description": "AI will start working once you enable it in settings"
+      },
+      "types": {
+        "reply": "AI replied to a review",
+        "answer": "AI answered a question",
+        "suggestion": "AI suggested an improvement"
+      }
+    },
+    "keyStats": {
+      "locations": {
+        "title": "Total Locations",
+        "addMore": "Add Location"
+      },
+      "rating": {
+        "title": "Average Rating",
+        "thisMonth": "This month"
+      },
+      "activity": {
+        "title": "This Week",
+        "reviews": "reviews",
+        "replies": "replies"
+      }
     }
   },
   "home": {
