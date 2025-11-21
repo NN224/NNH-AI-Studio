@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { replyToReview } from "@/server/actions/reviews-management";
 import { reviewReplySchema } from "@/lib/validations/schemas";
 import { validateBody } from "@/middleware/validate-request";
@@ -8,7 +8,7 @@ import { withAuth } from "@/lib/api/auth-middleware";
 
 export const dynamic = "force-dynamic";
 
-async function handler(request: NextRequest, user: any) {
+async function handler(request: Request, user: any) {
   try {
     // Rate limiting
     const { success, headers: rateLimitHeaders } = await checkRateLimit(

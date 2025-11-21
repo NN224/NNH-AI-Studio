@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 import { ZodError } from "zod";
 import { errorResponse } from "@/lib/utils/api-response";
@@ -25,19 +25,20 @@ function formatZodError(error: ZodError) {
 
 function logValidationFailure(
   type: "body" | "query",
-  request: NextRequest,
+  request: Request,
   error: ZodError,
 ) {
+  const url = new URL(request.url);
   console.warn("[Validation] Request failed", {
     type,
-    path: request.nextUrl.pathname,
+    path: url.pathname,
     method: request.method,
     issues: error.issues,
   });
 }
 
 export async function validateBody<T>(
-  request: NextRequest,
+  request: Request,
   schema: ZodSchema<T>,
 ): Promise<ValidationResult<T>> {
   try {
@@ -76,12 +77,11 @@ export async function validateBody<T>(
 }
 
 export function validateQuery<T>(
-  request: NextRequest,
+  request: Request,
   schema: ZodSchema<T>,
 ): ValidationResult<T> {
-  const queryObject = Object.fromEntries(
-    request.nextUrl.searchParams.entries(),
-  );
+  const url = new URL(request.url);
+  const queryObject = Object.fromEntries(url.searchParams.entries());
 
   try {
     const data = schema.parse(queryObject);
