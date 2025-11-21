@@ -11,11 +11,12 @@ import {
   ChartBar as BarChart3,
   Settings,
   Zap,
-  Users,
   Image as ImageIcon,
   MessageSquare,
   Layers,
   Sparkles,
+  ShoppingBag,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@/components/auth/user-button";
@@ -38,19 +39,25 @@ interface SidebarProps {
 interface NavigationItem {
   name: string;
   href: string;
-  icon: any;
+  icon: React.ElementType;
   badge?: string | number;
 }
 
-export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
+export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { profile: brandProfile, loading: brandLoading } = useBrandProfile();
+  const { profile: brandProfile } = useBrandProfile();
 
   const navigation: NavigationItem[] = [
     {
       name: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
+    },
+    {
+      name: "Messages",
+      href: "/messages",
+      icon: MessageCircle,
+      badge: 3,
     },
     {
       name: "Locations",
@@ -61,6 +68,11 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       name: "Business Info",
       href: "/features",
       icon: Layers,
+    },
+    {
+      name: "Products",
+      href: "/products",
+      icon: ShoppingBag,
     },
     {
       name: "Reviews",

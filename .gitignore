@@ -67,3 +67,6 @@ tsconfig.tsbuildinfo
 *_FIXES*.md
 *_ISSUES.md
 COMMIT_MESSAGE*.txt
+
+# Database exports
+full_export.sql
