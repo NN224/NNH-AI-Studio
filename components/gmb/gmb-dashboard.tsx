@@ -6,7 +6,13 @@ import { GMBConnectionManager } from "./gmb-connection-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Terminal, MapPin } from "lucide-react";
 import GMBTabs from "./gmb-dashboard-tabs";
 
@@ -57,7 +63,7 @@ const GMBDashboard = () => {
         <Card className="bg-zinc-900/50 border-orange-500/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <MapPin className="h-5 w-5 text-orange-500 flex-shrink-0" />
+              <MapPin className="h-5 w-5 text-orange-500 shrink-0" />
               <div className="flex-1">
                 <label className="text-sm font-medium text-zinc-300 mb-2 block">
                   Select Location

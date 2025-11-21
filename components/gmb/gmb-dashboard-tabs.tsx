@@ -3,9 +3,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GMBLocation } from "@/lib/types/gmb-types";
 import LocationInsightsCard from "./location-insights-card";
-import ReviewManagementCard from "../reviews/review-management-card";
-import PostManagementCard from "../posts/post-management-card";
-import QAManagementCard from "../questions/qa-management-card";
+import {
+  ReviewManagementCardNew,
+  PostManagementCardNew,
+  QAManagementCardNew,
+} from "../shared/management-cards-examples";
 import LocationAICommandCenter from "./location-ai-command-center";
 
 interface GMBTabsProps {
@@ -30,17 +32,17 @@ const GMBTabs = ({ location }: GMBTabsProps) => {
       <TabsContent value="insights" className="mt-6">
         <LocationInsightsCard location={location} />
       </TabsContent>
-      
+
       <TabsContent value="reviews" className="mt-6">
-        <ReviewManagementCard location={location} />
+        <ReviewManagementCardNew location={location} />
       </TabsContent>
-      
+
       <TabsContent value="posts" className="mt-6">
-        <PostManagementCard location={location} />
+        <PostManagementCardNew location={location} />
       </TabsContent>
-      
+
       <TabsContent value="qa" className="mt-6">
-        <QAManagementCard location={location} />
+        <QAManagementCardNew location={location} />
       </TabsContent>
     </Tabs>
   );

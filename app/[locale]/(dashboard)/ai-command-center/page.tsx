@@ -5,7 +5,14 @@ import { AIHeroChat } from "@/components/ai-command-center/ai/ai-hero-chat";
 import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
 import { ManagementSectionsGrid } from "@/components/ai-command-center/management/management-sections-grid";
 import { useTranslations } from "next-intl";
-import { Sparkles, RefreshCw, AlertCircle, Activity } from "lucide-react";
+import {
+  Sparkles,
+  RefreshCw,
+  AlertCircle,
+  ArrowLeft,
+  Activity,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   useAICommandCenterData,
   useAIChat,
@@ -14,9 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-// AI Command Center is now the main dashboard
-export default function DashboardPage() {
+export default function AICommandCenterPage() {
   const t = useTranslations("aiCommandCenter");
+  const router = useRouter();
   const { data, isLoading, error, refetch, isFetching } =
     useAICommandCenterData();
   const { sendMessage } = useAIChat();
@@ -30,6 +37,7 @@ export default function DashboardPage() {
   const handleAIAction = async (itemId: string) => {
     try {
       await processAction(itemId, "draft");
+      // Refetch data after successful action
       refetch();
     } catch (error) {
       console.error("Failed to process AI action:", error);
@@ -46,10 +54,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleRefresh = () => {
-    refetch();
-  };
-
   // Error state
   if (error) {
     return (
@@ -64,7 +68,7 @@ export default function DashboardPage() {
               {error.message ||
                 "An unexpected error occurred. Please try again."}
             </p>
-            <Button onClick={handleRefresh} className="gap-2">
+            <Button onClick={refetch} className="gap-2">
               <RefreshCw className="h-4 w-4" />
               Try Again
             </Button>
@@ -78,6 +82,7 @@ export default function DashboardPage() {
   if (isLoading || !data) {
     return (
       <div className="container mx-auto py-6 space-y-6">
+        {/* Header */}
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <Sparkles className="h-8 w-8 text-orange-500" />
@@ -93,11 +98,19 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Loading Skeletons */}
         <div className="space-y-6">
+          {/* Hero Chat Skeleton */}
           <div className="h-[600px] bg-zinc-900/50 rounded-lg animate-pulse" />
-          <div className="grid grid-cols-1 gap-6">
-            <div className="h-64 bg-zinc-900/50 rounded-lg animate-pulse" />
-            <div className="h-96 bg-zinc-900/50 rounded-lg animate-pulse" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-64 bg-zinc-900/50 rounded-lg animate-pulse" />
+              <div className="h-96 bg-zinc-900/50 rounded-lg animate-pulse" />
+            </div>
+            <div className="lg:col-span-1">
+              <div className="h-96 bg-zinc-900/50 rounded-lg animate-pulse" />
+            </div>
           </div>
         </div>
       </div>
@@ -137,11 +150,22 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Back to Dashboard */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard")}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+
             {/* Sync Button */}
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRefresh}
+              onClick={refetch}
               disabled={isFetching}
               className="gap-2 border-orange-500/30 hover:bg-orange-500/10"
             >
@@ -162,7 +186,7 @@ export default function DashboardPage() {
         />
       </section>
 
-      {/* Content Grid */}
+      {/* Two Column Layout */}
       <div className="grid grid-cols-1 gap-6">
         {/* Urgent Items Feed */}
         <section>

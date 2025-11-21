@@ -138,20 +138,15 @@ export function Sidebar({ isOpen = true, onClose, userProfile }: SidebarProps) {
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center gap-3 border-b px-6">
-            {brandProfile?.logo_url ? (
-              <div className="relative h-10 w-10 overflow-hidden rounded-lg">
-                <Image
-                  src={brandProfile.logo_url}
-                  alt="Brand Logo"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <MapPin className="h-6 w-6" />
-              </div>
-            )}
+            <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+              <Image
+                src={brandProfile?.logo_url || "/nnh-logo.png"}
+                alt="Brand Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
+            </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold">
                 {brandProfile?.brand_name || "NNH AI Studio"}

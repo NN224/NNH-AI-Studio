@@ -1,23 +1,34 @@
 // (dashboard)/layout.tsx
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
-import { MobileNav } from '@/components/layout/mobile-nav';
-import { CommandPalette } from '@/components/layout/command-palette';
-import { KeyboardProvider } from '@/components/keyboard/keyboard-provider';
-import { BrandProfileProvider } from '@/contexts/BrandProfileContext';
-import { DynamicThemeProvider } from '@/components/theme/DynamicThemeProvider';
-import { createClient } from '@/lib/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { getAuthUrl, getLocaleFromPathname } from '@/lib/utils/navigation';
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { CommandPalette } from "@/components/layout/command-palette";
+import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
+import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
+import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
+import { createClient } from "@/lib/supabase/client";
+import { Loader2 } from "lucide-react";
+import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+
+// Create a client instance for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 interface UserProfile {
-    name: string | null;
-    avatarUrl: string | null;
+  name: string | null;
+  avatarUrl: string | null;
 }
 
 // Loading Screen Component
@@ -44,9 +55,9 @@ export default function DashboardLayout({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile>({ 
-    name: 'User', 
-    avatarUrl: null 
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: "User",
+    avatarUrl: null,
   });
 
   // Check authentication
@@ -54,21 +65,25 @@ export default function DashboardLayout({
     const checkAuth = async () => {
       if (!supabase) {
         const locale = getLocaleFromPathname(pathname);
-        router.push(getAuthUrl(locale, 'login'));
+        router.push(getAuthUrl(locale, "login"));
         return;
       }
 
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
       if (error || !user) {
         const locale = getLocaleFromPathname(pathname);
-        const loginUrl = getAuthUrl(locale, 'login');
+        const loginUrl = getAuthUrl(locale, "login");
         router.push(`${loginUrl}?redirectedFrom=${pathname}`);
         return;
       }
 
       // Set user profile
-      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+      const name =
+        user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
       const avatarUrl = user.user_metadata?.avatar_url || null;
 
       setUserProfile({ name, avatarUrl });
@@ -89,8 +104,8 @@ export default function DashboardLayout({
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Show loading screen while checking auth
@@ -104,39 +119,41 @@ export default function DashboardLayout({
   }
 
   return (
-    <BrandProfileProvider>
-      <DynamicThemeProvider>
-        <KeyboardProvider onCommandPaletteOpen={() => setCommandPaletteOpen(true)}>
-          <div className="relative min-h-screen bg-background">
-            <Sidebar 
-                isOpen={sidebarOpen} 
-                onClose={() => setSidebarOpen(false)} 
-                userProfile={userProfile}
-            />
-
-            <div className="lg:pl-[280px] pt-8">
-              <Header
-                onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-                onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+    <QueryClientProvider client={queryClient}>
+      <BrandProfileProvider>
+        <DynamicThemeProvider>
+          <KeyboardProvider
+            onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+          >
+            <div className="relative min-h-screen bg-background">
+              <Sidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
                 userProfile={userProfile}
               />
 
-              <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
-                <div className="mx-auto max-w-7xl">
-                  {children}
-                </div>
-              </main>
+              <div className="lg:pl-[280px] pt-8">
+                <Header
+                  onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+                  onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+                  userProfile={userProfile}
+                />
+
+                <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
+                  <div className="mx-auto max-w-7xl">{children}</div>
+                </main>
+              </div>
+
+              <MobileNav />
+
+              <CommandPalette
+                open={commandPaletteOpen}
+                onOpenChange={setCommandPaletteOpen}
+              />
             </div>
-
-            <MobileNav />
-
-            <CommandPalette
-              open={commandPaletteOpen}
-              onOpenChange={setCommandPaletteOpen}
-            />
-          </div>
-        </KeyboardProvider>
-      </DynamicThemeProvider>
-    </BrandProfileProvider>
+          </KeyboardProvider>
+        </DynamicThemeProvider>
+      </BrandProfileProvider>
+    </QueryClientProvider>
   );
 }

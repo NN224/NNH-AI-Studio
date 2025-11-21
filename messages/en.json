@@ -19,27 +19,51 @@
     "close": "Close",
     "plurals": {
       "items": {
+        "zero": "No items",
         "one": "{count} item",
+        "two": "{count} items",
+        "few": "{count} items",
+        "many": "{count} items",
         "other": "{count} items"
       },
       "locations": {
+        "zero": "No locations",
         "one": "{count} location",
+        "two": "{count} locations",
+        "few": "{count} locations",
+        "many": "{count} locations",
         "other": "{count} locations"
       },
       "reviews": {
+        "zero": "No reviews",
         "one": "{count} review",
+        "two": "{count} reviews",
+        "few": "{count} reviews",
+        "many": "{count} reviews",
         "other": "{count} reviews"
       },
       "days": {
+        "zero": "No days",
         "one": "{count} day",
+        "two": "{count} days",
+        "few": "{count} days",
+        "many": "{count} days",
         "other": "{count} days"
       },
       "hours": {
+        "zero": "No hours",
         "one": "{count} hour",
+        "two": "{count} hours",
+        "few": "{count} hours",
+        "many": "{count} hours",
         "other": "{count} hours"
       },
       "minutes": {
+        "zero": "No minutes",
         "one": "{count} minute",
+        "two": "{count} minutes",
+        "few": "{count} minutes",
+        "many": "{count} minutes",
         "other": "{count} minutes"
       }
     }
@@ -624,6 +648,193 @@
         "support": "Contact Support"
       },
       "copyright": "All rights reserved."
+    }
+  },
+  "gmb": {
+    "managementCards": {
+      "reviews": {
+        "title": "Review Management",
+        "description": "Manage and respond to customer reviews",
+        "stats": {
+          "totalReviews": "Total Reviews",
+          "responseRate": "Response Rate",
+          "allTime": "all time",
+          "ofReviews": "of reviews"
+        },
+        "infoBanner": {
+          "lowRate": {
+            "title": "Low Response Rate",
+            "description": "Respond to more reviews to improve customer trust and visibility."
+          },
+          "goodRate": {
+            "title": "Good Response Rate",
+            "description": "Keep up the great work responding to customer feedback!"
+          }
+        },
+        "actions": {
+          "viewAll": "View All Reviews",
+          "respondPending": "Respond to Pending Reviews"
+        }
+      },
+      "posts": {
+        "title": "Post Management",
+        "description": "Create and manage Google posts for {locationName}",
+        "infoBanner": {
+          "title": "Boost Your Visibility",
+          "description": "Regular posts keep your business fresh in Google Search and Maps. Posts with offers or events get 2x more engagement."
+        },
+        "tips": {
+          "whatsNew": "Share updates and announcements with What's New posts",
+          "events": "Promote upcoming events to attract more customers",
+          "offers": "Share special deals with Offer posts",
+          "products": "Highlight products to showcase your inventory"
+        },
+        "actions": {
+          "createNew": "Create New Post",
+          "manageExisting": "Manage Existing Posts"
+        }
+      },
+      "qa": {
+        "title": "Questions & Answers",
+        "description": "Manage customer questions for {locationName}",
+        "stats": {
+          "answered": "Answered",
+          "pending": "Pending",
+          "questions": "questions"
+        },
+        "infoBanner": {
+          "title": "Answer Questions Quickly",
+          "description": "Quick responses to customer questions improve your business credibility. Answered questions appear on your Google Business Profile."
+        },
+        "tips": {
+          "tip1": "Answer within 24 hours for better engagement",
+          "tip2": "Use AI assistance to craft professional responses",
+          "tip3": "FAQ answers help other customers too"
+        },
+        "actions": {
+          "viewAll": "View All Questions",
+          "answerPending": "Answer Pending Questions"
+        }
+      }
+    }
+  },
+  "aiCommandCenter": {
+    "title": "AI Command Center",
+    "subtitle": "Your intelligent business assistant - monitoring and optimizing your GMB presence",
+    "stats": {
+      "reviews": {
+        "title": "Reviews",
+        "subtitle": "total reviews"
+      },
+      "posts": {
+        "title": "Posts",
+        "subtitle": "{count} scheduled"
+      },
+      "questions": {
+        "title": "Questions",
+        "subtitle": "total questions"
+      },
+      "engagement": {
+        "title": "Engagement",
+        "subtitle": "response rate"
+      }
+    },
+    "companion": {
+      "title": "AI Companion",
+      "tabs": {
+        "overview": "Overview",
+        "chat": "Chat"
+      },
+      "status": {
+        "monitoring": "Monitoring your business"
+      },
+      "greeting": "Hi! I'm monitoring your business and here's what needs attention:",
+      "alerts": {
+        "urgentReviews": "{count} urgent reviews",
+        "urgentReviewsDesc": "Negative reviews need immediate attention",
+        "pendingQuestions": "{count} pending questions",
+        "pendingQuestionsDesc": "Unanswered for over 24 hours"
+      },
+      "actionQuestion": "What should I do?",
+      "actions": {
+        "draftReplies": "Draft Replies",
+        "analyze": "Analyze Pattern"
+      },
+      "suggestions": {
+        "title": "AI Suggestions",
+        "item1": "Post about delivery service today",
+        "item2": "Update business hours for holidays",
+        "item3": "Reply to Sarah's positive review"
+      }
+    },
+    "urgentItems": {
+      "title": "Urgent Items",
+      "comingSoon": "Coming soon: Real-time urgent notifications",
+      "empty": "No urgent items at the moment. Great job!",
+      "viewAll": "View All",
+      "types": {
+        "review": "Review",
+        "question": "Question",
+        "post": "Post"
+      },
+      "priority": {
+        "high": "High Priority",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "actions": {
+        "aiAssist": "AI Assist",
+        "viewFull": "View Full"
+      }
+    },
+    "management": {
+      "title": "Management Sections",
+      "comingSoon": "Coming soon: Quick access to Reviews, Posts, and Q&A management",
+      "reviews": {
+        "title": "Reviews Management",
+        "description": "Monitor and respond to customer reviews",
+        "viewAll": "View All Reviews",
+        "respondPending": "Respond to Pending"
+      },
+      "posts": {
+        "title": "Posts Management",
+        "description": "Create and schedule Google posts",
+        "createNew": "Create New Post",
+        "manage": "Manage Posts"
+      },
+      "qa": {
+        "title": "Q&A Management",
+        "description": "Answer customer questions",
+        "answer": "Answer Questions",
+        "viewAll": "View All"
+      }
+    },
+    "chat": {
+      "title": "AI Chat Assistant",
+      "welcome": "Hi! I'm your AI assistant. I can help you with reviews, posts, questions, and more. What would you like to do today?",
+      "placeholder": "Ask me anything...",
+      "status": {
+        "active": "AI Active"
+      },
+      "responses": {
+        "reviews": "I can help you with reviews! You have 5 pending reviews that need responses. Would you like me to draft replies for them?",
+        "posts": "Great! I can help you create engaging posts. What would you like to post about? I can suggest trending topics or generate content for you.",
+        "questions": "I see you have 3 unanswered questions. I can draft professional responses for all of them. Shall we start?",
+        "default": "I'm here to help! I can assist with:\n• Responding to reviews\n• Creating posts\n• Answering questions\n• Analyzing performance\n\nWhat would you like to work on?"
+      },
+      "actions": {
+        "draftReplies": "Draft Replies",
+        "viewReviews": "View Reviews",
+        "generatePost": "Generate Post"
+      },
+      "suggestions": {
+        "reviews": "Help me with pending reviews",
+        "reviewsShort": "Reviews",
+        "posts": "Create a new post",
+        "postsShort": "Posts",
+        "questions": "Answer pending questions",
+        "questionsShort": "Questions"
+      }
     }
   }
 }

@@ -15,12 +15,17 @@ import {
   MessageSquare,
   Phone,
   RefreshCw,
-  Star,
   TrendingUp,
   Users,
 } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -83,7 +88,9 @@ function ensureArray(value: unknown): string[] {
       .map((entry) => {
         if (typeof entry === "string") return entry;
         if (entry && typeof entry === "object") {
-          const normalized = (entry as Record<string, unknown>).message ?? (entry as Record<string, unknown>).text;
+          const normalized =
+            (entry as Record<string, unknown>).message ??
+            (entry as Record<string, unknown>).text;
           return typeof normalized === "string" ? normalized : null;
         }
         return null;
@@ -105,12 +112,14 @@ function ensureArray(value: unknown): string[] {
 }
 
 function toNumber(value: NumericMetric, fallback = 0): number {
-  const numeric = typeof value === "string" ? Number.parseFloat(value) : Number(value);
+  const numeric =
+    typeof value === "string" ? Number.parseFloat(value) : Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
 function toNullableNumber(value: NumericMetric): number | null {
-  const numeric = typeof value === "string" ? Number.parseFloat(value) : Number(value);
+  const numeric =
+    typeof value === "string" ? Number.parseFloat(value) : Number(value);
   return Number.isFinite(numeric) ? numeric : null;
 }
 
@@ -141,7 +150,9 @@ function getRelativeTime(timestamp: string | null): string {
   return `قبل ${diffYears} سنة`;
 }
 
-function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics {
+function parseCommandCenterMetrics(
+  location: GMBLocation,
+): CommandCenterMetrics {
   const metadata = ensureObject(location.metadata);
   const insightsSource =
     ensureObject(metadata.insights_json) ||
@@ -149,7 +160,9 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
     ensureObject(metadata.insightsJson) ||
     {};
 
-  const engagement = ensureObject((metadata as Record<string, unknown>).engagement);
+  const engagement = ensureObject(
+    (metadata as Record<string, unknown>).engagement,
+  );
 
   const statusRaw =
     (metadata.status as string) ??
@@ -165,8 +178,8 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
     statusLower === "active" || statusLower === "verified"
       ? "success"
       : statusLower === "pending" || statusLower === "sync_required"
-      ? "warning"
-      : "danger";
+        ? "warning"
+        : "danger";
 
   const asNumericMetric = (value: unknown): NumericMetric => {
     if (typeof value === "number") return value;
@@ -192,26 +205,43 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
 
   const derivedInsights = {
     views: getMetric(insightsSource.views, engagement.views),
-    viewsTrend: getNullableMetric(insightsSource.viewsTrend, engagement.viewsTrend),
+    viewsTrend: getNullableMetric(
+      insightsSource.viewsTrend,
+      engagement.viewsTrend,
+    ),
     clicks: getMetric(
-      insightsSource.clicks ?? insightsSource.websiteClicks ?? engagement.clicks ?? engagement.websiteClicks,
+      insightsSource.clicks ??
+        insightsSource.websiteClicks ??
+        engagement.clicks ??
+        engagement.websiteClicks,
     ),
     clicksTrend: getNullableMetric(
-      insightsSource.clicksTrend ?? insightsSource.websiteClicksTrend ?? engagement.clicksTrend,
+      insightsSource.clicksTrend ??
+        insightsSource.websiteClicksTrend ??
+        engagement.clicksTrend,
     ),
     calls: getMetric(insightsSource.calls, engagement.calls),
-    callsTrend: getNullableMetric(insightsSource.callsTrend, engagement.callsTrend),
+    callsTrend: getNullableMetric(
+      insightsSource.callsTrend,
+      engagement.callsTrend,
+    ),
     directions: getMetric(insightsSource.directions, engagement.directions),
-    directionsTrend: getNullableMetric(insightsSource.directionsTrend, engagement.directionsTrend),
+    directionsTrend: getNullableMetric(
+      insightsSource.directionsTrend,
+      engagement.directionsTrend,
+    ),
     website: getMetric(insightsSource.websiteClicks, engagement.websiteClicks),
-    websiteTrend: getNullableMetric(insightsSource.websiteClicksTrend, engagement.websiteClicksTrend),
+    websiteTrend: getNullableMetric(
+      insightsSource.websiteClicksTrend,
+      engagement.websiteClicksTrend,
+    ),
   };
 
-  const aiInsights =
-    ensureArray((metadata.ai_insights as unknown) ?? metadata.aiInsights ?? location.ai_insights).slice(
-      0,
-      MAX_AI_INSIGHTS,
-    );
+  const aiInsights = ensureArray(
+    (metadata.ai_insights as unknown) ??
+      metadata.aiInsights ??
+      location.ai_insights,
+  ).slice(0, MAX_AI_INSIGHTS);
 
   const fallbackLastSync =
     (metadata.last_sync as string) ??
@@ -226,19 +256,21 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
       statusLower === "active"
         ? "متصل"
         : statusLower === "verified"
-        ? "مُحقق"
-        : statusLower === "pending"
-        ? "قيد المراجعة"
-        : statusLower === "suspended"
-        ? "معلق"
-        : "غير متصل",
+          ? "مُحقق"
+          : statusLower === "pending"
+            ? "قيد المراجعة"
+            : statusLower === "suspended"
+              ? "معلق"
+              : "غير متصل",
     statusTone,
     isActive: location.is_active,
     rating: getNullableMetric(location.rating, metadata.rating),
     reviewCount: getMetric(location.review_count, metadata.review_count),
     responseRate: getNullableMetric(
       location.response_rate,
-      metadata.responseRate ?? metadata.response_rate ?? engagement.responseRate,
+      metadata.responseRate ??
+        metadata.response_rate ??
+        engagement.responseRate,
     ),
     pendingReviews: getNullableMetric(
       metadata.pending_reviews ??
@@ -247,14 +279,24 @@ function parseCommandCenterMetrics(location: GMBLocation): CommandCenterMetrics 
         insightsSource.pendingReviews,
     ),
     pendingQuestions: getNullableMetric(
-      metadata.pending_questions ?? metadata.pendingQuestions ?? insightsSource.pendingQuestions,
+      metadata.pending_questions ??
+        metadata.pendingQuestions ??
+        insightsSource.pendingQuestions,
     ),
-    healthScore: getNullableMetric(metadata.health_score ?? metadata.healthScore ?? engagement.healthScore),
-    weeklyGrowth: getNullableMetric(insightsSource.weeklyGrowth, engagement.weeklyGrowth),
+    healthScore: getNullableMetric(
+      metadata.health_score ?? metadata.healthScore ?? engagement.healthScore,
+    ),
+    weeklyGrowth: getNullableMetric(
+      insightsSource.weeklyGrowth,
+      engagement.weeklyGrowth,
+    ),
     lastSync: fallbackLastSync,
     lastSyncRelative: getRelativeTime(fallbackLastSync),
     insights: derivedInsights,
-    aiInsights: aiInsights.length > 0 ? aiInsights : ["لا توجد توصيات ذكية متاحة حالياً."],
+    aiInsights:
+      aiInsights.length > 0
+        ? aiInsights
+        : ["لا توجد توصيات ذكية متاحة حالياً."],
   };
 }
 
@@ -302,8 +344,8 @@ function MetricRow({
       ? trend > 0
         ? "text-emerald-400"
         : trend < 0
-        ? "text-red-400"
-        : "text-zinc-400"
+          ? "text-red-400"
+          : "text-zinc-400"
       : "text-zinc-400";
 
   return (
@@ -313,24 +355,29 @@ function MetricRow({
           <Icon className="h-5 w-5 text-orange-400" />
         </span>
         <div>
-          <p className="text-xs uppercase tracking-wide text-zinc-400">{label}</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-400">
+            {label}
+          </p>
           <p className="text-lg font-semibold text-zinc-100">{value}</p>
         </div>
       </div>
       {typeof trend === "number" && trendLabel ? (
         <span className={`text-xs font-medium ${trendTone}`}>
           {trend > 0 ? "+" : ""}
-          {trend}
-          %
-          <span className="ml-1 text-zinc-500">{trendLabel}</span>
+          {trend}%<span className="ml-1 text-zinc-500">{trendLabel}</span>
         </span>
       ) : null}
     </div>
   );
 }
 
-export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLocation }>) {
-  const metrics = useMemo(() => parseCommandCenterMetrics(location), [location]);
+export function LocationAICommandCenter({
+  location,
+}: Readonly<{ location: GMBLocation }>) {
+  const metrics = useMemo(
+    () => parseCommandCenterMetrics(location),
+    [location],
+  );
 
   return (
     <div className="space-y-4">
@@ -345,16 +392,22 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   <MapPin className="h-4 w-4 text-orange-400" />
                   حالة الاتصال
                 </CardTitle>
-                <CardDescription>راجع حالة مزامنة الموقع وخيارات التحكم</CardDescription>
+                <CardDescription>
+                  راجع حالة مزامنة الموقع وخيارات التحكم
+                </CardDescription>
               </div>
-              <Badge className={`${getToneClasses(metrics.statusTone)} uppercase`}>
+              <Badge
+                className={`${getToneClasses(metrics.statusTone)} uppercase`}
+              >
                 {metrics.status}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between text-sm text-zinc-400">
                 <span>آخر مزامنة</span>
-                <span className="font-medium text-zinc-200">{metrics.lastSyncRelative}</span>
+                <span className="font-medium text-zinc-200">
+                  {metrics.lastSyncRelative}
+                </span>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
@@ -364,9 +417,9 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   onClick={async () => {
                     const result = await syncLocation(location.id);
                     if (result.success) {
-                      toast.success(result.message || 'تمت المزامنة بنجاح');
+                      toast.success(result.message || "تمت المزامنة بنجاح");
                     } else {
-                      toast.error(result.error || 'فشلت المزامنة');
+                      toast.error(result.error || "فشلت المزامنة");
                     }
                   }}
                 >
@@ -383,7 +436,8 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
               <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 p-3 text-xs text-zinc-400">
                 <p className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 text-orange-400" />
-                  تأكد من مزامنة البيانات بانتظام للحفاظ على دقة الأرقام والذكاء الاصطناعي.
+                  تأكد من مزامنة البيانات بانتظام للحفاظ على دقة الأرقام والذكاء
+                  الاصطناعي.
                 </p>
               </div>
             </CardContent>
@@ -409,8 +463,8 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                     metrics.weeklyGrowth > 0
                       ? "border-emerald-500/50 text-emerald-400"
                       : metrics.weeklyGrowth < 0
-                      ? "border-red-500/50 text-red-400"
-                      : "border-zinc-700 text-zinc-300"
+                        ? "border-red-500/50 text-red-400"
+                        : "border-zinc-700 text-zinc-300"
                   }`}
                 >
                   <TrendingUp className="mr-1 h-3 w-3" />
@@ -457,13 +511,20 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                 <Bell className="h-4 w-4 text-orange-400" />
                 تنبيهات الصحة والسمعة
               </CardTitle>
-              <CardDescription>راقب مؤشرات الجودة والمهام ذات الأولوية العالية</CardDescription>
+              <CardDescription>
+                راقب مؤشرات الجودة والمهام ذات الأولوية العالية
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/60 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-wide text-zinc-400">معدل الاستجابة</span>
-                  <Badge variant="outline" className="border-zinc-700 text-zinc-300">
+                  <span className="text-xs uppercase tracking-wide text-zinc-400">
+                    معدل الاستجابة
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="border-zinc-700 text-zinc-300"
+                  >
                     الهدف 80%+
                   </Badge>
                 </div>
@@ -484,17 +545,25 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
 
               <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/60 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-wide text-zinc-400">صحة الملف</span>
-                  <Badge variant="outline" className="border-zinc-700 text-zinc-300">
+                  <span className="text-xs uppercase tracking-wide text-zinc-400">
+                    صحة الملف
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="border-zinc-700 text-zinc-300"
+                  >
                     الذكاء الاصطناعي
                   </Badge>
                 </div>
                 <p className="mt-2 text-2xl font-semibold text-zinc-100">
-                  {metrics.healthScore !== null ? `${Math.round(metrics.healthScore)} / 100` : "غير متاح"}
+                  {metrics.healthScore !== null
+                    ? `${Math.round(metrics.healthScore)} / 100`
+                    : "غير متاح"}
                 </p>
                 <p className="mt-3 flex items-start gap-2 text-xs text-zinc-400">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-yellow-400" />
-                  {metrics.pendingQuestions !== null && metrics.pendingQuestions > 0
+                  {metrics.pendingQuestions !== null &&
+                  metrics.pendingQuestions > 0
                     ? `هناك ${metrics.pendingQuestions} سؤال ينتظر الرد حالياً.`
                     : "لا توجد أسئلة معلقة من العملاء."}
                 </p>
@@ -509,9 +578,14 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   <BadgeCheck className="h-4 w-4 text-orange-400" />
                   توصيات الذكاء الاصطناعي
                 </CardTitle>
-                <CardDescription>اقتراحات مستمدة من أداء الموقع وسلوك العملاء</CardDescription>
+                <CardDescription>
+                  اقتراحات مستمدة من أداء الموقع وسلوك العملاء
+                </CardDescription>
               </div>
-              <Badge variant="outline" className="border-zinc-700 text-xs text-zinc-300">
+              <Badge
+                variant="outline"
+                className="border-zinc-700 text-xs text-zinc-300"
+              >
                 {metrics.aiInsights.length} توصية
               </Badge>
             </CardHeader>
@@ -521,7 +595,7 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   key={`${item}-${index.toString()}`}
                   className="flex items-start gap-3 rounded-md border border-zinc-800/60 bg-zinc-900/60 p-3 text-sm text-zinc-300"
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-400" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" />
                   <p>{item}</p>
                 </div>
               ))}
@@ -534,7 +608,9 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                 <Clock className="h-4 w-4 text-orange-400" />
                 مركز الإجراءات السريعة
               </CardTitle>
-              <CardDescription>إبدأ بالأولوية القصوى لتحسين حضورك الرقمي</CardDescription>
+              <CardDescription>
+                إبدأ بالأولوية القصوى لتحسين حضورك الرقمي
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
               <Link href={`/reviews?location=${location.id}`} className="group">
@@ -542,7 +618,9 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   <div className="flex items-center gap-3">
                     <MessageSquare className="h-5 w-5 text-orange-400" />
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">الرد على المراجعات</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        الرد على المراجعات
+                      </p>
                       <p className="text-xs text-zinc-400">عزز ثقة العملاء</p>
                     </div>
                   </div>
@@ -550,13 +628,20 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                 </div>
               </Link>
 
-              <Link href={`/questions?location=${location.id}`} className="group">
+              <Link
+                href={`/questions?location=${location.id}`}
+                className="group"
+              >
                 <div className="flex h-full flex-col justify-between rounded-lg border border-zinc-800/70 bg-zinc-900/60 p-4 transition-all group-hover:-translate-y-0.5 group-hover:border-orange-500/40 group-hover:shadow-lg">
                   <div className="flex items-center gap-3">
                     <Bell className="h-5 w-5 text-orange-400" />
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">إجابة الأسئلة</p>
-                      <p className="text-xs text-zinc-400">قلّل وقت انتظار العملاء</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        إجابة الأسئلة
+                      </p>
+                      <p className="text-xs text-zinc-400">
+                        قلّل وقت انتظار العملاء
+                      </p>
                     </div>
                   </div>
                   <ArrowRight className="mt-4 h-4 w-4 text-zinc-500 transition group-hover:text-orange-400" />
@@ -568,8 +653,12 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
                   <div className="flex items-center gap-3">
                     <TrendingUp className="h-5 w-5 text-orange-400" />
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">إنشاء منشور جديد</p>
-                      <p className="text-xs text-zinc-400">حافظ على تحديث الملف التجاري</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        إنشاء منشور جديد
+                      </p>
+                      <p className="text-xs text-zinc-400">
+                        حافظ على تحديث الملف التجاري
+                      </p>
                     </div>
                   </div>
                   <ArrowRight className="mt-4 h-4 w-4 text-zinc-500 transition group-hover:text-orange-400" />
@@ -579,10 +668,17 @@ export function LocationAICommandCenter({ location }: Readonly<{ location: GMBLo
             <CardContent className="border-t border-zinc-800/60 bg-zinc-900/40 py-3">
               <div className="flex flex-col items-start justify-between gap-2 text-xs text-zinc-500 sm:flex-row sm:items-center">
                 <span>
-                  يتم تحديث هذه الأرقام بعد كل مزامنة ناجحة — تأكد من مزامنة الحساب عند حدوث تغييرات في Google.
+                  يتم تحديث هذه الأرقام بعد كل مزامنة ناجحة — تأكد من مزامنة
+                  الحساب عند حدوث تغييرات في Google.
                 </span>
-                <Button variant="ghost" className="h-8 px-2 text-orange-400 hover:text-orange-300" asChild>
-                  <Link href={`/analytics?location=${location.id}`}>عرض تحليلات الموقع</Link>
+                <Button
+                  variant="ghost"
+                  className="h-8 px-2 text-orange-400 hover:text-orange-300"
+                  asChild
+                >
+                  <Link href={`/analytics?location=${location.id}`}>
+                    عرض تحليلات الموقع
+                  </Link>
                 </Button>
               </div>
             </CardContent>
