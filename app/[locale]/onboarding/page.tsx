@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { 
-  CheckCircle2, 
-  Link2, 
-  MapPin, 
-  Sparkles, 
-  Settings, 
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  CheckCircle2,
+  Link2,
+  MapPin,
+  Sparkles,
+  Settings,
   Rocket,
   ChevronRight,
-  ChevronLeft
-} from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
-import { getDashboardUrl, getLocaleFromPathname } from '@/lib/utils/navigation';
-import { usePathname } from 'next/navigation';
+  ChevronLeft,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { getDashboardUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { usePathname } from "next/navigation";
 
 interface OnboardingStep {
   id: number;
@@ -33,7 +33,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const locale = getLocaleFromPathname(pathname);
+  const locale = getLocaleFromPathname(pathname || "/");
   const supabase = createClient();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -45,7 +45,9 @@ export default function OnboardingPage() {
   useEffect(() => {
     const checkAuth = async () => {
       if (!supabase) return;
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         router.push(`/${locale}/auth/login`);
       }
@@ -56,30 +58,30 @@ export default function OnboardingPage() {
   const steps: OnboardingStep[] = [
     {
       id: 1,
-      title: 'Welcome to NNH AI Studio',
-      description: 'Let\'s get you set up in just a few steps',
+      title: "Welcome to NNH AI Studio",
+      description: "Let's get you set up in just a few steps",
       icon: <Rocket className="h-8 w-8" />,
       component: <WelcomeStep onNext={() => setCurrentStep(2)} />,
     },
     {
       id: 2,
-      title: 'Connect Google Business Profile',
-      description: 'Link your Google Business account to manage your locations',
+      title: "Connect Google Business Profile",
+      description: "Link your Google Business account to manage your locations",
       icon: <Link2 className="h-8 w-8" />,
       component: (
-        <ConnectGMBStep 
-          onNext={() => setCurrentStep(3)} 
+        <ConnectGMBStep
+          onNext={() => setCurrentStep(3)}
           onConnected={() => setGmbConnected(true)}
         />
       ),
     },
     {
       id: 3,
-      title: 'Select Your Locations',
-      description: 'Choose which business locations you want to manage',
+      title: "Select Your Locations",
+      description: "Choose which business locations you want to manage",
       icon: <MapPin className="h-8 w-8" />,
       component: (
-        <SelectLocationsStep 
+        <SelectLocationsStep
           onNext={() => setCurrentStep(4)}
           onLocationsSelected={setSelectedLocations}
         />
@@ -87,15 +89,15 @@ export default function OnboardingPage() {
     },
     {
       id: 4,
-      title: 'Configure AI Settings',
-      description: 'Set up your AI assistant for automatic responses',
+      title: "Configure AI Settings",
+      description: "Set up your AI assistant for automatic responses",
       icon: <Sparkles className="h-8 w-8" />,
       component: <AISetupStep onNext={() => setCurrentStep(5)} />,
     },
     {
       id: 5,
-      title: 'All Set!',
-      description: 'You\'re ready to start managing your business',
+      title: "All Set!",
+      description: "You're ready to start managing your business",
       icon: <CheckCircle2 className="h-8 w-8" />,
       component: <CompletionStep onComplete={handleComplete} />,
     },
@@ -104,26 +106,26 @@ export default function OnboardingPage() {
   async function handleComplete() {
     try {
       setIsLoading(true);
-      
+
       if (!supabase) return;
-      
+
       // Mark onboarding as completed
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-        await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: user.id,
-            onboarding_completed: true,
-            onboarding_completed_at: new Date().toISOString(),
-          });
+        await supabase.from("user_settings").upsert({
+          user_id: user.id,
+          onboarding_completed: true,
+          onboarding_completed_at: new Date().toISOString(),
+        });
       }
 
-      toast.success('Setup complete! Welcome to NNH AI Studio 🎉');
+      toast.success("Setup complete! Welcome to NNH AI Studio 🎉");
       router.push(getDashboardUrl(locale));
     } catch (error) {
-      console.error('Error completing onboarding:', error);
-      toast.error('Failed to complete setup. Please try again.');
+      console.error("Error completing onboarding:", error);
+      toast.error("Failed to complete setup. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +143,9 @@ export default function OnboardingPage() {
             <p className="text-sm text-muted-foreground">
               Step {currentStep} of {steps.length}
             </p>
-            <p className="text-sm font-medium">{Math.round(progress)}% Complete</p>
+            <p className="text-sm font-medium">
+              {Math.round(progress)}% Complete
+            </p>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
@@ -162,8 +166,12 @@ export default function OnboardingPage() {
                     {currentStepData.icon}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">{currentStepData.title}</h2>
-                    <p className="text-muted-foreground">{currentStepData.description}</p>
+                    <h2 className="text-2xl font-bold">
+                      {currentStepData.title}
+                    </h2>
+                    <p className="text-muted-foreground">
+                      {currentStepData.description}
+                    </p>
                   </div>
                 </div>
 
@@ -190,10 +198,10 @@ export default function OnboardingPage() {
                 key={step.id}
                 className={`h-2 w-2 rounded-full transition-colors ${
                   step.id === currentStep
-                    ? 'bg-primary'
+                    ? "bg-primary"
                     : step.id < currentStep
-                    ? 'bg-primary/50'
-                    : 'bg-muted'
+                      ? "bg-primary/50"
+                      : "bg-muted"
                 }`}
               />
             ))}
@@ -253,11 +261,11 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-function ConnectGMBStep({ 
-  onNext, 
-  onConnected 
-}: { 
-  onNext: () => void; 
+function ConnectGMBStep({
+  onNext,
+  onConnected,
+}: {
+  onNext: () => void;
   onConnected: () => void;
 }) {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -266,10 +274,10 @@ function ConnectGMBStep({
     try {
       setIsConnecting(true);
       // Trigger GMB OAuth flow
-      window.location.href = '/api/gmb/oauth';
+      window.location.href = "/api/gmb/oauth";
     } catch (error) {
-      console.error('GMB connection error:', error);
-      toast.error('Failed to connect. Please try again.');
+      console.error("GMB connection error:", error);
+      toast.error("Failed to connect. Please try again.");
       setIsConnecting(false);
     }
   };
@@ -287,9 +295,9 @@ function ConnectGMBStep({
       </div>
 
       <div className="space-y-3">
-        <Button 
-          onClick={handleConnect} 
-          className="w-full" 
+        <Button
+          onClick={handleConnect}
+          className="w-full"
           size="lg"
           disabled={isConnecting}
         >
@@ -324,7 +332,8 @@ function SelectLocationsStep({
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground">
-        Your locations will appear here after connecting your Google Business Profile.
+        Your locations will appear here after connecting your Google Business
+        Profile.
       </p>
 
       <Button onClick={onNext} className="w-full" size="lg">
@@ -371,7 +380,8 @@ function CompletionStep({ onComplete }: { onComplete: () => void }) {
         </div>
         <h3 className="text-2xl font-bold mb-2">You're All Set!</h3>
         <p className="text-muted-foreground mb-4">
-          Your account is ready. Start managing your business presence with AI-powered tools.
+          Your account is ready. Start managing your business presence with
+          AI-powered tools.
         </p>
       </div>
 

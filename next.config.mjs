@@ -2,6 +2,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 // [stringer:auto-locales:start]
 import fs from "fs";
 import path from "path";
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 const LOCALES_DIR = "i18n/locales";
 const resolvedLocalesDir = path.resolve(process.cwd(), LOCALES_DIR);
@@ -15,14 +16,17 @@ const autoDefaultLocale =
   autoLocales.find((l) => l === "en") || autoLocales[0] || "en";
 // [stringer:auto-locales:end]
 
-import bundleAnalyzer from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./i18n.ts");
 
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-});
+// Only load the bundle analyzer when explicitly requested so production installs
+// that omit devDependencies do not error on missing packages.
+let withBundleAnalyzer = (config) => config;
+if (process.env.ANALYZE === "true") {
+  const { default: bundleAnalyzer } = await import("@next/bundle-analyzer");
+  withBundleAnalyzer = bundleAnalyzer({ enabled: true });
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -47,6 +51,11 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
+    // Ensure path alias "@" always resolves to project root (helps CI/Vercel builds)
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias["@"] = path.resolve(__dirname);
+
     // Production optimizations
     // Production optimizations disabled temporarily to fix build error
     // if (!dev && !isServer) {

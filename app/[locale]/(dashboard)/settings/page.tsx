@@ -13,7 +13,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Check if user just connected GMB account
-    const connected = searchParams.get("connected");
+    const connected = searchParams?.get("connected");
 
     if (connected === "true") {
       // Show success toast

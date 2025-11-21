@@ -63,8 +63,10 @@ export default function DashboardLayout({
   // Check authentication
   useEffect(() => {
     const checkAuth = async () => {
+      const currentPath = pathname || "/";
+
       if (!supabase) {
-        const locale = getLocaleFromPathname(pathname);
+        const locale = getLocaleFromPathname(currentPath);
         router.push(getAuthUrl(locale, "login"));
         return;
       }
@@ -75,9 +77,9 @@ export default function DashboardLayout({
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        const locale = getLocaleFromPathname(pathname);
+        const locale = getLocaleFromPathname(currentPath);
         const loginUrl = getAuthUrl(locale, "login");
-        router.push(`${loginUrl}?redirectedFrom=${pathname}`);
+        router.push(`${loginUrl}?redirectedFrom=${currentPath}`);
         return;
       }
 

@@ -21,7 +21,9 @@ import { PublicFooter } from "@/components/layout/public-footer";
 
 export default function UpdatePasswordPage() {
   const params = useParams();
-  const locale = (params.locale as string) || "en";
+  const localeParam = params?.locale;
+  const locale =
+    (Array.isArray(localeParam) ? localeParam[0] : localeParam) || "en";
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

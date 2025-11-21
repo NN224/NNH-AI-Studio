@@ -27,7 +27,8 @@ export function AuthLayout({
 
   const toggleLanguage = () => {
     const newLocale = currentLocale === "en" ? "ar" : "en";
-    const newPath = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
+    const currentPath = pathname || "/";
+    const newPath = currentPath.replace(`/${currentLocale}`, `/${newLocale}`);
     router.push(newPath);
   };
   const benefits = [

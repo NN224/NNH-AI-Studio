@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const pathname = usePathname();
-  const locale = getLocaleFromPathname(pathname);
+  const locale = getLocaleFromPathname(pathname || "/");
   const t = useTranslations("auth.forgotPassword");
   const supabase = createClient();
 

@@ -16,7 +16,7 @@ import { useTranslations } from "next-intl";
 export default function ResetPasswordPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const locale = getLocaleFromPathname(pathname);
+  const locale = getLocaleFromPathname(pathname || "/");
   const t = useTranslations("auth.resetPassword");
   const supabase = createClient();
 

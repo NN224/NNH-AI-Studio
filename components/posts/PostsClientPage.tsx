@@ -1,26 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useTransition, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { useState, useTransition, useCallback, useMemo, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   deletePost,
   publishPost,
   syncPostsFromGoogle,
   bulkDeletePosts,
   bulkPublishPosts,
-} from '@/server/actions/posts-management';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { RefreshCw, Search, Bot, Plus, Trash2, Send } from 'lucide-react';
-import { PostCard } from './post-card';
-import { CreatePostDialog } from './create-post-dialog';
-import { EditPostDialog } from './edit-post-dialog';
-import { AIAssistantSidebar } from './ai-assistant-sidebar';
-import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
-import type { GMBPost } from '@/lib/types/database';
+} from "@/server/actions/posts-management";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { RefreshCw, Search, Bot, Plus, Trash2, Send } from "lucide-react";
+import { PostCard } from "./post-card";
+import { CreatePostDialog } from "./create-post-dialog";
+import { EditPostDialog } from "./edit-post-dialog";
+import { AIAssistantSidebar } from "./ai-assistant-sidebar";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import type { GMBPost } from "@/lib/types/database";
 
 interface PostStats {
   total: number;
@@ -83,27 +88,30 @@ export function PostsClientPage({
   }, [dashboardSnapshot?.postStats]);
 
   // Memoized update filter function
-  const updateFilter = useCallback((key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams.toString());
+  const updateFilter = useCallback(
+    (key: string, value: string | null) => {
+      const params = new URLSearchParams(searchParams?.toString() || "");
 
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
 
-    // Reset to page 1 when filters change
-    if (key !== 'page') {
-      params.set('page', '1');
-    }
+      // Reset to page 1 when filters change
+      if (key !== "page") {
+        params.set("page", "1");
+      }
 
-    router.push(`/posts?${params.toString()}`);
-  }, [searchParams, router]);
+      router.push(`/posts?${params.toString()}`);
+    },
+    [searchParams, router],
+  );
 
   // Handle sync with better error handling
   const handleSync = useCallback(async () => {
     if (!currentFilters.locationId) {
-      toast.error('Please select a location first');
+      toast.error("Please select a location first");
       return;
     }
 
@@ -113,177 +121,186 @@ export function PostsClientPage({
       const result = await syncPostsFromGoogle(currentFilters.locationId);
 
       if (result.success) {
-        toast.success('Posts synced!', {
+        toast.success("Posts synced!", {
           description: result.message,
         });
         startTransition(() => {
           router.refresh();
         });
       } else {
-        if (result.errorCode === 'AUTH_EXPIRED') {
-          toast.error('Authentication expired', {
+        if (result.errorCode === "AUTH_EXPIRED") {
+          toast.error("Authentication expired", {
             description: result.error,
             action: {
-              label: 'Reconnect Google',
-              onClick: () => router.push('/settings?tab=accounts'),
+              label: "Reconnect Google",
+              onClick: () => router.push("/settings?tab=accounts"),
             },
           });
         } else {
-          toast.error('Sync failed', {
+          toast.error("Sync failed", {
             description: result.error,
           });
         }
       }
     } catch (error) {
-      console.error('Sync error:', error);
-      toast.error('An unexpected error occurred');
+      console.error("Sync error:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSyncing(false);
     }
   }, [currentFilters.locationId, router]);
 
   // Handle delete with optimistic update
-  const handleDelete = useCallback(async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+  const handleDelete = useCallback(
+    async (postId: string) => {
+      if (!confirm("Are you sure you want to delete this post?")) return;
 
-    // Optimistic update
-    const postToDelete = initialPosts.find(p => p.id === postId);
-    if (postToDelete && selectedPost?.id === postId) {
-      setSelectedPost(null);
-    }
-    setSelectedPosts(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(postId);
-      return newSet;
-    });
+      // Optimistic update
+      const postToDelete = initialPosts.find((p) => p.id === postId);
+      if (postToDelete && selectedPost?.id === postId) {
+        setSelectedPost(null);
+      }
+      setSelectedPosts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
 
-    try {
-      const result = await deletePost(postId);
+      try {
+        const result = await deletePost(postId);
 
-      if (result.success) {
-        toast.success('Post deleted successfully');
-        startTransition(() => {
-          router.refresh();
-        });
-      } else {
+        if (result.success) {
+          toast.success("Post deleted successfully");
+          startTransition(() => {
+            router.refresh();
+          });
+        } else {
+          // Revert optimistic update on error
+          startTransition(() => {
+            router.refresh();
+          });
+          if (result.errorCode === "AUTH_EXPIRED") {
+            toast.error("Authentication expired", {
+              description: result.error,
+              action: {
+                label: "Reconnect Google",
+                onClick: () => router.push("/settings?tab=accounts"),
+              },
+            });
+          } else {
+            toast.error("Delete failed", {
+              description: result.error,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Delete error:", error);
         // Revert optimistic update on error
         startTransition(() => {
           router.refresh();
         });
-        if (result.errorCode === 'AUTH_EXPIRED') {
-          toast.error('Authentication expired', {
-            description: result.error,
-            action: {
-              label: 'Reconnect Google',
-              onClick: () => router.push('/settings?tab=accounts'),
-            },
-          });
-        } else {
-          toast.error('Delete failed', {
-            description: result.error,
-          });
-        }
+        toast.error("An unexpected error occurred");
       }
-    } catch (error) {
-      console.error('Delete error:', error);
-      // Revert optimistic update on error
-      startTransition(() => {
-        router.refresh();
-      });
-      toast.error('An unexpected error occurred');
-    }
-  }, [initialPosts, selectedPost, router]);
+    },
+    [initialPosts, selectedPost, router],
+  );
 
   // Handle publish with optimistic update
-  const handlePublish = useCallback(async (postId: string) => {
-    // Optimistic update
-    const postToPublish = initialPosts.find(p => p.id === postId);
-    if (postToPublish) {
-      // Update local state optimistically
-      const updatedPost = { ...postToPublish, status: 'published' as const };
-      if (selectedPost?.id === postId) {
-        setSelectedPost(updatedPost);
+  const handlePublish = useCallback(
+    async (postId: string) => {
+      // Optimistic update
+      const postToPublish = initialPosts.find((p) => p.id === postId);
+      if (postToPublish) {
+        // Update local state optimistically
+        const updatedPost = { ...postToPublish, status: "published" as const };
+        if (selectedPost?.id === postId) {
+          setSelectedPost(updatedPost);
+        }
       }
-    }
 
-    try {
-      const result = await publishPost(postId);
+      try {
+        const result = await publishPost(postId);
 
-      if (result.success) {
-        toast.success('Post published successfully');
-        startTransition(() => {
-          router.refresh();
-        });
-      } else {
+        if (result.success) {
+          toast.success("Post published successfully");
+          startTransition(() => {
+            router.refresh();
+          });
+        } else {
+          // Revert optimistic update on error
+          startTransition(() => {
+            router.refresh();
+          });
+          if (result.errorCode === "AUTH_EXPIRED") {
+            toast.error("Authentication expired", {
+              description: result.error,
+              action: {
+                label: "Reconnect Google",
+                onClick: () => router.push("/settings?tab=accounts"),
+              },
+            });
+          } else if (result.errorCode === "PERMISSION_DENIED") {
+            toast.error("Permission denied", {
+              description: result.error,
+            });
+          } else if (result.errorCode === "RATE_LIMIT") {
+            toast.error("Rate limit exceeded", {
+              description: result.error,
+            });
+          } else {
+            toast.error("Publish failed", {
+              description: result.error,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Publish error:", error);
         // Revert optimistic update on error
         startTransition(() => {
           router.refresh();
         });
-        if (result.errorCode === 'AUTH_EXPIRED') {
-          toast.error('Authentication expired', {
-            description: result.error,
-            action: {
-              label: 'Reconnect Google',
-              onClick: () => router.push('/settings?tab=accounts'),
-            },
-          });
-        } else if (result.errorCode === 'PERMISSION_DENIED') {
-          toast.error('Permission denied', {
-            description: result.error,
-          });
-        } else if (result.errorCode === 'RATE_LIMIT') {
-          toast.error('Rate limit exceeded', {
-            description: result.error,
-          });
-        } else {
-          toast.error('Publish failed', {
-            description: result.error,
-          });
-        }
+        toast.error("An unexpected error occurred");
       }
-    } catch (error) {
-      console.error('Publish error:', error);
-      // Revert optimistic update on error
-      startTransition(() => {
-        router.refresh();
-      });
-      toast.error('An unexpected error occurred');
-    }
-  }, [initialPosts, selectedPost, router]);
+    },
+    [initialPosts, selectedPost, router],
+  );
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async () => {
     if (selectedPosts.size === 0) {
-      toast.error('Please select posts to delete');
+      toast.error("Please select posts to delete");
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedPosts.size} post(s)?`)) return;
+    if (
+      !confirm(`Are you sure you want to delete ${selectedPosts.size} post(s)?`)
+    )
+      return;
 
     try {
       const result = await bulkDeletePosts(Array.from(selectedPosts));
 
       if (result.success) {
-        toast.success(result.message || 'Posts deleted successfully');
+        toast.success(result.message || "Posts deleted successfully");
         setSelectedPosts(new Set());
         startTransition(() => {
           router.refresh();
         });
       } else {
-        toast.error('Bulk delete failed', {
+        toast.error("Bulk delete failed", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('Bulk delete error:', error);
-      toast.error('An unexpected error occurred');
+      console.error("Bulk delete error:", error);
+      toast.error("An unexpected error occurred");
     }
   }, [selectedPosts, router]);
 
   // Handle bulk publish
   const handleBulkPublish = useCallback(async () => {
     if (selectedPosts.size === 0) {
-      toast.error('Please select posts to publish');
+      toast.error("Please select posts to publish");
       return;
     }
 
@@ -291,19 +308,19 @@ export function PostsClientPage({
       const result = await bulkPublishPosts(Array.from(selectedPosts));
 
       if (result.success) {
-        toast.success(result.message || 'Posts published successfully');
+        toast.success(result.message || "Posts published successfully");
         setSelectedPosts(new Set());
         startTransition(() => {
           router.refresh();
         });
       } else {
-        toast.error('Bulk publish failed', {
+        toast.error("Bulk publish failed", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('Bulk publish error:', error);
-      toast.error('An unexpected error occurred');
+      console.error("Bulk publish error:", error);
+      toast.error("An unexpected error occurred");
     }
   }, [selectedPosts, router]);
 
@@ -315,7 +332,7 @@ export function PostsClientPage({
 
   // Toggle post selection
   const togglePostSelection = useCallback((postId: string) => {
-    setSelectedPosts(prev => {
+    setSelectedPosts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
         newSet.delete(postId);
@@ -327,15 +344,18 @@ export function PostsClientPage({
   }, []);
 
   // Debounced search handler
-  const handleSearchChange = useCallback((value: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    searchTimeoutRef.current = setTimeout(() => {
-      updateFilter('search', value || null);
-    }, 500);
-  }, [updateFilter]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      searchTimeoutRef.current = setTimeout(() => {
+        updateFilter("search", value || null);
+      }, 500);
+    },
+    [updateFilter],
+  );
 
   // Cleanup search timeout on unmount
   useMemo(() => {
@@ -351,12 +371,14 @@ export function PostsClientPage({
   const currentPage = currentFilters.page || 1;
 
   // Filter clearing check
-  const hasActiveFilters = useMemo(() => (
-    currentFilters.locationId ||
-    currentFilters.postType !== 'all' ||
-    currentFilters.status !== 'all' ||
-    currentFilters.searchQuery
-  ), [currentFilters]);
+  const hasActiveFilters = useMemo(
+    () =>
+      currentFilters.locationId ||
+      currentFilters.postType !== "all" ||
+      currentFilters.status !== "all" ||
+      currentFilters.searchQuery,
+    [currentFilters],
+  );
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 min-h-screen">
@@ -391,8 +413,10 @@ export function PostsClientPage({
             variant="outline"
             className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing...' : 'Sync Posts'}
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isSyncing ? "animate-spin" : ""}`}
+            />
+            {isSyncing ? "Syncing..." : "Sync Posts"}
           </Button>
         </div>
       </div>
@@ -404,35 +428,45 @@ export function PostsClientPage({
             <Card className="bg-zinc-900/50 border-orange-500/20">
               <CardContent className="p-6">
                 <p className="text-zinc-400 text-sm mb-2">Total Posts</p>
-                <p className="text-3xl font-bold text-zinc-100">{stats.total || 0}</p>
+                <p className="text-3xl font-bold text-zinc-100">
+                  {stats.total || 0}
+                </p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-orange-500/20">
               <CardContent className="p-6">
                 <p className="text-zinc-400 text-sm mb-2">Published</p>
-                <p className="text-3xl font-bold text-green-400">{stats.published || 0}</p>
+                <p className="text-3xl font-bold text-green-400">
+                  {stats.published || 0}
+                </p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-orange-500/20">
               <CardContent className="p-6">
                 <p className="text-zinc-400 text-sm mb-2">Drafts</p>
-                <p className="text-3xl font-bold text-yellow-400">{stats.drafts || 0}</p>
+                <p className="text-3xl font-bold text-yellow-400">
+                  {stats.drafts || 0}
+                </p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-orange-500/20">
               <CardContent className="p-6">
                 <p className="text-zinc-400 text-sm mb-2">Scheduled</p>
-                <p className="text-3xl font-bold text-blue-400">{stats.scheduled || 0}</p>
+                <p className="text-3xl font-bold text-blue-400">
+                  {stats.scheduled || 0}
+                </p>
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-900/50 border-orange-500/20">
               <CardContent className="p-6">
                 <p className="text-zinc-400 text-sm mb-2">This Week</p>
-                <p className="text-3xl font-bold text-zinc-100">{stats.thisWeek || 0}</p>
+                <p className="text-3xl font-bold text-zinc-100">
+                  {stats.thisWeek || 0}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -444,8 +478,8 @@ export function PostsClientPage({
         <div className="flex flex-col md:flex-row gap-4">
           {/* Location Filter */}
           <select
-            value={currentFilters.locationId || ''}
-            onChange={(e) => updateFilter('location', e.target.value || null)}
+            value={currentFilters.locationId || ""}
+            onChange={(e) => updateFilter("location", e.target.value || null)}
             className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All Locations</option>
@@ -458,8 +492,13 @@ export function PostsClientPage({
 
           {/* Post Type Filter */}
           <select
-            value={currentFilters.postType || 'all'}
-            onChange={(e) => updateFilter('postType', e.target.value === 'all' ? null : e.target.value)}
+            value={currentFilters.postType || "all"}
+            onChange={(e) =>
+              updateFilter(
+                "postType",
+                e.target.value === "all" ? null : e.target.value,
+              )
+            }
             className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="all">All Types</option>
@@ -470,8 +509,13 @@ export function PostsClientPage({
 
           {/* Status Filter */}
           <select
-            value={currentFilters.status || 'all'}
-            onChange={(e) => updateFilter('status', e.target.value === 'all' ? null : e.target.value)}
+            value={currentFilters.status || "all"}
+            onChange={(e) =>
+              updateFilter(
+                "status",
+                e.target.value === "all" ? null : e.target.value,
+              )
+            }
             className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="all">All Statuses</option>
@@ -496,7 +540,11 @@ export function PostsClientPage({
 
           {/* Bulk Actions */}
           {selectedPosts.size > 0 && (
-            <div className="flex items-center gap-2" role="group" aria-label="Bulk actions">
+            <div
+              className="flex items-center gap-2"
+              role="group"
+              aria-label="Bulk actions"
+            >
               <Button
                 variant="outline"
                 size="sm"
@@ -524,7 +572,7 @@ export function PostsClientPage({
           {hasActiveFilters && (
             <Button
               variant="ghost"
-              onClick={() => router.push('/posts')}
+              onClick={() => router.push("/posts")}
               className="text-zinc-400 hover:text-zinc-200"
               aria-label="Clear all filters"
             >
@@ -549,8 +597,8 @@ export function PostsClientPage({
               <p className="text-zinc-500 text-lg mb-2">No posts found</p>
               <p className="text-zinc-600 text-sm">
                 {currentFilters.locationId
-                  ? 'Try syncing posts or creating a new one'
-                  : 'Select a location to view posts or create a new post'}
+                  ? "Try syncing posts or creating a new one"
+                  : "Select a location to view posts or create a new post"}
               </p>
             </div>
           ) : (
@@ -591,7 +639,7 @@ export function PostsClientPage({
             <Button
               variant="outline"
               disabled={currentPage <= 1}
-              onClick={() => updateFilter('page', (currentPage - 1).toString())}
+              onClick={() => updateFilter("page", (currentPage - 1).toString())}
               className="border-zinc-700 text-zinc-300"
             >
               Previous
@@ -604,7 +652,7 @@ export function PostsClientPage({
             <Button
               variant="outline"
               disabled={currentPage >= totalPages}
-              onClick={() => updateFilter('page', (currentPage + 1).toString())}
+              onClick={() => updateFilter("page", (currentPage + 1).toString())}
               className="border-zinc-700 text-zinc-300"
             >
               Next
@@ -646,7 +694,10 @@ export function PostsClientPage({
 
       {/* Mobile AI Assistant Sheet */}
       <Sheet open={aiSidebarOpen} onOpenChange={setAiSidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-96 bg-zinc-950 border-l border-zinc-800 p-0 overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:w-96 bg-zinc-950 border-l border-zinc-800 p-0 overflow-y-auto"
+        >
           <SheetHeader className="p-6 border-b border-zinc-800">
             <SheetTitle className="text-white">AI Assistant</SheetTitle>
           </SheetHeader>
@@ -662,4 +713,3 @@ export function PostsClientPage({
     </div>
   );
 }
-

@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-import { syncQuestionsFromGoogle } from '@/server/actions/questions-management';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { syncQuestionsFromGoogle } from "@/server/actions/questions-management";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   RefreshCw,
   Search,
@@ -25,21 +31,26 @@ import {
   XCircle,
   BookOpen,
   ArrowUpRight,
-} from 'lucide-react';
-import { QuestionCard } from './question-card';
-import { AnswerDialog } from './answer-dialog';
-import { QuestionAISettings } from './QuestionAISettings';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
-import type { GMBQuestion } from '@/lib/types/database';
-import type { DashboardSnapshot } from '@/types/dashboard';
-import { BulkActionsBar } from './bulk-actions-bar';
+} from "lucide-react";
+import { QuestionCard } from "./question-card";
+import { AnswerDialog } from "./answer-dialog";
+import { QuestionAISettings } from "./QuestionAISettings";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import type { GMBQuestion } from "@/lib/types/database";
+import type { DashboardSnapshot } from "@/types/dashboard";
+import { BulkActionsBar } from "./bulk-actions-bar";
 
 type QuestionEntity = GMBQuestion & {
   locationId: string;
   questionText: string;
   createdAt: string | null;
-  answerStatus: GMBQuestion['answer_status'] | 'unanswered';
+  answerStatus: GMBQuestion["answer_status"] | "unanswered";
   upvoteCount: number;
 };
 
@@ -99,13 +110,16 @@ export function QuestionsClientPage({
 }: QuestionsClientPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const searchParamsString = searchParams?.toString() || "";
   const [isPending, startTransition] = useTransition();
-  const [selectedQuestion, setSelectedQuestion] = useState<QuestionEntity | null>(null);
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<QuestionEntity | null>(null);
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState(currentFilters.searchQuery ?? '');
+  const [searchInput, setSearchInput] = useState(
+    currentFilters.searchQuery ?? "",
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [autoAnswerEnabled, setAutoAnswerEnabled] = useState(false);
   const [autoAnswerLoading, setAutoAnswerLoading] = useState(false);
@@ -120,7 +134,9 @@ export function QuestionsClientPage({
       return null;
     }
 
-    const recent = (questionStats.recentQuestions ?? []).map(normalizeQuestionEntity);
+    const recent = (questionStats.recentQuestions ?? []).map(
+      normalizeQuestionEntity,
+    );
     const upvotes = recent.reduce((acc: number, q) => acc + q.upvoteCount, 0);
 
     return {
@@ -140,24 +156,49 @@ export function QuestionsClientPage({
     };
   }, [dashboardSnapshot?.questionStats]);
 
-  const normalizedQuestions = useMemo(() => (initialQuestions ?? []).map(normalizeQuestionEntity), [initialQuestions]);
+  const normalizedQuestions = useMemo(
+    () => (initialQuestions ?? []).map(normalizeQuestionEntity),
+    [initialQuestions],
+  );
 
   const topicStats = useMemo(() => {
     const pool = [...(stats?.recentQuestions ?? []), ...normalizedQuestions];
     const definitions = [
-      { key: 'hours', label: 'Hours', keywords: ['hour', 'open', 'close', 'time'] },
-      { key: 'delivery', label: 'Delivery', keywords: ['deliver', 'delivery', 'shipping'] },
-      { key: 'wifi', label: 'WiFi', keywords: ['wifi', 'internet', 'password'] },
-      { key: 'pricing', label: 'Pricing', keywords: ['price', 'cost', 'fee'] },
-      { key: 'parking', label: 'Parking', keywords: ['parking', 'park', 'garage'] },
-      { key: 'services', label: 'Services', keywords: ['service', 'offer', 'provide'] },
+      {
+        key: "hours",
+        label: "Hours",
+        keywords: ["hour", "open", "close", "time"],
+      },
+      {
+        key: "delivery",
+        label: "Delivery",
+        keywords: ["deliver", "delivery", "shipping"],
+      },
+      {
+        key: "wifi",
+        label: "WiFi",
+        keywords: ["wifi", "internet", "password"],
+      },
+      { key: "pricing", label: "Pricing", keywords: ["price", "cost", "fee"] },
+      {
+        key: "parking",
+        label: "Parking",
+        keywords: ["parking", "park", "garage"],
+      },
+      {
+        key: "services",
+        label: "Services",
+        keywords: ["service", "offer", "provide"],
+      },
     ];
 
     return definitions
       .map((definition) => {
         const count = pool.reduce((acc, question) => {
-          const text = (question.questionText ?? '').toLowerCase();
-          return definition.keywords.some((keyword) => text.includes(keyword)) ? acc + 1 : acc;
+          const text = (question.questionText ?? "").toLowerCase();
+          return definition.keywords.some((keyword) => text.includes(keyword))
+            ? acc + 1
+            : acc;
         }, 0);
 
         return {
@@ -169,7 +210,10 @@ export function QuestionsClientPage({
       .sort((a, b) => b.count - a.count);
   }, [initialQuestions, stats?.recentQuestions, normalizedQuestions]);
 
-  const patterns = useMemo(() => topicStats.filter((topic) => topic.count > 0), [topicStats]);
+  const patterns = useMemo(
+    () => topicStats.filter((topic) => topic.count > 0),
+    [topicStats],
+  );
 
   const knowledgeBaseItems: KnowledgeBaseItem[] = useMemo(
     () =>
@@ -191,21 +235,19 @@ export function QuestionsClientPage({
       pool.find((question) => {
         const status = question.answerStatus ?? question.answer_status;
         const hasAnswer = Boolean(question.answer_text);
-        return !hasAnswer && (status === 'unanswered' || status === 'pending');
+        return !hasAnswer && (status === "unanswered" || status === "pending");
       }) ?? pool[0];
 
-    const text = (target.questionText ?? 'Upcoming question').trim();
-    const topic = patterns[0]?.label ?? 'General';
-    const confidence = Math.min(
-      98,
-      Math.max(72, target.upvoteCount * 3 + 85),
-    );
+    const text = (target.questionText ?? "Upcoming question").trim();
+    const topic = patterns[0]?.label ?? "General";
+    const confidence = Math.min(98, Math.max(72, target.upvoteCount * 3 + 85));
 
     return {
       title: text.length > 80 ? `${text.slice(0, 80)}…` : text,
       topic,
       confidence,
-      description: 'Let AI draft a human-quality answer based on your knowledge base.',
+      description:
+        "Let AI draft a human-quality answer based on your knowledge base.",
     };
   }, [normalizedQuestions, patterns, stats?.recentQuestions]);
 
@@ -213,16 +255,16 @@ export function QuestionsClientPage({
     const topPattern = patterns[0];
     return [
       {
-        label: 'Most asked',
-        value: topPattern ? `${topPattern.label} (${topPattern.count})` : '—',
+        label: "Most asked",
+        value: topPattern ? `${topPattern.label} (${topPattern.count})` : "—",
       },
       {
-        label: 'Answer rate',
-        value: `${stats ? stats.answerRate.toFixed(1) : '0'}%`,
+        label: "Answer rate",
+        value: `${stats ? stats.answerRate.toFixed(1) : "0"}%`,
       },
       {
-        label: 'Avg. upvotes',
-        value: stats ? stats.avgUpvotes.toFixed(1) : '0',
+        label: "Avg. upvotes",
+        value: stats ? stats.avgUpvotes.toFixed(1) : "0",
       },
     ];
   }, [patterns, stats]);
@@ -241,23 +283,23 @@ export function QuestionsClientPage({
       const params = new URLSearchParams(searchParamsString);
 
       if (value && value.length > 0) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
 
-    if (key !== 'page') {
-      params.set('page', '1');
-    }
+      if (key !== "page") {
+        params.set("page", "1");
+      }
 
-    router.push(`/questions?${params.toString()}`);
+      router.push(`/questions?${params.toString()}`);
     },
     [router, searchParamsString],
   );
 
   // Selection handlers
   const handleSelectQuestion = (questionId: string, isSelected: boolean) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const newSet = new Set(prev);
       if (isSelected) {
         newSet.add(questionId);
@@ -273,7 +315,7 @@ export function QuestionsClientPage({
     if (selectedIds.size === safeQuestions.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(safeQuestions.map(q => q.id)));
+      setSelectedIds(new Set(safeQuestions.map((q) => q.id)));
     }
   };
 
@@ -288,21 +330,21 @@ export function QuestionsClientPage({
   }, [router, startTransition]);
 
   useEffect(() => {
-    setSearchInput(currentFilters.searchQuery ?? '');
+    setSearchInput(currentFilters.searchQuery ?? "");
   }, [currentFilters.searchQuery]);
 
   useEffect(() => {
-    const initialValue = currentFilters.searchQuery ?? '';
+    const initialValue = currentFilters.searchQuery ?? "";
     if (searchInput === initialValue) {
       return;
     }
 
     const timer = setTimeout(() => {
       const normalized = searchInput.trim();
-      if (normalized === (currentFilters.searchQuery ?? '')) {
+      if (normalized === (currentFilters.searchQuery ?? "")) {
         return;
       }
-      updateFilter('search', normalized.length ? normalized : null);
+      updateFilter("search", normalized.length ? normalized : null);
     }, 400);
 
     return () => {
@@ -311,7 +353,7 @@ export function QuestionsClientPage({
   }, [searchInput, currentFilters.searchQuery, updateFilter]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -319,18 +361,18 @@ export function QuestionsClientPage({
       refreshData();
     };
 
-    window.addEventListener('dashboard:refresh', handleRefresh);
-    window.addEventListener('gmb-sync-complete', handleRefresh);
+    window.addEventListener("dashboard:refresh", handleRefresh);
+    window.addEventListener("gmb-sync-complete", handleRefresh);
 
     return () => {
-      window.removeEventListener('dashboard:refresh', handleRefresh);
-      window.removeEventListener('gmb-sync-complete', handleRefresh);
+      window.removeEventListener("dashboard:refresh", handleRefresh);
+      window.removeEventListener("gmb-sync-complete", handleRefresh);
     };
   }, [refreshData]);
 
   const handleSync = useCallback(async () => {
     if (!currentFilters.locationId) {
-      toast.error('Please select a location first');
+      toast.error("Please select a location first");
       return;
     }
 
@@ -339,21 +381,21 @@ export function QuestionsClientPage({
     try {
       const result = await syncQuestionsFromGoogle(currentFilters.locationId);
       if (result.success) {
-        toast.success('Questions synced!', {
+        toast.success("Questions synced!", {
           description: result.message,
         });
         refreshData();
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('dashboard:refresh'));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("dashboard:refresh"));
         }
       } else {
-        toast.error('Sync failed', {
+        toast.error("Sync failed", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('[Questions] Sync error:', error);
-      toast.error('Unable to sync questions right now');
+      console.error("[Questions] Sync error:", error);
+      toast.error("Unable to sync questions right now");
     } finally {
       setIsSyncing(false);
     }
@@ -368,10 +410,10 @@ export function QuestionsClientPage({
     setAutoAnswerLoading(true);
     try {
       setAutoAnswerEnabled(enabled);
-      toast.success(enabled ? 'Auto-answer enabled' : 'Auto-answer paused');
+      toast.success(enabled ? "Auto-answer enabled" : "Auto-answer paused");
     } catch (error) {
-      console.error('[Questions] Auto-answer toggle error:', error);
-      toast.error('Unable to update auto-answer right now');
+      console.error("[Questions] Auto-answer toggle error:", error);
+      toast.error("Unable to update auto-answer right now");
     } finally {
       setAutoAnswerLoading(false);
     }
@@ -383,13 +425,13 @@ export function QuestionsClientPage({
     }
 
     if (!pendingCount) {
-      toast.info('No pending questions to answer');
+      toast.info("No pending questions to answer");
       return;
     }
 
     setBulkAnswering(true);
     setBulkProgress({ completed: 0, total: pendingCount });
-    toast.info('Bulk answering queued (beta)');
+    toast.info("Bulk answering queued (beta)");
 
     setTimeout(() => {
       setBulkProgress({ completed: pendingCount, total: pendingCount });
@@ -398,22 +440,22 @@ export function QuestionsClientPage({
   }, [bulkAnswering, pendingCount]);
 
   const handlePauseBulk = useCallback(() => {
-    toast.info('Bulk answering paused');
+    toast.info("Bulk answering paused");
   }, []);
 
   const handleCancelBulk = useCallback(() => {
     setBulkProgress({ completed: 0, total: 0 });
     setBulkAnswering(false);
-    toast.success('Bulk queue cleared');
+    toast.success("Bulk queue cleared");
   }, []);
 
   const handleExport = useCallback(() => {
-    toast.info('CSV export coming soon');
+    toast.info("CSV export coming soon");
   }, []);
 
   const onOpenAnswerDialog = useCallback(() => {
     if (!selectedQuestion) {
-      toast.info('Select a question first');
+      toast.info("Select a question first");
       return;
     }
     setAnswerDialogOpen(true);
@@ -428,7 +470,7 @@ export function QuestionsClientPage({
       currentFilters.status ||
       currentFilters.priority ||
       (currentFilters.searchQuery && currentFilters.searchQuery.length > 0) ||
-      (currentFilters.sortBy && currentFilters.sortBy !== 'newest'),
+      (currentFilters.sortBy && currentFilters.sortBy !== "newest"),
   );
 
   return (
@@ -457,7 +499,7 @@ export function QuestionsClientPage({
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         hasActiveFilters={hasActiveFilters}
-        onClearFilters={() => router.push('/questions')}
+        onClearFilters={() => router.push("/questions")}
         onExport={handleExport}
       />
 
@@ -500,7 +542,7 @@ export function QuestionsClientPage({
       <QuestionsPagination
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={(page) => updateFilter('page', String(page))}
+        onPageChange={(page) => updateFilter("page", String(page))}
       />
 
       <AnswerDialog
@@ -512,8 +554,8 @@ export function QuestionsClientPage({
         }}
         onSuccess={() => {
           refreshData();
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('dashboard:refresh'));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("dashboard:refresh"));
           }
         }}
       />
@@ -580,9 +622,12 @@ function QuestionsOverviewHeader({
     <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
       <div className="flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-white">Questions Command Center</h1>
+          <h1 className="text-3xl font-semibold text-white">
+            Questions Command Center
+          </h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Monitor community questions, automate AI answers, and uncover intent patterns in one place.
+            Monitor community questions, automate AI answers, and uncover intent
+            patterns in one place.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -610,8 +655,10 @@ function QuestionsOverviewHeader({
             variant="outline"
             className="border-zinc-700 text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing…' : 'Sync Questions'}
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+            />
+            {isSyncing ? "Syncing…" : "Sync Questions"}
           </Button>
         </div>
       </div>
@@ -634,7 +681,7 @@ function QuestionsOverviewHeader({
         />
         <MetricTile
           label="Answer Rate"
-          value={`${stats ? stats.answerRate.toFixed(1) : '0'}%`}
+          value={`${stats ? stats.answerRate.toFixed(1) : "0"}%`}
           accent="bg-emerald-500/10 text-emerald-200 border-emerald-500/30"
         />
         <MetricTile
@@ -661,14 +708,14 @@ function MetricTile({
       <CardContent className="py-5">
         <p className="text-sm text-zinc-400">{label}</p>
         <p className="mt-1 text-3xl font-semibold">{value}</p>
-              </CardContent>
-            </Card>
+      </CardContent>
+    </Card>
   );
 }
 
 interface QuestionsFilterBarProps {
   locations: Array<{ id: string; location_name: string }>;
-  filters: QuestionsClientPageProps['currentFilters'];
+  filters: QuestionsClientPageProps["currentFilters"];
   updateFilter: (key: string, value: string | null) => void;
   searchInput: string;
   onSearchChange: (value: string) => void;
@@ -689,37 +736,39 @@ function QuestionsFilterBar({
 }: QuestionsFilterBarProps) {
   const quickFilters = [
     {
-      id: 'all',
-      label: 'All',
-      active: !filters.status && (!filters.sortBy || filters.sortBy === 'newest'),
+      id: "all",
+      label: "All",
+      active:
+        !filters.status && (!filters.sortBy || filters.sortBy === "newest"),
       onClick: () => {
-        updateFilter('status', null);
-        updateFilter('sortBy', 'newest');
+        updateFilter("status", null);
+        updateFilter("sortBy", "newest");
       },
     },
     {
-      id: 'pending',
-      label: 'Pending',
-      active: filters.status === 'unanswered',
-      onClick: () => updateFilter('status', 'unanswered'),
+      id: "pending",
+      label: "Pending",
+      active: filters.status === "unanswered",
+      onClick: () => updateFilter("status", "unanswered"),
     },
     {
-      id: 'answered',
-      label: 'Answered',
-      active: filters.status === 'answered',
-      onClick: () => updateFilter('status', 'answered'),
+      id: "answered",
+      label: "Answered",
+      active: filters.status === "answered",
+      onClick: () => updateFilter("status", "answered"),
     },
     {
-      id: 'popular',
-      label: 'Popular',
-      active: filters.sortBy === 'most_upvoted',
-      onClick: () => updateFilter('sortBy', 'most_upvoted'),
+      id: "popular",
+      label: "Popular",
+      active: filters.sortBy === "most_upvoted",
+      onClick: () => updateFilter("sortBy", "most_upvoted"),
     },
     {
-      id: 'recent',
-      label: 'Recent',
-      active: !filters.status && (!filters.sortBy || filters.sortBy === 'newest'),
-      onClick: () => updateFilter('sortBy', 'newest'),
+      id: "recent",
+      label: "Recent",
+      active:
+        !filters.status && (!filters.sortBy || filters.sortBy === "newest"),
+      onClick: () => updateFilter("sortBy", "newest"),
     },
   ];
 
@@ -727,7 +776,11 @@ function QuestionsFilterBar({
     <section className="border-b border-zinc-800 bg-zinc-950/60 px-6 py-5">
       <div className="flex flex-wrap items-center gap-2">
         {quickFilters.map((filter) => (
-          <FilterChip key={filter.id} active={filter.active} onClick={filter.onClick}>
+          <FilterChip
+            key={filter.id}
+            active={filter.active}
+            onClick={filter.onClick}
+          >
             {filter.label}
           </FilterChip>
         ))}
@@ -739,7 +792,7 @@ function QuestionsFilterBar({
         >
           <Download className="h-4 w-4" /> Export CSV
         </Button>
-        </div>
+      </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div>
@@ -747,8 +800,10 @@ function QuestionsFilterBar({
             Location
           </label>
           <select
-            value={filters.locationId ?? ''}
-            onChange={(event) => updateFilter('location', event.target.value || null)}
+            value={filters.locationId ?? ""}
+            onChange={(event) =>
+              updateFilter("location", event.target.value || null)
+            }
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All locations</option>
@@ -765,8 +820,10 @@ function QuestionsFilterBar({
             Priority
           </label>
           <select
-            value={filters.priority ?? ''}
-            onChange={(event) => updateFilter('priority', event.target.value || null)}
+            value={filters.priority ?? ""}
+            onChange={(event) =>
+              updateFilter("priority", event.target.value || null)
+            }
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All priorities</option>
@@ -782,8 +839,8 @@ function QuestionsFilterBar({
             Sort by
           </label>
           <select
-            value={filters.sortBy ?? 'newest'}
-            onChange={(event) => updateFilter('sortBy', event.target.value)}
+            value={filters.sortBy ?? "newest"}
+            onChange={(event) => updateFilter("sortBy", event.target.value)}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="newest">Newest first</option>
@@ -811,11 +868,16 @@ function QuestionsFilterBar({
 
       {hasActiveFilters && (
         <div className="mt-3">
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-zinc-400">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearFilters}
+            className="text-zinc-400"
+          >
             Reset filters
           </Button>
-            </div>
-          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -835,8 +897,8 @@ function FilterChip({
       onClick={onClick}
       className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
         active
-          ? 'border-orange-500 bg-orange-500/20 text-orange-200 shadow-[0_0_12px_rgba(251,146,60,0.2)]'
-          : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-orange-500/40 hover:text-orange-200'
+          ? "border-orange-500 bg-orange-500/20 text-orange-200 shadow-[0_0_12px_rgba(251,146,60,0.2)]"
+          : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-orange-500/40 hover:text-orange-200"
       }`}
     >
       {children}
@@ -875,13 +937,16 @@ function QuestionsFeedSection({
   }
 
   const safeQuestions = Array.isArray(questions) ? questions : [];
-  
+
   if (!safeQuestions.length) {
     return (
       <section className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/30 text-center">
-        <h3 className="text-lg font-semibold text-zinc-200">No questions found</h3>
+        <h3 className="text-lg font-semibold text-zinc-200">
+          No questions found
+        </h3>
         <p className="max-w-md text-sm text-zinc-500">
-          Try syncing Google Business questions or adjust your filters to see more conversations.
+          Try syncing Google Business questions or adjust your filters to see
+          more conversations.
         </p>
       </section>
     );
@@ -897,7 +962,11 @@ function QuestionsFeedSection({
           isChecked={selectedIds?.has(question.id) ?? false}
           onClick={() => onSelectQuestion(question)}
           onAnswer={() => onAnswer(question)}
-          onCheckChange={onCheckChange ? (checked) => onCheckChange(question.id, checked) : undefined}
+          onCheckChange={
+            onCheckChange
+              ? (checked) => onCheckChange(question.id, checked)
+              : undefined
+          }
         />
       ))}
     </section>
@@ -942,7 +1011,7 @@ function AutoAnswerSidebar({
   return (
     <div
       className={`flex h-full flex-col gap-4 rounded-xl border border-orange-500/20 bg-gradient-to-br from-zinc-950/90 via-zinc-950 to-zinc-900/90 p-6 shadow-[0_0_40px_rgba(251,146,60,0.08)] ${
-        isMobile ? '' : 'sticky top-6'
+        isMobile ? "" : "sticky top-6"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -951,7 +1020,7 @@ function AutoAnswerSidebar({
             <Sparkles className="h-5 w-5" />
           </div>
           <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border border-zinc-900 bg-emerald-400" />
-            </div>
+        </div>
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-white">AI Answer Engine</h3>
           <p className="text-xs text-zinc-400">
@@ -959,9 +1028,9 @@ function AutoAnswerSidebar({
           </p>
         </div>
         <Badge className="bg-orange-500/20 text-orange-200 border border-orange-500/40">
-          {autoAnswerEnabled ? 'Active' : 'Standby'}
+          {autoAnswerEnabled ? "Active" : "Standby"}
         </Badge>
-        </div>
+      </div>
 
       <Card className="border border-zinc-800/60 bg-zinc-900/40">
         <CardContent className="space-y-3 p-4">
@@ -971,7 +1040,9 @@ function AutoAnswerSidebar({
               <div>
                 <p className="text-sm font-semibold text-white">Auto-answer</p>
                 <p className="text-xs text-zinc-400">
-                  {autoAnswerEnabled ? 'AI replies to new questions.' : 'Manual reviews required.'}
+                  {autoAnswerEnabled
+                    ? "AI replies to new questions."
+                    : "Manual reviews required."}
                 </p>
               </div>
             </div>
@@ -985,7 +1056,11 @@ function AutoAnswerSidebar({
           <div className="flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2">
             <Lightbulb className="h-4 w-4 text-amber-300" />
             <p className="text-xs text-zinc-400">
-              Pending queue: <span className="font-semibold text-zinc-200">{pendingCount}</span> questions need answers.
+              Pending queue:{" "}
+              <span className="font-semibold text-zinc-200">
+                {pendingCount}
+              </span>{" "}
+              questions need answers.
             </p>
           </div>
         </CardContent>
@@ -993,7 +1068,9 @@ function AutoAnswerSidebar({
 
       <Card className="border border-zinc-800/60 bg-zinc-900/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Knowledge base coverage</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">
+            Knowledge base coverage
+          </CardTitle>
           <Layers className="h-4 w-4 text-orange-300" />
         </CardHeader>
         <CardContent className="grid gap-2">
@@ -1010,11 +1087,11 @@ function AutoAnswerSidebar({
                 variant="outline"
                 className={`${
                   item.ready
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
-                    : 'border-zinc-700 bg-zinc-800 text-zinc-300'
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                    : "border-zinc-700 bg-zinc-800 text-zinc-300"
                 }`}
               >
-                {item.ready ? 'Ready' : 'Missing'} · {item.count}
+                {item.ready ? "Ready" : "Missing"} · {item.count}
               </Badge>
             </div>
           ))}
@@ -1026,14 +1103,17 @@ function AutoAnswerSidebar({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-white">AI suggestion</p>
-              <p className="text-xs text-orange-100/80">Topic: {suggestion?.topic ?? 'General'}</p>
-        </div>
+              <p className="text-xs text-orange-100/80">
+                Topic: {suggestion?.topic ?? "General"}
+              </p>
+            </div>
             <Badge className="bg-white/10 text-white">
-              {suggestion ? `${suggestion.confidence}% match` : 'Ready'}
+              {suggestion ? `${suggestion.confidence}% match` : "Ready"}
             </Badge>
-      </div>
+          </div>
           <p className="text-sm text-orange-50/90">
-            {suggestion?.title ?? 'Select a question to generate a tailored answer.'}
+            {suggestion?.title ??
+              "Select a question to generate a tailored answer."}
           </p>
           <Button
             onClick={onOpenAnswerDialog}
@@ -1047,12 +1127,14 @@ function AutoAnswerSidebar({
 
       <Card className="border border-zinc-800/60 bg-zinc-900/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Bulk answering</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">
+            Bulk answering
+          </CardTitle>
           <Zap className="h-4 w-4 text-orange-300" />
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Status: {bulkAnswering ? 'Processing…' : 'Idle'}</span>
+            <span>Status: {bulkAnswering ? "Processing…" : "Idle"}</span>
             <span>{bulkProgressPct}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -1062,7 +1144,11 @@ function AutoAnswerSidebar({
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <Button onClick={onBulkAnswer} size="sm" className="bg-orange-500 text-white hover:bg-orange-600">
+            <Button
+              onClick={onBulkAnswer}
+              size="sm"
+              className="bg-orange-500 text-white hover:bg-orange-600"
+            >
               Start
             </Button>
             <Button
@@ -1087,7 +1173,9 @@ function AutoAnswerSidebar({
 
       <Card className="border border-zinc-800/60 bg-zinc-900/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Performance snapshot</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">
+            Performance snapshot
+          </CardTitle>
           <TrendingUp className="h-4 w-4 text-emerald-300" />
         </CardHeader>
         <CardContent className="grid gap-2">
@@ -1096,9 +1184,13 @@ function AutoAnswerSidebar({
               key={item.label}
               className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2"
             >
-              <span className="text-xs uppercase tracking-wide text-zinc-500">{item.label}</span>
-              <span className="text-sm font-semibold text-zinc-100">{item.value}</span>
-          </div>
+              <span className="text-xs uppercase tracking-wide text-zinc-500">
+                {item.label}
+              </span>
+              <span className="text-sm font-semibold text-zinc-100">
+                {item.value}
+              </span>
+            </div>
           ))}
         </CardContent>
       </Card>
@@ -1116,7 +1208,9 @@ function QuestionInsightsCard({ stats, patterns }: QuestionInsightsCardProps) {
     <Card className="border border-zinc-800 bg-zinc-900/40">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle className="text-base font-semibold text-white">Smart insights</CardTitle>
+          <CardTitle className="text-base font-semibold text-white">
+            Smart insights
+          </CardTitle>
           <p className="text-xs text-zinc-500">
             Trending topics and engagement patterns across locations
           </p>
@@ -1141,14 +1235,14 @@ function QuestionInsightsCard({ stats, patterns }: QuestionInsightsCardProps) {
           ))}
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-xs text-zinc-400">
-          Answer rate sits at{' '}
+          Answer rate sits at{" "}
           <span className="font-semibold text-zinc-100">
-            {stats ? stats.answerRate.toFixed(1) : '0'}%
-          </span>{' '}
-          with an average of{' '}
+            {stats ? stats.answerRate.toFixed(1) : "0"}%
+          </span>{" "}
+          with an average of{" "}
           <span className="font-semibold text-zinc-100">
-            {stats ? stats.avgUpvotes.toFixed(1) : '0'}
-          </span>{' '}
+            {stats ? stats.avgUpvotes.toFixed(1) : "0"}
+          </span>{" "}
           helpful votes per response.
         </div>
       </CardContent>
@@ -1160,20 +1254,34 @@ function AutoAnswerSettingsCard() {
   return (
     <Card className="border border-zinc-800 bg-zinc-900/40">
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-white">Automation settings</CardTitle>
+        <CardTitle className="text-base font-semibold text-white">
+          Automation settings
+        </CardTitle>
         <p className="text-xs text-zinc-500">
           Fine-tune tone, escalation rules, and compliance safeguards
         </p>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <Sparkles className="mr-3 h-4 w-4 text-orange-300" /> Configure AI rules
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <Sparkles className="mr-3 h-4 w-4 text-orange-300" /> Configure AI
+          rules
         </Button>
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <Shield className="mr-3 h-4 w-4 text-emerald-300" /> Sensitive topic guardrails
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <Shield className="mr-3 h-4 w-4 text-emerald-300" /> Sensitive topic
+          guardrails
         </Button>
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <BookOpen className="mr-3 h-4 w-4 text-sky-300" /> Manage FAQ knowledge base
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <BookOpen className="mr-3 h-4 w-4 text-sky-300" /> Manage FAQ
+          knowledge base
         </Button>
       </CardContent>
     </Card>
@@ -1186,7 +1294,11 @@ interface QuestionsPaginationProps {
   onPageChange: (page: number) => void;
 }
 
-function QuestionsPagination({ currentPage, totalPages, onPageChange }: QuestionsPaginationProps) {
+function QuestionsPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: QuestionsPaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
@@ -1204,7 +1316,7 @@ function QuestionsPagination({ currentPage, totalPages, onPageChange }: Question
           Previous
         </Button>
         <span>
-          Page <span className="text-zinc-100">{currentPage}</span> of{' '}
+          Page <span className="text-zinc-100">{currentPage}</span> of{" "}
           <span className="text-zinc-100">{totalPages}</span>
         </span>
         <Button
@@ -1221,22 +1333,31 @@ function QuestionsPagination({ currentPage, totalPages, onPageChange }: Question
   );
 }
 
-function normalizeQuestionEntity(questionInput: Partial<GMBQuestion> & Record<string, any>): QuestionEntity {
+function normalizeQuestionEntity(
+  questionInput: Partial<GMBQuestion> & Record<string, any>,
+): QuestionEntity {
   const q = questionInput as Record<string, any>;
   const now = new Date().toISOString();
 
-  const locationId = q.location_id ?? q.locationId ?? '';
-  const questionText = q.question_text ?? q.questionText ?? '';
+  const locationId = q.location_id ?? q.locationId ?? "";
+  const questionText = q.question_text ?? q.questionText ?? "";
   const createdAtValue = q.asked_at ?? q.created_at ?? q.createdAt ?? null;
-  const createdAt = typeof createdAtValue === 'string' ? createdAtValue : null;
-  const answerStatusRaw = q.answer_status ?? (q.status === 'answered' ? 'answered' : q.status === 'pending' ? 'pending' : undefined);
-  const answerStatus = (answerStatusRaw ?? 'unanswered') as QuestionEntity['answerStatus'];
+  const createdAt = typeof createdAtValue === "string" ? createdAtValue : null;
+  const answerStatusRaw =
+    q.answer_status ??
+    (q.status === "answered"
+      ? "answered"
+      : q.status === "pending"
+        ? "pending"
+        : undefined);
+  const answerStatus = (answerStatusRaw ??
+    "unanswered") as QuestionEntity["answerStatus"];
   const upvoteCount = q.upvote_count ?? q.upvoteCount ?? 0;
 
   const base: GMBQuestion = {
     id: q.id ?? crypto.randomUUID?.() ?? `${Date.now()}`,
     location_id: locationId,
-    user_id: q.user_id ?? '',
+    user_id: q.user_id ?? "",
     gmb_account_id: q.gmb_account_id ?? undefined,
     question_id: q.question_id ?? undefined,
     external_question_id: q.external_question_id ?? undefined,
@@ -1249,7 +1370,10 @@ function normalizeQuestionEntity(questionInput: Partial<GMBQuestion> & Record<st
     answer_text: q.answer_text ?? undefined,
     answered_at: q.answered_at ?? undefined,
     answered_by: q.answered_by ?? undefined,
-    answer_status: answerStatus === 'unanswered' ? 'unanswered' : (answerStatus as GMBQuestion['answer_status']),
+    answer_status:
+      answerStatus === "unanswered"
+        ? "unanswered"
+        : (answerStatus as GMBQuestion["answer_status"]),
     answer_id: q.answer_id ?? undefined,
     upvote_count: upvoteCount,
     total_answer_count: q.total_answer_count ?? undefined,
