@@ -146,16 +146,16 @@ export const getTrendColor = (trend: number) => {
 // Calculate Health Score Breakdown (17 sections)
 export const getHealthScoreBreakdown = (location: Location) => {
   // Check each section
-  const hasPhone = location?.phone && location.phone.length > 0;
-  const hasWebsite = location?.website && location.website.length > 0;
+  const hasPhone = location?.phone && location?.phone.length > 0;
+  const hasWebsite = location?.website && location?.website.length > 0;
   const hasCategories =
-    location?.additionalCategories && location.additionalCategories.length > 0;
-  const hasMenuLink = location?.menuLink && location.menuLink.length > 0;
+    location?.additionalCategories && location?.additionalCategories.length > 0;
+  const hasMenuLink = location?.menuLink && location?.menuLink.length > 0;
   const hasMenuItems = (location?.menuItems || 0) > 0;
   const hasOpeningDate =
-    location?.openingDate && location.openingDate.length > 0;
-  const hasHours = location?.hours && Object.keys(location.hours).length > 0;
-  const hasAttributes = location?.attributes && location.attributes.length > 0;
+    location?.openingDate && location?.openingDate.length > 0;
+  const hasHours = location?.hours && Object.keys(location?.hours).length > 0;
+  const hasAttributes = location?.attributes && location?.attributes.length > 0;
   const hasPhotos = (location?.photos || 0) >= 5;
   const hasVideos = (location?.videos || 0) > 0;
   const hasLogo = location?.hasLogo || false;
@@ -185,7 +185,7 @@ export const getHealthScoreBreakdown = (location: Location) => {
       key: "categories",
       icon: Tag,
       complete: hasCategories,
-      count: location.additionalCategories?.length || 0,
+      count: location?.additionalCategories?.length || 0,
       category: "basic",
     },
     {
@@ -198,7 +198,7 @@ export const getHealthScoreBreakdown = (location: Location) => {
       key: "menuItems",
       icon: Utensils,
       complete: hasMenuItems,
-      count: location.menuItems || 0,
+      count: location?.menuItems || 0,
       category: "menu",
     },
     {
@@ -217,21 +217,21 @@ export const getHealthScoreBreakdown = (location: Location) => {
       key: "attributes",
       icon: Tag,
       complete: hasAttributes,
-      count: location.attributes?.length || 0,
+      count: location?.attributes?.length || 0,
       category: "basic",
     },
     {
       key: "photos",
       icon: Camera,
       complete: hasPhotos,
-      count: location.photos || 0,
+      count: location?.photos || 0,
       category: "media",
     },
     {
       key: "videos",
       icon: Video,
       complete: hasVideos,
-      count: location.videos || 0,
+      count: location?.videos || 0,
       category: "media",
     },
     {
@@ -244,7 +244,7 @@ export const getHealthScoreBreakdown = (location: Location) => {
       key: "menuPhotos",
       icon: Camera,
       complete: hasMenuPhotos,
-      count: location.menuPhotos || 0,
+      count: location?.menuPhotos || 0,
       category: "menu",
     },
     {
@@ -257,14 +257,14 @@ export const getHealthScoreBreakdown = (location: Location) => {
       key: "reviews",
       icon: Star,
       complete: hasEnoughReviews,
-      count: location.reviewCount || 0,
+      count: location?.reviewCount || 0,
       category: "engagement",
     },
     {
       key: "posts",
       icon: Megaphone,
       complete: hasRecentPosts,
-      count: location.posts || 0,
+      count: location?.posts || 0,
       category: "engagement",
     },
     {
