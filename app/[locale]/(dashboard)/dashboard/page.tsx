@@ -5,7 +5,9 @@ import { AIHeroChat } from "@/components/ai-command-center/ai/ai-hero-chat";
 import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
 import { ManagementSectionsGrid } from "@/components/ai-command-center/management/management-sections-grid";
 import { useTranslations } from "next-intl";
-import { Sparkles, RefreshCw, AlertCircle, Activity } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle, Activity, Home } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   useAICommandCenterData,
   useAIChat,
@@ -17,6 +19,8 @@ import { Card, CardContent } from "@/components/ui/card";
 // AI Command Center is now the main dashboard
 export default function DashboardPage() {
   const t = useTranslations("aiCommandCenter");
+  const params = useParams();
+  const locale = params?.locale || "en";
   const { data, isLoading, error, refetch, isFetching } =
     useAICommandCenterData();
   const { sendMessage } = useAIChat();
@@ -127,6 +131,18 @@ export default function DashboardPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Back to Home Button */}
+            <Link href={`/${locale}/home`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-zinc-700 hover:bg-zinc-800"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Home</span>
+              </Button>
+            </Link>
+
             {/* Auto-refresh Indicator */}
             {isFetching && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
