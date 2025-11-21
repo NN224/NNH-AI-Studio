@@ -89,9 +89,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (user) {
-      return NextResponse.redirect(
-        new URL(`/${locale}/dashboard`, request.url),
-      );
+      return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
     }
   }
 
