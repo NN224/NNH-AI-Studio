@@ -1,67 +1,88 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useLocationReviews } from '@/hooks/use-locations-cache';
-import { Star, MessageSquare, Send, Loader2, Filter } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatLargeNumber } from '@/components/locations/location-types';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useLocationReviews } from "@/hooks/use-locations-cache";
+import { Star, MessageSquare, Send, Loader2, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatLargeNumber } from "@/components/locations/location-types";
+import { toast } from "sonner";
 
 interface LocationReviewsSectionProps {
   locationId: string;
   locationName: string;
 }
 
-export function LocationReviewsSection({ locationId, locationName }: LocationReviewsSectionProps) {
+export function LocationReviewsSection({
+  locationId,
+  locationName,
+}: LocationReviewsSectionProps) {
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'replied'>('all');
+  const [filter, setFilter] = useState<"all" | "pending" | "replied">("all");
   const [selectedReview, setSelectedReview] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState('');
+  const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
 
-  const { data, loading, error, refetch } = useLocationReviews(locationId, page);
+  const { data, loading, error, refetch } = useLocationReviews(
+    locationId,
+    page,
+  );
 
   const reviews = data?.reviews || [];
-  const stats = data?.stats || { total: 0, averageRating: 0, pendingReplies: 0 };
-  const pagination = data?.pagination || { page: 1, totalPages: 1, hasNext: false, hasPrev: false };
+  const stats = data?.stats || {
+    total: 0,
+    averageRating: 0,
+    pendingReplies: 0,
+  };
+  const pagination = data?.pagination || {
+    page: 1,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+  };
 
   // Filter reviews
   const filteredReviews = reviews.filter((review: any) => {
-    if (filter === 'pending') return !review.reply_text;
-    if (filter === 'replied') return !!review.reply_text;
+    if (filter === "pending") return !review.reply_text;
+    if (filter === "replied") return !!review.reply_text;
     return true;
   });
 
   const handleReply = async (reviewId: string) => {
     if (!replyText.trim()) {
-      toast.error('Please enter a reply');
+      toast.error("Please enter a reply");
       return;
     }
 
     try {
       setReplying(true);
       const response = await fetch(`/api/gmb/reviews/${reviewId}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reply: replyText }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send reply');
+        throw new Error("Failed to send reply");
       }
 
-      toast.success('Reply sent successfully!');
+      toast.success("Reply sent successfully!");
       setSelectedReview(null);
-      setReplyText('');
+      setReplyText("");
       refetch();
     } catch (error) {
-      console.error('Reply error:', error);
-      toast.error('Failed to send reply');
+      console.error("Reply error:", error);
+      toast.error("Failed to send reply");
     } finally {
       setReplying(false);
     }
@@ -69,10 +90,10 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -94,7 +115,9 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
       <Card>
         <CardContent className="p-12">
           <div className="text-center">
-            <p className="text-destructive font-medium mb-2">Error loading reviews</p>
+            <p className="text-destructive font-medium mb-2">
+              Error loading reviews
+            </p>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
         </CardContent>
@@ -112,24 +135,32 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatLargeNumber(stats.total)}</div>
+            <div className="text-2xl font-bold">
+              {formatLargeNumber(stats.total)}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Average Rating
+            </CardTitle>
             <Star className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</div>
+            <div className="text-2xl font-bold">
+              {stats.averageRating.toFixed(1)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">out of 5.0</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Replies</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Replies
+            </CardTitle>
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -143,7 +174,10 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
+            <Select
+              value={filter}
+              onValueChange={(value: any) => setFilter(value)}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -166,12 +200,13 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
           {filteredReviews.length === 0 ? (
             <div className="text-center py-12">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground font-medium">No reviews found</p>
+              <p className="text-muted-foreground font-medium">
+                No reviews found
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {filter === 'pending' 
-                  ? 'All reviews have been replied to'
-                  : 'No reviews match the selected filter'
-                }
+                {filter === "pending"
+                  ? "All reviews have been replied to"
+                  : "No reviews match the selected filter"}
               </p>
             </div>
           ) : (
@@ -190,18 +225,22 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
                               key={i}
                               className={`w-4 h-4 ${
                                 i < (review.rating || 0)
-                                  ? 'fill-yellow-500 text-yellow-500'
-                                  : 'text-muted-foreground'
+                                  ? "fill-yellow-500 text-yellow-500"
+                                  : "text-muted-foreground"
                               }`}
                             />
                           ))}
                         </div>
-                        <span className="text-sm font-medium">{review.reviewer?.displayName || 'Anonymous'}</span>
+                        <span className="text-sm font-medium">
+                          {review.reviewer?.displayName || "Anonymous"}
+                        </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(review.review_time || review.created_at)}
+                          {formatDate(review.review_date || review.created_at)}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">{review.review_text || 'No comment'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {review.review_text || "No comment"}
+                      </p>
                     </div>
                   </div>
 
@@ -209,7 +248,9 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
                   {review.reply_text ? (
                     <div className="mt-3 p-3 rounded-lg bg-muted">
                       <p className="text-xs font-medium mb-1">Your Reply:</p>
-                      <p className="text-sm text-muted-foreground">{review.reply_text}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {review.reply_text}
+                      </p>
                     </div>
                   ) : (
                     <div className="mt-3 space-y-2">
@@ -244,7 +285,7 @@ export function LocationReviewsSection({ locationId, locationName }: LocationRev
                               size="sm"
                               onClick={() => {
                                 setSelectedReview(null);
-                                setReplyText('');
+                                setReplyText("");
                               }}
                             >
                               Cancel
