@@ -154,7 +154,7 @@ export const getHealthScoreBreakdown = (location: Location) => {
   const hasMenuItems = (location?.menuItems || 0) > 0;
   const hasOpeningDate =
     location?.openingDate && location?.openingDate.length > 0;
-  const hasHours = location?.hours && Object.keys(location?.hours).length > 0;
+  const hasHours = location?.hours && Object.keys(location.hours).length > 0;
   const hasAttributes = location?.attributes && location?.attributes.length > 0;
   const hasPhotos = (location?.photos || 0) >= 5;
   const hasVideos = (location?.videos || 0) > 0;
