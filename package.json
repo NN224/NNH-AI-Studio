@@ -27,7 +27,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "db:update-docs": "bash scripts/update-schema-docs.sh",
-    "prepare": "node -e \"if (process.env.CI !== 'true') { require('child_process').execSync('husky', {stdio: 'inherit'}) }\""
+    "prepare": "node -e \"try { require('child_process').execSync('husky', {stdio: 'ignore'}) } catch {}\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
