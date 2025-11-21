@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install",
+  "installCommand": "npm install --production=false",
   "buildCommand": "npm run build",
   "crons": [
     {
@@ -12,4 +12,3 @@
     }
   ]
 }
-
