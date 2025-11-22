@@ -260,11 +260,19 @@ export function AchievementSystem({
   // Calculate current level data
   const currentLevel = LEVELS.find((l) => l.level === userLevel) || LEVELS[0];
   const nextLevel = LEVELS.find((l) => l.level === userLevel + 1);
-  const levelProgress = nextLevel
-    ? ((userPoints - currentLevel.minPoints) /
+
+  // Calculate progress to next level (capped at 100%)
+  let levelProgress = 100;
+  if (nextLevel) {
+    const progress =
+      ((userPoints - currentLevel.minPoints) /
         (nextLevel.minPoints - currentLevel.minPoints)) *
-      100
-    : 100;
+      100;
+    levelProgress = Math.min(Math.max(progress, 0), 100);
+  }
+
+  // Check if user has exceeded next level (should be upgraded)
+  const hasExceededNextLevel = nextLevel && userPoints >= nextLevel.minPoints;
 
   // Filter achievements
   const filteredAchievements = achievements.filter((a) => {
@@ -430,12 +438,24 @@ export function AchievementSystem({
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>{currentLevel.minPoints.toLocaleString()}</span>
-                <span className="text-muted-foreground">
-                  {Math.round(levelProgress)}% to next level
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    hasExceededNextLevel
+                      ? "text-green-500"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {hasExceededNextLevel
+                    ? "Ready to level up! 🎉"
+                    : `${Math.round(levelProgress)}% to next level`}
                 </span>
                 <span>{nextLevel.minPoints.toLocaleString()}</span>
               </div>
-              <Progress value={levelProgress} className="h-3" />
+              <Progress
+                value={hasExceededNextLevel ? 100 : levelProgress}
+                className={cn("h-3", hasExceededNextLevel && "bg-green-500/20")}
+              />
             </div>
           )}
         </Card>
