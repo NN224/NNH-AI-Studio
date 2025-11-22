@@ -158,62 +158,6 @@ export function InteractiveStatsDashboard({
     },
   );
 
-  // Generate chart data based on period and metric
-  const chartData = useMemo(() => {
-    if (!stats)
-      return { overview: [], detailed: [], comparison: [], forecast: [] };
-
-    // Mock data generation based on period
-    const periods = {
-      day: Array.from({ length: 24 }, (_, i) => ({
-        name: `${i}:00`,
-        value: Math.floor(Math.random() * 100),
-      })),
-      week: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => ({
-        name: day,
-        reviews: Math.floor(Math.random() * 50) + 20,
-        responses: Math.floor(Math.random() * 45) + 15,
-        rating: (Math.random() * 2 + 3).toFixed(1),
-        views: Math.floor(Math.random() * 200) + 100,
-        isHighlight: day === "Fri",
-      })),
-      month: Array.from({ length: 30 }, (_, i) => ({
-        name: `${i + 1}`,
-        reviews: Math.floor(Math.random() * 40) + 10,
-        responses: Math.floor(Math.random() * 35) + 8,
-        rating: (Math.random() * 2 + 3).toFixed(1),
-        growth: Math.floor(Math.random() * 20) - 10,
-      })),
-      year: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ].map((month) => ({
-        name: month,
-        reviews: Math.floor(Math.random() * 200) + 100,
-        responses: Math.floor(Math.random() * 180) + 80,
-        rating: (Math.random() * 1 + 4).toFixed(1),
-        growth: Math.floor(Math.random() * 30) - 5,
-      })),
-    };
-
-    return {
-      overview: periods[period],
-      detailed: generateDetailedData(period),
-      comparison: generateComparisonData(),
-      forecast: generateForecastData(periods[period]),
-    };
-  }, [stats, period]);
-
   // Generate detailed breakdown data
   const generateDetailedData = (period: string) => {
     return [
@@ -266,6 +210,64 @@ export function InteractiveStatsDashboard({
 
     return forecast;
   };
+
+  // Generate chart data based on period and metric
+  const chartData = useMemo(() => {
+    if (!stats)
+      return { overview: [], detailed: [], comparison: [], forecast: [] };
+
+    // Mock data generation based on period
+    const periods: Record<string, any[]> = {
+      day: Array.from({ length: 24 }, (_, i) => ({
+        name: `${i}:00`,
+        value: Math.floor(Math.random() * 100),
+      })),
+      week: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => ({
+        name: day,
+        reviews: Math.floor(Math.random() * 50) + 20,
+        responses: Math.floor(Math.random() * 45) + 15,
+        rating: (Math.random() * 2 + 3).toFixed(1),
+        views: Math.floor(Math.random() * 200) + 100,
+        isHighlight: day === "Fri",
+      })),
+      month: Array.from({ length: 30 }, (_, i) => ({
+        name: `${i + 1}`,
+        reviews: Math.floor(Math.random() * 40) + 10,
+        responses: Math.floor(Math.random() * 35) + 8,
+        rating: (Math.random() * 2 + 3).toFixed(1),
+        growth: Math.floor(Math.random() * 20) - 10,
+      })),
+      year: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ].map((month) => ({
+        name: month,
+        reviews: Math.floor(Math.random() * 200) + 100,
+        responses: Math.floor(Math.random() * 180) + 80,
+        rating: (Math.random() * 1 + 4).toFixed(1),
+        growth: Math.floor(Math.random() * 30) - 5,
+      })),
+    };
+
+    const overviewData = periods[period] || periods.week;
+
+    return {
+      overview: overviewData,
+      detailed: generateDetailedData(period),
+      comparison: generateComparisonData(),
+      forecast: generateForecastData(overviewData),
+    };
+  }, [stats, period]);
 
   // Export chart data
   const handleExport = async () => {
