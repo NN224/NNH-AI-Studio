@@ -9,6 +9,7 @@ export interface BusinessInfo {
   logo?: string;
   category?: string;
   locationId?: string;
+  accountId?: string;
 }
 
 export interface UrgentItem {
@@ -76,6 +77,7 @@ async function fetchBusinessInfo(): Promise<BusinessInfo> {
       category:
         firstLocation.primary_category || firstLocation.category || "Business",
       logo: firstLocation.logo_url || firstLocation.profile_photo_url,
+      accountId: firstLocation.gmb_account_id,
     };
   } catch (error) {
     console.error("Error fetching business info:", error);

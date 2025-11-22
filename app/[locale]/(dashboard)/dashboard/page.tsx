@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AIHeroChat } from "@/components/ai-command-center/ai/ai-hero-chat";
 import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
 import { ManagementSectionsGrid } from "@/components/ai-command-center/management/management-sections-grid";
@@ -15,6 +15,14 @@ import {
 } from "@/hooks/use-ai-command-center";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  updateAccountSyncSettings,
+  getAccountSyncSettings,
+} from "@/server/actions/gmb-settings";
+import { toast } from "sonner";
+import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
 
 // AI Command Center is now the main dashboard
 export default function DashboardPage() {
@@ -25,6 +33,42 @@ export default function DashboardPage() {
     useAICommandCenterData();
   const { sendMessage } = useAIChat();
   const { processAction } = useAIActions();
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Load sync settings when data is available
+  useEffect(() => {
+    async function loadSettings() {
+      if (data?.businessInfo?.accountId) {
+        const result = await getAccountSyncSettings(
+          data.businessInfo.accountId,
+        );
+        if (result.success) {
+          setAutoSyncEnabled(result.enabled || false);
+        }
+        setIsLoadingSettings(false);
+      }
+    }
+    if (data?.businessInfo?.accountId) {
+      loadSettings();
+    }
+  }, [data?.businessInfo?.accountId]);
+
+  const handleAutoSyncChange = async (checked: boolean) => {
+    if (!data?.businessInfo?.accountId) return;
+
+    setAutoSyncEnabled(checked); // Optimistic update
+    const result = await updateAccountSyncSettings(
+      data.businessInfo.accountId,
+      checked,
+    );
+    if (result.success) {
+      toast.success(checked ? "Auto sync enabled" : "Auto sync disabled");
+    } else {
+      setAutoSyncEnabled(!checked); // Revert on failure
+      toast.error("Failed to update settings");
+    }
+  };
 
   // Prevent unwanted scroll on page load
   useEffect(() => {
@@ -108,6 +152,15 @@ export default function DashboardPage() {
     );
   }
 
+  // Check if GMB is connected
+  const hasGMBConnection =
+    data?.businessInfo?.locationId &&
+    data?.businessInfo?.name !== "Your Business";
+
+  if (!hasGMBConnection) {
+    return <GMBOnboardingView />;
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header with Actions */}
@@ -166,6 +219,22 @@ export default function DashboardPage() {
               />
               <span className="hidden sm:inline">Sync</span>
             </Button>
+
+            {/* Auto Sync Toggle */}
+            <div className="flex items-center space-x-2 border rounded-md px-3 py-1.5 bg-background/50 border-zinc-700">
+              <Switch
+                id="auto-sync-dashboard"
+                checked={autoSyncEnabled}
+                onCheckedChange={handleAutoSyncChange}
+                disabled={isLoadingSettings || !data?.businessInfo?.accountId}
+              />
+              <Label
+                htmlFor="auto-sync-dashboard"
+                className="text-xs font-medium cursor-pointer text-zinc-300 hidden sm:inline"
+              >
+                Auto Sync
+              </Label>
+            </div>
           </div>
         </div>
       </div>
