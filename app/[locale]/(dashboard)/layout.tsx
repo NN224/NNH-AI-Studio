@@ -15,6 +15,8 @@ import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { useGmbStatus } from "@/hooks/use-gmb-status";
+import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
 
 // Create a client instance for React Query
 const queryClient = new QueryClient({
@@ -43,6 +45,21 @@ function DashboardLoadingScreen() {
   );
 }
 
+// Routes that require GMB connection
+const PROTECTED_ROUTES = [
+  "reviews",
+  "questions",
+  "posts",
+  "media",
+  "analytics",
+  "automation",
+  "locations",
+  "messages",
+  "products",
+  "features",
+  "gmb-posts",
+];
+
 export default function DashboardLayout({
   children,
 }: {
@@ -59,6 +76,14 @@ export default function DashboardLayout({
     name: "User",
     avatarUrl: null,
   });
+
+  // GMB Status
+  const { connected: gmbConnected, loading: gmbLoading } = useGmbStatus();
+
+  // Check if current route is protected
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+    pathname?.includes(`/${route}`),
+  );
 
   // Check authentication
   useEffect(() => {
@@ -142,7 +167,14 @@ export default function DashboardLayout({
                 />
 
                 <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
-                  <div className="mx-auto max-w-7xl">{children}</div>
+                  <div className="mx-auto max-w-7xl">
+                    {/* Route Protection Logic */}
+                    {isProtectedRoute && !gmbLoading && !gmbConnected ? (
+                      <GMBOnboardingView />
+                    ) : (
+                      children
+                    )}
+                  </div>
                 </main>
               </div>
 
