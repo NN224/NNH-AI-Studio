@@ -391,271 +391,303 @@ export function AchievementSystem({
 
   return (
     <div className="space-y-6">
-      {/* User Level & Points */}
+      {/* Your Progress - Main Container */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="p-6 border-orange-500/30 bg-gradient-to-br from-orange-900/20 via-black to-purple-900/20">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center",
-                  "bg-gradient-to-br",
-                  currentLevel.color === "gradient"
-                    ? "from-orange-500 via-purple-500 to-pink-500"
-                    : `from-${currentLevel.color}-500/20 to-${currentLevel.color}-600/20`,
-                  `border-2 border-${currentLevel.color}-500`,
-                )}
-              >
-                <Crown className={`h-8 w-8 text-${currentLevel.color}-500`} />
-              </motion.div>
+        <Card className="p-6 border-orange-500/30 bg-gradient-to-br from-orange-900/20 via-black to-purple-900/20 backdrop-blur-xl">
+          {/* Header */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-orange-500" />
+              Your Progress
+            </h2>
 
-              <div>
-                <h2 className="text-2xl font-bold">
-                  Level {currentLevel.level}: {currentLevel.name}
-                </h2>
-                <p className="text-muted-foreground">
-                  {userPoints.toLocaleString()} points earned
+            {/* User Level & Points */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className={cn(
+                    "w-16 h-16 rounded-full flex items-center justify-center",
+                    "bg-gradient-to-br",
+                    currentLevel.color === "gradient"
+                      ? "from-orange-500 via-purple-500 to-pink-500"
+                      : `from-${currentLevel.color}-500/20 to-${currentLevel.color}-600/20`,
+                    `border-2 border-${currentLevel.color}-500`,
+                  )}
+                >
+                  <Crown className={`h-8 w-8 text-${currentLevel.color}-500`} />
+                </motion.div>
+
+                <div>
+                  <h3 className="text-xl font-bold">
+                    Level {currentLevel.level}: {currentLevel.name}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {userPoints.toLocaleString()} points earned
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Next level</p>
+                <p className="text-lg font-semibold">
+                  {nextLevel
+                    ? `${nextLevel.minPoints.toLocaleString()} points`
+                    : "Max Level!"}
                 </p>
               </div>
             </div>
 
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Next level</p>
-              <p className="text-lg font-semibold">
-                {nextLevel
-                  ? `${nextLevel.minPoints.toLocaleString()} points`
-                  : "Max Level!"}
-              </p>
+            {/* Level Progress */}
+            {nextLevel && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {currentLevel.minPoints.toLocaleString()}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      hasExceededNextLevel
+                        ? "text-green-500 font-semibold"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {hasExceededNextLevel
+                      ? "Ready to level up! 🎉"
+                      : `${Math.round(levelProgress)}% to next level`}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {nextLevel.minPoints.toLocaleString()}
+                  </span>
+                </div>
+                <Progress
+                  value={hasExceededNextLevel ? 100 : levelProgress}
+                  className={cn(
+                    "h-3",
+                    hasExceededNextLevel && "bg-green-500/20",
+                  )}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border/40 my-6" />
+
+          {/* Filter Tabs */}
+          <div className="mb-6">
+            <p className="text-sm text-muted-foreground mb-3">
+              Filter Achievements
+            </p>
+            <div className="flex items-center gap-2">
+              {(["all", "unlocked", "locked"] as const).map((tab) => (
+                <Button
+                  key={tab}
+                  variant={filter === tab ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter(tab)}
+                  className={cn(
+                    filter === tab && "bg-orange-500 hover:bg-orange-600",
+                  )}
+                >
+                  {tab === "all" && "All"}
+                  {tab === "unlocked" && "Unlocked"}
+                  {tab === "locked" && "Locked"}
+                  {tab !== "all" && (
+                    <Badge variant="secondary" className="ml-2">
+                      {
+                        achievements.filter((a) =>
+                          tab === "unlocked" ? a.unlocked : !a.unlocked,
+                        ).length
+                      }
+                    </Badge>
+                  )}
+                </Button>
+              ))}
             </div>
           </div>
 
-          {/* Level Progress */}
-          {nextLevel && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{currentLevel.minPoints.toLocaleString()}</span>
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    hasExceededNextLevel
-                      ? "text-green-500"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {hasExceededNextLevel
-                    ? "Ready to level up! 🎉"
-                    : `${Math.round(levelProgress)}% to next level`}
-                </span>
-                <span>{nextLevel.minPoints.toLocaleString()}</span>
-              </div>
-              <Progress
-                value={hasExceededNextLevel ? 100 : levelProgress}
-                className={cn("h-3", hasExceededNextLevel && "bg-green-500/20")}
-              />
-            </div>
-          )}
-        </Card>
-      </motion.div>
+          {/* Divider */}
+          <div className="border-t border-border/40 my-6" />
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
-        {(["all", "unlocked", "locked"] as const).map((tab) => (
-          <Button
-            key={tab}
-            variant={filter === tab ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter(tab)}
-            className={cn(
-              filter === tab && "bg-orange-500 hover:bg-orange-600",
-            )}
-          >
-            {tab === "all" && "All"}
-            {tab === "unlocked" && "Unlocked"}
-            {tab === "locked" && "Locked"}
-            {tab !== "all" && (
-              <Badge variant="secondary" className="ml-2">
-                {
-                  achievements.filter((a) =>
-                    tab === "unlocked" ? a.unlocked : !a.unlocked,
-                  ).length
-                }
-              </Badge>
-            )}
-          </Button>
-        ))}
-      </div>
+          {/* Achievements Grid */}
+          <div className="space-y-6">
+            {Object.entries(groupedAchievements).map(
+              ([category, categoryAchievements]) => {
+                const { icon: CategoryIcon, color } =
+                  getCategoryStyle(category);
 
-      {/* Achievements Grid */}
-      <div className="space-y-6">
-        {Object.entries(groupedAchievements).map(
-          ([category, categoryAchievements]) => {
-            const { icon: CategoryIcon, color } = getCategoryStyle(category);
-
-            return (
-              <motion.div
-                key={category}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <CategoryIcon className={`h-5 w-5 text-${color}-500`} />
-                  <h3 className="text-lg font-semibold capitalize">
-                    {category}
-                  </h3>
-                  <Badge
-                    variant="outline"
-                    className={`text-${color}-500 border-${color}-500/30`}
+                return (
+                  <motion.div
+                    key={category}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    {categoryAchievements.filter((a) => a.unlocked).length}/
-                    {categoryAchievements.length}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {categoryAchievements.map((achievement) => {
-                    const Icon = achievement.icon;
-                    const levelColor = getLevelColor(achievement.level);
-                    const isNearUnlock =
-                      achievement.progress &&
-                      achievement.maxProgress &&
-                      achievement.progress / achievement.maxProgress > 0.8;
-
-                    return (
-                      <motion.div
-                        key={achievement.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedAchievement(achievement)}
-                        className="relative group cursor-pointer"
+                    <div className="flex items-center gap-2 mb-4">
+                      <CategoryIcon className={`h-5 w-5 text-${color}-500`} />
+                      <h3 className="text-lg font-semibold capitalize">
+                        {category}
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className={`text-${color}-500 border-${color}-500/30`}
                       >
-                        <Card
-                          className={cn(
-                            "p-4 transition-all",
-                            achievement.unlocked
-                              ? "border-green-500/30 bg-gradient-to-br from-green-900/10 to-green-800/5"
-                              : "border-gray-700 bg-gray-900/50",
-                            !achievement.unlocked && "hover:border-gray-600",
-                            isNearUnlock &&
-                              !achievement.unlocked &&
-                              "animate-pulse border-yellow-500/30",
-                          )}
-                        >
-                          {/* Lock overlay */}
-                          {!achievement.unlocked && (
-                            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Lock className="h-8 w-8 text-gray-500" />
-                            </div>
-                          )}
+                        {categoryAchievements.filter((a) => a.unlocked).length}/
+                        {categoryAchievements.length}
+                      </Badge>
+                    </div>
 
-                          {/* Content */}
-                          <div
-                            className={cn(
-                              "flex items-start gap-3",
-                              !achievement.unlocked && "opacity-50",
-                            )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {categoryAchievements.map((achievement) => {
+                        const Icon = achievement.icon;
+                        const levelColor = getLevelColor(achievement.level);
+                        const isNearUnlock =
+                          achievement.progress &&
+                          achievement.maxProgress &&
+                          achievement.progress / achievement.maxProgress > 0.8;
+
+                        return (
+                          <motion.div
+                            key={achievement.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setSelectedAchievement(achievement)}
+                            className="relative group cursor-pointer"
                           >
-                            <div
+                            <Card
                               className={cn(
-                                "p-3 rounded-lg",
-                                `bg-${levelColor}-500/20`,
+                                "p-4 transition-all",
+                                achievement.unlocked
+                                  ? "border-green-500/30 bg-gradient-to-br from-green-900/10 to-green-800/5"
+                                  : "border-gray-700 bg-gray-900/50",
+                                !achievement.unlocked &&
+                                  "hover:border-gray-600",
+                                isNearUnlock &&
+                                  !achievement.unlocked &&
+                                  "animate-pulse border-yellow-500/30",
                               )}
                             >
-                              <Icon
+                              {/* Lock overlay */}
+                              {!achievement.unlocked && (
+                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Lock className="h-8 w-8 text-gray-500" />
+                                </div>
+                              )}
+
+                              {/* Content */}
+                              <div
                                 className={cn(
-                                  "h-6 w-6",
-                                  `text-${levelColor}-500`,
+                                  "flex items-start gap-3",
+                                  !achievement.unlocked && "opacity-50",
                                 )}
-                              />
-                            </div>
-
-                            <div className="flex-1">
-                              <h4 className="font-medium">
-                                {achievement.name}
-                              </h4>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {achievement.description}
-                              </p>
-
-                              {/* Progress */}
-                              {achievement.progress !== undefined &&
-                                achievement.maxProgress &&
-                                !achievement.unlocked && (
-                                  <div className="mt-3">
-                                    <div className="flex justify-between text-xs mb-1">
-                                      <span>
-                                        {Math.round(achievement.progress)}/
-                                        {achievement.maxProgress}
-                                      </span>
-                                      <span>
-                                        {Math.round(
-                                          (achievement.progress /
-                                            achievement.maxProgress) *
-                                            100,
-                                        )}
-                                        %
-                                      </span>
-                                    </div>
-                                    <Progress
-                                      value={
-                                        (achievement.progress /
-                                          achievement.maxProgress) *
-                                        100
-                                      }
-                                      className="h-1"
-                                    />
-                                  </div>
-                                )}
-
-                              {/* Points & Level */}
-                              <div className="flex items-center gap-2 mt-3">
-                                <Badge variant="secondary" className="text-xs">
-                                  {achievement.points} pts
-                                </Badge>
-                                <Badge
-                                  variant="outline"
+                              >
+                                <div
                                   className={cn(
-                                    "text-xs capitalize",
-                                    `text-${levelColor}-500 border-${levelColor}-500/30`,
+                                    "p-3 rounded-lg",
+                                    `bg-${levelColor}-500/20`,
                                   )}
                                 >
-                                  {achievement.level}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
+                                  <Icon
+                                    className={cn(
+                                      "h-6 w-6",
+                                      `text-${levelColor}-500`,
+                                    )}
+                                  />
+                                </div>
 
-                          {/* Unlock animation */}
-                          <AnimatePresence>
-                            {showUnlockAnimation === achievement.id && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0, opacity: 0 }}
-                                className="absolute inset-0 flex items-center justify-center bg-black/90 rounded-lg"
-                              >
-                                <motion.div
-                                  animate={{ rotate: 360 }}
-                                  transition={{ duration: 1, repeat: 2 }}
-                                >
-                                  <Trophy className="h-16 w-16 text-yellow-500" />
-                                </motion.div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            );
-          },
-        )}
-      </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium">
+                                    {achievement.name}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {achievement.description}
+                                  </p>
+
+                                  {/* Progress */}
+                                  {achievement.progress !== undefined &&
+                                    achievement.maxProgress &&
+                                    !achievement.unlocked && (
+                                      <div className="mt-3">
+                                        <div className="flex justify-between text-xs mb-1">
+                                          <span>
+                                            {Math.round(achievement.progress)}/
+                                            {achievement.maxProgress}
+                                          </span>
+                                          <span>
+                                            {Math.round(
+                                              (achievement.progress /
+                                                achievement.maxProgress) *
+                                                100,
+                                            )}
+                                            %
+                                          </span>
+                                        </div>
+                                        <Progress
+                                          value={
+                                            (achievement.progress /
+                                              achievement.maxProgress) *
+                                            100
+                                          }
+                                          className="h-1"
+                                        />
+                                      </div>
+                                    )}
+
+                                  {/* Points & Level */}
+                                  <div className="flex items-center gap-2 mt-3">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      {achievement.points} pts
+                                    </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs capitalize",
+                                        `text-${levelColor}-500 border-${levelColor}-500/30`,
+                                      )}
+                                    >
+                                      {achievement.level}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Unlock animation */}
+                              <AnimatePresence>
+                                {showUnlockAnimation === achievement.id && (
+                                  <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/90 rounded-lg"
+                                  >
+                                    <motion.div
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: 2 }}
+                                    >
+                                      <Trophy className="h-16 w-16 text-yellow-500" />
+                                    </motion.div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                );
+              },
+            )}
+          </div>
+        </Card>
+      </motion.div>
 
       {/* Achievement Detail Modal */}
       <Dialog
