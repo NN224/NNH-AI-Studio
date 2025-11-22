@@ -35,17 +35,21 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const {
-    data: locations,
-    error: locationsError,
-  } = await supabase
+  const { data: locations, error: locationsError } = await supabase
     .from("gmb_locations")
-    .select("*")
-    .eq("user_id", user.id);
+    .select("*, gmb_accounts!inner(is_active)")
+    .eq("user_id", user.id)
+    .eq("gmb_accounts.is_active", true);
 
   if (locationsError) {
-    console.error("[GET /api/gmb/locations] Failed to fetch locations", locationsError);
-    return NextResponse.json({ error: "Failed to load locations" }, { status: 500 });
+    console.error(
+      "[GET /api/gmb/locations] Failed to fetch locations",
+      locationsError,
+    );
+    return NextResponse.json(
+      { error: "Failed to load locations" },
+      { status: 500 },
+    );
   }
 
   if (!locations || locations.length === 0) {
@@ -68,11 +72,17 @@ export async function GET() {
   ]);
 
   if (pendingReviewsResult.error) {
-    console.error("[GET /api/gmb/locations] Failed to load pending reviews", pendingReviewsResult.error);
+    console.error(
+      "[GET /api/gmb/locations] Failed to load pending reviews",
+      pendingReviewsResult.error,
+    );
   }
 
   if (pendingQuestionsResult.error) {
-    console.error("[GET /api/gmb/locations] Failed to load pending questions", pendingQuestionsResult.error);
+    console.error(
+      "[GET /api/gmb/locations] Failed to load pending questions",
+      pendingQuestionsResult.error,
+    );
   }
 
   const pendingReviewsMap = new Map<string, number>();
@@ -81,13 +91,19 @@ export async function GET() {
   for (const review of pendingReviewsResult.data ?? []) {
     const locationId = review.location_id;
     if (!locationId) continue;
-    pendingReviewsMap.set(locationId, (pendingReviewsMap.get(locationId) ?? 0) + 1);
+    pendingReviewsMap.set(
+      locationId,
+      (pendingReviewsMap.get(locationId) ?? 0) + 1,
+    );
   }
 
   for (const question of pendingQuestionsResult.data ?? []) {
     const locationId = question.location_id;
     if (!locationId) continue;
-    pendingQuestionsMap.set(locationId, (pendingQuestionsMap.get(locationId) ?? 0) + 1);
+    pendingQuestionsMap.set(
+      locationId,
+      (pendingQuestionsMap.get(locationId) ?? 0) + 1,
+    );
   }
 
   const enriched = locations.map((location) => {
@@ -96,7 +112,8 @@ export async function GET() {
     metadata.pendingReviews = pendingReviewsMap.get(location.id) ?? 0;
     metadata.pendingQuestions = pendingQuestionsMap.get(location.id) ?? 0;
     metadata.responseRate ??= location.response_rate ?? null;
-    metadata.last_sync ??= location.last_synced_at ?? location.updated_at ?? null;
+    metadata.last_sync ??=
+      location.last_synced_at ?? location.updated_at ?? null;
 
     return {
       ...location,
@@ -108,4 +125,3 @@ export async function GET() {
     locations: enriched,
   });
 }
-
