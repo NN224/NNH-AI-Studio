@@ -153,26 +153,26 @@ export default async function HomePage({
         )
       : 0;
 
-  // Calculate trend data for last 7 days (for sparkline charts)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    date.setHours(0, 0, 0, 0);
-    return date.toISOString().split("T")[0];
-  });
+    // Calculate trend data for last 7 days (for sparkline charts)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setUTCHours(0, 0, 0, 0);
+      date.setUTCDate(date.getUTCDate() - (6 - i));
+      return date;
+    });
 
-  // Fetch reviews count per day for last 7 days
-  const reviewsTrendPromises = last7Days.map(async (date) => {
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-    const { count } = await supabase
-      .from("gmb_reviews")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("create_time", date)
-      .lt("create_time", nextDate.toISOString().split("T")[0]);
-    return count || 0;
-  });
+    // Fetch reviews count per day for last 7 days
+    const reviewsTrendPromises = last7Days.map(async (startDate) => {
+      const endDate = new Date(startDate);
+      endDate.setUTCDate(endDate.getUTCDate() + 1);
+      const { count } = await supabase
+        .from("gmb_reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("create_time", startDate.toISOString())
+        .lt("create_time", endDate.toISOString());
+      return count || 0;
+    });
 
   const reviewsTrend = await Promise.all(reviewsTrendPromises);
 
