@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { GMBLocation } from '@/lib/types/gmb-types';
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { GMBLocation } from "@/lib/types/gmb-types";
 
 interface UseGMBReturn {
   locations: GMBLocation[];
@@ -18,15 +18,28 @@ interface UseGMBReturn {
  */
 export function useGMB(): UseGMBReturn {
   const queryClient = useQueryClient();
-  const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(
+    null,
+  );
 
   // Fetch locations from API
-  const { data: locations = [], isLoading, error } = useQuery<GMBLocation[]>({
-    queryKey: ['gmb-locations'],
+  const {
+    data: locations = [],
+    isLoading,
+    error,
+  } = useQuery<GMBLocation[]>({
+    queryKey: ["gmb-locations"],
     queryFn: async () => {
-      const response = await fetch('/api/gmb/locations');
+      const response = await fetch("/api/gmb/locations");
       if (!response.ok) {
-        throw new Error('Failed to fetch locations');
+        let errorMessage = "Failed to fetch locations";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use the default error message
+        }
+        throw new Error(errorMessage);
       }
       const data = await response.json();
       return data.locations || [];
@@ -39,14 +52,14 @@ export function useGMB(): UseGMBReturn {
   useEffect(() => {
     if (locations.length > 0 && !selectedLocation) {
       // Select first active location or first location
-      const activeLocation = locations.find(loc => loc.is_active);
+      const activeLocation = locations.find((loc) => loc.is_active);
       setSelectedLocation(activeLocation || locations[0]);
     }
   }, [locations, selectedLocation]);
 
   // Handle location selection
   const handleLocationSelect = (locationId: string) => {
-    const location = locations.find(loc => loc.id === locationId);
+    const location = locations.find((loc) => loc.id === locationId);
     if (location) {
       setSelectedLocation(location);
     }
@@ -54,7 +67,7 @@ export function useGMB(): UseGMBReturn {
 
   // Refresh locations
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['gmb-locations'] });
+    queryClient.invalidateQueries({ queryKey: ["gmb-locations"] });
   };
 
   return {
