@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -31,7 +32,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import LocationInsightsCard from "./location-insights-card";
 import { GMBLocation } from "@/lib/types/gmb-types";
-import { syncLocation } from "@/server/actions/gmb-sync";
 import { toast } from "sonner";
 
 type NumericMetric = number | null | undefined;
@@ -378,6 +378,8 @@ export function LocationAICommandCenter({
     () => parseCommandCenterMetrics(location),
     [location],
   );
+  const router = useRouter();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -414,17 +416,38 @@ export function LocationAICommandCenter({
                   variant="outline"
                   size="sm"
                   className="gap-2"
+                  disabled={isSyncing}
                   onClick={async () => {
-                    const result = await syncLocation(location.id);
-                    if (result.success) {
-                      toast.success(result.message || "تمت المزامنة بنجاح");
-                    } else {
-                      toast.error(result.error || "فشلت المزامنة");
+                    setIsSyncing(true);
+                    try {
+                      const response = await fetch("/api/gmb/sync", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          accountId: location.gmb_account_id,
+                          syncType: "full",
+                        }),
+                      });
+
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(result.error || "فشلت المزامنة");
+                      }
+
+                      toast.success("تمت المزامنة بنجاح");
+                      router.refresh();
+                    } catch (error: any) {
+                      toast.error(error.message || "حدث خطأ أثناء المزامنة");
+                    } finally {
+                      setIsSyncing(false);
                     }
                   }}
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  مزامنة الآن
+                  <RefreshCw
+                    className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                  />
+                  {isSyncing ? "جاري المزامنة..." : "مزامنة الآن"}
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/locations/${location.id}`}>
