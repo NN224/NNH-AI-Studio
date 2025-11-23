@@ -47,6 +47,10 @@ export async function getGmbSyncDiagnostics(): Promise<{
   success: boolean;
   data?: SyncDiagnostics;
   error?: string;
+  debug?: {
+    userId: string;
+    allAccounts: any[];
+  };
 }> {
   try {
     const supabase = await createClient();
@@ -58,7 +62,12 @@ export async function getGmbSyncDiagnostics(): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Get GMB account info
+    // Get ALL GMB accounts for debugging
+    const { data: allAccounts } = await supabase
+      .from("gmb_accounts")
+      .select("id, user_id, account_name, is_active, last_sync, last_error");
+
+    // Get GMB account info for this user
     const { data: gmbAccount } = await supabase
       .from("gmb_accounts")
       .select("id, account_name, is_active, last_sync, last_error")
@@ -68,7 +77,11 @@ export async function getGmbSyncDiagnostics(): Promise<{
     if (!gmbAccount) {
       return {
         success: false,
-        error: "No GMB account connected. Please connect your account first.",
+        error: `No GMB account found for user ID: ${user.id}. Found ${allAccounts?.length || 0} total accounts in database.`,
+        debug: {
+          userId: user.id,
+          allAccounts: allAccounts || [],
+        },
       };
     }
 
