@@ -14,18 +14,18 @@ export async function GET() {
 
     const adminClient = createAdminClient();
 
-    // List of required tables to check
+    // List of required tables to check (ONLY real tables)
     const requiredTables = [
       'gmb_accounts',
       'gmb_locations',
       'gmb_reviews',
       'gmb_media',
       'gmb_questions',
-      'gmb_performance',
-      'gmb_posts',
-      'oauth_tokens',
+      'gmb_performance_metrics',
+      'gmb_services',
+      'sync_queue',
+      'gmb_sync_logs',
       'profiles',
-      'client_profiles',
     ];
 
     const tableStatus: Record<string, { exists: boolean; count?: number; error?: string }> = {};

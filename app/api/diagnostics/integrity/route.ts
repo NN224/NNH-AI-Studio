@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
@@ -12,24 +12,22 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    const adminClient = createAdminClient();
     const issues: string[] = [];
     const checks: Record<string, boolean> = {};
 
-    // Check 1: Verify gmb_accounts have valid user_id
-    const { data: accounts, error: accountsError } = await adminClient
+    // Check 1: Verify gmb_accounts exist for user
+    const { data: accounts, error: accountsError } = await supabase
       .from('gmb_accounts')
       .select('id, user_id')
       .eq('user_id', user.id);
 
     if (accountsError) {
       issues.push(`Failed to query gmb_accounts: ${accountsError.message}`);
-      checks.accounts_have_user_id = false;
+      checks.accounts_exist = false;
     } else {
-      const invalidAccounts = accounts?.filter(acc => !acc.user_id) || [];
-      checks.accounts_have_user_id = invalidAccounts.length === 0;
-      if (invalidAccounts.length > 0) {
-        issues.push(`Found ${invalidAccounts.length} accounts without user_id`);
+      checks.accounts_exist = (accounts?.length || 0) > 0;
+      if (!checks.accounts_exist) {
+        issues.push('No GMB accounts found for user');
       }
     }
 
@@ -88,7 +86,35 @@ export async function GET() {
       }
     }
 
-    // Check 4: Verify user profile exists
+    // Check 4: Verify media have matching location_id
+    const { data: media, error: mediaError } = await supabase
+      .from('gmb_media')
+      .select('id, location_id')
+      .eq('user_id', user.id)
+      .limit(1000);
+
+    if (mediaError) {
+      issues.push(`Failed to query gmb_media: ${mediaError.message}`);
+      checks.media_have_location_id = false;
+    } else {
+      const invalidMedia = media?.filter(m => !m.location_id) || [];
+      checks.media_have_location_id = invalidMedia.length === 0;
+      if (invalidMedia.length > 0) {
+        issues.push(`Found ${invalidMedia.length} media without location_id`);
+      }
+
+      // Check for orphan media
+      if (locations && media) {
+        const locationIds = new Set(locations.map(loc => loc.id));
+        const orphanMedia = media.filter(m => m.location_id && !locationIds.has(m.location_id));
+        checks.no_orphan_media = orphanMedia.length === 0;
+        if (orphanMedia.length > 0) {
+          issues.push(`Found ${orphanMedia.length} orphan media (location_id doesn't exist)`);
+        }
+      }
+    }
+
+    // Check 5: Verify user profile exists
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')

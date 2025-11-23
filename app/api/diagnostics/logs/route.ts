@@ -29,7 +29,7 @@ export async function GET() {
     }
 
     const total = syncLogs?.length || 0;
-    const successful = syncLogs?.filter(log => log.status === 'success').length || 0;
+    const successful = syncLogs?.filter(log => log.status === 'success' || log.status === 'completed').length || 0;
     const failed = syncLogs?.filter(log => log.status === 'failed' || log.status === 'error').length || 0;
 
     return Response.json({
@@ -40,12 +40,11 @@ export async function GET() {
         failed_syncs: failed,
         logs: syncLogs?.map(log => ({
           id: log.id,
-          sync_type: log.sync_type,
+          phase: log.phase,
           status: log.status,
           message: log.message,
-          error_message: log.error_message,
+          error_details: log.error_details,
           created_at: log.created_at,
-          duration_ms: log.duration_ms,
         })) || [],
       },
     });

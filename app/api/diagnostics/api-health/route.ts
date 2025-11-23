@@ -28,7 +28,6 @@ export async function GET() {
       details: {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        api_uptime: process.uptime ? `${Math.floor(process.uptime())}s` : 'N/A',
         database_connection: !dbError ? 'healthy' : 'failed',
         database_response_time_ms: dbResponseTime,
         user_authenticated: !!user,

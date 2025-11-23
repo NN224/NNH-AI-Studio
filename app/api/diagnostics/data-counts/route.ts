@@ -12,15 +12,14 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Count rows for each table
+    // Count rows for each table (ONLY real tables)
     const tables = [
       'gmb_locations',
       'gmb_reviews',
       'gmb_media',
       'gmb_questions',
-      'gmb_performance',
-      'gmb_keywords',
-      'gmb_posts',
+      'gmb_performance_metrics',
+      'gmb_search_keywords',
     ];
 
     const counts: Record<string, number> = {};
