@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export interface SyncDiagnostics {
   syncQueue: {
@@ -62,17 +62,33 @@ export async function getGmbSyncDiagnostics(): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Get ALL GMB accounts for debugging
-    const { data: allAccounts } = await supabase
+    // Use admin client to bypass RLS and view all accounts
+    const adminClient = createAdminClient();
+
+    const { data: allAccounts, error: allAccountsError } = await adminClient
       .from("gmb_accounts")
       .select("id, user_id, account_name, is_active, last_sync, last_error");
 
-    // Get GMB account info for this user
-    const { data: gmbAccount } = await supabase
+    if (allAccountsError) {
+      console.error(
+        "[GMB Diagnostics] Error fetching all accounts:",
+        allAccountsError,
+      );
+    }
+
+    // Get GMB account info for this user using admin client
+    const { data: gmbAccount, error: gmbAccountError } = await adminClient
       .from("gmb_accounts")
       .select("id, account_name, is_active, last_sync, last_error")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (gmbAccountError) {
+      console.error(
+        "[GMB Diagnostics] Error fetching user account:",
+        gmbAccountError,
+      );
+    }
 
     if (!gmbAccount) {
       return {
