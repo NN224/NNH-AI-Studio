@@ -1,20 +1,16 @@
 {
-    "recommendations": [
-        "deepscan.vscode-deepscan",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "ms-vscode.vscode-typescript-next",
-        "dsznajder.es7-react-js-snippets",
-        "bradlc.vscode-tailwindcss",
-        "christian-kohler.path-intellisense",
-        "christian-kohler.npm-intellisense",
-        "formulahendry.auto-rename-tag",
-        "formulahendry.auto-close-tag",
-        "eamodio.gitlens",
-        "orta.vscode-jest",
-        "usernamehw.errorlens",
-        "streetsidesoftware.code-spell-checker",
-        "humao.rest-client",
-        "yzhang.markdown-all-in-one"
-    ]
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "editorconfig.editorconfig",
+    "christian-kohler.path-intellisense",
+    "bradlc.vscode-tailwindcss",
+    "usernamehw.errorlens",
+    "eamodio.gitlens",
+    "rangav.vscode-thunder-client",
+    "yzhang.markdown-all-in-one",
+    "formulahendry.auto-rename-tag",
+    "github.copilot",
+    "github.copilot-chat"
+  ]
 }
