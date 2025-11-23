@@ -466,26 +466,20 @@ export async function GET(request: NextRequest) {
       state_token: state,
     });
 
-    // Trigger automatic sync
+    // Add to sync queue instead of direct sync
     try {
-      const syncUrl = `${baseUrl}/api/gmb/sync`;
-      console.warn("[OAuth Callback] Triggering automatic sync at:", syncUrl);
+      // Dynamically import to avoid circular dependencies
+      const { addToSyncQueue } = await import("@/server/actions/sync-queue");
 
-      // We don't await the full response to avoid delaying the redirect too much,
-      // but we start the request. In Vercel/Serverless, this might be cut off,
-      // but it's the best effort without a queue system.
-      // Passing cookies is crucial for the sync endpoint to authenticate the user.
-      fetch(syncUrl, {
-        method: "POST",
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-        },
-        body: JSON.stringify({ type: "full" }),
-      }).catch((err) =>
-        console.error("[OAuth Callback] Failed to trigger sync:", err),
-      );
+      const result = await addToSyncQueue(savedAccountId, "full", 10); // High priority for new connections
+
+      if (result.success) {
+        console.warn("[OAuth Callback] Added to sync queue:", result.queueId);
+      } else {
+        console.error("[OAuth Callback] Failed to add to queue:", result.error);
+      }
     } catch (syncError) {
-      console.error("[OAuth Callback] Error initiating sync:", syncError);
+      console.error("[OAuth Callback] Error adding to queue:", syncError);
     }
 
     // Redirect to dashboard settings with success message

@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "crons": [
     {
+      "path": "/api/gmb/queue/process",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/gmb/scheduled-sync",
       "schedule": "0 * * * *"
     },

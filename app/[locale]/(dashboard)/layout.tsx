@@ -67,9 +67,12 @@ function ErrorFallback({
   error,
   resetError,
 }: {
-  error: Error;
+  error: unknown;
   resetError: () => void;
 }) {
+  const errorMessage =
+    error instanceof Error ? error.message : "An unexpected error occurred";
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="max-w-md p-8 text-center space-y-4">
@@ -91,9 +94,7 @@ function ErrorFallback({
         <h2 className="text-2xl font-bold text-foreground">
           Something went wrong
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {error.message || "An unexpected error occurred"}
-        </p>
+        <p className="text-sm text-muted-foreground">{errorMessage}</p>
         <div className="flex gap-3 justify-center">
           <Button onClick={resetError} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
