@@ -57,5 +57,15 @@
     "Rashid",
     "signup",
     "whitelabel"
-  ]
+  ],
+  "editor.wordWrap": "on",
+  "editor.tabSize": 2,
+  "workbench.editor.autoLockGroups": {
+    "workbench.editorinputs.searchEditorInput": true,
+    "default": true,
+    "antigravity.artifactsEditorInput": true,
+    "antigravity.workflowEditor": true,
+    "antigravity.ruleEditor": true,
+    "gitlens.rebase": true
+  }
 }
