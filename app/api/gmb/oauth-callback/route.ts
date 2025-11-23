@@ -475,6 +475,30 @@ export async function GET(request: NextRequest) {
 
       if (result.success) {
         console.warn("[OAuth Callback] Added to sync queue:", result.queueId);
+
+        // Trigger immediate processing (fire and forget)
+        const cronSecret = process.env.CRON_SECRET;
+        if (cronSecret) {
+          console.warn(
+            "[OAuth Callback] Triggering immediate queue processing...",
+          );
+          const processUrl = `${baseUrl}/api/gmb/queue/process`;
+          fetch(processUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${cronSecret}`,
+            },
+          }).catch((err) => {
+            console.error(
+              "[OAuth Callback] Failed to trigger queue processing:",
+              err,
+            );
+          });
+        } else {
+          console.warn(
+            "[OAuth Callback] CRON_SECRET not set, cannot trigger immediate processing",
+          );
+        }
       } else {
         console.error("[OAuth Callback] Failed to add to queue:", result.error);
       }
