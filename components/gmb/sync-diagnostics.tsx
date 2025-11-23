@@ -4,11 +4,48 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import {
-  getGmbSyncDiagnostics,
-  SyncDiagnostics,
-} from "@/server/actions/gmb-sync-diagnostics";
 import { toast } from "sonner";
+
+interface SyncDiagnostics {
+  syncQueue: {
+    total: number;
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    lastSync?: {
+      id: string;
+      status: string;
+      created_at: string;
+      error_message?: string;
+    };
+  };
+  syncLogs: {
+    total: number;
+    phases: {
+      phase: string;
+      status: string;
+      created_at: string;
+      counts?: any;
+      error?: string;
+    }[];
+  };
+  dataCounts: {
+    locations: number;
+    reviews: number;
+    media: number;
+    questions: number;
+    performance: number;
+    keywords: number;
+  };
+  gmbAccount?: {
+    id: string;
+    account_name: string;
+    is_active: boolean;
+    last_sync?: string;
+    last_error?: string;
+  };
+}
 
 export function SyncDiagnosticsPanel() {
   const [diagnostics, setDiagnostics] = useState<SyncDiagnostics | null>(null);
@@ -18,12 +55,21 @@ export function SyncDiagnosticsPanel() {
   const loadDiagnostics = async () => {
     setLoading(true);
     setError(null);
-    const result = await getGmbSyncDiagnostics();
-    if (result.success && result.data) {
-      setDiagnostics(result.data);
-    } else {
-      setError(result.error || "Failed to load diagnostics");
-      toast.error(result.error || "Failed to load diagnostics");
+    try {
+      const response = await fetch("/api/gmb/sync-diagnostics");
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setDiagnostics(result.data);
+      } else {
+        setError(result.error || "Failed to load diagnostics");
+        toast.error(result.error || "Failed to load diagnostics");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch diagnostics";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
     setLoading(false);
   };
