@@ -255,7 +255,7 @@ async function pickJobsForProcessing(
 async function processJob(
   job: SyncJob,
   supabaseUrl: string,
-  serviceKey: string
+  triggerSecret: string
 ): Promise<JobResult> {
   const startTime = Date.now();
 
@@ -264,12 +264,12 @@ async function processJob(
     const timeout = setTimeout(() => controller.abort(), CONFIG.JOB_TIMEOUT_MS);
 
     // Call the existing gmb-sync Edge Function
-    // Alternative: You could extract gmb-sync logic into a shared module and call directly
+    // Using X-Internal-Run header for internal authentication (matches gmb-sync's expected header)
     const response = await fetch(`${supabaseUrl}/functions/v1/gmb-sync`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${serviceKey}` // Using service key for backend processing
+        "X-Internal-Run": triggerSecret
       },
       body: JSON.stringify({
         accountId: job.account_id,
@@ -468,10 +468,10 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
   };
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET");
 
-  if (!SUPABASE_URL || !SERVICE_KEY) {
-    const error = new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in worker");
+  if (!SUPABASE_URL || !TRIGGER_SECRET) {
+    const error = new Error("Missing SUPABASE_URL or TRIGGER_SECRET in worker");
     await updateWorkerRun(admin, run_id, {
       ...stats,
       status: 'failed',
@@ -524,7 +524,7 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       await recordSyncStart(admin, job);
 
       // Process the job
-      const result = await processJob(job, SUPABASE_URL, SERVICE_KEY);
+      const result = await processJob(job, SUPABASE_URL, TRIGGER_SECRET);
       stats.results.push(result);
       stats.jobs_processed++;
 
