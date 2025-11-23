@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
@@ -12,12 +12,28 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    const adminClient = createAdminClient();
+    // Query sync_status table for worker/cron status
+    const { data: syncStatus, error: statusError } = await supabase
+      .from('sync_status')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    // Check recent cron job executions by looking at sync_queue
-    const { data: recentJobs, error: jobsError } = await adminClient
+    if (statusError) {
+      return Response.json({
+        success: false,
+        error: `Failed to query sync_status: ${statusError.message}`,
+      });
+    }
+
+    const latestStatus = syncStatus && syncStatus.length > 0 ? syncStatus[0] : null;
+
+    // Also check recent sync queue activity
+    const { data: recentJobs, error: jobsError } = await supabase
       .from('sync_queue')
       .select('id, status, sync_type, created_at, updated_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -43,6 +59,12 @@ export async function GET() {
     return Response.json({
       success: true,
       details: {
+        sync_status: latestStatus ? {
+          last_run_time: latestStatus.last_sync_time,
+          last_success: latestStatus.last_success_time,
+          last_error: latestStatus.last_error,
+          is_syncing: latestStatus.is_syncing,
+        } : null,
         worker_status: recentJobsLastHour.length > 0 ? 'active' : 'idle',
         jobs_last_hour: recentJobsLastHour.length,
         stuck_jobs: stuckJobs.length,

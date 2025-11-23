@@ -12,48 +12,49 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Check for OAuth tokens in the database
-    const { data: tokens, error: tokenError } = await supabase
-      .from('oauth_tokens')
+    // Check GMB accounts for OAuth status
+    const { data: accounts, error: accountsError } = await supabase
+      .from('gmb_accounts')
       .select('*')
       .eq('user_id', user.id)
-      .eq('provider', 'google')
       .order('created_at', { ascending: false })
       .limit(1);
 
-    if (tokenError) {
+    if (accountsError) {
       return Response.json({
         success: false,
-        error: `Database error: ${tokenError.message}`,
-        details: { tokenError },
+        error: `Database error: ${accountsError.message}`,
+        details: { accountsError },
       });
     }
 
-    if (!tokens || tokens.length === 0) {
+    if (!accounts || accounts.length === 0) {
       return Response.json({
         success: false,
         details: {
           status: 'missing',
-          message: 'No OAuth token found for this user',
+          message: 'No GMB account found for this user',
           user_id: user.id,
         },
       });
     }
 
-    const token = tokens[0];
-    const expiresAt = token.expires_at ? new Date(token.expires_at) : null;
-    const isExpired = expiresAt ? expiresAt < new Date() : false;
+    const account = accounts[0];
+    const isActive = account.is_active;
+    const hasRecentSync = account.last_sync ?
+      (new Date(account.last_sync).getTime() > Date.now() - 24 * 60 * 60 * 1000) : false;
 
     return Response.json({
-      success: !isExpired,
+      success: isActive,
       details: {
-        status: isExpired ? 'expired' : 'valid',
-        provider: token.provider,
-        created_at: token.created_at,
-        expires_at: token.expires_at,
-        is_expired: isExpired,
+        status: isActive ? 'active' : 'inactive',
+        account_id: account.id,
+        account_name: account.account_name,
+        is_active: isActive,
+        last_sync: account.last_sync,
+        last_error: account.last_error,
+        has_recent_sync: hasRecentSync,
         user_id: user.id,
-        token_id: token.id,
       },
     });
   } catch (error) {
