@@ -16,6 +16,11 @@ export default function SettingsPage() {
     const connected = searchParams?.get("connected");
 
     if (connected === "true") {
+      // Clean up URL FIRST to prevent reload loop
+      const url = new URL(window.location.href);
+      url.searchParams.delete("connected");
+      window.history.replaceState({}, "", url.toString());
+
       // Show success toast with sync status
       toast.success(t("gmbConnected"), {
         description: "🔄 Syncing your data in the background...",
@@ -32,11 +37,6 @@ export default function SettingsPage() {
 
       // Force refresh of all GMB-related data
       forceGmbRefresh();
-
-      // Clean up URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete("connected");
-      window.history.replaceState({}, "", url.toString());
     }
   }, [searchParams, t]);
 
