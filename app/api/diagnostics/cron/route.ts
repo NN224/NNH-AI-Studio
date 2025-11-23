@@ -12,19 +12,17 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Query sync_status table for worker/cron status
+    // Query sync_status table for worker/cron status using correct columns
     const { data: syncStatus, error: statusError } = await supabase
       .from('sync_status')
       .select('*')
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
+      .order('finished_at', { ascending: false, nullsFirst: false })
       .limit(1);
 
+    // Don't throw error if table is empty or query fails
     if (statusError) {
-      return Response.json({
-        success: false,
-        error: `Failed to query sync_status: ${statusError.message}`,
-      });
+      console.error('Sync status query error:', statusError);
     }
 
     const latestStatus = syncStatus && syncStatus.length > 0 ? syncStatus[0] : null;
@@ -38,10 +36,7 @@ export async function GET() {
       .limit(10);
 
     if (jobsError) {
-      return Response.json({
-        success: false,
-        error: `Failed to query sync queue: ${jobsError.message}`,
-      });
+      console.error('Sync queue query error:', jobsError);
     }
 
     // Check if there are any jobs in the last hour
@@ -53,17 +48,19 @@ export async function GET() {
     // Check for stuck jobs (processing for more than 30 minutes)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     const stuckJobs = recentJobs?.filter(job =>
-      job.status === 'processing' && new Date(job.updated_at) < thirtyMinutesAgo
+      job.status === 'processing' && job.updated_at && new Date(job.updated_at) < thirtyMinutesAgo
     ) || [];
 
     return Response.json({
       success: true,
       details: {
-        sync_status: latestStatus ? {
-          last_run_time: latestStatus.last_sync_time,
-          last_success: latestStatus.last_success_time,
-          last_error: latestStatus.last_error,
-          is_syncing: latestStatus.is_syncing,
+        worker: latestStatus ? {
+          last_run: latestStatus.finished_at,
+          is_running: latestStatus.status === 'running',
+          progress: latestStatus.progress,
+          started_at: latestStatus.started_at,
+          account_id: latestStatus.account_id,
+          meta: latestStatus.meta,
         } : null,
         worker_status: recentJobsLastHour.length > 0 ? 'active' : 'idle',
         jobs_last_hour: recentJobsLastHour.length,
