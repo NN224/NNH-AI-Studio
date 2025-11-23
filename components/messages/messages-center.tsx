@@ -20,6 +20,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMessages, Message } from "@/hooks/use-messages";
 import { useLocations } from "@/hooks/use-locations";
 import { useReviews } from "@/hooks/use-reviews";
+import { replyToReview } from "@/server/actions/reviews-management";
+import { toast } from "sonner";
+import type { GMBReview } from "@/lib/types/database";
 
 export function MessagesCenter() {
   const { locations } = useLocations();
@@ -32,18 +35,37 @@ export function MessagesCenter() {
 
   const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [selectedReview, setSelectedReview] = useState<GMBReview | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const handleSendReply = async () => {
-    if (!replyText || !selectedMessage) return;
+    if (!replyText) return;
 
-    await sendMessage.mutateAsync({
-      content: replyText,
-      platform: selectedMessage.platform,
-      recipientId: selectedMessage.sender, // Simplified
-    });
-
-    setReplyText("");
+    setIsSending(true);
+    try {
+      if (activeTab === "messages" && selectedMessage) {
+        await sendMessage.mutateAsync({
+          content: replyText,
+          platform: selectedMessage.platform,
+          recipientId: selectedMessage.sender, // Simplified
+        });
+      } else if (activeTab === "reviews" && selectedReview) {
+        const result = await replyToReview(selectedReview.id, replyText);
+        if (!result.success) {
+          throw new Error(result.error || "Failed to reply to review");
+        }
+        toast.success("Reply sent successfully");
+      }
+      setReplyText("");
+    } catch (error) {
+      console.error("Failed to send reply:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send reply",
+      );
+    } finally {
+      setIsSending(false);
+    }
   };
 
   if (isLoading || reviewsLoading) {
@@ -144,7 +166,8 @@ export function MessagesCenter() {
                 reviews?.map((review) => (
                   <div
                     key={review.id}
-                    className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition cursor-pointer"
+                    onClick={() => setSelectedReview(review)}
+                    className={`p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition cursor-pointer ${selectedReview?.id === review.id ? "bg-zinc-800/50" : ""}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -246,12 +269,91 @@ export function MessagesCenter() {
                 </div>
               </div>
             </>
+          ) : selectedReview && activeTab === "reviews" ? (
+            <>
+              {/* Review Header */}
+              <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback>
+                      {selectedReview.reviewer_name?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">
+                      {selectedReview.reviewer_name || "Anonymous"}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <div className="flex text-yellow-500">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${i < (selectedReview.rating || 0) ? "fill-current" : "text-zinc-700"}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        {new Date(
+                          selectedReview.created_at,
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Review Body */}
+              <ScrollArea className="flex-1 p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="self-start max-w-[80%] rounded-lg rounded-tl-none bg-zinc-800 p-3 text-sm">
+                    {selectedReview.review_text || "No comment"}
+                  </div>
+                  {selectedReview.reply_text && (
+                    <div className="self-end max-w-[80%] rounded-lg rounded-tr-none bg-primary/20 text-primary-foreground p-3 text-sm">
+                      <p className="text-xs text-primary/70 mb-1">
+                        You replied:
+                      </p>
+                      {selectedReview.reply_text}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Reply Input */}
+              <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Type your reply..."
+                    className="min-h-[80px] resize-none bg-zinc-950 border-zinc-800 focus-visible:ring-primary"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                  />
+                  <Button
+                    className="h-[80px] w-[80px] flex flex-col gap-1"
+                    onClick={handleSendReply}
+                    disabled={isSending}
+                  >
+                    {isSending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-zinc-500 flex-col gap-4">
               <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center">
                 <MessageSquare className="w-8 h-8 opacity-50" />
               </div>
-              <p>Select a conversation to start messaging</p>
+              <p>Select a conversation or review to start messaging</p>
             </div>
           )}
         </div>

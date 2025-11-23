@@ -25,7 +25,14 @@ interface GeneratedPost {
 
 export function PostCreator() {
   const { locations } = useLocations();
-  const locationId = locations?.[0]?.id;
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+
+  // Initialize selectedLocationId when locations are loaded
+  if (!selectedLocationId && locations && locations.length > 0) {
+    setSelectedLocationId(locations[0].id);
+  }
+
+  const locationId = selectedLocationId || locations?.[0]?.id;
   const { createPost } = usePosts();
 
   const [intent, setIntent] = useState("");
@@ -88,6 +95,23 @@ export function PostCreator() {
             <Sparkles className="w-5 h-5 text-primary" />
             AI Post Creator
           </CardTitle>
+          {locations && locations.length > 1 && (
+            <Select
+              value={selectedLocationId}
+              onValueChange={setSelectedLocationId}
+            >
+              <SelectTrigger className="w-[200px] bg-zinc-950 border-zinc-800">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

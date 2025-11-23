@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface MediaItem {
@@ -13,10 +12,14 @@ interface MediaItem {
 }
 
 interface MediaUploaderProps {
+  locationId?: string;
   onUploadComplete: (uploaded: MediaItem[]) => void;
 }
 
-export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
+export function MediaUploader({
+  locationId,
+  onUploadComplete,
+}: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
 
   const onDrop = useCallback(
@@ -27,6 +30,10 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
       acceptedFiles.forEach((file: File) => {
         formData.append("files", file);
       });
+
+      if (locationId) {
+        formData.append("locationId", locationId);
+      }
 
       try {
         const response = await fetch("/api/media/upload", {
@@ -43,7 +50,7 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
         setUploading(false);
       }
     },
-    [onUploadComplete],
+    [onUploadComplete, locationId],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -57,18 +64,24 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
   return (
     <div
       {...getRootProps()}
-      className="border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center cursor-pointer hover:border-orange-500 transition"
+      className={`border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center transition ${
+        !locationId
+          ? "opacity-50 cursor-not-allowed"
+          : "cursor-pointer hover:border-orange-500"
+      }`}
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps()} disabled={!locationId} />
       {uploading ? (
         <Loader2 className="w-12 h-12 mx-auto animate-spin" />
       ) : (
         <>
           <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-500" />
           <p className="text-zinc-500">
-            {isDragActive
-              ? "Drop the images here"
-              : "Drag and drop some files here, or click to select files"}
+            {!locationId
+              ? "Select a location to upload media"
+              : isDragActive
+                ? "Drop the images here"
+                : "Drag and drop some files here, or click to select files"}
           </p>
         </>
       )}

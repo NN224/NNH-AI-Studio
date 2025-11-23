@@ -81,6 +81,7 @@ export default function DashboardPage() {
       refetch();
     } catch (error) {
       console.error("Failed to process AI action:", error);
+      toast.error("Failed to process action. Please try again.");
     }
   };
 

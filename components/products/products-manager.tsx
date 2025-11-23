@@ -59,13 +59,21 @@ export type Product = {
 
 export function ProductsManager() {
   const { locations } = useLocations();
-  const locationId = locations?.[0]?.id || "";
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
 
-  const { products, isLoading, createProduct, deleteProduct } =
+  // Initialize selectedLocationId when locations are loaded
+  if (!selectedLocationId && locations && locations.length > 0) {
+    setSelectedLocationId(locations[0].id);
+  }
+
+  const locationId = selectedLocationId || locations?.[0]?.id || "";
+
+  const { products, isLoading, createProduct, updateProduct, deleteProduct } =
     useProducts(locationId);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     currency: "USD",
     status: "active",
@@ -82,7 +90,7 @@ export function ProductsManager() {
   const handleSaveProduct = async () => {
     if (!newProduct.name || !newProduct.price) return;
 
-    await createProduct.mutateAsync({
+    const productData = {
       name: newProduct.name,
       category: newProduct.category || "General",
       price: newProduct.price,
@@ -91,10 +99,56 @@ export function ProductsManager() {
       imageUrl: newProduct.imageUrl,
       link: newProduct.link,
       status: newProduct.status || "active",
-    } as Product);
+    };
+
+    if (editingProduct) {
+      await updateProduct.mutateAsync({
+        ...editingProduct,
+        ...productData,
+      } as Product);
+    } else {
+      await createProduct.mutateAsync(productData as Product);
+    }
 
     setIsAddDialogOpen(false);
+    setEditingProduct(null);
     setNewProduct({ currency: "USD", status: "active" });
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setNewProduct({
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      currency: product.currency,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      link: product.link,
+      status: product.status,
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleDuplicate = (product: Product) => {
+    setEditingProduct(null); // It's a new product
+    setNewProduct({
+      name: `${product.name} (Copy)`,
+      category: product.category,
+      price: product.price,
+      currency: product.currency,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      link: product.link,
+      status: "draft", // Default to draft for copies
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingProduct(null);
+    setNewProduct({ currency: "USD", status: "active" });
+    setIsAddDialogOpen(true);
   };
 
   if (isLoading) {
@@ -118,13 +172,32 @@ export function ProductsManager() {
             Manage your product catalog, prices, and inventory.
           </p>
         </div>
-        <Button
-          onClick={() => setIsAddDialogOpen(true)}
-          className="bg-primary hover:bg-primary/90"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          {locations && locations.length > 1 && (
+            <Select
+              value={selectedLocationId}
+              onValueChange={setSelectedLocationId}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button
+            onClick={handleAddNew}
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Filters & Search */}
@@ -195,8 +268,12 @@ export function ProductsManager() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEdit(product)}>
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDuplicate(product)}>
+                      Duplicate
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-red-600"
@@ -244,7 +321,7 @@ export function ProductsManager() {
         <Button
           variant="outline"
           className="h-full min-h-[300px] flex flex-col items-center justify-center gap-4 border-dashed border-2 hover:border-primary hover:bg-primary/5"
-          onClick={() => setIsAddDialogOpen(true)}
+          onClick={handleAddNew}
         >
           <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center">
             <Plus className="h-6 w-6" />
@@ -257,9 +334,13 @@ export function ProductsManager() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
+            <DialogTitle>
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
             <DialogDescription>
-              Create a new product to display on your Google Business Profile.
+              {editingProduct
+                ? "Update product details."
+                : "Create a new product to display on your Google Business Profile."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -374,9 +455,13 @@ export function ProductsManager() {
             </Button>
             <Button
               onClick={handleSaveProduct}
-              disabled={createProduct.isPending}
+              disabled={createProduct.isPending || updateProduct.isPending}
             >
-              {createProduct.isPending ? "Saving..." : "Save Product"}
+              {createProduct.isPending || updateProduct.isPending
+                ? "Saving..."
+                : editingProduct
+                  ? "Update Product"
+                  : "Save Product"}
             </Button>
           </DialogFooter>
         </DialogContent>

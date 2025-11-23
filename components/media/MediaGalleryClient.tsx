@@ -40,6 +40,7 @@ export function MediaGalleryClient({
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Media Library</h1>
         <MediaUploader
+          locationId={filters.locationId}
           onUploadComplete={(newMedia: MediaItem[]) => {
             setMedia([...newMedia, ...media]);
           }}
