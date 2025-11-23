@@ -208,7 +208,7 @@ class MemoryRateLimitStore {
 const memoryStore = new MemoryRateLimitStore();
 
 // Rate limit configuration
-const RATE_LIMIT_REQUESTS = 100; // requests per window
+const RATE_LIMIT_REQUESTS = 500; // Increased for development - multiple API calls on page load
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 interface ApplyRateLimitOptions {

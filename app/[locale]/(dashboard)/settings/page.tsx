@@ -16,18 +16,27 @@ export default function SettingsPage() {
     const connected = searchParams?.get("connected");
 
     if (connected === "true") {
-      // Show success toast
-      toast.success(t("gmbConnected"), {
-        description: t("gmbConnectedDesc"),
-      });
-
-      // Force refresh of all GMB-related data
-      forceGmbRefresh();
-
-      // Clean up URL
+      // Clean up URL FIRST to prevent reload loop
       const url = new URL(window.location.href);
       url.searchParams.delete("connected");
       window.history.replaceState({}, "", url.toString());
+
+      // Show success toast with sync status
+      toast.success(t("gmbConnected"), {
+        description: "🔄 Syncing your data in the background...",
+        duration: 5000,
+      });
+
+      // Show completion toast after estimated sync time (30 seconds)
+      setTimeout(() => {
+        toast.success("Sync Complete!", {
+          description: "Your GMB data is now available across all pages.",
+          duration: 4000,
+        });
+      }, 30000);
+
+      // Force refresh of all GMB-related data
+      forceGmbRefresh();
     }
   }, [searchParams, t]);
 

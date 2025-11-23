@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -31,8 +32,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import LocationInsightsCard from "./location-insights-card";
 import { GMBLocation } from "@/lib/types/gmb-types";
-import { syncLocation } from "@/server/actions/gmb-sync";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  updateAccountSyncSettings,
+  getAccountSyncSettings,
+} from "@/server/actions/gmb-settings";
 
 type NumericMetric = number | null | undefined;
 
@@ -378,6 +384,39 @@ export function LocationAICommandCenter({
     () => parseCommandCenterMetrics(location),
     [location],
   );
+  const router = useRouter();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    async function loadSettings() {
+      if (location.gmb_account_id) {
+        const result = await getAccountSyncSettings(location.gmb_account_id);
+        if (result.success) {
+          setAutoSyncEnabled(result.enabled || false);
+        }
+        setIsLoadingSettings(false);
+      }
+    }
+    loadSettings();
+  }, [location.gmb_account_id]);
+
+  const handleAutoSyncChange = async (checked: boolean) => {
+    setAutoSyncEnabled(checked); // Optimistic update
+    const result = await updateAccountSyncSettings(
+      location.gmb_account_id,
+      checked,
+    );
+    if (result.success) {
+      toast.success(
+        checked ? "تم تفعيل المزامنة التلقائية" : "تم تعطيل المزامنة التلقائية",
+      );
+    } else {
+      setAutoSyncEnabled(!checked); // Revert on failure
+      toast.error("فشل تحديث الإعدادات");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -414,18 +453,55 @@ export function LocationAICommandCenter({
                   variant="outline"
                   size="sm"
                   className="gap-2"
+                  disabled={isSyncing}
                   onClick={async () => {
-                    const result = await syncLocation(location.id);
-                    if (result.success) {
-                      toast.success(result.message || "تمت المزامنة بنجاح");
-                    } else {
-                      toast.error(result.error || "فشلت المزامنة");
+                    setIsSyncing(true);
+                    try {
+                      const response = await fetch("/api/gmb/sync", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          accountId: location.gmb_account_id,
+                          syncType: "full",
+                        }),
+                      });
+
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(result.error || "فشلت المزامنة");
+                      }
+
+                      toast.success("تمت المزامنة بنجاح");
+                      router.refresh();
+                    } catch (error: any) {
+                      toast.error(error.message || "حدث خطأ أثناء المزامنة");
+                    } finally {
+                      setIsSyncing(false);
                     }
                   }}
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  مزامنة الآن
+                  <RefreshCw
+                    className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                  />
+                  {isSyncing ? "جاري المزامنة..." : "مزامنة الآن"}
                 </Button>
+
+                <div className="flex items-center space-x-2 space-x-reverse border rounded-md px-3 py-1 bg-background/50">
+                  <Switch
+                    id="auto-sync"
+                    checked={autoSyncEnabled}
+                    onCheckedChange={handleAutoSyncChange}
+                    disabled={isLoadingSettings}
+                  />
+                  <Label
+                    htmlFor="auto-sync"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    مزامنة تلقائية
+                  </Label>
+                </div>
+
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/locations/${location.id}`}>
                     <Activity className="h-4 w-4 mr-2" />

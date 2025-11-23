@@ -6,6 +6,7 @@ import { GMBConnectionManager } from "./gmb-connection-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -40,11 +41,25 @@ const GMBDashboard = () => {
 
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert
+        variant="destructive"
+        className="border-red-500/50 bg-red-500/10 text-red-200"
+      >
         <Terminal className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load GMB data. Please try again later.
+        <AlertTitle>Error Loading GMB Data</AlertTitle>
+        <AlertDescription className="mt-2 flex flex-col gap-2">
+          <p>
+            {error.message ||
+              "An unexpected error occurred while fetching GMB data."}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="w-fit border-red-500/30 hover:bg-red-500/20 hover:text-red-100"
+          >
+            Retry
+          </Button>
         </AlertDescription>
       </Alert>
     );

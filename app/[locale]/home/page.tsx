@@ -1,20 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
-import { SmartHeader } from "@/components/home/smart-header";
-import { QuickActions } from "@/components/home/quick-actions";
-import { StatsOverview } from "@/components/home/stats-overview";
-import { EmptyState } from "@/components/home/empty-state";
-import { ActivityFeed } from "@/components/home/activity-feed";
-import { RecentActivity } from "@/components/home/recent-activity";
-import { AIInsights } from "@/components/home/ai-insights";
-import { AnimatedBackground } from "@/components/home/animated-background";
-import { DashboardHero } from "@/components/home/dashboard-hero";
-import { ProgressTracker } from "@/components/home/progress-tracker";
-import { AIChatWidget } from "@/components/home/ai-chat-widget";
-import { AchievementsBadge } from "@/components/home/achievements-badge";
-import { OnboardingTour } from "@/components/home/onboarding-tour";
-import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
+import { HomePageContent } from "@/components/home/home-page-content";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -146,26 +133,26 @@ export default async function HomePage({
         )
       : 0;
 
-  // Calculate trend data for last 7 days (for sparkline charts)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    date.setHours(0, 0, 0, 0);
-    return date.toISOString().split("T")[0];
-  });
+    // Calculate trend data for last 7 days (for sparkline charts)
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setUTCHours(0, 0, 0, 0);
+      date.setUTCDate(date.getUTCDate() - (6 - i));
+      return date;
+    });
 
-  // Fetch reviews count per day for last 7 days
-  const reviewsTrendPromises = last7Days.map(async (date) => {
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-    const { count } = await supabase
-      .from("gmb_reviews")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("create_time", date)
-      .lt("create_time", nextDate.toISOString().split("T")[0]);
-    return count || 0;
-  });
+    // Fetch reviews count per day for last 7 days
+    const reviewsTrendPromises = last7Days.map(async (startDate) => {
+      const endDate = new Date(startDate);
+      endDate.setUTCDate(endDate.getUTCDate() + 1);
+      const { count } = await supabase
+        .from("gmb_reviews")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("create_time", startDate.toISOString())
+        .lt("create_time", endDate.toISOString());
+      return count || 0;
+    });
 
   const reviewsTrend = await Promise.all(reviewsTrendPromises);
 
@@ -205,6 +192,11 @@ export default async function HomePage({
       href: "/reviews",
     },
   ];
+
+  // Calculate completed tasks count
+  const completedTasksCount = progressItems.filter(
+    (item) => item.completed,
+  ).length;
 
   // Fetch recent activities
   const { data: recentReviews } = await supabase
@@ -311,88 +303,22 @@ export default async function HomePage({
   }
 
   return (
-    <div className="min-h-screen bg-black relative">
-      {/* Animated Background */}
-      <AnimatedBackground />
-
-      {/* Smart Header */}
-      <SmartHeader
-        user={{
-          name: profile?.full_name,
-          email: user!.email || "",
-          avatar: profile?.avatar_url,
-        }}
-        notifications={0}
-        lastLogin={new Date(user!.last_sign_in_at || "").toLocaleString()}
-      />
-
-      {/* Main Content */}
-      <main className="relative container mx-auto px-4 py-6 space-y-6">
-        {/* Dashboard Hero - Personalized Greeting */}
-        <DashboardHero
-          userName={profile?.full_name}
-          timeOfDay={getTimeOfDay()}
-          stats={{
-            todayReviews: todayReviewsCount || 0,
-            weeklyGrowth: weeklyGrowth,
-          }}
-        />
-
-        {/* Progress Tracker - Shows incomplete tasks */}
-        <ProgressTracker items={progressItems} hideWhenComplete={true} />
-
-        {/* Dashboard CTA Buttons - Quick access to main dashboards */}
-        <DashboardCTAButtons />
-
-        {/* Achievements Badge */}
-        <AchievementsBadge />
-
-        {/* Quick Actions */}
-        <QuickActions />
-
-        {/* Empty State or Dashboard */}
-        {!hasAccounts ? (
-          <EmptyState />
-        ) : (
-          <>
-            {/* Stats Overview */}
-            <StatsOverview
-              stats={{
-                locations: locationsCount || 0,
-                reviews: reviewsCount || 0,
-                avgRating: averageRating,
-                accounts: accountsCount || 0,
-                youtubeSubscribers: youtubeSubs,
-              }}
-              trends={{
-                reviewsTrend: reviewsTrend,
-              }}
-            />
-
-            {/* AI Insights - Full Width */}
-            <AIInsights insights={insights} />
-
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Activity Feed - Takes 2 columns */}
-              <div className="lg:col-span-2">
-                <ActivityFeed activities={activities} />
-              </div>
-
-              {/* Recent Activity - Takes 1 column */}
-              <div className="lg:col-span-1">
-                <RecentActivity activities={activities} limit={5} />
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* AI Chat Widget - Floating Assistant */}
-      <AIChatWidget />
-
-      {/* Onboarding Tour - First time users */}
-      <OnboardingTour />
-    </div>
+    <HomePageContent
+      user={user!}
+      profile={profile}
+      hasAccounts={hasAccounts}
+      accountsCount={accountsCount}
+      locationsCount={locationsCount}
+      reviewsCount={reviewsCount}
+      averageRating={averageRating}
+      todayReviewsCount={todayReviewsCount}
+      weeklyGrowth={weeklyGrowth}
+      reviewsTrend={reviewsTrend}
+      youtubeSubs={youtubeSubs ? youtubeSubs.toString() : null}
+      hasYouTube={hasYouTube}
+      progressItems={progressItems}
+      activities={activities}
+      insights={insights}
+    />
   );
 }

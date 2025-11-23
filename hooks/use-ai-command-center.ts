@@ -9,6 +9,7 @@ export interface BusinessInfo {
   logo?: string;
   category?: string;
   locationId?: string;
+  accountId?: string;
 }
 
 export interface UrgentItem {
@@ -76,6 +77,7 @@ async function fetchBusinessInfo(): Promise<BusinessInfo> {
       category:
         firstLocation.primary_category || firstLocation.category || "Business",
       logo: firstLocation.logo_url || firstLocation.profile_photo_url,
+      accountId: firstLocation.gmb_account_id,
     };
   } catch (error) {
     console.error("Error fetching business info:", error);
@@ -210,7 +212,7 @@ async function fetchManagementStats(): Promise<ManagementStats> {
     }
 
     const statsData = await statsResponse.json();
-    const stats = statsData.stats || {};
+    const stats = statsData; // API returns flat object now, not wrapped in stats
 
     // Fetch locations to get location IDs
     const locationsResponse = await fetch("/api/gmb/locations");
@@ -278,8 +280,8 @@ async function fetchManagementStats(): Promise<ManagementStats> {
     }
 
     // Calculate response rate
-    const totalReviews = stats.total_reviews || 0;
-    const pendingReviews = stats.pending_reviews || 0;
+    const totalReviews = stats.totalReviews || 0;
+    const pendingReviews = stats.pendingReviews || 0;
     const respondedReviews = totalReviews - pendingReviews;
     const responseRate =
       totalReviews > 0
@@ -294,9 +296,9 @@ async function fetchManagementStats(): Promise<ManagementStats> {
       },
       posts: postsData,
       questions: {
-        total: stats.total_questions || 0,
-        unanswered: stats.pending_questions || 0,
-        avgResponseTime: stats.avg_response_time || "N/A",
+        total: stats.totalQuestions || 0,
+        unanswered: stats.pendingQuestions || 0,
+        avgResponseTime: stats.avgResponseTime || "N/A",
       },
     };
   } catch (error) {

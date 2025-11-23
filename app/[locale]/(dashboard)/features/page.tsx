@@ -8,7 +8,6 @@ import { ProfileCompletenessCard } from "./ProfileCompletenessCard";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
 import type { BusinessProfilePayload } from "@/types/features";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Shield,
@@ -20,7 +19,6 @@ import {
   History,
   Download,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { ValidationPanel } from "@/components/features/validation-panel";
 import { ChangeHistoryPanel } from "@/components/features/change-history-panel";
 import { BulkUpdateDialog } from "@/components/features/bulk-update-dialog";
@@ -472,7 +470,7 @@ export default function BusinessProfilePage() {
                       regularHours={profile.regularHours}
                       moreHours={profile.moreHours}
                     />
-                    <ServiceItemsDisplay serviceItems={profile.serviceItems} />
+                    <ServiceItemsDisplay />
                   </div>
                 )}
               </>
