@@ -135,7 +135,7 @@ export async function getGmbSyncDiagnostics(): Promise<{
       .order("created_at", { ascending: false })
       .limit(20);
 
-    // Get data counts
+    // Get data counts - FIXED: Use correct table names
     const [
       { count: locationsCount },
       { count: reviewsCount },
@@ -161,11 +161,11 @@ export async function getGmbSyncDiagnostics(): Promise<{
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id),
       supabase
-        .from("gmb_performance")
+        .from("gmb_performance_metrics")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id),
       supabase
-        .from("gmb_keywords")
+        .from("gmb_search_keywords")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id),
     ]);
