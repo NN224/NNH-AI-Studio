@@ -371,26 +371,12 @@ async function updateJobStatus(
         throw new Error(`Failed to update job status: ${getErrorMessage(updateError)}`);
       }
 
-      // Update sync_status using database-level increments (no race condition)
-      const syncTypeField = job.sync_type === 'full'
-        ? 'last_successful_full_sync_at'
-        : 'last_successful_incremental_sync_at';
-
-      const { error: statusError } = await admin
-        .from("sync_status")
-        .upsert({
-          account_id: job.account_id,
-          last_sync_completed_at: now,
-          last_sync_status: 'succeeded',
-          last_sync_error: null,
-          [syncTypeField]: now,
-          // Use SQL expressions for atomic increments
-          total_syncs: admin.sql`COALESCE(total_syncs, 0) + 1`,
-          successful_syncs: admin.sql`COALESCE(successful_syncs, 0) + 1`
-        }, {
-          onConflict: 'account_id',
-          ignoreDuplicates: false
-        });
+      // Update sync_status using Postgres function (atomic, no race condition)
+      const { error: statusError } = await admin.rpc('update_sync_status_success', {
+        p_account_id: job.account_id,
+        p_sync_type: job.sync_type,
+        p_completed_at: now
+      });
 
       if (statusError) {
         console.error(`Failed to update sync_status: ${getErrorMessage(statusError)}`);
@@ -444,20 +430,12 @@ async function updateJobStatus(
           throw new Error(`Failed to mark job as failed: ${getErrorMessage(failError)}`);
         }
 
-        // Update sync_status with atomic increments
-        const { error: statusError } = await admin
-          .from("sync_status")
-          .upsert({
-            account_id: job.account_id,
-            last_sync_completed_at: now,
-            last_sync_status: 'failed',
-            last_sync_error: result.error || 'Unknown error',
-            total_syncs: admin.sql`COALESCE(total_syncs, 0) + 1`,
-            failed_syncs: admin.sql`COALESCE(failed_syncs, 0) + 1`
-          }, {
-            onConflict: 'account_id',
-            ignoreDuplicates: false
-          });
+        // Update sync_status using Postgres function (atomic, no race condition)
+        const { error: statusError } = await admin.rpc('update_sync_status_failure', {
+          p_account_id: job.account_id,
+          p_error: result.error || 'Unknown error',
+          p_completed_at: now
+        });
 
         if (statusError) {
           console.error(`Failed to update sync_status: ${getErrorMessage(statusError)}`);
