@@ -26,8 +26,8 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
  * - TRIGGER_SECRET: Secret for authenticating trigger calls
  *
  * CRON SCHEDULE (recommended):
- * - Every 5 minutes: */5 * * * *
- * - Or every 2 minutes for faster processing: */2 * * * *
+ * - Every 5 minutes: star-slash-5 space star space star space star space star
+ * - Or every 2 minutes for faster processing: star-slash-2 space star space star space star space star
  *
  * المنطق (Logic in Arabic):
  * العامل (Worker) يقوم بمعالجة المهام من الطابور بشكل متسلسل.
@@ -54,6 +54,7 @@ const CONFIG = {
   // Worker timeouts
   WORKER_TIMEOUT_MS: 55000, // Total worker execution time (55s)
   JOB_TIMEOUT_MS: 45000,     // Max time per job (45s)
+  TIMEOUT_MARGIN_MS: 5000,   // Stop processing 5s before worker timeout
 
   // Job processing
   MAX_JOBS_PER_RUN: 10,      // Max jobs to process per worker invocation
@@ -63,7 +64,10 @@ const CONFIG = {
   RETRY_DELAY_BASE_MS: 60000, // 1 minute base delay for retries
 
   // Stale job detection
-  STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000 // 10 minutes
+  STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000, // 10 minutes
+
+  // Circuit breaker
+  CIRCUIT_BREAKER_THRESHOLD: 5 // Stop after N consecutive failures
 };
 
 // ============================================================================
@@ -100,6 +104,30 @@ interface WorkerRunStats {
 // Helper Functions
 // ============================================================================
 
+/**
+ * Safely extract error message from any error object
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return 'Unknown error';
+}
+
+/**
+ * Safely truncate error message for database storage
+ */
+function truncateError(error: unknown, maxLength = 500): string {
+  const message = getErrorMessage(error);
+  return message.slice(0, maxLength);
+}
+
 function getAdminClient(): SupabaseClient {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -130,7 +158,7 @@ async function createWorkerRun(admin: SupabaseClient): Promise<string> {
     .single();
 
   if (error || !data) {
-    throw new Error(`Failed to create worker run: ${error?.message}`);
+    throw new Error(`Failed to create worker run: ${getErrorMessage(error)}`);
   }
 
   return data.id;
@@ -149,17 +177,42 @@ async function updateWorkerRun(
     .update({
       finished_at: new Date().toISOString(),
       status: stats.status,
-      jobs_picked: stats.jobs_picked,
-      jobs_processed: stats.jobs_processed,
-      jobs_succeeded: stats.jobs_succeeded,
-      jobs_failed: stats.jobs_failed,
+      jobs_picked: stats.jobs_picked ?? 0,
+      jobs_processed: stats.jobs_processed ?? 0,
+      jobs_succeeded: stats.jobs_succeeded ?? 0,
+      jobs_failed: stats.jobs_failed ?? 0,
       notes: stats.notes,
       metadata: stats.results ? { results: stats.results } : null
     })
     .eq("id", run_id);
 
   if (error) {
-    console.error(`Failed to update worker run ${run_id}:`, error);
+    console.error(`Failed to update worker run ${run_id}:`, getErrorMessage(error));
+  }
+}
+
+/**
+ * Reset jobs back to pending state (used when worker times out before processing)
+ */
+async function resetJobsToPending(
+  admin: SupabaseClient,
+  jobIds: string[]
+): Promise<void> {
+  if (jobIds.length === 0) return;
+
+  const { error } = await admin
+    .from("sync_queue")
+    .update({
+      status: 'pending',
+      started_at: null,
+      attempts: admin.sql`attempts - 1` // Decrement since pick_sync_jobs incremented it
+    })
+    .in("id", jobIds);
+
+  if (error) {
+    console.error(`Failed to reset jobs to pending:`, getErrorMessage(error));
+  } else {
+    console.log(`♻️ Reset ${jobIds.length} unprocessed jobs to pending`);
   }
 }
 
@@ -171,16 +224,25 @@ async function pickJobsForProcessing(
   admin: SupabaseClient,
   limit: number
 ): Promise<SyncJob[]> {
-  // First, mark stale jobs as failed
-  await admin.rpc('mark_stale_sync_jobs');
+  try {
+    // First, mark stale jobs as failed
+    const { error: staleError } = await admin.rpc('mark_stale_sync_jobs');
+    if (staleError) {
+      console.error('⚠️ Failed to mark stale jobs:', getErrorMessage(staleError));
+      // Continue anyway - not critical
+    }
+  } catch (err) {
+    console.error('⚠️ Exception marking stale jobs:', getErrorMessage(err));
+    // Continue anyway
+  }
 
-  // Pick jobs using raw SQL for FOR UPDATE SKIP LOCKED
+  // Pick jobs using RPC function with FOR UPDATE SKIP LOCKED
   const { data, error } = await admin.rpc('pick_sync_jobs', {
     job_limit: limit
   });
 
   if (error) {
-    console.error("Error picking jobs:", error);
+    console.error("❌ Error picking jobs:", getErrorMessage(error));
     return [];
   }
 
@@ -219,12 +281,18 @@ async function processJob(
     const duration_ms = Date.now() - startTime;
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = 'HTTP error';
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = `HTTP ${response.status} ${response.statusText}`;
+      }
+
       return {
         job_id: job.id,
         account_id: job.account_id,
         success: false,
-        error: errorText.slice(0, 500), // Truncate to fit in DB
+        error: truncateError(errorText),
         duration_ms
       };
     }
@@ -236,149 +304,172 @@ async function processJob(
       duration_ms
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const duration_ms = Date.now() - startTime;
+    const errorName = error instanceof Error ? error.name : 'Error';
 
     return {
       job_id: job.id,
       account_id: job.account_id,
       success: false,
-      error: error.name === 'AbortError'
-        ? 'Job timeout'
-        : error.message?.slice(0, 500),
+      error: errorName === 'AbortError' ? 'Job timeout' : truncateError(error),
       duration_ms
     };
   }
 }
 
 /**
+ * Update sync_status when job starts (sets last_sync_started_at)
+ */
+async function recordSyncStart(
+  admin: SupabaseClient,
+  job: SyncJob
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  try {
+    await admin
+      .from("sync_status")
+      .upsert({
+        account_id: job.account_id,
+        last_sync_started_at: now,
+        last_sync_status: 'running'
+      }, {
+        onConflict: 'account_id',
+        ignoreDuplicates: false
+      });
+  } catch (error) {
+    console.error(`Failed to record sync start for ${job.account_id}:`, getErrorMessage(error));
+    // Non-critical, continue
+  }
+}
+
+/**
  * Update job status in sync_queue after processing
+ * Now with comprehensive error handling and database-level increments
  */
 async function updateJobStatus(
   admin: SupabaseClient,
   job: SyncJob,
   result: JobResult
-) {
+): Promise<void> {
   const now = new Date().toISOString();
 
-  if (result.success) {
-    // Mark as succeeded
-    await admin
-      .from("sync_queue")
-      .update({
-        status: 'succeeded',
-        completed_at: now,
-        last_error: null
-      })
-      .eq("id", job.id);
-
-    // Update sync_status for the account
-    const syncTypeField = job.sync_type === 'full'
-      ? 'last_successful_full_sync_at'
-      : 'last_successful_incremental_sync_at';
-
-    // First, try to get existing record
-    const { data: existing } = await admin
-      .from("sync_status")
-      .select("id, total_syncs, successful_syncs, failed_syncs")
-      .eq("account_id", job.account_id)
-      .maybeSingle();
-
-    if (existing) {
-      // Update existing record
-      await admin
-        .from("sync_status")
+  try {
+    if (result.success) {
+      // Mark job as succeeded
+      const { error: updateError } = await admin
+        .from("sync_queue")
         .update({
-          last_sync_completed_at: now,
-          last_sync_status: 'succeeded',
-          last_sync_error: null,
-          [syncTypeField]: now,
-          total_syncs: (existing.total_syncs || 0) + 1,
-          successful_syncs: (existing.successful_syncs || 0) + 1
+          status: 'succeeded',
+          completed_at: now,
+          last_error: null
         })
-        .eq("account_id", job.account_id);
-    } else {
-      // Insert new record
-      await admin
+        .eq("id", job.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update job status: ${getErrorMessage(updateError)}`);
+      }
+
+      // Update sync_status using database-level increments (no race condition)
+      const syncTypeField = job.sync_type === 'full'
+        ? 'last_successful_full_sync_at'
+        : 'last_successful_incremental_sync_at';
+
+      const { error: statusError } = await admin
         .from("sync_status")
-        .insert({
+        .upsert({
           account_id: job.account_id,
           last_sync_completed_at: now,
           last_sync_status: 'succeeded',
           last_sync_error: null,
           [syncTypeField]: now,
-          total_syncs: 1,
-          successful_syncs: 1,
-          failed_syncs: 0
+          // Use SQL expressions for atomic increments
+          total_syncs: admin.sql`COALESCE(total_syncs, 0) + 1`,
+          successful_syncs: admin.sql`COALESCE(successful_syncs, 0) + 1`
+        }, {
+          onConflict: 'account_id',
+          ignoreDuplicates: false
         });
-    }
 
-  } else {
-    // Check if we should retry
-    const should_retry = job.attempts < job.max_attempts;
-
-    if (should_retry) {
-      // Calculate exponential backoff delay
-      const delay_ms = CONFIG.RETRY_DELAY_BASE_MS * Math.pow(2, job.attempts);
-      const scheduled_at = new Date(Date.now() + delay_ms).toISOString();
-
-      // Reset to pending for retry
-      await admin
-        .from("sync_queue")
-        .update({
-          status: 'pending',
-          scheduled_at,
-          last_error: result.error,
-          started_at: null, // Reset so it can be picked again
-          completed_at: null
-        })
-        .eq("id", job.id);
+      if (statusError) {
+        console.error(`Failed to update sync_status: ${getErrorMessage(statusError)}`);
+        // Non-critical for job completion
+      }
 
     } else {
-      // Max attempts reached, mark as failed
-      await admin
-        .from("sync_queue")
-        .update({
-          status: 'failed',
-          completed_at: now,
-          last_error: result.error
-        })
-        .eq("id", job.id);
+      // Job failed - check if we should retry
+      const should_retry = job.attempts < job.max_attempts;
 
-      // Update sync_status
-      const { data: existing } = await admin
-        .from("sync_status")
-        .select("id, total_syncs, successful_syncs, failed_syncs")
-        .eq("account_id", job.account_id)
-        .maybeSingle();
+      if (should_retry) {
+        // Calculate exponential backoff delay
+        // job.attempts has already been incremented by pick_sync_jobs
+        // So: attempts=1 → 1st retry → delay=2min, attempts=2 → 2nd retry → delay=4min, etc.
+        const retryNumber = job.attempts - 1; // 0-based for cleaner exponential
+        const delay_ms = CONFIG.RETRY_DELAY_BASE_MS * Math.pow(2, retryNumber);
+        const scheduled_at = new Date(Date.now() + delay_ms).toISOString();
 
-      if (existing) {
-        // Update existing record
-        await admin
-          .from("sync_status")
+        console.log(`🔄 Scheduling retry ${job.attempts}/${job.max_attempts} for job ${job.id} in ${delay_ms}ms`);
+
+        // Reset to pending for retry
+        const { error: retryError } = await admin
+          .from("sync_queue")
           .update({
-            last_sync_completed_at: now,
-            last_sync_status: 'failed',
-            last_sync_error: result.error,
-            total_syncs: (existing.total_syncs || 0) + 1,
-            failed_syncs: (existing.failed_syncs || 0) + 1
+            status: 'pending',
+            scheduled_at,
+            last_error: result.error || 'Unknown error',
+            started_at: null, // Reset so it can be picked again
+            completed_at: null
           })
-          .eq("account_id", job.account_id);
+          .eq("id", job.id);
+
+        if (retryError) {
+          throw new Error(`Failed to schedule retry: ${getErrorMessage(retryError)}`);
+        }
+
       } else {
-        // Insert new record
-        await admin
+        // Max attempts reached, mark as permanently failed
+        console.error(`❌ Job ${job.id} failed permanently after ${job.attempts} attempts`);
+
+        const { error: failError } = await admin
+          .from("sync_queue")
+          .update({
+            status: 'failed',
+            completed_at: now,
+            last_error: result.error || 'Unknown error'
+          })
+          .eq("id", job.id);
+
+        if (failError) {
+          throw new Error(`Failed to mark job as failed: ${getErrorMessage(failError)}`);
+        }
+
+        // Update sync_status with atomic increments
+        const { error: statusError } = await admin
           .from("sync_status")
-          .insert({
+          .upsert({
             account_id: job.account_id,
             last_sync_completed_at: now,
             last_sync_status: 'failed',
-            last_sync_error: result.error,
-            total_syncs: 1,
-            successful_syncs: 0,
-            failed_syncs: 1
+            last_sync_error: result.error || 'Unknown error',
+            total_syncs: admin.sql`COALESCE(total_syncs, 0) + 1`,
+            failed_syncs: admin.sql`COALESCE(failed_syncs, 0) + 1`
+          }, {
+            onConflict: 'account_id',
+            ignoreDuplicates: false
           });
+
+        if (statusError) {
+          console.error(`Failed to update sync_status: ${getErrorMessage(statusError)}`);
+          // Non-critical for job completion
+        }
       }
     }
+  } catch (error) {
+    // Critical error updating job status
+    console.error(`🚨 CRITICAL: Failed to update job ${job.id} status:`, getErrorMessage(error));
+    // Don't re-throw - we want to continue processing other jobs
+    // This job will be marked as stale eventually and retried
   }
 }
 
@@ -398,10 +489,20 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
     results: []
   };
 
-  try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    const error = new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in worker");
+    await updateWorkerRun(admin, run_id, {
+      ...stats,
+      status: 'failed',
+      notes: getErrorMessage(error)
+    });
+    throw error;
+  }
+
+  try {
     // Pick jobs
     const jobs = await pickJobsForProcessing(admin, CONFIG.MAX_JOBS_PER_RUN);
     stats.jobs_picked = jobs.length;
@@ -418,16 +519,31 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
 
     console.log(`📋 Picked ${jobs.length} jobs for processing`);
 
+    // Track consecutive failures for circuit breaker
+    let consecutiveFailures = 0;
+    const unprocessedJobIds: string[] = [];
+
     // Process jobs sequentially (to avoid rate limits)
-    for (const job of jobs) {
-      // Check if we're approaching timeout
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+
+      // Check if we're approaching timeout BEFORE starting job
       const elapsed = Date.now() - startTime;
-      if (elapsed > CONFIG.WORKER_TIMEOUT_MS) {
-        console.warn(`⏱️ Worker timeout approaching, stopping early`);
+      const remainingTime = CONFIG.WORKER_TIMEOUT_MS - CONFIG.TIMEOUT_MARGIN_MS - elapsed;
+
+      if (remainingTime < CONFIG.JOB_TIMEOUT_MS) {
+        console.warn(`⏱️ Insufficient time remaining (${remainingTime}ms), stopping early`);
+        // Collect remaining unprocessed jobs
+        for (let j = i; j < jobs.length; j++) {
+          unprocessedJobIds.push(jobs[j].id);
+        }
         break;
       }
 
-      console.log(`🔄 Processing job ${job.id} (account: ${job.account_id}, type: ${job.sync_type}, attempt: ${job.attempts + 1}/${job.max_attempts})`);
+      console.log(`🔄 Processing job ${i + 1}/${jobs.length}: ${job.id} (account: ${job.account_id}, type: ${job.sync_type}, attempt: ${job.attempts}/${job.max_attempts})`);
+
+      // Record sync start in sync_status
+      await recordSyncStart(admin, job);
 
       // Process the job
       const result = await processJob(job, SUPABASE_URL, SERVICE_KEY);
@@ -436,32 +552,55 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
 
       if (result.success) {
         stats.jobs_succeeded++;
+        consecutiveFailures = 0; // Reset circuit breaker
         console.log(`✅ Job ${job.id} succeeded (${result.duration_ms}ms)`);
       } else {
         stats.jobs_failed++;
+        consecutiveFailures++;
         console.error(`❌ Job ${job.id} failed: ${result.error} (${result.duration_ms}ms)`);
+
+        // Circuit breaker: stop if too many consecutive failures
+        if (consecutiveFailures >= CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
+          console.error(`🔴 Circuit breaker triggered after ${consecutiveFailures} consecutive failures`);
+          // Collect remaining unprocessed jobs
+          for (let j = i + 1; j < jobs.length; j++) {
+            unprocessedJobIds.push(jobs[j].id);
+          }
+          // Update current job status before breaking
+          await updateJobStatus(admin, job, result);
+          break;
+        }
       }
 
       // Update job status
       await updateJobStatus(admin, job, result);
     }
 
+    // Reset any unprocessed jobs back to pending
+    if (unprocessedJobIds.length > 0) {
+      await resetJobsToPending(admin, unprocessedJobIds);
+    }
+
     // Update worker run with success
+    const notes = unprocessedJobIds.length > 0
+      ? `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs (${unprocessedJobIds.length} reset to pending)`
+      : `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs`;
+
     await updateWorkerRun(admin, run_id, {
       ...stats,
       status: 'completed',
-      notes: `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs`
+      notes
     });
 
-    console.log(`✅ Worker completed: ${stats.jobs_succeeded} succeeded, ${stats.jobs_failed} failed`);
+    console.log(`✅ Worker completed: ${stats.jobs_succeeded} succeeded, ${stats.jobs_failed} failed, ${unprocessedJobIds.length} reset`);
 
-  } catch (error: any) {
-    console.error("❌ Worker error:", error);
+  } catch (error: unknown) {
+    console.error("❌ Worker error:", getErrorMessage(error));
 
     await updateWorkerRun(admin, run_id, {
       ...stats,
       status: 'failed',
-      notes: error.message
+      notes: truncateError(error)
     });
 
     throw error;
@@ -517,13 +656,13 @@ Deno.serve(async (req) => {
       { status: 200, headers: corsHeaders }
     );
 
-  } catch (error: any) {
-    console.error("❌ Worker handler error:", error);
+  } catch (error: unknown) {
+    console.error("❌ Worker handler error:", getErrorMessage(error));
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || "Internal server error"
+        error: truncateError(error)
       }),
       { status: 500, headers: corsHeaders }
     );
