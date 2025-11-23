@@ -13,10 +13,12 @@ import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
 import { useGmbStatus } from "@/hooks/use-gmb-status";
 import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
+import * as Sentry from "@sentry/nextjs";
 
 // Create a client instance for React Query
 const queryClient = new QueryClient({
@@ -59,6 +61,55 @@ const PROTECTED_ROUTES = [
   "features",
   "gmb-posts",
 ];
+
+// Error Fallback Component
+function ErrorFallback({
+  error,
+  resetError,
+}: {
+  error: Error;
+  resetError: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="max-w-md p-8 text-center space-y-4">
+        <div className="w-16 h-16 mx-auto bg-red-500/10 rounded-full flex items-center justify-center">
+          <svg
+            className="w-8 h-8 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">
+          Something went wrong
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {error.message || "An unexpected error occurred"}
+        </p>
+        <div className="flex gap-3 justify-center">
+          <Button onClick={resetError} variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
+          <Button
+            onClick={() => (window.location.href = "/")}
+            className="gap-2"
+          >
+            Go Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -152,39 +203,50 @@ export default function DashboardLayout({
           <KeyboardProvider
             onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
           >
-            <div className="relative min-h-screen bg-background">
-              <Sidebar
-                isOpen={sidebarOpen}
-                onClose={() => setSidebarOpen(false)}
-                userProfile={userProfile}
-              />
-
-              <div className="lg:pl-[280px] pt-8">
-                <Header
-                  onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-                  onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+            <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
+              <div className="relative min-h-screen bg-background">
+                <Sidebar
+                  isOpen={sidebarOpen}
+                  onClose={() => setSidebarOpen(false)}
                   userProfile={userProfile}
                 />
 
-                <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
-                  <div className="mx-auto max-w-7xl">
-                    {/* Route Protection Logic */}
-                    {isProtectedRoute && !gmbLoading && !gmbConnected ? (
-                      <GMBOnboardingView />
-                    ) : (
-                      children
-                    )}
-                  </div>
-                </main>
+                <div className="lg:pl-[280px] pt-8">
+                  <Header
+                    onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+                    onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+                    userProfile={userProfile}
+                  />
+
+                  <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
+                    <div className="mx-auto max-w-7xl">
+                      {/* Route Protection Logic */}
+                      {isProtectedRoute && gmbLoading ? (
+                        <div className="flex items-center justify-center min-h-[60vh]">
+                          <div className="text-center space-y-3">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                            <p className="text-sm text-muted-foreground">
+                              Checking GMB connection...
+                            </p>
+                          </div>
+                        </div>
+                      ) : isProtectedRoute && !gmbConnected ? (
+                        <GMBOnboardingView />
+                      ) : (
+                        children
+                      )}
+                    </div>
+                  </main>
+                </div>
+
+                <MobileNav />
+
+                <CommandPalette
+                  open={commandPaletteOpen}
+                  onOpenChange={setCommandPaletteOpen}
+                />
               </div>
-
-              <MobileNav />
-
-              <CommandPalette
-                open={commandPaletteOpen}
-                onOpenChange={setCommandPaletteOpen}
-              />
-            </div>
+            </Sentry.ErrorBoundary>
           </KeyboardProvider>
         </DynamicThemeProvider>
       </BrandProfileProvider>
