@@ -26,8 +26,8 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
  * - TRIGGER_SECRET: Secret for authenticating trigger calls
  *
  * CRON SCHEDULE (recommended):
- * - Every 5 minutes: star-slash-5 space star space star space star space star
- * - Or every 2 minutes for faster processing: star-slash-2 space star space star space star space star
+ * - Every 5 minutes (cron expression: asterisk-slash-five asterisk asterisk asterisk asterisk)
+ * - Or every 2 minutes for faster processing (cron expression: asterisk-slash-two asterisk asterisk asterisk asterisk)
  *
  * المنطق (Logic in Arabic):
  * العامل (Worker) يقوم بمعالجة المهام من الطابور بشكل متسلسل.
