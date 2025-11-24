@@ -1,66 +1,59 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  Video,
-  BarChart3,
-  MessageSquare,
-  MapPin,
-  FileText,
-  Sparkles,
-} from "lucide-react";
-import { Link } from "@/lib/navigation";
-import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Video, BarChart3, MessageSquare, MapPin, FileText, Sparkles } from 'lucide-react'
+import { Link } from '@/lib/navigation'
+import { useTranslations } from 'next-intl'
+import { motion } from 'framer-motion'
 
 const quickActions = [
   {
     icon: Video,
-    label: "uploadVideo",
-    href: "/youtube-dashboard",
-    color: "text-red-500",
-    bgColor: "bg-red-500/10",
+    label: 'uploadVideo',
+    href: '/youtube-dashboard',
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10',
   },
   {
     icon: BarChart3,
-    label: "viewAnalytics",
-    href: "/analytics",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
+    label: 'viewAnalytics',
+    href: '/analytics',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
   },
   {
     icon: MessageSquare,
-    label: "replyReviews",
-    href: "/reviews",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
+    label: 'replyReviews',
+    href: '/reviews',
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
   },
   {
     icon: MapPin,
-    label: "manageLocations",
-    href: "/locations",
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
+    label: 'manageLocations',
+    href: '/locations',
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
   },
   {
     icon: FileText,
-    label: "createPost",
-    href: "/posts",
-    color: "text-orange-500",
-    bgColor: "bg-orange-500/10",
+    label: 'createPost',
+    href: '/posts',
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-500/10',
   },
   {
     icon: Sparkles,
-    label: "aiStudio",
-    href: "/ai-command-center",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    label: 'aiStudio',
+    href: '/ai-command-center',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
   },
-];
+]
 
 export function QuickActions() {
-  const t = useTranslations("home.quickActions");
+  const t = useTranslations('home.quickActions')
 
   const container = {
     hidden: { opacity: 0 },
@@ -70,18 +63,19 @@ export function QuickActions() {
         staggerChildren: 0.1,
       },
     },
-  };
+  }
 
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
-  };
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="quick-actions"
     >
       <Card className="border-border/40 bg-card/50 backdrop-blur relative overflow-hidden">
         {/* Subtle gradient */}
@@ -94,7 +88,7 @@ export function QuickActions() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            {t("title")}
+            {t('title')}
           </motion.h2>
 
           <motion.div
@@ -109,7 +103,7 @@ export function QuickActions() {
                   <motion.div
                     whileHover={{ scale: 1.05, y: -5 }}
                     whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
                   >
                     <Button
                       variant="outline"
@@ -140,5 +134,5 @@ export function QuickActions() {
         </div>
       </Card>
     </motion.div>
-  );
+  )
 }
