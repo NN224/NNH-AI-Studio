@@ -17,6 +17,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
 import { useGmbStatus } from "@/hooks/use-gmb-status";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
 import * as Sentry from "@sentry/nextjs";
 
@@ -128,9 +129,17 @@ export default function DashboardLayout({
     name: "User",
     avatarUrl: null,
   });
+  const [userId, setUserId] = useState<string | null>(null);
 
   // GMB Status
-  const { connected: gmbConnected, loading: gmbLoading } = useGmbStatus();
+  const {
+    connected: gmbConnected,
+    loading: gmbLoading,
+    activeAccount,
+  } = useGmbStatus();
+
+  // Sync Status
+  const { isSyncing } = useSyncStatus(userId || undefined);
 
   // Check if current route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
@@ -166,6 +175,7 @@ export default function DashboardLayout({
       const avatarUrl = user.user_metadata?.avatar_url || null;
 
       setUserProfile({ name, avatarUrl });
+      setUserId(user.id);
       setIsAuthenticated(true);
     };
 
@@ -197,6 +207,11 @@ export default function DashboardLayout({
     return null;
   }
 
+  // Determine Sync State
+  const isFirstSync = isSyncing && activeAccount && !activeAccount.last_sync;
+  const isSubsequentSync =
+    isSyncing && activeAccount && !!activeAccount.last_sync;
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProfileProvider>
@@ -206,6 +221,17 @@ export default function DashboardLayout({
           >
             <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
               <div className="relative min-h-screen bg-background">
+                {/* Sync Banner for subsequent syncs */}
+                {isSubsequentSync && (
+                  <div className="bg-blue-600 text-white px-4 py-2 text-sm text-center font-medium animate-in slide-in-from-top">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating your dashboard with the latest data from
+                      Google...
+                    </div>
+                  </div>
+                )}
+
                 <Sidebar
                   isOpen={sidebarOpen}
                   onClose={() => setSidebarOpen(false)}
@@ -233,6 +259,27 @@ export default function DashboardLayout({
                         </div>
                       ) : isProtectedRoute && !gmbConnected ? (
                         <GMBOnboardingView />
+                      ) : isFirstSync ? (
+                        // First Sync Overlay
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 animate-in fade-in zoom-in duration-500">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                            <RefreshCw className="h-16 w-16 text-primary animate-spin relative z-10" />
+                          </div>
+                          <div className="text-center space-y-2 max-w-md">
+                            <h2 className="text-2xl font-bold tracking-tight">
+                              Setting up your dashboard
+                            </h2>
+                            <p className="text-muted-foreground">
+                              We are importing your business locations, reviews,
+                              and insights from Google. This may take a
+                              minute...
+                            </p>
+                          </div>
+                          <div className="w-full max-w-xs bg-secondary/50 rounded-full h-2 overflow-hidden">
+                            <div className="h-full bg-primary animate-progress-indeterminate" />
+                          </div>
+                        </div>
                       ) : (
                         children
                       )}
