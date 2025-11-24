@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import {
   deletePost,
   publishPost,
-  syncPostsFromGoogle,
   bulkDeletePosts,
   bulkPublishPosts,
 } from '@/server/actions/posts-management'

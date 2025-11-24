@@ -33,7 +33,6 @@ import { AIAssistantSidebar } from './ai-assistant-sidebar'
 import { BulkActionBar } from './bulk-action-bar'
 import { AutoReplySettingsPanel } from './auto-reply-settings-panel'
 import { useReviews } from '@/hooks/use-reviews'
-import { syncReviewsFromGoogle } from '@/server/actions/reviews-management'
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache'
 import type { GMBReview } from '@/lib/types/database'
 
