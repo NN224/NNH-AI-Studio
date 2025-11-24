@@ -1,57 +1,24 @@
-'use client';
+'use client'
 
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { syncAllLocations } from '@/server/actions/gmb-sync';
-import { cacheUtils } from '@/hooks/use-dashboard-cache';
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { cacheUtils } from '@/hooks/use-dashboard-cache'
 
 export function QuickActionButtons() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  const handleSyncAll = async () => {
-    if (loading) return;
-    setLoading(true);
-
-    try {
-      const result = await syncAllLocations();
-
-      if (result.success) {
-        toast.success(result.message || 'All data synced successfully!');
-        cacheUtils.invalidateOverview();
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('gmb-sync-complete'));
-          window.dispatchEvent(new Event('dashboard:refresh'));
-        }
-        router.refresh();
-      } else {
-        const errorMsg = result.error || 'Failed to sync data. Please try again.';
-        if (errorMsg.includes('expired') || errorMsg.includes('reconnect') || errorMsg.includes('connect your account')) {
-          toast.error('🔗 Google connection expired. Go to Settings to reconnect.', {
-            duration: 8000,
-            action: {
-              label: 'Settings',
-              onClick: () => router.push('/settings')
-            }
-          });
-        } else {
-          toast.error(`❌ ${errorMsg}`);
-        }
-      }
-    } catch (error) {
-      console.error('[QuickActionButtons] Error during Sync All:', error);
-      toast.error('Failed to sync data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSyncAll = () => {
+    // Old sync removed - redirect to use global sync button
+    toast.info('Please use the global sync button in the header')
+  }
 
   return (
-    <Button 
-      variant="ghost" 
+    <Button
+      variant="ghost"
       size="sm"
       className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 transition-all duration-300 ease-in-out"
       onClick={handleSyncAll}
@@ -66,5 +33,5 @@ export function QuickActionButtons() {
         '🔄 Sync All'
       )}
     </Button>
-  );
+  )
 }
