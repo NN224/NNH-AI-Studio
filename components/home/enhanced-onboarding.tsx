@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -133,6 +133,13 @@ export function EnhancedOnboarding() {
   const [currentStep, setCurrentStep] = useState(0)
   const [hasCompletedTour, setHasCompletedTour] = useState(false)
   const [isInteracting, setIsInteracting] = useState(false)
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    className: string
+    style: React.CSSProperties
+  }>({
+    className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    style: {},
+  })
   const spotlightRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -178,6 +185,64 @@ export function EnhancedOnboarding() {
       }
     }
   }, [currentStep])
+
+  // Update tooltip position
+  useEffect(() => {
+    if (!isActive) return
+
+    const step = tourSteps[currentStep]
+
+    // Calculate position for tooltip
+    if (step.position === 'center') {
+      setTooltipPosition({
+        className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        style: {},
+      })
+      return
+    }
+
+    if (!step.target) {
+      setTooltipPosition({
+        className: 'fixed left-1/2 -translate-x-1/2',
+        style: { top: '6rem' },
+      })
+      return
+    }
+
+    const targetElement = document.querySelector(step.target)
+    if (!targetElement) {
+      setTooltipPosition({
+        className: 'fixed left-1/2 -translate-x-1/2',
+        style: { top: '6rem' },
+      })
+      return
+    }
+
+    const rect = targetElement.getBoundingClientRect()
+    let className = ''
+    let style: React.CSSProperties = {}
+
+    switch (step.position) {
+      case 'top':
+        className = 'fixed left-1/2 -translate-x-1/2 -translate-y-full'
+        style = { top: rect.top - 20 }
+        break
+      case 'bottom':
+        className = 'fixed left-1/2 -translate-x-1/2'
+        style = { top: rect.bottom + 20 }
+        break
+      case 'left':
+        className = 'fixed top-1/2 -translate-y-1/2 -translate-x-full'
+        style = { left: rect.left - 20 }
+        break
+      case 'right':
+        className = 'fixed top-1/2 -translate-y-1/2'
+        style = { left: rect.right + 20 }
+        break
+    }
+
+    setTooltipPosition({ className, style })
+  }, [currentStep, isActive])
 
   // Update spotlight position
   useEffect(() => {
@@ -240,60 +305,6 @@ export function EnhancedOnboarding() {
   const step = tourSteps[currentStep]
   const Icon = step.icon
   const progress = ((currentStep + 1) / tourSteps.length) * 100
-
-  // Calculate tooltip position using useMemo to avoid re-querying DOM on every render
-  const tooltipPosition = useMemo(() => {
-    if (step.position === 'center') {
-      return {
-        className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-        style: {},
-      }
-    }
-
-    if (!step.target) {
-      return {
-        className: 'fixed left-1/2 -translate-x-1/2',
-        style: { top: '6rem' },
-      }
-    }
-
-    // Only query DOM inside useMemo, which runs once per step change
-    const targetElement = document.querySelector(step.target)
-    if (!targetElement) {
-      return {
-        className: 'fixed left-1/2 -translate-x-1/2',
-        style: { top: '6rem' },
-      }
-    }
-
-    const rect = targetElement.getBoundingClientRect()
-    let className = ''
-    let style: React.CSSProperties = {}
-
-    switch (step.position) {
-      case 'top':
-        className = 'fixed left-1/2 -translate-x-1/2 -translate-y-full'
-        style = { top: rect.top - 20 }
-        break
-      case 'bottom':
-        className = 'fixed left-1/2 -translate-x-1/2'
-        style = { top: rect.bottom + 20 }
-        break
-      case 'left':
-        className = 'fixed top-1/2 -translate-y-1/2 -translate-x-full'
-        style = { left: rect.left - 20 }
-        break
-      case 'right':
-        className = 'fixed top-1/2 -translate-y-1/2'
-        style = { left: rect.right + 20 }
-        break
-      default:
-        className = 'fixed left-1/2 -translate-x-1/2'
-        style = { top: '6rem' }
-    }
-
-    return { className, style }
-  }, [currentStep, step.position, step.target]) // Re-calculate only when step changes
 
   return (
     <AnimatePresence>
