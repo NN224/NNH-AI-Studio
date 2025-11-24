@@ -2,6 +2,7 @@
 // Shared GMB helper functions for token management and resource building
 
 import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
+import { createAdminClient } from '@/lib/supabase/server';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -44,6 +45,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 
 /**
  * Get a valid access token for a GMB account, refreshing if necessary.
+ * Uses admin client to bypass RLS for secure token operations.
  * Assumes gmb_accounts schema contains: access_token, refresh_token, token_expires_at.
  * @throws Error if account not found or token decryption fails (requires re-authentication)
  */
@@ -51,13 +53,17 @@ export async function getValidAccessToken(
   supabase: any,
   accountId: string
 ): Promise<string> {
-  const { data: account, error } = await supabase
+  // Use admin client to bypass RLS for token operations (privileged operation)
+  const adminClient = createAdminClient();
+
+  const { data: account, error } = await adminClient
     .from('gmb_accounts')
     .select('access_token, refresh_token, token_expires_at, expires_at')
     .eq('id', accountId)
     .maybeSingle();
 
   if (error || !account) {
+    console.error('[GMB Helpers] Account not found:', accountId, error);
     throw new Error('Account not found');
   }
 
@@ -72,7 +78,7 @@ export async function getValidAccessToken(
     console.error('[GMB Helpers] Token decryption failed for account:', accountId);
 
     // Mark account as inactive - requires reconnection
-    await supabase
+    await adminClient
       .from('gmb_accounts')
       .update({
         is_active: false,
@@ -121,7 +127,7 @@ export async function getValidAccessToken(
     updatePayload.refresh_token = encryptToken(tokens.refresh_token);
   }
 
-  await supabase
+  await adminClient
     .from('gmb_accounts')
     .update(updatePayload)
     .eq('id', accountId);
