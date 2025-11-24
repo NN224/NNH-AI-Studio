@@ -164,20 +164,6 @@ export default function AICommandCenterPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back</span>
             </Button>
-
-            {/* Sync Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isFetching}
-              className="gap-2 border-orange-500/30 hover:bg-orange-500/10"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
-              />
-              <span className="hidden sm:inline">Sync</span>
-            </Button>
           </div>
         </div>
       </div>
