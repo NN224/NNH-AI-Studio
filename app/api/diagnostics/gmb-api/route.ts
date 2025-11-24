@@ -149,11 +149,11 @@ export async function GET() {
         location.location_id,
       );
 
-      // Test 2: Locations API
+      // Test 2: Locations API (Requires readMask)
       try {
         const startTime = Date.now();
         const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}`,
+          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}?readMask=name,title,storefrontAddress`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -173,11 +173,11 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 3: Reviews API
+      // Test 3: Reviews API (Uses v4 API)
       try {
         const startTime = Date.now();
         const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}/reviews?pageSize=1`,
+          `${GMB_CONSTANTS.GMB_V4_BASE}/${locationName}/reviews?pageSize=1`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -197,7 +197,7 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 4: Questions API
+      // Test 4: Questions API (Uses Q&A API)
       try {
         const startTime = Date.now();
         const response = await fetch(
@@ -221,11 +221,11 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 5: Posts API (Local Posts)
+      // Test 5: Posts API (Uses v4 API)
       try {
         const startTime = Date.now();
         const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}/localPosts?pageSize=1`,
+          `${GMB_CONSTANTS.GMB_V4_BASE}/${locationName}/localPosts?pageSize=1`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -245,11 +245,11 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 6: Media API
+      // Test 6: Media API (Uses v4 API)
       try {
         const startTime = Date.now();
         const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}/media?pageSize=1`,
+          `${GMB_CONSTANTS.GMB_V4_BASE}/${locationName}/media?pageSize=1`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -269,11 +269,11 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 7: Insights API (Performance Metrics)
+      // Test 7: Insights API (Uses v4 API - reportLocationInsights)
       try {
         const startTime = Date.now();
         const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}:fetchInsights`,
+          `${GMB_CONSTANTS.GMB_V4_BASE}/${locationName}:reportLocationInsights`,
           {
             method: "POST",
             headers: {
@@ -281,7 +281,16 @@ export async function GET() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              insightTypes: ["INSIGHT_TYPE_UNSPECIFIED"],
+              locationNames: [locationName],
+              basicRequest: {
+                metricRequests: [{ metric: "ALL" }],
+                timeRange: {
+                  startTime: new Date(
+                    Date.now() - 7 * 24 * 60 * 60 * 1000,
+                  ).toISOString(),
+                  endTime: new Date().toISOString(),
+                },
+              },
             }),
           },
         );
