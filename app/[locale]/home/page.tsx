@@ -42,6 +42,8 @@ export default async function HomePage({
     { count: reviewsCount },
     { count: accountsCount },
     { data: youtubeToken },
+    { count: repliedReviewsCount },
+    { data: recentActivityDates },
   ] = await Promise.all([
     supabase
       .from("gmb_locations")
@@ -61,7 +63,65 @@ export default async function HomePage({
       .eq("user_id", userId)
       .eq("provider", "youtube")
       .maybeSingle(),
+    supabase
+      .from("gmb_reviews")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .not("reply_text", "is", null),
+    supabase
+      .from("gmb_reviews")
+      .select("create_time, replied_at")
+      .eq("user_id", userId)
+      .order("create_time", { ascending: false })
+      .limit(50),
   ]);
+
+  // Calculate response rate
+  const responseRate =
+    reviewsCount && reviewsCount > 0
+      ? Math.round(((repliedReviewsCount || 0) / reviewsCount) * 100)
+      : 0;
+
+  // Calculate streak (consecutive days with activity)
+  let streak = 0;
+  if (recentActivityDates && recentActivityDates.length > 0) {
+    const dates = new Set<string>();
+    recentActivityDates.forEach((item) => {
+      if (item.create_time)
+        dates.add(new Date(item.create_time).toDateString());
+      if (item.replied_at) dates.add(new Date(item.replied_at).toDateString());
+    });
+
+    const sortedDates = Array.from(dates)
+      .map((d) => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check if there is activity today or yesterday to start the streak
+    const lastActivity = sortedDates[0];
+    if (lastActivity) {
+      const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 1) {
+        streak = 1;
+        for (let i = 0; i < sortedDates.length - 1; i++) {
+          const current = sortedDates[i];
+          const next = sortedDates[i + 1];
+          const diff = Math.abs(current.getTime() - next.getTime());
+          const days = Math.round(diff / (1000 * 60 * 60 * 24));
+
+          if (days === 1) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+  }
 
   // Calculate average rating
   let averageRating = "0.0";
@@ -133,37 +193,30 @@ export default async function HomePage({
         )
       : 0;
 
-    // Calculate trend data for last 7 days (for sparkline charts)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setUTCHours(0, 0, 0, 0);
-      date.setUTCDate(date.getUTCDate() - (6 - i));
-      return date;
-    });
+  // Calculate trend data for last 7 days (for sparkline charts)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCDate(date.getUTCDate() - (6 - i));
+    return date;
+  });
 
-    // Fetch reviews count per day for last 7 days
-    const reviewsTrendPromises = last7Days.map(async (startDate) => {
-      const endDate = new Date(startDate);
-      endDate.setUTCDate(endDate.getUTCDate() + 1);
-      const { count } = await supabase
-        .from("gmb_reviews")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("create_time", startDate.toISOString())
-        .lt("create_time", endDate.toISOString());
-      return count || 0;
-    });
+  // Fetch reviews count per day for last 7 days
+  const reviewsTrendPromises = last7Days.map(async (startDate) => {
+    const endDate = new Date(startDate);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    const { count } = await supabase
+      .from("gmb_reviews")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("create_time", startDate.toISOString())
+      .lt("create_time", endDate.toISOString());
+    return count || 0;
+  });
 
   const reviewsTrend = await Promise.all(reviewsTrendPromises);
 
   // Calculate time of day for greeting
-  const getTimeOfDay = (): "morning" | "afternoon" | "evening" | "night" => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "morning";
-    if (hour >= 12 && hour < 17) return "afternoon";
-    if (hour >= 17 && hour < 21) return "evening";
-    return "night";
-  };
 
   // Build progress tracker items
   const progressItems = [
@@ -192,11 +245,6 @@ export default async function HomePage({
       href: "/reviews",
     },
   ];
-
-  // Calculate completed tasks count
-  const completedTasksCount = progressItems.filter(
-    (item) => item.completed,
-  ).length;
 
   // Fetch recent activities
   const { data: recentReviews } = await supabase
@@ -319,6 +367,8 @@ export default async function HomePage({
       progressItems={progressItems}
       activities={activities}
       insights={insights}
+      responseRate={responseRate}
+      streak={streak}
     />
   );
 }

@@ -17,7 +17,6 @@ import { AIChatWidget } from "@/components/home/ai-chat-widget";
 import { AchievementsBadge } from "@/components/home/achievements-badge";
 import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
-import { SmartNotifications } from "@/components/home/smart-notifications";
 import { AISuggestions } from "@/components/home/ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { AchievementSystem } from "@/components/home/achievement-system";
@@ -48,8 +47,27 @@ interface HomePageContentProps {
     completed: boolean;
     href: string;
   }>;
-  activities: Array<any>;
-  insights: Array<any>;
+  activities: Array<{
+    id: string;
+    type: "review" | "youtube" | "location" | "post";
+    title: string;
+    description: string;
+    timestamp: Date;
+    metadata?: any;
+    actionUrl?: string;
+  }>;
+  insights: Array<{
+    id: string;
+    type: "alert" | "success" | "recommendation" | "tip";
+    title: string;
+    description: string;
+    priority: "high" | "medium" | "low";
+    actionText?: string;
+    actionUrl?: string;
+    impact?: string;
+  }>;
+  responseRate: number;
+  streak: number;
 }
 
 function getTimeOfDay(): "morning" | "afternoon" | "evening" | "night" {
@@ -72,10 +90,12 @@ export function HomePageContent({
   weeklyGrowth,
   reviewsTrend,
   youtubeSubs,
-  hasYouTube,
+
   progressItems,
   activities,
   insights,
+  responseRate,
+  streak,
 }: HomePageContentProps) {
   // Calculate completed tasks count
   const completedTasksCount = progressItems.filter(
@@ -125,12 +145,12 @@ export function HomePageContent({
                     weeklyGrowth: weeklyGrowth,
                     totalReviews: reviewsCount || 0,
                     averageRating: parseFloat(averageRating) || 0,
-                    responseRate: 85, // Mock data - calculate from actual responses
+                    responseRate: responseRate,
                   }}
                   profileCompletion={
                     (completedTasksCount / progressItems.length) * 100
                   }
-                  streak={7} // Mock data - calculate from actual activity
+                  streak={streak}
                   achievements={[
                     {
                       id: "first-review",
@@ -225,7 +245,7 @@ export function HomePageContent({
                 businessData={{
                   reviewCount: reviewsCount || 0,
                   avgRating: parseFloat(averageRating) || 0,
-                  responseRate: 85, // Mock data
+                  responseRate: responseRate,
                   lastActivity: new Date(),
                 }}
               />
@@ -260,7 +280,7 @@ export function HomePageContent({
                 className="xl:col-span-4 space-y-6"
               >
                 <AchievementsBadge />
-                <Card className="p-4 border-orange-500/30 bg-gradient-to-br from-orange-900/10 via-black to-purple-900/10">
+                <Card className="p-4 border-orange-500/30 bg-linear-to-br from-orange-900/10 via-black to-purple-900/10">
                   <h3 className="text-lg font-semibold mb-3">Your Progress</h3>
                   <AchievementSystem
                     userId={user.id}
