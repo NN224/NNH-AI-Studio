@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import { useRouter } from '@/lib/navigation';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState } from 'react'
+import { useRouter } from '@/lib/navigation'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   ArrowLeft,
   Edit,
@@ -16,24 +16,24 @@ import {
   Star,
   ExternalLink,
   Trash2,
-  Settings
-} from 'lucide-react';
+  Settings,
+} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
-import { getHealthScoreColor, getStatusColor } from '@/components/locations/location-types';
-import { formatLargeNumber } from '@/components/locations/location-types';
+} from '@/components/ui/dropdown-menu'
+import { toast } from 'sonner'
+import { getHealthScoreColor, getStatusColor } from '@/components/locations/location-types'
+import { formatLargeNumber } from '@/components/locations/location-types'
 
 interface LocationDetailHeaderProps {
-  location: any;
-  locationId: string;
-  metadata: any;
-  onRefresh: () => void;
-  gmbAccountId?: string; // Optional: pass accountId if available
+  location: any
+  locationId: string
+  metadata: any
+  onRefresh: () => void
+  gmbAccountId?: string // Optional: pass accountId if available
 }
 
 export function LocationDetailHeader({
@@ -41,154 +41,100 @@ export function LocationDetailHeader({
   locationId,
   metadata,
   onRefresh,
-  gmbAccountId
+  gmbAccountId,
 }: LocationDetailHeaderProps) {
-  const router = useRouter();
-  const [syncing, setSyncing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [accountId, setAccountId] = useState<string | null>(gmbAccountId || null);
+  const router = useRouter()
+  const [syncing, setSyncing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [accountId, setAccountId] = useState<string | null>(gmbAccountId || null)
 
   // Fetch accountId if not provided
   React.useEffect(() => {
-    if (accountId) return; // Already have accountId
+    if (accountId) return // Already have accountId
 
     const fetchAccountId = async () => {
       try {
         // Try to get accountId from location detail API
-        const res = await fetch(`/api/gmb/location/${locationId}`);
+        const res = await fetch(`/api/gmb/location/${locationId}`)
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json()
           if (data?.gmb_account_id) {
-            setAccountId(data.gmb_account_id);
-            return;
+            setAccountId(data.gmb_account_id)
+            return
           }
         }
 
         // Fallback: get first active account
-        const accountsRes = await fetch('/api/gmb/accounts');
-        const accountsData = await accountsRes.json();
+        const accountsRes = await fetch('/api/gmb/accounts')
+        const accountsData = await accountsRes.json()
         if (accountsData && accountsData.length > 0) {
-          const activeAccount = accountsData.find((acc: any) => acc.is_active) || accountsData[0];
+          const activeAccount = accountsData.find((acc: any) => acc.is_active) || accountsData[0]
           if (activeAccount?.id) {
-            setAccountId(activeAccount.id);
+            setAccountId(activeAccount.id)
           }
         }
       } catch (error) {
-        console.error('Failed to fetch accountId:', error);
+        console.error('Failed to fetch accountId:', error)
       }
-    };
+    }
 
-    fetchAccountId();
-  }, [locationId, accountId]);
+    fetchAccountId()
+  }, [locationId, accountId])
 
-  const name = location?.name || location?.title || 'Unnamed Location';
-  const address = location?.storefrontAddress?.addressLines?.[0] ||
-                 location?.address ||
-                 metadata?.address ||
-                 'N/A';
-  const phone = location?.phoneNumbers?.primaryPhoneNumber?.phoneNumber ||
-                location?.phone ||
-                metadata?.phone ||
-                null;
-  const website = location?.websiteUri || location?.website || metadata?.website || null;
-  const rating = location?.rating || metadata?.rating || 0;
-  const reviewCount = location?.reviewCount || metadata?.reviewCount || 0;
-  const healthScore = metadata?.healthScore || metadata?.health_score || 0;
-  const status = location?.status || metadata?.status || 'verified';
-  const isOpen = location?.openInfo?.status === 'OPEN' || metadata?.isOpen;
+  const name = location?.name || location?.title || 'Unnamed Location'
+  const address =
+    location?.storefrontAddress?.addressLines?.[0] ||
+    location?.address ||
+    metadata?.address ||
+    'N/A'
+  const phone =
+    location?.phoneNumbers?.primaryPhoneNumber?.phoneNumber ||
+    location?.phone ||
+    metadata?.phone ||
+    null
+  const website = location?.websiteUri || location?.website || metadata?.website || null
+  const rating = location?.rating || metadata?.rating || 0
+  const reviewCount = location?.reviewCount || metadata?.reviewCount || 0
+  const healthScore = metadata?.healthScore || metadata?.health_score || 0
+  const status = location?.status || metadata?.status || 'verified'
+  const isOpen = location?.openInfo?.status === 'OPEN' || metadata?.isOpen
 
   // Sync functionality moved to global sync button in header
-  const handleSync = async () => {
+  const handleSync = () => {
     // Legacy sync function - redirects to use global sync
-    toast.info('Please use the global sync button in the header');
-          toast.error(`Sync failed: ${errorMessage}`);
-          console.error('Sync API error (400):', errorData);
-          return;
-        }
-
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          toast.error(`Rate limit exceeded. Try again in ${retryAfter || 60} seconds.`);
-          return;
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || errorData.error || `Sync failed with status ${response.status}`);
-        }
-
-        const data = await response.json();
-        const tookSeconds = Math.round((data.took_ms || 0) / 1000);
-        toast.success(`Location synced successfully! (took ${tookSeconds}s)`);
-        onRefresh();
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-
-        // Handle AbortError specifically (timeout or manual cancellation)
-        if (fetchError.name === 'AbortError') {
-          // Don't show console.warn - it's expected for long-running operations
-          // Only show user-friendly message
-          toast.error('Sync timed out. The operation may still be processing. Please wait a moment and refresh the page.');
-          return;
-        }
-
-        // Re-throw other errors to be handled by outer catch
-        throw fetchError;
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          // Already handled in inner catch
-          return;
-        } else if (error.message.includes('fetch') || error.message.includes('network')) {
-          toast.error('Network error. Please check your internet connection.');
-        } else {
-          toast.error(error.message || 'Failed to sync location');
-        }
-      } else {
-        toast.error('An unexpected error occurred during sync');
-      }
-    } finally {
-      setSyncing(false);
-    }
-  };
+    toast.info('Please use the global sync button in the header')
+  }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
-      return;
+      return
     }
 
     try {
-      setDeleting(true);
+      setDeleting(true)
       const response = await fetch(`/api/locations?id=${locationId}`, {
         method: 'DELETE',
-      });
+      })
 
       if (!response.ok) {
-        throw new Error('Delete failed');
+        throw new Error('Delete failed')
       }
 
-      toast.success('Location deleted successfully');
-      router.push('/locations');
+      toast.success('Location deleted successfully')
+      router.push('/locations')
     } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete location');
+      console.error('Delete error:', error)
+      toast.error('Failed to delete location')
     } finally {
-      setDeleting(false);
+      setDeleting(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-4">
       {/* Breadcrumb & Actions */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/locations')}
-        >
+        <Button variant="ghost" onClick={() => router.push('/locations')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Locations
         </Button>
@@ -209,7 +155,14 @@ export function LocationDetailHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank')}>
+              <DropdownMenuItem
+                onClick={() =>
+                  window.open(
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+                    '_blank',
+                  )
+                }
+              >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View on Google Maps
               </DropdownMenuItem>
@@ -239,19 +192,14 @@ export function LocationDetailHeader({
               <div>
                 <h1 className="text-3xl font-bold mb-2">{name}</h1>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={getStatusColor(status)}>
-                    {status}
-                  </Badge>
+                  <Badge className={getStatusColor(status)}>{status}</Badge>
                   {isOpen && (
                     <Badge variant="outline" className="text-green-600 border-green-600">
                       Open Now
                     </Badge>
                   )}
                   {healthScore > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className={getHealthScoreColor(healthScore)}
-                    >
+                    <Badge variant="secondary" className={getHealthScoreColor(healthScore)}>
                       Health: {healthScore}%
                     </Badge>
                   )}
@@ -313,5 +261,5 @@ export function LocationDetailHeader({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
