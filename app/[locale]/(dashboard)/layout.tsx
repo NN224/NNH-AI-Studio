@@ -11,6 +11,9 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
+import { SyncProvider } from "@/contexts/SyncContext";
+import { FirstSyncOverlay } from "@/components/sync/first-sync-overlay";
+import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -287,16 +290,27 @@ export default function DashboardLayout({
                   </main>
                 </div>
 
-                <MobileNav />
+                  <MobileNav />
 
-                <CommandPalette
-                  open={commandPaletteOpen}
-                  onOpenChange={setCommandPaletteOpen}
-                />
-              </div>
-            </Sentry.ErrorBoundary>
-          </KeyboardProvider>
-        </DynamicThemeProvider>
+                  <CommandPalette
+                    open={commandPaletteOpen}
+                    onOpenChange={setCommandPaletteOpen}
+                  />
+
+                  {/* Global First Sync Overlay */}
+                  <FirstSyncOverlay />
+
+                  {/* Background Auto-Sync */}
+                  <BackgroundSyncWrapper
+                    enabled={true}
+                    intervalMinutes={30}
+                    showNotifications={false}
+                  />
+                </div>
+              </Sentry.ErrorBoundary>
+            </KeyboardProvider>
+          </DynamicThemeProvider>
+        </SyncProvider>
       </BrandProfileProvider>
     </QueryClientProvider>
   );

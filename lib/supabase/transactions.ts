@@ -1,11 +1,19 @@
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
-import type { LocationData, ReviewData, QuestionData } from '@/lib/gmb/sync-types'
+import type {
+  LocationData,
+  ReviewData,
+  QuestionData,
+  PostData,
+  MediaData,
+} from '@/lib/gmb/sync-types'
 
 export interface SyncTransactionPayload {
   accountId: string
   locations: LocationData[]
   reviews: ReviewData[]
   questions: QuestionData[]
+  posts?: PostData[]
+  media?: MediaData[]
 }
 
 export interface SyncTransactionResult {
@@ -14,6 +22,8 @@ export interface SyncTransactionResult {
   locations_synced: number
   reviews_synced: number
   questions_synced: number
+  posts_synced?: number
+  media_synced?: number
 }
 
 const RPC_NAME = 'sync_gmb_data_transactional'
@@ -29,7 +39,7 @@ function formatRpcError(error: PostgrestError | null) {
 
 async function executeRpc(
   supabase: SupabaseClient,
-  payload: SyncTransactionPayload
+  payload: SyncTransactionPayload,
 ): Promise<SyncTransactionResult> {
   const start = performance.now()
   logTransactionStep('rpc:start', { rpc: RPC_NAME, accountId: payload.accountId })
@@ -39,6 +49,8 @@ async function executeRpc(
     p_locations: payload.locations,
     p_reviews: payload.reviews,
     p_questions: payload.questions,
+    p_posts: payload.posts || [],
+    p_media: payload.media || [],
   })
 
   const duration = performance.now() - start
@@ -58,7 +70,7 @@ async function executeRpc(
 export async function runSyncTransactionWithRetry(
   supabase: SupabaseClient,
   payload: SyncTransactionPayload,
-  maxRetries = 3
+  maxRetries = 3,
 ) {
   let attempt = 0
   let lastError: unknown = null
@@ -82,4 +94,3 @@ export async function runSyncTransactionWithRetry(
 
   throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
-

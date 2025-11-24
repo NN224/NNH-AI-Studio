@@ -69,49 +69,10 @@ export function LocationsOverviewTab() {
     checkGMBAccount();
   }, []);
 
+  // Sync functionality moved to global sync button in header
   const handleSync = async () => {
-    // Check if account ID is available
-    if (!gmbAccountId) {
-      console.warn("Sync attempted but gmbAccountId is null/undefined");
-      toast.error("No GMB account found. Please connect a GMB account first.");
-      return;
-    }
-
-    // Prevent multiple concurrent syncs
-    if (syncing) {
-      toast.info("Sync already in progress");
-      return;
-    }
-
-    console.log("Starting sync for account:", gmbAccountId);
-
-    try {
-      setSyncing(true);
-
-      // Sync can take a while (locations, reviews, media, metrics, etc.)
-      // Increase timeout to 3 minutes (180 seconds) for full sync
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout
-
-      // Show info message that sync is starting (takes time)
-      toast.info("Sync started. This may take a few minutes...", {
-        duration: 3000,
-      });
-
-      try {
-        const requestBody = {
-          accountId: gmbAccountId,
-          syncType: "full",
-        };
-
-        console.log("Sync request body:", requestBody);
-
-        const response = await fetch("/api/gmb/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal,
-        });
+    // Legacy sync function - redirects to use global sync
+    toast.info("Please use the global sync button in the header");
 
         clearTimeout(timeoutId);
 
@@ -391,17 +352,7 @@ export function LocationsOverviewTab() {
               </>
             )}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`}
-            />
-            {syncing ? "Syncing..." : "Sync"}
-          </Button>
+          {/* Sync button removed - use global sync in header */}
           <Button
             variant="outline"
             size="sm"

@@ -1,17 +1,19 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type SyncProgressStage =
-  | "init"
-  | "locations_fetch"
-  | "reviews_fetch"
-  | "questions_fetch"
-  | "transaction"
-  | "cache_refresh"
-  | "complete"
+  | 'init'
+  | 'locations_fetch'
+  | 'reviews_fetch'
+  | 'questions_fetch'
+  | 'posts_fetch'
+  | 'media_fetch'
+  | 'transaction'
+  | 'cache_refresh'
+  | 'complete'
 
-export type SyncProgressStatus = "pending" | "running" | "completed" | "error"
+export type SyncProgressStatus = 'pending' | 'running' | 'completed' | 'error'
 
 export type SyncProgressState = {
   syncId?: string
@@ -46,7 +48,7 @@ export function useSyncProgress() {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const supportsSSE = useMemo(() => {
-    return typeof window !== "undefined" && "EventSource" in window
+    return typeof window !== 'undefined' && 'EventSource' in window
   }, [])
 
   const resetTimers = () => {
@@ -60,45 +62,51 @@ export function useSyncProgress() {
     }
   }
 
-  const handleProgressPayload = useCallback((payload?: SyncProgressState | null) => {
-    if (!payload) {
-      return
-    }
-    setProgress(payload)
-    setIsConnected(true)
-    setLastUpdate(Date.now())
-
-    if (payload.status === "running" && !startTime) {
-      setStartTime(Date.now())
-    } else if (!startTime) {
-      setStartTime(Date.now())
-    }
-  }, [startTime])
-
-  const pollLatestProgress = useCallback(async (options: StartOptions) => {
-    if (typeof window === "undefined") {
-      return
-    }
-    try {
-      const url = new URL("/api/sync/progress", window.location.origin)
-      url.searchParams.set("mode", "poll")
-      url.searchParams.set("accountId", options.accountId)
-      if (options.syncId) {
-        url.searchParams.set("syncId", options.syncId)
-      }
-      const response = await fetch(url.toString(), { cache: "no-store" })
-      if (!response.ok) {
-        setIsConnected(false)
+  const handleProgressPayload = useCallback(
+    (payload?: SyncProgressState | null) => {
+      if (!payload) {
         return
       }
-      const data = (await response.json()) as { event?: SyncProgressState | null }
-      handleProgressPayload(data.event ?? null)
+      setProgress(payload)
       setIsConnected(true)
-    } catch (error) {
-      console.warn("[useSyncProgress] Poll error", error)
-      setIsConnected(false)
-    }
-  }, [handleProgressPayload])
+      setLastUpdate(Date.now())
+
+      if (payload.status === 'running' && !startTime) {
+        setStartTime(Date.now())
+      } else if (!startTime) {
+        setStartTime(Date.now())
+      }
+    },
+    [startTime],
+  )
+
+  const pollLatestProgress = useCallback(
+    async (options: StartOptions) => {
+      if (typeof window === 'undefined') {
+        return
+      }
+      try {
+        const url = new URL('/api/sync/progress', window.location.origin)
+        url.searchParams.set('mode', 'poll')
+        url.searchParams.set('accountId', options.accountId)
+        if (options.syncId) {
+          url.searchParams.set('syncId', options.syncId)
+        }
+        const response = await fetch(url.toString(), { cache: 'no-store' })
+        if (!response.ok) {
+          setIsConnected(false)
+          return
+        }
+        const data = (await response.json()) as { event?: SyncProgressState | null }
+        handleProgressPayload(data.event ?? null)
+        setIsConnected(true)
+      } catch (error) {
+        console.warn('[useSyncProgress] Poll error', error)
+        setIsConnected(false)
+      }
+    },
+    [handleProgressPayload],
+  )
 
   useEffect(() => {
     if (!params) {
@@ -123,21 +131,23 @@ export function useSyncProgress() {
       }
 
       try {
-        const url = new URL("/api/sync/progress", window.location.origin)
-        url.searchParams.set("accountId", params.accountId)
+        const url = new URL('/api/sync/progress', window.location.origin)
+        url.searchParams.set('accountId', params.accountId)
         if (params.syncId) {
-          url.searchParams.set("syncId", params.syncId)
+          url.searchParams.set('syncId', params.syncId)
         }
         eventSource = new EventSource(url.toString())
         eventSource.onmessage = (event) => {
           if (cancelled) return
           try {
-            const parsed = JSON.parse(event.data) as ProgressEventPayload | { type: string; payload?: SyncProgressState }
+            const parsed = JSON.parse(event.data) as
+              | ProgressEventPayload
+              | { type: string; payload?: SyncProgressState }
             if (parsed?.payload) {
               handleProgressPayload(parsed.payload)
             }
           } catch (error) {
-            console.warn("[useSyncProgress] Failed to parse progress event", error)
+            console.warn('[useSyncProgress] Failed to parse progress event', error)
           }
         }
         eventSource.onerror = () => {
@@ -152,7 +162,7 @@ export function useSyncProgress() {
         }
         setUsingPolling(false)
       } catch (error) {
-        console.warn("[useSyncProgress] SSE not available, falling back to polling", error)
+        console.warn('[useSyncProgress] SSE not available, falling back to polling', error)
         setUsingPolling(true)
         pollLatestProgress(params)
         pollTimerRef.current = setInterval(() => pollLatestProgress(params), 5_000)
@@ -193,4 +203,3 @@ export function useSyncProgress() {
     active: Boolean(params),
   }
 }
-

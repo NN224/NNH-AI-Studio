@@ -26,7 +26,7 @@ export async function checkRateLimit(
   config: RateLimitConfig = {
     maxRequests: 100,
     windowMs: 60000, // 1 minute
-  }
+  },
 ): Promise<RateLimitResult> {
   try {
     const supabase = await createClient()
@@ -120,7 +120,7 @@ export async function cleanupRateLimitRecords(olderThanMs: number = 3600000): Pr
 export async function getRateLimitStatus(
   identifier: string,
   endpoint: string,
-  windowMs: number = 60000
+  windowMs: number = 60000,
 ): Promise<{ count: number; resetAt: Date }> {
   try {
     const supabase = await createClient()
@@ -173,10 +173,15 @@ export const RATE_LIMITS = {
     windowMs: 60000, // 30 writes per minute
   },
 
-  // GMB sync
+  // GMB sync - more lenient to avoid blocking long-running syncs
   GMB_SYNC: {
-    maxRequests: 5,
-    windowMs: 300000, // 5 syncs per 5 minutes
+    maxRequests: 10,
+    windowMs: 600000, // 10 syncs per 10 minutes (more permissive)
+  },
+  // GMB sync progress polling - very permissive for SSE fallback
+  GMB_SYNC_PROGRESS: {
+    maxRequests: 200,
+    windowMs: 60000, // 200 polls per minute (for real-time progress updates)
   },
 
   // AI operations
@@ -199,7 +204,7 @@ export async function withRateLimit(
   userId: string,
   endpoint: string,
   config: RateLimitConfig,
-  handler: () => Promise<Response>
+  handler: () => Promise<Response>,
 ): Promise<Response> {
   const result = await checkRateLimit(userId, endpoint, config)
 
@@ -220,7 +225,7 @@ export async function withRateLimit(
           'X-RateLimit-Reset': result.reset.toISOString(),
           'Retry-After': Math.ceil((result.reset.getTime() - Date.now()) / 1000).toString(),
         },
-      }
+      },
     )
   }
 
@@ -233,4 +238,3 @@ export async function withRateLimit(
 
   return response
 }
-

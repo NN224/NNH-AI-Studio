@@ -5,13 +5,13 @@ import { useRouter } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  ArrowLeft, 
-  Edit, 
-  RefreshCw, 
-  MoreVertical, 
-  MapPin, 
-  Phone, 
+import {
+  ArrowLeft,
+  Edit,
+  RefreshCw,
+  MoreVertical,
+  MapPin,
+  Phone,
   Globe,
   Star,
   ExternalLink,
@@ -36,9 +36,9 @@ interface LocationDetailHeaderProps {
   gmbAccountId?: string; // Optional: pass accountId if available
 }
 
-export function LocationDetailHeader({ 
-  location, 
-  locationId, 
+export function LocationDetailHeader({
+  location,
+  locationId,
   metadata,
   onRefresh,
   gmbAccountId
@@ -51,7 +51,7 @@ export function LocationDetailHeader({
   // Fetch accountId if not provided
   React.useEffect(() => {
     if (accountId) return; // Already have accountId
-    
+
     const fetchAccountId = async () => {
       try {
         // Try to get accountId from location detail API
@@ -63,7 +63,7 @@ export function LocationDetailHeader({
             return;
           }
         }
-        
+
         // Fallback: get first active account
         const accountsRes = await fetch('/api/gmb/accounts');
         const accountsData = await accountsRes.json();
@@ -82,13 +82,13 @@ export function LocationDetailHeader({
   }, [locationId, accountId]);
 
   const name = location?.name || location?.title || 'Unnamed Location';
-  const address = location?.storefrontAddress?.addressLines?.[0] || 
-                 location?.address || 
-                 metadata?.address || 
+  const address = location?.storefrontAddress?.addressLines?.[0] ||
+                 location?.address ||
+                 metadata?.address ||
                  'N/A';
-  const phone = location?.phoneNumbers?.primaryPhoneNumber?.phoneNumber || 
-                location?.phone || 
-                metadata?.phone || 
+  const phone = location?.phoneNumbers?.primaryPhoneNumber?.phoneNumber ||
+                location?.phone ||
+                metadata?.phone ||
                 null;
   const website = location?.websiteUri || location?.website || metadata?.website || null;
   const rating = location?.rating || metadata?.rating || 0;
@@ -97,57 +97,15 @@ export function LocationDetailHeader({
   const status = location?.status || metadata?.status || 'verified';
   const isOpen = location?.openInfo?.status === 'OPEN' || metadata?.isOpen;
 
+  // Sync functionality moved to global sync button in header
   const handleSync = async () => {
-    if (!accountId) {
-      toast.error('No GMB account found. Please connect a GMB account first.');
-      return;
-    }
-
-    // Prevent multiple concurrent syncs
-    if (syncing) {
-      toast.info('Sync already in progress');
-      return;
-    }
-
-    try {
-      setSyncing(true);
-      
-      // Sync can take a while, especially for location-specific sync
-      // Increase timeout to 2 minutes (120 seconds) for location sync
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
-      
-      // Show info message that sync is starting
-      toast.info('Sync started. This may take a moment...', { duration: 3000 });
-      
-      try {
-        const response = await fetch('/api/gmb/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            accountId: accountId,
-            syncType: 'location',
-            locationId: locationId 
-          }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        // Handle specific HTTP error codes
-        if (response.status === 401) {
-          toast.error('Session expired. Please sign in again.');
-          return;
-        }
-        
-        if (response.status === 400) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage = errorData.message || errorData.error || 'Bad request';
+    // Legacy sync function - redirects to use global sync
+    toast.info('Please use the global sync button in the header');
           toast.error(`Sync failed: ${errorMessage}`);
           console.error('Sync API error (400):', errorData);
           return;
         }
-        
+
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After');
           toast.error(`Rate limit exceeded. Try again in ${retryAfter || 60} seconds.`);
@@ -165,7 +123,7 @@ export function LocationDetailHeader({
         onRefresh();
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
-        
+
         // Handle AbortError specifically (timeout or manual cancellation)
         if (fetchError.name === 'AbortError') {
           // Don't show console.warn - it's expected for long-running operations
@@ -173,13 +131,13 @@ export function LocationDetailHeader({
           toast.error('Sync timed out. The operation may still be processing. Please wait a moment and refresh the page.');
           return;
         }
-        
+
         // Re-throw other errors to be handled by outer catch
         throw fetchError;
       }
     } catch (error) {
       console.error('Sync error:', error);
-      
+
       // Handle specific error types
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
@@ -235,15 +193,7 @@ export function LocationDetailHeader({
           Back to Locations
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync'}
-          </Button>
+          {/* Sync button removed - use global sync in header */}
           <Button
             variant="outline"
             size="sm"
@@ -267,7 +217,7 @@ export function LocationDetailHeader({
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-destructive"
                 onClick={handleDelete}
                 disabled={deleting}
@@ -298,7 +248,7 @@ export function LocationDetailHeader({
                     </Badge>
                   )}
                   {healthScore > 0 && (
-                    <Badge 
+                    <Badge
                       variant="secondary"
                       className={getHealthScoreColor(healthScore)}
                     >
@@ -319,8 +269,8 @@ export function LocationDetailHeader({
                 {phone && (
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <a 
-                      href={`tel:${phone}`} 
+                    <a
+                      href={`tel:${phone}`}
                       className="text-sm text-muted-foreground hover:text-primary"
                     >
                       {phone}
@@ -330,9 +280,9 @@ export function LocationDetailHeader({
                 {website && (
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <a 
-                      href={website} 
-                      target="_blank" 
+                    <a
+                      href={website}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-muted-foreground hover:text-primary truncate"
                     >

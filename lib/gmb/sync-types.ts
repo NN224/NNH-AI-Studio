@@ -62,3 +62,34 @@ export interface QuestionData {
   google_resource_name?: string | null
 }
 
+export interface PostData {
+  user_id: string
+  location_id: string
+  gmb_account_id: string
+  post_id?: string | null
+  provider_post_id?: string | null
+  title?: string | null
+  content: string
+  media_url?: string | null
+  post_type: 'whats_new' | 'event' | 'offer' | 'product'
+  status: 'draft' | 'queued' | 'published' | 'failed'
+  published_at?: string | null
+  scheduled_at?: string | null
+  metadata?: Record<string, any> | null
+  created_at: string
+}
+
+export interface MediaData {
+  user_id: string
+  location_id: string
+  gmb_account_id: string
+  external_media_id: string
+  media_format: 'PHOTO' | 'VIDEO'
+  source_url?: string | null
+  google_url?: string | null
+  thumbnail_url?: string | null
+  description?: string | null
+  location_association?: string | null
+  metadata?: Record<string, any> | null
+  created_at: string
+}
