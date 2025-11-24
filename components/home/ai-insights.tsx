@@ -105,7 +105,7 @@ export function AIInsights({ insights }: AIInsightsProps) {
 
   if (insights.length === 0) {
     return (
-      <Card className="border-border/40">
+      <Card className="border-border/40 ai-insights">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
@@ -124,6 +124,7 @@ export function AIInsights({ insights }: AIInsightsProps) {
 
   return (
     <motion.div
+      className="ai-insights"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.4 }}

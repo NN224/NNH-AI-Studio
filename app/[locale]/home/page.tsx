@@ -149,7 +149,9 @@ export default async function HomePage({
   }
 
   // YouTube stats
-  const youtubeStats = youtubeToken?.metadata as any;
+  const youtubeStats = youtubeToken?.metadata as unknown as {
+    statistics?: { subscriberCount?: string | number };
+  } | null;
   const youtubeSubs = youtubeStats?.statistics?.subscriberCount
     ? Number(youtubeStats.statistics.subscriberCount)
     : 0;

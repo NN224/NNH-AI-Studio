@@ -2,18 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslations } from 'next-intl'
-import {
-  Sparkles,
-  TrendingUp,
-  Calendar,
-  Target,
-  Zap,
-  Award,
-  CheckCircle,
-  Clock,
-  MessageSquare,
-  Star,
-} from 'lucide-react'
+import { Sparkles, TrendingUp, Calendar, Zap, MessageSquare, Star } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -135,10 +124,10 @@ export function DashboardHero({
 
   return (
     <motion.div
+      className="dashboard-hero relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="dashboard-hero relative"
     >
       <Card className="border-orange-500/30 bg-gradient-to-br from-orange-900/20 via-orange-800/10 to-yellow-900/10 overflow-hidden backdrop-blur-xl">
         {/* Animated background layers */}
@@ -379,7 +368,7 @@ export function DashboardHero({
                   transition={{ delay: 0.6, duration: 0.5 }}
                   className="flex gap-2"
                 >
-                  {achievements.slice(0, 3).map((achievement, idx) => (
+                  {achievements.slice(0, 3).map((achievement) => (
                     <motion.div
                       key={achievement.id}
                       whileHover={{ scale: 1.1, rotate: 5 }}

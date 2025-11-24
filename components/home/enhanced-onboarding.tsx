@@ -1,36 +1,35 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
   X,
   ArrowRight,
   ArrowLeft,
   Sparkles,
-  CheckCircle,
-  Rocket,
-  MousePointer,
-  MessageSquare,
-  BarChart3,
-  Zap,
-  Gift,
-  Trophy,
-  Target,
   Navigation,
+  Rocket,
+  Target,
+  Zap,
+  BarChart3,
+  Trophy,
+  MessageSquare,
+  MousePointer,
+  CheckCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import confetti from 'canvas-confetti'
+import { createPopper, type Instance as PopperInstance, type Placement } from '@popperjs/core'
 
 interface TourStep {
   id: string
   title: string
   description: string
   icon: React.ElementType
-  target?: string
+  targetSelector?: string
   position: 'top' | 'bottom' | 'left' | 'right' | 'center'
   action?: () => void
   interactive?: {
@@ -54,7 +53,7 @@ const tourSteps: TourStep[] = [
     description:
       'Get personalized greetings, track your progress, and see key metrics at a glance.',
     icon: Target,
-    target: '.dashboard-hero',
+    targetSelector: '.dashboard-hero',
     position: 'bottom',
   },
   {
@@ -63,7 +62,7 @@ const tourSteps: TourStep[] = [
     description:
       'Access everything you need instantly. Try hovering over these buttons to see the magic!',
     icon: Zap,
-    target: '.quick-actions',
+    targetSelector: '.quick-actions',
     position: 'bottom',
     interactive: {
       type: 'hover',
@@ -76,7 +75,7 @@ const tourSteps: TourStep[] = [
     description:
       'Get smart recommendations that actually help grow your business. Click any insight to dive deeper!',
     icon: Sparkles,
-    target: '.ai-insights',
+    targetSelector: '.ai-insights',
     position: 'top',
     interactive: {
       type: 'click',
@@ -89,7 +88,7 @@ const tourSteps: TourStep[] = [
     description:
       'Watch your stats update in real-time. The charts are interactive - try clicking on them!',
     icon: BarChart3,
-    target: '.stats-overview',
+    targetSelector: '.stats-overview',
     position: 'top',
   },
   {
@@ -98,7 +97,7 @@ const tourSteps: TourStep[] = [
     description:
       'Earn points, unlock achievements, and compete on the leaderboard. Business management has never been this fun!',
     icon: Trophy,
-    target: '.achievements',
+    targetSelector: '.achievements',
     position: 'left',
   },
   {
@@ -107,7 +106,7 @@ const tourSteps: TourStep[] = [
     description:
       'Have questions? Need help? Click the orange button anytime to chat with your personal AI assistant!',
     icon: MessageSquare,
-    target: '.ai-chat-button',
+    targetSelector: '.ai-chat-button',
     position: 'left',
   },
   {
@@ -133,14 +132,9 @@ export function EnhancedOnboarding() {
   const [currentStep, setCurrentStep] = useState(0)
   const [hasCompletedTour, setHasCompletedTour] = useState(false)
   const [isInteracting, setIsInteracting] = useState(false)
-  const [tooltipPosition, setTooltipPosition] = useState<{
-    className: string
-    style: React.CSSProperties
-  }>({
-    className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-    style: {},
-  })
   const spotlightRef = useRef<HTMLDivElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+  const popperInstanceRef = useRef<PopperInstance | null>(null)
 
   useEffect(() => {
     const completed = localStorage.getItem('enhanced-onboarding-completed')
@@ -149,160 +143,177 @@ export function EnhancedOnboarding() {
         setIsActive(true)
       }, 1500)
       return () => clearTimeout(timer)
-    } else {
-      setHasCompletedTour(true)
     }
+    setHasCompletedTour(true)
   }, [hasCompletedTour])
 
+  const getCurrentStep = useCallback(() => tourSteps[currentStep], [currentStep])
+
+  const completeTour = useCallback(() => {
+    localStorage.setItem('enhanced-onboarding-completed', 'true')
+    setHasCompletedTour(true)
+    setIsActive(false)
+  }, [])
+
+  const handleNext = useCallback(() => {
+    if (currentStep < tourSteps.length - 1) {
+      setCurrentStep((prev) => prev + 1)
+    } else {
+      completeTour()
+    }
+  }, [currentStep, completeTour])
+
+  const handlePrev = useCallback(() => {
+    setCurrentStep((prev) => Math.max(0, prev - 1))
+  }, [])
+
+  const skipTour = useCallback(() => {
+    completeTour()
+  }, [completeTour])
+
+  // Run step action and wire interactive behavior
   useEffect(() => {
-    const step = tourSteps[currentStep]
+    if (!isActive) return
+
+    const step = getCurrentStep()
     if (step.action) {
       step.action()
     }
 
-    // Set up interactive elements
-    if (step.interactive && step.target) {
-      const element = document.querySelector(step.interactive.element)
-      if (element) {
-        const handleInteraction = () => {
-          setIsInteracting(true)
-          setTimeout(() => {
-            setIsInteracting(false)
-            handleNext()
-          }, 1500)
-        }
+    if (!step.interactive) return
 
-        if (step.interactive.type === 'click') {
-          element.addEventListener('click', handleInteraction)
-        } else if (step.interactive.type === 'hover') {
-          element.addEventListener('mouseenter', handleInteraction)
-        }
+    const element = document.querySelector(step.interactive.element)
+    if (!element) return
 
-        return () => {
-          element.removeEventListener('click', handleInteraction)
-          element.removeEventListener('mouseenter', handleInteraction)
-        }
-      }
-    }
-  }, [currentStep])
-
-  // Update tooltip position
-  useEffect(() => {
-    if (!isActive) return
-
-    const step = tourSteps[currentStep]
-
-    // Calculate position for tooltip
-    if (step.position === 'center') {
-      setTooltipPosition({
-        className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-        style: {},
-      })
-      return
+    const handleInteraction = () => {
+      setIsInteracting(true)
+      setTimeout(() => {
+        setIsInteracting(false)
+        handleNext()
+      }, 1500)
     }
 
-    if (!step.target) {
-      setTooltipPosition({
-        className: 'fixed left-1/2 -translate-x-1/2',
-        style: { top: '6rem' },
-      })
-      return
+    if (step.interactive.type === 'click') {
+      element.addEventListener('click', handleInteraction)
+    } else if (step.interactive.type === 'hover') {
+      element.addEventListener('mouseenter', handleInteraction)
     }
 
-    const targetElement = document.querySelector(step.target)
-    if (!targetElement) {
-      setTooltipPosition({
-        className: 'fixed left-1/2 -translate-x-1/2',
-        style: { top: '6rem' },
-      })
-      return
+    return () => {
+      element.removeEventListener('click', handleInteraction)
+      element.removeEventListener('mouseenter', handleInteraction)
     }
+  }, [getCurrentStep, handleNext, isActive])
 
-    const rect = targetElement.getBoundingClientRect()
-    let className = ''
-    let style: React.CSSProperties = {}
-
-    switch (step.position) {
-      case 'top':
-        className = 'fixed left-1/2 -translate-x-1/2 -translate-y-full'
-        style = { top: rect.top - 20 }
-        break
-      case 'bottom':
-        className = 'fixed left-1/2 -translate-x-1/2'
-        style = { top: rect.bottom + 20 }
-        break
-      case 'left':
-        className = 'fixed top-1/2 -translate-y-1/2 -translate-x-full'
-        style = { left: rect.left - 20 }
-        break
-      case 'right':
-        className = 'fixed top-1/2 -translate-y-1/2'
-        style = { left: rect.right + 20 }
-        break
-    }
-
-    setTooltipPosition({ className, style })
-  }, [currentStep, isActive])
-
-  // Update spotlight position
+  // Spotlight position + auto-scroll
   useEffect(() => {
     if (!isActive || !spotlightRef.current) return
 
-    const step = tourSteps[currentStep]
-    if (step.target) {
-      const targetElement = document.querySelector(step.target)
-      if (targetElement) {
-        const rect = targetElement.getBoundingClientRect()
-        const spotlight = spotlightRef.current
-
-        spotlight.style.left = `${rect.left - 20}px`
-        spotlight.style.top = `${rect.top - 20}px`
-        spotlight.style.width = `${rect.width + 40}px`
-        spotlight.style.height = `${rect.height + 40}px`
-        spotlight.style.opacity = '1'
-      } else {
-        spotlightRef.current.style.opacity = '0'
-      }
-    } else {
+    const step = getCurrentStep()
+    if (!step.targetSelector) {
       spotlightRef.current.style.opacity = '0'
+      return
     }
-  }, [currentStep, isActive])
 
-  const handleNext = () => {
-    if (currentStep < tourSteps.length - 1) {
-      setCurrentStep(currentStep + 1)
-    } else {
-      completeTour()
+    const targetElement = document.querySelector(step.targetSelector) as HTMLElement | null
+    if (!targetElement) {
+      spotlightRef.current.style.opacity = '0'
+      return
+    }
+
+    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    const rect = targetElement.getBoundingClientRect()
+    const spotlight = spotlightRef.current
+
+    spotlight.style.left = `${rect.left - 20}px`
+    spotlight.style.top = `${rect.top - 20}px`
+    spotlight.style.width = `${rect.width + 40}px`
+    spotlight.style.height = `${rect.height + 40}px`
+    spotlight.style.opacity = '1'
+  }, [getCurrentStep, isActive])
+
+  const getPopperPlacement = (position: TourStep['position']): Placement => {
+    switch (position) {
+      case 'top':
+        return 'top'
+      case 'bottom':
+        return 'bottom'
+      case 'left':
+        return 'left'
+      case 'right':
+        return 'right'
+      default:
+        return 'auto'
     }
   }
 
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
+  // Wire Popper for tooltip
+  useEffect(() => {
+    if (!isActive) return
+
+    const step = getCurrentStep()
+
+    if (step.position === 'center') {
+      if (popperInstanceRef.current) {
+        popperInstanceRef.current.destroy()
+        popperInstanceRef.current = null
+      }
+      return
     }
-  }
 
-  const completeTour = () => {
-    localStorage.setItem('enhanced-onboarding-completed', 'true')
-    setIsActive(false)
-    setHasCompletedTour(true)
+    const targetElement = step.targetSelector
+      ? (document.querySelector(step.targetSelector) as HTMLElement | null)
+      : null
+    const tooltipElement = tooltipRef.current
 
-    // Trigger celebration
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#ff6b00', '#ffc107', '#4caf50', '#2196f3', '#9c27b0'],
+    if (!targetElement || !tooltipElement) {
+      if (popperInstanceRef.current) {
+        popperInstanceRef.current.destroy()
+        popperInstanceRef.current = null
+      }
+      return
+    }
+
+    if (popperInstanceRef.current) {
+      popperInstanceRef.current.destroy()
+    }
+
+    popperInstanceRef.current = createPopper(targetElement, tooltipElement, {
+      placement: getPopperPlacement(step.position),
+      modifiers: [
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 16],
+          },
+        },
+        {
+          name: 'preventOverflow',
+          options: {
+            padding: 16,
+          },
+        },
+        {
+          name: 'flip',
+          options: {
+            padding: 16,
+          },
+        },
+      ],
     })
-  }
 
-  const skipTour = () => {
-    completeTour()
-  }
+    return () => {
+      if (popperInstanceRef.current) {
+        popperInstanceRef.current.destroy()
+        popperInstanceRef.current = null
+      }
+    }
+  }, [getCurrentStep, isActive])
 
   if (hasCompletedTour || !isActive) return null
 
-  const step = tourSteps[currentStep]
+  const step = getCurrentStep()
   const Icon = step.icon
   const progress = ((currentStep + 1) / tourSteps.length) * 100
 
@@ -337,8 +348,11 @@ export function EnhancedOnboarding() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={cn(tooltipPosition.className, 'z-[101] pointer-events-none')}
-            style={tooltipPosition.style}
+            ref={tooltipRef}
+            className={cn(
+              'fixed z-[101] pointer-events-none',
+              step.position === 'center' && 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+            )}
           >
             <Card className="w-[90vw] max-w-md bg-gradient-to-br from-gray-900 via-black to-gray-900 backdrop-blur-xl border-orange-500/50 shadow-2xl shadow-orange-500/20 pointer-events-auto">
               {/* Progress bar */}
@@ -473,7 +487,7 @@ export function EnhancedOnboarding() {
             </Card>
 
             {/* Pointing arrow */}
-            {step.target && step.position !== 'center' && (
+            {step.targetSelector && step.position !== 'center' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}

@@ -1,0 +1,1299 @@
+.
+├── app
+│   ├── [locale]
+│   │   ├── (dashboard)
+│   │   │   ├── ai-command-center
+│   │   │   │   └── page.tsx
+│   │   │   ├── analytics
+│   │   │   │   ├── AnalyticsComponents.tsx
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── automation
+│   │   │   │   ├── AutomationComponents.tsx
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── changelog
+│   │   │   │   └── page.tsx
+│   │   │   ├── dashboard
+│   │   │   │   ├── actions.ts
+│   │   │   │   ├── active-location-actions.tsx
+│   │   │   │   ├── components
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── generate-tasks-button.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── location-details-button.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── profile-protection-button.tsx
+│   │   │   │   ├── quick-action-buttons.tsx
+│   │   │   │   ├── quick-action-card.tsx
+│   │   │   │   ├── time-filter-buttons.tsx
+│   │   │   │   └── weekly-tasks-button.tsx
+│   │   │   ├── features
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── ProfileCompletenessCard.tsx
+│   │   │   │   └── TabComponents.tsx
+│   │   │   ├── gmb
+│   │   │   │   └── page.tsx
+│   │   │   ├── gmb-posts
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── locations
+│   │   │   │   ├── [id]
+│   │   │   │   ├── actions.ts
+│   │   │   │   └── page.tsx
+│   │   │   ├── media
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── MediaClient.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── messages
+│   │   │   │   └── page.tsx
+│   │   │   ├── metrics
+│   │   │   │   └── page.tsx
+│   │   │   ├── not-found.tsx
+│   │   │   ├── owner-diagnostics
+│   │   │   │   └── page.tsx
+│   │   │   ├── posts
+│   │   │   │   └── page.tsx
+│   │   │   ├── products
+│   │   │   │   └── page.tsx
+│   │   │   ├── questions
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── QuestionsClient.tsx
+│   │   │   ├── reviews
+│   │   │   │   ├── ai-cockpit
+│   │   │   │   ├── error.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── settings
+│   │   │   │   ├── ai
+│   │   │   │   ├── auto-pilot
+│   │   │   │   └── page.tsx
+│   │   │   └── sync-diagnostics
+│   │   │       └── page.tsx
+│   │   ├── about
+│   │   │   └── page.tsx
+│   │   ├── auth
+│   │   │   ├── callback
+│   │   │   │   └── route.ts
+│   │   │   ├── error
+│   │   │   │   └── page.tsx
+│   │   │   ├── forgot-password
+│   │   │   │   └── page.tsx
+│   │   │   ├── login
+│   │   │   │   └── page.tsx
+│   │   │   ├── reset
+│   │   │   │   └── page.tsx
+│   │   │   ├── signout
+│   │   │   │   └── route.ts
+│   │   │   ├── signup
+│   │   │   │   └── page.tsx
+│   │   │   ├── signup-success
+│   │   │   │   └── page.tsx
+│   │   │   └── update-password
+│   │   │       └── page.tsx
+│   │   ├── blog
+│   │   │   └── page.tsx
+│   │   ├── contact
+│   │   │   └── page.tsx
+│   │   ├── error.tsx
+│   │   ├── faq
+│   │   │   └── page.tsx
+│   │   ├── help
+│   │   │   └── page.tsx
+│   │   ├── home
+│   │   │   └── page.tsx
+│   │   ├── landing.tsx
+│   │   ├── layout.tsx
+│   │   ├── not-found.tsx
+│   │   ├── onboarding
+│   │   │   └── page.tsx
+│   │   ├── page.tsx
+│   │   ├── pricing
+│   │   │   ├── contact
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── privacy
+│   │   │   └── page.tsx
+│   │   ├── sentry-example-page
+│   │   │   └── page.tsx
+│   │   ├── status
+│   │   │   └── page.tsx
+│   │   ├── terms
+│   │   │   └── page.tsx
+│   │   └── youtube-dashboard
+│   │       └── page.tsx
+│   ├── api
+│   │   ├── admin
+│   │   │   ├── apply-migration
+│   │   │   │   └── route.ts
+│   │   │   └── fix-rls
+│   │   │       └── route.ts
+│   │   ├── ai
+│   │   │   ├── actions
+│   │   │   │   └── route.ts
+│   │   │   ├── automation-status
+│   │   │   │   └── route.ts
+│   │   │   ├── chat
+│   │   │   │   ├── enhanced
+│   │   │   │   └── route.ts
+│   │   │   ├── generate
+│   │   │   │   └── route.ts
+│   │   │   ├── generate-post
+│   │   │   │   └── route.ts
+│   │   │   ├── generate-response
+│   │   │   │   └── route.ts
+│   │   │   ├── generate-review-reply
+│   │   │   │   └── route.ts
+│   │   │   ├── insights
+│   │   │   │   └── route.ts
+│   │   │   └── usage
+│   │   │       └── route.ts
+│   │   ├── analytics
+│   │   │   └── metrics
+│   │   │       └── route.ts
+│   │   ├── auth
+│   │   │   ├── send-change-email
+│   │   │   │   └── route.ts
+│   │   │   ├── send-invite
+│   │   │   │   └── route.ts
+│   │   │   ├── send-magic-link
+│   │   │   │   └── route.ts
+│   │   │   ├── send-reauth
+│   │   │   │   └── route.ts
+│   │   │   └── send-reset-password
+│   │   │       └── route.ts
+│   │   ├── auto-pilot
+│   │   │   ├── monitoring
+│   │   │   │   └── route.ts
+│   │   │   └── stats
+│   │   │       └── route.ts
+│   │   ├── automation
+│   │   │   └── summary
+│   │   │       └── route.ts
+│   │   ├── contact
+│   │   │   └── route.ts
+│   │   ├── cron
+│   │   │   ├── cleanup
+│   │   │   │   └── route.ts
+│   │   │   └── process-questions
+│   │   │       └── route.ts
+│   │   ├── csrf-token
+│   │   │   └── route.ts
+│   │   ├── dashboard
+│   │   │   ├── best-time-to-post
+│   │   │   │   └── route.ts
+│   │   │   ├── overview
+│   │   │   │   └── route.ts
+│   │   │   └── stats
+│   │   │       └── route.ts
+│   │   ├── diagnostics
+│   │   │   ├── admin
+│   │   │   │   └── route.ts
+│   │   │   ├── ai-health
+│   │   │   │   └── route.ts
+│   │   │   ├── api-health
+│   │   │   │   └── route.ts
+│   │   │   ├── cron
+│   │   │   │   └── route.ts
+│   │   │   ├── data-counts
+│   │   │   │   └── route.ts
+│   │   │   ├── data-freshness
+│   │   │   │   └── route.ts
+│   │   │   ├── db
+│   │   │   │   └── route.ts
+│   │   │   ├── gmb-api
+│   │   │   │   └── route.ts
+│   │   │   ├── integrity
+│   │   │   │   └── route.ts
+│   │   │   ├── logs
+│   │   │   │   └── route.ts
+│   │   │   ├── oauth
+│   │   │   │   └── route.ts
+│   │   │   ├── oauth-advanced
+│   │   │   │   └── route.ts
+│   │   │   └── sync-queue
+│   │   │       └── route.ts
+│   │   ├── email
+│   │   │   ├── send
+│   │   │   │   └── route.ts
+│   │   │   └── sendgrid
+│   │   │       └── route.ts
+│   │   ├── features
+│   │   │   ├── bulk-update
+│   │   │   │   └── route.ts
+│   │   │   └── profile
+│   │   │       └── [locationId]
+│   │   ├── gmb
+│   │   │   ├── accounts
+│   │   │   │   └── route.ts
+│   │   │   ├── attributes
+│   │   │   │   └── route.ts
+│   │   │   ├── audit
+│   │   │   │   └── route.ts
+│   │   │   ├── categories
+│   │   │   │   └── route.ts
+│   │   │   ├── chains
+│   │   │   │   ├── [chainId]
+│   │   │   │   └── search
+│   │   │   ├── create-auth-url
+│   │   │   │   └── route.ts
+│   │   │   ├── disconnect
+│   │   │   │   └── route.ts
+│   │   │   ├── enqueue-sync
+│   │   │   │   └── route.ts
+│   │   │   ├── google-locations
+│   │   │   │   └── search
+│   │   │   ├── location
+│   │   │   │   ├── [locationId]
+│   │   │   │   └── list-data
+│   │   │   ├── locations
+│   │   │   │   └── route.ts
+│   │   │   ├── media
+│   │   │   │   └── route.ts
+│   │   │   ├── metrics
+│   │   │   │   └── route.ts
+│   │   │   ├── notifications
+│   │   │   │   └── setup
+│   │   │   ├── oauth-callback
+│   │   │   │   └── route.ts
+│   │   │   ├── place-actions
+│   │   │   │   └── [locationId]
+│   │   │   ├── posts
+│   │   │   │   ├── [postId]
+│   │   │   │   ├── create
+│   │   │   │   ├── delete
+│   │   │   │   └── list
+│   │   │   ├── public-test
+│   │   │   │   └── route.ts
+│   │   │   ├── questions
+│   │   │   │   ├── [questionId]
+│   │   │   │   ├── answer
+│   │   │   │   └── route.ts
+│   │   │   ├── queue
+│   │   │   │   └── process
+│   │   │   ├── reviews
+│   │   │   │   └── reply
+│   │   │   ├── scheduled-sync
+│   │   │   │   └── route.ts
+│   │   │   ├── security-check
+│   │   │   │   └── route.ts
+│   │   │   ├── stats
+│   │   │   │   └── route.ts
+│   │   │   ├── sync
+│   │   │   │   ├── events
+│   │   │   │   ├── route.ts
+│   │   │   │   └── status
+│   │   │   ├── sync-diagnostics
+│   │   │   │   └── route.ts
+│   │   │   ├── sync-v2
+│   │   │   │   └── route.ts
+│   │   │   ├── test-attributes
+│   │   │   │   └── route.ts
+│   │   │   ├── test-qa
+│   │   │   │   └── route.ts
+│   │   │   └── validate-token
+│   │   │       └── route.ts
+│   │   ├── google-maps
+│   │   │   ├── config
+│   │   │   │   └── route.ts
+│   │   │   ├── embed-url
+│   │   │   │   └── route.ts
+│   │   │   └── geocode
+│   │   │       └── route.ts
+│   │   ├── google-maps-config
+│   │   │   └── route.ts
+│   │   ├── health
+│   │   │   ├── database
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── locations
+│   │   │   ├── [id]
+│   │   │   │   ├── activity
+│   │   │   │   ├── branding
+│   │   │   │   ├── cover
+│   │   │   │   ├── logo
+│   │   │   │   ├── metrics
+│   │   │   │   ├── route.ts
+│   │   │   │   ├── stats
+│   │   │   │   └── update
+│   │   │   ├── bulk-delete
+│   │   │   │   └── route.ts
+│   │   │   ├── bulk-label
+│   │   │   │   └── route.ts
+│   │   │   ├── bulk-publish
+│   │   │   │   └── route.ts
+│   │   │   ├── bulk-sync
+│   │   │   │   └── route.ts
+│   │   │   ├── bulk-update
+│   │   │   │   └── route.ts
+│   │   │   ├── competitor-data
+│   │   │   │   └── route.ts
+│   │   │   ├── competitors
+│   │   │   │   └── route.ts
+│   │   │   ├── export
+│   │   │   │   └── route.ts
+│   │   │   ├── labels
+│   │   │   │   └── route.ts
+│   │   │   ├── link-accounts
+│   │   │   │   └── route.ts
+│   │   │   ├── list-data
+│   │   │   │   └── route.ts
+│   │   │   ├── map-data
+│   │   │   │   └── route.ts
+│   │   │   ├── optimized
+│   │   │   │   └── route.ts
+│   │   │   ├── route.ts
+│   │   │   ├── stats
+│   │   │   │   └── route.ts
+│   │   │   └── update-media
+│   │   │       └── route.ts
+│   │   ├── log-errors
+│   │   │   └── route.ts
+│   │   ├── media
+│   │   │   ├── [id]
+│   │   │   │   └── route.ts
+│   │   │   ├── bulk-delete
+│   │   │   │   └── route.ts
+│   │   │   ├── delete
+│   │   │   │   └── route.ts
+│   │   │   └── upload
+│   │   │       └── route.ts
+│   │   ├── monitoring
+│   │   │   ├── alerts
+│   │   │   │   └── route.ts
+│   │   │   ├── audit
+│   │   │   │   └── log
+│   │   │   └── metrics
+│   │   │       └── route.ts
+│   │   ├── newsletter
+│   │   │   └── route.ts
+│   │   ├── notifications
+│   │   │   ├── create
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── posts
+│   │   │   └── create
+│   │   │       └── route.ts
+│   │   ├── questions
+│   │   │   ├── analyze
+│   │   │   │   └── route.ts
+│   │   │   ├── auto-answer
+│   │   │   │   ├── route.ts
+│   │   │   │   └── stats
+│   │   │   ├── bulk
+│   │   │   │   └── route.ts
+│   │   │   └── test-auto-answer
+│   │   │       └── route.ts
+│   │   ├── reviews
+│   │   │   ├── [id]
+│   │   │   │   └── reply
+│   │   │   ├── ai-response
+│   │   │   │   └── route.ts
+│   │   │   ├── analyze-sentiment
+│   │   │   │   └── route.ts
+│   │   │   ├── auto-reply
+│   │   │   │   └── route.ts
+│   │   │   ├── pending
+│   │   │   │   └── route.ts
+│   │   │   ├── route.ts
+│   │   │   ├── sentiment
+│   │   │   │   └── route.ts
+│   │   │   ├── stats
+│   │   │   │   └── route.ts
+│   │   │   └── test-auto-reply
+│   │   │       └── route.ts
+│   │   ├── sentry-example-api
+│   │   │   └── route.ts
+│   │   ├── settings
+│   │   │   ├── ai
+│   │   │   │   ├── [id]
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── stats
+│   │   │   └── realtime
+│   │   │       └── route.ts
+│   │   ├── status
+│   │   │   └── route.ts
+│   │   ├── sync
+│   │   │   └── progress
+│   │   │       └── route.ts
+│   │   ├── tasks
+│   │   │   ├── generate
+│   │   │   │   └── route.ts
+│   │   │   └── update
+│   │   │       └── route.ts
+│   │   ├── upload
+│   │   │   ├── bulk
+│   │   │   │   └── route.ts
+│   │   │   └── image
+│   │   │       └── route.ts
+│   │   ├── webhooks
+│   │   │   ├── gmb
+│   │   │   │   └── questions
+│   │   │   └── gmb-notifications
+│   │   │       └── route.ts
+│   │   └── youtube
+│   │       ├── analytics
+│   │       │   ├── export
+│   │       │   └── route.ts
+│   │       ├── comments
+│   │       │   └── route.ts
+│   │       ├── composer
+│   │       │   ├── drafts
+│   │       │   └── generate
+│   │       ├── create-auth-url
+│   │       │   └── route.ts
+│   │       ├── disconnect
+│   │       │   └── route.ts
+│   │       ├── oauth-callback
+│   │       │   └── route.ts
+│   │       ├── refresh
+│   │       │   └── route.ts
+│   │       ├── token
+│   │       │   └── refresh-if-needed
+│   │       └── videos
+│   │           ├── route.ts
+│   │           └── upload
+│   ├── global-error.tsx
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── manifest.ts
+│   ├── not-found.tsx
+│   ├── page.tsx
+│   ├── providers.tsx
+│   ├── sentry-example-page
+│   │   └── page.tsx
+│   └── sitemap.ts
+├── backup
+│   └── management-cards-20251121
+│       ├── post-management-card.tsx
+│       ├── qa-management-card.tsx
+│       └── review-management-card.tsx
+├── CLAUDE.md
+├── components
+│   ├── accounts
+│   │   ├── AccountCard.tsx
+│   │   └── NoAccountsPlaceholder.tsx
+│   ├── ai
+│   │   └── ai-assistant.tsx
+│   ├── ai-command-center
+│   │   ├── ai
+│   │   │   ├── ai-chat-interface.tsx
+│   │   │   ├── ai-companion-sidebar.tsx
+│   │   │   ├── ai-hero-chat.tsx
+│   │   │   └── ai-provider-selector.tsx
+│   │   ├── layout
+│   │   │   └── ai-command-center-layout.tsx
+│   │   ├── management
+│   │   │   ├── management-card.tsx
+│   │   │   └── management-sections-grid.tsx
+│   │   ├── onboarding
+│   │   │   └── gmb-onboarding-view.tsx
+│   │   ├── prompts
+│   │   │   └── custom-prompts-manager.tsx
+│   │   ├── README.md
+│   │   ├── stats
+│   │   │   ├── stat-card.tsx
+│   │   │   └── stats-grid.tsx
+│   │   └── urgent
+│   │       ├── urgent-item-card.tsx
+│   │       └── urgent-items-feed.tsx
+│   ├── ai-studio
+│   │   ├── content-generator.tsx
+│   │   └── content-history.tsx
+│   ├── analytics
+│   │   ├── analytics-dashboard.tsx
+│   │   ├── analytics-filters.tsx
+│   │   ├── custom-report-builder.tsx
+│   │   ├── google-analytics.tsx
+│   │   ├── impressions-breakdown-chart.tsx
+│   │   ├── location-performance.tsx
+│   │   ├── metrics-overview.tsx
+│   │   ├── metrics-panel.tsx
+│   │   ├── performance-metrics-chart.tsx
+│   │   ├── realtime-metrics-display.tsx
+│   │   ├── response-time-chart.tsx
+│   │   ├── review-sentiment-chart.tsx
+│   │   ├── search-keywords.tsx
+│   │   └── traffic-chart.tsx
+│   ├── attributes
+│   │   └── attributes-manager.tsx
+│   ├── auth
+│   │   ├── auth-layout.tsx
+│   │   ├── google-oauth-script.tsx
+│   │   ├── oauth-buttons.tsx
+│   │   ├── password-strength.tsx
+│   │   └── user-button.tsx
+│   ├── charts
+│   │   ├── PerformanceChart.stories.tsx
+│   │   └── PerformanceChart.tsx
+│   ├── common
+│   │   ├── beta-badge.tsx
+│   │   ├── coming-soon.tsx
+│   │   └── dynamic-loader.tsx
+│   ├── dashboard
+│   │   ├── activity-feed.tsx
+│   │   ├── ActivityFeedItem.stories.tsx
+│   │   ├── ActivityFeedItem.tsx
+│   │   ├── advanced-filters.tsx
+│   │   ├── ai
+│   │   │   ├── ai-insights-panel.tsx
+│   │   │   ├── AIInsightsCards.tsx
+│   │   │   ├── automation-insights.tsx
+│   │   │   ├── AutopilotStatus.tsx
+│   │   │   ├── AutoReplyMonitoring.tsx
+│   │   │   ├── chat-assistant.tsx
+│   │   │   ├── MiniChat.tsx
+│   │   │   └── PerformancePredictor.tsx
+│   │   ├── ai-usage-banner.tsx
+│   │   ├── AICommandCenterCards.tsx
+│   │   ├── bottlenecks-widget.tsx
+│   │   ├── BusinessHeader.tsx
+│   │   ├── dashboard-banner.tsx
+│   │   ├── dashboard-customization-modal.tsx
+│   │   ├── dashboard-error-boundary.tsx
+│   │   ├── dashboard-skeleton.tsx
+│   │   ├── dashboard.config.ts
+│   │   ├── date-range-controls.tsx
+│   │   ├── empty-state.tsx
+│   │   ├── export-share-bar.tsx
+│   │   ├── GamificationCard.tsx
+│   │   ├── gmb-posts-section.tsx
+│   │   ├── index.ts
+│   │   ├── lazy-dashboard-components.tsx
+│   │   ├── monitoring-dashboard.tsx
+│   │   ├── performance-comparison-chart.tsx
+│   │   ├── profile-protection-status.tsx
+│   │   ├── ProfileCompletionCard.tsx
+│   │   ├── quick-actions-bar.tsx
+│   │   ├── QuickActionButton.stories.tsx
+│   │   ├── QuickActionButton.tsx
+│   │   ├── realtime-updates-indicator.tsx
+│   │   ├── responsive-layout.tsx
+│   │   ├── stats-cards.tsx
+│   │   ├── StatsRow.tsx
+│   │   └── weekly-tasks-widget.tsx
+│   ├── error-boundary
+│   │   ├── component-error-boundary.tsx
+│   │   └── global-error-boundary.tsx
+│   ├── error-boundary.tsx
+│   ├── features
+│   │   ├── bulk-update-dialog.tsx
+│   │   ├── business-hours-display.tsx
+│   │   ├── change-history-panel.tsx
+│   │   ├── service-items-display.tsx
+│   │   └── validation-panel.tsx
+│   ├── gmb
+│   │   ├── gmb-connection-manager.tsx
+│   │   ├── gmb-dashboard-tabs.tsx
+│   │   ├── gmb-dashboard.tsx
+│   │   ├── GMBConnectionControls.tsx
+│   │   ├── location-ai-command-center.tsx
+│   │   ├── location-insights-card.tsx
+│   │   └── sync-diagnostics.tsx
+│   ├── home
+│   │   ├── achievement-system.tsx
+│   │   ├── achievements-badge.tsx
+│   │   ├── activity-feed.tsx
+│   │   ├── ai-chat-widget.tsx
+│   │   ├── ai-insights-charts.tsx
+│   │   ├── ai-insights.tsx
+│   │   ├── ai-suggestions.tsx
+│   │   ├── animated-background.tsx
+│   │   ├── dashboard-cta-buttons.tsx
+│   │   ├── dashboard-hero.tsx
+│   │   ├── date-range-filter.tsx
+│   │   ├── empty-state.tsx
+│   │   ├── enhanced-onboarding.tsx
+│   │   ├── home-page-content.tsx
+│   │   ├── interactive-stats-dashboard.tsx
+│   │   ├── mini-chart.tsx
+│   │   ├── progress-tracker.tsx
+│   │   ├── quick-actions.tsx
+│   │   ├── recent-activity.tsx
+│   │   ├── responsive-wrapper.tsx
+│   │   ├── smart-header.tsx
+│   │   ├── smart-notifications.tsx
+│   │   └── stats-overview.tsx
+│   ├── insights
+│   │   └── business-insights.tsx
+│   ├── keyboard
+│   │   ├── keyboard-provider.tsx
+│   │   └── shortcuts-modal.tsx
+│   ├── landing
+│   │   ├── dashboard-preview.tsx
+│   │   ├── faq.tsx
+│   │   ├── how-it-works.tsx
+│   │   ├── live-chat.tsx
+│   │   ├── live-demo-section.tsx
+│   │   ├── mobile-menu.tsx
+│   │   ├── pricing-comparison.tsx
+│   │   ├── pricing.tsx
+│   │   ├── screenshots.tsx
+│   │   ├── testimonials.tsx
+│   │   └── video-section.tsx
+│   ├── layout
+│   │   ├── command-palette.tsx
+│   │   ├── header.tsx
+│   │   ├── mobile-nav.tsx
+│   │   ├── public-footer.tsx
+│   │   ├── public-header.tsx
+│   │   └── sidebar.tsx
+│   ├── locations
+│   │   ├── add-location-dialog.tsx
+│   │   ├── bulk-action-bar.tsx
+│   │   ├── bulk-label-dialog.tsx
+│   │   ├── business-info-editor-full.tsx
+│   │   ├── business-info-editor.tsx
+│   │   ├── charts
+│   │   │   ├── location-category-comparison-chart.tsx
+│   │   │   ├── location-health-score-distribution-chart.tsx
+│   │   │   ├── location-rating-trend-chart.tsx
+│   │   │   └── location-reviews-over-time-chart.tsx
+│   │   ├── edit-location-dialog.tsx
+│   │   ├── enhanced-location-card.tsx
+│   │   ├── gmb-connection-banner.tsx
+│   │   ├── google-updated-info.tsx
+│   │   ├── horizontal-location-card.tsx
+│   │   ├── lazy-locations-components.tsx
+│   │   ├── location-attributes-dialog.tsx
+│   │   ├── location-bulk-delete-dialog.tsx
+│   │   ├── location-card-skeleton.tsx
+│   │   ├── location-card-v2.tsx
+│   │   ├── location-card.tsx
+│   │   ├── location-detail-header.tsx
+│   │   ├── location-filters-panel.tsx
+│   │   ├── location-filters.tsx
+│   │   ├── location-form-dialog.tsx
+│   │   ├── location-media-section.tsx
+│   │   ├── location-media-upload.tsx
+│   │   ├── location-metrics-section.tsx
+│   │   ├── location-mini-dashboard.tsx
+│   │   ├── location-overview-section.tsx
+│   │   ├── location-performance-widget.tsx
+│   │   ├── location-profile-enhanced.tsx
+│   │   ├── location-qa-section.tsx
+│   │   ├── location-reviews-section.tsx
+│   │   ├── location-types.tsx
+│   │   ├── LocationMapDashboard.tsx
+│   │   ├── locations-analytics-tab.tsx
+│   │   ├── locations-error-alert.tsx
+│   │   ├── locations-error-boundary.tsx
+│   │   ├── locations-filters.tsx
+│   │   ├── locations-list-view.tsx
+│   │   ├── locations-list.tsx
+│   │   ├── locations-map-tab-new.tsx
+│   │   ├── locations-map-tab.tsx
+│   │   ├── locations-map-view.tsx
+│   │   ├── locations-overview-tab.tsx
+│   │   ├── locations-stats-cards-api.tsx
+│   │   ├── locations-stats-cards.tsx
+│   │   ├── locations-stats.tsx
+│   │   ├── map-cards
+│   │   │   ├── activity-feed-card.tsx
+│   │   │   ├── floating-card.tsx
+│   │   │   ├── index.ts
+│   │   │   ├── location-details-card.tsx
+│   │   │   ├── quick-actions-card.tsx
+│   │   │   └── stats-overview-card.tsx
+│   │   ├── map-view.tsx
+│   │   ├── responsive-locations-layout.tsx
+│   │   └── search-google-locations-dialog.tsx
+│   ├── media
+│   │   ├── media-gallery.tsx
+│   │   ├── MediaCard.tsx
+│   │   ├── MediaFilters.tsx
+│   │   ├── MediaGalleryClient.tsx
+│   │   ├── MediaGrid.tsx
+│   │   └── MediaUploader.tsx
+│   ├── messages
+│   │   └── messages-center.tsx
+│   ├── posts
+│   │   ├── ai-assistant-sidebar.tsx
+│   │   ├── create-post-dialog.tsx
+│   │   ├── edit-post-dialog.tsx
+│   │   ├── post-card.tsx
+│   │   ├── post-creator.tsx
+│   │   ├── post-form-validation.ts
+│   │   ├── post-management-card.tsx
+│   │   └── PostsClientPage.tsx
+│   ├── products
+│   │   └── products-manager.tsx
+│   ├── providers
+│   │   └── store-provider.tsx
+│   ├── questions
+│   │   ├── answer-dialog.tsx
+│   │   ├── AutoAnswerMonitoring.tsx
+│   │   ├── AutoAnswerTesting.tsx
+│   │   ├── bulk-actions-bar.tsx
+│   │   ├── enhanced-questions-list.tsx
+│   │   ├── qa-management-card.tsx
+│   │   ├── question-card.tsx
+│   │   ├── QuestionAISettings.tsx
+│   │   ├── QuestionAnswerCockpit.tsx
+│   │   ├── questions-list.tsx
+│   │   └── QuestionsClientPage.tsx
+│   ├── recommendations
+│   │   └── business-recommendations.tsx
+│   ├── reviews
+│   │   ├── ai-assistant-panel.tsx
+│   │   ├── ai-assistant-sidebar.tsx
+│   │   ├── ai-cockpit
+│   │   │   ├── ai-copilot-status.tsx
+│   │   │   ├── empty-state.tsx
+│   │   │   ├── hot-topics-list.tsx
+│   │   │   ├── pending-responses-card.tsx
+│   │   │   ├── review-card.tsx
+│   │   │   ├── review-stream-list.tsx
+│   │   │   ├── sentiment-analysis-card.tsx
+│   │   │   └── sentiment-breakdown.tsx
+│   │   ├── auto-reply-settings-panel.tsx
+│   │   ├── auto-reply-settings.tsx
+│   │   ├── bulk-action-bar.tsx
+│   │   ├── inbox-view.tsx
+│   │   ├── reply-dialog.tsx
+│   │   ├── review-card.tsx
+│   │   ├── review-column.tsx
+│   │   ├── review-filters.tsx
+│   │   ├── review-management-card.tsx
+│   │   ├── ReviewAISettings.tsx
+│   │   ├── ReviewResponseCockpit.tsx
+│   │   ├── reviews-feed.tsx
+│   │   ├── reviews-list.tsx
+│   │   ├── ReviewsClientPage.tsx
+│   │   ├── ReviewsPageClient.tsx
+│   │   ├── selected-review-detail.tsx
+│   │   └── stats-cards.tsx
+│   ├── seo
+│   │   └── landing-seo.tsx
+│   ├── settings
+│   │   ├── account-connection-tab.tsx
+│   │   ├── activity-stats-card.tsx
+│   │   ├── ai-automation-tab.tsx
+│   │   ├── ai-settings-form.tsx
+│   │   ├── ai-usage-stats.tsx
+│   │   ├── app-settings-tab.tsx
+│   │   ├── branding-tab.tsx
+│   │   ├── data-management.tsx
+│   │   ├── general-settings-tab.tsx
+│   │   ├── gmb-audit-panel.tsx
+│   │   ├── gmb-notifications-setup.tsx
+│   │   ├── gmb-settings-old.tsx.bak
+│   │   ├── gmb-settings.tsx
+│   │   ├── notifications-tab.tsx
+│   │   ├── security-review-panel.tsx
+│   │   ├── settings-test-panel.tsx
+│   │   └── test-auto-reply-section.tsx
+│   ├── shared
+│   │   ├── generic-management-card.tsx
+│   │   └── management-cards-examples.tsx
+│   ├── sync
+│   │   └── sync-progress-modal.tsx
+│   ├── theme
+│   │   └── DynamicThemeProvider.tsx
+│   ├── theme-provider.tsx
+│   └── ui
+│       ├── alert-dialog.tsx
+│       ├── alert.tsx
+│       ├── avatar.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── checkbox.tsx
+│       ├── command.tsx
+│       ├── dialog.tsx
+│       ├── dropdown-menu.tsx
+│       ├── index.ts
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── LanguageSwitcher.tsx
+│       ├── Loader.tsx
+│       ├── loading-skeleton.tsx
+│       ├── placeholder.ts
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── radio-group.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       ├── sheet.tsx
+│       ├── skeleton.tsx
+│       ├── slider.tsx
+│       ├── StatCard.stories.tsx
+│       ├── StatCard.tsx
+│       ├── switch.tsx
+│       ├── tabs.tsx
+│       ├── textarea.tsx
+│       ├── theme-toggle.tsx
+│       ├── toast.tsx
+│       └── tooltip.tsx
+├── components.json
+├── contexts
+│   └── BrandProfileContext.tsx
+├── diagnostics_instructions.pdf
+├── docs
+│   ├── AI_COMMAND_CENTER_PLAN.md
+│   ├── GMB_DASHBOARD_DESIGN.md
+│   ├── GMB_SYNC_QUEUE.md
+│   ├── GMB_SYNC_WORKER_DIAGNOSIS.md
+│   ├── GMB_TABS_ANALYSIS.md
+│   ├── HOME_PAGE_DIAGRAMS.md
+│   ├── HOME_PAGE_QUICK_SUMMARY.md
+│   ├── HOME_PAGE_REDESIGN_PLAN.md
+│   └── PHASE1_IMPLEMENTATION_PLAN.md
+├── eslint.config.mjs
+├── full_export.sql
+├── google-api-docs
+│   ├── DATABASE_QUICK_REF.md
+│   ├── DATABASE_SCHEMA.md
+│   ├── mybusinessaccountmanagement
+│   │   └── v1
+│   │       ├── mybusinessaccountmanagement-api.json
+│   │       └── mybusinessaccountmanagement-gen.go
+│   ├── mybusinessbusinesscalls
+│   │   └── v1
+│   │       ├── mybusinessbusinesscalls-api.json
+│   │       └── mybusinessbusinesscalls-gen.go
+│   ├── mybusinessbusinessinformation
+│   │   └── v1
+│   │       ├── mybusinessbusinessinformation-api.json
+│   │       └── mybusinessbusinessinformation-gen.go
+│   ├── mybusinesslodging
+│   │   └── v1
+│   │       ├── mybusinesslodging-api.json
+│   │       └── mybusinesslodging-gen.go
+│   ├── mybusinessnotifications
+│   │   └── v1
+│   │       ├── mybusinessnotifications-api.json
+│   │       └── mybusinessnotifications-gen.go
+│   ├── mybusinessplaceactions
+│   │   └── v1
+│   │       ├── mybusinessplaceactions-api.json
+│   │       └── mybusinessplaceactions-gen.go
+│   ├── mybusinessqanda
+│   │   └── v1
+│   │       ├── mybusinessqanda-api.json
+│   │       └── mybusinessqanda-gen.go
+│   ├── mybusinessverifications
+│   │   └── v1
+│   │       ├── mybusinessverifications-api.json
+│   │       └── mybusinessverifications-gen.go
+│   ├── Package google.mybusiness.v4
+│   └── README.md
+├── hooks
+│   ├── use-ai-command-center-v2.ts
+│   ├── use-ai-command-center.ts
+│   ├── use-ai-response-generator.ts
+│   ├── use-api.ts
+│   ├── use-auto-answer-settings.ts
+│   ├── use-auto-save.ts
+│   ├── use-business-info.ts
+│   ├── use-cached-data.ts
+│   ├── use-dashboard-cache.ts
+│   ├── use-dashboard-realtime.ts
+│   ├── use-dashboard.ts
+│   ├── use-gmb-connection.ts
+│   ├── use-gmb-status.ts
+│   ├── use-gmb.ts
+│   ├── use-google-maps.ts
+│   ├── use-keyboard-shortcuts.ts
+│   ├── use-location-map-data.ts
+│   ├── use-locations-cache.ts
+│   ├── use-locations.ts
+│   ├── use-messages.ts
+│   ├── use-pending-reviews.ts
+│   ├── use-performance-monitor.ts
+│   ├── use-posts.ts
+│   ├── use-products.ts
+│   ├── use-questions-cache.ts
+│   ├── use-realtime-stats.ts
+│   ├── use-reviews.ts
+│   ├── use-route-prefetch.ts
+│   ├── use-safe-event-listener.ts
+│   ├── use-safe-fetch.ts
+│   ├── use-safe-timer.ts
+│   ├── use-sentiment-analysis.ts
+│   ├── use-services.ts
+│   ├── use-sync-progress.ts
+│   ├── use-sync-status.ts
+│   └── use-toast.ts
+├── i18n
+│   ├── locales
+│   ├── request.ts
+│   └── routing.ts
+├── i18n.ts
+├── instrumentation-client.ts
+├── instrumentation.ts
+├── jest.config.mjs
+├── jest.setup.mjs
+├── lib
+│   ├── ai
+│   │   ├── fallback-provider.ts
+│   │   ├── provider.ts
+│   │   └── system-prompt-builder.ts
+│   ├── analytics
+│   │   └── tracking.ts
+│   ├── api
+│   │   └── auth-middleware.ts
+│   ├── auth
+│   │   └── rbac.ts
+│   ├── cache
+│   │   └── cache-manager.ts
+│   ├── dashboard-cache.ts
+│   ├── dashboard-preferences.ts
+│   ├── data
+│   │   ├── gmb.ts
+│   │   ├── logging.ts
+│   │   ├── mock-locations.ts
+│   │   └── monitoring.ts
+│   ├── date-range-utils.ts
+│   ├── features
+│   │   ├── essential-features.ts
+│   │   ├── feature-definitions.ts
+│   │   ├── gmb-attribute-mapper.ts
+│   │   └── industry-specific-features.ts
+│   ├── gmb
+│   │   ├── helpers.ts
+│   │   ├── pubsub-helpers.ts
+│   │   └── sync-types.ts
+│   ├── Google Business Profile API.json
+│   ├── hooks
+│   │   ├── use-dashboard-realtime.ts
+│   │   ├── use-keyboard-shortcut.ts
+│   │   ├── use-supabase.ts
+│   │   ├── useAccountsManagement.ts
+│   │   └── useOAuthCallbackHandler.ts
+│   ├── i18n
+│   │   ├── formatting.ts
+│   │   ├── index.ts
+│   │   ├── pluralization.ts
+│   │   ├── README.md
+│   │   ├── stub.ts
+│   │   └── utils.ts
+│   ├── monitoring
+│   │   ├── audit.ts
+│   │   └── metrics.ts
+│   ├── navigation.tsx
+│   ├── performance-tracking.ts
+│   ├── posts
+│   │   └── posts-crud.ts
+│   ├── providers
+│   │   └── query-provider.tsx
+│   ├── rate-limit.ts
+│   ├── redis
+│   │   ├── client.ts
+│   │   └── lock-manager.ts
+│   ├── security
+│   │   ├── csp-nonce.ts
+│   │   ├── csrf.ts
+│   │   ├── encryption.ts
+│   │   ├── headers.ts
+│   │   ├── input-sanitizer.ts
+│   │   ├── rate-limiter.ts
+│   │   ├── sanitize-html.ts
+│   │   └── webhook-verification.ts
+│   ├── services
+│   │   ├── activity.ts
+│   │   ├── ai-content-generation-service.ts
+│   │   ├── ai-question-answer-service.ts
+│   │   ├── ai-review-reply-service.ts
+│   │   ├── ai-review-service.ts
+│   │   ├── analytics-realtime-service.ts
+│   │   ├── auth-service.ts
+│   │   ├── business-attributes-validation.ts
+│   │   ├── email-client.ts
+│   │   ├── email-service.ts
+│   │   ├── error-logger.ts
+│   │   ├── global-error-handlers.ts
+│   │   ├── google-maps-service.ts
+│   │   ├── ml-questions-service.ts
+│   │   ├── ml-sentiment-service.ts
+│   │   ├── monitoring-service.ts
+│   │   ├── sendgrid-service.ts
+│   │   └── sentry-config.ts
+│   ├── storage
+│   │   └── draft-manager.ts
+│   ├── stores
+│   │   ├── dashboard-store.ts
+│   │   ├── questions-store.ts
+│   │   └── reviews-store.ts
+│   ├── supabase
+│   │   ├── client.ts
+│   │   ├── middleware.ts
+│   │   ├── server.ts
+│   │   ├── transactions.ts
+│   │   └── types.ts
+│   ├── types
+│   │   ├── ai.ts
+│   │   ├── database.ts
+│   │   ├── database.types.ts
+│   │   ├── gmb-notifications.ts
+│   │   ├── gmb-types.ts
+│   │   ├── location-creation.ts
+│   │   ├── locations.ts
+│   │   └── README.md
+│   ├── utils
+│   │   ├── api-client.ts
+│   │   ├── api-error-handler.ts
+│   │   ├── api-response.ts
+│   │   ├── auth-helpers.ts
+│   │   ├── date-utils.ts
+│   │   ├── debounce.ts
+│   │   ├── error-handling.ts
+│   │   ├── get-base-url-client.ts
+│   │   ├── get-base-url-dynamic.ts
+│   │   ├── get-base-url.ts
+│   │   ├── gmb-events.ts
+│   │   ├── location-coordinates.ts
+│   │   ├── logger.ts
+│   │   ├── navigation.ts
+│   │   ├── pdf-export.ts
+│   │   ├── performance-calculations.ts
+│   │   ├── sanitize.ts
+│   │   └── secure-search.ts
+│   ├── utils.ts
+│   └── validations
+│       ├── auth.ts
+│       ├── dashboard.ts
+│       ├── gmb-post.ts
+│       └── schemas.ts
+├── messages
+│   ├── ar.json
+│   └── en.json
+├── middleware
+│   └── validate-request.ts
+├── middleware.ts
+├── next-env.d.ts
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── playwright.config.ts
+├── postcss.config.mjs
+├── PROJECT_STRUCTURE.txt
+├── public
+│   ├── apple-touch-icon.png
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── favicon.ico
+│   ├── favicon.png
+│   ├── manifest.webmanifest
+│   ├── modern-dark-dashboard-interface-with-charts-and-an.jpg
+│   ├── nnh-logo.png
+│   ├── placeholder-logo.png
+│   ├── placeholder-logo.svg
+│   ├── placeholder-user.jpg
+│   ├── placeholder.jpg
+│   ├── placeholder.svg
+│   └── robots.txt
+├── restore-all-ai-files.sh
+├── scripts
+│   ├── check-sync-queue.sh
+│   ├── encrypt-existing-tokens.ts
+│   ├── generate-og-image.html
+│   ├── next-build-with-css.js
+│   ├── test-sync-worker-flow.sh
+│   └── verify-ai-command-center.sh
+├── sentry.edge.config.ts
+├── sentry.server.config.ts
+├── server
+│   ├── actions
+│   │   ├── accounts.ts
+│   │   ├── achievements.ts
+│   │   ├── auth.ts
+│   │   ├── auto-reply.ts
+│   │   ├── dashboard.ts
+│   │   ├── gmb-account.ts
+│   │   ├── gmb-settings.ts
+│   │   ├── gmb-sync-diagnostics.ts
+│   │   ├── gmb-sync-v2.ts
+│   │   ├── gmb-sync.ts
+│   │   ├── index.ts
+│   │   ├── locations.ts
+│   │   ├── media-management.ts
+│   │   ├── onboarding.ts
+│   │   ├── performance.ts
+│   │   ├── posts-management.ts
+│   │   ├── questions-management.ts
+│   │   ├── reviews-management.ts
+│   │   ├── reviews.ts
+│   │   ├── sync-queue.ts
+│   │   └── weekly-tasks.ts
+│   └── services
+│       └── activity.ts
+├── sonar-project.properties
+├── stories
+│   ├── assets
+│   │   ├── accessibility.png
+│   │   ├── accessibility.svg
+│   │   ├── addon-library.png
+│   │   ├── assets.png
+│   │   ├── avif-test-image.avif
+│   │   ├── context.png
+│   │   ├── discord.svg
+│   │   ├── docs.png
+│   │   ├── figma-plugin.png
+│   │   ├── github.svg
+│   │   ├── share.png
+│   │   ├── styling.png
+│   │   ├── testing.png
+│   │   ├── theming.png
+│   │   ├── tutorials.svg
+│   │   └── youtube.svg
+│   ├── button.css
+│   ├── Button.stories.ts
+│   ├── Button.tsx
+│   ├── Configure.mdx
+│   ├── header.css
+│   ├── Header.stories.ts
+│   ├── Header.tsx
+│   ├── page.css
+│   ├── Page.stories.ts
+│   └── Page.tsx
+├── styles
+│   └── globals.css
+├── supabase
+│   ├── config.toml
+│   ├── functions
+│   │   ├── gmb-sync
+│   │   │   └── index.ts
+│   │   ├── gmb-sync-trigger
+│   │   │   └── index.ts
+│   │   ├── gmb-sync-worker
+│   │   │   └── index.ts
+│   │   └── scheduled-sync
+│   │       └── index.ts
+│   └── migrations
+│       ├── _TEMPLATE.sql
+│       ├── 1763928255_create_sync_queue_rpc_functions.sql
+│       ├── 20250102_gmb_posts_metadata.sql
+│       ├── 20250102_youtube_tables.sql
+│       ├── 20250105000000_create_missing_tables_from_json.sql
+│       ├── 20250105000001_fix_foreign_keys_and_constraints.sql
+│       ├── 20250106_fix_gmb_posts_columns.sql
+│       ├── 20250115_create_auto_reply_settings.sql
+│       ├── 20250116_add_latitude_longitude_to_gmb_locations.sql
+│       ├── 20250118_fix_dashboard_missing_views.sql
+│       ├── 20250119_fix_auto_reply_columns.sql
+│       ├── 20250120_enhance_auto_reply.sql
+│       ├── 20250123_create_sync_queue.sql
+│       ├── 20250127_add_critical_dashboard_indexes.sql
+│       ├── 20250127_add_dashboard_indexes.sql
+│       ├── 20250127_enable_realtime_replication.sql
+│       ├── 20250131_add_email_to_gmb_accounts.sql
+│       ├── 20250131_add_missing_columns.sql
+│       ├── 20250131_add_phone_to_profiles.sql
+│       ├── 20250131_content_generations.sql
+│       ├── 20250131_create_youtube_videos_table.sql
+│       ├── 20250131_fix_database_issues.sql
+│       ├── 20250131_fix_gmb_reviews_columns.sql
+│       ├── 20250131_fix_phone_signup_profile.sql
+│       ├── 20250131_fix_rls_profile_insert.sql
+│       ├── 20250201_add_rating_to_gmb_locations.sql
+│       ├── 20250202_create_gmb_media_table.sql
+│       ├── 20250202_create_gmb_performance_metrics_table.sql
+│       ├── 20250202_fix_oauth_states_user_id_fk.sql
+│       ├── 20250203_create_gmb_attributes_table.sql
+│       ├── 20250203_create_gmb_questions_table.sql
+│       ├── 20250204_ai_review_cockpit.sql
+│       ├── 20250217_add_missing_gmb_locations_columns.sql
+│       ├── 20251029_add_user_id_columns.sql
+│       ├── 20251029_create_oauth_tables.sql
+│       ├── 20251029_enable_rls_gmb_accounts.sql
+│       ├── 20251029_enable_rls_policies.sql
+│       ├── 20251030000013_create_locations_with_rating_view.sql
+│       ├── 20251031_gmb_posts.sql
+│       ├── 20251031_storage_buckets.sql
+│       ├── 20251102_fix_production_security_issues.sql
+│       ├── 20251104_add_email_to_gmb_accounts.sql
+│       ├── 20251104120000_fix_weekly_task_recommendations.sql
+│       ├── 20251106_comprehensive_gmb_reviews_schema.sql
+│       ├── 20251107_add_disconnect_and_archive_columns.sql
+│       ├── 20251107_comprehensive_gmb_questions_schema.sql
+│       ├── 20251110_create_branding_storage.sql
+│       ├── 20251110_create_client_profiles.sql
+│       ├── 20251111_update_gmb_reviews_status_constraint.sql
+│       ├── 20251114_add_dashboard_trends_function.sql
+│       ├── 20251114_add_health_score_calculation.sql
+│       ├── 20251114_add_ml_sentiment_fields.sql
+│       ├── 20251114_add_performance_indexes.sql
+│       ├── 20251114_add_response_rate_function.sql
+│       ├── 20251114_add_sync_status_table.sql
+│       ├── 20251114_add_sync_transactions.sql
+│       ├── 20251114_all_production_migrations.sql
+│       ├── 20251114_create_business_profile_history.sql
+│       ├── 20251114_create_default_client_profile_trigger.sql
+│       ├── 20251114_create_error_logs_table.sql
+│       ├── 20251114_create_missing_views_and_tables.sql
+│       ├── 20251114_create_monitoring_tables.sql
+│       ├── 20251114_ensure_client_profiles_exists.sql
+│       ├── 20251114_features_tab_improvements.sql
+│       ├── 20251114_fix_all_views_final.sql
+│       ├── 20251114_fix_business_type_final.sql
+│       ├── 20251114_fix_client_profiles_rls.sql
+│       ├── 20251114_fix_media_indexes.sql
+│       ├── 20251114_fix_record_profile_changes_business_type.sql
+│       ├── 20251114_fix_variable_scope.sql
+│       ├── 20251114_normalize_review_fields_safe.sql
+│       ├── 20251114_normalize_review_fields.sql
+│       ├── 20251114_update_sync_transactions_join.sql
+│       ├── 20251115_add_team_rbac.sql
+│       ├── 20251115_enable_audit_log_rls.sql
+│       ├── 20251116_add_activity_logging.sql
+│       ├── 20251116_add_audit_logs.sql
+│       ├── 20251116_add_gmb_location_media_columns.sql
+│       ├── 20251116_add_logo_and_category.sql
+│       ├── 20251116_check_reviews_data.sql
+│       ├── 20251116_create_sync_status.sql
+│       ├── 20251116_fix_dashboard_stats_view.sql
+│       ├── 20251116_fix_profile_history_without_attributes.sql
+│       ├── 20251116_fix_replied_reviews_count.sql
+│       ├── 20251116_gmb_notifications_enhancement.sql
+│       ├── 20251116_link_gmb_locations_accounts_fn.sql
+│       ├── 20251117_add_cover_photo_url_to_locations.sql
+│       ├── 20251117_add_logo_url_to_locations.sql
+│       ├── 20251119_question_auto_answer_security.sql
+│       ├── 20251119_question_auto_answer.sql
+│       ├── 20251121_contact_submissions.sql
+│       ├── 20251121_fix_error_logs_rls_policy.sql
+│       ├── 20251122_drop_old_locations_rls.sql
+│       ├── 20251122000000_create_products_table.sql
+│       ├── 20251122000001_create_messages_table.sql
+│       ├── 20251122000002_create_services_table.sql
+│       ├── 20251122000003_add_ai_posts_columns.sql
+│       └── README.md
+├── supabase-email-templates
+│   ├── change-email.html
+│   ├── confirm-signup.html
+│   ├── invite-user.html
+│   ├── magic-link.html
+│   ├── reauthentication.html
+│   └── reset-password.html
+├── tests
+│   ├── __mocks__
+│   │   ├── fileMock.js
+│   │   └── styleMock.js
+│   ├── lib
+│   │   └── security
+│   │       ├── encryption.test.ts
+│   │       └── webhook-verification.test.ts
+│   └── sync-transactions.test.ts
+├── tsconfig.json
+├── tsconfig.tsbuildinfo
+├── types
+│   ├── dashboard.ts
+│   └── features.ts
+├── utils
+│   ├── api-error.ts
+│   └── map-styles.ts
+├── vercel.json
+├── vitest.config.ts
+└── vitest.shims.d.ts
+
+372 directories, 925 files

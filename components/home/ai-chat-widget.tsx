@@ -14,7 +14,6 @@ import {
   Mic,
   MicOff,
   Paperclip,
-  Heart,
   ThumbsUp,
   ThumbsDown,
   Copy,
@@ -29,7 +28,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -79,7 +77,7 @@ export function AIChatWidget() {
   const pathname = usePathname()
 
   const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -92,18 +90,16 @@ export function AIChatWidget() {
   const [isLoading, setIsLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'connecting'>(
-    'online',
-  )
+  const [connectionStatus] = useState<'online' | 'offline' | 'connecting'>('online')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [showCommands, setShowCommands] = useState(false)
-  const [multiline, setMultiline] = useState(false)
+  const [showCommands] = useState(false)
+  const [multiline] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout>()
-  const recognitionRef = useRef<any>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -119,22 +115,22 @@ export function AIChatWidget() {
       ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
     ) {
       const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        (window as Window & typeof globalThis).SpeechRecognition ||
+        (window as Window & typeof globalThis).webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = Array.from(event.results)
-          .map((result: any) => result[0])
-          .map((result: any) => result.transcript)
+          .map((result) => result[0])
+          .map((result) => result.transcript)
           .join('')
 
         setInput(transcript)
       }
 
-      recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event)
+      recognitionRef.current.onerror = () => {
         setIsRecording(false)
       }
     }
@@ -476,7 +472,7 @@ export function AIChatWidget() {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 1, type: 'spring', stiffness: 200 }}
-          className="fixed bottom-6 right-6 z-50"
+          className="fixed bottom-6 right-6 z-50 ai-chat-button"
         >
           <AnimatePresence>
             {!isOpen && (
