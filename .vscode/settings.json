@@ -8,13 +8,7 @@
     "source.fixAll.eslint": "explicit"
   },
 
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "json"
-  ],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "json"],
 
   "files.eol": "\n",
   "files.insertFinalNewline": true,
