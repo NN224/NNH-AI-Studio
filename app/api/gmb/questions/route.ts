@@ -47,12 +47,15 @@ export async function GET(request: NextRequest) {
 
     const {
       locationId,
-      status,
+      status: rawStatus,
       page = 1,
       limit = 20,
       search,
     } = queryValidation.data;
     const offset = (page - 1) * limit;
+
+    // Map 'unanswered' to 'pending' for backward compatibility
+    const status = rawStatus === "unanswered" ? "pending" : rawStatus;
 
     // First get active GMB account IDs
     const { data: activeAccounts, error: accountsError } = await supabase

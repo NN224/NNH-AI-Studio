@@ -40,7 +40,7 @@ export const questionAnswerSchema = z.object({
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).max(1000).default(1),
-  limit: z.coerce.number().int().min(10).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 export const locationUpdateSchema = z
@@ -71,7 +71,7 @@ export const locationUpdateSchema = z
 
 export const questionFilterSchema = paginationSchema.extend({
   locationId: z.string().uuid().optional(),
-  status: z.enum(["pending", "answered", "draft"]).optional(),
+  status: z.enum(["pending", "answered", "draft", "unanswered"]).optional(),
   search: z
     .string()
     .trim()
