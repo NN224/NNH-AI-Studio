@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import {
   X,
   ArrowRight,
@@ -21,265 +21,279 @@ import {
   Trophy,
   Target,
   Navigation,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import confetti from "canvas-confetti";
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import confetti from 'canvas-confetti'
 
 interface TourStep {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  target?: string;
-  position: "top" | "bottom" | "left" | "right" | "center";
-  action?: () => void;
+  id: string
+  title: string
+  description: string
+  icon: React.ElementType
+  target?: string
+  position: 'top' | 'bottom' | 'left' | 'right' | 'center'
+  action?: () => void
   interactive?: {
-    type: "click" | "hover" | "scroll";
-    element: string;
-  };
+    type: 'click' | 'hover' | 'scroll'
+    element: string
+  }
 }
 
 const tourSteps: TourStep[] = [
   {
-    id: "welcome",
-    title: "Welcome to Your AI-Powered Dashboard! 🎉",
+    id: 'welcome',
+    title: 'Welcome to Your AI-Powered Dashboard! 🎉',
     description:
-      "Let me show you how to 10x your business management with AI. This tour is personalized just for you!",
+      'Let me show you how to 10x your business management with AI. This tour is personalized just for you!',
     icon: Rocket,
-    position: "center",
+    position: 'center',
   },
   {
-    id: "hero",
-    title: "Your Personal Command Center",
+    id: 'hero',
+    title: 'Your Personal Command Center',
     description:
-      "Get personalized greetings, track your progress, and see key metrics at a glance.",
+      'Get personalized greetings, track your progress, and see key metrics at a glance.',
     icon: Target,
-    target: ".dashboard-hero",
-    position: "bottom",
+    target: '.dashboard-hero',
+    position: 'bottom',
   },
   {
-    id: "quick-actions",
-    title: "One-Click Power Actions",
+    id: 'quick-actions',
+    title: 'One-Click Power Actions',
     description:
-      "Access everything you need instantly. Try hovering over these buttons to see the magic!",
+      'Access everything you need instantly. Try hovering over these buttons to see the magic!',
     icon: Zap,
-    target: ".quick-actions",
-    position: "bottom",
+    target: '.quick-actions',
+    position: 'bottom',
     interactive: {
-      type: "hover",
-      element: ".quick-actions button:first-child",
+      type: 'hover',
+      element: '.quick-actions button:first-child',
     },
   },
   {
-    id: "ai-insights",
-    title: "AI That Works For You",
+    id: 'ai-insights',
+    title: 'AI That Works For You',
     description:
-      "Get smart recommendations that actually help grow your business. Click any insight to dive deeper!",
+      'Get smart recommendations that actually help grow your business. Click any insight to dive deeper!',
     icon: Sparkles,
-    target: ".ai-insights",
-    position: "top",
+    target: '.ai-insights',
+    position: 'top',
     interactive: {
-      type: "click",
-      element: ".ai-insights .insight-card:first-child",
+      type: 'click',
+      element: '.ai-insights .insight-card:first-child',
     },
   },
   {
-    id: "stats",
-    title: "Real-Time Analytics",
+    id: 'stats',
+    title: 'Real-Time Analytics',
     description:
-      "Watch your stats update in real-time. The charts are interactive - try clicking on them!",
+      'Watch your stats update in real-time. The charts are interactive - try clicking on them!',
     icon: BarChart3,
-    target: ".stats-overview",
-    position: "top",
+    target: '.stats-overview',
+    position: 'top',
   },
   {
-    id: "achievements",
-    title: "Level Up Your Business",
+    id: 'achievements',
+    title: 'Level Up Your Business',
     description:
-      "Earn points, unlock achievements, and compete on the leaderboard. Business management has never been this fun!",
+      'Earn points, unlock achievements, and compete on the leaderboard. Business management has never been this fun!',
     icon: Trophy,
-    target: ".achievements",
-    position: "left",
+    target: '.achievements',
+    position: 'left',
   },
   {
-    id: "ai-chat",
-    title: "Your 24/7 AI Assistant",
+    id: 'ai-chat',
+    title: 'Your 24/7 AI Assistant',
     description:
-      "Have questions? Need help? Click the orange button anytime to chat with your personal AI assistant!",
+      'Have questions? Need help? Click the orange button anytime to chat with your personal AI assistant!',
     icon: MessageSquare,
-    target: ".ai-chat-button",
-    position: "left",
+    target: '.ai-chat-button',
+    position: 'left',
   },
   {
-    id: "complete",
+    id: 'complete',
     title: "You're All Set! 🚀",
     description:
       "Congratulations! You've unlocked the full power of AI-driven business management. Let's achieve greatness together!",
     icon: Trophy,
-    position: "center",
+    position: 'center',
     action: () => {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ["#ff6b00", "#ffc107", "#4caf50"],
-      });
+        colors: ['#ff6b00', '#ffc107', '#4caf50'],
+      })
     },
   },
-];
+]
 
 export function EnhancedOnboarding() {
-  const [isActive, setIsActive] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [hasCompletedTour, setHasCompletedTour] = useState(false);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const spotlightRef = useRef<HTMLDivElement>(null);
+  const [isActive, setIsActive] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [hasCompletedTour, setHasCompletedTour] = useState(false)
+  const [isInteracting, setIsInteracting] = useState(false)
+  const spotlightRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const completed = localStorage.getItem("enhanced-onboarding-completed");
+    const completed = localStorage.getItem('enhanced-onboarding-completed')
     if (!completed && !hasCompletedTour) {
       const timer = setTimeout(() => {
-        setIsActive(true);
-      }, 1500);
-      return () => clearTimeout(timer);
+        setIsActive(true)
+      }, 1500)
+      return () => clearTimeout(timer)
     } else {
-      setHasCompletedTour(true);
+      setHasCompletedTour(true)
     }
-  }, [hasCompletedTour]);
+  }, [hasCompletedTour])
 
   useEffect(() => {
-    const step = tourSteps[currentStep];
+    const step = tourSteps[currentStep]
     if (step.action) {
-      step.action();
+      step.action()
     }
 
     // Set up interactive elements
     if (step.interactive && step.target) {
-      const element = document.querySelector(step.interactive.element);
+      const element = document.querySelector(step.interactive.element)
       if (element) {
         const handleInteraction = () => {
-          setIsInteracting(true);
+          setIsInteracting(true)
           setTimeout(() => {
-            setIsInteracting(false);
-            handleNext();
-          }, 1500);
-        };
+            setIsInteracting(false)
+            handleNext()
+          }, 1500)
+        }
 
-        if (step.interactive.type === "click") {
-          element.addEventListener("click", handleInteraction);
-        } else if (step.interactive.type === "hover") {
-          element.addEventListener("mouseenter", handleInteraction);
+        if (step.interactive.type === 'click') {
+          element.addEventListener('click', handleInteraction)
+        } else if (step.interactive.type === 'hover') {
+          element.addEventListener('mouseenter', handleInteraction)
         }
 
         return () => {
-          element.removeEventListener("click", handleInteraction);
-          element.removeEventListener("mouseenter", handleInteraction);
-        };
+          element.removeEventListener('click', handleInteraction)
+          element.removeEventListener('mouseenter', handleInteraction)
+        }
       }
     }
-  }, [currentStep]);
+  }, [currentStep])
 
   // Update spotlight position
   useEffect(() => {
-    if (!isActive || !spotlightRef.current) return;
+    if (!isActive || !spotlightRef.current) return
 
-    const step = tourSteps[currentStep];
+    const step = tourSteps[currentStep]
     if (step.target) {
-      const targetElement = document.querySelector(step.target);
+      const targetElement = document.querySelector(step.target)
       if (targetElement) {
-        const rect = targetElement.getBoundingClientRect();
-        const spotlight = spotlightRef.current;
+        const rect = targetElement.getBoundingClientRect()
+        const spotlight = spotlightRef.current
 
-        spotlight.style.left = `${rect.left - 20}px`;
-        spotlight.style.top = `${rect.top - 20}px`;
-        spotlight.style.width = `${rect.width + 40}px`;
-        spotlight.style.height = `${rect.height + 40}px`;
-        spotlight.style.opacity = "1";
+        spotlight.style.left = `${rect.left - 20}px`
+        spotlight.style.top = `${rect.top - 20}px`
+        spotlight.style.width = `${rect.width + 40}px`
+        spotlight.style.height = `${rect.height + 40}px`
+        spotlight.style.opacity = '1'
       } else {
-        spotlightRef.current.style.opacity = "0";
+        spotlightRef.current.style.opacity = '0'
       }
     } else {
-      spotlightRef.current.style.opacity = "0";
+      spotlightRef.current.style.opacity = '0'
     }
-  }, [currentStep, isActive]);
+  }, [currentStep, isActive])
 
   const handleNext = () => {
     if (currentStep < tourSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep + 1)
     } else {
-      completeTour();
+      completeTour()
     }
-  };
+  }
 
   const handlePrev = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep - 1)
     }
-  };
+  }
 
   const completeTour = () => {
-    localStorage.setItem("enhanced-onboarding-completed", "true");
-    setIsActive(false);
-    setHasCompletedTour(true);
+    localStorage.setItem('enhanced-onboarding-completed', 'true')
+    setIsActive(false)
+    setHasCompletedTour(true)
 
     // Trigger celebration
     confetti({
       particleCount: 150,
       spread: 100,
       origin: { y: 0.6 },
-      colors: ["#ff6b00", "#ffc107", "#4caf50", "#2196f3", "#9c27b0"],
-    });
-  };
+      colors: ['#ff6b00', '#ffc107', '#4caf50', '#2196f3', '#9c27b0'],
+    })
+  }
 
   const skipTour = () => {
-    completeTour();
-  };
+    completeTour()
+  }
 
-  if (hasCompletedTour || !isActive) return null;
+  if (hasCompletedTour || !isActive) return null
 
-  const step = tourSteps[currentStep];
-  const Icon = step.icon;
-  const progress = ((currentStep + 1) / tourSteps.length) * 100;
+  const step = tourSteps[currentStep]
+  const Icon = step.icon
+  const progress = ((currentStep + 1) / tourSteps.length) * 100
 
-  // Calculate tooltip position
-  const getTooltipPosition = () => {
-    if (step.position === "center") {
-      return "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";
+  // Calculate tooltip position using useMemo to avoid re-querying DOM on every render
+  const tooltipPosition = useMemo(() => {
+    if (step.position === 'center') {
+      return {
+        className: 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+        style: {},
+      }
     }
 
     if (!step.target) {
-      return "fixed top-24 left-1/2 -translate-x-1/2";
+      return {
+        className: 'fixed left-1/2 -translate-x-1/2',
+        style: { top: '6rem' },
+      }
     }
 
-    const targetElement = document.querySelector(step.target);
+    // Only query DOM inside useMemo, which runs once per step change
+    const targetElement = document.querySelector(step.target)
     if (!targetElement) {
-      return "fixed top-24 left-1/2 -translate-x-1/2";
+      return {
+        className: 'fixed left-1/2 -translate-x-1/2',
+        style: { top: '6rem' },
+      }
     }
 
-    const rect = targetElement.getBoundingClientRect();
-    let position = "";
+    const rect = targetElement.getBoundingClientRect()
+    let className = ''
+    let style: React.CSSProperties = {}
 
     switch (step.position) {
-      case "top":
-        position = `fixed left-1/2 -translate-x-1/2`;
-        position += ` top-[${rect.top - 20}px] -translate-y-full`;
-        break;
-      case "bottom":
-        position = `fixed left-1/2 -translate-x-1/2`;
-        position += ` top-[${rect.bottom + 20}px]`;
-        break;
-      case "left":
-        position = `fixed top-1/2 -translate-y-1/2`;
-        position += ` left-[${rect.left - 20}px] -translate-x-full`;
-        break;
-      case "right":
-        position = `fixed top-1/2 -translate-y-1/2`;
-        position += ` left-[${rect.right + 20}px]`;
-        break;
+      case 'top':
+        className = 'fixed left-1/2 -translate-x-1/2 -translate-y-full'
+        style = { top: rect.top - 20 }
+        break
+      case 'bottom':
+        className = 'fixed left-1/2 -translate-x-1/2'
+        style = { top: rect.bottom + 20 }
+        break
+      case 'left':
+        className = 'fixed top-1/2 -translate-y-1/2 -translate-x-full'
+        style = { left: rect.left - 20 }
+        break
+      case 'right':
+        className = 'fixed top-1/2 -translate-y-1/2'
+        style = { left: rect.right + 20 }
+        break
+      default:
+        className = 'fixed left-1/2 -translate-x-1/2'
+        style = { top: '6rem' }
     }
 
-    return position;
-  };
+    return { className, style }
+  }, [currentStep, step.position, step.target]) // Re-calculate only when step changes
 
   return (
     <AnimatePresence>
@@ -299,8 +313,8 @@ export function EnhancedOnboarding() {
             ref={spotlightRef}
             className="fixed z-[99] pointer-events-none transition-all duration-500 ease-out"
             style={{
-              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.8)",
-              borderRadius: "12px",
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.8)',
+              borderRadius: '12px',
               opacity: 0,
             }}
           />
@@ -311,8 +325,9 @@ export function EnhancedOnboarding() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className={cn(getTooltipPosition(), "z-[101] pointer-events-none")}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={cn(tooltipPosition.className, 'z-[101] pointer-events-none')}
+            style={tooltipPosition.style}
           >
             <Card className="w-[90vw] max-w-md bg-gradient-to-br from-gray-900 via-black to-gray-900 backdrop-blur-xl border-orange-500/50 shadow-2xl shadow-orange-500/20 pointer-events-auto">
               {/* Progress bar */}
@@ -328,10 +343,7 @@ export function EnhancedOnboarding() {
               <div className="p-6">
                 {/* Step indicator */}
                 <div className="flex items-center justify-between mb-4">
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-orange-500/30 text-orange-400"
-                  >
+                  <Badge variant="outline" className="text-xs border-orange-500/30 text-orange-400">
                     Step {currentStep + 1} of {tourSteps.length}
                   </Badge>
 
@@ -351,7 +363,7 @@ export function EnhancedOnboarding() {
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 200 }}
+                      transition={{ type: 'spring', stiffness: 200 }}
                       className="flex-shrink-0"
                     >
                       <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
@@ -361,9 +373,7 @@ export function EnhancedOnboarding() {
 
                     <div className="flex-1">
                       <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                      <p className="text-gray-400 leading-relaxed">
-                        {step.description}
-                      </p>
+                      <p className="text-gray-400 leading-relaxed">{step.description}</p>
                     </div>
                   </div>
 
@@ -377,12 +387,11 @@ export function EnhancedOnboarding() {
                     >
                       <MousePointer className="h-4 w-4 text-orange-500" />
                       <span className="text-sm text-orange-400">
-                        {step.interactive.type === "click" &&
-                          "Click the highlighted element to continue"}
-                        {step.interactive.type === "hover" &&
-                          "Hover over the highlighted element to continue"}
-                        {step.interactive.type === "scroll" &&
-                          "Scroll to see more"}
+                        {step.interactive.type === 'click' &&
+                          'Click the highlighted element to continue'}
+                        {step.interactive.type === 'hover' &&
+                          'Hover over the highlighted element to continue'}
+                        {step.interactive.type === 'scroll' && 'Scroll to see more'}
                       </span>
                     </motion.div>
                   )}
@@ -398,10 +407,8 @@ export function EnhancedOnboarding() {
                           opacity: index <= currentStep ? 1 : 0.3,
                         }}
                         className={cn(
-                          "h-1.5 rounded-full transition-colors",
-                          index <= currentStep
-                            ? "bg-orange-500"
-                            : "bg-gray-700",
+                          'h-1.5 rounded-full transition-colors',
+                          index <= currentStep ? 'bg-orange-500' : 'bg-gray-700',
                         )}
                       />
                     ))}
@@ -430,12 +437,10 @@ export function EnhancedOnboarding() {
 
                       <Button
                         onClick={handleNext}
-                        disabled={
-                          isInteracting && step.interactive !== undefined
-                        }
+                        disabled={isInteracting && step.interactive !== undefined}
                         className={cn(
-                          "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
-                          isInteracting && "opacity-50 cursor-not-allowed",
+                          'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700',
+                          isInteracting && 'opacity-50 cursor-not-allowed',
                         )}
                       >
                         {currentStep === tourSteps.length - 1 ? (
@@ -457,21 +462,20 @@ export function EnhancedOnboarding() {
             </Card>
 
             {/* Pointing arrow */}
-            {step.target && step.position !== "center" && (
+            {step.target && step.position !== 'center' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
                 className={cn(
-                  "absolute w-8 h-8 text-orange-500",
-                  step.position === "top" &&
-                    "bottom-0 left-1/2 -translate-x-1/2 translate-y-full -rotate-180",
-                  step.position === "bottom" &&
-                    "top-0 left-1/2 -translate-x-1/2 -translate-y-full",
-                  step.position === "left" &&
-                    "right-0 top-1/2 -translate-y-1/2 translate-x-full rotate-90",
-                  step.position === "right" &&
-                    "left-0 top-1/2 -translate-y-1/2 -translate-x-full -rotate-90",
+                  'absolute w-8 h-8 text-orange-500',
+                  step.position === 'top' &&
+                    'bottom-0 left-1/2 -translate-x-1/2 translate-y-full -rotate-180',
+                  step.position === 'bottom' && 'top-0 left-1/2 -translate-x-1/2 -translate-y-full',
+                  step.position === 'left' &&
+                    'right-0 top-1/2 -translate-y-1/2 translate-x-full rotate-90',
+                  step.position === 'right' &&
+                    'left-0 top-1/2 -translate-y-1/2 -translate-x-full -rotate-90',
                 )}
               >
                 <Navigation className="w-full h-full fill-current" />
@@ -492,5 +496,5 @@ export function EnhancedOnboarding() {
         </>
       )}
     </AnimatePresence>
-  );
+  )
 }
