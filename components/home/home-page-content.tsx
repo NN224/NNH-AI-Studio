@@ -20,6 +20,7 @@ import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { AISuggestions } from "@/components/home/ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { AchievementSystem } from "@/components/home/achievement-system";
+import { useState, useEffect } from "react";
 
 interface HomePageContentProps {
   user: {
@@ -70,14 +71,6 @@ interface HomePageContentProps {
   streak: number;
 }
 
-function getTimeOfDay(): "morning" | "afternoon" | "evening" | "night" {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 17) return "afternoon";
-  if (hour >= 17 && hour < 21) return "evening";
-  return "night";
-}
-
 export function HomePageContent({
   user,
   profile,
@@ -101,6 +94,20 @@ export function HomePageContent({
   const completedTasksCount = progressItems.filter(
     (item) => item.completed,
   ).length;
+
+  // Use state for time of day to avoid hydration mismatch
+  const [timeOfDay, setTimeOfDay] = useState<
+    "morning" | "afternoon" | "evening" | "night"
+  >("morning");
+
+  useEffect(() => {
+    // Calculate time of day on client side only
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setTimeOfDay("morning");
+    else if (hour >= 12 && hour < 17) setTimeOfDay("afternoon");
+    else if (hour >= 17 && hour < 21) setTimeOfDay("evening");
+    else setTimeOfDay("night");
+  }, []);
 
   return (
     <div className="min-h-screen bg-black relative">
@@ -139,7 +146,7 @@ export function HomePageContent({
               <div className="xl:col-span-8">
                 <DashboardHero
                   userName={profile?.full_name}
-                  timeOfDay={getTimeOfDay()}
+                  timeOfDay={timeOfDay}
                   stats={{
                     todayReviews: todayReviewsCount || 0,
                     weeklyGrowth: weeklyGrowth,
