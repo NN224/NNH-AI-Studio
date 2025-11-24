@@ -60,7 +60,6 @@ const PROTECTED_ROUTES = [
   'analytics',
   'automation',
   'locations',
-  'messages',
   'products',
   'features',
   'gmb-posts',
