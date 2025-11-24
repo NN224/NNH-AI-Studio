@@ -1,18 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { ApiError, errorResponse } from '@/utils/api-error';
-import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
-import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager';
-import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager';
-import { GMB_CONSTANTS } from '@/lib/gmb/helpers';
-import { logAction } from '@/lib/monitoring/audit';
-import { trackSyncResult } from '@/lib/monitoring/metrics';
-import { checkKeyRateLimit } from '@/lib/rate-limit';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { ApiError, errorResponse } from '@/utils/api-error'
+import { encryptToken, resolveTokenValue } from '@/lib/security/encryption'
+import { acquireLock, extendLock, releaseLock } from '@/lib/redis/lock-manager'
+import { CacheBucket, refreshCache } from '@/lib/cache/cache-manager'
+import { GMB_CONSTANTS } from '@/lib/gmb/helpers'
+import { logAction } from '@/lib/monitoring/audit'
+import { trackSyncResult } from '@/lib/monitoring/metrics'
+import { checkKeyRateLimit } from '@/lib/rate-limit'
+import {
+  createSyncNotification,
+  createSyncErrorNotification,
+} from '@/lib/notifications/create-notification'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 // Limit verbose logging to non‑production environments
-const IS_DEV = process.env.NODE_ENV !== 'production';
+const IS_DEV = process.env.NODE_ENV !== 'production'
 
 // Granular sync types to allow partial refresh from dashboard
 const VALID_SYNC_TYPES = [
@@ -22,8 +26,8 @@ const VALID_SYNC_TYPES = [
   'questions',
   'media',
   'performance',
-  'keywords'
-];
+  'keywords',
+]
 
 type SyncStatusState = 'running' | 'success' | 'failed'
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -32,83 +36,83 @@ type JsonRecord = Record<string, unknown>
 
 // Google My Business API response types
 interface GmbLocationAddress {
-  addressLines?: string[];
-  locality?: string | null;
-  administrativeArea?: string | null;
-  postalCode?: string | null;
+  addressLines?: string[]
+  locality?: string | null
+  administrativeArea?: string | null
+  postalCode?: string | null
 }
 
 interface GmbLocationMetadata {
-  placeId?: string;
-  mapsUri?: string;
-  newReviewUri?: string;
-  canHaveFoodMenus?: boolean;
-  canHaveBusinessCalls?: boolean;
-  hasVoiceOfMerchant?: boolean;
-  hasPendingEdits?: boolean;
-  canDelete?: boolean;
-  canOperateHealthData?: boolean;
-  canOperateLodgingData?: boolean;
-  canModifyServiceList?: boolean;
-  averageRating?: number;
-  totalReviewCount?: number;
-  type?: string;
-  serviceAreaEnabled?: boolean;
+  placeId?: string
+  mapsUri?: string
+  newReviewUri?: string
+  canHaveFoodMenus?: boolean
+  canHaveBusinessCalls?: boolean
+  hasVoiceOfMerchant?: boolean
+  hasPendingEdits?: boolean
+  canDelete?: boolean
+  canOperateHealthData?: boolean
+  canOperateLodgingData?: boolean
+  canModifyServiceList?: boolean
+  averageRating?: number
+  totalReviewCount?: number
+  type?: string
+  serviceAreaEnabled?: boolean
 }
 
 interface GmbLocationLatLng {
-  latitude?: number;
-  longitude?: number;
+  latitude?: number
+  longitude?: number
 }
 
 interface GmbLocationOpenInfo {
-  status?: string;
-  openingDate?: string | { year?: number; month?: number; day?: number };
+  status?: string
+  openingDate?: string | { year?: number; month?: number; day?: number }
 }
 
 interface GmbLocationCategories {
-  primaryCategory?: { displayName?: string };
-  additionalCategories?: unknown[];
+  primaryCategory?: { displayName?: string }
+  additionalCategories?: unknown[]
 }
 
 interface GmbLocationPhoneNumbers {
-  primaryPhone?: string;
+  primaryPhone?: string
 }
 
 interface GmbLocationProfile {
-  description?: string;
-  shortDescription?: string;
-  merchantDescription?: string;
-  openingDate?: string | { year?: number; month?: number; day?: number };
+  description?: string
+  shortDescription?: string
+  merchantDescription?: string
+  openingDate?: string | { year?: number; month?: number; day?: number }
 }
 
 interface GmbLocationHours {
-  periods?: unknown[];
+  periods?: unknown[]
 }
 
 interface RawGoogleLocation {
-  name?: string | null;
-  title?: string | null;
-  storefrontAddress?: GmbLocationAddress | null;
-  phoneNumbers?: GmbLocationPhoneNumbers | null;
-  websiteUri?: string | null;
-  categories?: GmbLocationCategories | null;
-  profile?: GmbLocationProfile | null;
-  regularHours?: GmbLocationHours | null;
-  specialHours?: GmbLocationHours | null;
-  moreHours?: GmbLocationHours | null;
-  serviceItems?: unknown[] | null;
-  openInfo?: GmbLocationOpenInfo | null;
-  metadata?: GmbLocationMetadata | null;
-  latlng?: GmbLocationLatLng | null;
-  labels?: string[] | null;
-  type?: string | null;
-  averageRating?: number | null;
-  totalReviewCount?: number | null;
-  serviceArea?: { enabled?: boolean } | null;
+  name?: string | null
+  title?: string | null
+  storefrontAddress?: GmbLocationAddress | null
+  phoneNumbers?: GmbLocationPhoneNumbers | null
+  websiteUri?: string | null
+  categories?: GmbLocationCategories | null
+  profile?: GmbLocationProfile | null
+  regularHours?: GmbLocationHours | null
+  specialHours?: GmbLocationHours | null
+  moreHours?: GmbLocationHours | null
+  serviceItems?: unknown[] | null
+  openInfo?: GmbLocationOpenInfo | null
+  metadata?: GmbLocationMetadata | null
+  latlng?: GmbLocationLatLng | null
+  labels?: string[] | null
+  type?: string | null
+  averageRating?: number | null
+  totalReviewCount?: number | null
+  serviceArea?: { enabled?: boolean } | null
   // Extended properties for media URLs
-  cover_photo_url?: string | null;
-  logo_url?: string | null;
+  cover_photo_url?: string | null
+  logo_url?: string | null
 }
 
 type ApiDisplayValue = { displayName?: string; name?: string; merchantDescription?: string }
@@ -164,7 +168,7 @@ async function finalizeSyncStatusRecord(
   supabase: SupabaseServerClient,
   statusId: string | null,
   state: SyncStatusState,
-  errorMessage?: string | null
+  errorMessage?: string | null,
 ) {
   if (!statusId) {
     return
@@ -189,22 +193,22 @@ async function startPhaseLog(
   supabase: SupabaseServerClient,
   accountId: string,
   userId: string,
-  phase: string
+  phase: string,
 ) {
   try {
     const { data, error } = await supabase
       .from('gmb_sync_logs')
       .insert({ gmb_account_id: accountId, user_id: userId, phase, status: 'started' })
       .select('id')
-      .single();
+      .single()
     if (error) {
-      console.warn('[GMB Sync API] Failed to start phase log', phase, error.message);
-      return null;
+      console.warn('[GMB Sync API] Failed to start phase log', phase, error.message)
+      return null
     }
-    return data?.id || null;
+    return data?.id || null
   } catch (error) {
-    console.warn('[GMB Sync API] Exception starting phase log', phase, error);
-    return null;
+    console.warn('[GMB Sync API] Exception starting phase log', phase, error)
+    return null
   }
 }
 
@@ -213,24 +217,29 @@ async function finishPhaseLog(
   id: string | null,
   status: string,
   counts: PhaseCounts | null,
-  error?: string | null
+  error?: string | null,
 ) {
-  if (!id) return;
+  if (!id) return
   try {
     await supabase
       .from('gmb_sync_logs')
-      .update({ status, ended_at: new Date().toISOString(), counts, error: error ? String(error) : null })
-      .eq('id', id);
+      .update({
+        status,
+        ended_at: new Date().toISOString(),
+        counts,
+        error: error ? String(error) : null,
+      })
+      .eq('id', id)
   } catch (error) {
-    console.warn('[GMB Sync API] Failed to finish phase log', id, error);
+    console.warn('[GMB Sync API] Failed to finish phase log', id, error)
   }
 }
 
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
-const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE; // v4 API for reviews and media
-const QANDA_API_BASE = GMB_CONSTANTS.QANDA_BASE; // Q&A API for questions
-const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1'; // Performance API for metrics
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE
+const GMB_V4_BASE = GMB_CONSTANTS.GMB_V4_BASE // v4 API for reviews and media
+const QANDA_API_BASE = GMB_CONSTANTS.QANDA_BASE // Q&A API for questions
+const PERFORMANCE_API_BASE = 'https://businessprofileperformance.googleapis.com/v1' // Performance API for metrics
 // Metrics upsert helper: accumulate totals and runs per phase
 async function upsertMetrics(
   supabase: SupabaseServerClient,
@@ -238,7 +247,7 @@ async function upsertMetrics(
   userId: string,
   phase: 'locations' | 'reviews' | 'media' | 'questions' | 'performance' | 'keywords',
   durationMs: number,
-  itemsCount: number
+  itemsCount: number,
 ) {
   try {
     // Try to get existing row
@@ -247,10 +256,10 @@ async function upsertMetrics(
       .select('id, runs_count, total_duration_ms, total_items_count')
       .eq('gmb_account_id', accountId)
       .eq('phase', phase)
-      .maybeSingle();
+      .maybeSingle()
 
     if (selError && selError.code !== 'PGRST116') {
-      console.warn('[GMB Metrics] Select error:', selError.message);
+      console.warn('[GMB Metrics] Select error:', selError.message)
     }
 
     if (existing && existing.id) {
@@ -262,71 +271,68 @@ async function upsertMetrics(
           total_items_count: (existing.total_items_count || 0) + Math.max(0, itemsCount),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', existing.id);
+        .eq('id', existing.id)
       if (updError) {
-        console.warn('[GMB Metrics] Update error:', updError.message);
+        console.warn('[GMB Metrics] Update error:', updError.message)
       }
     } else {
-      const { error: insError } = await supabase
-        .from('gmb_metrics')
-        .insert({
-          gmb_account_id: accountId,
-          user_id: userId,
-          phase,
-          runs_count: 1,
-          total_duration_ms: Math.max(0, durationMs),
-          total_items_count: Math.max(0, itemsCount),
-        });
+      const { error: insError } = await supabase.from('gmb_metrics').insert({
+        gmb_account_id: accountId,
+        user_id: userId,
+        phase,
+        runs_count: 1,
+        total_duration_ms: Math.max(0, durationMs),
+        total_items_count: Math.max(0, itemsCount),
+      })
       if (insError) {
-        console.warn('[GMB Metrics] Insert error:', insError.message);
+        console.warn('[GMB Metrics] Insert error:', insError.message)
       }
     }
   } catch (error) {
-    console.warn('[GMB Metrics] Exception upserting metrics for phase', phase, error);
+    console.warn('[GMB Metrics] Exception upserting metrics for phase', phase, error)
   }
 }
-
 
 // Helper function for chunking arrays
 const chunks = <T>(array: T[], size = 100): T[][] => {
   return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-    array.slice(i * size, i * size + size)
-  );
-};
+    array.slice(i * size, i * size + size),
+  )
+}
 
 // Helper function to convert starRating enum to number
 // API v4 returns starRating as enum string: "ONE", "TWO", "THREE", "FOUR", "FIVE"
 function convertStarRatingToNumber(starRating: string | undefined | null): number {
-  if (!starRating) return 0;
-  
+  if (!starRating) return 0
+
   const ratingMap: Record<string, number> = {
-    'ONE': 1,
-    'TWO': 2,
-    'THREE': 3,
-    'FOUR': 4,
-    'FIVE': 5,
-    'STAR_RATING_UNSPECIFIED': 0,
-  };
-  
+    ONE: 1,
+    TWO: 2,
+    THREE: 3,
+    FOUR: 4,
+    FIVE: 5,
+    STAR_RATING_UNSPECIFIED: 0,
+  }
+
   // Convert enum string to number
-  return ratingMap[starRating.toUpperCase()] || 0;
+  return ratingMap[starRating.toUpperCase()] || 0
 }
 
 // Refresh Google access token
 async function refreshAccessToken(refreshToken: string): Promise<{
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
+  access_token: string
+  expires_in: number
+  refresh_token?: string
 }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Attempting to refresh access token...');
+    console.warn('[GMB Sync] Attempting to refresh access token...')
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
 
   if (!clientId || !clientSecret) {
-  throw new ApiError('Missing Google OAuth configuration', 500);
+    throw new ApiError('Missing Google OAuth configuration', 500)
   }
 
   const response = await fetch(GOOGLE_TOKEN_URL, {
@@ -338,57 +344,60 @@ async function refreshAccessToken(refreshToken: string): Promise<{
       client_id: clientId,
       client_secret: clientSecret,
     }),
-  });
+  })
 
-  const data = await response.json();
+  const data = await response.json()
 
   if (!response.ok) {
-    console.error('[GMB Sync] Token refresh failed:', data);
+    console.error('[GMB Sync] Token refresh failed:', data)
     if (data.error === 'invalid_grant') {
-      throw new ApiError('Your Google account connection has expired. Please reconnect your Google My Business account in Settings.', 401);
+      throw new ApiError(
+        'Your Google account connection has expired. Please reconnect your Google My Business account in Settings.',
+        401,
+      )
     }
-    throw new ApiError(`Token refresh failed: ${data.error || 'Unknown error'}`, 401);
+    throw new ApiError(`Token refresh failed: ${data.error || 'Unknown error'}`, 401)
   }
 
   if (IS_DEV) {
-    console.warn('[GMB Sync] Access token refreshed successfully');
+    console.warn('[GMB Sync] Access token refreshed successfully')
   }
-  return data;
+  return data
 }
 
 // Get valid access token (refresh if needed)
 async function getValidAccessToken(
   supabase: SupabaseServerClient,
-  accountId: string
+  accountId: string,
 ): Promise<string> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Getting valid access token for account:', accountId);
+    console.warn('[GMB Sync] Getting valid access token for account:', accountId)
   }
 
   const { data: account, error } = await supabase
     .from('gmb_accounts')
     .select('access_token, refresh_token, token_expires_at')
     .eq('id', accountId)
-    .single();
+    .single()
 
   if (error || !account) {
-    console.error('[GMB Sync] Failed to fetch account:', error);
-  throw new ApiError('Account not found', 404);
+    console.error('[GMB Sync] Failed to fetch account:', error)
+    throw new ApiError('Account not found', 404)
   }
 
   // Decrypt tokens - will throw EncryptionError if decryption fails
-  let accessToken: string | null;
-  let refreshToken: string | null;
+  let accessToken: string | null
+  let refreshToken: string | null
 
   try {
     accessToken = resolveTokenValue(account.access_token, {
       context: `gmb_accounts.access_token:${accountId}`,
-    });
+    })
     refreshToken = resolveTokenValue(account.refresh_token, {
       context: `gmb_accounts.refresh_token:${accountId}`,
-    });
+    })
   } catch (error) {
-    console.error('[GMB Sync] Token decryption failed for account:', accountId);
+    console.error('[GMB Sync] Token decryption failed for account:', accountId)
 
     // Mark account as inactive - requires reconnection
     await supabase
@@ -398,41 +407,41 @@ async function getValidAccessToken(
         last_error: 'Token decryption failed - reconnection required',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', accountId);
+      .eq('id', accountId)
 
     throw new ApiError(
       'Your Google account connection has expired. Please reconnect in Settings. ' +
-      'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.',
-      401
-    );
+        'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.',
+      401,
+    )
   }
 
-  const now = new Date();
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
+  const now = new Date()
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null
 
   // Check if token is still valid (with 10 minute buffer)
-  const BUFFER_MINUTES = 10;
+  const BUFFER_MINUTES = 10
   if (accessToken && expiresAt && expiresAt > new Date(now.getTime() + BUFFER_MINUTES * 60000)) {
     if (IS_DEV) {
-      console.warn('[GMB Sync] Using existing valid access token');
+      console.warn('[GMB Sync] Using existing valid access token')
     }
-    return accessToken;
+    return accessToken
   }
 
   // Token expired or missing, refresh it
   if (!refreshToken) {
-    console.error('[GMB Sync] No refresh token available');
-  throw new ApiError('No refresh token available - reconnect required', 401);
+    console.error('[GMB Sync] No refresh token available')
+    throw new ApiError('No refresh token available - reconnect required', 401)
   }
 
   if (IS_DEV) {
-    console.warn('[GMB Sync] Token expired or missing, refreshing...');
+    console.warn('[GMB Sync] Token expired or missing, refreshing...')
   }
-  const tokens = await refreshAccessToken(refreshToken);
+  const tokens = await refreshAccessToken(refreshToken)
 
   // Update tokens in database
-  const newExpiresAt = new Date();
-  newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in);
+  const newExpiresAt = new Date()
+  newExpiresAt.setSeconds(newExpiresAt.getSeconds() + tokens.expires_in)
 
   const updateData: {
     access_token: string
@@ -441,22 +450,22 @@ async function getValidAccessToken(
   } = {
     access_token: encryptToken(tokens.access_token),
     token_expires_at: newExpiresAt.toISOString(),
-  };
+  }
 
   if (tokens.refresh_token) {
-    updateData.refresh_token = encryptToken(tokens.refresh_token);
+    updateData.refresh_token = encryptToken(tokens.refresh_token)
   }
 
   const { error: updateError } = await supabase
     .from('gmb_accounts')
     .update(updateData)
-    .eq('id', accountId);
+    .eq('id', accountId)
 
   if (updateError) {
-    console.error('[GMB Sync] Failed to update tokens:', updateError);
+    console.error('[GMB Sync] Failed to update tokens:', updateError)
   }
 
-  return tokens.access_token;
+  return tokens.access_token
 }
 
 // Fetch locations from Google My Business
@@ -464,175 +473,185 @@ async function getValidAccessToken(
 // Fetch attributes for a specific location
 async function fetchLocationAttributes(
   accessToken: string,
-  locationResource: string
-): Promise<{ attributes?: Array<{ name: string; values?: unknown[]; uriValues?: Array<{ uri: string }> }> } | null> {
+  locationResource: string,
+): Promise<{
+  attributes?: Array<{ name: string; values?: unknown[]; uriValues?: Array<{ uri: string }> }>
+} | null> {
   try {
-    const url = new URL(`${GBP_LOC_BASE}/${locationResource}/attributes`);
-    
+    const url = new URL(`${GBP_LOC_BASE}/${locationResource}/attributes`)
+
     if (IS_DEV) {
-      console.warn('[GMB Sync] Fetching attributes for location:', locationResource);
+      console.warn('[GMB Sync] Fetching attributes for location:', locationResource)
     }
 
     const response = await fetch(url.toString(), {
-      headers: { 
+      headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
       },
-    });
+    })
 
     if (!response.ok) {
       // Attributes endpoint may return 404 if location has no attributes - this is normal
       if (response.status === 404) {
         if (IS_DEV) {
-          console.warn('[GMB Sync] No attributes found for location:', locationResource);
+          console.warn('[GMB Sync] No attributes found for location:', locationResource)
         }
-        return null;
+        return null
       }
       // Log other errors but don't fail the sync
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[GMB Sync] Failed to fetch attributes for ${locationResource}:`, response.status, errorText.substring(0, 200));
-      return null;
+      const errorText = await response.text().catch(() => 'Unknown error')
+      console.error(
+        `[GMB Sync] Failed to fetch attributes for ${locationResource}:`,
+        response.status,
+        errorText.substring(0, 200),
+      )
+      return null
     }
 
-    const data = await response.json();
-    return data;
+    const data = await response.json()
+    return data
   } catch (error) {
     // Don't fail the sync if attributes fetch fails
-    console.error(`[GMB Sync] Error fetching attributes for ${locationResource}:`, error);
-    return null;
+    console.error(`[GMB Sync] Error fetching attributes for ${locationResource}:`, error)
+    return null
   }
 }
 
 // Fetch place action links for a specific location
-const PLACE_ACTIONS_BASE = 'https://mybusinessplaceactions.googleapis.com/v1';
+const PLACE_ACTIONS_BASE = 'https://mybusinessplaceactions.googleapis.com/v1'
 async function fetchPlaceActionLinks(
   accessToken: string,
-  locationResource: string
+  locationResource: string,
 ): Promise<Array<{ placeActionType: string; uri: string; isPreferred?: boolean }> | null> {
   try {
-    const url = new URL(`${PLACE_ACTIONS_BASE}/${locationResource}/placeActionLinks`);
-    
+    const url = new URL(`${PLACE_ACTIONS_BASE}/${locationResource}/placeActionLinks`)
+
     if (IS_DEV) {
-      console.warn('[GMB Sync] Fetching place action links for location:', locationResource);
+      console.warn('[GMB Sync] Fetching place action links for location:', locationResource)
     }
 
     const response = await fetch(url.toString(), {
-      headers: { 
+      headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
       },
-    });
+    })
 
     if (!response.ok) {
       // 404 is normal - location may not have place action links
       if (response.status === 404) {
         if (IS_DEV) {
-          console.warn('[GMB Sync] No place action links found for location:', locationResource);
+          console.warn('[GMB Sync] No place action links found for location:', locationResource)
         }
-        return null;
+        return null
       }
       // Log other errors but don't fail the sync
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[GMB Sync] Failed to fetch place action links for ${locationResource}:`, response.status, errorText.substring(0, 200));
-      return null;
+      const errorText = await response.text().catch(() => 'Unknown error')
+      console.error(
+        `[GMB Sync] Failed to fetch place action links for ${locationResource}:`,
+        response.status,
+        errorText.substring(0, 200),
+      )
+      return null
     }
 
-    const data = await response.json();
-    return data.placeActionLinks || null;
+    const data = await response.json()
+    return data.placeActionLinks || null
   } catch (error) {
     // Don't fail the sync if place actions fetch fails
-    console.error(`[GMB Sync] Error fetching place action links for ${locationResource}:`, error);
-    return null;
+    console.error(`[GMB Sync] Error fetching place action links for ${locationResource}:`, error)
+    return null
   }
 }
 
 async function fetchLocations(
   accessToken: string,
   accountResource: string,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<{ locations: RawGoogleLocation[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching locations for account:', accountResource);
+    console.warn('[GMB Sync] Fetching locations for account:', accountResource)
   }
 
-  const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
+  const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`)
   // Note: profile only contains 'description' field according to API docs
   // Attributes must be fetched separately via locations/{location_id}/attributes endpoint
   url.searchParams.set(
     'readMask',
-    'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels'
-  );
-  url.searchParams.set('pageSize', '100');
-  url.searchParams.set('alt', 'json');
+    'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels',
+  )
+  url.searchParams.set('pageSize', '100')
+  url.searchParams.set('alt', 'json')
   if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
+    url.searchParams.set('pageToken', pageToken)
   }
 
   const response = await fetch(url.toString(), {
-    headers: { 
+    headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
     },
-  });
+  })
 
   // Check if response failed
   if (!response.ok) {
     // Try to read error as JSON if Content-Type is correct
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
 
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
+        errorData = await response.json()
       } catch (error) {
         // Failed to parse JSON, continue with empty object
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     } else {
       // Not JSON, try to read as text for debugging
       try {
-        const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response:', errorText.substring(0, 200));
+        const errorText = await response.text()
+        console.error('[GMB Sync] Non-JSON error response:', errorText.substring(0, 200))
       } catch (error) {
-        console.warn('[GMB Sync] Failed to read non-JSON error response', error);
+        console.warn('[GMB Sync] Failed to read non-JSON error response', error)
       }
     }
 
-    console.error('[GMB Sync] Failed to fetch locations:', errorData);
-    let errorMessage = 'Unknown error';
+    console.error('[GMB Sync] Failed to fetch locations:', errorData)
+    let errorMessage = 'Unknown error'
     if (errorData.error && typeof errorData.error === 'object' && errorData.error !== null) {
       if ('message' in errorData.error && typeof errorData.error.message === 'string') {
-        errorMessage = errorData.error.message;
-      } else if ('error' in errorData.error && typeof errorData.error.error === 'object' && errorData.error.error !== null) {
-        const nestedError = errorData.error.error as Record<string, unknown>;
+        errorMessage = errorData.error.message
+      } else if (
+        'error' in errorData.error &&
+        typeof errorData.error.error === 'object' &&
+        errorData.error.error !== null
+      ) {
+        const nestedError = errorData.error.error as Record<string, unknown>
         if ('message' in nestedError && typeof nestedError.message === 'string') {
-          errorMessage = nestedError.message;
+          errorMessage = nestedError.message
         }
       }
     }
-    throw new ApiError(
-      `Failed to fetch locations: ${errorMessage}`,
-      500,
-      errorData.error
-    );
+    throw new ApiError(`Failed to fetch locations: ${errorMessage}`, 500, errorData.error)
   }
 
   // Response is OK, verify Content-Type before parsing
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for locations:', contentType);
-    throw new ApiError('Unexpected response format from Google API', 500);
+    console.error('[GMB Sync] Unexpected content type for locations:', contentType)
+    throw new ApiError('Unexpected response format from Google API', 500)
   }
 
-  const data = await response.json();
+  const data = await response.json()
 
   if (IS_DEV) {
-    console.warn(`[GMB Sync] Fetched ${data.locations?.length || 0} locations`);
+    console.warn(`[GMB Sync] Fetched ${data.locations?.length || 0} locations`)
   }
   return {
     locations: data.locations || [],
     nextPageToken: data.nextPageToken,
-  };
+  }
 }
 
 // Fetch reviews for a location using Google My Business v4 API
@@ -641,135 +660,151 @@ async function fetchReviews(
   accessToken: string,
   locationResource: string,
   accountResource?: string,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<{ reviews: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching reviews for location:', locationResource);
+    console.warn('[GMB Sync] Fetching reviews for location:', locationResource)
   }
-  
+
   // Build full location resource if needed
-  let fullLocationResource = locationResource;
-  
+  let fullLocationResource = locationResource
+
   // If locationResource doesn't start with 'accounts/', try to build it
   if (!locationResource.startsWith('accounts/')) {
     // If we have accountResource, build the full path
     if (accountResource) {
       // Extract location ID from various formats
-      let locationId = locationResource;
+      let locationId = locationResource
       if (locationResource.startsWith('locations/')) {
-        locationId = locationResource.replace(/^locations\//, '');
+        locationId = locationResource.replace(/^locations\//, '')
       }
-      
+
       // Ensure accountResource has 'accounts/' prefix
-      const cleanAccountResource = accountResource.startsWith('accounts/') 
-        ? accountResource 
-        : `accounts/${accountResource}`;
-      
-      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
+      const cleanAccountResource = accountResource.startsWith('accounts/')
+        ? accountResource
+        : `accounts/${accountResource}`
+
+      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`
       if (IS_DEV) {
-        console.warn('[GMB Sync API] Built location resource:', locationResource, '?', fullLocationResource);
+        console.warn(
+          '[GMB Sync API] Built location resource:',
+          locationResource,
+          '?',
+          fullLocationResource,
+        )
       }
     } else {
-      console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
-      return { reviews: [], nextPageToken: undefined };
+      console.warn(
+        '[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:',
+        locationResource,
+      )
+      return { reviews: [], nextPageToken: undefined }
     }
   }
-  
+
   // Use Google My Business v4 API with direct /reviews endpoint
-  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/reviews`);
+  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/reviews`)
   if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
+    url.searchParams.set('pageToken', pageToken)
   }
-  url.searchParams.set('pageSize', '50');
-  
+  url.searchParams.set('pageSize', '50')
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Reviews URL (v4 API):', url.toString());
+    console.warn('[GMB Sync] Reviews URL (v4 API):', url.toString())
   }
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 
-      'Authorization': `Bearer ${accessToken}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-  });
+  })
 
   // Check if response failed
   if (!response.ok) {
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
 
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
-        console.error('[GMB Sync] v4 API error for reviews:', JSON.stringify(errorData));
+        errorData = await response.json()
+        console.error('[GMB Sync] v4 API error for reviews:', JSON.stringify(errorData))
       } catch (error) {
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     } else {
       try {
-        const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
-        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
-        console.error('[GMB Sync] Full URL that failed:', url.toString());
+        const errorText = await response.text()
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status)
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500))
+        console.error('[GMB Sync] Full URL that failed:', url.toString())
         // Try to extract more error info from HTML response
         if (errorText.includes('error')) {
-          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
+          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000))
         }
       } catch (error) {
-        console.error('[GMB Sync] Failed to read error text:', error);
+        console.error('[GMB Sync] Failed to read error text:', error)
       }
     }
-    
+
     // Handle specific error cases
     if (response.status === 404) {
       // Location not found or has no reviews - this is normal for new locations
-      console.warn('[GMB Sync] Location not found or has no reviews:', locationResource);
-      console.warn('[GMB Sync] Attempted URL:', url.toString());
+      console.warn('[GMB Sync] Location not found or has no reviews:', locationResource)
+      console.warn('[GMB Sync] Attempted URL:', url.toString())
       if (errorData.error) {
-        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error));
+        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error))
       }
-      return { reviews: [], nextPageToken: undefined };
+      return { reviews: [], nextPageToken: undefined }
     }
-    
+
     if (response.status === 403) {
       // Permission denied - might need different scope or API not enabled
-      console.error('[GMB Sync] Permission denied when fetching reviews. Check API permissions and scopes.');
-      console.error('[GMB Sync] Error details:', errorData);
-      return { reviews: [], nextPageToken: undefined };
+      console.error(
+        '[GMB Sync] Permission denied when fetching reviews. Check API permissions and scopes.',
+      )
+      console.error('[GMB Sync] Error details:', errorData)
+      return { reviews: [], nextPageToken: undefined }
     }
-    
+
     // For other errors, log but don't fail the entire sync
-    console.warn('[GMB Sync] Failed to fetch reviews for location:', locationResource);
-    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
-    return { reviews: [], nextPageToken: undefined };
+    console.warn('[GMB Sync] Failed to fetch reviews for location:', locationResource)
+    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData)
+    return { reviews: [], nextPageToken: undefined }
   }
 
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for reviews:', contentType);
-    return { reviews: [], nextPageToken: undefined };
+    console.error('[GMB Sync] Unexpected content type for reviews:', contentType)
+    return { reviews: [], nextPageToken: undefined }
   }
 
-  const data = await response.json();
-  
+  const data = await response.json()
+
   // Extract reviews from v4 API response
   // v4 API returns reviews directly in the response
-  const reviews = data.reviews || [];
-  
+  const reviews = data.reviews || []
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] v4 API reviews response:', reviews.length, 'reviews');
+    console.warn('[GMB Sync] v4 API reviews response:', reviews.length, 'reviews')
     if (reviews.length > 0) {
-      console.warn('[GMB Sync] Sample review structure:', JSON.stringify(reviews[0], null, 2).substring(0, 200));
+      console.warn(
+        '[GMB Sync] Sample review structure:',
+        JSON.stringify(reviews[0], null, 2).substring(0, 200),
+      )
     } else {
-      console.warn('[GMB Sync] v4 API response structure:', JSON.stringify(Object.keys(data), null, 2));
+      console.warn(
+        '[GMB Sync] v4 API response structure:',
+        JSON.stringify(Object.keys(data), null, 2),
+      )
     }
   }
-  
+
   return {
     reviews,
     nextPageToken: data.nextPageToken, // v4 API supports pagination
-  };
+  }
 }
 
 // Fetch media for a location using Google My Business v4 API
@@ -778,127 +813,135 @@ async function fetchMedia(
   accessToken: string,
   locationResource: string,
   accountResource?: string,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<{ media: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching media for location:', locationResource);
+    console.warn('[GMB Sync] Fetching media for location:', locationResource)
   }
-  
+
   // Build full location resource if needed
-  let fullLocationResource = locationResource;
-  
+  let fullLocationResource = locationResource
+
   // If locationResource doesn't start with 'accounts/', try to build it
   if (!locationResource.startsWith('accounts/')) {
     // If we have accountResource, build the full path
     if (accountResource) {
       // Extract location ID from various formats
-      let locationId = locationResource;
+      let locationId = locationResource
       if (locationResource.startsWith('locations/')) {
-        locationId = locationResource.replace(/^locations\//, '');
+        locationId = locationResource.replace(/^locations\//, '')
       }
-      
+
       // Ensure accountResource has 'accounts/' prefix
-      const cleanAccountResource = accountResource.startsWith('accounts/') 
-        ? accountResource 
-        : `accounts/${accountResource}`;
-      
-      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`;
+      const cleanAccountResource = accountResource.startsWith('accounts/')
+        ? accountResource
+        : `accounts/${accountResource}`
+
+      fullLocationResource = `${cleanAccountResource}/locations/${locationId}`
       if (IS_DEV) {
-        console.warn('[GMB Sync] Built media location resource:', locationResource, '?', fullLocationResource);
+        console.warn(
+          '[GMB Sync] Built media location resource:',
+          locationResource,
+          '?',
+          fullLocationResource,
+        )
       }
     } else {
-      console.warn('[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:', locationResource);
-      return { media: [], nextPageToken: undefined };
+      console.warn(
+        '[GMB Sync] Location resource missing accounts/ prefix and no accountResource provided:',
+        locationResource,
+      )
+      return { media: [], nextPageToken: undefined }
     }
   }
-  
+
   // Use Google My Business v4 API with direct /media endpoint
-  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/media`);
+  const url = new URL(`${GMB_V4_BASE}/${fullLocationResource}/media`)
   if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
+    url.searchParams.set('pageToken', pageToken)
   }
-  url.searchParams.set('pageSize', '100');
+  url.searchParams.set('pageSize', '100')
 
   if (IS_DEV) {
-    console.warn('[GMB Sync] Media URL (v4 API):', url.toString());
-    console.warn('[GMB Sync] Media location resource:', fullLocationResource);
+    console.warn('[GMB Sync] Media URL (v4 API):', url.toString())
+    console.warn('[GMB Sync] Media location resource:', fullLocationResource)
   }
 
   const response = await fetch(url.toString(), {
-    headers: { 
-      'Authorization': `Bearer ${accessToken}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-  });
+  })
 
   // Check if response failed
   if (!response.ok) {
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
 
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
-        console.error('[GMB Sync] Media API error:', JSON.stringify(errorData));
+        errorData = await response.json()
+        console.error('[GMB Sync] Media API error:', JSON.stringify(errorData))
       } catch (error) {
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     } else {
       try {
-        const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
-        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
-        console.error('[GMB Sync] Full URL that failed:', url.toString());
+        const errorText = await response.text()
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status)
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500))
+        console.error('[GMB Sync] Full URL that failed:', url.toString())
         // Try to extract more error info from HTML response
         if (errorText.includes('error')) {
-          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000));
+          console.error('[GMB Sync] Error response body:', errorText.substring(0, 1000))
         }
       } catch (error) {
-        console.error('[GMB Sync] Failed to read error text:', error);
+        console.error('[GMB Sync] Failed to read error text:', error)
       }
     }
-    
+
     // Handle specific error cases for media
     if (response.status === 404) {
       // Location not found or has no media - this is normal
-      console.warn('[GMB Sync] Location not found or has no media:', locationResource);
-      console.warn('[GMB Sync] Attempted URL:', url.toString());
+      console.warn('[GMB Sync] Location not found or has no media:', locationResource)
+      console.warn('[GMB Sync] Attempted URL:', url.toString())
       if (errorData.error) {
-        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error));
+        console.warn('[GMB Sync] Google API error:', JSON.stringify(errorData.error))
       }
-      return { media: [], nextPageToken: undefined };
+      return { media: [], nextPageToken: undefined }
     }
-    
+
     if (response.status === 403) {
       // Permission denied
-      console.error('[GMB Sync] Permission denied when fetching media. Check API permissions.');
-      console.error('[GMB Sync] Error details:', errorData);
-      return { media: [], nextPageToken: undefined };
+      console.error('[GMB Sync] Permission denied when fetching media. Check API permissions.')
+      console.error('[GMB Sync] Error details:', errorData)
+      return { media: [], nextPageToken: undefined }
     }
-    
-    console.warn('[GMB Sync] Media not available for:', locationResource);
-    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
-    return { media: [], nextPageToken: undefined };
+
+    console.warn('[GMB Sync] Media not available for:', locationResource)
+    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData)
+    return { media: [], nextPageToken: undefined }
   }
 
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for media:', contentType);
-    return { media: [], nextPageToken: undefined };
+    console.error('[GMB Sync] Unexpected content type for media:', contentType)
+    return { media: [], nextPageToken: undefined }
   }
 
-  const data = await response.json();
-  
+  const data = await response.json()
+
   // Extract media from v4 API response
   // v4 API returns mediaItems directly in the response
-  const media = data.mediaItems || [];
-  
+  const media = data.mediaItems || []
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] v4 API media response:', media.length, 'items');
-    console.warn('[GMB Sync] Response keys:', Object.keys(data));
-  
+    console.warn('[GMB Sync] v4 API media response:', media.length, 'items')
+    console.warn('[GMB Sync] Response keys:', Object.keys(data))
+
     if (media.length > 0) {
-      const sampleMedia = media[0];
+      const sampleMedia = media[0]
       console.warn('[GMB Sync] Sample media structure:', {
         name: sampleMedia.name,
         mediaFormat: sampleMedia.mediaFormat,
@@ -908,19 +951,19 @@ async function fetchMedia(
         createTime: sampleMedia.createTime ? 'present' : 'missing',
         updateTime: sampleMedia.updateTime ? 'present' : 'missing',
         allKeys: Object.keys(sampleMedia),
-      });
+      })
     } else {
       console.warn(
         '[GMB Sync] No media items in response. Full response structure:',
         JSON.stringify(Object.keys(data), null, 2),
-      );
+      )
     }
   }
-  
+
   return {
     media,
     nextPageToken: data.nextPageToken,
-  };
+  }
 }
 
 // Fetch questions for a location using Google My Business Q&A API v1
@@ -929,117 +972,120 @@ async function fetchQuestions(
   accessToken: string,
   locationResource: string,
   _accountResource?: string, // Unused parameter kept for API compatibility
-  pageToken?: string
+  pageToken?: string,
 ): Promise<{ questions: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching questions for location:', locationResource);
+    console.warn('[GMB Sync] Fetching questions for location:', locationResource)
   }
-  
+
   // Extract location ID from various formats
   // Q&A API expects just: locations/{location_id} (NOT accounts/.../locations/...)
-  let locationId: string;
-  
+  let locationId: string
+
   // Handle different input formats
   if (locationResource.startsWith('accounts/')) {
     // Extract from: accounts/{account}/locations/{location_id}
-    const match = locationResource.match(/accounts\/[^/]+\/locations\/(.+)$/);
+    const match = locationResource.match(/accounts\/[^/]+\/locations\/(.+)$/)
     if (match) {
-      locationId = match[1];
+      locationId = match[1]
     } else {
-      console.warn('[GMB Sync] Could not extract location ID from:', locationResource);
-      return { questions: [], nextPageToken: undefined };
+      console.warn('[GMB Sync] Could not extract location ID from:', locationResource)
+      return { questions: [], nextPageToken: undefined }
     }
   } else if (locationResource.startsWith('locations/')) {
     // Already in correct format: locations/{location_id}
-    locationId = locationResource;
+    locationId = locationResource
   } else {
     // Just the location ID number
-    locationId = `locations/${locationResource}`;
+    locationId = `locations/${locationResource}`
   }
-  
+
   // Q&A API uses format: locations/{location_id}/questions
-  const url = new URL(`${QANDA_API_BASE}/${locationId}/questions`);
+  const url = new URL(`${QANDA_API_BASE}/${locationId}/questions`)
   if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
+    url.searchParams.set('pageToken', pageToken)
   }
-  url.searchParams.set('pageSize', '10'); // Max 10 per API spec
-  
+  url.searchParams.set('pageSize', '10') // Max 10 per API spec
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Questions URL (Q&A API v1):', url.toString());
+    console.warn('[GMB Sync] Questions URL (Q&A API v1):', url.toString())
   }
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 
-      'Authorization': `Bearer ${accessToken}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-  });
+  })
 
   // Check if response failed
   if (!response.ok) {
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
 
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
-        console.error('[GMB Sync] Questions API error:', JSON.stringify(errorData));
+        errorData = await response.json()
+        console.error('[GMB Sync] Questions API error:', JSON.stringify(errorData))
       } catch (error) {
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     } else {
       try {
-        const errorText = await response.text();
-        console.error('[GMB Sync] Non-JSON error response. Status:', response.status);
-        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+        const errorText = await response.text()
+        console.error('[GMB Sync] Non-JSON error response. Status:', response.status)
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500))
       } catch (error) {
-        console.error('[GMB Sync] Failed to read error text:', error);
+        console.error('[GMB Sync] Failed to read error text:', error)
       }
     }
-    
+
     // Handle specific error cases
     if (response.status === 404) {
       // Location not found or has no questions - this is normal
-      console.warn('[GMB Sync] Location not found or has no questions:', locationResource);
-      return { questions: [], nextPageToken: undefined };
+      console.warn('[GMB Sync] Location not found or has no questions:', locationResource)
+      return { questions: [], nextPageToken: undefined }
     }
-    
+
     if (response.status === 403) {
       // Permission denied
-      console.error('[GMB Sync] Permission denied when fetching questions. Check API permissions.');
-      console.error('[GMB Sync] Error details:', errorData);
-      return { questions: [], nextPageToken: undefined };
+      console.error('[GMB Sync] Permission denied when fetching questions. Check API permissions.')
+      console.error('[GMB Sync] Error details:', errorData)
+      return { questions: [], nextPageToken: undefined }
     }
-    
-    console.warn('[GMB Sync] Failed to fetch questions for location:', locationResource);
-    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData);
-    return { questions: [], nextPageToken: undefined };
+
+    console.warn('[GMB Sync] Failed to fetch questions for location:', locationResource)
+    console.warn('[GMB Sync] Status:', response.status, 'Error:', errorData)
+    return { questions: [], nextPageToken: undefined }
   }
 
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for questions:', contentType);
-    return { questions: [], nextPageToken: undefined };
+    console.error('[GMB Sync] Unexpected content type for questions:', contentType)
+    return { questions: [], nextPageToken: undefined }
   }
 
-  const data = await response.json();
-  
+  const data = await response.json()
+
   // Extract questions from Q&A API response
   // Q&A API v1 returns questions in response.questions array
-  const questions = data.questions || [];
-  
+  const questions = data.questions || []
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Q&A API questions response:', questions.length, 'questions');
+    console.warn('[GMB Sync] Q&A API questions response:', questions.length, 'questions')
     if (questions.length > 0) {
-      console.warn('[GMB Sync] Sample question structure:', JSON.stringify(questions[0], null, 2).substring(0, 500));
+      console.warn(
+        '[GMB Sync] Sample question structure:',
+        JSON.stringify(questions[0], null, 2).substring(0, 500),
+      )
     }
   }
-  
+
   return {
     questions,
     nextPageToken: data.nextPageToken,
-  };
+  }
 }
 
 // Fetch daily metrics for a location using Business Profile Performance API
@@ -1061,112 +1107,114 @@ async function fetchDailyMetrics(
     'BUSINESS_BOOKINGS',
     'BUSINESS_FOOD_ORDERS',
     'BUSINESS_FOOD_MENU_CLICKS',
-  ]
+  ],
 ): Promise<{ metrics: JsonRecord[] }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching daily metrics for location:', locationId);
+    console.warn('[GMB Sync] Fetching daily metrics for location:', locationId)
   }
-  
+
   // Performance API uses format: locations/{location_id} (just the ID, not full resource)
   // Extract just the location ID if it has prefixes
-  let cleanLocationId = locationId;
+  let cleanLocationId = locationId
   if (locationId.includes('/locations/')) {
-    cleanLocationId = locationId.split('/locations/')[1];
+    cleanLocationId = locationId.split('/locations/')[1]
   } else if (locationId.startsWith('locations/')) {
-    cleanLocationId = locationId.replace(/^locations\//, '');
+    cleanLocationId = locationId.replace(/^locations\//, '')
   } else if (locationId.includes('accounts/')) {
     // Extract location ID from accounts/.../locations/... format
-    const match = locationId.match(/locations\/([^/]+)/);
+    const match = locationId.match(/locations\/([^/]+)/)
     if (match) {
-      cleanLocationId = match[1];
+      cleanLocationId = match[1]
     }
   }
-  
-  const locationResource = `locations/${cleanLocationId}`;
-  
+
+  const locationResource = `locations/${cleanLocationId}`
+
   // Build URL for fetchMultiDailyMetricsTimeSeries
-  const url = new URL(`${PERFORMANCE_API_BASE}/${locationResource}:fetchMultiDailyMetricsTimeSeries`);
-  
+  const url = new URL(
+    `${PERFORMANCE_API_BASE}/${locationResource}:fetchMultiDailyMetricsTimeSeries`,
+  )
+
   // Add date range
-  url.searchParams.set('daily_range.start_date.year', startDate.getFullYear().toString());
-  url.searchParams.set('daily_range.start_date.month', (startDate.getMonth() + 1).toString());
-  url.searchParams.set('daily_range.start_date.day', startDate.getDate().toString());
-  url.searchParams.set('daily_range.end_date.year', endDate.getFullYear().toString());
-  url.searchParams.set('daily_range.end_date.month', (endDate.getMonth() + 1).toString());
-  url.searchParams.set('daily_range.end_date.day', endDate.getDate().toString());
-  
+  url.searchParams.set('daily_range.start_date.year', startDate.getFullYear().toString())
+  url.searchParams.set('daily_range.start_date.month', (startDate.getMonth() + 1).toString())
+  url.searchParams.set('daily_range.start_date.day', startDate.getDate().toString())
+  url.searchParams.set('daily_range.end_date.year', endDate.getFullYear().toString())
+  url.searchParams.set('daily_range.end_date.month', (endDate.getMonth() + 1).toString())
+  url.searchParams.set('daily_range.end_date.day', endDate.getDate().toString())
+
   // Add metrics
-  metrics.forEach(metric => {
-    url.searchParams.append('dailyMetrics', metric);
-  });
-  
+  metrics.forEach((metric) => {
+    url.searchParams.append('dailyMetrics', metric)
+  })
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Performance API URL:', url.toString());
+    console.warn('[GMB Sync] Performance API URL:', url.toString())
   }
-  
+
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 
-      'Authorization': `Bearer ${accessToken}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-  });
-  
+  })
+
   if (!response.ok) {
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
-    
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
+
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
-        console.error('[GMB Sync] Performance API error:', JSON.stringify(errorData));
+        errorData = await response.json()
+        console.error('[GMB Sync] Performance API error:', JSON.stringify(errorData))
       } catch (error) {
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     } else {
       try {
-        const errorText = await response.text();
-        console.error('[GMB Sync] Performance API error response. Status:', response.status);
-        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500));
+        const errorText = await response.text()
+        console.error('[GMB Sync] Performance API error response. Status:', response.status)
+        console.error('[GMB Sync] Response preview:', errorText.substring(0, 500))
       } catch (error) {
-        console.error('[GMB Sync] Failed to read error text:', error);
+        console.error('[GMB Sync] Failed to read error text:', error)
       }
     }
-    
+
     if (response.status === 404) {
-      console.warn('[GMB Sync] Performance metrics not available for location:', locationId);
-      return { metrics: [] };
+      console.warn('[GMB Sync] Performance metrics not available for location:', locationId)
+      return { metrics: [] }
     }
-    
+
     if (response.status === 403) {
-      console.error('[GMB Sync] Permission denied for Performance API. Check if API is enabled.');
-      console.error('[GMB Sync] Error details:', errorData);
-      return { metrics: [] };
+      console.error('[GMB Sync] Permission denied for Performance API. Check if API is enabled.')
+      console.error('[GMB Sync] Error details:', errorData)
+      return { metrics: [] }
     }
-    
-    console.warn('[GMB Sync] Failed to fetch performance metrics:', response.status, errorData);
-    return { metrics: [] };
+
+    console.warn('[GMB Sync] Failed to fetch performance metrics:', response.status, errorData)
+    return { metrics: [] }
   }
-  
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for performance metrics:', contentType);
-    return { metrics: [] };
+    console.error('[GMB Sync] Unexpected content type for performance metrics:', contentType)
+    return { metrics: [] }
   }
-  
-  const data = await response.json();
-  
+
+  const data = await response.json()
+
   // Extract metrics from response
   // Response structure: { multiDailyMetricTimeSeries: [{ dailyMetricTimeSeries: [...] }] }
-  const allMetrics: JsonRecord[] = [];
-  
+  const allMetrics: JsonRecord[] = []
+
   if (data.multiDailyMetricTimeSeries) {
     for (const multiSeries of data.multiDailyMetricTimeSeries) {
       if (multiSeries.dailyMetricTimeSeries) {
         for (const metricSeries of multiSeries.dailyMetricTimeSeries) {
-          const metricType = metricSeries.dailyMetric;
-          const timeSeries = metricSeries.timeSeries;
-          
+          const metricType = metricSeries.dailyMetric
+          const timeSeries = metricSeries.timeSeries
+
           if (timeSeries && timeSeries.datedValues) {
             for (const datedValue of timeSeries.datedValues) {
               if (datedValue.date && datedValue.value !== undefined) {
@@ -1175,7 +1223,7 @@ async function fetchDailyMetrics(
                   metric_date: `${datedValue.date.year}-${String(datedValue.date.month || 1).padStart(2, '0')}-${String(datedValue.date.day || 1).padStart(2, '0')}`,
                   metric_value: parseInt(datedValue.value) || 0,
                   sub_entity_type: metricSeries.dailySubEntityType || {},
-                });
+                })
               }
             }
           }
@@ -1183,12 +1231,12 @@ async function fetchDailyMetrics(
       }
     }
   }
-  
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Performance API returned', allMetrics.length, 'metric data points');
+    console.warn('[GMB Sync] Performance API returned', allMetrics.length, 'metric data points')
   }
-  
-  return { metrics: allMetrics };
+
+  return { metrics: allMetrics }
 }
 
 // Fetch search keywords impressions for a location using Business Profile Performance API
@@ -1197,176 +1245,182 @@ async function fetchSearchKeywords(
   locationId: string, // Should be just the location ID number
   startMonth: Date,
   endMonth: Date,
-  pageToken?: string
+  pageToken?: string,
 ): Promise<{ keywords: JsonRecord[]; nextPageToken?: string }> {
   if (IS_DEV) {
-    console.warn('[GMB Sync] Fetching search keywords for location:', locationId);
+    console.warn('[GMB Sync] Fetching search keywords for location:', locationId)
   }
-  
+
   // Extract just the location ID if it has prefixes
-  let cleanLocationId = locationId;
+  let cleanLocationId = locationId
   if (locationId.includes('/locations/')) {
-    cleanLocationId = locationId.split('/locations/')[1];
+    cleanLocationId = locationId.split('/locations/')[1]
   } else if (locationId.startsWith('locations/')) {
-    cleanLocationId = locationId.replace(/^locations\//, '');
+    cleanLocationId = locationId.replace(/^locations\//, '')
   } else if (locationId.includes('accounts/')) {
-    const match = locationId.match(/locations\/([^/]+)/);
+    const match = locationId.match(/locations\/([^/]+)/)
     if (match) {
-      cleanLocationId = match[1];
+      cleanLocationId = match[1]
     }
   }
-  
-  const locationResource = `locations/${cleanLocationId}`;
-  
+
+  const locationResource = `locations/${cleanLocationId}`
+
   // Build URL for search keywords
-  const url = new URL(`${PERFORMANCE_API_BASE}/${locationResource}/searchkeywords/impressions/monthly`);
-  
+  const url = new URL(
+    `${PERFORMANCE_API_BASE}/${locationResource}/searchkeywords/impressions/monthly`,
+  )
+
   // Add date range
-  url.searchParams.set('monthly_range.start_month.year', startMonth.getFullYear().toString());
-  url.searchParams.set('monthly_range.start_month.month', (startMonth.getMonth() + 1).toString());
-  url.searchParams.set('monthly_range.end_month.year', endMonth.getFullYear().toString());
-  url.searchParams.set('monthly_range.end_month.month', (endMonth.getMonth() + 1).toString());
-  
+  url.searchParams.set('monthly_range.start_month.year', startMonth.getFullYear().toString())
+  url.searchParams.set('monthly_range.start_month.month', (startMonth.getMonth() + 1).toString())
+  url.searchParams.set('monthly_range.end_month.year', endMonth.getFullYear().toString())
+  url.searchParams.set('monthly_range.end_month.month', (endMonth.getMonth() + 1).toString())
+
   if (pageToken) {
-    url.searchParams.set('pageToken', pageToken);
+    url.searchParams.set('pageToken', pageToken)
   }
-  
-  url.searchParams.set('pageSize', '100');
-  
+
+  url.searchParams.set('pageSize', '100')
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Search Keywords URL:', url.toString());
+    console.warn('[GMB Sync] Search Keywords URL:', url.toString())
   }
-  
+
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 
-      'Authorization': `Bearer ${accessToken}`,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-  });
-  
+  })
+
   if (!response.ok) {
-    const contentType = response.headers.get('content-type')?.toLowerCase();
-    let errorData: JsonRecord = {};
-    
+    const contentType = response.headers.get('content-type')?.toLowerCase()
+    let errorData: JsonRecord = {}
+
     if (contentType && contentType.includes('application/json')) {
       try {
-        errorData = await response.json();
-        console.error('[GMB Sync] Search Keywords API error:', JSON.stringify(errorData));
+        errorData = await response.json()
+        console.error('[GMB Sync] Search Keywords API error:', JSON.stringify(errorData))
       } catch (error) {
-        console.error('[GMB Sync] Failed to parse error response as JSON', error);
+        console.error('[GMB Sync] Failed to parse error response as JSON', error)
       }
     }
-    
+
     if (response.status === 404) {
-      console.warn('[GMB Sync] Search keywords not available for location:', locationId);
-      return { keywords: [] };
+      console.warn('[GMB Sync] Search keywords not available for location:', locationId)
+      return { keywords: [] }
     }
-    
+
     if (response.status === 403) {
-      console.error('[GMB Sync] Permission denied for Search Keywords API.');
-      return { keywords: [] };
+      console.error('[GMB Sync] Permission denied for Search Keywords API.')
+      return { keywords: [] }
     }
-    
-    console.warn('[GMB Sync] Failed to fetch search keywords:', response.status, errorData);
-    return { keywords: [] };
+
+    console.warn('[GMB Sync] Failed to fetch search keywords:', response.status, errorData)
+    return { keywords: [] }
   }
-  
-  const contentType = response.headers.get('content-type')?.toLowerCase();
+
+  const contentType = response.headers.get('content-type')?.toLowerCase()
   if (!contentType || !contentType.includes('application/json')) {
-    console.error('[GMB Sync] Unexpected content type for search keywords:', contentType);
-    return { keywords: [] };
+    console.error('[GMB Sync] Unexpected content type for search keywords:', contentType)
+    return { keywords: [] }
   }
-  
-  const data = await response.json();
-  
+
+  const data = await response.json()
+
   // Extract keywords from response
   // Response structure: { searchKeywordsCounts: [{ searchKeyword: "...", insightsValue: {...} }] }
-  const keywords: JsonRecord[] = [];
-  
+  const keywords: JsonRecord[] = []
+
   if (data.searchKeywordsCounts) {
     for (const keywordCount of data.searchKeywordsCounts) {
-      const keyword = keywordCount.searchKeyword;
-      const insightsValue = keywordCount.insightsValue;
-      
+      const keyword = keywordCount.searchKeyword
+      const insightsValue = keywordCount.insightsValue
+
       // insightsValue can be either { value: "..." } or { threshold: "..." }
-      const impressions = insightsValue?.value 
-        ? parseInt(insightsValue.value) 
-        : (insightsValue?.threshold ? parseInt(insightsValue.threshold) : 0);
-      
+      const impressions = insightsValue?.value
+        ? parseInt(insightsValue.value)
+        : insightsValue?.threshold
+          ? parseInt(insightsValue.threshold)
+          : 0
+
       // We'll store data for the end month (most recent)
       keywords.push({
         search_keyword: keyword,
         impressions_count: impressions,
         threshold_value: insightsValue?.threshold ? parseInt(insightsValue.threshold) : null,
         month_year: `${endMonth.getFullYear()}-${String(endMonth.getMonth() + 1).padStart(2, '0')}-01`,
-      });
+      })
     }
   }
-  
+
   if (IS_DEV) {
-    console.warn('[GMB Sync] Search Keywords API returned', keywords.length, 'keywords');
+    console.warn('[GMB Sync] Search Keywords API returned', keywords.length, 'keywords')
   }
-  
+
   return {
     keywords,
     nextPageToken: data.nextPageToken,
-  };
+  }
 }
 
 export async function POST(request: NextRequest) {
   if (IS_DEV) {
-    console.warn('[GMB Sync API] Sync request received');
+    console.warn('[GMB Sync API] Sync request received')
   }
-  const started = Date.now();
-  const supabase = await createClient();
-  const LOCK_TTL_SEC = 60 * 5;
-  const LOCK_REFRESH_INTERVAL_MS = Math.max(60_000, (LOCK_TTL_SEC - 60) * 1000);
-  let lockKey: string | null = null;
-  let lockToken: string | null = null;
-  let lockRefreshTimer: NodeJS.Timeout | null = null;
-  let syncStatusId: string | null = null;
-  let syncStatusState: SyncStatusState = 'failed';
-  let syncStatusError: string | null = null;
-  let accountId: string | undefined;
-  let userId: string | undefined;
-  let syncType: string = 'full';
+  const started = Date.now()
+  const supabase = await createClient()
+  const LOCK_TTL_SEC = 60 * 5
+  const LOCK_REFRESH_INTERVAL_MS = Math.max(60_000, (LOCK_TTL_SEC - 60) * 1000)
+  let lockKey: string | null = null
+  let lockToken: string | null = null
+  let lockRefreshTimer: NodeJS.Timeout | null = null
+  let syncStatusId: string | null = null
+  let syncStatusState: SyncStatusState = 'failed'
+  let syncStatusError: string | null = null
+  let accountId: string | undefined
+  let userId: string | undefined
+  let syncType: string = 'full'
 
   try {
-
     // Check if this is an internal cron request (for scheduled syncs)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
-    
-    let user: { id: string } | null = null;
-    
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`
+
+    let user: { id: string } | null = null
+
     // If it's a cron request, skip user authentication check
     if (!isCronRequest) {
       // Get authenticated user
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabase.auth.getUser()
       if (authError || !authUser) {
-        console.error('[GMB Sync API] Authentication failed:', authError);
-        return errorResponse(new ApiError('Authentication required', 401));
+        console.error('[GMB Sync API] Authentication failed:', authError)
+        return errorResponse(new ApiError('Authentication required', 401))
       }
-      user = authUser;
-      userId = user.id;
+      user = authUser
+      userId = user.id
       if (IS_DEV) {
-        console.warn('[GMB Sync API] User authenticated:', user.id);
+        console.warn('[GMB Sync API] User authenticated:', user.id)
       }
     } else {
       if (IS_DEV) {
-        console.warn('[GMB Sync API] Cron request detected - skipping user auth');
+        console.warn('[GMB Sync API] Cron request detected - skipping user auth')
       }
     }
 
     // Parse request body with proper error handling
-    let body: Record<string, unknown> = {};
+    let body: Record<string, unknown> = {}
     try {
-      body = await request.json();
+      body = await request.json()
     } catch (jsonError) {
-      console.error('[GMB Sync API] Invalid JSON in request body:', jsonError);
-      return errorResponse(new ApiError('Request body must be valid JSON', 400));
+      console.error('[GMB Sync API] Invalid JSON in request body:', jsonError)
+      return errorResponse(new ApiError('Request body must be valid JSON', 400))
     }
 
     const bodyFields = body as {
@@ -1377,72 +1431,76 @@ export async function POST(request: NextRequest) {
     }
 
     // Support both naming conventions: account_id/accountId and sync_type/syncType
-    accountId = bodyFields.accountId || bodyFields.account_id;
-    syncType = (bodyFields.syncType || bodyFields.sync_type || 'full').toLowerCase();
+    accountId = bodyFields.accountId || bodyFields.account_id
+    syncType = (bodyFields.syncType || bodyFields.sync_type || 'full').toLowerCase()
 
     if (!VALID_SYNC_TYPES.includes(syncType)) {
-      console.error('[GMB Sync API] Invalid syncType supplied:', syncType);
-      return errorResponse(new ApiError(`syncType must be one of: ${VALID_SYNC_TYPES.join(', ')}`, 400));
+      console.error('[GMB Sync API] Invalid syncType supplied:', syncType)
+      return errorResponse(
+        new ApiError(`syncType must be one of: ${VALID_SYNC_TYPES.join(', ')}`, 400),
+      )
     }
 
     if (!accountId) {
-      console.error('[GMB Sync API] Missing accountId in request body:', body);
-      return errorResponse(new ApiError('accountId is required in request body', 400));
+      console.error('[GMB Sync API] Missing accountId in request body:', body)
+      return errorResponse(new ApiError('accountId is required in request body', 400))
     }
 
     if (IS_DEV) {
-      console.warn(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId);
+      console.warn(`[GMB Sync API] Starting ${syncType} sync for account:`, accountId)
     }
 
-    lockKey = `locks:gmb:sync:${accountId}`;
-    lockToken = await acquireLock(lockKey, LOCK_TTL_SEC);
+    lockKey = `locks:gmb:sync:${accountId}`
+    lockToken = await acquireLock(lockKey, LOCK_TTL_SEC)
     if (!lockToken) {
-      const conflictMessage = 'Sync already running. المزامنة قيد التنفيذ حالياً.';
-      return errorResponse(new ApiError(conflictMessage, 409));
+      const conflictMessage = 'Sync already running. المزامنة قيد التنفيذ حالياً.'
+      return errorResponse(new ApiError(conflictMessage, 409))
     }
 
     lockRefreshTimer = setInterval(() => {
-      if (!lockKey || !lockToken) return;
+      if (!lockKey || !lockToken) return
       extendLock(lockKey, lockToken, LOCK_TTL_SEC).catch((error) => {
-        console.warn('[GMB Sync API] Failed to extend sync lock', error);
-      });
-    }, LOCK_REFRESH_INTERVAL_MS);
-    lockRefreshTimer.unref?.();
+        console.warn('[GMB Sync API] Failed to extend sync lock', error)
+      })
+    }, LOCK_REFRESH_INTERVAL_MS)
+    lockRefreshTimer.unref?.()
 
     // Get account details
-    const accountQuery = supabase
-      .from('gmb_accounts')
-      .select('*')
-      .eq('id', accountId);
-    
+    const accountQuery = supabase.from('gmb_accounts').select('*').eq('id', accountId)
+
     // Only filter by user_id if not a cron request
     if (!isCronRequest && user) {
-      accountQuery.eq('user_id', user.id);
+      accountQuery.eq('user_id', user.id)
     }
-    
-    const { data: account, error: accountError } = await accountQuery.single();
+
+    const { data: account, error: accountError } = await accountQuery.single()
 
     if (accountError || !account) {
-      console.error('[GMB Sync API] Account not found:', accountError);
-      return errorResponse(new ApiError('Account not found', 404));
+      console.error('[GMB Sync API] Account not found:', accountError)
+      return errorResponse(new ApiError('Account not found', 404))
     }
 
     if (!account.is_active) {
-      console.error('[GMB Sync API] Account is inactive');
-      return errorResponse(new ApiError('Account is inactive', 400));
+      console.error('[GMB Sync API] Account is inactive')
+      return errorResponse(new ApiError('Account is inactive', 400))
     }
 
     // Get user_id from account for cron requests (where user might be null)
-    userId = userId || account.user_id || undefined;
+    userId = userId || account.user_id || undefined
     if (!userId) {
-      console.error('[GMB Sync API] Cannot determine user_id');
-      return errorResponse(new ApiError('Cannot determine user_id', 400));
+      console.error('[GMB Sync API] Cannot determine user_id')
+      return errorResponse(new ApiError('Cannot determine user_id', 400))
     }
 
-    const syncRateKey = `sync:${userId}:${accountId}`;
-    const syncRateResult = await checkKeyRateLimit(syncRateKey, SYNC_LIMIT_PER_HOUR, SYNC_WINDOW_MS, 'ratelimit:sync');
+    const syncRateKey = `sync:${userId}:${accountId}`
+    const syncRateResult = await checkKeyRateLimit(
+      syncRateKey,
+      SYNC_LIMIT_PER_HOUR,
+      SYNC_WINDOW_MS,
+      'ratelimit:sync',
+    )
     if (!syncRateResult.success) {
-      const retryAfterSeconds = Math.max(0, syncRateResult.reset - Math.floor(Date.now() / 1000));
+      const retryAfterSeconds = Math.max(0, syncRateResult.reset - Math.floor(Date.now() / 1000))
       return NextResponse.json(
         {
           error: 'Sync rate limit exceeded',
@@ -1455,529 +1513,603 @@ export async function POST(request: NextRequest) {
             'Retry-After': retryAfterSeconds.toString(),
             ...syncRateResult.headers,
           },
-        }
-      );
+        },
+      )
     }
 
-    syncStatusId = await createSyncStatusRecord(supabase, userId);
+    syncStatusId = await createSyncStatusRecord(supabase, userId)
 
     // Get Google account resource name if not stored
-    let accountResource = account.account_id;
+    let accountResource = account.account_id
     if (!accountResource) {
       if (IS_DEV) {
-        console.warn('[GMB Sync API] Account resource name missing, fetching from Google...');
+        console.warn('[GMB Sync API] Account resource name missing, fetching from Google...')
       }
-      const accessToken = await getValidAccessToken(supabase, accountId);
+      const accessToken = await getValidAccessToken(supabase, accountId)
 
       // Try to get account resource name from Google
-      const accountsUrl = new URL('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
-      accountsUrl.searchParams.set('alt', 'json');
+      const accountsUrl = new URL('https://mybusinessaccountmanagement.googleapis.com/v1/accounts')
+      accountsUrl.searchParams.set('alt', 'json')
 
       const accountsResponse = await fetch(accountsUrl.toString(), {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: 'application/json',
         },
-      });
+      })
 
       if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        const accounts = accountsData.accounts || [];
+        const accountsData = await accountsResponse.json()
+        const accounts = accountsData.accounts || []
         if (accounts.length > 0) {
-          accountResource = accounts[0].name;
+          accountResource = accounts[0].name
           if (IS_DEV) {
-            console.warn('[GMB Sync API] Found account resource:', accountResource);
+            console.warn('[GMB Sync API] Found account resource:', accountResource)
           }
 
           // Update account with resource name
           await supabase
             .from('gmb_accounts')
             .update({ account_id: accountResource })
-            .eq('id', accountId);
+            .eq('id', accountId)
         }
       }
 
       if (!accountResource) {
-        console.error('[GMB Sync API] Could not find Google account resource');
-        return errorResponse(new ApiError('Could not find Google account', 400));
+        console.error('[GMB Sync API] Could not find Google account resource')
+        return errorResponse(new ApiError('Could not find Google account', 400))
       }
     }
 
     // Get valid access token
-    const accessToken = await getValidAccessToken(supabase, accountId);
+    const accessToken = await getValidAccessToken(supabase, accountId)
 
-  const counts = { locations: 0, reviews: 0, media: 0, questions: 0, performance_metrics: 0, search_keywords: 0 };
-  const skipped: string[] = [];
-  const doLocations = syncType === 'full' || syncType === 'locations';
-  const doReviews = syncType === 'full' || syncType === 'reviews';
-  const doMedia = syncType === 'full' || syncType === 'media';
-  const doQuestions = syncType === 'full' || syncType === 'questions';
-  const doPerformance = syncType === 'full' || syncType === 'performance';
-  const doKeywords = syncType === 'full' || syncType === 'keywords';
+    const counts = {
+      locations: 0,
+      reviews: 0,
+      media: 0,
+      questions: 0,
+      performance_metrics: 0,
+      search_keywords: 0,
+    }
+    const skipped: string[] = []
+    const doLocations = syncType === 'full' || syncType === 'locations'
+    const doReviews = syncType === 'full' || syncType === 'reviews'
+    const doMedia = syncType === 'full' || syncType === 'media'
+    const doQuestions = syncType === 'full' || syncType === 'questions'
+    const doPerformance = syncType === 'full' || syncType === 'performance'
+    const doKeywords = syncType === 'full' || syncType === 'keywords'
 
-  if (!doLocations) skipped.push('locations');
-  if (!doReviews) skipped.push('reviews');
-  if (!doMedia) skipped.push('media');
-  if (!doQuestions) skipped.push('questions');
-  if (!doPerformance) skipped.push('performance');
-  if (!doKeywords) skipped.push('keywords');
+    if (!doLocations) skipped.push('locations')
+    if (!doReviews) skipped.push('reviews')
+    if (!doMedia) skipped.push('media')
+    if (!doQuestions) skipped.push('questions')
+    if (!doPerformance) skipped.push('performance')
+    if (!doKeywords) skipped.push('keywords')
     // Note: media count will remain 0 as Media API is deprecated
 
     // Fetch and upsert locations
-    let phaseLocationsId: string | null = null;
+    let phaseLocationsId: string | null = null
     if (doLocations) {
-      phaseLocationsId = await startPhaseLog(supabase, accountId, userId, 'locations');
+      phaseLocationsId = await startPhaseLog(supabase, accountId, userId, 'locations')
       if (IS_DEV) {
-        console.warn('[GMB Sync API] Starting location sync...');
+        console.warn('[GMB Sync API] Starting location sync...')
       }
-      let locationsNextPageToken: string | undefined = undefined;
-      const phaseStart = Date.now();
+      let locationsNextPageToken: string | undefined = undefined
+      const phaseStart = Date.now()
       do {
         const { locations, nextPageToken } = await fetchLocations(
           accessToken,
           accountResource,
-          locationsNextPageToken
-        );
+          locationsNextPageToken,
+        )
         // Fetch cover photo and attributes for each location
         for (const loc of locations) {
           // Check if loc.name is valid before using it
           if (!loc.name) {
-            console.warn('[GMB Sync API] Skipping location with null/undefined name');
-            continue;
+            console.warn('[GMB Sync API] Skipping location with null/undefined name')
+            continue
           }
-          
-          const locationId = loc.name.split('/').pop();
+
+          const locationId = loc.name.split('/').pop()
           if (!locationId) {
-            console.warn('[GMB Sync API] Could not extract location ID from name:', loc.name);
-            continue;
+            console.warn('[GMB Sync API] Could not extract location ID from name:', loc.name)
+            continue
           }
-          
-          const mediaUrl = `${GMB_V4_BASE}/${accountResource}/locations/${locationId}/media`;
-          let coverPhotoUrl = null;
+
+          const mediaUrl = `${GMB_V4_BASE}/${accountResource}/locations/${locationId}/media`
+          let coverPhotoUrl = null
 
           // Fetch media (cover photo and logo)
           try {
             const res = await fetch(mediaUrl, {
               headers: { Authorization: `Bearer ${accessToken}` },
-            });
+            })
             if (res.ok) {
-              const data = await res.json();
-              const mediaItems = Array.isArray(data.mediaItems) ? data.mediaItems : [];
+              const data = await res.json()
+              const mediaItems = Array.isArray(data.mediaItems) ? data.mediaItems : []
               const cover = mediaItems.find(
-                (item: unknown): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'COVER'
-              );
+                (item: unknown): item is ApiMediaItem =>
+                  isApiMediaItem(item) && item.mediaFormat === 'COVER',
+              )
               const logo = mediaItems.find(
-                (item: unknown): item is ApiMediaItem => isApiMediaItem(item) && item.mediaFormat === 'LOGO'
-              );
-              coverPhotoUrl = cover?.googleUrl || null;
-              const logoUrl = logo?.googleUrl || null;
-              (loc as RawGoogleLocation).logo_url = logoUrl;
+                (item: unknown): item is ApiMediaItem =>
+                  isApiMediaItem(item) && item.mediaFormat === 'LOGO',
+              )
+              coverPhotoUrl = cover?.googleUrl || null
+              const logoUrl = logo?.googleUrl || null
+              ;(loc as RawGoogleLocation).logo_url = logoUrl
             } else {
-              console.warn(`[GMB Sync API] Failed to fetch media for location ${locationId}`);
+              console.warn(`[GMB Sync API] Failed to fetch media for location ${locationId}`)
             }
           } catch (err) {
-            console.error(`[GMB Sync API] Error fetching cover photo for location ${locationId}:`, err);
+            console.error(
+              `[GMB Sync API] Error fetching cover photo for location ${locationId}:`,
+              err,
+            )
           }
 
           // Fetch attributes for this location (separate endpoint)
           // According to API docs, attributes are not in profile - they must be fetched separately
-          const attributesData = await fetchLocationAttributes(accessToken, loc.name);
+          const attributesData = await fetchLocationAttributes(accessToken, loc.name)
           if (attributesData?.attributes) {
             // Attach attributes to location object for later processing
-            (loc as any).fetchedAttributes = attributesData.attributes;
-            console.warn(`[GMB Sync] ✅ Fetched ${attributesData.attributes.length} attributes for ${loc.name}`);
+            ;(loc as any).fetchedAttributes = attributesData.attributes
+            console.warn(
+              `[GMB Sync] ✅ Fetched ${attributesData.attributes.length} attributes for ${loc.name}`,
+            )
           } else {
-            console.warn(`[GMB Sync] ⚠️ No attributes returned for ${loc.name}`);
+            console.warn(`[GMB Sync] ⚠️ No attributes returned for ${loc.name}`)
           }
 
           // Fetch place action links (menu, booking, order, etc.)
-          const placeActionLinks = await fetchPlaceActionLinks(accessToken, loc.name);
+          const placeActionLinks = await fetchPlaceActionLinks(accessToken, loc.name)
           if (placeActionLinks && placeActionLinks.length > 0) {
             // Attach place action links to location object for later processing
-            (loc as any).placeActionLinks = placeActionLinks;
-            console.warn(`[GMB Sync] ✅ Fetched ${placeActionLinks.length} place action links for ${loc.name}:`, placeActionLinks.map((l: any) => ({ type: l.placeActionType, uri: l.uri })));
+            ;(loc as any).placeActionLinks = placeActionLinks
+            console.warn(
+              `[GMB Sync] ✅ Fetched ${placeActionLinks.length} place action links for ${loc.name}:`,
+              placeActionLinks.map((l: any) => ({ type: l.placeActionType, uri: l.uri })),
+            )
           } else {
-            console.warn(`[GMB Sync] ⚠️ No place action links returned for ${loc.name}`);
+            console.warn(`[GMB Sync] ⚠️ No place action links returned for ${loc.name}`)
           }
 
           // Attach cover photo URL to location object for database insert
-          (loc as RawGoogleLocation).cover_photo_url = coverPhotoUrl;
+          ;(loc as RawGoogleLocation).cover_photo_url = coverPhotoUrl
         }
         if (locations.length > 0) {
           if (IS_DEV) {
             console.warn('[GMB Sync API] Sample location from Google API:', {
               name: locations[0].name,
               title: locations[0].title,
-            });
+            })
           }
-          const locationRows = locations.map((location, index) => {
-            // Skip location if name is null/undefined
-            if (!location.name) {
-              console.warn('[GMB Sync] Skipping location with null/undefined name');
-              return null;
-            }
-            
-            // Log first location data in dev to understand structure
-            if (IS_DEV && index === 0) {
-              console.warn('[GMB Sync] Sample location structure:');
-              console.warn('- moreHours:', location.moreHours);
-              console.warn('- profile:', location.profile);
-              console.warn('- profile.specialLinks:', (location.profile as any)?.specialLinks);
-              console.warn('- profile.attributes:', (location.profile as any)?.attributes);
-            }
-            const address = location.storefrontAddress;
-            const addressStr = address
-              ? `${(address.addressLines || []).join(', ')}${
-                  address.locality ? `, ${address.locality}` : ''
-                }${address.administrativeArea ? `, ${address.administrativeArea}` : ''}${
-                  address.postalCode ? ` ${address.postalCode}` : ''
-                }`
-              : null;
-            const metadata = location.metadata || {};
-            const latlng = location.latlng || {};
-            const profile = location.profile || {};
-            const openInfo = location.openInfo || {};
-            // Include fetched attributes and place action links in metadata for storage
-            const fetchedAttributes = (location as any).fetchedAttributes || [];
-            const placeActionLinks = (location as any).placeActionLinks || [];
-            
-            // Debug log what we're about to save
-            console.warn(`[GMB Sync] Saving location ${location.name} with:`, {
-              attributesCount: fetchedAttributes.length,
-              placeActionLinksCount: placeActionLinks.length,
-              hasRegularHours: !!location.regularHours,
-              hasMoreHours: !!location.moreHours,
-              hasServiceItems: !!location.serviceItems
-            });
-            
-            const enhancedMetadata = {
-              ...location,
-              profile,
-              attributes: fetchedAttributes, // Store attributes in metadata
-              placeActionLinks: placeActionLinks, // Store place action links in metadata
-              regularHours: location.regularHours,
-              specialHours: location.specialHours,
-              moreHours: location.moreHours,
-              serviceItems: location.serviceItems,
-              openInfo,
-              latlng,
-              labels: location.labels || [],
-              placeId: metadata.placeId,
-              mapsUri: metadata.mapsUri,
-              newReviewUri: metadata.newReviewUri,
-              canHaveFoodMenus: metadata.canHaveFoodMenus,
-              canHaveBusinessCalls: metadata.canHaveBusinessCalls,
-              hasVoiceOfMerchant: metadata.hasVoiceOfMerchant,
-              hasPendingEdits: metadata.hasPendingEdits,
-              canDelete: metadata.canDelete,
-              canOperateHealthData: metadata.canOperateHealthData,
-              canOperateLodgingData: metadata.canOperateLodgingData,
-              canModifyServiceList: metadata.canModifyServiceList,
-            };
-            // Generate normalized_location_id as per architecture requirements
-            const normalizedLocationId = location.name.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            // Extract profile data
-            // According to API docs, Profile object only contains 'description' field
-            const profileData = location.profile || {};
-            const description = profileData.description || '';
-            const shortDescription = profileData.shortDescription || profileData.merchantDescription || null;
-            const additionalCategories = collectDisplayStrings(
-              (location.categories as { additionalCategories?: unknown[] } | undefined)?.additionalCategories ?? []
-            );
-            
-            // Extract rating and review count from metadata
-            const rating = metadata.averageRating || location.averageRating || null;
-            const reviewCount = metadata.totalReviewCount || location.totalReviewCount || null;
-            
-            // Extract from_the_business (attributes from "From the Business" section)
-            // Attributes are fetched separately via locations/{location_id}/attributes endpoint
-            // They are NOT in profile object according to API documentation
-            const fromTheBusiness: string[] = [];
-            // fetchedAttributes already defined above - removed duplicate
-            
-            // Process attributes from the separate endpoint
-            for (const attr of fetchedAttributes) {
-              if (attr.name && attr.values) {
-                // Extract display strings from attribute values
-                for (const value of attr.values) {
-                  if (typeof value === 'string') {
-                    fromTheBusiness.push(value);
-                  } else if (value && typeof value === 'object' && 'displayName' in value) {
-                    fromTheBusiness.push(String((value as any).displayName));
-                  }
-                }
+          const locationRows = locations
+            .map((location, index) => {
+              // Skip location if name is null/undefined
+              if (!location.name) {
+                console.warn('[GMB Sync] Skipping location with null/undefined name')
+                return null
               }
-              // Also check uriValues for URL-type attributes (like menu, booking links)
-              if (attr.uriValues && Array.isArray(attr.uriValues)) {
-                for (const uriValue of attr.uriValues) {
-                  if (uriValue.uri) {
-                    fromTheBusiness.push(uriValue.uri);
-                  }
-                }
+
+              // Log first location data in dev to understand structure
+              if (IS_DEV && index === 0) {
+                console.warn('[GMB Sync] Sample location structure:')
+                console.warn('- moreHours:', location.moreHours)
+                console.warn('- profile:', location.profile)
+                console.warn('- profile.specialLinks:', (location.profile as any)?.specialLinks)
+                console.warn('- profile.attributes:', (location.profile as any)?.attributes)
               }
-            }
-            
-            // Extract opening date
-            const openingDate = profileData.openingDate || openInfo?.openingDate || null;
-            const parsedOpeningDate = openingDate ? (typeof openingDate === 'string' ? openingDate : 
-              `${openingDate.year || ''}-${String(openingDate.month || 1).padStart(2, '0')}-${String(openingDate.day || 1).padStart(2, '0')}`) : null;
-            
-            // Extract service area enabled
-            const serviceAreaEnabled = openInfo?.status === 'SERVICE_AREA' || 
-              metadata.serviceAreaEnabled === true || 
-              location.serviceArea?.enabled === true || 
-              false;
-            
-            // Extract special links (menu, booking, order, appointment)
-            // Use Place Action Links API (correct source) instead of trying to extract from profile
-            let menuUrl: string | null = null;
-            let bookingUrl: string | null = null;
-            let orderUrl: string | null = null;
-            let appointmentUrl: string | null = null;
-            
-            // Priority 1: Place Action Links (official API)
-            const placeActions = (location as any).placeActionLinks || [];
-            for (const action of placeActions) {
-              const actionType = action.placeActionType;
-              const uri = action.uri;
-              
-              // Map place action types to our link types
-              if (actionType === 'FOOD_ORDERING' || actionType === 'FOOD_DELIVERY' || actionType === 'FOOD_TAKEOUT') {
-                if (!orderUrl || action.isPreferred) {
-                  orderUrl = uri;
-                }
-              } else if (actionType === 'DINING_RESERVATION') {
-                if (!bookingUrl || action.isPreferred) {
-                  bookingUrl = uri;
-                }
-              } else if (actionType === 'APPOINTMENT' || actionType === 'ONLINE_APPOINTMENT' || actionType === 'SOLOPRENEUR_APPOINTMENT') {
-                if (!appointmentUrl || action.isPreferred) {
-                  appointmentUrl = uri;
-                }
-              } else if (actionType === 'SHOP_ONLINE') {
-                // Could be menu or order
-                if (!orderUrl) {
-                  orderUrl = uri;
-                }
+              const address = location.storefrontAddress
+              const addressStr = address
+                ? `${(address.addressLines || []).join(', ')}${
+                    address.locality ? `, ${address.locality}` : ''
+                  }${address.administrativeArea ? `, ${address.administrativeArea}` : ''}${
+                    address.postalCode ? ` ${address.postalCode}` : ''
+                  }`
+                : null
+              const metadata = location.metadata || {}
+              const latlng = location.latlng || {}
+              const profile = location.profile || {}
+              const openInfo = location.openInfo || {}
+              // Include fetched attributes and place action links in metadata for storage
+              const fetchedAttributes = (location as any).fetchedAttributes || []
+              const placeActionLinks = (location as any).placeActionLinks || []
+
+              // Debug log what we're about to save
+              console.warn(`[GMB Sync] Saving location ${location.name} with:`, {
+                attributesCount: fetchedAttributes.length,
+                placeActionLinksCount: placeActionLinks.length,
+                hasRegularHours: !!location.regularHours,
+                hasMoreHours: !!location.moreHours,
+                hasServiceItems: !!location.serviceItems,
+              })
+
+              const enhancedMetadata = {
+                ...location,
+                profile,
+                attributes: fetchedAttributes, // Store attributes in metadata
+                placeActionLinks: placeActionLinks, // Store place action links in metadata
+                regularHours: location.regularHours,
+                specialHours: location.specialHours,
+                moreHours: location.moreHours,
+                serviceItems: location.serviceItems,
+                openInfo,
+                latlng,
+                labels: location.labels || [],
+                placeId: metadata.placeId,
+                mapsUri: metadata.mapsUri,
+                newReviewUri: metadata.newReviewUri,
+                canHaveFoodMenus: metadata.canHaveFoodMenus,
+                canHaveBusinessCalls: metadata.canHaveBusinessCalls,
+                hasVoiceOfMerchant: metadata.hasVoiceOfMerchant,
+                hasPendingEdits: metadata.hasPendingEdits,
+                canDelete: metadata.canDelete,
+                canOperateHealthData: metadata.canOperateHealthData,
+                canOperateLodgingData: metadata.canOperateLodgingData,
+                canModifyServiceList: metadata.canModifyServiceList,
               }
-            }
-            
-            // Priority 2: Check attributes for URL-type attributes (fallback)
-            if (!bookingUrl || !orderUrl || !appointmentUrl) {
+              // Generate normalized_location_id as per architecture requirements
+              const normalizedLocationId = location.name.replace(/[^a-zA-Z0-9]/g, '_')
+
+              // Extract profile data
+              // According to API docs, Profile object only contains 'description' field
+              const profileData = location.profile || {}
+              const description = profileData.description || ''
+              const shortDescription =
+                profileData.shortDescription || profileData.merchantDescription || null
+              const additionalCategories = collectDisplayStrings(
+                (location.categories as { additionalCategories?: unknown[] } | undefined)
+                  ?.additionalCategories ?? [],
+              )
+
+              // Extract rating and review count from metadata
+              const rating = metadata.averageRating || location.averageRating || null
+              const reviewCount = metadata.totalReviewCount || location.totalReviewCount || null
+
+              // Extract from_the_business (attributes from "From the Business" section)
+              // Attributes are fetched separately via locations/{location_id}/attributes endpoint
+              // They are NOT in profile object according to API documentation
+              const fromTheBusiness: string[] = []
+              // fetchedAttributes already defined above - removed duplicate
+
+              // Process attributes from the separate endpoint
               for (const attr of fetchedAttributes) {
-                if (attr.name && attr.uriValues && Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
-                  const attrName = attr.name.toLowerCase();
-                  const uri = attr.uriValues[0].uri;
-                  
-                  if (!menuUrl && (attrName.includes('menu') || attrName.includes('food'))) {
-                    menuUrl = uri;
-                  } else if (!bookingUrl && (attrName.includes('booking') || attrName.includes('reservation'))) {
-                    bookingUrl = uri;
-                  } else if (!orderUrl && (attrName.includes('order') || attrName.includes('delivery'))) {
-                    orderUrl = uri;
-                  } else if (!appointmentUrl && (attrName.includes('appointment'))) {
-                    appointmentUrl = uri;
+                if (attr.name && attr.values) {
+                  // Extract display strings from attribute values
+                  for (const value of attr.values) {
+                    if (typeof value === 'string') {
+                      fromTheBusiness.push(value)
+                    } else if (value && typeof value === 'object' && 'displayName' in value) {
+                      fromTheBusiness.push(String((value as any).displayName))
+                    }
+                  }
+                }
+                // Also check uriValues for URL-type attributes (like menu, booking links)
+                if (attr.uriValues && Array.isArray(attr.uriValues)) {
+                  for (const uriValue of attr.uriValues) {
+                    if (uriValue.uri) {
+                      fromTheBusiness.push(uriValue.uri)
+                    }
                   }
                 }
               }
-            }
-            
-            // Log for debugging in dev
-            if (IS_DEV && (menuUrl || bookingUrl || orderUrl || appointmentUrl)) {
-              console.warn('[GMB Sync] Found special links:', {
-                menu: menuUrl,
-                booking: bookingUrl,
-                order: orderUrl,
-                appointment: appointmentUrl,
-                source: placeActions.length > 0 ? 'Place Actions API' : 'Attributes'
-              });
-            }
-            
-            // Extract location ID external (just the ID part, not full resource name)
-            const locationIdExternal = location.name.includes('/locations/') 
-              ? location.name.split('/locations/')[1] 
-              : location.name.replace(/^locations\//, '');
-            
-            // Format latlng as string
-            const latlngStr = (latlng?.latitude && latlng?.longitude) 
-              ? `${latlng.latitude},${latlng.longitude}` 
-              : null;
-            
-            // Extract status and type
-            const locationType = location.type || metadata.type || null;
-            
-            return {
-              gmb_account_id: accountId,
-              user_id: userId,
-              location_id: location.name,
-              normalized_location_id: normalizedLocationId,
-              location_name: location.title || 'Unnamed Location',
-              address: addressStr,
-              phone: location.phoneNumbers?.primaryPhone || null,
-              category: location.categories?.primaryCategory?.displayName || null,
-              website: location.websiteUri || null,
-              description: description || null,
-              rating: rating,
-              review_count: reviewCount,
-              short_description: shortDescription || null,
-              additional_categories: additionalCategories.length > 0 ? additionalCategories : null,
-              from_the_business: fromTheBusiness.length > 0 ? fromTheBusiness : null,
-              opening_date: parsedOpeningDate || null,
-              service_area_enabled: serviceAreaEnabled,
-              menu_url: menuUrl || null,
-              booking_url: bookingUrl || null,
-              order_url: orderUrl || null,
-              appointment_url: appointmentUrl || null,
-              regularhours: location.regularHours || null,
-              status: null, // TODO: Fix status constraint in database to allow proper GMB status values
-              type: locationType || null,
-              account_id: accountResource || null,
-              location_id_external: locationIdExternal || null,
-              latlng: latlngStr || null,
-              is_active: true,
-              latitude: latlng?.latitude ?? null,
-              longitude: latlng?.longitude ?? null,
-              // Store cover photo url and logo url
-              cover_photo_url: location.cover_photo_url || null,
-              logo_url: location.logo_url || null,
-              metadata: enhancedMetadata,
-              updated_at: new Date().toISOString(),
-              last_synced_at: new Date().toISOString(),
-            };
-          }).filter((row): row is NonNullable<typeof row> => row !== null);
+
+              // Extract opening date
+              const openingDate = profileData.openingDate || openInfo?.openingDate || null
+              const parsedOpeningDate = openingDate
+                ? typeof openingDate === 'string'
+                  ? openingDate
+                  : `${openingDate.year || ''}-${String(openingDate.month || 1).padStart(2, '0')}-${String(openingDate.day || 1).padStart(2, '0')}`
+                : null
+
+              // Extract service area enabled
+              const serviceAreaEnabled =
+                openInfo?.status === 'SERVICE_AREA' ||
+                metadata.serviceAreaEnabled === true ||
+                location.serviceArea?.enabled === true ||
+                false
+
+              // Extract special links (menu, booking, order, appointment)
+              // Use Place Action Links API (correct source) instead of trying to extract from profile
+              let menuUrl: string | null = null
+              let bookingUrl: string | null = null
+              let orderUrl: string | null = null
+              let appointmentUrl: string | null = null
+
+              // Priority 1: Place Action Links (official API)
+              const placeActions = (location as any).placeActionLinks || []
+              for (const action of placeActions) {
+                const actionType = action.placeActionType
+                const uri = action.uri
+
+                // Map place action types to our link types
+                if (
+                  actionType === 'FOOD_ORDERING' ||
+                  actionType === 'FOOD_DELIVERY' ||
+                  actionType === 'FOOD_TAKEOUT'
+                ) {
+                  if (!orderUrl || action.isPreferred) {
+                    orderUrl = uri
+                  }
+                } else if (actionType === 'DINING_RESERVATION') {
+                  if (!bookingUrl || action.isPreferred) {
+                    bookingUrl = uri
+                  }
+                } else if (
+                  actionType === 'APPOINTMENT' ||
+                  actionType === 'ONLINE_APPOINTMENT' ||
+                  actionType === 'SOLOPRENEUR_APPOINTMENT'
+                ) {
+                  if (!appointmentUrl || action.isPreferred) {
+                    appointmentUrl = uri
+                  }
+                } else if (actionType === 'SHOP_ONLINE') {
+                  // Could be menu or order
+                  if (!orderUrl) {
+                    orderUrl = uri
+                  }
+                }
+              }
+
+              // Priority 2: Check attributes for URL-type attributes (fallback)
+              if (!bookingUrl || !orderUrl || !appointmentUrl) {
+                for (const attr of fetchedAttributes) {
+                  if (
+                    attr.name &&
+                    attr.uriValues &&
+                    Array.isArray(attr.uriValues) &&
+                    attr.uriValues.length > 0
+                  ) {
+                    const attrName = attr.name.toLowerCase()
+                    const uri = attr.uriValues[0].uri
+
+                    if (!menuUrl && (attrName.includes('menu') || attrName.includes('food'))) {
+                      menuUrl = uri
+                    } else if (
+                      !bookingUrl &&
+                      (attrName.includes('booking') || attrName.includes('reservation'))
+                    ) {
+                      bookingUrl = uri
+                    } else if (
+                      !orderUrl &&
+                      (attrName.includes('order') || attrName.includes('delivery'))
+                    ) {
+                      orderUrl = uri
+                    } else if (!appointmentUrl && attrName.includes('appointment')) {
+                      appointmentUrl = uri
+                    }
+                  }
+                }
+              }
+
+              // Log for debugging in dev
+              if (IS_DEV && (menuUrl || bookingUrl || orderUrl || appointmentUrl)) {
+                console.warn('[GMB Sync] Found special links:', {
+                  menu: menuUrl,
+                  booking: bookingUrl,
+                  order: orderUrl,
+                  appointment: appointmentUrl,
+                  source: placeActions.length > 0 ? 'Place Actions API' : 'Attributes',
+                })
+              }
+
+              // Extract location ID external (just the ID part, not full resource name)
+              const locationIdExternal = location.name.includes('/locations/')
+                ? location.name.split('/locations/')[1]
+                : location.name.replace(/^locations\//, '')
+
+              // Format latlng as string
+              const latlngStr =
+                latlng?.latitude && latlng?.longitude
+                  ? `${latlng.latitude},${latlng.longitude}`
+                  : null
+
+              // Extract status and type
+              const locationType = location.type || metadata.type || null
+
+              return {
+                gmb_account_id: accountId,
+                user_id: userId,
+                location_id: location.name,
+                normalized_location_id: normalizedLocationId,
+                location_name: location.title || 'Unnamed Location',
+                address: addressStr,
+                phone: location.phoneNumbers?.primaryPhone || null,
+                category: location.categories?.primaryCategory?.displayName || null,
+                website: location.websiteUri || null,
+                description: description || null,
+                rating: rating,
+                review_count: reviewCount,
+                short_description: shortDescription || null,
+                additional_categories:
+                  additionalCategories.length > 0 ? additionalCategories : null,
+                from_the_business: fromTheBusiness.length > 0 ? fromTheBusiness : null,
+                opening_date: parsedOpeningDate || null,
+                service_area_enabled: serviceAreaEnabled,
+                menu_url: menuUrl || null,
+                booking_url: bookingUrl || null,
+                order_url: orderUrl || null,
+                appointment_url: appointmentUrl || null,
+                regularhours: location.regularHours || null,
+                status: null, // TODO: Fix status constraint in database to allow proper GMB status values
+                type: locationType || null,
+                account_id: accountResource || null,
+                location_id_external: locationIdExternal || null,
+                latlng: latlngStr || null,
+                is_active: true,
+                latitude: latlng?.latitude ?? null,
+                longitude: latlng?.longitude ?? null,
+                // Store cover photo url and logo url
+                cover_photo_url: location.cover_photo_url || null,
+                logo_url: location.logo_url || null,
+                metadata: enhancedMetadata,
+                updated_at: new Date().toISOString(),
+                last_synced_at: new Date().toISOString(),
+              }
+            })
+            .filter((row): row is NonNullable<typeof row> => row !== null)
           for (const chunk of chunks(locationRows)) {
             const { error } = await supabase
               .from('gmb_locations')
-              .upsert(chunk, { onConflict: 'gmb_account_id,location_id' });
+              .upsert(chunk, { onConflict: 'gmb_account_id,location_id' })
             if (error) {
-              console.error('[GMB Sync API] Error upserting locations:', error);
+              console.error('[GMB Sync API] Error upserting locations:', error)
             }
           }
-          counts.locations += locations.length;
+          counts.locations += locations.length
         }
-        locationsNextPageToken = nextPageToken;
-      } while (locationsNextPageToken);
-      const phaseDuration = Date.now() - phaseStart;
+        locationsNextPageToken = nextPageToken
+      } while (locationsNextPageToken)
+      const phaseDuration = Date.now() - phaseStart
       if (IS_DEV) {
-        console.warn(`[GMB Sync API] Synced ${counts.locations} locations in ${phaseDuration}ms`);
+        console.warn(`[GMB Sync API] Synced ${counts.locations} locations in ${phaseDuration}ms`)
       }
-      await finishPhaseLog(supabase, phaseLocationsId, 'completed', { locations: counts.locations });
-      await upsertMetrics(supabase, accountId, userId, 'locations', phaseDuration, counts.locations);
+      await finishPhaseLog(supabase, phaseLocationsId, 'completed', { locations: counts.locations })
+      await upsertMetrics(supabase, accountId, userId, 'locations', phaseDuration, counts.locations)
     }
 
     // Fetch reviews and media for each location
     if (IS_DEV) {
-      console.warn('[GMB Sync API] Starting reviews and media sync...');
+      console.warn('[GMB Sync API] Starting reviews and media sync...')
     }
     const { data: dbLocations } = await supabase
       .from('gmb_locations')
       .select('id, location_id')
-      .eq('gmb_account_id', accountId);
+      .eq('gmb_account_id', accountId)
 
-    let phaseReviewsId: string | null = null;
-    let phaseMediaId: string | null = null;
-    let phaseQuestionsId: string | null = null;
-    if (doReviews) phaseReviewsId = await startPhaseLog(supabase, accountId, userId, 'reviews');
-    if (doMedia) phaseMediaId = await startPhaseLog(supabase, accountId, userId, 'media');
-    if (doQuestions) phaseQuestionsId = await startPhaseLog(supabase, accountId, userId, 'questions');
+    let phaseReviewsId: string | null = null
+    let phaseMediaId: string | null = null
+    let phaseQuestionsId: string | null = null
+    if (doReviews) phaseReviewsId = await startPhaseLog(supabase, accountId, userId, 'reviews')
+    if (doMedia) phaseMediaId = await startPhaseLog(supabase, accountId, userId, 'media')
+    if (doQuestions)
+      phaseQuestionsId = await startPhaseLog(supabase, accountId, userId, 'questions')
 
     if (dbLocations && Array.isArray(dbLocations)) {
       if (IS_DEV) {
-        console.warn(`[GMB Sync API] Processing ${dbLocations.length} locations for reviews/media sync`);
+        console.warn(
+          `[GMB Sync API] Processing ${dbLocations.length} locations for reviews/media sync`,
+        )
       }
 
       for (const location of dbLocations) {
         // Build the full location resource name
-        let fullLocationName = location.location_id;
+        let fullLocationName = location.location_id
 
         // If location_id doesn't start with 'accounts/', we need to build it
         if (!fullLocationName.startsWith('accounts/')) {
           // Check if location_id is just the ID part (e.g., "locations/123")
           if (fullLocationName.startsWith('locations/')) {
             // Extract just the location ID number
-            const locationIdOnly = fullLocationName.replace(/^locations\//, '');
-            fullLocationName = `${account.account_id}/locations/${locationIdOnly}`;
+            const locationIdOnly = fullLocationName.replace(/^locations\//, '')
+            fullLocationName = `${account.account_id}/locations/${locationIdOnly}`
           } else {
             // Assume it's just the ID number
-            fullLocationName = `${account.account_id}/locations/${fullLocationName}`;
+            fullLocationName = `${account.account_id}/locations/${fullLocationName}`
           }
           if (IS_DEV) {
-            console.warn(`[GMB Sync API] Built location resource: ${location.location_id} ? ${fullLocationName}`);
+            console.warn(
+              `[GMB Sync API] Built location resource: ${location.location_id} ? ${fullLocationName}`,
+            )
           }
         } else if (IS_DEV) {
-          console.warn(`[GMB Sync API] Using full location resource: ${fullLocationName}`);
+          console.warn(`[GMB Sync API] Using full location resource: ${fullLocationName}`)
         }
-        
+
         // Validate that we have a proper resource name
         if (!fullLocationName.includes('/locations/')) {
-          console.error(`[GMB Sync API] Invalid location resource format: ${fullLocationName}. Skipping reviews/media sync.`);
-          skipped.push(`invalid_location_resource:${location.location_id}`);
-          continue;
+          console.error(
+            `[GMB Sync API] Invalid location resource format: ${fullLocationName}. Skipping reviews/media sync.`,
+          )
+          skipped.push(`invalid_location_resource:${location.location_id}`)
+          continue
         }
 
         // Fetch reviews for this location using Google My Business v4 API
         if (doReviews) {
-          const phaseReviewsStart = Date.now();
-          let reviewsNextPageToken: string | undefined = undefined;
+          const phaseReviewsStart = Date.now()
+          let reviewsNextPageToken: string | undefined = undefined
 
           do {
             const { reviews, nextPageToken } = await fetchReviews(
               accessToken,
               fullLocationName,
               account.account_id,
-              reviewsNextPageToken
-            );
+              reviewsNextPageToken,
+            )
 
             if (reviews.length > 0) {
               if (IS_DEV) {
                 console.warn(
                   `[GMB Sync API] Processing ${reviews.length} reviews for location ${location.id}`,
-                );
+                )
               }
 
               const reviewRows = reviews
                 .map((review) => {
                   // Type guard for review object
                   if (typeof review !== 'object' || review === null) {
-                    console.warn('[GMB Sync API] Skipping invalid review object');
-                    return null;
+                    console.warn('[GMB Sync API] Skipping invalid review object')
+                    return null
                   }
-                  const reviewObj = review as Record<string, unknown>;
-                  
+                  const reviewObj = review as Record<string, unknown>
+
                   const externalReviewId =
                     (typeof reviewObj.reviewId === 'string' ? reviewObj.reviewId : undefined) ||
-                    (typeof reviewObj.name === 'string' ? reviewObj.name.split('/').pop() : undefined) ||
-                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null ? 
-                      (typeof (reviewObj.reviewReply as Record<string, unknown>).reviewId === 'string' ? 
-                        (reviewObj.reviewReply as Record<string, unknown>).reviewId : undefined) : undefined) ||
-                    null;
+                    (typeof reviewObj.name === 'string'
+                      ? reviewObj.name.split('/').pop()
+                      : undefined) ||
+                    (reviewObj.reviewReply &&
+                    typeof reviewObj.reviewReply === 'object' &&
+                    reviewObj.reviewReply !== null
+                      ? typeof (reviewObj.reviewReply as Record<string, unknown>).reviewId ===
+                        'string'
+                        ? (reviewObj.reviewReply as Record<string, unknown>).reviewId
+                        : undefined
+                      : undefined) ||
+                    null
 
                   if (!externalReviewId) {
-                    console.warn('[GMB Sync API] Skipping review without identifiable reviewId', review);
-                    return null;
+                    console.warn(
+                      '[GMB Sync API] Skipping review without identifiable reviewId',
+                      review,
+                    )
+                    return null
                   }
 
-                  const rating = convertStarRatingToNumber(reviewObj.starRating as string | undefined);
+                  const rating = convertStarRatingToNumber(
+                    reviewObj.starRating as string | undefined,
+                  )
                   const reviewerName =
-                    (reviewObj.reviewer && typeof reviewObj.reviewer === 'object' && reviewObj.reviewer !== null && 
-                     typeof (reviewObj.reviewer as Record<string, unknown>).displayName === 'string') 
-                      ? (reviewObj.reviewer as Record<string, unknown>).displayName as string
-                      : 'Anonymous';
+                    reviewObj.reviewer &&
+                    typeof reviewObj.reviewer === 'object' &&
+                    reviewObj.reviewer !== null &&
+                    typeof (reviewObj.reviewer as Record<string, unknown>).displayName === 'string'
+                      ? ((reviewObj.reviewer as Record<string, unknown>).displayName as string)
+                      : 'Anonymous'
                   const reviewCreateTime =
-                    (typeof reviewObj.createTime === 'string' ? reviewObj.createTime : new Date().toISOString());
+                    typeof reviewObj.createTime === 'string'
+                      ? reviewObj.createTime
+                      : new Date().toISOString()
                   const replyUpdateTime =
-                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null && 
-                     typeof (reviewObj.reviewReply as Record<string, unknown>).updateTime === 'string')
-                      ? (reviewObj.reviewReply as Record<string, unknown>).updateTime as string
-                      : null;
-                  const replyComment = 
-                    (reviewObj.reviewReply && typeof reviewObj.reviewReply === 'object' && reviewObj.reviewReply !== null && 
-                     typeof (reviewObj.reviewReply as Record<string, unknown>).comment === 'string')
-                      ? (reviewObj.reviewReply as Record<string, unknown>).comment as string
-                      : null;
-                  const hasReply = Boolean(replyComment);
-                  const normalizedStatus = hasReply ? 'responded' : 'pending';
+                    reviewObj.reviewReply &&
+                    typeof reviewObj.reviewReply === 'object' &&
+                    reviewObj.reviewReply !== null &&
+                    typeof (reviewObj.reviewReply as Record<string, unknown>).updateTime ===
+                      'string'
+                      ? ((reviewObj.reviewReply as Record<string, unknown>).updateTime as string)
+                      : null
+                  const replyComment =
+                    reviewObj.reviewReply &&
+                    typeof reviewObj.reviewReply === 'object' &&
+                    reviewObj.reviewReply !== null &&
+                    typeof (reviewObj.reviewReply as Record<string, unknown>).comment === 'string'
+                      ? ((reviewObj.reviewReply as Record<string, unknown>).comment as string)
+                      : null
+                  const hasReply = Boolean(replyComment)
+                  const normalizedStatus = hasReply ? 'responded' : 'pending'
 
                   return {
                     gmb_account_id: accountId,
@@ -1985,13 +2117,16 @@ export async function POST(request: NextRequest) {
                     user_id: userId,
                     external_review_id: externalReviewId,
                     rating,
-                    review_text: (typeof reviewObj.comment === 'string' ? reviewObj.comment : null),
+                    review_text: typeof reviewObj.comment === 'string' ? reviewObj.comment : null,
                     review_date: reviewCreateTime,
                     reviewer_name: reviewerName,
                     reviewer_display_name: reviewerName,
                     reviewer_profile_photo_url:
-                      (reviewObj.reviewer && typeof reviewObj.reviewer === 'object' && reviewObj.reviewer !== null && 
-                       typeof (reviewObj.reviewer as Record<string, unknown>).profilePhotoUrl === 'string')
+                      reviewObj.reviewer &&
+                      typeof reviewObj.reviewer === 'object' &&
+                      reviewObj.reviewer !== null &&
+                      typeof (reviewObj.reviewer as Record<string, unknown>).profilePhotoUrl ===
+                        'string'
                         ? (reviewObj.reviewer as Record<string, unknown>).profilePhotoUrl
                         : null,
                     review_reply: replyComment,
@@ -2001,21 +2136,23 @@ export async function POST(request: NextRequest) {
                     has_reply: hasReply,
                     has_response: hasReply,
                     status: normalizedStatus,
-                    google_my_business_name: (typeof reviewObj.name === 'string' ? reviewObj.name : null),
-                    review_url: (typeof reviewObj.reviewUrl === 'string' ? reviewObj.reviewUrl : null),
+                    google_my_business_name:
+                      typeof reviewObj.name === 'string' ? reviewObj.name : null,
+                    review_url:
+                      typeof reviewObj.reviewUrl === 'string' ? reviewObj.reviewUrl : null,
                     synced_at: new Date().toISOString(),
                     metadata: review,
-                  };
+                  }
                 })
-                .filter((row): row is NonNullable<typeof row> => !!row);
+                .filter((row): row is NonNullable<typeof row> => !!row)
 
               if (IS_DEV) {
                 console.warn(
                   `[GMB Sync API] Prepared ${reviewRows.length} review rows from ${reviews.length} reviews`,
-                );
+                )
               }
 
-              let upsertedCount = 0;
+              let upsertedCount = 0
               for (const chunk of chunks(reviewRows)) {
                 const { data, error } = await supabase
                   .from('gmb_reviews')
@@ -2023,434 +2160,520 @@ export async function POST(request: NextRequest) {
                     onConflict: 'external_review_id',
                     ignoreDuplicates: false,
                   })
-                  .select();
+                  .select()
 
                 if (error) {
-                  console.error('[GMB Sync API] Error upserting reviews:', error);
+                  console.error('[GMB Sync API] Error upserting reviews:', error)
                 } else if (data) {
-                  upsertedCount += data.length;
+                  upsertedCount += data.length
                 } else {
-                  upsertedCount += chunk.length;
+                  upsertedCount += chunk.length
                 }
               }
 
               if (IS_DEV) {
                 console.warn(
                   `[GMB Sync API] Completed reviews sync: upserted ${upsertedCount} reviews`,
-                );
+                )
               }
-              counts.reviews += reviews.length;
+              counts.reviews += reviews.length
 
-              const phaseReviewsDuration = Date.now() - phaseReviewsStart;
+              const phaseReviewsDuration = Date.now() - phaseReviewsStart
               await upsertMetrics(
                 supabase,
                 accountId,
                 userId,
                 'reviews',
                 phaseReviewsDuration,
-                reviews.length
-              );
+                reviews.length,
+              )
             } else if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] No reviews returned for location ${location.id}`,
-              );
+              console.warn(`[GMB Sync API] No reviews returned for location ${location.id}`)
             }
 
-            reviewsNextPageToken = nextPageToken;
-          } while (reviewsNextPageToken && syncType === 'full');
+            reviewsNextPageToken = nextPageToken
+          } while (reviewsNextPageToken && syncType === 'full')
         }
 
         // Try to fetch media using Google My Business v4 API
         // Note: This API requires Google My Business API to be enabled in Google Cloud Console
         if (doMedia) {
-          const phaseMediaStart = Date.now();
-        let mediaNextPageToken: string | undefined = undefined;
-        do {
-          const { media, nextPageToken } = await fetchMedia(
-            accessToken,
-            fullLocationName,
-            account.account_id,
-            mediaNextPageToken
-          );
+          const phaseMediaStart = Date.now()
+          let mediaNextPageToken: string | undefined = undefined
+          do {
+            const { media, nextPageToken } = await fetchMedia(
+              accessToken,
+              fullLocationName,
+              account.account_id,
+              mediaNextPageToken,
+            )
 
-          if (media.length > 0) {
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Processing ${media.length} media items for location ${location.id}`,
-              );
-            }
-            
-            const mediaRows = media.map((item) => {
-              // Type guard for media item
-              const mediaItem = item as Record<string, unknown>;
-              
-              // Log first item structure for debugging
-              if (media.indexOf(item) === 0 && IS_DEV) {
-                console.warn('[GMB Sync API] First media item structure:', {
-                  name: typeof mediaItem.name === 'string' ? mediaItem.name : 'not string',
-                  mediaFormat: typeof mediaItem.mediaFormat === 'string' ? mediaItem.mediaFormat : 'not string',
-                  type: typeof mediaItem.type === 'string' ? mediaItem.type : 'not string',
-                  googleUrl: typeof mediaItem.googleUrl === 'string' ? mediaItem.googleUrl : 'not string',
-                  sourceUrl: typeof mediaItem.sourceUrl === 'string' ? mediaItem.sourceUrl : 'not string',
-                  thumbnailUrl: typeof mediaItem.thumbnailUrl === 'string' ? mediaItem.thumbnailUrl : 'not string',
-                  createTime: typeof mediaItem.createTime === 'string' ? mediaItem.createTime : 'not string',
-                  updateTime: typeof mediaItem.updateTime === 'string' ? mediaItem.updateTime : 'not string',
-                  allKeys: Object.keys(mediaItem),
-                });
-              }
-              
-              // Extract locationAssociation safely
-              const locationAssociation = mediaItem.locationAssociation && typeof mediaItem.locationAssociation === 'object' && mediaItem.locationAssociation !== null 
-                ? mediaItem.locationAssociation as Record<string, unknown>
-                : null;
-              
-              return {
-                gmb_account_id: accountId,
-                location_id: location.id,
-                user_id: userId,
-                external_media_id: (typeof mediaItem.name === 'string' ? mediaItem.name : 
-                                  (typeof mediaItem.mediaId === 'string' ? mediaItem.mediaId : null)),
-                type: (typeof mediaItem.mediaFormat === 'string' ? mediaItem.mediaFormat : 
-                      (typeof mediaItem.type === 'string' ? mediaItem.type : null)),
-                category: (locationAssociation && typeof locationAssociation.category === 'string' 
-                          ? locationAssociation.category : null),
-                url: (typeof mediaItem.googleUrl === 'string' ? mediaItem.googleUrl : 
-                     (typeof mediaItem.sourceUrl === 'string' ? mediaItem.sourceUrl : null)),
-                thumbnail_url: (typeof mediaItem.thumbnailUrl === 'string' ? mediaItem.thumbnailUrl : null),
-                created_at: (typeof mediaItem.createTime === 'string' ? mediaItem.createTime : null),
-                updated_at: (typeof mediaItem.updateTime === 'string' ? mediaItem.updateTime : null),
-                metadata: item,
-              };
-            }).filter((item) => {
-              // Filter out items without external_media_id (required for upsert)
-              if (!item.external_media_id) {
-                console.warn('[GMB Sync API] Skipping media item without external_media_id:', item);
-                return false;
-              }
-              return true;
-            });
-            
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Prepared ${mediaRows.length} valid media rows from ${media.length} items`,
-              );
-            }
-
-            let upsertedCount = 0;
-            for (const chunk of chunks(mediaRows)) {
+            if (media.length > 0) {
               if (IS_DEV) {
-                console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} media items...`);
+                console.warn(
+                  `[GMB Sync API] Processing ${media.length} media items for location ${location.id}`,
+                )
               }
-              
-              const { error } = await supabase
-                .from('gmb_media')
-                .upsert(chunk, { 
+
+              const mediaRows = media
+                .map((item) => {
+                  // Type guard for media item
+                  const mediaItem = item as Record<string, unknown>
+
+                  // Log first item structure for debugging
+                  if (media.indexOf(item) === 0 && IS_DEV) {
+                    console.warn('[GMB Sync API] First media item structure:', {
+                      name: typeof mediaItem.name === 'string' ? mediaItem.name : 'not string',
+                      mediaFormat:
+                        typeof mediaItem.mediaFormat === 'string'
+                          ? mediaItem.mediaFormat
+                          : 'not string',
+                      type: typeof mediaItem.type === 'string' ? mediaItem.type : 'not string',
+                      googleUrl:
+                        typeof mediaItem.googleUrl === 'string'
+                          ? mediaItem.googleUrl
+                          : 'not string',
+                      sourceUrl:
+                        typeof mediaItem.sourceUrl === 'string'
+                          ? mediaItem.sourceUrl
+                          : 'not string',
+                      thumbnailUrl:
+                        typeof mediaItem.thumbnailUrl === 'string'
+                          ? mediaItem.thumbnailUrl
+                          : 'not string',
+                      createTime:
+                        typeof mediaItem.createTime === 'string'
+                          ? mediaItem.createTime
+                          : 'not string',
+                      updateTime:
+                        typeof mediaItem.updateTime === 'string'
+                          ? mediaItem.updateTime
+                          : 'not string',
+                      allKeys: Object.keys(mediaItem),
+                    })
+                  }
+
+                  // Extract locationAssociation safely
+                  const locationAssociation =
+                    mediaItem.locationAssociation &&
+                    typeof mediaItem.locationAssociation === 'object' &&
+                    mediaItem.locationAssociation !== null
+                      ? (mediaItem.locationAssociation as Record<string, unknown>)
+                      : null
+
+                  return {
+                    gmb_account_id: accountId,
+                    location_id: location.id,
+                    user_id: userId,
+                    external_media_id:
+                      typeof mediaItem.name === 'string'
+                        ? mediaItem.name
+                        : typeof mediaItem.mediaId === 'string'
+                          ? mediaItem.mediaId
+                          : null,
+                    type:
+                      typeof mediaItem.mediaFormat === 'string'
+                        ? mediaItem.mediaFormat
+                        : typeof mediaItem.type === 'string'
+                          ? mediaItem.type
+                          : null,
+                    category:
+                      locationAssociation && typeof locationAssociation.category === 'string'
+                        ? locationAssociation.category
+                        : null,
+                    url:
+                      typeof mediaItem.googleUrl === 'string'
+                        ? mediaItem.googleUrl
+                        : typeof mediaItem.sourceUrl === 'string'
+                          ? mediaItem.sourceUrl
+                          : null,
+                    thumbnail_url:
+                      typeof mediaItem.thumbnailUrl === 'string' ? mediaItem.thumbnailUrl : null,
+                    created_at:
+                      typeof mediaItem.createTime === 'string' ? mediaItem.createTime : null,
+                    updated_at:
+                      typeof mediaItem.updateTime === 'string' ? mediaItem.updateTime : null,
+                    metadata: item,
+                  }
+                })
+                .filter((item) => {
+                  // Filter out items without external_media_id (required for upsert)
+                  if (!item.external_media_id) {
+                    console.warn(
+                      '[GMB Sync API] Skipping media item without external_media_id:',
+                      item,
+                    )
+                    return false
+                  }
+                  return true
+                })
+
+              if (IS_DEV) {
+                console.warn(
+                  `[GMB Sync API] Prepared ${mediaRows.length} valid media rows from ${media.length} items`,
+                )
+              }
+
+              let upsertedCount = 0
+              for (const chunk of chunks(mediaRows)) {
+                if (IS_DEV) {
+                  console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} media items...`)
+                }
+
+                const { error } = await supabase.from('gmb_media').upsert(chunk, {
                   onConflict: 'external_media_id',
-                  ignoreDuplicates: false 
-                });
-                
+                  ignoreDuplicates: false,
+                })
+
                 if (error) {
-                  console.error('[GMB Sync API] Error upserting media:', error);
+                  console.error('[GMB Sync API] Error upserting media:', error)
                   if (IS_DEV) {
                     console.error(
                       '[GMB Sync API] Failed chunk sample:',
                       JSON.stringify(chunk[0], null, 2),
-                    );
+                    )
                   }
                 } else {
-                upsertedCount += chunk.length;
+                  upsertedCount += chunk.length
                   if (IS_DEV) {
                     console.warn(
                       `[GMB Sync API] Successfully upserted ${chunk.length} media items (total: ${upsertedCount})`,
-                    );
+                    )
                   }
+                }
               }
-            }
-            
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Completed media sync: ${upsertedCount}/${mediaRows.length} items saved`,
-              );
-            }
-            counts.media += media.length;
-            const phaseMediaDuration = Date.now() - phaseMediaStart;
-            await upsertMetrics(supabase, accountId, userId, 'media', phaseMediaDuration, media.length);
-            
-            // Update location with logo and cover URLs if found
-            const logoItem = media.find((item: any) => 
-              item.locationAssociation?.category === 'LOGO' || 
-              item.mediaFormat === 'LOGO' ||
-              item.locationAssociation?.category === 'PROFILE'
-            );
-            
-            const coverItem = media.find((item: any) => 
-              item.locationAssociation?.category === 'COVER' ||
-              item.locationAssociation?.category === 'COVER_PHOTO' ||
-              item.mediaFormat === 'COVER' ||
-              item.mediaFormat === 'COVER_PHOTO' ||
-              item.locationAssociation?.category === 'EXTERIOR' ||
-              (!logoItem && item.locationAssociation?.category === 'ADDITIONAL')
-            );
-            
-            // Update both logo and cover URLs if found
-            const updates: any = {};
-            if (logoItem && logoItem.googleUrl) {
-              updates.logo_url = logoItem.googleUrl;
-            }
-            if (coverItem && coverItem.googleUrl) {
-              updates.cover_photo_url = coverItem.googleUrl;
-            }
-            
-            if (Object.keys(updates).length > 0) {
-              const { error: updateError } = await supabase
-                .from('gmb_locations')
-                .update(updates)
-                .eq('id', location.id);
-                
-              if (updateError) {
-                console.error('[GMB Sync API] Error updating media URLs:', updateError);
-              } else if (IS_DEV) {
-                console.warn(`[GMB Sync API] Updated location ${location.id} with media URLs:`, Object.keys(updates));
-              }
-            }
-          } else if (IS_DEV) {
-            console.warn(`[GMB Sync API] No media found for location ${location.id}`);
-          }
 
-          mediaNextPageToken = nextPageToken;
-        } while (mediaNextPageToken && syncType === 'full');
+              if (IS_DEV) {
+                console.warn(
+                  `[GMB Sync API] Completed media sync: ${upsertedCount}/${mediaRows.length} items saved`,
+                )
+              }
+              counts.media += media.length
+              const phaseMediaDuration = Date.now() - phaseMediaStart
+              await upsertMetrics(
+                supabase,
+                accountId,
+                userId,
+                'media',
+                phaseMediaDuration,
+                media.length,
+              )
+
+              // Update location with logo and cover URLs if found
+              const logoItem = media.find(
+                (item: any) =>
+                  item.locationAssociation?.category === 'LOGO' ||
+                  item.mediaFormat === 'LOGO' ||
+                  item.locationAssociation?.category === 'PROFILE',
+              )
+
+              const coverItem = media.find(
+                (item: any) =>
+                  item.locationAssociation?.category === 'COVER' ||
+                  item.locationAssociation?.category === 'COVER_PHOTO' ||
+                  item.mediaFormat === 'COVER' ||
+                  item.mediaFormat === 'COVER_PHOTO' ||
+                  item.locationAssociation?.category === 'EXTERIOR' ||
+                  (!logoItem && item.locationAssociation?.category === 'ADDITIONAL'),
+              )
+
+              // Update both logo and cover URLs if found
+              const updates: any = {}
+              if (logoItem && logoItem.googleUrl) {
+                updates.logo_url = logoItem.googleUrl
+              }
+              if (coverItem && coverItem.googleUrl) {
+                updates.cover_photo_url = coverItem.googleUrl
+              }
+
+              if (Object.keys(updates).length > 0) {
+                const { error: updateError } = await supabase
+                  .from('gmb_locations')
+                  .update(updates)
+                  .eq('id', location.id)
+
+                if (updateError) {
+                  console.error('[GMB Sync API] Error updating media URLs:', updateError)
+                } else if (IS_DEV) {
+                  console.warn(
+                    `[GMB Sync API] Updated location ${location.id} with media URLs:`,
+                    Object.keys(updates),
+                  )
+                }
+              }
+            } else if (IS_DEV) {
+              console.warn(`[GMB Sync API] No media found for location ${location.id}`)
+            }
+
+            mediaNextPageToken = nextPageToken
+          } while (mediaNextPageToken && syncType === 'full')
         }
 
         // Fetch questions for this location using Google My Business Q&A API v1
         // Q&A API requires just the location ID number (not the full resource path)
         if (doQuestions) {
-          const phaseQuestionsStart = Date.now();
-          let questionsNextPageToken: string | undefined = undefined;
-        
-        // Extract location ID from fullLocationName for Q&A API
-        let locationIdForQandA: string;
-        if (fullLocationName.includes('/locations/')) {
-          // Extract from: accounts/{account}/locations/{location_id}
-          const match = fullLocationName.match(/locations\/([^/]+)$/);
-          locationIdForQandA = match ? match[1] : fullLocationName.split('/').pop() || '';
-        } else if (fullLocationName.startsWith('locations/')) {
-          locationIdForQandA = fullLocationName.replace(/^locations\//, '');
-        } else {
-          locationIdForQandA = fullLocationName;
-        }
-        
-        if (IS_DEV) {
-          console.warn(
-            `[GMB Sync API] Extracted location ID for Q&A: ${fullLocationName} -> ${locationIdForQandA}`,
-          );
-        }
-        
-        do {
-          const { questions, nextPageToken } = await fetchQuestions(
-            accessToken,
-            locationIdForQandA, // Pass just the location ID, not the full resource
-            account.account_id,
-            questionsNextPageToken
-          );
+          const phaseQuestionsStart = Date.now()
+          let questionsNextPageToken: string | undefined = undefined
 
-          if (questions.length > 0) {
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Processing ${questions.length} questions for location ${location.id}`,
-              );
-            }
-            
-            const questionRows = questions.map((question) => {
-              // Type guard for question object
-              if (typeof question !== 'object' || question === null) {
-                console.warn('[GMB Sync API] Skipping invalid question object');
-                return null;
-              }
-              const questionObj = question as Record<string, unknown>;
-              
-              // Get the best answer (first from topAnswers, or use existing answer)
-              const topAnswers = questionObj.topAnswers && Array.isArray(questionObj.topAnswers) 
-                ? questionObj.topAnswers 
-                : [];
-              const bestAnswer = topAnswers.length > 0 ? topAnswers[0] as Record<string, unknown> : null;
-              
-              // Determine answer status
-              let answerStatus: 'pending' | 'answered' | 'draft' = 'pending';
-              let answerText: string | null = null;
-              let answeredAt: string | null = null;
-              
-              if (bestAnswer && typeof bestAnswer.text === 'string') {
-                answerText = bestAnswer.text;
-                answeredAt = (typeof bestAnswer.createTime === 'string' ? bestAnswer.createTime : 
-                             (typeof bestAnswer.updateTime === 'string' ? bestAnswer.updateTime : null));
-                // If answered by merchant, mark as answered, otherwise it's a customer answer
-                answerStatus = (bestAnswer.author && typeof bestAnswer.author === 'object' && bestAnswer.author !== null && 
-                               (bestAnswer.author as Record<string, unknown>).type === 'MERCHANT') 
-                              ? 'answered' : 'pending';
-              }
-
-              // Extract author information safely
-              const author = questionObj.author && typeof questionObj.author === 'object' && questionObj.author !== null
-                ? questionObj.author as Record<string, unknown>
-                : null;
-                
-              const authorDisplayName = author && typeof author.displayName === 'string' 
-                ? author.displayName 
-                : 'Anonymous';
-                
-              const authorType = author && typeof author.type === 'string'
-                ? (author.type === 'MERCHANT' ? 'MERCHANT' : 
-                   author.type === 'LOCAL_GUIDE' ? 'GOOGLE_USER' : 'CUSTOMER')
-                : 'CUSTOMER';
-
-              return {
-                gmb_account_id: accountId,
-                user_id: userId,
-                location_id: location.id,  // Use UUID id, not location_id (resource name)
-                external_question_id: (typeof questionObj.name === 'string' ? questionObj.name : null),
-                question_text: (typeof questionObj.text === 'string' ? questionObj.text : ''),
-                author_name: authorDisplayName,
-                author_type: authorType,
-                answer_text: answerText,
-                answered_at: answeredAt,
-                answer_status: answerStatus,
-                upvote_count: (typeof questionObj.upvoteCount === 'number' ? questionObj.upvoteCount : 0),
-                created_at: (typeof questionObj.createTime === 'string' ? questionObj.createTime : new Date().toISOString()),
-                updated_at: (typeof questionObj.updateTime === 'string' ? questionObj.updateTime : 
-                           (typeof questionObj.createTime === 'string' ? questionObj.createTime : new Date().toISOString())),
-              };
-            }).filter((q): q is NonNullable<typeof q> => {
-              // Filter out questions without question_text
-              if (!q || !q.question_text || q.question_text.trim().length === 0) {
-                console.warn(
-                  '[GMB Sync API] Skipping question without question_text:',
-                  q?.external_question_id,
-                );
-                return false;
-              }
-              return true;
-            });
-
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Prepared ${questionRows.length} valid question rows from ${questions.length} questions`,
-              );
-            }
-
-            let upsertedCount = 0;
-            for (const chunk of chunks(questionRows)) {
-              if (IS_DEV) {
-                console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} questions...`);
-              }
-              
-              const { error } = await supabase
-                .from('gmb_questions')
-                .upsert(chunk, { 
-                  onConflict: 'external_question_id',
-                  ignoreDuplicates: false 
-                });
-
-              if (error) {
-                console.error('[GMB Sync API] Error upserting questions:', error);
-                if (IS_DEV) {
-                  console.error(
-                    '[GMB Sync API] Failed chunk sample:',
-                    JSON.stringify(chunk[0], null, 2),
-                  );
-                }
-              } else {
-                upsertedCount += chunk.length;
-                if (IS_DEV) {
-                  console.warn(
-                    `[GMB Sync API] Successfully upserted ${chunk.length} questions (total: ${upsertedCount})`,
-                  );
-                }
-              }
-            }
-
-            if (IS_DEV) {
-              console.warn(
-                `[GMB Sync API] Completed questions sync: ${upsertedCount}/${questionRows.length} questions saved`,
-              );
-            }
-            counts.questions += questions.length;
-            const phaseQuestionsDuration = Date.now() - phaseQuestionsStart;
-            await upsertMetrics(supabase, accountId, userId, 'questions', phaseQuestionsDuration, questions.length);
-          } else if (IS_DEV) {
-            console.warn(`[GMB Sync API] No questions found for location ${location.id}`);
+          // Extract location ID from fullLocationName for Q&A API
+          let locationIdForQandA: string
+          if (fullLocationName.includes('/locations/')) {
+            // Extract from: accounts/{account}/locations/{location_id}
+            const match = fullLocationName.match(/locations\/([^/]+)$/)
+            locationIdForQandA = match ? match[1] : fullLocationName.split('/').pop() || ''
+          } else if (fullLocationName.startsWith('locations/')) {
+            locationIdForQandA = fullLocationName.replace(/^locations\//, '')
+          } else {
+            locationIdForQandA = fullLocationName
           }
 
-          questionsNextPageToken = nextPageToken;
-        } while (questionsNextPageToken && syncType === 'full');
+          if (IS_DEV) {
+            console.warn(
+              `[GMB Sync API] Extracted location ID for Q&A: ${fullLocationName} -> ${locationIdForQandA}`,
+            )
+          }
+
+          do {
+            const { questions, nextPageToken } = await fetchQuestions(
+              accessToken,
+              locationIdForQandA, // Pass just the location ID, not the full resource
+              account.account_id,
+              questionsNextPageToken,
+            )
+
+            if (questions.length > 0) {
+              if (IS_DEV) {
+                console.warn(
+                  `[GMB Sync API] Processing ${questions.length} questions for location ${location.id}`,
+                )
+              }
+
+              const questionRows = questions
+                .map((question) => {
+                  // Type guard for question object
+                  if (typeof question !== 'object' || question === null) {
+                    console.warn('[GMB Sync API] Skipping invalid question object')
+                    return null
+                  }
+                  const questionObj = question as Record<string, unknown>
+
+                  // Get the best answer (first from topAnswers, or use existing answer)
+                  const topAnswers =
+                    questionObj.topAnswers && Array.isArray(questionObj.topAnswers)
+                      ? questionObj.topAnswers
+                      : []
+                  const bestAnswer =
+                    topAnswers.length > 0 ? (topAnswers[0] as Record<string, unknown>) : null
+
+                  // Determine answer status
+                  let answerStatus: 'pending' | 'answered' | 'draft' = 'pending'
+                  let answerText: string | null = null
+                  let answeredAt: string | null = null
+
+                  if (bestAnswer && typeof bestAnswer.text === 'string') {
+                    answerText = bestAnswer.text
+                    answeredAt =
+                      typeof bestAnswer.createTime === 'string'
+                        ? bestAnswer.createTime
+                        : typeof bestAnswer.updateTime === 'string'
+                          ? bestAnswer.updateTime
+                          : null
+                    // If answered by merchant, mark as answered, otherwise it's a customer answer
+                    answerStatus =
+                      bestAnswer.author &&
+                      typeof bestAnswer.author === 'object' &&
+                      bestAnswer.author !== null &&
+                      (bestAnswer.author as Record<string, unknown>).type === 'MERCHANT'
+                        ? 'answered'
+                        : 'pending'
+                  }
+
+                  // Extract author information safely
+                  const author =
+                    questionObj.author &&
+                    typeof questionObj.author === 'object' &&
+                    questionObj.author !== null
+                      ? (questionObj.author as Record<string, unknown>)
+                      : null
+
+                  const authorDisplayName =
+                    author && typeof author.displayName === 'string'
+                      ? author.displayName
+                      : 'Anonymous'
+
+                  const authorType =
+                    author && typeof author.type === 'string'
+                      ? author.type === 'MERCHANT'
+                        ? 'MERCHANT'
+                        : author.type === 'LOCAL_GUIDE'
+                          ? 'GOOGLE_USER'
+                          : 'CUSTOMER'
+                      : 'CUSTOMER'
+
+                  return {
+                    gmb_account_id: accountId,
+                    user_id: userId,
+                    location_id: location.id, // Use UUID id, not location_id (resource name)
+                    external_question_id:
+                      typeof questionObj.name === 'string' ? questionObj.name : null,
+                    question_text: typeof questionObj.text === 'string' ? questionObj.text : '',
+                    author_name: authorDisplayName,
+                    author_type: authorType,
+                    answer_text: answerText,
+                    answered_at: answeredAt,
+                    answer_status: answerStatus,
+                    upvote_count:
+                      typeof questionObj.upvoteCount === 'number' ? questionObj.upvoteCount : 0,
+                    created_at:
+                      typeof questionObj.createTime === 'string'
+                        ? questionObj.createTime
+                        : new Date().toISOString(),
+                    updated_at:
+                      typeof questionObj.updateTime === 'string'
+                        ? questionObj.updateTime
+                        : typeof questionObj.createTime === 'string'
+                          ? questionObj.createTime
+                          : new Date().toISOString(),
+                  }
+                })
+                .filter((q): q is NonNullable<typeof q> => {
+                  // Filter out questions without question_text
+                  if (!q || !q.question_text || q.question_text.trim().length === 0) {
+                    console.warn(
+                      '[GMB Sync API] Skipping question without question_text:',
+                      q?.external_question_id,
+                    )
+                    return false
+                  }
+                  return true
+                })
+
+              if (IS_DEV) {
+                console.warn(
+                  `[GMB Sync API] Prepared ${questionRows.length} valid question rows from ${questions.length} questions`,
+                )
+              }
+
+              let upsertedCount = 0
+              for (const chunk of chunks(questionRows)) {
+                if (IS_DEV) {
+                  console.warn(`[GMB Sync API] Upserting chunk of ${chunk.length} questions...`)
+                }
+
+                const { error } = await supabase.from('gmb_questions').upsert(chunk, {
+                  onConflict: 'external_question_id',
+                  ignoreDuplicates: false,
+                })
+
+                if (error) {
+                  console.error('[GMB Sync API] Error upserting questions:', error)
+                  if (IS_DEV) {
+                    console.error(
+                      '[GMB Sync API] Failed chunk sample:',
+                      JSON.stringify(chunk[0], null, 2),
+                    )
+                  }
+                } else {
+                  upsertedCount += chunk.length
+                  if (IS_DEV) {
+                    console.warn(
+                      `[GMB Sync API] Successfully upserted ${chunk.length} questions (total: ${upsertedCount})`,
+                    )
+                  }
+                }
+              }
+
+              if (IS_DEV) {
+                console.warn(
+                  `[GMB Sync API] Completed questions sync: ${upsertedCount}/${questionRows.length} questions saved`,
+                )
+              }
+              counts.questions += questions.length
+              const phaseQuestionsDuration = Date.now() - phaseQuestionsStart
+              await upsertMetrics(
+                supabase,
+                accountId,
+                userId,
+                'questions',
+                phaseQuestionsDuration,
+                questions.length,
+              )
+            } else if (IS_DEV) {
+              console.warn(`[GMB Sync API] No questions found for location ${location.id}`)
+            }
+
+            questionsNextPageToken = nextPageToken
+          } while (questionsNextPageToken && syncType === 'full')
         }
       }
     }
-  await finishPhaseLog(supabase, phaseReviewsId, 'completed', { reviews: counts.reviews });
-  if (doReviews && counts.reviews === 0) {
-    await upsertMetrics(supabase, accountId, userId, 'reviews', 0, 0);
-  }
-  await finishPhaseLog(supabase, phaseMediaId, 'completed', { media: counts.media });
-  await finishPhaseLog(supabase, phaseQuestionsId, 'completed', { questions: counts.questions });
+    await finishPhaseLog(supabase, phaseReviewsId, 'completed', { reviews: counts.reviews })
+    if (doReviews && counts.reviews === 0) {
+      await upsertMetrics(supabase, accountId, userId, 'reviews', 0, 0)
+    }
+    await finishPhaseLog(supabase, phaseMediaId, 'completed', { media: counts.media })
+    await finishPhaseLog(supabase, phaseQuestionsId, 'completed', { questions: counts.questions })
 
     if (IS_DEV) {
       console.warn(
         `[GMB Sync API] Synced ${counts.reviews} reviews, ${counts.media} media items, and ${counts.questions} questions`,
-      );
+      )
     }
 
     // Fetch performance metrics and search keywords for each location
     if ((doPerformance || doKeywords) && IS_DEV) {
-      console.warn('[GMB Sync API] Starting performance metrics sync...');
+      console.warn('[GMB Sync API] Starting performance metrics sync...')
     }
-    let phasePerformanceId: string | null = null;
-    let phaseKeywordsId: string | null = null;
-    if (doPerformance) phasePerformanceId = await startPhaseLog(supabase, accountId, userId, 'performance');
-    if (doKeywords) phaseKeywordsId = await startPhaseLog(supabase, accountId, userId, 'keywords');
+    let phasePerformanceId: string | null = null
+    let phaseKeywordsId: string | null = null
+    if (doPerformance)
+      phasePerformanceId = await startPhaseLog(supabase, accountId, userId, 'performance')
+    if (doKeywords) phaseKeywordsId = await startPhaseLog(supabase, accountId, userId, 'keywords')
     if (dbLocations && Array.isArray(dbLocations) && (doPerformance || doKeywords)) {
       if (IS_DEV) {
         console.warn(
           `[GMB Sync API] Processing ${dbLocations.length} locations for performance metrics sync`,
-        );
+        )
       }
 
       // Calculate date range: last 30 days for daily metrics, last 3 months for search keywords
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30); // Last 30 days
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30) // Last 30 days
 
-      const endMonth = new Date();
-      const startMonth = new Date();
-      startMonth.setMonth(startMonth.getMonth() - 3); // Last 3 months
+      const endMonth = new Date()
+      const startMonth = new Date()
+      startMonth.setMonth(startMonth.getMonth() - 3) // Last 3 months
 
       for (const location of dbLocations) {
         // Extract location ID for Performance API (just the ID, not full resource)
-        let locationIdForPerformance = location.location_id;
+        let locationIdForPerformance = location.location_id
         if (locationIdForPerformance.includes('/locations/')) {
-          locationIdForPerformance = locationIdForPerformance.split('/locations/')[1];
+          locationIdForPerformance = locationIdForPerformance.split('/locations/')[1]
         } else if (locationIdForPerformance.startsWith('locations/')) {
-          locationIdForPerformance = locationIdForPerformance.replace(/^locations\//, '');
+          locationIdForPerformance = locationIdForPerformance.replace(/^locations\//, '')
         } else if (locationIdForPerformance.includes('accounts/')) {
-          const match = locationIdForPerformance.match(/locations\/([^/]+)/);
+          const match = locationIdForPerformance.match(/locations\/([^/]+)/)
           if (match) {
-            locationIdForPerformance = match[1];
+            locationIdForPerformance = match[1]
           }
         }
 
         // Fetch daily metrics
         if (doPerformance) {
-          const phasePerformanceStart = Date.now();
+          const phasePerformanceStart = Date.now()
           try {
             if (IS_DEV) {
               console.warn(
                 `[GMB Sync API] Fetching performance metrics for location: ${locationIdForPerformance}`,
-              );
+              )
             }
             const { metrics } = await fetchDailyMetrics(
               accessToken,
               locationIdForPerformance,
               startDate,
-              endDate
-            );
+              endDate,
+            )
 
             if (metrics.length > 0) {
               const metricRows = metrics.map((metric) => ({
@@ -2462,59 +2685,64 @@ export async function POST(request: NextRequest) {
                 metric_value: metric.metric_value,
                 sub_entity_type: metric.sub_entity_type || {},
                 metadata: {},
-              }));
+              }))
 
               // Upsert metrics in chunks
               for (const chunk of chunks(metricRows)) {
-                const { error } = await supabase
-                  .from('gmb_performance_metrics')
-                  .upsert(chunk, { 
-                    onConflict: 'location_id,metric_date,metric_type',
-                    ignoreDuplicates: false 
-                  });
+                const { error } = await supabase.from('gmb_performance_metrics').upsert(chunk, {
+                  onConflict: 'location_id,metric_date,metric_type',
+                  ignoreDuplicates: false,
+                })
 
                 if (error) {
-                  console.error('[GMB Sync API] Error upserting performance metrics:', error);
+                  console.error('[GMB Sync API] Error upserting performance metrics:', error)
                 } else if (IS_DEV) {
-                  console.warn(`[GMB Sync API] Upserted ${chunk.length} performance metrics`);
+                  console.warn(`[GMB Sync API] Upserted ${chunk.length} performance metrics`)
                 }
               }
 
-              counts.performance_metrics += metrics.length;
-              const phasePerformanceDuration = Date.now() - phasePerformanceStart;
-              await upsertMetrics(supabase, accountId, userId, 'performance', phasePerformanceDuration, metrics.length);
+              counts.performance_metrics += metrics.length
+              const phasePerformanceDuration = Date.now() - phasePerformanceStart
+              await upsertMetrics(
+                supabase,
+                accountId,
+                userId,
+                'performance',
+                phasePerformanceDuration,
+                metrics.length,
+              )
             }
           } catch (error) {
             console.error(
               `[GMB Sync API] Error fetching performance metrics for location ${location.id}:`,
               error,
-            );
+            )
           }
         }
 
         // Fetch search keywords
         try {
           if (!doKeywords) {
-            continue;
+            continue
           }
           if (IS_DEV) {
             console.warn(
               `[GMB Sync API] Fetching search keywords for location: ${locationIdForPerformance}`,
-            );
+            )
           }
-          let keywordsNextPageToken: string | undefined = undefined;
-          
+          let keywordsNextPageToken: string | undefined = undefined
+
           do {
             const { keywords, nextPageToken } = await fetchSearchKeywords(
               accessToken,
               locationIdForPerformance,
               startMonth,
               endMonth,
-              keywordsNextPageToken
-            );
+              keywordsNextPageToken,
+            )
 
             if (keywords.length > 0) {
-              const phaseKeywordsStart = Date.now();
+              const phaseKeywordsStart = Date.now()
               const keywordRows = keywords.map((keyword) => ({
                 gmb_account_id: accountId,
                 location_id: location.id, // Use UUID id
@@ -2524,57 +2752,66 @@ export async function POST(request: NextRequest) {
                 impressions_count: keyword.impressions_count,
                 threshold_value: keyword.threshold_value,
                 metadata: {},
-              }));
+              }))
 
               // Upsert keywords in chunks
               for (const chunk of chunks(keywordRows)) {
-                const { error } = await supabase
-                  .from('gmb_search_keywords')
-                  .upsert(chunk, { 
-                    onConflict: 'location_id,search_keyword,month_year',
-                    ignoreDuplicates: false 
-                  });
+                const { error } = await supabase.from('gmb_search_keywords').upsert(chunk, {
+                  onConflict: 'location_id,search_keyword,month_year',
+                  ignoreDuplicates: false,
+                })
 
                 if (error) {
-                  console.error('[GMB Sync API] Error upserting search keywords:', error);
+                  console.error('[GMB Sync API] Error upserting search keywords:', error)
                 } else if (IS_DEV) {
-                  console.warn(`[GMB Sync API] Upserted ${chunk.length} search keywords`);
+                  console.warn(`[GMB Sync API] Upserted ${chunk.length} search keywords`)
                 }
               }
 
-              counts.search_keywords += keywords.length;
-              const phaseKeywordsDuration = Date.now() - phaseKeywordsStart;
-              await upsertMetrics(supabase, accountId, userId, 'keywords', phaseKeywordsDuration, keywords.length);
+              counts.search_keywords += keywords.length
+              const phaseKeywordsDuration = Date.now() - phaseKeywordsStart
+              await upsertMetrics(
+                supabase,
+                accountId,
+                userId,
+                'keywords',
+                phaseKeywordsDuration,
+                keywords.length,
+              )
             }
 
-            keywordsNextPageToken = nextPageToken;
-          } while (keywordsNextPageToken && syncType === 'full');
+            keywordsNextPageToken = nextPageToken
+          } while (keywordsNextPageToken && syncType === 'full')
         } catch (error) {
           console.error(
             `[GMB Sync API] Error fetching search keywords for location ${location.id}:`,
             error,
-          );
+          )
         }
       }
     }
-  await finishPhaseLog(supabase, phasePerformanceId, 'completed', { performance_metrics: counts.performance_metrics });
-  await finishPhaseLog(supabase, phaseKeywordsId, 'completed', { search_keywords: counts.search_keywords });
+    await finishPhaseLog(supabase, phasePerformanceId, 'completed', {
+      performance_metrics: counts.performance_metrics,
+    })
+    await finishPhaseLog(supabase, phaseKeywordsId, 'completed', {
+      search_keywords: counts.search_keywords,
+    })
 
     if (IS_DEV) {
       console.warn(
         `[GMB Sync API] Synced ${counts.performance_metrics} performance metrics and ${counts.search_keywords} search keywords`,
-      );
+      )
     }
 
     // Update last sync timestamp
     await supabase
       .from('gmb_accounts')
       .update({ last_sync: new Date().toISOString() })
-      .eq('id', accountId);
+      .eq('id', accountId)
 
-    const took = Date.now() - started;
+    const took = Date.now() - started
     if (IS_DEV) {
-      console.warn(`[GMB Sync API] Sync completed in ${took}ms`, counts);
+      console.warn(`[GMB Sync API] Sync completed in ${took}ms`, counts)
     }
 
     // accountId and userId are guaranteed to be truthy at this point
@@ -2583,10 +2820,15 @@ export async function POST(request: NextRequest) {
       took_ms: took,
       sync_type: syncType,
       counts,
-    });
-    await trackSyncResult(userId, true, took);
+    })
+    await trackSyncResult(userId, true, took)
 
-    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId)
+
+    // Create sync completion notification
+    await createSyncNotification(userId, counts, took).catch((err) => {
+      console.error('[GMB Sync API] Failed to create sync notification:', err)
+    })
 
     const successPayload = {
       success: true, // For consistency with dashboard checks
@@ -2596,47 +2838,49 @@ export async function POST(request: NextRequest) {
       counts,
       skipped_sections: skipped,
       took_ms: took,
-    };
+    }
 
-    syncStatusState = 'success';
-    syncStatusError = null;
-    return NextResponse.json(successPayload);
-
+    syncStatusState = 'success'
+    syncStatusError = null
+    return NextResponse.json(successPayload)
   } catch (error: unknown) {
-    const took = Date.now() - started;
-    console.error('[GMB Sync API] Sync failed:', error);
-    const baseMessage = error instanceof Error ? error.message : 'Sync failed';
-    syncStatusError = `${baseMessage} / فشلت عملية المزامنة.`;
+    const took = Date.now() - started
+    console.error('[GMB Sync API] Sync failed:', error)
+    const baseMessage = error instanceof Error ? error.message : 'Sync failed'
+    syncStatusError = `${baseMessage} / فشلت عملية المزامنة.`
     if (accountId) {
       await logAction('sync', 'gmb_account', accountId, {
         status: 'failed',
         took_ms: took,
         sync_type: syncType,
         error: baseMessage,
-      });
+      })
     }
     if (typeof userId === 'string') {
-      await trackSyncResult(userId, false, took);
+      await trackSyncResult(userId, false, took)
+
+      // Create sync error notification
+      await createSyncErrorNotification(userId, baseMessage).catch((err) => {
+        console.error('[GMB Sync API] Failed to create error notification:', err)
+      })
     }
-    return errorResponse(error);
+    return errorResponse(error)
   } finally {
     if (lockRefreshTimer) {
-      clearInterval(lockRefreshTimer);
+      clearInterval(lockRefreshTimer)
     }
 
     if (syncStatusId) {
       const statusErrorMessage =
-        syncStatusState === 'failed'
-          ? syncStatusError || 'Sync failed. فشلت عملية المزامنة.'
-          : null
-      await finalizeSyncStatusRecord(supabase, syncStatusId, syncStatusState, statusErrorMessage);
+        syncStatusState === 'failed' ? syncStatusError || 'Sync failed. فشلت عملية المزامنة.' : null
+      await finalizeSyncStatusRecord(supabase, syncStatusId, syncStatusState, statusErrorMessage)
     }
 
     if (lockKey && lockToken) {
       try {
-        await releaseLock(lockKey, lockToken);
+        await releaseLock(lockKey, lockToken)
       } catch (releaseError) {
-        console.warn('[GMB Sync API] Failed to release sync lock', releaseError);
+        console.warn('[GMB Sync API] Failed to release sync lock', releaseError)
       }
     }
   }

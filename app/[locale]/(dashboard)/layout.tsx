@@ -220,6 +220,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onMenuClick={() => setSidebarOpen(!sidebarOpen)}
                       onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
                       userProfile={userProfile}
+                      userId={userId || undefined}
                     />
 
                     <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">

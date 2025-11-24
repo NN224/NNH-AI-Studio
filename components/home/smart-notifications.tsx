@@ -70,7 +70,7 @@ export function SmartNotifications({ userId }: SmartNotificationsProps) {
     markAllAsRead: apiMarkAllAsRead,
     deleteNotification: apiDeleteNotification,
     clearAll: apiClearAll,
-  } = useNotifications()
+  } = useNotifications(userId)
 
   const [isOpen, setIsOpen] = useState(false)
   const [filter, setFilter] = useState<'all' | 'unread' | 'high-priority'>('all')
