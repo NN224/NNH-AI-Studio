@@ -53,7 +53,7 @@ interface Suggestion {
   completed?: boolean;
 }
 
-interface AISuggestionsProps {
+export interface AISuggestionsProps {
   userId?: string;
   businessData?: {
     reviewCount?: number;

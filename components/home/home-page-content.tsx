@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
 import { SmartHeader } from "@/components/home/smart-header";
@@ -14,13 +15,28 @@ import { ProgressTracker } from "@/components/home/progress-tracker";
 import { AIChatWidget } from "@/components/home/ai-chat-widget";
 import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
-import { AISuggestions } from "@/components/home/ai-suggestions";
+import type { AISuggestionsProps } from "@/components/home/ai-suggestions";
 import { AchievementSystem } from "@/components/home/achievement-system";
 import type {
   UserProgress,
   UserAchievement,
 } from "@/server/actions/achievements";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+
+const AISuggestions = dynamic<AISuggestionsProps>(
+  () =>
+    import("@/components/home/ai-suggestions").then(
+      (mod) => mod.AISuggestions,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-2xl border border-dashed border-border/40 bg-gradient-to-br from-orange-900/10 via-black to-purple-900/10 p-6 text-sm text-muted-foreground">
+        Preparing AI suggestions...
+      </div>
+    ),
+  },
+);
 
 interface HomePageContentProps {
   user: {
