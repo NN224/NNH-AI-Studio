@@ -17,7 +17,7 @@ import {
   useAICommandCenterData,
   useAIChat,
   useAIActions,
-} from "@/hooks/use-ai-command-center-v2";
+} from "@/hooks/use-ai-command-center";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 

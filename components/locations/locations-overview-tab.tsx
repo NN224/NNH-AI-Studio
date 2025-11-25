@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import React, { useState, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Plus,
   RefreshCw,
@@ -12,203 +12,220 @@ import {
   X,
   Trash2,
   RotateCw,
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { useLocations, LocationFilters } from '@/hooks/use-locations'
-import { LocationsStatsCards } from '@/components/locations/locations-stats-cards'
-import { LocationFiltersPanel } from '@/components/locations/location-filters-panel'
-import { LocationCardV2 } from '@/components/locations/location-card-v2'
-import { LocationFormDialog } from '@/components/locations/location-form-dialog'
-import { LocationBulkDeleteDialog } from '@/components/locations/location-bulk-delete-dialog'
-import { GMBConnectionBanner } from '@/components/locations/gmb-connection-banner'
-import { Card, CardContent } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
+} from "lucide-react";
+import { toast } from "sonner";
+import { useLocations, LocationFilters } from "@/hooks/use-locations";
+import { LocationsStatsCards } from "@/components/locations/locations-stats-cards";
+import { LocationFiltersPanel } from "@/components/locations/location-filters-panel";
+import { LocationCard } from "@/components/locations/location-card";
+import { LocationFormDialog } from "@/components/locations/location-form-dialog";
+import { LocationBulkDeleteDialog } from "@/components/locations/location-bulk-delete-dialog";
+import { GMBConnectionBanner } from "@/components/locations/gmb-connection-banner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 export function LocationsOverviewTab() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [filters, setFilters] = useState<LocationFilters>({})
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [hasGmbAccount, setHasGmbAccount] = useState<boolean | null>(null)
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([])
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [syncingSelected, setSyncingSelected] = useState(false)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filters, setFilters] = useState<LocationFilters>({});
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [hasGmbAccount, setHasGmbAccount] = useState<boolean | null>(null);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [syncingSelected, setSyncingSelected] = useState(false);
 
-  const { locations, loading, error, total, refetch, hasMore, loadMore } = useLocations(filters)
+  const { locations, loading, error, total, refetch, hasMore, loadMore } =
+    useLocations(filters);
 
-  const [gmbAccountId, setGmbAccountId] = useState<string | null>(null)
+  const [gmbAccountId, setGmbAccountId] = useState<string | null>(null);
 
   // Check GMB account on mount
   React.useEffect(() => {
     const checkGMBAccount = async () => {
       try {
-        const res = await fetch('/api/gmb/accounts')
-        const data = await res.json()
+        const res = await fetch("/api/gmb/accounts");
+        const data = await res.json();
         if (data && data.length > 0) {
-          setHasGmbAccount(true)
+          setHasGmbAccount(true);
           // Get the first active account ID
-          const activeAccount = data.find((acc: any) => acc.is_active) || data[0]
+          const activeAccount =
+            data.find((acc: any) => acc.is_active) || data[0];
           if (activeAccount?.id) {
-            setGmbAccountId(activeAccount.id)
+            setGmbAccountId(activeAccount.id);
           }
         } else {
-          setHasGmbAccount(false)
-          setGmbAccountId(null)
+          setHasGmbAccount(false);
+          setGmbAccountId(null);
         }
       } catch (error) {
-        console.error('Failed to check GMB account:', error)
-        setHasGmbAccount(false)
-        setGmbAccountId(null)
+        console.error("Failed to check GMB account:", error);
+        setHasGmbAccount(false);
+        setGmbAccountId(null);
       }
-    }
-    checkGMBAccount()
-  }, [])
+    };
+    checkGMBAccount();
+  }, []);
 
   // Sync functionality moved to global sync button in header
   const handleSync = () => {
     // Legacy sync function - redirects to use global sync
-    toast.info('Please use the global sync button in the header')
-  }
+    toast.info("Please use the global sync button in the header");
+  };
 
   const handleBulkSync = async () => {
     if (selectedLocations.length === 0) {
-      toast.error('Please select at least one location to sync')
-      return
+      toast.error("Please select at least one location to sync");
+      return;
     }
 
     try {
-      setSyncingSelected(true)
-      const response = await fetch('/api/locations/bulk-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      setSyncingSelected(true);
+      const response = await fetch("/api/locations/bulk-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ locationIds: selectedLocations }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Bulk sync failed')
+        throw new Error(data.message || "Bulk sync failed");
       }
 
       if (data.failed > 0) {
         toast.warning(data.message, {
           description: `${data.failed} location(s) failed to sync. Check the console for details.`,
-        })
+        });
       } else {
         toast.success(
           data.message ||
-            `Successfully synced ${data.synced} ${data.synced === 1 ? 'location' : 'locations'}`,
-        )
+            `Successfully synced ${data.synced} ${data.synced === 1 ? "location" : "locations"}`,
+        );
       }
 
       // Clear selection and refetch
-      setSelectedLocations([])
-      await refetch()
+      setSelectedLocations([]);
+      await refetch();
     } catch (error) {
-      console.error('Bulk sync error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to sync selected locations')
+      console.error("Bulk sync error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to sync selected locations",
+      );
     } finally {
-      setSyncingSelected(false)
+      setSyncingSelected(false);
     }
-  }
+  };
 
   const handleExport = async () => {
     try {
-      setExporting(true)
+      setExporting(true);
 
       // Build export URL with current filters
-      const params = new URLSearchParams()
-      params.set('format', 'csv')
+      const params = new URLSearchParams();
+      params.set("format", "csv");
 
       if (filters.search) {
-        params.set('search', filters.search)
+        params.set("search", filters.search);
       }
-      if (filters.status && filters.status !== 'all') {
-        params.set('status', filters.status)
+      if (filters.status && filters.status !== "all") {
+        params.set("status", filters.status);
       }
-      if (filters.category && filters.category !== 'all') {
-        params.set('category', filters.category)
+      if (filters.category && filters.category !== "all") {
+        params.set("category", filters.category);
       }
 
-      const response = await fetch(`/api/locations/export?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-      })
+      const response = await fetch(
+        `/api/locations/export?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
 
       if (!response.ok) {
         // Handle error response
         if (response.status === 401) {
-          throw new Error('Authentication required. Please log in again.')
+          throw new Error("Authentication required. Please log in again.");
         } else if (response.status === 404) {
-          throw new Error('No locations found to export.')
+          throw new Error("No locations found to export.");
         } else {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.message || 'Failed to export locations')
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to export locations");
         }
       }
 
       // Get CSV content
-      const csvContent = await response.text()
+      const csvContent = await response.text();
 
       // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
 
       // Get filename from Content-Disposition header or use default
-      const contentDisposition = response.headers.get('content-disposition')
-      let filename = 'locations-export.csv'
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = "locations-export.csv";
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/i)
+        const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/i);
         if (filenameMatch) {
-          filename = filenameMatch[1]
+          filename = filenameMatch[1];
         }
       }
 
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-      toast.success(`Exported ${total} ${total === 1 ? 'location' : 'locations'} successfully!`)
+      toast.success(
+        `Exported ${total} ${total === 1 ? "location" : "locations"} successfully!`,
+      );
     } catch (error) {
-      console.error('Export error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to export locations')
+      console.error("Export error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export locations",
+      );
     } finally {
-      setExporting(false)
+      setExporting(false);
     }
-  }
+  };
 
   // Bulk selection handlers
   // ✅ PERFORMANCE: Memoize selection handlers
   const toggleLocationSelection = useCallback((locationId: string) => {
     setSelectedLocations((prev) =>
-      prev.includes(locationId) ? prev.filter((id) => id !== locationId) : [...prev, locationId],
-    )
-  }, [])
+      prev.includes(locationId)
+        ? prev.filter((id) => id !== locationId)
+        : [...prev, locationId],
+    );
+  }, []);
 
   const toggleSelectAll = useCallback(() => {
-    const allLocationIds = locations.map((loc) => loc.id)
-    const areAllSelected = allLocationIds.every((id) => selectedLocations.includes(id))
+    const allLocationIds = locations.map((loc) => loc.id);
+    const areAllSelected = allLocationIds.every((id) =>
+      selectedLocations.includes(id),
+    );
 
     if (areAllSelected) {
       // Deselect all
-      setSelectedLocations([])
+      setSelectedLocations([]);
     } else {
       // Select all visible locations
-      setSelectedLocations(allLocationIds)
+      setSelectedLocations(allLocationIds);
     }
-  }, [locations, selectedLocations])
+  }, [locations, selectedLocations]);
 
   const clearSelection = useCallback(() => {
-    setSelectedLocations([])
-  }, [])
+    setSelectedLocations([]);
+  }, []);
 
   // Show GMB connection banner if no account
   if (hasGmbAccount === false) {
@@ -216,7 +233,7 @@ export function LocationsOverviewTab() {
       <div className="space-y-6">
         <GMBConnectionBanner />
       </div>
-    )
+    );
   }
 
   return (
@@ -226,7 +243,7 @@ export function LocationsOverviewTab() {
         <div>
           <h2 className="text-2xl font-semibold">All Locations</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {total} {total === 1 ? 'location' : 'locations'} found
+            {total} {total === 1 ? "location" : "locations"} found
             {selectedLocations.length > 0 && (
               <span className="ml-2">
                 <Badge variant="secondary" className="ml-2">
@@ -240,9 +257,9 @@ export function LocationsOverviewTab() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
           >
-            {viewMode === 'grid' ? (
+            {viewMode === "grid" ? (
               <>
                 <List className="w-4 h-4 mr-2" />
                 List
@@ -290,8 +307,9 @@ export function LocationsOverviewTab() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium">
-                  {selectedLocations.length}{' '}
-                  {selectedLocations.length === 1 ? 'location' : 'locations'} selected
+                  {selectedLocations.length}{" "}
+                  {selectedLocations.length === 1 ? "location" : "locations"}{" "}
+                  selected
                 </span>
                 <Button variant="ghost" size="sm" onClick={clearSelection}>
                   <X className="w-4 h-4 mr-2" />
@@ -322,54 +340,60 @@ export function LocationsOverviewTab() {
                   size="sm"
                   onClick={async () => {
                     try {
-                      setExporting(true)
-                      const params = new URLSearchParams()
-                      params.set('format', 'csv')
-                      params.set('locationIds', selectedLocations.join(','))
+                      setExporting(true);
+                      const params = new URLSearchParams();
+                      params.set("format", "csv");
+                      params.set("locationIds", selectedLocations.join(","));
 
-                      const response = await fetch(`/api/locations/export?${params.toString()}`, {
-                        method: 'GET',
-                        credentials: 'include',
-                      })
+                      const response = await fetch(
+                        `/api/locations/export?${params.toString()}`,
+                        {
+                          method: "GET",
+                          credentials: "include",
+                        },
+                      );
 
                       if (!response.ok) {
-                        throw new Error('Export failed')
+                        throw new Error("Export failed");
                       }
 
-                      const csvContent = await response.text()
+                      const csvContent = await response.text();
                       const blob = new Blob([csvContent], {
-                        type: 'text/csv;charset=utf-8;',
-                      })
-                      const url = window.URL.createObjectURL(blob)
-                      const link = document.createElement('a')
-                      link.href = url
+                        type: "text/csv;charset=utf-8;",
+                      });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = url;
 
-                      const contentDisposition = response.headers.get('content-disposition')
-                      let filename = 'locations-selected-export.csv'
+                      const contentDisposition = response.headers.get(
+                        "content-disposition",
+                      );
+                      let filename = "locations-selected-export.csv";
                       if (contentDisposition) {
-                        const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/i)
+                        const filenameMatch =
+                          contentDisposition.match(/filename="?(.+?)"?$/i);
                         if (filenameMatch) {
                           filename = filenameMatch[1].replace(
-                            'locations-export-',
-                            'locations-selected-export-',
-                          )
+                            "locations-export-",
+                            "locations-selected-export-",
+                          );
                         }
                       }
 
-                      link.download = filename
-                      document.body.appendChild(link)
-                      link.click()
-                      document.body.removeChild(link)
-                      window.URL.revokeObjectURL(url)
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
 
                       toast.success(
-                        `Exported ${selectedLocations.length} ${selectedLocations.length === 1 ? 'location' : 'locations'} successfully!`,
-                      )
+                        `Exported ${selectedLocations.length} ${selectedLocations.length === 1 ? "location" : "locations"} successfully!`,
+                      );
                     } catch (error) {
-                      console.error('Export selected error:', error)
-                      toast.error('Failed to export selected locations')
+                      console.error("Export selected error:", error);
+                      toast.error("Failed to export selected locations");
                     } finally {
-                      setExporting(false)
+                      setExporting(false);
                     }
                   }}
                   disabled={exporting}
@@ -386,7 +410,11 @@ export function LocationsOverviewTab() {
                     </>
                   )}
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Selected
                 </Button>
@@ -399,18 +427,25 @@ export function LocationsOverviewTab() {
       {/* Filters */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
-          <LocationFiltersPanel filters={filters} onFiltersChange={setFilters} />
+          <LocationFiltersPanel
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
         </div>
         {locations.length > 0 && (
           <div className="flex items-center gap-2">
             <Checkbox
               checked={
-                locations.length > 0 && locations.every((loc) => selectedLocations.includes(loc.id))
+                locations.length > 0 &&
+                locations.every((loc) => selectedLocations.includes(loc.id))
               }
               onCheckedChange={toggleSelectAll}
               id="select-all"
             />
-            <label htmlFor="select-all" className="text-sm font-medium cursor-pointer select-none">
+            <label
+              htmlFor="select-all"
+              className="text-sm font-medium cursor-pointer select-none"
+            >
               Select All
             </label>
           </div>
@@ -422,9 +457,18 @@ export function LocationsOverviewTab() {
         <Card className="border-destructive">
           <CardContent className="p-6">
             <div className="text-center">
-              <p className="text-destructive font-medium">Error loading locations</p>
-              <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+              <p className="text-destructive font-medium">
+                Error loading locations
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {error.message}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="mt-4"
+              >
                 Retry
               </Button>
             </div>
@@ -436,9 +480,9 @@ export function LocationsOverviewTab() {
       {loading && locations.length === 0 && (
         <div
           className={
-            viewMode === 'grid'
-              ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-              : 'space-y-4'
+            viewMode === "grid"
+              ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              : "space-y-4"
           }
         >
           {Array.from({ length: 8 }).map((_, i) => (
@@ -458,13 +502,13 @@ export function LocationsOverviewTab() {
         <>
           <div
             className={
-              viewMode === 'grid'
-                ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'space-y-4'
+              viewMode === "grid"
+                ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                : "space-y-4"
             }
           >
             {locations.map((location) => (
-              <LocationCardV2
+              <LocationCard
                 key={location.id}
                 location={location}
                 viewMode={viewMode}
@@ -486,7 +530,7 @@ export function LocationsOverviewTab() {
                 Loading...
               </>
             ) : (
-              'Load More'
+              "Load More"
             )}
           </Button>
         </div>
@@ -503,8 +547,8 @@ export function LocationsOverviewTab() {
               <h3 className="text-lg font-semibold mb-2">No locations found</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {Object.keys(filters).length > 0
-                  ? 'Try adjusting your filters'
-                  : 'Get started by adding your first location'}
+                  ? "Try adjusting your filters"
+                  : "Get started by adding your first location"}
               </p>
               <Button onClick={() => setShowAddDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -520,8 +564,8 @@ export function LocationsOverviewTab() {
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSuccess={() => {
-          setShowAddDialog(false)
-          refetch()
+          setShowAddDialog(false);
+          refetch();
         }}
       />
 
@@ -532,10 +576,10 @@ export function LocationsOverviewTab() {
         locationIds={selectedLocations}
         locationCount={selectedLocations.length}
         onSuccess={() => {
-          setSelectedLocations([])
-          refetch()
+          setSelectedLocations([]);
+          refetch();
         }}
       />
     </div>
-  )
+  );
 }

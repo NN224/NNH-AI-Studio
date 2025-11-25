@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { LocationsMapTab } from "@/components/locations/locations-map-tab-new";
+import { LocationsMapTab } from "@/components/locations/locations-map-tab";
 import { LocationsStatsCardsAPI } from "@/components/locations/locations-stats-cards-api";
 import { Button } from "@/components/ui/button";
 import {
