@@ -250,6 +250,61 @@ const LEVELS = [
   },
 ];
 
+const getCategoryStyle = (category: string) => {
+  switch (category) {
+    case "reviews":
+      return { icon: MessageSquare, color: "blue", label: "Reviews" };
+    case "growth":
+      return { icon: TrendingUp, color: "green", label: "Growth" };
+    case "engagement":
+      return { icon: Users, color: "purple", label: "Engagement" };
+    case "special":
+      return { icon: Crown, color: "orange", label: "Special" };
+    default:
+      return { icon: Trophy, color: "gray", label: "Other" };
+  }
+};
+
+const getAchievementIcon = (achievementId: string) => {
+  switch (achievementId) {
+    case "first-reply":
+      return MessageSquare;
+    case "speed-demon":
+      return Zap;
+    case "centurion":
+      return Trophy;
+    case "rising-star":
+      return Star;
+    case "growth-master":
+      return TrendingUp;
+    case "streak-warrior":
+      return Flame;
+    case "ai-pioneer":
+      return Sparkles;
+    case "early-adopter":
+      return Gift;
+    case "perfect-month":
+      return Crown;
+    default:
+      return Medal;
+  }
+};
+
+const getLevelColor = (level: string | null | undefined) => {
+  switch (level) {
+    case "bronze":
+      return "orange";
+    case "silver":
+      return "gray";
+    case "gold":
+      return "yellow";
+    case "platinum":
+      return "purple";
+    default:
+      return "gray";
+  }
+};
+
 export function AchievementSystem({
   userId,
   initialProgress,
@@ -379,64 +434,6 @@ export function AchievementSystem({
 
     return () => clearInterval(interval);
   }, []);
-
-  // Get category icon and color
-  const getCategoryStyle = (category: string) => {
-    switch (category) {
-      case "reviews":
-        return { icon: MessageSquare, color: "blue", label: "Reviews" };
-      case "growth":
-        return { icon: TrendingUp, color: "green", label: "Growth" };
-      case "engagement":
-        return { icon: Users, color: "purple", label: "Engagement" };
-      case "special":
-        return { icon: Crown, color: "orange", label: "Special" };
-      default:
-        return { icon: Trophy, color: "gray", label: "Other" };
-    }
-  };
-
-  // Get achievement icon
-  const getAchievementIcon = (achievementId: string) => {
-    switch (achievementId) {
-      case "first-reply":
-        return MessageSquare;
-      case "speed-demon":
-        return Zap;
-      case "centurion":
-        return Trophy;
-      case "rising-star":
-        return Star;
-      case "growth-master":
-        return TrendingUp;
-      case "streak-warrior":
-        return Flame;
-      case "ai-pioneer":
-        return Sparkles;
-      case "early-adopter":
-        return Gift;
-      case "perfect-month":
-        return Crown;
-      default:
-        return Medal;
-    }
-  };
-
-  // Get level color
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case "bronze":
-        return "orange";
-      case "silver":
-        return "gray";
-      case "gold":
-        return "yellow";
-      case "platinum":
-        return "purple";
-      default:
-        return "gray";
-    }
-  };
 
   if (loading) {
     return (
