@@ -1,4 +1,77 @@
-export type LocationStatus = 'active' | 'disconnected' | 'archived';
+export type LocationStatus = "active" | "disconnected" | "archived";
+
+// =====================================================
+// Home Page Types (Optimized)
+// =====================================================
+
+export interface UserData {
+  id: string;
+  email?: string;
+  last_sign_in_at?: string;
+}
+
+export interface ProfileData {
+  full_name?: string;
+  avatar_url?: string;
+  email?: string;
+}
+
+export interface DashboardStatsData {
+  locationsCount: number | null;
+  reviewsCount: number | null;
+  accountsCount: number | null;
+  averageRating: string;
+  todayReviewsCount: number | null;
+  weeklyGrowth: number;
+  reviewsTrend: number[];
+  youtubeSubs: string | null;
+  hasYouTube: boolean;
+  hasAccounts: boolean;
+  responseRate: number;
+  streak: number;
+}
+
+export interface ProgressItem {
+  id: string;
+  label: string;
+  completed: boolean;
+  href: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: "review" | "youtube" | "location" | "post";
+  title: string;
+  description: string;
+  timestamp: Date;
+  metadata?: any;
+  actionUrl?: string;
+}
+
+export interface InsightItem {
+  id: string;
+  type: "alert" | "success" | "recommendation" | "tip";
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+  actionText?: string;
+  actionUrl?: string;
+  impact?: string;
+}
+
+export interface HomePageData {
+  user: UserData;
+  profile: ProfileData | null;
+  stats: DashboardStatsData;
+  progressItems: ProgressItem[];
+  activities: ActivityItem[];
+  insights: InsightItem[];
+  timeOfDay?: "morning" | "afternoon" | "evening" | "night";
+}
+
+// =====================================================
+// Original Dashboard Types
+// =====================================================
 
 export interface DashboardSnapshot {
   generatedAt: string;
@@ -43,8 +116,8 @@ export interface DashboardSnapshot {
       replied: number;
       flagged: number;
     };
-    byRating: Record<'1' | '2' | '3' | '4' | '5', number>;
-    bySentiment: Record<'positive' | 'neutral' | 'negative', number>;
+    byRating: Record<"1" | "2" | "3" | "4" | "5", number>;
+    bySentiment: Record<"positive" | "neutral" | "negative", number>;
     averageRating: number;
     responseRate: number;
     lastSync: string | null;
@@ -64,13 +137,13 @@ export interface DashboardSnapshot {
       scheduled: number;
       failed: number;
     };
-    byType: Record<'whats_new' | 'event' | 'offer', number>;
+    byType: Record<"whats_new" | "event" | "offer", number>;
     thisWeek: number;
     lastSync: string | null;
     recentPosts: Array<{
       id: string;
       locationId: string;
-      status: 'draft' | 'queued' | 'published' | 'failed';
+      status: "draft" | "queued" | "published" | "failed";
       publishedAt: string | null;
       title: string | null;
     }>;
@@ -81,8 +154,8 @@ export interface DashboardSnapshot {
       unanswered: number;
       answered: number;
     };
-    byPriority: Record<'urgent' | 'high' | 'medium' | 'low', number>;
-    byStatus: Record<'pending' | 'answered' | 'hidden', number>;
+    byPriority: Record<"urgent" | "high" | "medium" | "low", number>;
+    byStatus: Record<"pending" | "answered" | "hidden", number>;
     answerRate: number;
     lastSync: string | null;
     recentQuestions: Array<{
@@ -113,7 +186,7 @@ export interface DashboardSnapshot {
     reviewCount: number;
     pendingReviews: number;
     ratingChange?: number;
-    category: 'top' | 'attention' | 'improved';
+    category: "top" | "attention" | "improved";
   }>;
   automationStats: {
     totalAutomations: number;
@@ -138,8 +211,8 @@ export interface DashboardSnapshot {
     lastGeneratedAt: string | null;
   };
   bottlenecks: Array<{
-    type: 'Reviews' | 'Response' | 'Content' | 'Compliance' | 'General';
-    severity: 'low' | 'medium' | 'high';
+    type: "Reviews" | "Response" | "Content" | "Compliance" | "General";
+    severity: "low" | "medium" | "high";
     count: number;
     message: string;
     link: string;

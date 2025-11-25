@@ -3,13 +3,13 @@
  * Handles natural language queries about dashboard data
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getAIProvider } from '@/lib/ai/provider';
-import type { ChatMessage, ChatResponse } from '@/lib/types/ai';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getAIProvider } from "@/lib/ai/provider";
+import type { ChatMessage, ChatResponse } from "@/lib/types/ai";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,22 +22,25 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { message, conversationHistory } = body;
 
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!message || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 },
+      );
     }
 
     // Get AI provider
     const aiProvider = await getAIProvider(user.id);
     if (!aiProvider) {
       return NextResponse.json(
-        { error: 'AI provider not configured' },
-        { status: 400 }
+        { error: "AI provider not configured" },
+        { status: 400 },
       );
     }
 
@@ -50,17 +53,19 @@ export async function POST(request: NextRequest) {
     // Generate response with rich error context
     let content: string;
     try {
-      ({ content } = await aiProvider.generateCompletion(prompt, 'chat_assistant'));
+      ({ content } = await aiProvider.generateCompletion(
+        prompt,
+        "chat_assistant",
+      ));
     } catch (err: any) {
       const message =
-        (err && (err.message || err.toString())) || 'AI provider call failed';
+        (err && (err.message || err.toString())) || "AI provider call failed";
       return NextResponse.json(
         {
           error: message,
-          hint:
-            'Verify API key, model name, and provider availability. Ensure SYSTEM_* API keys are set on Vercel.',
+          hint: "Verify API key, model name, and provider availability. Ensure SYSTEM_* API keys are set on Vercel.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -69,10 +74,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('AI Chat API Error:', error);
+    console.error("AI Chat API Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -81,36 +88,34 @@ export async function POST(request: NextRequest) {
  * Fetch dashboard context for user
  */
 async function fetchDashboardContext(userId: string, supabase: any) {
-  // Get dashboard stats
+  // Get dashboard stats from materialized view using RPC
   const { data: stats } = await supabase
-    .from('v_dashboard_stats')
-    .select('*')
-    .eq('user_id', userId)
+    .rpc("get_user_dashboard_stats", { p_user_id: userId })
     .single();
 
   // Get locations
   const { data: locations } = await supabase
-    .from('gmb_locations')
-    .select('location_name, rating, review_count, response_rate')
-    .eq('user_id', userId)
-    .eq('is_active', true)
+    .from("gmb_locations")
+    .select("location_name, rating, review_count, response_rate")
+    .eq("user_id", userId)
+    .eq("is_active", true)
     .limit(10);
 
   // Get recent reviews
   const { data: recentReviews } = await supabase
-    .from('gmb_reviews')
-    .select('rating, review_text, reviewer_name, review_date, has_reply')
-    .eq('user_id', userId)
-    .order('review_date', { ascending: false })
+    .from("gmb_reviews")
+    .select("rating, review_text, reviewer_name, review_date, has_reply")
+    .eq("user_id", userId)
+    .order("review_date", { ascending: false })
     .limit(20);
 
   // Get pending reviews
   const { data: pendingReviews } = await supabase
-    .from('gmb_reviews')
-    .select('rating, review_text, reviewer_name, review_date, location_id')
-    .eq('user_id', userId)
-    .eq('has_reply', false)
-    .order('review_date', { ascending: false })
+    .from("gmb_reviews")
+    .select("rating, review_text, reviewer_name, review_date, location_id")
+    .eq("user_id", userId)
+    .eq("has_reply", false)
+    .order("review_date", { ascending: false })
     .limit(10);
 
   return {
@@ -127,7 +132,7 @@ async function fetchDashboardContext(userId: string, supabase: any) {
 function buildChatPrompt(
   userMessage: string,
   context: any,
-  history: ChatMessage[]
+  history: ChatMessage[],
 ): string {
   const { stats, locations, recentReviews, pendingReviews } = context;
 
@@ -135,15 +140,15 @@ function buildChatPrompt(
   const conversationContext = history
     .slice(-5) // Last 5 messages
     .map((msg) => `${msg.role}: ${msg.content}`)
-    .join('\n');
+    .join("\n");
 
   return `You are an AI assistant specialized in Google My Business analytics. Your primary goal is to directly and specifically answer the user's question. Do not give generic summaries unless the user asks for a summary. Always tailor your answer to the user's exact intent and context. If information is missing, ask a brief, specific follow-up question.
 
 **User's Current Dashboard Data:**
 - Total Locations: ${stats?.total_locations || 0}
 - Total Reviews: ${stats?.total_reviews || 0}
-- Average Rating: ${stats?.avg_rating?.toFixed(2) || 'N/A'}/5
-- Response Rate: ${Number.isFinite(stats?.response_rate) ? (Number(stats?.response_rate) >= 1 ? `${Number(stats?.response_rate).toFixed(1)}%` : `${(Number(stats?.response_rate) * 100).toFixed(1)}%`) : '0.0%'}
+- Average Rating: ${stats?.avg_rating?.toFixed(2) || "N/A"}/5
+- Response Rate: ${Number.isFinite(stats?.response_rate) ? (Number(stats?.response_rate) >= 1 ? `${Number(stats?.response_rate).toFixed(1)}%` : `${(Number(stats?.response_rate) * 100).toFixed(1)}%`) : "0.0%"}
 - Pending Reviews: ${stats?.pending_reviews || 0}
 - Pending Questions: ${stats?.pending_questions || 0}
 
@@ -152,9 +157,9 @@ ${(locations || [])
   .slice(0, 5)
   .map(
     (loc: any) =>
-      `- ${loc.location_name}: ${loc.rating?.toFixed(1) || 'N/A'} stars, ${loc.review_count || 0} reviews`
+      `- ${loc.location_name}: ${loc.rating?.toFixed(1) || "N/A"} stars, ${loc.review_count || 0} reviews`,
   )
-  .join('\n')}
+  .join("\n")}
 
 **Recent Reviews Summary:**
 - Total recent reviews: ${recentReviews?.length || 0}
@@ -165,10 +170,10 @@ ${(locations || [])
           recentReviews.reduce((sum: number, r: any) => sum + r.rating, 0) /
           recentReviews.length
         ).toFixed(2)
-      : 'N/A'
+      : "N/A"
   }
 
-${conversationContext ? `**Conversation History (last 5):**\n${conversationContext}\n` : ''}
+${conversationContext ? `**Conversation History (last 5):**\n${conversationContext}\n` : ""}
 
 **User Query:** ${userMessage}
 
@@ -204,13 +209,16 @@ Be conversational, helpful, and actionable. IMPORTANT: Return ONLY valid JSON, n
  */
 function parseChatResponse(content: string): ChatResponse {
   try {
-    const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleanContent = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
     const parsed = JSON.parse(cleanContent);
 
     return {
       message: {
         id: crypto.randomUUID(),
-        role: 'assistant',
+        role: "assistant",
         content: parsed.message || content,
         timestamp: new Date().toISOString(),
       },
@@ -221,7 +229,7 @@ function parseChatResponse(content: string): ChatResponse {
     return {
       message: {
         id: crypto.randomUUID(),
-        role: 'assistant',
+        role: "assistant",
         content,
         timestamp: new Date().toISOString(),
       },
@@ -229,4 +237,3 @@ function parseChatResponse(content: string): ChatResponse {
     };
   }
 }
-

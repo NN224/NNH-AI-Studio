@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { HomePageContent } from "@/components/home/home-page-content";
+import { HomeErrorBoundary } from "@/components/home/home-error-boundary";
+import { getCachedDashboardData } from "@/server/actions/dashboard";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -36,7 +38,7 @@ export default async function HomePage({
     .eq("id", userId)
     .maybeSingle();
 
-  // Fetch stats in parallel
+  // Fetch stats in parallel - OPTIMIZED: Using specific columns instead of "*"
   const [
     { count: locationsCount },
     { count: reviewsCount },
@@ -47,15 +49,15 @@ export default async function HomePage({
   ] = await Promise.all([
     supabase
       .from("gmb_locations")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
     supabase
       .from("gmb_reviews")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
     supabase
       .from("gmb_accounts")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
     supabase
       .from("oauth_tokens")
@@ -65,7 +67,7 @@ export default async function HomePage({
       .maybeSingle(),
     supabase
       .from("gmb_reviews")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .not("reply_text", "is", null),
     supabase
@@ -123,29 +125,17 @@ export default async function HomePage({
     }
   }
 
-  // Calculate average rating
+  // Calculate average rating - use correct column name
   let averageRating = "0.0";
-  try {
-    const { data: rpcData } = await supabase
-      .rpc("calculate_average_rating", { p_user_id: userId })
-      .single();
+  const { data: reviews, error: reviewsError } = await supabase
+    .from("gmb_reviews")
+    .select("rating")
+    .eq("user_id", userId);
 
-    if (rpcData && typeof rpcData === "object" && "avg" in rpcData) {
-      averageRating = (rpcData.avg as number).toFixed(1);
-    }
-  } catch {
-    const { data: reviews } = await supabase
-      .from("gmb_reviews")
-      .select("star_rating")
-      .eq("user_id", userId)
-      .limit(1000);
-
-    if (reviews && reviews.length > 0) {
-      const avg =
-        reviews.reduce((sum, r) => sum + (r.star_rating || 0), 0) /
-        reviews.length;
-      averageRating = avg.toFixed(1);
-    }
+  if (!reviewsError && reviews && reviews.length > 0) {
+    const avg =
+      reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+    averageRating = avg.toFixed(1);
   }
 
   // YouTube stats
@@ -163,7 +153,7 @@ export default async function HomePage({
   today.setHours(0, 0, 0, 0);
   const { count: todayReviewsCount } = await supabase
     .from("gmb_reviews")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("create_time", today.toISOString());
 
@@ -177,12 +167,12 @@ export default async function HomePage({
     await Promise.all([
       supabase
         .from("gmb_reviews")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .gte("create_time", weekAgo.toISOString()),
       supabase
         .from("gmb_reviews")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .gte("create_time", twoWeeksAgo.toISOString())
         .lt("create_time", weekAgo.toISOString()),
@@ -196,6 +186,7 @@ export default async function HomePage({
       : 0;
 
   // Calculate trend data for last 7 days (for sparkline charts)
+  // OPTIMIZED: Single query instead of 7 separate queries
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setUTCHours(0, 0, 0, 0);
@@ -203,20 +194,23 @@ export default async function HomePage({
     return date;
   });
 
-  // Fetch reviews count per day for last 7 days
-  const reviewsTrendPromises = last7Days.map(async (startDate) => {
-    const endDate = new Date(startDate);
-    endDate.setUTCDate(endDate.getUTCDate() + 1);
-    const { count } = await supabase
-      .from("gmb_reviews")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("create_time", startDate.toISOString())
-      .lt("create_time", endDate.toISOString());
-    return count || 0;
-  });
+  const firstDay = last7Days[0];
+  const { data: reviewsForTrend } = await supabase
+    .from("gmb_reviews")
+    .select("create_time")
+    .eq("user_id", userId)
+    .gte("create_time", firstDay.toISOString())
+    .order("create_time", { ascending: true });
 
-  const reviewsTrend = await Promise.all(reviewsTrendPromises);
+  // Group reviews by day in JavaScript (much faster than 7 DB queries)
+  const reviewsTrend = last7Days.map((date) => {
+    const dateStr = date.toDateString();
+    return (
+      reviewsForTrend?.filter(
+        (r) => new Date(r.create_time).toDateString() === dateStr,
+      ).length || 0
+    );
+  });
 
   // Calculate time of day for greeting
 
@@ -251,9 +245,9 @@ export default async function HomePage({
   // Fetch recent activities
   const { data: recentReviews } = await supabase
     .from("gmb_reviews")
-    .select("review_id, comment, star_rating, create_time, location_name")
+    .select("review_id, comment, rating, review_date, location_name")
     .eq("user_id", userId)
-    .order("create_time", { ascending: false })
+    .order("review_date", { ascending: false })
     .limit(3);
 
   // Build activities array
@@ -264,11 +258,11 @@ export default async function HomePage({
       activities.push({
         id: review.review_id,
         type: "review" as const,
-        title: `New ${review.star_rating}-star review`,
+        title: `New ${review.rating}-star review`,
         description: review.comment || "No comment provided",
-        timestamp: new Date(review.create_time),
+        timestamp: new Date(review.review_date),
         metadata: {
-          rating: review.star_rating,
+          rating: review.rating,
           location: review.location_name,
         },
         actionUrl: "/reviews",

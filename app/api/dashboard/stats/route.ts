@@ -38,20 +38,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Try to get stats from v_dashboard_stats view (if it exists)
-    let dashboardStats = null;
+    // Get stats from materialized view using RPC
+    let dashboardStats: any = null;
     try {
       const { data, error: statsError } = await supabase
-        .from("v_dashboard_stats")
-        .select("*")
-        .eq("user_id", user.id)
+        .rpc("get_user_dashboard_stats", { p_user_id: user.id })
         .single();
 
-      if (!statsError) {
-        dashboardStats = data;
+      if (!statsError && data) {
+        // Map RPC response to expected format
+        const rpcData = data as any;
+        dashboardStats = {
+          total_locations: rpcData.locations_count || 0,
+          total_reviews: rpcData.reviews_count || 0,
+          avg_rating: rpcData.average_rating || 0,
+          pending_reviews:
+            (rpcData.reviews_count || 0) - (rpcData.replied_reviews_count || 0),
+          replied_reviews: rpcData.replied_reviews_count || 0,
+          total_questions: 0, // Not in RPC
+          pending_questions: 0, // Not in RPC
+          recent_reviews: rpcData.this_week_reviews_count || 0,
+          avg_response_rate: rpcData.response_rate_percent || 0,
+          calculated_response_rate: rpcData.response_rate_percent || 0,
+          avg_response_time: "N/A",
+        };
       }
     } catch (error) {
-      console.log("v_dashboard_stats view not available, calculating manually");
+      console.log("RPC not available, calculating manually");
     }
 
     // Fallback: Calculate stats manually if view doesn't exist

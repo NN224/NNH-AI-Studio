@@ -1,74 +1,75 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { CheckCircle, Building, Video, MessageSquare } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { SmartHeader } from '@/components/home/smart-header'
-import { QuickActions } from '@/components/home/quick-actions'
-import { StatsOverview } from '@/components/home/stats-overview'
-import { EmptyState } from '@/components/home/empty-state'
-import { ActivityFeed } from '@/components/home/activity-feed'
-import { RecentActivity } from '@/components/home/recent-activity'
-import { AIInsights } from '@/components/home/ai-insights'
-import { AnimatedBackground } from '@/components/home/animated-background'
-import { DashboardHero } from '@/components/home/dashboard-hero'
-import { ProgressTracker } from '@/components/home/progress-tracker'
-import { AIChatWidget } from '@/components/home/ai-chat-widget'
-import { AchievementsBadge } from '@/components/home/achievements-badge'
-import { EnhancedOnboarding } from '@/components/home/enhanced-onboarding'
-import { DashboardCTAButtons } from '@/components/home/dashboard-cta-buttons'
-import { AISuggestions } from '@/components/home/ai-suggestions'
-import { InteractiveStatsDashboard } from '@/components/home/interactive-stats-dashboard'
-import { AchievementSystem } from '@/components/home/achievement-system'
-import { useState, useEffect } from 'react'
+import { motion } from "framer-motion";
+import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { SmartHeader } from "@/components/home/smart-header";
+import { QuickActions } from "@/components/home/quick-actions";
+import { StatsOverview } from "@/components/home/stats-overview";
+import { EmptyState } from "@/components/home/empty-state";
+import { ActivityFeed } from "@/components/home/activity-feed";
+import { RecentActivity } from "@/components/home/recent-activity";
+import { AIInsights } from "@/components/home/ai-insights";
+import { AnimatedBackground } from "@/components/home/animated-background";
+import { DashboardHero } from "@/components/home/dashboard-hero";
+import { ProgressTracker } from "@/components/home/progress-tracker";
+import { AIChatWidget } from "@/components/home/ai-chat-widget";
+import { AchievementsBadge } from "@/components/home/achievements-badge";
+import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
+import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
+import { AISuggestions } from "@/components/home/ai-suggestions";
+import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+import { AchievementSystem } from "@/components/home/achievement-system";
+import { useState, useEffect } from "react";
 
 interface HomePageContentProps {
   user: {
-    id: string
-    email?: string
-    last_sign_in_at?: string
-  }
+    id: string;
+    email?: string;
+    last_sign_in_at?: string;
+  };
   profile: {
-    full_name?: string
-    avatar_url?: string
-  } | null
-  hasAccounts: boolean
-  accountsCount: number | null
-  locationsCount: number | null
-  reviewsCount: number | null
-  averageRating: string
-  todayReviewsCount: number | null
-  weeklyGrowth: number
-  reviewsTrend: number[]
-  youtubeSubs: string | null
-  hasYouTube: boolean
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
+  hasAccounts: boolean;
+  accountsCount: number | null;
+  locationsCount: number | null;
+  reviewsCount: number | null;
+  averageRating: string;
+  todayReviewsCount: number | null;
+  weeklyGrowth: number;
+  reviewsTrend: number[];
+  youtubeSubs: string | null;
+  hasYouTube: boolean;
   progressItems: Array<{
-    id: string
-    label: string
-    completed: boolean
-    href: string
-  }>
+    id: string;
+    label: string;
+    completed: boolean;
+    href: string;
+  }>;
   activities: Array<{
-    id: string
-    type: 'review' | 'youtube' | 'location' | 'post'
-    title: string
-    description: string
-    timestamp: Date
-    metadata?: any
-    actionUrl?: string
-  }>
+    id: string;
+    type: "review" | "youtube" | "location" | "post";
+    title: string;
+    description: string;
+    timestamp: Date;
+    metadata?: any;
+    actionUrl?: string;
+  }>;
   insights: Array<{
-    id: string
-    type: 'alert' | 'success' | 'recommendation' | 'tip'
-    title: string
-    description: string
-    priority: 'high' | 'medium' | 'low'
-    actionText?: string
-    actionUrl?: string
-    impact?: string
-  }>
-  responseRate: number
-  streak: number
+    id: string;
+    type: "alert" | "success" | "recommendation" | "tip";
+    title: string;
+    description: string;
+    priority: "high" | "medium" | "low";
+    actionText?: string;
+    actionUrl?: string;
+    impact?: string;
+  }>;
+  responseRate: number;
+  streak: number;
+  timeOfDay?: "morning" | "afternoon" | "evening" | "night"; // Optional: calculated on server to avoid hydration mismatch
 }
 
 export function HomePageContent({
@@ -89,23 +90,29 @@ export function HomePageContent({
   insights,
   responseRate,
   streak,
+  timeOfDay: serverTimeOfDay,
 }: HomePageContentProps) {
   // Calculate completed tasks count
-  const completedTasksCount = progressItems.filter((item) => item.completed).length
+  const completedTasksCount = progressItems.filter(
+    (item) => item.completed,
+  ).length;
 
-  // Use state for time of day to avoid hydration mismatch
-  const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>(
-    'morning',
-  )
+  // Use server-provided timeOfDay if available, otherwise calculate on client
+  // OPTIMIZED: Prefer server-side calculation to avoid hydration mismatch
+  const [timeOfDay, setTimeOfDay] = useState<
+    "morning" | "afternoon" | "evening" | "night"
+  >(serverTimeOfDay || "morning");
 
   useEffect(() => {
-    // Calculate time of day on client side only
-    const hour = new Date().getHours()
-    if (hour >= 5 && hour < 12) setTimeOfDay('morning')
-    else if (hour >= 12 && hour < 17) setTimeOfDay('afternoon')
-    else if (hour >= 17 && hour < 21) setTimeOfDay('evening')
-    else setTimeOfDay('night')
-  }, [])
+    // Only calculate on client if not provided by server
+    if (!serverTimeOfDay) {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) setTimeOfDay("morning");
+      else if (hour >= 12 && hour < 17) setTimeOfDay("afternoon");
+      else if (hour >= 17 && hour < 21) setTimeOfDay("evening");
+      else setTimeOfDay("night");
+    }
+  }, [serverTimeOfDay]);
 
   return (
     <div className="min-h-screen bg-black relative">
@@ -117,10 +124,10 @@ export function HomePageContent({
         user={{
           id: user.id,
           name: profile?.full_name,
-          email: user.email || '',
+          email: user.email || "",
           avatar: profile?.avatar_url,
         }}
-        lastLogin={new Date(user.last_sign_in_at || '').toLocaleString()}
+        lastLogin={new Date(user.last_sign_in_at || "").toLocaleString()}
       />
 
       {/* Main Content */}
@@ -152,19 +159,21 @@ export function HomePageContent({
                     averageRating: parseFloat(averageRating) || 0,
                     responseRate: responseRate,
                   }}
-                  profileCompletion={(completedTasksCount / progressItems.length) * 100}
+                  profileCompletion={
+                    (completedTasksCount / progressItems.length) * 100
+                  }
                   streak={streak}
                   achievements={[
                     {
-                      id: 'first-review',
-                      icon: '⭐',
-                      title: 'First Review Reply',
+                      id: "first-review",
+                      icon: "⭐",
+                      title: "First Review Reply",
                     },
-                    { id: 'week-streak', icon: '🔥', title: '7 Day Streak' },
+                    { id: "week-streak", icon: "🔥", title: "7 Day Streak" },
                     {
-                      id: '100-reviews',
-                      icon: '💯',
-                      title: '100 Reviews Managed',
+                      id: "100-reviews",
+                      icon: "💯",
+                      title: "100 Reviews Managed",
                     },
                   ]}
                 />
@@ -176,26 +185,26 @@ export function HomePageContent({
                   items={progressItems.map((item) => ({
                     ...item,
                     icon:
-                      item.id === 'profile-complete'
+                      item.id === "profile-complete"
                         ? CheckCircle
-                        : item.id === 'connect-gmb'
+                        : item.id === "connect-gmb"
                           ? Building
-                          : item.id === 'connect-youtube'
+                          : item.id === "connect-youtube"
                             ? Video
                             : MessageSquare,
                     reward: {
                       points: item.completed ? 100 : 50,
-                      badge: item.completed ? '✅' : undefined,
+                      badge: item.completed ? "✅" : undefined,
                     },
-                    difficulty: item.id === 'first-review' ? 'hard' : 'easy',
+                    difficulty: item.id === "first-review" ? "hard" : "easy",
                     description:
-                      item.id === 'profile-complete'
-                        ? 'Add your avatar and business details'
-                        : item.id === 'connect-gmb'
-                          ? 'Connect your Google Business account to manage reviews'
-                          : item.id === 'connect-youtube'
-                            ? 'Link your YouTube channel for video management'
-                            : 'Reply to customer reviews to build trust',
+                      item.id === "profile-complete"
+                        ? "Add your avatar and business details"
+                        : item.id === "connect-gmb"
+                          ? "Connect your Google Business account to manage reviews"
+                          : item.id === "connect-youtube"
+                            ? "Link your YouTube channel for video management"
+                            : "Reply to customer reviews to build trust",
                   }))}
                   hideWhenComplete={false}
                   showRewards={true}
@@ -227,7 +236,9 @@ export function HomePageContent({
                   reviews: reviewsCount || 0,
                   avgRating: averageRating,
                   accounts: accountsCount || 0,
-                  youtubeSubscribers: youtubeSubs ? parseInt(youtubeSubs) : undefined,
+                  youtubeSubscribers: youtubeSubs
+                    ? parseInt(youtubeSubs)
+                    : undefined,
                 }}
                 trends={{
                   reviewsTrend: reviewsTrend,
@@ -283,7 +294,11 @@ export function HomePageContent({
                 <AchievementsBadge />
                 <Card className="p-4 border-orange-500/30 bg-linear-to-br from-orange-900/10 via-black to-purple-900/10">
                   <h3 className="text-lg font-semibold mb-3">Your Progress</h3>
-                  <AchievementSystem userId={user.id} userLevel={3} userPoints={850} />
+                  <AchievementSystem
+                    userId={user.id}
+                    userLevel={3}
+                    userPoints={850}
+                  />
                 </Card>
               </motion.div>
             </div>
@@ -320,5 +335,5 @@ export function HomePageContent({
       {/* Onboarding Tour - First time users */}
       <EnhancedOnboarding />
     </div>
-  )
+  );
 }
