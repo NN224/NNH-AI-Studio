@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
 import { SmartHeader } from "@/components/home/smart-header";
@@ -15,12 +16,23 @@ import { AIChatWidget } from "@/components/home/ai-chat-widget";
 import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { AISuggestions } from "@/components/home/ai-suggestions";
-import { AchievementSystem } from "@/components/home/achievement-system";
 import type {
   UserProgress,
   UserAchievement,
 } from "@/server/actions/achievements";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+import { AchievementsSkeleton } from "@/components/home/skeleton-loaders";
+
+const AchievementSystem = dynamic(
+  () =>
+    import("@/components/home/achievement-system").then(
+      (mod) => mod.AchievementSystem,
+    ),
+  {
+    ssr: false,
+    loading: () => <AchievementsSkeleton />,
+  },
+);
 
 interface HomePageContentProps {
   user: {
