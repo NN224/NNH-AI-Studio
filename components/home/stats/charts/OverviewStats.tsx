@@ -8,7 +8,6 @@ import {
   Star,
   MessageSquare,
   MapPin,
-  Eye,
 } from "lucide-react";
 
 interface OverviewData {
@@ -48,19 +47,12 @@ export function OverviewStats({ data, isLoading }: OverviewStatsProps) {
       icon: MapPin,
       color: "text-green-500",
     },
-    {
-      title: "Total Views",
-      value: data?.totalViews ?? 0,
-      change: 0,
-      icon: Eye,
-      color: "text-purple-500",
-    },
   ];
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
@@ -77,7 +69,7 @@ export function OverviewStats({ data, isLoading }: OverviewStatsProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3">
       {stats.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

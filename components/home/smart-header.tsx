@@ -2,13 +2,15 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, Loader2 } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { SmartNotifications } from "@/components/home/smart-notifications";
 import { formatDistanceToNow } from "date-fns";
+import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 
 // Format last login to human-readable format
 function formatLastLogin(dateString: string): string {
@@ -32,6 +34,22 @@ interface SmartHeaderProps {
 
 export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
   const t = useTranslations("home.header");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      const supabase = createClient();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+      // Force redirect to login page
+      window.location.href = "/auth/login";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <motion.header
@@ -77,11 +95,18 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
           </Link>
 
           {/* Sign Out */}
-          <form action="/auth/signout" method="post">
-            <Button variant="ghost" size="icon" type="submit">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+          >
+            {isSigningOut ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
               <LogOut className="h-5 w-5" />
-            </Button>
-          </form>
+            )}
+          </Button>
         </div>
       </div>
     </motion.header>

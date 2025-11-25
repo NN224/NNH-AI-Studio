@@ -519,11 +519,17 @@
     "quickActions": {
       "title": "Quick Actions",
       "uploadVideo": "Upload Video",
+      "uploadVideoTooltip": "Upload and manage your YouTube videos",
       "viewAnalytics": "View Analytics",
+      "viewAnalyticsTooltip": "See detailed performance metrics and insights",
       "replyReviews": "Reply Reviews",
+      "replyReviewsTooltip": "Respond to customer reviews quickly",
       "manageLocations": "Manage Locations",
+      "manageLocationsTooltip": "Update your business locations info",
       "createPost": "Create Post",
-      "aiStudio": "AI Studio"
+      "createPostTooltip": "Create engaging posts for your business",
+      "aiStudio": "AI Studio",
+      "aiStudioTooltip": "Use AI to generate content and responses"
     },
     "emptyState": {
       "title": "Welcome to Your Dashboard!",

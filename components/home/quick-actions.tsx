@@ -3,6 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Video,
   BarChart3,
   MessageSquare,
@@ -10,7 +16,7 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
-import { Link } from "@/lib/navigation";
+import { useRouter } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 
@@ -61,6 +67,7 @@ const quickActions = [
 
 export function QuickActions() {
   const t = useTranslations("home.quickActions");
+  const router = useRouter();
 
   const container = {
     hidden: { opacity: 0 },
@@ -104,40 +111,36 @@ export function QuickActions() {
             initial="hidden"
             animate="show"
           >
-            {quickActions.map((action) => (
-              <motion.div key={action.href} variants={item}>
-                <Link href={action.href}>
-                  <motion.div
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400 }}
-                  >
-                    <Button
-                      variant="outline"
-                      className="w-full h-auto flex-col gap-2 py-4 border-border/50 hover:border-orange-500/50 hover:bg-orange-500/10 transition-all group relative overflow-hidden"
-                      aria-label={t(action.label)}
-                    >
-                      {/* Hover gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                      <motion.div
-                        className={`p-2 rounded-lg ${action.bgColor} relative z-10`}
-                        whileHover={{
-                          rotate: [0, -10, 10, -10, 0],
-                          scale: 1.1,
-                        }}
-                        transition={{ duration: 0.5 }}
+            <TooltipProvider delayDuration={100}>
+              {quickActions.map((action) => (
+                <motion.div key={action.href} variants={item}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full h-auto flex-col gap-2 py-4 border-border/50 hover:border-orange-500/50 hover:bg-orange-500/10 transition-all group relative overflow-hidden hover:scale-105 hover:-translate-y-1"
+                        onClick={() => router.push(action.href)}
                       >
-                        <action.icon className={`h-5 w-5 ${action.color}`} />
-                      </motion.div>
-                      <span className="text-xs font-medium text-center relative z-10">
-                        {t(action.label)}
-                      </span>
-                    </Button>
-                  </motion.div>
-                </Link>
-              </motion.div>
-            ))}
+                        {/* Hover gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                        <div
+                          className={`p-2 rounded-lg ${action.bgColor} relative z-10`}
+                        >
+                          <action.icon className={`h-5 w-5 ${action.color}`} />
+                        </div>
+                        <span className="text-xs font-medium text-center relative z-10">
+                          {t(action.label)}
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" sideOffset={8}>
+                      <p>{t(`${action.label}Tooltip`)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </motion.div>
+              ))}
+            </TooltipProvider>
           </motion.div>
         </div>
       </Card>

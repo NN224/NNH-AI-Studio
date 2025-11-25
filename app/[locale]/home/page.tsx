@@ -106,7 +106,8 @@ export default async function HomePage({
         address, phone, category, website,
         rating, review_count, response_rate, health_score,
         profile_completeness, business_hours, is_verified,
-        menu_url, booking_url, order_url, appointment_url
+        menu_url, booking_url, order_url, appointment_url,
+        latitude, longitude
       `,
       )
       .eq("user_id", userId)

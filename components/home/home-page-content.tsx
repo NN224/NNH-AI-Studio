@@ -12,6 +12,8 @@ import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { BusinessProfileCard } from "@/components/home/business-profile-card";
+import { KeywordsCard } from "@/components/home/keywords-card";
+import { CompetitorsCard } from "@/components/home/competitors-card";
 
 interface BusinessHours {
   [key: string]: {
@@ -41,6 +43,8 @@ interface PrimaryLocation {
   booking_url?: string;
   order_url?: string;
   appointment_url?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface HomePageContentProps {
@@ -273,6 +277,17 @@ export function HomePageContent({
               weeklyGrowth={weeklyGrowth}
               hasAutoReply={false} // TODO: Check from settings
             />
+
+            {/* Keywords & Competitors Section */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <KeywordsCard locationId={primaryLocation?.id} limit={5} />
+              <CompetitorsCard
+                lat={primaryLocation?.latitude}
+                lng={primaryLocation?.longitude}
+                categoryName={primaryLocation?.category}
+                limit={5}
+              />
+            </div>
 
             {/* Interactive Dashboard */}
             <InteractiveStatsDashboard />
