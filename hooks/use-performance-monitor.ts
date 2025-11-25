@@ -75,7 +75,7 @@ export function usePerformanceMonitor(componentName?: string) {
             hadRecentInput?: boolean;
             value?: number;
           })[]) {
-            if (!entry.hadRecentInput) {
+            if (!entry.hadRecentInput && entry.value !== undefined) {
               clsValue += entry.value;
               metricsRef.current.cls = clsValue;
             }

@@ -66,6 +66,10 @@ export function SmartAISuggestions({
   useEffect(() => {
     const loadDismissed = async () => {
       try {
+        if (!supabase) {
+          throw new Error("Supabase client not initialized");
+        }
+
         const { data, error } = await supabase
           .from("user_suggestion_actions")
           .select("suggestion_id")
@@ -198,6 +202,10 @@ export function SmartAISuggestions({
     setDismissedIds(newDismissed);
 
     try {
+      if (!supabase) {
+        throw new Error("Supabase client not initialized");
+      }
+
       const { error } = await supabase.from("user_suggestion_actions").upsert({
         user_id: userId,
         suggestion_id: id,
@@ -222,6 +230,10 @@ export function SmartAISuggestions({
   const handleAction = async (suggestion: SmartSuggestion) => {
     // Track the click (fire and forget)
     try {
+      if (!supabase) {
+        throw new Error("Supabase client not initialized");
+      }
+
       await supabase.from("user_suggestion_actions").upsert({
         user_id: userId,
         suggestion_id: suggestion.id,
@@ -286,7 +298,10 @@ export function SmartAISuggestions({
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 overflow-hidden">
+    <Card
+      data-tour="ai-suggestions"
+      className="border-border/50 bg-card/50 overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <div className="flex items-center gap-3">

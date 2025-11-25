@@ -169,16 +169,19 @@ export function QuickActionsSkeleton() {
 // =====================================================
 
 export function ChartSkeleton() {
+  // Fixed heights to avoid hydration mismatch (no Math.random in render)
+  const barHeights = [65, 80, 45, 90, 55, 75, 60];
+
   return (
     <Card className="p-6 bg-gray-900/50 border-gray-800">
       <div className="space-y-4">
         <Skeleton className="h-6 w-32 bg-gray-800" />
         <div className="h-64 flex items-end justify-between gap-2">
-          {[...Array(7)].map((_, i) => (
+          {barHeights.map((height, i) => (
             <Skeleton
               key={i}
               className="flex-1 bg-gray-800"
-              style={{ height: `${Math.random() * 60 + 40}%` }}
+              style={{ height: `${height}%` }}
             />
           ))}
         </div>

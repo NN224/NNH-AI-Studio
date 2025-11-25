@@ -11,6 +11,8 @@ export interface GMBStatus {
   connected: boolean;
   activeAccount: GMBAccount | null;
   lastSync: string | null;
+  hasLocations?: boolean;
+  locationsCount?: number;
 }
 
 export const GMBService = {

@@ -70,3 +70,4 @@ COMMIT_MESSAGE*.txt
 
 # Database exports
 full_export.sql
+.env*.local

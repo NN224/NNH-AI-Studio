@@ -135,7 +135,8 @@ export default function DashboardLayout({
 
   // GMB Status - using new React Query hooks
   const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
-  const gmbConnected = gmbStatus?.connected ?? false;
+  // Consider connected if has account OR has locations (data already synced)
+  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
   const activeAccount = gmbStatus?.activeAccount ?? null;
 
   // Sync Status

@@ -189,7 +189,11 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
       );
       if (questionsResponse.ok) {
         const questionsData = await questionsResponse.json();
-        const questions = questionsData.questions || questionsData.data || [];
+        // Handle wrapped response: { success: true, data: { questions: [...] } }
+        const rawData = questionsData.data || questionsData;
+        const questions = Array.isArray(rawData)
+          ? rawData
+          : rawData.questions || [];
 
         questions.forEach((question: APIQuestion) => {
           const hoursSinceAsked =
@@ -276,8 +280,12 @@ async function fetchManagementStats(): Promise<ManagementStats> {
           `/api/gmb/posts/list?locationId=${locations[0].id}&limit=100`,
         );
         if (postsResponse.ok) {
-          const posts = await postsResponse.json();
-          const allPosts = posts.posts || posts.data || [];
+          const postsResponse2 = await postsResponse.json();
+          // Handle wrapped response: { success: true, data: { items: [...] } }
+          const rawPostsData = postsResponse2.data || postsResponse2;
+          const allPosts = Array.isArray(rawPostsData)
+            ? rawPostsData
+            : rawPostsData.items || rawPostsData.posts || [];
 
           // Count published and scheduled posts
           const now = new Date();

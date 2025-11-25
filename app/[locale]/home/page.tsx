@@ -67,6 +67,7 @@ export default async function HomePage({
     { count: repliedReviewsCount },
     { data: recentActivityDates },
     { data: primaryLocation },
+    { data: autopilotSettings },
   ] = await Promise.all([
     supabase
       .from("gmb_locations")
@@ -112,6 +113,14 @@ export default async function HomePage({
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    // Check if auto-reply is enabled
+    supabase
+      .from("autopilot_settings")
+      .select("auto_reply_enabled")
+      .eq("user_id", userId)
+      .eq("is_enabled", true)
       .limit(1)
       .maybeSingle(),
   ]);
@@ -412,6 +421,9 @@ export default async function HomePage({
           ? "evening"
           : "night";
 
+  // Calculate pending reviews (reviews without replies)
+  const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
+
   return (
     <HomePageContent
       user={user!}
@@ -430,6 +442,8 @@ export default async function HomePage({
       businessName={primaryLocation?.location_name}
       businessLogo={businessLogoUrl}
       primaryLocation={primaryLocation}
+      pendingReviewsCount={pendingReviewsCount}
+      hasAutoReply={autopilotSettings?.auto_reply_enabled ?? false}
     />
   );
 }
