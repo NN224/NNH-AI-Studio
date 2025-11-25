@@ -399,571 +399,602 @@ export function InteractiveStatsDashboard({
 
         {/* Overview Chart */}
         <TabsContent value="overview" className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="p-6 border-orange-500/30">
-              <div className="mb-4">
-                <h4 className="text-lg font-medium">Performance Overview</h4>
-                <p className="text-sm text-muted-foreground">
-                  Track your key metrics over time
-                </p>
-              </div>
-
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData.overview}>
-                    <defs>
-                      <linearGradient
-                        id="colorReviews"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={CHART_COLORS.primary}
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={CHART_COLORS.primary}
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorResponses"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={CHART_COLORS.info}
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={CHART_COLORS.info}
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#666"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      stroke="#666"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#666"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      wrapperStyle={{ paddingTop: "20px" }}
-                      iconType="rect"
-                    />
-
-                    {/* Interactive Brush for zooming */}
-                    <Brush
-                      dataKey="name"
-                      height={30}
-                      stroke={CHART_COLORS.primary}
-                      fill="#111"
-                    />
-
-                    <Bar
-                      yAxisId="left"
-                      dataKey="views"
-                      fill={CHART_COLORS.purple}
-                      opacity={0.8}
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Area
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="reviews"
-                      stroke={CHART_COLORS.primary}
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorReviews)"
-                      dot={<CustomDot />}
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="responses"
-                      stroke={CHART_COLORS.info}
-                      strokeWidth={3}
-                      dot={{ fill: CHART_COLORS.info, strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="rating"
-                      stroke={CHART_COLORS.success}
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20"
-                >
-                  <p className="text-xs text-muted-foreground">Total Reviews</p>
-                  <p className="text-2xl font-bold text-orange-500">
-                    {stats?.reviews.total || 0}
+          {chartType === "overview" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Card className="p-6 border-orange-500/30">
+                <div className="mb-4">
+                  <h4 className="text-lg font-medium">Performance Overview</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Track your key metrics over time
                   </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-500">+12.5%</span>
-                  </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20"
-                >
-                  <p className="text-xs text-muted-foreground">Response Rate</p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {metrics?.responseRate || "0%"}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-500">+5%</span>
-                  </div>
-                </motion.div>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData.overview}>
+                      <defs>
+                        <linearGradient
+                          id="colorReviews"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={CHART_COLORS.primary}
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={CHART_COLORS.primary}
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorResponses"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={CHART_COLORS.info}
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={CHART_COLORS.info}
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                      </defs>
 
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="p-4 rounded-lg bg-green-500/10 border border-green-500/20"
-                >
-                  <p className="text-xs text-muted-foreground">Avg Rating</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {stats?.reviews.averageRating.toFixed(1) || "0.0"}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-500">+0.3</span>
-                  </div>
-                </motion.div>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#666"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        stroke="#666"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#666"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
 
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20"
-                >
-                  <p className="text-xs text-muted-foreground">Views</p>
-                  <p className="text-2xl font-bold text-purple-500">
-                    {stats?.performance.views || 0}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-500">+18%</span>
-                  </div>
-                </motion.div>
-              </div>
-            </Card>
-          </motion.div>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
+                        iconType="rect"
+                      />
+
+                      {/* Interactive Brush for zooming */}
+                      <Brush
+                        dataKey="name"
+                        height={30}
+                        stroke={CHART_COLORS.primary}
+                        fill="#111"
+                      />
+
+                      <Bar
+                        yAxisId="left"
+                        dataKey="views"
+                        fill={CHART_COLORS.purple}
+                        opacity={0.8}
+                        radius={[8, 8, 0, 0]}
+                      />
+                      <Area
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="reviews"
+                        stroke={CHART_COLORS.primary}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorReviews)"
+                        dot={<CustomDot />}
+                      />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="responses"
+                        stroke={CHART_COLORS.info}
+                        strokeWidth={3}
+                        dot={{ fill: CHART_COLORS.info, strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="rating"
+                        stroke={CHART_COLORS.success}
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      Total Reviews
+                    </p>
+                    <p className="text-2xl font-bold text-orange-500">
+                      {stats?.reviews.total || 0}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-500">+12.5%</span>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      Response Rate
+                    </p>
+                    <p className="text-2xl font-bold text-blue-500">
+                      {metrics?.responseRate || "0%"}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-500">+5%</span>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="p-4 rounded-lg bg-green-500/10 border border-green-500/20"
+                  >
+                    <p className="text-xs text-muted-foreground">Avg Rating</p>
+                    <p className="text-2xl font-bold text-green-500">
+                      {stats?.reviews.averageRating.toFixed(1) || "0.0"}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-500">+0.3</span>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20"
+                  >
+                    <p className="text-xs text-muted-foreground">Views</p>
+                    <p className="text-2xl font-bold text-purple-500">
+                      {stats?.performance.views || 0}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-green-500">+18%</span>
+                    </div>
+                  </motion.div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
         </TabsContent>
 
         {/* Detailed Breakdown Chart */}
         <TabsContent value="detailed" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Pie Chart */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Card className="p-6 border-orange-500/30">
-                <h4 className="text-lg font-medium mb-4">
-                  Rating Distribution
-                </h4>
+          {chartType === "detailed" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Pie Chart */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <Card className="p-6 border-orange-500/30">
+                  <h4 className="text-lg font-medium mb-4">
+                    Rating Distribution
+                  </h4>
 
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData.detailed}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(entry: any) => `${entry.percentage}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData.detailed}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={(entry: any) => `${entry.percentage}%`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {chartData.detailed.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                [
+                                  CHART_COLORS.success,
+                                  CHART_COLORS.info,
+                                  CHART_COLORS.warning,
+                                  CHART_COLORS.secondary,
+                                  CHART_COLORS.danger,
+                                ][index % 5]
+                              }
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Legend */}
+                  <div className="mt-4 space-y-2">
+                    {chartData.detailed.map((item, index) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between"
                       >
-                        {chartData.detailed.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={
-                              [
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor: [
                                 CHART_COLORS.success,
                                 CHART_COLORS.info,
                                 CHART_COLORS.warning,
                                 CHART_COLORS.secondary,
                                 CHART_COLORS.danger,
-                              ][index % 5]
-                            }
+                              ][index % 5],
+                            }}
                           />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                          <span className="text-sm">{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">{item.value}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            ({item.percentage}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </motion.div>
 
-                {/* Legend */}
-                <div className="mt-4 space-y-2">
-                  {chartData.detailed.map((item, index) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{
-                            backgroundColor: [
-                              CHART_COLORS.success,
-                              CHART_COLORS.info,
-                              CHART_COLORS.warning,
-                              CHART_COLORS.secondary,
-                              CHART_COLORS.danger,
-                            ][index % 5],
-                          }}
-                        />
-                        <span className="text-sm">{item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{item.value}</Badge>
-                        <span className="text-xs text-muted-foreground">
-                          ({item.percentage}%)
-                        </span>
-                      </div>
+              {/* Treemap */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <Card className="p-6 border-orange-500/30">
+                  <h4 className="text-lg font-medium mb-4">Review Sources</h4>
+
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <Treemap
+                        data={[
+                          {
+                            name: "Google",
+                            size: 2400,
+                            fill: CHART_COLORS.primary,
+                          },
+                          {
+                            name: "Direct",
+                            size: 1398,
+                            fill: CHART_COLORS.info,
+                          },
+                          {
+                            name: "Mobile",
+                            size: 989,
+                            fill: CHART_COLORS.success,
+                          },
+                          {
+                            name: "Social",
+                            size: 432,
+                            fill: CHART_COLORS.purple,
+                          },
+                          {
+                            name: "Other",
+                            size: 231,
+                            fill: CHART_COLORS.secondary,
+                          },
+                        ]}
+                        dataKey="size"
+                        stroke="#fff"
+                        fill="#8884d8"
+                      />
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-orange-500/10">
+                      <p className="text-xs text-muted-foreground">
+                        Most Active
+                      </p>
+                      <p className="text-sm font-medium">Google (44%)</p>
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Treemap */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <Card className="p-6 border-orange-500/30">
-                <h4 className="text-lg font-medium mb-4">Review Sources</h4>
-
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <Treemap
-                      data={[
-                        {
-                          name: "Google",
-                          size: 2400,
-                          fill: CHART_COLORS.primary,
-                        },
-                        { name: "Direct", size: 1398, fill: CHART_COLORS.info },
-                        {
-                          name: "Mobile",
-                          size: 989,
-                          fill: CHART_COLORS.success,
-                        },
-                        {
-                          name: "Social",
-                          size: 432,
-                          fill: CHART_COLORS.purple,
-                        },
-                        {
-                          name: "Other",
-                          size: 231,
-                          fill: CHART_COLORS.secondary,
-                        },
-                      ]}
-                      dataKey="size"
-                      stroke="#fff"
-                      fill="#8884d8"
-                    />
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-orange-500/10">
-                    <p className="text-xs text-muted-foreground">Most Active</p>
-                    <p className="text-sm font-medium">Google (44%)</p>
+                    <div className="p-3 rounded-lg bg-blue-500/10">
+                      <p className="text-xs text-muted-foreground">
+                        Growth Leader
+                      </p>
+                      <p className="text-sm font-medium">Mobile (+25%)</p>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-blue-500/10">
-                    <p className="text-xs text-muted-foreground">
-                      Growth Leader
-                    </p>
-                    <p className="text-sm font-medium">Mobile (+25%)</p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          </div>
+                </Card>
+              </motion.div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Comparison Chart */}
         <TabsContent value="comparison">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6 border-orange-500/30">
-              <div className="mb-4">
-                <h4 className="text-lg font-medium">Performance Comparison</h4>
-                <p className="text-sm text-muted-foreground">
-                  Current vs Previous Period vs Target
-                </p>
-              </div>
-
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={chartData.comparison}>
-                    <PolarGrid stroke="#333" />
-                    <PolarAngleAxis
-                      dataKey="category"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-                    <PolarRadiusAxis
-                      angle={90}
-                      domain={[0, 100]}
-                      tick={{ fill: "#999", fontSize: 10 }}
-                    />
-
-                    <Radar
-                      name="Previous"
-                      dataKey="previous"
-                      stroke={CHART_COLORS.secondary}
-                      fill={CHART_COLORS.secondary}
-                      fillOpacity={0.3}
-                    />
-                    <Radar
-                      name="Current"
-                      dataKey="current"
-                      stroke={CHART_COLORS.primary}
-                      fill={CHART_COLORS.primary}
-                      fillOpacity={0.5}
-                    />
-                    <Radar
-                      name="Target"
-                      dataKey="target"
-                      stroke={CHART_COLORS.success}
-                      fill={CHART_COLORS.success}
-                      fillOpacity={0.2}
-                      strokeDasharray="5 5"
-                    />
-
-                    <Legend />
-                    <Tooltip content={<CustomTooltip />} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Insights */}
-              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <p className="text-sm font-medium">Top Performer</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Response Rate improved by 4.5% this period
+          {chartType === "comparison" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="p-6 border-orange-500/30">
+                <div className="mb-4">
+                  <h4 className="text-lg font-medium">
+                    Performance Comparison
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Current vs Previous Period vs Target
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="h-4 w-4 text-yellow-500" />
-                    <p className="text-sm font-medium">Near Target</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Reviews are 7% away from monthly target
-                  </p>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={chartData.comparison}>
+                      <PolarGrid stroke="#333" />
+                      <PolarAngleAxis
+                        dataKey="category"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tick={{ fill: "#999", fontSize: 10 }}
+                      />
+
+                      <Radar
+                        name="Previous"
+                        dataKey="previous"
+                        stroke={CHART_COLORS.secondary}
+                        fill={CHART_COLORS.secondary}
+                        fillOpacity={0.3}
+                      />
+                      <Radar
+                        name="Current"
+                        dataKey="current"
+                        stroke={CHART_COLORS.primary}
+                        fill={CHART_COLORS.primary}
+                        fillOpacity={0.5}
+                      />
+                      <Radar
+                        name="Target"
+                        dataKey="target"
+                        stroke={CHART_COLORS.success}
+                        fill={CHART_COLORS.success}
+                        fillOpacity={0.2}
+                        strokeDasharray="5 5"
+                      />
+
+                      <Legend />
+                      <Tooltip content={<CustomTooltip />} />
+                    </RadarChart>
+                  </ResponsiveContainer>
                 </div>
 
-                <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-orange-500" />
-                    <p className="text-sm font-medium">Action Needed</p>
+                {/* Insights */}
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <p className="text-sm font-medium">Top Performer</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Response Rate improved by 4.5% this period
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Growth rate needs 8% boost to hit target
-                  </p>
+
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-yellow-500" />
+                      <p className="text-sm font-medium">Near Target</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Reviews are 7% away from monthly target
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="h-4 w-4 text-orange-500" />
+                      <p className="text-sm font-medium">Action Needed</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Growth rate needs 8% boost to hit target
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
+              </Card>
+            </motion.div>
+          )}
         </TabsContent>
 
         {/* Forecast Chart */}
         <TabsContent value="forecast">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="p-6 border-orange-500/30">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h4 className="text-lg font-medium">Predictive Forecast</h4>
-                  <p className="text-sm text-muted-foreground">
-                    AI-powered predictions for the next 7 days
-                  </p>
-                </div>
-
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Predictions are based on historical patterns,
-                        seasonality, and current trends. Confidence intervals
-                        show the range of likely outcomes.
-                      </p>
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
-              </div>
-
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData.forecast}>
-                    <defs>
-                      <linearGradient
-                        id="colorConfidence"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={CHART_COLORS.info}
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={CHART_COLORS.info}
-                          stopOpacity={0.05}
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#666"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-                    <YAxis
-                      stroke="#666"
-                      tick={{ fill: "#999", fontSize: 12 }}
-                    />
-
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-
-                    {/* Reference line for "today" */}
-                    <ReferenceLine
-                      x={
-                        chartData.forecast[chartData.forecast.length - 8]?.name
-                      }
-                      stroke="#666"
-                      strokeDasharray="5 5"
-                      label="Today"
-                    />
-
-                    {/* Confidence interval */}
-                    <Area
-                      dataKey="confidence.upper"
-                      stackId="1"
-                      stroke="none"
-                      fill="url(#colorConfidence)"
-                    />
-                    <Area
-                      dataKey="confidence.lower"
-                      stackId="1"
-                      stroke="none"
-                      fill="#000"
-                    />
-
-                    {/* Historical data */}
-                    <Line
-                      type="monotone"
-                      dataKey="reviews"
-                      stroke={CHART_COLORS.primary}
-                      strokeWidth={3}
-                      dot={{ fill: CHART_COLORS.primary, strokeWidth: 2, r: 4 }}
-                      name="Actual"
-                    />
-
-                    {/* Forecast line */}
-                    <Line
-                      type="monotone"
-                      dataKey="forecast"
-                      stroke={CHART_COLORS.success}
-                      strokeWidth={3}
-                      strokeDasharray="5 5"
-                      dot={{ fill: CHART_COLORS.success, strokeWidth: 2, r: 4 }}
-                      name="Forecast"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Forecast Summary */}
-              <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="font-medium">7-Day Forecast Summary</h5>
-                  <Badge
-                    variant="outline"
-                    className="text-green-500 border-green-500/30"
-                  >
-                    85% Confidence
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {chartType === "forecast" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Card className="p-6 border-orange-500/30">
+                <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Expected Reviews
+                    <h4 className="text-lg font-medium">Predictive Forecast</h4>
+                    <p className="text-sm text-muted-foreground">
+                      AI-powered predictions for the next 7 days
                     </p>
-                    <p className="text-lg font-bold text-green-500">+312</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Growth Rate</p>
-                    <p className="text-lg font-bold text-blue-500">+15.3%</p>
+
+                  <TooltipProvider>
+                    <UITooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Predictions are based on historical patterns,
+                          seasonality, and current trends. Confidence intervals
+                          show the range of likely outcomes.
+                        </p>
+                      </TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
+                </div>
+
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData.forecast}>
+                      <defs>
+                        <linearGradient
+                          id="colorConfidence"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor={CHART_COLORS.info}
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor={CHART_COLORS.info}
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                      </defs>
+
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#666"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
+                      <YAxis
+                        stroke="#666"
+                        tick={{ fill: "#999", fontSize: 12 }}
+                      />
+
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+
+                      {/* Reference line for "today" */}
+                      <ReferenceLine
+                        x={
+                          chartData.forecast[chartData.forecast.length - 8]
+                            ?.name
+                        }
+                        stroke="#666"
+                        strokeDasharray="5 5"
+                        label="Today"
+                      />
+
+                      {/* Confidence interval */}
+                      <Area
+                        dataKey="confidence.upper"
+                        stackId="1"
+                        stroke="none"
+                        fill="url(#colorConfidence)"
+                      />
+                      <Area
+                        dataKey="confidence.lower"
+                        stackId="1"
+                        stroke="none"
+                        fill="#000"
+                      />
+
+                      {/* Historical data */}
+                      <Line
+                        type="monotone"
+                        dataKey="reviews"
+                        stroke={CHART_COLORS.primary}
+                        strokeWidth={3}
+                        dot={{
+                          fill: CHART_COLORS.primary,
+                          strokeWidth: 2,
+                          r: 4,
+                        }}
+                        name="Actual"
+                      />
+
+                      {/* Forecast line */}
+                      <Line
+                        type="monotone"
+                        dataKey="forecast"
+                        stroke={CHART_COLORS.success}
+                        strokeWidth={3}
+                        strokeDasharray="5 5"
+                        dot={{
+                          fill: CHART_COLORS.success,
+                          strokeWidth: 2,
+                          r: 4,
+                        }}
+                        name="Forecast"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Forecast Summary */}
+                <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="font-medium">7-Day Forecast Summary</h5>
+                    <Badge
+                      variant="outline"
+                      className="text-green-500 border-green-500/30"
+                    >
+                      85% Confidence
+                    </Badge>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Best Day</p>
-                    <p className="text-lg font-bold">Friday</p>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Expected Reviews
+                      </p>
+                      <p className="text-lg font-bold text-green-500">+312</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Growth Rate
+                      </p>
+                      <p className="text-lg font-bold text-blue-500">+15.3%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Best Day</p>
+                      <p className="text-lg font-bold">Friday</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
+              </Card>
+            </motion.div>
+          )}
         </TabsContent>
       </Tabs>
     </motion.div>

@@ -36,6 +36,12 @@ export default async function HomePage({
   // Type assertion: user is guaranteed to be non-null after the redirect check
   const userId = user!.id;
 
+  // Stable last login string to avoid hydration mismatches
+  const lastLogin =
+    user.last_sign_in_at != null
+      ? new Date(user.last_sign_in_at).toISOString()
+      : null;
+
   // Initialize achievements for new users
   await initializeUserProgress();
 
@@ -391,6 +397,7 @@ export default async function HomePage({
       responseRate={responseRate}
       streak={streak}
       timeOfDay={timeOfDay}
+      lastLogin={lastLogin ?? undefined}
       userProgress={userProgress}
       userAchievements={userAchievements}
     />

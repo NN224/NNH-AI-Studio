@@ -1,33 +1,40 @@
-'use client'
+"use client";
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { useTranslations } from 'next-intl'
-import { Sparkles, TrendingUp, Calendar, Zap, MessageSquare, Star } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
+import {
+  Sparkles,
+  TrendingUp,
+  Calendar,
+  Zap,
+  MessageSquare,
+  Star,
+} from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState, useEffect } from "react";
 
 interface DashboardHeroProps {
-  userName?: string
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'
+  userName?: string;
+  timeOfDay: "morning" | "afternoon" | "evening" | "night";
   stats: {
-    todayReviews?: number
-    weeklyGrowth?: number
-    lastActivity?: string
-    totalReviews?: number
-    responseRate?: number
-    averageRating?: number
-  }
-  profileCompletion?: number
-  streak?: number
+    todayReviews?: number;
+    weeklyGrowth?: number;
+    lastActivity?: string;
+    totalReviews?: number;
+    responseRate?: number;
+    averageRating?: number;
+  };
+  profileCompletion?: number;
+  streak?: number;
   achievements?: Array<{
-    id: string
-    icon: string
-    title: string
-  }>
+    id: string;
+    icon: string;
+    title: string;
+  }>;
 }
 
 export function DashboardHero({
@@ -38,96 +45,103 @@ export function DashboardHero({
   streak = 0,
   achievements = [],
 }: DashboardHeroProps) {
-  const t = useTranslations('home.hero')
-  const [currentStatIndex, setCurrentStatIndex] = useState(0)
-  const [isHovered, setIsHovered] = useState(false)
+  const t = useTranslations("home.hero");
+  const [currentStatIndex, setCurrentStatIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const getGreeting = () => {
     const greetings = {
-      morning: t('greeting.morning'),
-      afternoon: t('greeting.afternoon'),
-      evening: t('greeting.evening'),
-      night: t('greeting.night'),
-    }
-    return greetings[timeOfDay] || greetings.morning
-  }
+      morning: t("greeting.morning"),
+      afternoon: t("greeting.afternoon"),
+      evening: t("greeting.evening"),
+      night: t("greeting.night"),
+    };
+    return greetings[timeOfDay] || greetings.morning;
+  };
 
   const getTimeEmoji = () => {
     const emojis = {
-      morning: '☀️',
-      afternoon: '🌤️',
-      evening: '🌅',
-      night: '🌙',
-    }
-    return emojis[timeOfDay] || '👋'
-  }
+      morning: "☀️",
+      afternoon: "🌤️",
+      evening: "🌅",
+      night: "🌙",
+    };
+    return emojis[timeOfDay] || "👋";
+  };
 
   // Additional stats for carousel
   const statsCarousel = [
     {
       icon: Calendar,
-      label: t('stats.today'),
+      label: t("stats.today"),
       value: stats.todayReviews || 0,
-      suffix: t('stats.reviews'),
-      color: 'orange',
-      bgColor: 'bg-orange-500/20',
-      borderColor: 'border-orange-500/30',
+      suffix: t("stats.reviews"),
+      color: "orange",
+      bgColor: "bg-orange-500/20",
+      borderColor: "border-orange-500/30",
     },
     {
       icon: TrendingUp,
-      label: t('stats.growth'),
+      label: t("stats.growth"),
       value: `${stats.weeklyGrowth || 0}%`,
-      suffix: t('stats.thisWeek'),
-      color: 'green',
-      bgColor: 'bg-green-500/20',
-      borderColor: 'border-green-500/30',
+      suffix: t("stats.thisWeek"),
+      color: "green",
+      bgColor: "bg-green-500/20",
+      borderColor: "border-green-500/30",
     },
     {
       icon: MessageSquare,
-      label: 'Total Reviews',
+      label: "Total Reviews",
       value: stats.totalReviews || 0,
-      suffix: 'all time',
-      color: 'blue',
-      bgColor: 'bg-blue-500/20',
-      borderColor: 'border-blue-500/30',
+      suffix: "all time",
+      color: "blue",
+      bgColor: "bg-blue-500/20",
+      borderColor: "border-blue-500/30",
     },
     {
       icon: Star,
-      label: 'Rating',
-      value: stats.averageRating?.toFixed(1) || '0.0',
-      suffix: 'average',
-      color: 'yellow',
-      bgColor: 'bg-yellow-500/20',
-      borderColor: 'border-yellow-500/30',
+      label: "Rating",
+      value: stats.averageRating?.toFixed(1) || "0.0",
+      suffix: "average",
+      color: "yellow",
+      bgColor: "bg-yellow-500/20",
+      borderColor: "border-yellow-500/30",
     },
-  ]
+  ];
 
   // Auto-cycle through stats
   useEffect(() => {
     if (!isHovered) {
       const interval = setInterval(() => {
-        setCurrentStatIndex((prev) => (prev + 1) % statsCarousel.length)
-      }, 3000)
-      return () => clearInterval(interval)
+        setCurrentStatIndex((prev) => (prev + 1) % statsCarousel.length);
+      }, 3000);
+      return () => clearInterval(interval);
     }
-  }, [isHovered, statsCarousel.length])
+  }, [isHovered, statsCarousel.length]);
 
   const motivationalMessages = [
     "You're doing great! Keep up the excellent work.",
-    'Every review reply builds trust with customers.',
-    'Your business is growing stronger every day!',
-    'Keep pushing forward - success is within reach!',
-  ]
+    "Every review reply builds trust with customers.",
+    "Your business is growing stronger every day!",
+    "Keep pushing forward - success is within reach!",
+  ];
 
-  const randomMotivation =
-    motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]
+  // Avoid Math.random() during SSR to prevent hydration mismatches.
+  // Start with a stable default, then randomize on the client after mount.
+  const [motivationIndex, setMotivationIndex] = useState(0);
+
+  useEffect(() => {
+    setMotivationIndex(Math.floor(Math.random() * motivationalMessages.length));
+  }, [motivationalMessages.length]);
+
+  const randomMotivation = motivationalMessages[motivationIndex];
 
   return (
     <motion.div
       className="dashboard-hero relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <Card className="border-orange-500/30 bg-gradient-to-br from-orange-900/20 via-orange-800/10 to-yellow-900/10 overflow-hidden backdrop-blur-xl">
         {/* Animated background layers */}
@@ -140,7 +154,7 @@ export function DashboardHero({
           transition={{
             duration: 10,
             repeat: Infinity,
-            ease: 'linear',
+            ease: "linear",
           }}
         />
 
@@ -155,7 +169,7 @@ export function DashboardHero({
           transition={{
             duration: 8,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: "easeInOut",
           }}
         />
         <motion.div
@@ -168,7 +182,7 @@ export function DashboardHero({
           transition={{
             duration: 10,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: "easeInOut",
             delay: 1,
           }}
         />
@@ -201,10 +215,12 @@ export function DashboardHero({
                       <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
                         {getGreeting()}
                       </span>
-                      {userName && <span className="text-white">, {userName}!</span>}
+                      {userName && (
+                        <span className="text-white">, {userName}!</span>
+                      )}
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                      {t('subtitle')}
+                      {t("subtitle")}
                     </p>
 
                     {/* Motivation with icon animation */}
@@ -227,7 +243,9 @@ export function DashboardHero({
                       >
                         <Sparkles className="h-4 w-4 text-orange-500" />
                       </motion.div>
-                      <span className="text-sm text-gray-400">{randomMotivation}</span>
+                      <span className="text-sm text-gray-400">
+                        {randomMotivation}
+                      </span>
                     </motion.div>
 
                     {/* Streak indicator */}
@@ -235,7 +253,7 @@ export function DashboardHero({
                       <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.6, type: 'spring' }}
+                        transition={{ delay: 0.6, type: "spring" }}
                         className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/30"
                       >
                         <Zap className="h-4 w-4 text-orange-500" />
@@ -257,16 +275,18 @@ export function DashboardHero({
               >
                 <div className="bg-black/40 backdrop-blur-xl border border-orange-500/20 rounded-2xl p-6 min-w-[280px]">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-gray-300">Profile Strength</h3>
+                    <h3 className="text-sm font-medium text-gray-300">
+                      Profile Strength
+                    </h3>
                     <Badge
                       variant="outline"
                       className={`
                         ${
                           profileCompletion >= 80
-                            ? 'border-green-500 text-green-500'
+                            ? "border-green-500 text-green-500"
                             : profileCompletion >= 50
-                              ? 'border-yellow-500 text-yellow-500'
-                              : 'border-orange-500 text-orange-500'
+                              ? "border-yellow-500 text-yellow-500"
+                              : "border-orange-500 text-orange-500"
                         }
                       `}
                     >
@@ -319,22 +339,32 @@ export function DashboardHero({
                             initial={{ opacity: 0, x: 100 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -100 }}
-                            transition={{ duration: 0.5, type: 'spring' }}
+                            transition={{ duration: 0.5, type: "spring" }}
                             className="absolute inset-0"
                           >
                             <div
                               className={`h-full ${stat.bgColor} backdrop-blur-xl border ${stat.borderColor} rounded-2xl p-6 flex items-center justify-between`}
                             >
                               <div className="flex items-center gap-4">
-                                <div className={`p-3 rounded-xl ${stat.bgColor} backdrop-blur`}>
-                                  <stat.icon className={`h-6 w-6 text-${stat.color}-500`} />
+                                <div
+                                  className={`p-3 rounded-xl ${stat.bgColor} backdrop-blur`}
+                                >
+                                  <stat.icon
+                                    className={`h-6 w-6 text-${stat.color}-500`}
+                                  />
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-400">{stat.label}</p>
-                                  <p className={`text-2xl font-bold text-${stat.color}-500`}>
+                                  <p className="text-xs text-gray-400">
+                                    {stat.label}
+                                  </p>
+                                  <p
+                                    className={`text-2xl font-bold text-${stat.color}-500`}
+                                  >
                                     {stat.value}
                                   </p>
-                                  <p className="text-xs text-gray-500">{stat.suffix}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {stat.suffix}
+                                  </p>
                                 </div>
                               </div>
 
@@ -346,8 +376,8 @@ export function DashboardHero({
                                     onClick={() => setCurrentStatIndex(idx)}
                                     className={`w-1.5 h-1.5 rounded-full transition-all ${
                                       idx === currentStatIndex
-                                        ? 'bg-orange-500 h-6'
-                                        : 'bg-gray-600 hover:bg-gray-400'
+                                        ? "bg-orange-500 h-6"
+                                        : "bg-gray-600 hover:bg-gray-400"
                                     }`}
                                   />
                                 ))}
@@ -384,7 +414,9 @@ export function DashboardHero({
                         whileHover={{ scale: 1.05 }}
                         className="w-16 h-16 rounded-xl bg-black/40 border border-gray-700 flex items-center justify-center cursor-pointer"
                       >
-                        <span className="text-sm text-gray-400">+{achievements.length - 3}</span>
+                        <span className="text-sm text-gray-400">
+                          +{achievements.length - 3}
+                        </span>
                       </motion.div>
                     </Link>
                   )}
@@ -395,5 +427,5 @@ export function DashboardHero({
         </div>
       </Card>
     </motion.div>
-  )
+  );
 }

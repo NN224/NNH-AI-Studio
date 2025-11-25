@@ -43,24 +43,6 @@ import {
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  category: "reviews" | "growth" | "engagement" | "special";
-  points: number;
-  level: "bronze" | "silver" | "gold" | "platinum";
-  progress?: number;
-  maxProgress?: number;
-  unlocked: boolean;
-  unlockedAt?: Date;
-  reward?: {
-    type: "badge" | "feature" | "discount" | "bonus";
-    value: string;
-  };
-}
-
 interface AchievementSystemProps {
   userId: string;
   initialProgress?: UserProgress | null;
@@ -68,185 +50,145 @@ interface AchievementSystemProps {
   onAchievementUnlock?: (achievement: UserAchievement) => void;
 }
 
-// Achievement definitions
-const ACHIEVEMENTS: Achievement[] = [
-  // Reviews achievements
-  {
-    id: "first-reply",
-    name: "First Response",
-    description: "Reply to your first review",
-    icon: MessageSquare,
-    category: "reviews",
-    points: 50,
-    level: "bronze",
-    progress: 1,
-    maxProgress: 1,
-    unlocked: true,
-  },
-  {
-    id: "speed-demon",
-    name: "Speed Demon",
-    description: "Reply to 10 reviews within 1 hour",
-    icon: Zap,
-    category: "reviews",
-    points: 200,
-    level: "silver",
-    progress: 7,
-    maxProgress: 10,
-    unlocked: false,
-  },
-  {
-    id: "centurion",
-    name: "Centurion",
-    description: "Reply to 100 reviews",
-    icon: Trophy,
-    category: "reviews",
-    points: 500,
-    level: "gold",
-    progress: 67,
-    maxProgress: 100,
-    unlocked: false,
-  },
+type LevelColorKey =
+  | "gray"
+  | "green"
+  | "blue"
+  | "purple"
+  | "orange"
+  | "red"
+  | "yellow"
+  | "pink"
+  | "indigo"
+  | "gradient";
 
-  // Growth achievements
-  {
-    id: "rising-star",
-    name: "Rising Star",
-    description: "Achieve 4.5+ average rating",
-    icon: Star,
-    category: "growth",
-    points: 300,
-    level: "silver",
-    progress: 4.3,
-    maxProgress: 4.5,
-    unlocked: false,
+const LEVEL_COLOR_CLASSES: Record<
+  LevelColorKey,
+  { bg: string; border: string; text: string }
+> = {
+  gray: {
+    bg: "from-gray-500/20 to-gray-600/20",
+    border: "border-gray-500",
+    text: "text-gray-500",
   },
-  {
-    id: "growth-master",
-    name: "Growth Master",
-    description: "Increase reviews by 50% in a month",
-    icon: TrendingUp,
-    category: "growth",
-    points: 750,
-    level: "gold",
-    progress: 35,
-    maxProgress: 50,
-    unlocked: false,
+  green: {
+    bg: "from-green-500/20 to-green-600/20",
+    border: "border-green-500",
+    text: "text-green-500",
   },
-
-  // Engagement achievements
-  {
-    id: "streak-warrior",
-    name: "Streak Warrior",
-    description: "Maintain a 30-day login streak",
-    icon: Flame,
-    category: "engagement",
-    points: 400,
-    level: "silver",
-    progress: 12,
-    maxProgress: 30,
-    unlocked: false,
+  blue: {
+    bg: "from-blue-500/20 to-blue-600/20",
+    border: "border-blue-500",
+    text: "text-blue-500",
   },
-  {
-    id: "ai-pioneer",
-    name: "AI Pioneer",
-    description: "Use AI features 100 times",
-    icon: Sparkles,
-    category: "engagement",
-    points: 250,
-    level: "bronze",
-    progress: 100,
-    maxProgress: 100,
-    unlocked: true,
-    unlockedAt: new Date(),
+  purple: {
+    bg: "from-purple-500/20 to-purple-600/20",
+    border: "border-purple-500",
+    text: "text-purple-500",
   },
-
-  // Special achievements
-  {
-    id: "early-adopter",
-    name: "Early Adopter",
-    description: "Join during beta period",
-    icon: Gift,
-    category: "special",
-    points: 1000,
-    level: "platinum",
-    unlocked: true,
-    reward: {
-      type: "badge",
-      value: "Beta Tester",
-    },
+  orange: {
+    bg: "from-orange-500/20 to-orange-600/20",
+    border: "border-orange-500",
+    text: "text-orange-500",
   },
-  {
-    id: "perfect-month",
-    name: "Perfect Month",
-    description: "100% response rate for a full month",
-    icon: Crown,
-    category: "special",
-    points: 1500,
-    level: "platinum",
-    progress: 0,
-    maxProgress: 1,
-    unlocked: false,
-    reward: {
-      type: "feature",
-      value: "Premium Analytics",
-    },
+  red: {
+    bg: "from-red-500/20 to-red-600/20",
+    border: "border-red-500",
+    text: "text-red-500",
   },
-];
+  yellow: {
+    bg: "from-yellow-500/20 to-yellow-600/20",
+    border: "border-yellow-500",
+    text: "text-yellow-500",
+  },
+  pink: {
+    bg: "from-pink-500/20 to-pink-600/20",
+    border: "border-pink-500",
+    text: "text-pink-500",
+  },
+  indigo: {
+    bg: "from-indigo-500/20 to-indigo-600/20",
+    border: "border-indigo-500",
+    text: "text-indigo-500",
+  },
+  gradient: {
+    bg: "from-orange-500 via-purple-500 to-pink-500",
+    border: "border-orange-500",
+    text: "text-orange-500",
+  },
+};
 
 // Level thresholds
 const LEVELS = [
-  { level: 1, minPoints: 0, maxPoints: 100, name: "Beginner", color: "gray" },
-  { level: 2, minPoints: 100, maxPoints: 300, name: "Novice", color: "green" },
+  {
+    level: 1,
+    minPoints: 0,
+    maxPoints: 100,
+    name: "Beginner",
+    color: "gray" as LevelColorKey,
+  },
+  {
+    level: 2,
+    minPoints: 100,
+    maxPoints: 300,
+    name: "Novice",
+    color: "green" as LevelColorKey,
+  },
   {
     level: 3,
     minPoints: 300,
     maxPoints: 600,
     name: "Apprentice",
-    color: "blue",
+    color: "blue" as LevelColorKey,
   },
   {
     level: 4,
     minPoints: 600,
     maxPoints: 1000,
     name: "Professional",
-    color: "purple",
+    color: "purple" as LevelColorKey,
   },
   {
     level: 5,
     minPoints: 1000,
     maxPoints: 1500,
     name: "Expert",
-    color: "orange",
+    color: "orange" as LevelColorKey,
   },
-  { level: 6, minPoints: 1500, maxPoints: 2500, name: "Master", color: "red" },
+  {
+    level: 6,
+    minPoints: 1500,
+    maxPoints: 2500,
+    name: "Master",
+    color: "red" as LevelColorKey,
+  },
   {
     level: 7,
     minPoints: 2500,
     maxPoints: 4000,
     name: "Grandmaster",
-    color: "yellow",
+    color: "yellow" as LevelColorKey,
   },
   {
     level: 8,
     minPoints: 4000,
     maxPoints: 6000,
     name: "Champion",
-    color: "pink",
+    color: "pink" as LevelColorKey,
   },
   {
     level: 9,
     minPoints: 6000,
     maxPoints: 10000,
     name: "Legend",
-    color: "indigo",
+    color: "indigo" as LevelColorKey,
   },
   {
     level: 10,
     minPoints: 10000,
     maxPoints: Infinity,
     name: "Mythic",
-    color: "gradient",
+    color: "gradient" as LevelColorKey,
   },
 ];
 
@@ -277,6 +219,7 @@ export function AchievementSystem({
   // Calculate current level data
   const currentLevel = LEVELS.find((l) => l.level === userLevel) || LEVELS[0];
   const nextLevel = LEVELS.find((l) => l.level === userLevel + 1);
+  const currentLevelColors = LEVEL_COLOR_CLASSES[currentLevel.color];
 
   // Calculate progress to next level (capped at 100%)
   let levelProgress = 100;
@@ -384,15 +327,40 @@ export function AchievementSystem({
   const getCategoryStyle = (category: string) => {
     switch (category) {
       case "reviews":
-        return { icon: MessageSquare, color: "blue", label: "Reviews" };
+        return {
+          icon: MessageSquare,
+          label: "Reviews",
+          iconClass: "text-blue-500",
+          badgeClass: "text-blue-500 border-blue-500/30",
+        };
       case "growth":
-        return { icon: TrendingUp, color: "green", label: "Growth" };
+        return {
+          icon: TrendingUp,
+          label: "Growth",
+          iconClass: "text-green-500",
+          badgeClass: "text-green-500 border-green-500/30",
+        };
       case "engagement":
-        return { icon: Users, color: "purple", label: "Engagement" };
+        return {
+          icon: Users,
+          label: "Engagement",
+          iconClass: "text-purple-500",
+          badgeClass: "text-purple-500 border-purple-500/30",
+        };
       case "special":
-        return { icon: Crown, color: "orange", label: "Special" };
+        return {
+          icon: Crown,
+          label: "Special",
+          iconClass: "text-orange-500",
+          badgeClass: "text-orange-500 border-orange-500/30",
+        };
       default:
-        return { icon: Trophy, color: "gray", label: "Other" };
+        return {
+          icon: Trophy,
+          label: "Other",
+          iconClass: "text-gray-400",
+          badgeClass: "text-gray-400 border-gray-500/30",
+        };
     }
   };
 
@@ -422,19 +390,39 @@ export function AchievementSystem({
     }
   };
 
-  // Get level color
-  const getLevelColor = (level: string) => {
+  // Get level color classes for achievement cards
+  const getLevelColorClasses = (level: string) => {
     switch (level) {
       case "bronze":
-        return "orange";
+        return {
+          bg: "bg-orange-500/20",
+          text: "text-orange-500",
+          border: "text-orange-500 border-orange-500/30",
+        };
       case "silver":
-        return "gray";
+        return {
+          bg: "bg-gray-500/20",
+          text: "text-gray-300",
+          border: "text-gray-300 border-gray-500/30",
+        };
       case "gold":
-        return "yellow";
+        return {
+          bg: "bg-yellow-500/20",
+          text: "text-yellow-400",
+          border: "text-yellow-400 border-yellow-500/30",
+        };
       case "platinum":
-        return "purple";
+        return {
+          bg: "bg-purple-500/20",
+          text: "text-purple-400",
+          border: "text-purple-400 border-purple-500/30",
+        };
       default:
-        return "gray";
+        return {
+          bg: "bg-gray-500/20",
+          text: "text-gray-300",
+          border: "text-gray-300 border-gray-500/30",
+        };
     }
   };
 
@@ -475,13 +463,12 @@ export function AchievementSystem({
                   className={cn(
                     "w-16 h-16 rounded-full flex items-center justify-center",
                     "bg-gradient-to-br",
-                    currentLevel.color === "gradient"
-                      ? "from-orange-500 via-purple-500 to-pink-500"
-                      : `from-${currentLevel.color}-500/20 to-${currentLevel.color}-600/20`,
-                    `border-2 border-${currentLevel.color}-500`,
+                    currentLevelColors.bg,
+                    "border-2",
+                    currentLevelColors.border,
                   )}
                 >
-                  <Crown className={`h-8 w-8 text-${currentLevel.color}-500`} />
+                  <Crown className={cn("h-8 w-8", currentLevelColors.text)} />
                 </motion.div>
 
                 <div>
@@ -583,8 +570,9 @@ export function AchievementSystem({
               ([category, categoryAchievements]) => {
                 const {
                   icon: CategoryIcon,
-                  color,
                   label,
+                  iconClass,
+                  badgeClass,
                 } = getCategoryStyle(category);
 
                 return (
@@ -594,14 +582,11 @@ export function AchievementSystem({
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <div className="flex items-center gap-2 mb-4">
-                      <CategoryIcon className={`h-5 w-5 text-${color}-500`} />
+                      <CategoryIcon className={cn("h-5 w-5", iconClass)} />
                       <h3 className="text-lg font-semibold capitalize">
                         {label}
                       </h3>
-                      <Badge
-                        variant="outline"
-                        className={`text-${color}-500 border-${color}-500/30`}
-                      >
+                      <Badge variant="outline" className={badgeClass}>
                         {categoryAchievements.filter((a) => a.unlocked).length}/
                         {categoryAchievements.length}
                       </Badge>
@@ -612,7 +597,9 @@ export function AchievementSystem({
                         const Icon = getAchievementIcon(
                           achievement.achievement_id,
                         );
-                        const levelColor = getLevelColor(achievement.level);
+                        const levelClasses = getLevelColorClasses(
+                          achievement.level,
+                        );
                         const isNearUnlock =
                           achievement.progress &&
                           achievement.max_progress &&
@@ -656,14 +643,11 @@ export function AchievementSystem({
                                 <div
                                   className={cn(
                                     "p-3 rounded-lg",
-                                    `bg-${levelColor}-500/20`,
+                                    levelClasses.bg,
                                   )}
                                 >
                                   <Icon
-                                    className={cn(
-                                      "h-6 w-6",
-                                      `text-${levelColor}-500`,
-                                    )}
+                                    className={cn("h-6 w-6", levelClasses.text)}
                                   />
                                 </div>
 
@@ -717,7 +701,7 @@ export function AchievementSystem({
                                       variant="outline"
                                       className={cn(
                                         "text-xs capitalize",
-                                        `text-${levelColor}-500 border-${levelColor}-500/30`,
+                                        levelClasses.border,
                                       )}
                                     >
                                       {achievement.level}
@@ -771,7 +755,7 @@ export function AchievementSystem({
                   <div
                     className={cn(
                       "p-3 rounded-lg",
-                      `bg-${getLevelColor(selectedAchievement.level)}-500/20`,
+                      getLevelColorClasses(selectedAchievement.level).bg,
                     )}
                   >
                     {(() => {
@@ -782,7 +766,8 @@ export function AchievementSystem({
                         <Icon
                           className={cn(
                             "h-8 w-8",
-                            `text-${getLevelColor(selectedAchievement.level)}-500`,
+                            getLevelColorClasses(selectedAchievement.level)
+                              .text,
                           )}
                         />
                       );
@@ -844,8 +829,7 @@ export function AchievementSystem({
                       variant="outline"
                       className={cn(
                         "capitalize",
-                        `text-${getLevelColor(selectedAchievement.level)}-500`,
-                        `border-${getLevelColor(selectedAchievement.level)}-500/30`,
+                        getLevelColorClasses(selectedAchievement.level).border,
                       )}
                     >
                       {selectedAchievement.level}
