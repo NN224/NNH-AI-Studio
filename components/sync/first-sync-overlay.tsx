@@ -68,17 +68,28 @@ export function FirstSyncOverlay() {
     const autoSync = searchParams?.get("autoSync") === "true";
     const firstSync = searchParams?.get("firstSync") === "true";
 
-    if (
-      (autoSync || firstSync || isFirstSync) &&
-      !status.lastSync &&
-      !hasTriggered
-    ) {
+    // Only show overlay for explicit URL params (autoSync/firstSync)
+    // OR if isFirstSync is explicitly true (no existing data)
+    // Don't show if lastSync exists (already synced before)
+    const shouldShow =
+      (autoSync || firstSync || isFirstSync) && !status.lastSync;
+
+    if (shouldShow && !hasTriggered) {
       setShow(true);
       // Auto-trigger sync
       if (!status.isSyncing) {
-        triggerSync().catch(console.error);
+        triggerSync().catch((error) => {
+          console.error("Sync trigger failed:", error);
+          // Hide overlay on trigger failure after delay
+          setTimeout(() => setShow(false), 3000);
+        });
         setHasTriggered(true);
       }
+    }
+
+    // If isFirstSync became false (data exists), hide overlay
+    if (!isFirstSync && !autoSync && !firstSync && show) {
+      setShow(false);
     }
   }, [
     searchParams,
@@ -87,6 +98,7 @@ export function FirstSyncOverlay() {
     status.isSyncing,
     triggerSync,
     hasTriggered,
+    show,
   ]);
 
   // Hide overlay after sync completes OR after error (with delay)

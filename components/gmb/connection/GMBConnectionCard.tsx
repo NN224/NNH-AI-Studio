@@ -101,14 +101,12 @@ export function GMBConnectionCard() {
 
             <Button
               variant="outline"
-              onClick={() =>
-                disconnect({ revokeToken: true, clearData: false })
-              }
-              disabled={isDisconnecting}
+              onClick={() => disconnect({ accountId: activeAccount?.id })}
+              disabled={isDisconnecting || !activeAccount?.id}
               className="text-red-500 hover:text-red-600 hover:bg-red-50"
             >
               <Unlink className="w-4 h-4 mr-2" />
-              Disconnect
+              {isDisconnecting ? "Disconnecting..." : "Disconnect"}
             </Button>
           </div>
         ) : (

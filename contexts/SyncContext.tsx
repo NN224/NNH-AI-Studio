@@ -111,6 +111,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!userId || !supabase) return;
 
       try {
+        // First check if we already have locations synced (from any previous sync mechanism)
+        const { data: existingLocations } = await supabase
+          .from("gmb_locations")
+          .select("id")
+          .eq("user_id", userId)
+          .limit(1);
+
+        // If we already have locations, this is NOT a first sync
+        if (existingLocations && existingLocations.length > 0) {
+          setIsFirstSync(false);
+          return;
+        }
+
+        // Otherwise check sync_queue for completed jobs
         const { data: completedJobs } = await supabase
           .from("sync_queue")
           .select("id")
@@ -121,6 +135,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         setIsFirstSync(!completedJobs || completedJobs.length === 0);
       } catch (error) {
         console.error("Error checking first sync status:", error);
+        // On error, assume not first sync to avoid blocking UI
+        setIsFirstSync(false);
       }
     };
 

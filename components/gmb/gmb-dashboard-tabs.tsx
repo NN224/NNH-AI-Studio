@@ -17,7 +17,7 @@ interface GMBTabsProps {
 const GMBTabs = ({ location }: GMBTabsProps) => {
   return (
     <Tabs defaultValue="command-center" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="command-center">AI Command Center</TabsTrigger>
         <TabsTrigger value="insights">Insights</TabsTrigger>
         <TabsTrigger value="reviews">Reviews</TabsTrigger>

@@ -32,19 +32,32 @@ export const GMBService = {
 
   // Connect/Auth URL
   getAuthUrl: async (): Promise<{ url: string }> => {
-    const response = await fetch("/api/gmb/create-auth-url");
-    if (!response.ok) throw new Error("Failed to get auth URL");
+    const response = await fetch("/api/gmb/create-auth-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to get auth URL");
+    }
     return response.json();
   },
 
   // Disconnect
-  disconnect: async (options: { revokeToken: boolean; clearData: boolean }) => {
+  disconnect: async (options: {
+    accountId?: string;
+    revokeToken?: boolean;
+    clearData?: boolean;
+  }) => {
     const response = await fetch("/api/gmb/disconnect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(options),
     });
-    if (!response.ok) throw new Error("Failed to disconnect");
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || "Failed to disconnect");
+    }
     return response.json();
   },
 
