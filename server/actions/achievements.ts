@@ -1,145 +1,232 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server";
 
-export interface Achievement {
-  id: string
-  title: string
-  description: string
-  icon: string
-  unlocked: boolean
-  progress?: number
-  maxProgress?: number
+export interface UserProgress {
+  id: string;
+  user_id: string;
+  current_level: number;
+  total_points: number;
+  streak_days: number;
+  last_activity_date: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export async function getUserAchievements(): Promise<{
-  achievements: Achievement[]
-  streak: number
-}> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return { achievements: [], streak: 0 }
-  }
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  achievement_name: string;
+  achievement_description: string | null;
+  category: "reviews" | "growth" | "engagement" | "special";
+  points: number;
+  level: "bronze" | "silver" | "gold" | "platinum";
+  progress: number;
+  max_progress: number | null;
+  unlocked: boolean;
+  unlocked_at: string | null;
+  reward_type: "badge" | "feature" | "discount" | "bonus" | null;
+  reward_value: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-  const { data: activeAccounts } = await supabase
-    .from("gmb_accounts")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
+/**
+ * Get user progress (level, points, streak)
+ */
+export async function getUserProgress(): Promise<UserProgress | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
-
-  let reviews: any[] = []
-  let posts: any[] = []
-  let locations: any[] = []
-
-  if (activeAccountIds.length > 0) {
-    const [reviewsRes, postsRes, locationsRes] = await Promise.all([
-      supabase
-        .from("gmb_reviews")
-        .select("id, review_reply, created_at")
-        .eq("user_id", user.id),
-      supabase
-        .from("gmb_posts")
-        .select("id, created_at")
-        .eq("user_id", user.id),
-      supabase
-        .from("gmb_locations")
-        .select("id")
-        .eq("user_id", user.id)
-        .in("gmb_account_id", activeAccountIds)
-    ])
-
-    reviews = reviewsRes.data || []
-    posts = postsRes.data || []
-    locations = locationsRes.data || []
-  }
-
-  const repliedReviews = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0)
-  
-  const calculateStreak = () => {
-    const now = new Date()
-    const recentActivities = [
-      ...reviews.map(r => new Date(r.created_at)),
-      ...posts.map(p => new Date(p.created_at))
-    ].sort((a, b) => b.getTime() - a.getTime())
-
-    if (recentActivities.length === 0) return 0
-
-    let streak = 0
-    let currentDate = new Date(now)
-    currentDate.setHours(0, 0, 0, 0)
-
-    for (const activity of recentActivities) {
-      const activityDate = new Date(activity)
-      activityDate.setHours(0, 0, 0, 0)
-
-      const diffDays = Math.floor((currentDate.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24))
-
-      if (diffDays === streak) {
-        streak++
-      } else if (diffDays > streak) {
-        break
-      }
+    if (!user) {
+      throw new Error("User not authenticated");
     }
 
-    return streak
+    const { data, error } = await supabase
+      .from("user_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching user progress:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error in getUserProgress:", error);
+    return null;
   }
+}
 
-  const streak = calculateStreak()
+/**
+ * Get user achievements
+ */
+export async function getUserAchievements(
+  filter?: "all" | "unlocked" | "locked",
+): Promise<UserAchievement[]> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const achievements: Achievement[] = [
-    {
-      id: "first-reply",
-      title: "First Reply",
-      description: "Replied to your first review",
-      icon: "star",
-      unlocked: repliedReviews.length > 0,
-      progress: Math.min(repliedReviews.length, 1),
-      maxProgress: 1,
-    },
-    {
-      id: "reply-master",
-      title: "Reply Master",
-      description: "Replied to 50 reviews",
-      icon: "trophy",
-      unlocked: repliedReviews.length >= 50,
-      progress: repliedReviews.length,
-      maxProgress: 50,
-    },
-    {
-      id: "week-streak",
-      title: "7-Day Streak",
-      description: "Active for 7 consecutive days",
-      icon: "flame",
-      unlocked: streak >= 7,
-      progress: streak,
-      maxProgress: 7,
-    },
-    {
-      id: "content-creator",
-      title: "Content Creator",
-      description: "Published 10 posts",
-      icon: "star",
-      unlocked: posts.length >= 10,
-      progress: posts.length,
-      maxProgress: 10,
-    },
-    {
-      id: "power-user",
-      title: "Power User",
-      description: "Complete 100% profile setup",
-      icon: "target",
-      unlocked: false,
-      progress: 0,
-      maxProgress: 100,
-    },
-  ]
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
 
-  return {
-    achievements,
-    streak
+    let query = supabase
+      .from("user_achievements")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    if (filter === "unlocked") {
+      query = query.eq("unlocked", true);
+    } else if (filter === "locked") {
+      query = query.eq("unlocked", false);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error fetching user achievements:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in getUserAchievements:", error);
+    return [];
+  }
+}
+
+/**
+ * Initialize user progress and achievements
+ */
+export async function initializeUserProgress(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const { error } = await supabase.rpc("initialize_user_progress", {
+      p_user_id: user.id,
+    });
+
+    if (error) {
+      console.error("Error initializing user progress:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in initializeUserProgress:", error);
+    return false;
+  }
+}
+
+/**
+ * Update user achievements (calculate progress and unlock)
+ */
+export async function updateUserAchievements(): Promise<number> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const { data, error } = await supabase.rpc("update_user_achievements", {
+      p_user_id: user.id,
+    });
+
+    if (error) {
+      console.error("Error updating user achievements:", error);
+      return 0;
+    }
+
+    return data || 0;
+  } catch (error) {
+    console.error("Error in updateUserAchievements:", error);
+    return 0;
+  }
+}
+
+/**
+ * Get achievements grouped by category
+ */
+export async function getAchievementsByCategory(): Promise<
+  Record<string, UserAchievement[]>
+> {
+  try {
+    const achievements = await getUserAchievements("all");
+
+    const grouped = achievements.reduce(
+      (acc, achievement) => {
+        if (!acc[achievement.category]) {
+          acc[achievement.category] = [];
+        }
+        acc[achievement.category].push(achievement);
+        return acc;
+      },
+      {} as Record<string, UserAchievement[]>,
+    );
+
+    return grouped;
+  } catch (error) {
+    console.error("Error in getAchievementsByCategory:", error);
+    return {};
+  }
+}
+
+/**
+ * Get achievement statistics
+ */
+export async function getAchievementStats(): Promise<{
+  total: number;
+  unlocked: number;
+  locked: number;
+  totalPoints: number;
+  unlockedPercentage: number;
+}> {
+  try {
+    const achievements = await getUserAchievements("all");
+    const unlocked = achievements.filter((a) => a.unlocked);
+    const locked = achievements.filter((a) => !a.unlocked);
+    const totalPoints = unlocked.reduce((sum, a) => sum + a.points, 0);
+
+    return {
+      total: achievements.length,
+      unlocked: unlocked.length,
+      locked: locked.length,
+      totalPoints,
+      unlockedPercentage:
+        achievements.length > 0
+          ? Math.round((unlocked.length / achievements.length) * 100)
+          : 0,
+    };
+  } catch (error) {
+    console.error("Error in getAchievementStats:", error);
+    return {
+      total: 0,
+      unlocked: 0,
+      locked: 0,
+      totalPoints: 0,
+      unlockedPercentage: 0,
+    };
   }
 }

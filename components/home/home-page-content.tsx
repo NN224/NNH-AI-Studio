@@ -21,6 +21,10 @@ import { AISuggestions } from "@/components/home/ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { AchievementSystem } from "@/components/home/achievement-system";
 import { useState, useEffect } from "react";
+import type {
+  UserProgress,
+  UserAchievement,
+} from "@/server/actions/achievements";
 
 interface HomePageContentProps {
   user: {
@@ -70,6 +74,8 @@ interface HomePageContentProps {
   responseRate: number;
   streak: number;
   timeOfDay?: "morning" | "afternoon" | "evening" | "night"; // Optional: calculated on server to avoid hydration mismatch
+  userProgress?: UserProgress | null;
+  userAchievements?: UserAchievement[];
 }
 
 export function HomePageContent({
@@ -84,35 +90,23 @@ export function HomePageContent({
   weeklyGrowth,
   reviewsTrend,
   youtubeSubs,
-
+  hasYouTube,
   progressItems,
   activities,
   insights,
   responseRate,
   streak,
   timeOfDay: serverTimeOfDay,
+  userProgress,
+  userAchievements = [],
 }: HomePageContentProps) {
   // Calculate completed tasks count
   const completedTasksCount = progressItems.filter(
     (item) => item.completed,
   ).length;
 
-  // Use server-provided timeOfDay if available, otherwise calculate on client
-  // OPTIMIZED: Prefer server-side calculation to avoid hydration mismatch
-  const [timeOfDay, setTimeOfDay] = useState<
-    "morning" | "afternoon" | "evening" | "night"
-  >(serverTimeOfDay || "morning");
-
-  useEffect(() => {
-    // Only calculate on client if not provided by server
-    if (!serverTimeOfDay) {
-      const hour = new Date().getHours();
-      if (hour >= 5 && hour < 12) setTimeOfDay("morning");
-      else if (hour >= 12 && hour < 17) setTimeOfDay("afternoon");
-      else if (hour >= 17 && hour < 21) setTimeOfDay("evening");
-      else setTimeOfDay("night");
-    }
-  }, [serverTimeOfDay]);
+  // Use server-provided timeOfDay (always provided now to avoid hydration mismatch)
+  const timeOfDay = serverTimeOfDay || "morning";
 
   return (
     <div className="min-h-screen bg-black relative">
@@ -296,8 +290,8 @@ export function HomePageContent({
                   <h3 className="text-lg font-semibold mb-3">Your Progress</h3>
                   <AchievementSystem
                     userId={user.id}
-                    userLevel={3}
-                    userPoints={850}
+                    initialProgress={userProgress}
+                    initialAchievements={userAchievements}
                   />
                 </Card>
               </motion.div>

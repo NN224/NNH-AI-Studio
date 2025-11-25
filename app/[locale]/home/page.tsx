@@ -4,6 +4,11 @@ import type { Metadata } from "next";
 import { HomePageContent } from "@/components/home/home-page-content";
 import { HomeErrorBoundary } from "@/components/home/home-error-boundary";
 import { getCachedDashboardData } from "@/server/actions/dashboard";
+import {
+  getUserProgress,
+  getUserAchievements,
+  initializeUserProgress,
+} from "@/server/actions/achievements";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -31,12 +36,21 @@ export default async function HomePage({
   // Type assertion: user is guaranteed to be non-null after the redirect check
   const userId = user!.id;
 
-  // Fetch user profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email, avatar_url")
-    .eq("id", userId)
-    .maybeSingle();
+  // Initialize achievements for new users
+  await initializeUserProgress();
+
+  // Fetch user profile and achievements
+  const [{ data: profile }, userProgress, userAchievements] = await Promise.all(
+    [
+      supabase
+        .from("profiles")
+        .select("full_name, email, avatar_url")
+        .eq("id", userId)
+        .maybeSingle(),
+      getUserProgress(),
+      getUserAchievements("all"),
+    ],
+  );
 
   // Fetch stats in parallel - OPTIMIZED: Using specific columns instead of "*"
   const [
@@ -72,9 +86,9 @@ export default async function HomePage({
       .not("reply_text", "is", null),
     supabase
       .from("gmb_reviews")
-      .select("create_time, replied_at")
+      .select("review_date, replied_at")
       .eq("user_id", userId)
-      .order("create_time", { ascending: false })
+      .order("review_date", { ascending: false })
       .limit(50),
   ]);
 
@@ -89,8 +103,8 @@ export default async function HomePage({
   if (recentActivityDates && recentActivityDates.length > 0) {
     const dates = new Set<string>();
     recentActivityDates.forEach((item) => {
-      if (item.create_time)
-        dates.add(new Date(item.create_time).toDateString());
+      if (item.review_date)
+        dates.add(new Date(item.review_date).toDateString());
       if (item.replied_at) dates.add(new Date(item.replied_at).toDateString());
     });
 
@@ -155,7 +169,7 @@ export default async function HomePage({
     .from("gmb_reviews")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("create_time", today.toISOString());
+    .gte("review_date", today.toISOString());
 
   // Calculate weekly growth (comparing this week vs last week)
   const weekAgo = new Date();
@@ -169,13 +183,13 @@ export default async function HomePage({
         .from("gmb_reviews")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
-        .gte("create_time", weekAgo.toISOString()),
+        .gte("review_date", weekAgo.toISOString()),
       supabase
         .from("gmb_reviews")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
-        .gte("create_time", twoWeeksAgo.toISOString())
-        .lt("create_time", weekAgo.toISOString()),
+        .gte("review_date", twoWeeksAgo.toISOString())
+        .lt("review_date", weekAgo.toISOString()),
     ]);
 
   const weeklyGrowth =
@@ -197,17 +211,17 @@ export default async function HomePage({
   const firstDay = last7Days[0];
   const { data: reviewsForTrend } = await supabase
     .from("gmb_reviews")
-    .select("create_time")
+    .select("review_date")
     .eq("user_id", userId)
-    .gte("create_time", firstDay.toISOString())
-    .order("create_time", { ascending: true });
+    .gte("review_date", firstDay.toISOString())
+    .order("review_date", { ascending: true });
 
   // Group reviews by day in JavaScript (much faster than 7 DB queries)
   const reviewsTrend = last7Days.map((date) => {
     const dateStr = date.toDateString();
     return (
       reviewsForTrend?.filter(
-        (r) => new Date(r.create_time).toDateString() === dateStr,
+        (r) => new Date(r.review_date).toDateString() === dateStr,
       ).length || 0
     );
   });
@@ -346,6 +360,17 @@ export default async function HomePage({
     });
   }
 
+  // Calculate time of day on server to avoid hydration mismatch
+  const hour = new Date().getHours();
+  const timeOfDay: "morning" | "afternoon" | "evening" | "night" =
+    hour < 12
+      ? "morning"
+      : hour < 18
+        ? "afternoon"
+        : hour < 22
+          ? "evening"
+          : "night";
+
   return (
     <HomePageContent
       user={user!}
@@ -365,6 +390,9 @@ export default async function HomePage({
       insights={insights}
       responseRate={responseRate}
       streak={streak}
+      timeOfDay={timeOfDay}
+      userProgress={userProgress}
+      userAchievements={userAchievements}
     />
   );
 }
