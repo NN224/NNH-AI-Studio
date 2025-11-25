@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { GMBReview } from '@/lib/types/database';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { GMBReview } from "@/lib/types/database";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface PendingReviewsStats {
   pending: number;
@@ -25,9 +25,11 @@ export interface UsePendingReviewsResult {
 export function usePendingReviews(): UsePendingReviewsResult {
   const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
-  const [reviews, setReviews] = useState<(GMBReview & { location_name?: string })[]>([]);
+  const [reviews, setReviews] = useState<
+    (GMBReview & { location_name?: string })[]
+  >([]);
   const [stats, setStats] = useState<PendingReviewsStats>({
     pending: 0,
     responseRate: 0,
@@ -43,10 +45,10 @@ export function usePendingReviews(): UsePendingReviewsResult {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/reviews/pending');
-      
+      const response = await fetch("/api/reviews/pending");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch pending reviews');
+        throw new Error("Failed to fetch pending reviews");
       }
 
       const result = await response.json();
@@ -59,33 +61,34 @@ export function usePendingReviews(): UsePendingReviewsResult {
           avgTime: 0, // Will be calculated from actual data when available
           total: result.stats.total,
           responded: result.stats.responded,
-          needsResponse: result.stats.needsResponse
+          needsResponse: result.stats.needsResponse,
         });
       } else {
         // Fallback calculation
         const allReviews = result.reviews || [];
-        const needsResponse = allReviews.filter((r: any) => 
-          !r.has_reply && !r.has_response && !r.reply_text && !r.review_reply
+        const needsResponse = allReviews.filter(
+          (r: GMBReview) => !r.has_reply,
         ).length;
-        const responded = allReviews.filter((r: any) => 
-          r.has_reply || r.has_response || r.reply_text || r.review_reply
+        const responded = allReviews.filter(
+          (r: GMBReview) => r.has_reply,
         ).length;
-        const responseRate = allReviews.length > 0
-          ? Math.round((responded / allReviews.length) * 100 * 10) / 10
-          : 0;
+        const responseRate =
+          allReviews.length > 0
+            ? Math.round((responded / allReviews.length) * 100 * 10) / 10
+            : 0;
         setStats({
           pending: needsResponse,
           responseRate,
           avgTime: 0,
           total: allReviews.length,
           responded,
-          needsResponse
+          needsResponse,
         });
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
-      console.error('Error fetching pending reviews:', error);
+      console.error("Error fetching pending reviews:", error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,9 @@ export function usePendingReviews(): UsePendingReviewsResult {
     // Set up real-time subscription
     const setupRealtime = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         // Cleanup previous subscription
@@ -110,28 +115,28 @@ export function usePendingReviews(): UsePendingReviewsResult {
         const channel = supabase
           .channel(`pending-reviews:${user.id}:${Date.now()}`)
           .on(
-            'postgres_changes',
+            "postgres_changes",
             {
-              event: '*',
-              schema: 'public',
-              table: 'gmb_reviews',
+              event: "*",
+              schema: "public",
+              table: "gmb_reviews",
               filter: `user_id=eq.${user.id}`,
             },
             () => {
               if (isMountedRef.current) {
                 fetchPendingReviews();
               }
-            }
+            },
           )
           .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              console.log('✅ Pending reviews realtime subscribed');
+            if (status === "SUBSCRIBED") {
+              console.log("✅ Pending reviews realtime subscribed");
             }
           });
 
         channelRef.current = channel;
       } catch (err) {
-        console.error('Error setting up realtime:', err);
+        console.error("Error setting up realtime:", err);
       }
     };
 
@@ -154,4 +159,3 @@ export function usePendingReviews(): UsePendingReviewsResult {
     refetch: fetchPendingReviews,
   };
 }
-

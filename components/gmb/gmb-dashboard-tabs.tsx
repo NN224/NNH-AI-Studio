@@ -8,7 +8,7 @@ import {
   PostManagementCardNew,
   QAManagementCardNew,
 } from "../shared/management-cards-examples";
-import LocationAICommandCenter from "./location-ai-command-center";
+import { LocationAICommandCenter } from "./location-ai-command-center";
 
 interface GMBTabsProps {
   location: GMBLocation;

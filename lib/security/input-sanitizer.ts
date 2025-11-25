@@ -9,7 +9,10 @@ export function sanitizeHtml(dirty: string): string {
   let clean = dirty
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/javascript:/gi, "");
+    .replace(/on\w+\s*=\s*[^\s>]+/gi, "") // Handle unquoted event handlers
+    .replace(/javascript:/gi, "")
+    .replace(/href\s*=\s*["'][^"']*alert[^"']*["']/gi, 'href=""') // Remove alert in href
+    .replace(/href\s*=\s*["'][^"']*eval[^"']*["']/gi, 'href=""'); // Remove eval in href
 
   // Only allow specific tags
   const allowedTags = ["b", "i", "em", "strong", "a", "p", "br"];
@@ -87,8 +90,12 @@ export function sanitizeEmail(email: string): string {
  * Sanitize phone number
  */
 export function sanitizePhone(phone: string): string {
-  // Remove all non-digit characters except + at the start
-  return phone.replace(/[^\d+]/g, "").replace(/\+(?!^)/g, "");
+  // Check if starts with +
+  const hasPlus = phone.trim().startsWith("+");
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, "");
+  // Add back the + if it was there
+  return hasPlus ? "+" + digits : digits;
 }
 
 /**

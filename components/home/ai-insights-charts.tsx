@@ -48,15 +48,33 @@ const COLORS = {
   },
 };
 
+interface ChartDataPoint {
+  name: string;
+  value: number;
+  [key: string]: string | number;
+}
+
 interface ChartProps {
-  data: any[];
+  data: ChartDataPoint[];
   title?: string;
   description?: string;
   trend?: number;
 }
 
 // Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadEntry {
+  name: string;
+  value: number | string;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload || !payload.length) return null;
 
   return (
@@ -66,7 +84,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       className="bg-black/90 backdrop-blur-xl border border-orange-500/30 rounded-lg p-3 shadow-lg"
     >
       <p className="text-sm font-medium text-white mb-1">{label}</p>
-      {payload.map((entry: any, index: number) => (
+      {payload.map((entry, index) => (
         <p key={index} className="text-xs" style={{ color: entry.color }}>
           {entry.name}: {entry.value}
         </p>
@@ -278,7 +296,9 @@ export function AIInsightPieChart({ data, title, description }: ChartProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={(entry: any) => `${entry.percentage}%`}
+                label={(entry: { percentage: number }) =>
+                  `${entry.percentage}%`
+                }
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"

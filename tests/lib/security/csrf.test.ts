@@ -1,27 +1,38 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect } from "@jest/globals";
 import {
   generateCSRFToken,
   verifyCSRFToken,
   shouldProtectRequest,
-} from '@/lib/security/csrf';
-import { NextRequest } from 'next/server';
+} from "@/lib/security/csrf";
+import { NextRequest } from "next/server";
 
-describe('CSRF Protection', () => {
-  describe('generateCSRFToken', () => {
-    it('should generate a token', () => {
+// Mock Request object for testing
+function createMockRequest(url: string, method: string): NextRequest {
+  return {
+    method,
+    url,
+    nextUrl: {
+      pathname: new URL(url).pathname,
+    },
+  } as unknown as NextRequest;
+}
+
+describe("CSRF Protection", () => {
+  describe("generateCSRFToken", () => {
+    it("should generate a token", () => {
       const token = generateCSRFToken();
       expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
+      expect(typeof token).toBe("string");
       expect(token.length).toBeGreaterThan(0);
     });
 
-    it('should generate unique tokens', () => {
+    it("should generate unique tokens", () => {
       const token1 = generateCSRFToken();
       const token2 = generateCSRFToken();
       expect(token1).not.toEqual(token2);
     });
 
-    it('should generate cryptographically secure tokens', () => {
+    it("should generate cryptographically secure tokens", () => {
       const tokens = new Set();
       for (let i = 0; i < 100; i++) {
         tokens.add(generateCSRFToken());
@@ -31,38 +42,38 @@ describe('CSRF Protection', () => {
     });
   });
 
-  describe('verifyCSRFToken', () => {
-    it('should verify matching tokens', () => {
-      const token = 'abc123def456';
+  describe("verifyCSRFToken", () => {
+    it("should verify matching tokens", () => {
+      const token = "abc123def456";
       expect(verifyCSRFToken(token, token)).toBe(true);
     });
 
-    it('should reject non-matching tokens', () => {
-      const token1 = 'abc123def456';
-      const token2 = 'xyz789ghi012';
+    it("should reject non-matching tokens", () => {
+      const token1 = "abc123def456";
+      const token2 = "xyz789ghi012";
       expect(verifyCSRFToken(token1, token2)).toBe(false);
     });
 
-    it('should reject null request token', () => {
-      expect(verifyCSRFToken(null, 'validtoken')).toBe(false);
+    it("should reject null request token", () => {
+      expect(verifyCSRFToken(null, "validtoken")).toBe(false);
     });
 
-    it('should reject null cookie token', () => {
-      expect(verifyCSRFToken('validtoken', null)).toBe(false);
+    it("should reject null cookie token", () => {
+      expect(verifyCSRFToken("validtoken", null)).toBe(false);
     });
 
-    it('should reject both null tokens', () => {
+    it("should reject both null tokens", () => {
       expect(verifyCSRFToken(null, null)).toBe(false);
     });
 
-    it('should reject tokens of different lengths', () => {
-      expect(verifyCSRFToken('short', 'muuuuchlongertoken')).toBe(false);
+    it("should reject tokens of different lengths", () => {
+      expect(verifyCSRFToken("short", "muuuuchlongertoken")).toBe(false);
     });
 
-    it('should use constant-time comparison to prevent timing attacks', () => {
-      const validToken = 'a'.repeat(32);
-      const invalidToken1 = 'b' + 'a'.repeat(31); // Different first char
-      const invalidToken2 = 'a'.repeat(31) + 'b'; // Different last char
+    it("should use constant-time comparison to prevent timing attacks", () => {
+      const validToken = "a".repeat(32);
+      const invalidToken1 = "b" + "a".repeat(31); // Different first char
+      const invalidToken2 = "a".repeat(31) + "b"; // Different last char
 
       // Both should take similar time (constant-time comparison)
       const start1 = Date.now();
@@ -79,100 +90,86 @@ describe('CSRF Protection', () => {
     });
   });
 
-  describe('shouldProtectRequest', () => {
-    it('should protect POST requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'POST',
-      });
+  describe("shouldProtectRequest", () => {
+    it("should protect POST requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "POST");
       expect(shouldProtectRequest(request)).toBe(true);
     });
 
-    it('should protect PUT requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'PUT',
-      });
+    it("should protect PUT requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "PUT");
       expect(shouldProtectRequest(request)).toBe(true);
     });
 
-    it('should protect DELETE requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'DELETE',
-      });
+    it("should protect DELETE requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "DELETE");
       expect(shouldProtectRequest(request)).toBe(true);
     });
 
-    it('should protect PATCH requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'PATCH',
-      });
+    it("should protect PATCH requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "PATCH");
       expect(shouldProtectRequest(request)).toBe(true);
     });
 
-    it('should NOT protect GET requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'GET',
-      });
+    it("should NOT protect GET requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "GET");
       expect(shouldProtectRequest(request)).toBe(false);
     });
 
-    it('should NOT protect HEAD requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'HEAD',
-      });
+    it("should NOT protect HEAD requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "HEAD");
       expect(shouldProtectRequest(request)).toBe(false);
     });
 
-    it('should NOT protect OPTIONS requests', () => {
-      const request = new NextRequest('http://localhost/api/data', {
-        method: 'OPTIONS',
-      });
+    it("should NOT protect OPTIONS requests", () => {
+      const request = createMockRequest("http://localhost/api/data", "OPTIONS");
       expect(shouldProtectRequest(request)).toBe(false);
     });
 
-    it('should NOT protect OAuth callback paths', () => {
-      const request = new NextRequest('http://localhost/api/auth/callback', {
-        method: 'POST',
-      });
+    it("should NOT protect OAuth callback paths", () => {
+      const request = createMockRequest(
+        "http://localhost/api/auth/callback",
+        "POST",
+      );
       expect(shouldProtectRequest(request)).toBe(false);
     });
 
-    it('should NOT protect webhook paths', () => {
-      const request = new NextRequest('http://localhost/api/webhook/gmb', {
-        method: 'POST',
-      });
+    it("should NOT protect webhook paths", () => {
+      const request = createMockRequest(
+        "http://localhost/api/webhook/gmb",
+        "POST",
+      );
       expect(shouldProtectRequest(request)).toBe(false);
     });
 
-    it('should protect non-excluded POST paths', () => {
-      const request = new NextRequest('http://localhost/api/reviews', {
-        method: 'POST',
-      });
+    it("should protect non-excluded POST paths", () => {
+      const request = createMockRequest("http://localhost/api/reviews", "POST");
       expect(shouldProtectRequest(request)).toBe(true);
     });
   });
 
-  describe('CSRF Security Edge Cases', () => {
-    it('should handle empty string tokens', () => {
-      expect(verifyCSRFToken('', '')).toBe(false);
+  describe("CSRF Security Edge Cases", () => {
+    it("should handle empty string tokens", () => {
+      expect(verifyCSRFToken("", "")).toBe(false);
     });
 
-    it('should handle very long tokens', () => {
-      const longToken = 'a'.repeat(10000);
+    it("should handle very long tokens", () => {
+      const longToken = "a".repeat(10000);
       expect(verifyCSRFToken(longToken, longToken)).toBe(true);
     });
 
-    it('should handle special characters in tokens', () => {
-      const token = 'abc!@#$%^&*()123';
+    it("should handle special characters in tokens", () => {
+      const token = "abc!@#$%^&*()123";
       expect(verifyCSRFToken(token, token)).toBe(true);
     });
 
-    it('should handle Unicode characters in tokens', () => {
-      const token = 'abc123مرحبا你好';
+    it("should handle Unicode characters in tokens", () => {
+      const token = "abc123مرحبا你好";
       expect(verifyCSRFToken(token, token)).toBe(true);
     });
 
-    it('should reject case-different tokens (case-sensitive)', () => {
-      expect(verifyCSRFToken('AbC123', 'abc123')).toBe(false);
+    it("should reject case-different tokens (case-sensitive)", () => {
+      expect(verifyCSRFToken("AbC123", "abc123")).toBe(false);
     });
   });
 });

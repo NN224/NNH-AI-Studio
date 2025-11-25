@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GMBConnectionManager } from "@/components/gmb/gmb-connection-manager";
+import { GMBConnectionCard } from "@/components/gmb/connection/GMBConnectionCard";
 import { Shield, CheckCircle, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -73,11 +73,7 @@ export function AccountConnectionTab({
   return (
     <div className="space-y-6">
       {/* GMB Connection Manager - Main Component */}
-      <GMBConnectionManager
-        variant="full"
-        showLastSync={true}
-        onSuccess={onSuccess}
-      />
+      <GMBConnectionCard />
 
       {/* Sync Preferences */}
       <Card className="bg-card border-primary/30">

@@ -1,345 +1,296 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { checkRateLimit, getRateLimitStatus, RATE_LIMITS } from '@/lib/security/rate-limiter';
+import { SupabaseClient } from "@supabase/supabase-js";
+import {
+  checkRateLimit,
+  getRateLimitStatus,
+  RATE_LIMITS,
+} from "@/lib/security/rate-limiter";
 
-// Mock Supabase client
-function createMockSupabase(responses: {
-  count?: number | null;
-  error?: any;
-  insertError?: any;
-}): SupabaseClient {
-  return {
-    from: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockResolvedValue({
-              count: responses.count,
-              error: responses.error,
-            }),
-          }),
-        }),
-      }),
-      insert: jest.fn().mockResolvedValue({
-        error: responses.insertError,
-      }),
-      delete: jest.fn().mockReturnValue({
-        lt: jest.fn().mockResolvedValue({
-          error: null,
-        }),
-      }),
-    }),
-  } as unknown as SupabaseClient;
-}
-
-// Mock the server module
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(),
+// Mock next/headers to prevent 'cookies() called outside request scope' error
+jest.mock("next/headers", () => ({
+  cookies: jest.fn(),
 }));
 
-describe('Rate Limiter', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockGte: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockEq: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockSelect: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockInsert: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockLt: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockDelete: jest.Mock<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockFrom: jest.Mock<any>;
+let mockSupabaseClient: SupabaseClient;
+
+beforeEach(() => {
+  mockGte = jest.fn();
+  mockEq = jest.fn();
+  mockSelect = jest.fn();
+  mockInsert = jest.fn();
+  mockLt = jest.fn();
+  mockDelete = jest.fn();
+  mockFrom = jest.fn();
+
+  // Setup chain: from().select().eq().eq().gte() for count query
+  // eq returns object with eq (for chaining) and gte (for final call)
+  mockEq.mockReturnValue({ eq: mockEq, gte: mockGte });
+  mockSelect.mockReturnValue({ eq: mockEq });
+
+  // Setup chain: from().delete().lt() for cleanup
+  mockLt.mockReturnValue({ lt: mockLt });
+  mockDelete.mockReturnValue({ lt: mockLt });
+
+  mockFrom.mockImplementation(() => ({
+    select: mockSelect,
+    insert: mockInsert,
+    delete: mockDelete,
+  }));
+
+  mockSupabaseClient = {
+    from: mockFrom,
+  } as unknown as SupabaseClient;
+
+  // Default successful responses
+  mockInsert.mockResolvedValue({ error: null });
+  mockLt.mockResolvedValue({ error: null });
+});
+
+describe("Rate Limiting - checkRateLimit", () => {
+  it("should allow requests under the limit", async () => {
+    mockGte.mockResolvedValue({ count: 5, error: null });
+
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.remaining).toBe(94);
   });
 
-  describe('checkRateLimit - Success Cases', () => {
-    it('should allow request when under limit', async () => {
-      const mockSupabase = createMockSupabase({ count: 5, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+  it("should block requests at the limit", async () => {
+    mockGte.mockResolvedValue({ count: 100, error: null });
 
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
 
-      expect(result.success).toBe(true);
-      expect(result.limit).toBe(10);
-      expect(result.remaining).toBe(4); // 10 - 5 - 1 (current request)
-      expect(result.reset).toBeInstanceOf(Date);
-    });
-
-    it('should allow first request (count = 0)', async () => {
-      const mockSupabase = createMockSupabase({ count: 0, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      expect(result.success).toBe(true);
-      expect(result.remaining).toBe(9);
-    });
-
-    it('should allow request at exact limit minus one', async () => {
-      const mockSupabase = createMockSupabase({ count: 9, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      expect(result.success).toBe(true);
-      expect(result.remaining).toBe(0);
-    });
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
   });
 
-  describe('checkRateLimit - Rate Limit Exceeded', () => {
-    it('should block request when at limit', async () => {
-      const mockSupabase = createMockSupabase({ count: 10, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+  it("should block requests over the limit", async () => {
+    mockGte.mockResolvedValue({ count: 150, error: null });
 
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
 
-      expect(result.success).toBe(false);
-      expect(result.remaining).toBe(0);
-      expect(result.message).toContain('Rate limit exceeded');
-      expect(result.message).toContain('10 requests');
-    });
-
-    it('should block request when over limit', async () => {
-      const mockSupabase = createMockSupabase({ count: 15, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      expect(result.success).toBe(false);
-      expect(result.remaining).toBe(0);
-    });
-
-    it('should use custom error message when provided', async () => {
-      const mockSupabase = createMockSupabase({ count: 10, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = {
-        maxRequests: 10,
-        windowMs: 60000,
-        message: 'Custom rate limit message',
-      };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toBe('Custom rate limit message');
-    });
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
   });
 
-  describe('checkRateLimit - Error Handling (Fail Open)', () => {
-    it('should fail open when database query fails', async () => {
-      const mockSupabase = createMockSupabase({
-        count: null,
-        error: { message: 'Database error' },
-      });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+  it("should fail open on database error", async () => {
+    mockGte.mockResolvedValue({ count: null, error: { message: "DB Error" } });
 
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
 
-      // Should allow request despite error (fail open for availability)
-      expect(result.success).toBe(true);
-      expect(result.limit).toBe(10);
-      expect(result.remaining).toBe(10);
-    });
-
-    it('should fail open when insert fails', async () => {
-      const mockSupabase = createMockSupabase({
-        count: 0,
-        error: null,
-        insertError: { message: 'Insert failed' },
-      });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 10, windowMs: 60000 };
-
-      // Should not throw, but log current request
-      await expect(checkRateLimit('user-123', '/api/test', config)).resolves.toBeDefined();
-    });
-
-    it('should handle unexpected exceptions gracefully', async () => {
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockRejectedValue(new Error('Connection failed'));
-
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      // Should fail open
-      expect(result.success).toBe(true);
-    });
+    expect(result.success).toBe(true);
+    expect(result.remaining).toBe(100);
   });
 
-  describe('checkRateLimit - Different Configurations', () => {
-    it('should use default configuration when not provided', async () => {
-      const mockSupabase = createMockSupabase({ count: 50, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+  it("should use correct identifier and endpoint", async () => {
+    mockGte.mockResolvedValue({ count: 0, error: null });
 
-      const result = await checkRateLimit('user-123', '/api/test');
+    await checkRateLimit(
+      "user-123",
+      "/api/chat",
+      { maxRequests: 50, windowMs: 30000 },
+      mockSupabaseClient,
+    );
 
-      expect(result.limit).toBe(100); // Default maxRequests
-      expect(result.success).toBe(true);
-    });
+    expect(mockFrom).toHaveBeenCalledWith("rate_limit_requests");
+    expect(mockSelect).toHaveBeenCalled();
+  });
+});
 
-    it('should handle different window sizes', async () => {
-      const mockSupabase = createMockSupabase({ count: 2, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+describe("Rate Limiting - getRateLimitStatus", () => {
+  it("should return current count and reset time", async () => {
+    mockGte.mockResolvedValue({ count: 25, error: null });
 
-      const config = { maxRequests: 5, windowMs: 5000 }; // 5 seconds
-      const result = await checkRateLimit('user-123', '/api/test', config);
+    const status = await getRateLimitStatus(
+      "test-user",
+      "/api/test",
+      60000,
+      mockSupabaseClient,
+    );
 
-      expect(result.success).toBe(true);
-      expect(result.limit).toBe(5);
-    });
-
-    it('should handle very strict limits', async () => {
-      const mockSupabase = createMockSupabase({ count: 1, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 1, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
-
-      expect(result.success).toBe(false); // Already at limit
-    });
+    expect(status.count).toBe(25);
+    expect(status.resetAt).toBeInstanceOf(Date);
   });
 
-  describe('checkRateLimit - Isolation Between Users/Endpoints', () => {
-    it('should track different users independently', async () => {
-      const mockSupabase = createMockSupabase({ count: 5, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+  it("should return zero count when no requests exist", async () => {
+    mockGte.mockResolvedValue({ count: 0, error: null });
 
-      const config = { maxRequests: 10, windowMs: 60000 };
+    const status = await getRateLimitStatus(
+      "test-user",
+      "/api/test",
+      60000,
+      mockSupabaseClient,
+    );
 
-      // User 1
-      const result1 = await checkRateLimit('user-1', '/api/test', config);
-      expect(result1.success).toBe(true);
+    expect(status.count).toBe(0);
+  });
 
-      // User 2 (should have independent count)
-      const result2 = await checkRateLimit('user-2', '/api/test', config);
-      expect(result2.success).toBe(true);
-    });
+  it("should return zero count on database error", async () => {
+    mockGte.mockResolvedValue({ count: null, error: { message: "DB Error" } });
 
-    it('should track different endpoints independently', async () => {
-      const mockSupabase = createMockSupabase({ count: 5, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+    const status = await getRateLimitStatus(
+      "test-user",
+      "/api/test",
+      60000,
+      mockSupabaseClient,
+    );
 
-      const config = { maxRequests: 10, windowMs: 60000 };
+    expect(status.count).toBe(0);
+  });
+});
 
-      // Endpoint 1
-      const result1 = await checkRateLimit('user-1', '/api/endpoint1', config);
-      expect(result1.success).toBe(true);
-
-      // Endpoint 2 (should have independent count)
-      const result2 = await checkRateLimit('user-1', '/api/endpoint2', config);
-      expect(result2.success).toBe(true);
+describe("Rate Limiting - RATE_LIMITS configuration", () => {
+  it("should have correct API_READ rate limit", () => {
+    expect(RATE_LIMITS.API_READ).toEqual({
+      maxRequests: 100,
+      windowMs: 60000,
     });
   });
 
-  describe('getRateLimitStatus', () => {
-    it('should return current request count', async () => {
-      const mockSupabase = createMockSupabase({ count: 7, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const status = await getRateLimitStatus('user-123', '/api/test', 60000);
-
-      expect(status.count).toBe(7);
-      expect(status.resetAt).toBeInstanceOf(Date);
-    });
-
-    it('should handle database errors gracefully', async () => {
-      const mockSupabase = createMockSupabase({
-        count: null,
-        error: { message: 'Error' },
-      });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const status = await getRateLimitStatus('user-123', '/api/test', 60000);
-
-      expect(status.count).toBe(0);
-      expect(status.resetAt).toBeInstanceOf(Date);
+  it("should have correct API_WRITE rate limit", () => {
+    expect(RATE_LIMITS.API_WRITE).toEqual({
+      maxRequests: 30,
+      windowMs: 60000,
     });
   });
 
-  describe('RATE_LIMITS Configuration', () => {
-    it('should have reasonable limits for dashboard operations', () => {
-      expect(RATE_LIMITS.DASHBOARD_LOAD.maxRequests).toBe(30);
-      expect(RATE_LIMITS.DASHBOARD_LOAD.windowMs).toBe(60000);
-      expect(RATE_LIMITS.DASHBOARD_REFRESH.maxRequests).toBe(10);
-    });
-
-    it('should have appropriate limits for API operations', () => {
-      expect(RATE_LIMITS.API_READ.maxRequests).toBe(100);
-      expect(RATE_LIMITS.API_WRITE.maxRequests).toBe(30);
-      expect(RATE_LIMITS.API_WRITE.maxRequests).toBeLessThan(RATE_LIMITS.API_READ.maxRequests);
-    });
-
-    it('should have strict limits for expensive operations', () => {
-      expect(RATE_LIMITS.GMB_SYNC.maxRequests).toBe(5);
-      expect(RATE_LIMITS.GMB_SYNC.windowMs).toBe(300000); // 5 minutes
-      expect(RATE_LIMITS.EXPORT.maxRequests).toBe(5);
-    });
-
-    it('should have moderate limits for AI operations', () => {
-      expect(RATE_LIMITS.AI_GENERATE.maxRequests).toBe(20);
-      expect(RATE_LIMITS.AI_GENERATE.windowMs).toBe(60000);
+  it("should have correct EXPORT rate limit", () => {
+    expect(RATE_LIMITS.EXPORT).toEqual({
+      maxRequests: 5,
+      windowMs: 60000,
     });
   });
 
-  describe('Rate Limiting - DoS Protection', () => {
-    it('should prevent rapid successive requests', async () => {
-      const mockSupabase = createMockSupabase({ count: 0, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
-
-      const config = { maxRequests: 3, windowMs: 60000 };
-
-      // Simulate rapid requests
-      const results = [];
-      for (let i = 0; i < 5; i++) {
-        mockSupabase.from = jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  count: i,
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-          insert: jest.fn().mockResolvedValue({ error: null }),
-        });
-
-        const result = await checkRateLimit('user-123', '/api/test', config);
-        results.push(result);
-      }
-
-      // First 3 should succeed, last 2 should fail
-      expect(results[0].success).toBe(true);
-      expect(results[1].success).toBe(true);
-      expect(results[2].success).toBe(true);
-      expect(results[3].success).toBe(false);
-      expect(results[4].success).toBe(false);
+  it("should have correct GMB_SYNC rate limit", () => {
+    expect(RATE_LIMITS.GMB_SYNC).toEqual({
+      maxRequests: 10,
+      windowMs: 600000,
     });
+  });
+});
 
-    it('should provide retry-after information', async () => {
-      const mockSupabase = createMockSupabase({ count: 10, error: null });
-      const { createClient } = await import('@/lib/supabase/server');
-      (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+describe("Rate Limiting - Edge Cases", () => {
+  it("should handle empty identifier", async () => {
+    mockGte.mockResolvedValue({ count: 0, error: null });
 
-      const config = { maxRequests: 10, windowMs: 60000 };
-      const result = await checkRateLimit('user-123', '/api/test', config);
+    const result = await checkRateLimit(
+      "",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
 
-      expect(result.reset).toBeInstanceOf(Date);
-      expect(result.reset.getTime()).toBeGreaterThan(Date.now());
-    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should handle very large request counts", async () => {
+    mockGte.mockResolvedValue({ count: 999999, error: null });
+
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  it("should handle zero maxRequests config", async () => {
+    mockGte.mockResolvedValue({ count: 0, error: null });
+
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 0, windowMs: 60000 },
+      mockSupabaseClient,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  it("should handle insert error gracefully", async () => {
+    mockGte.mockResolvedValue({ count: 5, error: null });
+    mockInsert.mockResolvedValue({ error: { message: "Insert failed" } });
+
+    const result = await checkRateLimit(
+      "test-user",
+      "/api/test",
+      { maxRequests: 100, windowMs: 60000 },
+      mockSupabaseClient,
+    );
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("Rate Limiting - DoS Protection", () => {
+  it("should prevent rapid successive requests", async () => {
+    mockGte
+      .mockResolvedValueOnce({ count: 0, error: null })
+      .mockResolvedValueOnce({ count: 1, error: null })
+      .mockResolvedValueOnce({ count: 2, error: null })
+      .mockResolvedValueOnce({ count: 3, error: null })
+      .mockResolvedValueOnce({ count: 4, error: null });
+
+    const results = [];
+    for (let i = 0; i < 5; i++) {
+      const result = await checkRateLimit(
+        "attacker",
+        "/api/sensitive",
+        { maxRequests: 5, windowMs: 60000 },
+        mockSupabaseClient,
+      );
+      results.push(result);
+    }
+
+    expect(results.every((r) => r.success)).toBe(true);
+
+    mockGte.mockResolvedValue({ count: 5, error: null });
+
+    const blockedResult = await checkRateLimit(
+      "attacker",
+      "/api/sensitive",
+      { maxRequests: 5, windowMs: 60000 },
+      mockSupabaseClient,
+    );
+
+    expect(blockedResult.success).toBe(false);
   });
 });

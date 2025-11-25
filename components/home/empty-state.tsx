@@ -28,7 +28,7 @@ export function EmptyState() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Link href="/settings">
-            <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2" aria-label={t("connectGMB")}>
               <Building2 className="w-5 h-5" />
               {t("connectGMB")}
             </Button>
@@ -39,6 +39,7 @@ export function EmptyState() {
               size="lg"
               variant="outline"
               className="gap-2 border-primary/30"
+              aria-label={t("connectYouTube")}
             >
               <Play className="w-5 h-5" />
               {t("connectYouTube")}

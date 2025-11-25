@@ -34,7 +34,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useGMBConnection } from "@/hooks/use-gmb-connection";
+import { useGMBStatus } from "@/hooks/features/use-gmb";
 import {
   permanentlyDeleteArchivedData,
   updateDataRetentionSettings,
@@ -55,13 +55,16 @@ export function DataManagement({
   deleteOnDisconnect: deleteOnDisconnectProp,
   setDeleteOnDisconnect: setDeleteOnDisconnectProp,
 }: DataManagementProps) {
-  const {
-    hasArchivedData,
-    archivedLocationsCount,
-    archivedReviewsCount,
-    activeAccounts,
-    refresh,
-  } = useGMBConnection();
+  const { data: gmbStatus, refetch } = useGMBStatus();
+  const activeAccounts = gmbStatus?.activeAccount
+    ? [gmbStatus.activeAccount]
+    : [];
+
+  // TODO: These values should come from a proper API endpoint
+  const hasArchivedData = false;
+  const archivedLocationsCount = 0;
+  const archivedReviewsCount = 0;
+  const refresh = refetch;
 
   // Use props if provided, otherwise use local state
   const [localRetentionDays, setLocalRetentionDays] = useState(30);

@@ -45,6 +45,39 @@ export interface ManagementStats {
   };
 }
 
+// API Response types
+interface APIReview {
+  id?: string;
+  review_id?: string;
+  rating?: number;
+  star_rating?: number;
+  has_reply?: boolean;
+  review_text?: string;
+  comment?: string;
+  review_date?: string;
+  create_time?: string;
+  created_at?: string;
+  reviewer_name?: string;
+  reviewer?: { displayName?: string };
+}
+
+interface APIQuestion {
+  id?: string;
+  question_id?: string;
+  question_text?: string;
+  text?: string;
+  create_time?: string;
+  created_at?: string;
+  author?: { displayName?: string };
+}
+
+interface APIPost {
+  id?: string;
+  create_time?: string;
+  created_at?: string;
+  state?: string;
+}
+
 export interface AICommandCenterData {
   businessInfo: BusinessInfo;
   urgentItems: UrgentItem[];
@@ -114,7 +147,7 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
         const reviewsData = await reviewsResponse.json();
         const reviews = reviewsData.reviews || [];
 
-        reviews.forEach((review: any) => {
+        reviews.forEach((review: APIReview) => {
           const rating = review.rating || review.star_rating || 0;
           const priority =
             rating <= 2 ? "high" : rating === 3 ? "medium" : "low";
@@ -122,13 +155,16 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
           // Only show negative/neutral reviews as urgent
           if (rating <= 3 && !review.has_reply) {
             urgentItems.push({
-              id: review.id || review.review_id,
+              id: review.id || review.review_id || "",
               type: "review",
               priority,
               title: `${rating}-star review needs response`,
               content: review.review_text || review.comment || "",
               timestamp:
-                review.review_date || review.create_time || review.created_at,
+                review.review_date ||
+                review.create_time ||
+                review.created_at ||
+                new Date().toISOString(),
               metadata: {
                 rating,
                 author:
@@ -155,10 +191,12 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
         const questionsData = await questionsResponse.json();
         const questions = questionsData.questions || questionsData.data || [];
 
-        questions.forEach((question: any) => {
+        questions.forEach((question: APIQuestion) => {
           const hoursSinceAsked =
             (Date.now() -
-              new Date(question.create_time || question.created_at).getTime()) /
+              new Date(
+                question.create_time || question.created_at || Date.now(),
+              ).getTime()) /
             (1000 * 60 * 60);
           const priority =
             hoursSinceAsked > 48
@@ -168,12 +206,15 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
                 : "low";
 
           urgentItems.push({
-            id: question.id || question.question_id,
+            id: question.id || question.question_id || "",
             type: "question",
             priority,
             title: "Unanswered question",
             content: question.question_text || question.text || "",
-            timestamp: question.create_time || question.created_at,
+            timestamp:
+              question.create_time ||
+              question.created_at ||
+              new Date().toISOString(),
             metadata: {
               author: question.author?.displayName || "Customer",
               locationName: firstLocation.location_name,
@@ -240,13 +281,17 @@ async function fetchManagementStats(): Promise<ManagementStats> {
 
           // Count published and scheduled posts
           const now = new Date();
-          const published = allPosts.filter((post: any) => {
-            const postDate = new Date(post.create_time || post.created_at);
+          const published = allPosts.filter((post: APIPost) => {
+            const postDate = new Date(
+              post.create_time || post.created_at || Date.now(),
+            );
             return postDate <= now && post.state !== "SCHEDULED";
           }).length;
 
-          const scheduledPosts = allPosts.filter((post: any) => {
-            const postDate = new Date(post.create_time || post.created_at);
+          const scheduledPosts = allPosts.filter((post: APIPost) => {
+            const postDate = new Date(
+              post.create_time || post.created_at || Date.now(),
+            );
             return postDate > now || post.state === "SCHEDULED";
           });
 
@@ -254,9 +299,13 @@ async function fetchManagementStats(): Promise<ManagementStats> {
 
           // Get next scheduled post
           if (scheduledPosts.length > 0) {
-            scheduledPosts.sort((a: any, b: any) => {
-              const dateA = new Date(a.create_time || a.created_at);
-              const dateB = new Date(b.create_time || b.created_at);
+            scheduledPosts.sort((a: APIPost, b: APIPost) => {
+              const dateA = new Date(
+                a.create_time || a.created_at || Date.now(),
+              );
+              const dateB = new Date(
+                b.create_time || b.created_at || Date.now(),
+              );
               return dateA.getTime() - dateB.getTime();
             });
 

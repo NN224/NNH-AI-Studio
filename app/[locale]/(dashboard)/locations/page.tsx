@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { LocationFormDialog } from "@/components/locations/location-form-dialog";
 import { Location } from "@/components/locations/location-types";
 import { GMBConnectionBanner } from "@/components/locations/gmb-connection-banner";
-import { useGmbStatus } from "@/hooks/use-gmb-status";
+import { useGMBStatus } from "@/hooks/features/use-gmb";
 import {
   Card,
   CardContent,
@@ -55,7 +55,8 @@ export default function LocationsPage() {
   );
   const [editingLocationData, setEditingLocationData] =
     useState<Partial<Location> | null>(null);
-  const { connected } = useGmbStatus();
+  const { data: gmbStatus } = useGMBStatus();
+  const connected = gmbStatus?.connected ?? false;
   const { data: overviewSnapshot } = useDashboardSnapshot();
   const recentHighlights =
     overviewSnapshot?.reviewStats?.recentHighlights ?? [];

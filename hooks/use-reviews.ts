@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import type { GMBReview } from '@/lib/types/database';
+import { useState, useEffect, useCallback } from "react";
+import type { GMBReview } from "@/lib/types/database";
 
 interface ReviewFilters {
   rating?: number;
-  sentiment?: 'positive' | 'neutral' | 'negative';
-  status?: 'pending' | 'replied' | 'responded' | 'flagged' | 'archived';
+  sentiment?: "positive" | "neutral" | "negative";
+  status?: "pending" | "replied" | "responded" | "flagged" | "archived";
   locationId?: string;
   search?: string;
   dateFrom?: string;
@@ -29,7 +29,10 @@ interface UseReviewsReturn {
   pagination: PaginationData | null;
   filters: ReviewFilters;
   setFilters: (filters: ReviewFilters) => void;
-  updateFilter: (key: keyof ReviewFilters, value: any) => void;
+  updateFilter: <K extends keyof ReviewFilters>(
+    key: K,
+    value: ReviewFilters[K] | null | undefined,
+  ) => void;
   loadMore: () => Promise<void>;
   goToPage: (page: number) => Promise<void>;
   refresh: () => Promise<void>;
@@ -75,32 +78,32 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
         });
 
         if (filters.rating) {
-          params.append('rating', filters.rating.toString());
+          params.append("rating", filters.rating.toString());
         }
         if (filters.sentiment) {
-          params.append('sentiment', filters.sentiment);
+          params.append("sentiment", filters.sentiment);
         }
         if (filters.status) {
-          params.append('status', filters.status);
+          params.append("status", filters.status);
         }
         if (filters.locationId) {
-          params.append('locationId', filters.locationId);
+          params.append("locationId", filters.locationId);
         }
         if (filters.search) {
-          params.append('search', filters.search);
+          params.append("search", filters.search);
         }
         if (filters.dateFrom) {
-          params.append('dateFrom', filters.dateFrom);
+          params.append("dateFrom", filters.dateFrom);
         }
         if (filters.dateTo) {
-          params.append('dateTo', filters.dateTo);
+          params.append("dateTo", filters.dateTo);
         }
 
         const response = await fetch(`/api/reviews?${params.toString()}`);
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch reviews');
+          throw new Error(errorData.error || "Failed to fetch reviews");
         }
 
         const data = await response.json();
@@ -116,14 +119,16 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
         setPagination(data.pagination);
         setCurrentPage(page);
       } catch (err) {
-        console.error('Error fetching reviews:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch reviews');
+        console.error("Error fetching reviews:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch reviews",
+        );
       } finally {
         setLoading(false);
         setIsLoadingMore(false);
       }
     },
-    [filters, pageSize, infiniteScroll]
+    [filters, pageSize, infiniteScroll],
   );
 
   // Initial load and when filters change
@@ -137,18 +142,24 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
     setCurrentPage(1);
   }, []);
 
-  const updateFilter = useCallback((key: keyof ReviewFilters, value: any) => {
-    setFiltersState((prev) => {
-      const newFilters = { ...prev };
-      if (value === null || value === undefined || value === '') {
-        delete newFilters[key];
-      } else {
-        newFilters[key] = value;
-      }
-      return newFilters;
-    });
-    setCurrentPage(1);
-  }, []);
+  const updateFilter = useCallback(
+    <K extends keyof ReviewFilters>(
+      key: K,
+      value: ReviewFilters[K] | null | undefined,
+    ) => {
+      setFiltersState((prev) => {
+        const newFilters = { ...prev };
+        if (value === null || value === undefined || value === "") {
+          delete newFilters[key];
+        } else {
+          newFilters[key] = value;
+        }
+        return newFilters;
+      });
+      setCurrentPage(1);
+    },
+    [],
+  );
 
   const loadMore = useCallback(async () => {
     if (!pagination?.hasNextPage || isLoadingMore) {
@@ -164,7 +175,7 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
       }
       await fetchReviews(page, false);
     },
-    [pagination, fetchReviews]
+    [pagination, fetchReviews],
   );
 
   const refresh = useCallback(async () => {

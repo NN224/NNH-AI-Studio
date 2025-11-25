@@ -1,9 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { SmartHeader } from "@/components/home/smart-header";
 import { QuickActions } from "@/components/home/quick-actions";
 import { StatsOverview } from "@/components/home/stats-overview";
@@ -22,16 +20,7 @@ import type {
   UserProgress,
   UserAchievement,
 } from "@/server/actions/achievements";
-
-const InteractiveStatsDashboard = dynamic(
-  () =>
-    import("@/components/home/interactive-stats-dashboard").then(
-      (mod) => mod.InteractiveStatsDashboard,
-    ),
-  {
-    ssr: false,
-  },
-);
+import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 
 interface HomePageContentProps {
   user: {
@@ -249,7 +238,7 @@ export function HomePageContent({
             />
 
             {/* Interactive Dashboard */}
-            <InteractiveStatsDashboard userId={user.id} />
+            <InteractiveStatsDashboard />
 
             {/* AI Insights + Achievements */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

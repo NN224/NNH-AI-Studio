@@ -1,19 +1,20 @@
-'use server'
+"use server";
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 export interface RateLimitConfig {
-  maxRequests: number
-  windowMs: number
-  message?: string
+  maxRequests: number;
+  windowMs: number;
+  message?: string;
 }
 
 export interface RateLimitResult {
-  success: boolean
-  limit: number
-  remaining: number
-  reset: Date
-  message?: string
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: Date;
+  message?: string;
 }
 
 /**
@@ -27,32 +28,33 @@ export async function checkRateLimit(
     maxRequests: 100,
     windowMs: 60000, // 1 minute
   },
+  client?: SupabaseClient,
 ): Promise<RateLimitResult> {
   try {
-    const supabase = await createClient()
-    const now = new Date()
-    const windowStart = new Date(now.getTime() - config.windowMs)
+    const supabase = client || (await createClient());
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - config.windowMs);
 
     // Count requests in the current window
     const { count, error } = await supabase
-      .from('rate_limit_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', identifier)
-      .eq('endpoint', endpoint)
-      .gte('created_at', windowStart.toISOString())
+      .from("rate_limit_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", identifier)
+      .eq("endpoint", endpoint)
+      .gte("created_at", windowStart.toISOString());
 
     if (error) {
-      console.error('Rate limit check error:', error)
+      console.error("Rate limit check error:", error);
       // Fail open - allow request if check fails
       return {
         success: true,
         limit: config.maxRequests,
         remaining: config.maxRequests,
         reset: new Date(now.getTime() + config.windowMs),
-      }
+      };
     }
 
-    const requestCount = count || 0
+    const requestCount = count || 0;
 
     // Check if limit exceeded
     if (requestCount >= config.maxRequests) {
@@ -64,31 +66,31 @@ export async function checkRateLimit(
         message:
           config.message ||
           `Rate limit exceeded. Maximum ${config.maxRequests} requests per ${config.windowMs / 1000} seconds.`,
-      }
+      };
     }
 
     // Log this request
-    await supabase.from('rate_limit_requests').insert({
+    await supabase.from("rate_limit_requests").insert({
       user_id: identifier,
       endpoint,
       created_at: now.toISOString(),
-    })
+    });
 
     return {
       success: true,
       limit: config.maxRequests,
       remaining: config.maxRequests - requestCount - 1,
       reset: new Date(now.getTime() + config.windowMs),
-    }
+    };
   } catch (error) {
-    console.error('Rate limiter error:', error)
+    console.error("Rate limiter error:", error);
     // Fail open
     return {
       success: true,
       limit: config.maxRequests,
       remaining: config.maxRequests,
       reset: new Date(Date.now() + config.windowMs),
-    }
+    };
   }
 }
 
@@ -96,21 +98,23 @@ export async function checkRateLimit(
  * Clean up old rate limit records
  * Should be called periodically (e.g., via cron job)
  */
-export async function cleanupRateLimitRecords(olderThanMs: number = 3600000): Promise<void> {
+export async function cleanupRateLimitRecords(
+  olderThanMs: number = 3600000,
+): Promise<void> {
   try {
-    const supabase = await createClient()
-    const cutoffDate = new Date(Date.now() - olderThanMs)
+    const supabase = await createClient();
+    const cutoffDate = new Date(Date.now() - olderThanMs);
 
     const { error } = await supabase
-      .from('rate_limit_requests')
+      .from("rate_limit_requests")
       .delete()
-      .lt('created_at', cutoffDate.toISOString())
+      .lt("created_at", cutoffDate.toISOString());
 
     if (error) {
-      console.error('Rate limit cleanup error:', error)
+      console.error("Rate limit cleanup error:", error);
     }
   } catch (error) {
-    console.error('Rate limit cleanup error:', error)
+    console.error("Rate limit cleanup error:", error);
   }
 }
 
@@ -121,31 +125,32 @@ export async function getRateLimitStatus(
   identifier: string,
   endpoint: string,
   windowMs: number = 60000,
+  client?: SupabaseClient, // Optional client for testing
 ): Promise<{ count: number; resetAt: Date }> {
   try {
-    const supabase = await createClient()
-    const now = new Date()
-    const windowStart = new Date(now.getTime() - windowMs)
+    const supabase = client || (await createClient());
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - windowMs);
 
     const { count, error } = await supabase
-      .from('rate_limit_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', identifier)
-      .eq('endpoint', endpoint)
-      .gte('created_at', windowStart.toISOString())
+      .from("rate_limit_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", identifier)
+      .eq("endpoint", endpoint)
+      .gte("created_at", windowStart.toISOString());
 
     if (error) {
-      console.error('Rate limit status error:', error)
-      return { count: 0, resetAt: new Date(now.getTime() + windowMs) }
+      console.error("Rate limit status error:", error);
+      return { count: 0, resetAt: new Date(now.getTime() + windowMs) };
     }
 
     return {
       count: count || 0,
       resetAt: new Date(now.getTime() + windowMs),
-    }
+    };
   } catch (error) {
-    console.error('Rate limit status error:', error)
-    return { count: 0, resetAt: new Date(Date.now() + windowMs) }
+    console.error("Rate limit status error:", error);
+    return { count: 0, resetAt: new Date(Date.now() + windowMs) };
   }
 }
 
@@ -195,7 +200,7 @@ export const RATE_LIMITS = {
     maxRequests: 5,
     windowMs: 60000, // 5 exports per minute
   },
-} as const
+} as const;
 
 /**
  * Middleware helper for Next.js API routes
@@ -206,12 +211,12 @@ export async function withRateLimit(
   config: RateLimitConfig,
   handler: () => Promise<Response>,
 ): Promise<Response> {
-  const result = await checkRateLimit(userId, endpoint, config)
+  const result = await checkRateLimit(userId, endpoint, config);
 
   if (!result.success) {
     return new Response(
       JSON.stringify({
-        error: 'Rate limit exceeded',
+        error: "Rate limit exceeded",
         message: result.message,
         limit: result.limit,
         reset: result.reset,
@@ -219,22 +224,24 @@ export async function withRateLimit(
       {
         status: 429,
         headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toISOString(),
-          'Retry-After': Math.ceil((result.reset.getTime() - Date.now()) / 1000).toString(),
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": result.limit.toString(),
+          "X-RateLimit-Remaining": result.remaining.toString(),
+          "X-RateLimit-Reset": result.reset.toISOString(),
+          "Retry-After": Math.ceil(
+            (result.reset.getTime() - Date.now()) / 1000,
+          ).toString(),
         },
       },
-    )
+    );
   }
 
-  const response = await handler()
+  const response = await handler();
 
   // Add rate limit headers to successful responses
-  response.headers.set('X-RateLimit-Limit', result.limit.toString())
-  response.headers.set('X-RateLimit-Remaining', result.remaining.toString())
-  response.headers.set('X-RateLimit-Reset', result.reset.toISOString())
+  response.headers.set("X-RateLimit-Limit", result.limit.toString());
+  response.headers.set("X-RateLimit-Remaining", result.remaining.toString());
+  response.headers.set("X-RateLimit-Reset", result.reset.toISOString());
 
-  return response
+  return response;
 }

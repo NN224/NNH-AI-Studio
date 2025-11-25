@@ -240,6 +240,7 @@ export function AIInsights({ insights }: AIInsightsProps) {
                           variant="ghost"
                           size="sm"
                           className="h-8 text-xs mt-2 hover:bg-primary/10"
+                          aria-label={insight.actionText}
                           asChild
                         >
                           <Link href={insight.actionUrl}>
@@ -257,7 +258,12 @@ export function AIInsights({ insights }: AIInsightsProps) {
 
           {/* View All Button */}
           <div className="pt-4 border-t border-border/50">
-            <Button variant="outline" className="w-full gap-2" asChild>
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              aria-label={t("viewAll")}
+              asChild
+            >
               <Link href="/ai-command-center">
                 <Sparkles className="h-4 w-4" />
                 {t("viewAll")}

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from "react";
 
 /**
  * Hook to manage setTimeout safely with automatic cleanup
@@ -136,30 +136,36 @@ export function useDebounce<T>(value: T, delay: number): T {
 /**
  * Hook for throttling a callback
  */
-export function useThrottle(callback: (...args: any[]) => void, delay: number) {
+export function useThrottle<T extends unknown[]>(
+  callback: (...args: T) => void,
+  delay: number,
+) {
   const lastRan = useRef(Date.now());
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const throttled = useCallback((...args: any[]) => {
-    const now = Date.now();
-    const timeSinceLastRun = now - lastRan.current;
+  const throttled = useCallback(
+    (...args: T) => {
+      const now = Date.now();
+      const timeSinceLastRun = now - lastRan.current;
 
-    if (timeSinceLastRun >= delay) {
-      callback(...args);
-      lastRan.current = now;
-    } else {
-      // Clear any pending timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Schedule the next run
-      timeoutRef.current = setTimeout(() => {
+      if (timeSinceLastRun >= delay) {
         callback(...args);
-        lastRan.current = Date.now();
-      }, delay - timeSinceLastRun);
-    }
-  }, [callback, delay]);
+        lastRan.current = now;
+      } else {
+        // Clear any pending timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        // Schedule the next run
+        timeoutRef.current = setTimeout(() => {
+          callback(...args);
+          lastRan.current = Date.now();
+        }, delay - timeSinceLastRun);
+      }
+    },
+    [callback, delay],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -174,4 +180,4 @@ export function useThrottle(callback: (...args: any[]) => void, delay: number) {
 }
 
 // Add missing import
-import { useState } from 'react';
+import { useState } from "react";

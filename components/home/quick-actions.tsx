@@ -115,6 +115,7 @@ export function QuickActions() {
                     <Button
                       variant="outline"
                       className="w-full h-auto flex-col gap-2 py-4 border-border/50 hover:border-orange-500/50 hover:bg-orange-500/10 transition-all group relative overflow-hidden"
+                      aria-label={t(action.label)}
                     >
                       {/* Hover gradient */}
                       <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

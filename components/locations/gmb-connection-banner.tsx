@@ -1,16 +1,23 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  MapPin, Star, BarChart3, CheckCircle2, Sparkles, TrendingUpIcon, Shield, Plus
-} from 'lucide-react';
-import { useRouter } from '@/lib/navigation';
-import { GMBConnectionManager } from '@/components/gmb/gmb-connection-manager';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  MapPin,
+  Star,
+  BarChart3,
+  CheckCircle2,
+  Sparkles,
+  TrendingUpIcon,
+  Shield,
+  Plus,
+} from "lucide-react";
+import { useRouter } from "@/lib/navigation";
+import { GMBConnectionCard } from "@/components/gmb/connection/GMBConnectionCard";
 
 // No GMB Account Banner Component
 export const GMBConnectionBanner = () => {
   const router = useRouter();
-  
+
   return (
     <div className="space-y-6">
       {/* Hero Card */}
@@ -29,41 +36,56 @@ export const GMBConnectionBanner = () => {
 
             {/* Title & Subtitle */}
             <div className="space-y-3">
-              <h1 className="text-4xl font-bold tracking-tight">Connect Your Google Business Profile</h1>
-              <p className="text-xl text-muted-foreground">Manage your business locations, reviews, and posts all in one place</p>
+              <h1 className="text-4xl font-bold tracking-tight">
+                Connect Your Google Business Profile
+              </h1>
+              <p className="text-xl text-muted-foreground">
+                Manage your business locations, reviews, and posts all in one
+                place
+              </p>
             </div>
 
             {/* Benefits Grid */}
             <div className="mt-8 mb-8">
-              <h3 className="text-lg font-semibold mb-6 text-primary">What You Can Do</h3>
+              <h3 className="text-lg font-semibold mb-6 text-primary">
+                What You Can Do
+              </h3>
               <div className="grid md:grid-cols-2 gap-4 text-left">
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Manage multiple business locations from one dashboard</span>
+                  <span className="text-sm">
+                    Manage multiple business locations from one dashboard
+                  </span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Respond to reviews with AI-powered suggestions</span>
+                  <span className="text-sm">
+                    Respond to reviews with AI-powered suggestions
+                  </span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <TrendingUpIcon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Track performance with detailed analytics</span>
+                  <span className="text-sm">
+                    Track performance with detailed analytics
+                  </span>
                 </div>
                 <div className="flex gap-3 p-4 rounded-lg bg-background border border-primary/10 hover:border-primary/30 transition-colors">
                   <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Optimize your business profile for better visibility</span>
+                  <span className="text-sm">
+                    Optimize your business profile for better visibility
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* CTA Controls (Unified Manager) */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <GMBConnectionManager variant="compact" />
-              <Button 
-                size="lg" 
+              <GMBConnectionCard />
+              <Button
+                size="lg"
                 variant="outline"
                 className="w-full sm:w-auto"
-                onClick={() => router.push('/features')}
+                onClick={() => router.push("/features")}
               >
                 Learn More
               </Button>
@@ -83,7 +105,8 @@ export const GMBConnectionBanner = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Manage all your business locations from a single, unified dashboard with real-time updates.
+              Manage all your business locations from a single, unified
+              dashboard with real-time updates.
             </p>
           </CardContent>
         </Card>
@@ -97,7 +120,8 @@ export const GMBConnectionBanner = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Respond to customer reviews instantly with AI-generated, personalized responses.
+              Respond to customer reviews instantly with AI-generated,
+              personalized responses.
             </p>
           </CardContent>
         </Card>
@@ -111,7 +135,8 @@ export const GMBConnectionBanner = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Track performance metrics, customer insights, and growth trends across all locations.
+              Track performance metrics, customer insights, and growth trends
+              across all locations.
             </p>
           </CardContent>
         </Card>
@@ -121,14 +146,13 @@ export const GMBConnectionBanner = () => {
 };
 
 // Empty state component
-export const EmptyLocationsState = ({ 
-  hasFilters, 
-  onAddLocationAction 
-}: { 
-  hasFilters: boolean; 
-  onAddLocationAction: () => void; 
+export const EmptyLocationsState = ({
+  hasFilters,
+  onAddLocationAction,
+}: {
+  hasFilters: boolean;
+  onAddLocationAction: () => void;
 }) => {
-
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center py-16">
@@ -136,8 +160,8 @@ export const EmptyLocationsState = ({
         <h3 className="text-lg font-semibold mb-2">No Locations Found</h3>
         <p className="text-muted-foreground text-center mb-4">
           {hasFilters
-            ? 'No locations match your current filters. Try adjusting your search criteria.'
-            : 'Get started by adding your first business location.'}
+            ? "No locations match your current filters. Try adjusting your search criteria."
+            : "Get started by adding your first business location."}
         </p>
         <Button onClick={onAddLocationAction}>
           <Plus className="w-4 h-4 mr-2" />

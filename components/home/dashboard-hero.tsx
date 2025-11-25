@@ -302,6 +302,7 @@ export function DashboardHero({
                         size="sm"
                         variant="ghost"
                         className="w-full justify-between hover:bg-orange-500/10 group"
+                        aria-label="Complete your profile"
                       >
                         <span className="text-xs">Complete your profile</span>
                         <motion.span
@@ -374,6 +375,7 @@ export function DashboardHero({
                                   <button
                                     key={idx}
                                     onClick={() => setCurrentStatIndex(idx)}
+                                    aria-label={`View stat ${idx + 1}`}
                                     className={`w-1.5 h-1.5 rounded-full transition-all ${
                                       idx === currentStatIndex
                                         ? "bg-orange-500 h-6"

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useGMB } from "@/hooks/use-gmb";
-import { GMBConnectionManager } from "./gmb-connection-manager";
+import { GMBConnectionCard } from "./connection/GMBConnectionCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -66,12 +66,12 @@ const GMBDashboard = () => {
   }
 
   if (!memoizedLocations || memoizedLocations.length === 0) {
-    return <GMBConnectionManager variant="full" />;
+    return <GMBConnectionCard />;
   }
 
   return (
     <div className="space-y-6">
-      <GMBConnectionManager variant="compact" />
+      <GMBConnectionCard />
 
       {/* Location Selector */}
       {memoizedLocations.length > 1 && (
