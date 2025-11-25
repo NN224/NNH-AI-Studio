@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
 import { SmartHeader } from "@/components/home/smart-header";
@@ -10,17 +11,28 @@ import { RecentActivity } from "@/components/home/recent-activity";
 import { AIInsights } from "@/components/home/ai-insights";
 import { AnimatedBackground } from "@/components/home/animated-background";
 import { DashboardHero } from "@/components/home/dashboard-hero";
-import { ProgressTracker } from "@/components/home/progress-tracker";
 import { AIChatWidget } from "@/components/home/ai-chat-widget";
 import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { AISuggestions } from "@/components/home/ai-suggestions";
 import { AchievementSystem } from "@/components/home/achievement-system";
+import { ProgressTrackerSkeleton } from "@/components/home/skeleton-loaders";
 import type {
   UserProgress,
   UserAchievement,
 } from "@/server/actions/achievements";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+
+const ProgressTracker = dynamic(
+  () =>
+    import("@/components/home/progress-tracker").then(
+      (mod) => mod.ProgressTracker,
+    ),
+  {
+    ssr: false,
+    loading: () => <ProgressTrackerSkeleton />,
+  },
+);
 
 interface HomePageContentProps {
   user: {
