@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { LogOut, Settings } from 'lucide-react'
 import { Link } from '@/lib/navigation'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { motion } from 'framer-motion'
 import { SmartNotifications } from '@/components/home/smart-notifications'
 
@@ -19,8 +19,25 @@ interface SmartHeaderProps {
   lastLogin?: string
 }
 
+const formatLastLogin = (timestamp: string, locale: string) => {
+  if (!timestamp) return null
+
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
 export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
+  const locale = useLocale()
   const t = useTranslations('home.header')
+  const formattedLastLogin =
+    lastLogin && locale ? formatLastLogin(lastLogin, locale) : null
 
   return (
     <motion.header
@@ -43,9 +60,9 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
             <h1 className="text-sm font-semibold">
               {t('welcome')}, {user.name || user.email.split('@')[0]}
             </h1>
-            {lastLogin && (
+            {formattedLastLogin && (
               <p className="text-xs text-muted-foreground">
-                {t('lastLogin')}: {lastLogin}
+                {t('lastLogin')}: {formattedLastLogin}
               </p>
             )}
           </div>
