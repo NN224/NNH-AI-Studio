@@ -1,33 +1,44 @@
-'use client'
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { LogOut, Settings } from 'lucide-react'
-import { Link } from '@/lib/navigation'
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
-import { useTranslations } from 'next-intl'
-import { motion } from 'framer-motion'
-import { SmartNotifications } from '@/components/home/smart-notifications'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { LogOut, Settings } from "lucide-react";
+import { Link } from "@/lib/navigation";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import { useTranslations } from "next-intl";
+import { motion } from "framer-motion";
+import { SmartNotifications } from "@/components/home/smart-notifications";
+import { formatDistanceToNow } from "date-fns";
+
+// Format last login to human-readable format
+function formatLastLogin(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return dateString;
+  }
+}
 
 interface SmartHeaderProps {
   user: {
-    id: string
-    name?: string
-    email: string
-    avatar?: string
-  }
-  lastLogin?: string
+    id: string;
+    name?: string;
+    email: string;
+    avatar?: string;
+  };
+  lastLogin?: string;
 }
 
 export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
-  const t = useTranslations('home.header')
+  const t = useTranslations("home.header");
 
   return (
     <motion.header
       className="sticky top-0 z-50 border-b border-orange-500/20 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <div className="container flex h-16 items-center justify-between px-4">
         {/* User Info */}
@@ -41,11 +52,11 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
 
           <div>
             <h1 className="text-sm font-semibold">
-              {t('welcome')}, {user.name || user.email.split('@')[0]}
+              {t("welcome")}, {user.name || user.email.split("@")[0]}
             </h1>
             {lastLogin && (
               <p className="text-xs text-muted-foreground">
-                {t('lastLogin')}: {lastLogin}
+                {t("lastLogin")}: {formatLastLogin(lastLogin)}
               </p>
             )}
           </div>
@@ -74,5 +85,5 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
         </div>
       </div>
     </motion.header>
-  )
+  );
 }

@@ -1,26 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, Building, Video, MessageSquare } from "lucide-react";
 import { SmartHeader } from "@/components/home/smart-header";
 import { QuickActions } from "@/components/home/quick-actions";
-import { StatsOverview } from "@/components/home/stats-overview";
 import { EmptyState } from "@/components/home/empty-state";
-import { RecentActivity } from "@/components/home/recent-activity";
-import { AIInsights } from "@/components/home/ai-insights";
 import { AnimatedBackground } from "@/components/home/animated-background";
 import { DashboardHero } from "@/components/home/dashboard-hero";
-import { ProgressTracker } from "@/components/home/progress-tracker";
+import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
 import { AIChatWidget } from "@/components/home/ai-chat-widget";
-import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
-import { AISuggestions } from "@/components/home/ai-suggestions";
-import { AchievementSystem } from "@/components/home/achievement-system";
-import type {
-  UserProgress,
-  UserAchievement,
-} from "@/server/actions/achievements";
+import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+import { BusinessProfileCard } from "@/components/home/business-profile-card";
+
+interface BusinessHours {
+  [key: string]: {
+    open: string;
+    close: string;
+    closed: boolean;
+  };
+}
+
+interface PrimaryLocation {
+  id: string;
+  location_name: string;
+  logo_url?: string;
+  cover_photo_url?: string;
+  address?: string;
+  phone?: string;
+  category?: string;
+  website?: string;
+  rating?: number;
+  review_count?: number;
+  response_rate?: number;
+  health_score?: number;
+  profile_completeness?: number;
+  business_hours?: BusinessHours;
+  is_verified?: boolean;
+  menu_url?: string;
+  booking_url?: string;
+  order_url?: string;
+  appointment_url?: string;
+}
 
 interface HomePageContentProps {
   user: {
@@ -34,45 +55,23 @@ interface HomePageContentProps {
   } | null;
   hasAccounts: boolean;
   accountsCount: number | null;
-  locationsCount: number | null;
   reviewsCount: number | null;
   averageRating: string;
   todayReviewsCount: number | null;
   weeklyGrowth: number;
-  reviewsTrend: number[];
-  youtubeSubs: string | null;
-  hasYouTube: boolean;
   progressItems: Array<{
     id: string;
     label: string;
     completed: boolean;
     href: string;
   }>;
-  activities: Array<{
-    id: string;
-    type: "review" | "youtube" | "location" | "post";
-    title: string;
-    description: string;
-    timestamp: Date;
-    metadata?: any;
-    actionUrl?: string;
-  }>;
-  insights: Array<{
-    id: string;
-    type: "alert" | "success" | "recommendation" | "tip";
-    title: string;
-    description: string;
-    priority: "high" | "medium" | "low";
-    actionText?: string;
-    actionUrl?: string;
-    impact?: string;
-  }>;
   responseRate: number;
   streak: number;
-  timeOfDay?: "morning" | "afternoon" | "evening" | "night"; // Optional: calculated on server to avoid hydration mismatch
+  timeOfDay?: "morning" | "afternoon" | "evening" | "night";
   lastLogin?: string;
-  userProgress?: UserProgress | null;
-  userAchievements?: UserAchievement[];
+  businessName?: string;
+  businessLogo?: string;
+  primaryLocation?: PrimaryLocation | null;
 }
 
 export function HomePageContent({
@@ -80,23 +79,18 @@ export function HomePageContent({
   profile,
   hasAccounts,
   accountsCount,
-  locationsCount,
   reviewsCount,
   averageRating,
   todayReviewsCount,
   weeklyGrowth,
-  reviewsTrend,
-  youtubeSubs,
-  hasYouTube,
   progressItems,
-  activities,
-  insights,
   responseRate,
   streak,
   timeOfDay: serverTimeOfDay,
   lastLogin,
-  userProgress,
-  userAchievements = [],
+  businessName,
+  businessLogo,
+  primaryLocation,
 }: HomePageContentProps) {
   // Calculate completed tasks count
   const completedTasksCount = progressItems.filter(
@@ -105,6 +99,59 @@ export function HomePageContent({
 
   // Use server-provided timeOfDay (always provided now to avoid hydration mismatch)
   const timeOfDay = serverTimeOfDay || "morning";
+
+  // Calculate health score based on various factors
+  const calculateHealthScore = (
+    location: PrimaryLocation | null | undefined,
+    reviews: number | null,
+    respRate: number,
+  ): number => {
+    if (!location) return 0;
+    let score = 0;
+
+    // Has reviews (30 points)
+    if (reviews && reviews > 0) score += 30;
+
+    // Good response rate (25 points)
+    if (respRate >= 80) score += 25;
+    else if (respRate >= 50) score += 15;
+
+    // Has basic info (15 points)
+    if (location.phone) score += 5;
+    if (location.website) score += 5;
+    if (location.address) score += 5;
+
+    // Has business hours (10 points)
+    if (location.business_hours) score += 10;
+
+    // Has rating (20 points)
+    if (location.rating && location.rating >= 4) score += 20;
+    else if (location.rating && location.rating >= 3) score += 10;
+
+    return Math.min(score, 100);
+  };
+
+  // Calculate profile completeness
+  const calculateProfileCompleteness = (
+    location: PrimaryLocation | null | undefined,
+  ): number => {
+    if (!location) return 0;
+    let filled = 0;
+    const fields = [
+      location.location_name,
+      location.category,
+      location.address,
+      location.phone,
+      location.website,
+      location.logo_url,
+      location.cover_photo_url,
+      location.business_hours,
+    ];
+    fields.forEach((f) => {
+      if (f) filled++;
+    });
+    return Math.round((filled / fields.length) * 100);
+  };
 
   return (
     <div className="min-h-screen bg-black relative">
@@ -115,9 +162,9 @@ export function HomePageContent({
       <SmartHeader
         user={{
           id: user.id,
-          name: profile?.full_name,
+          name: businessName || profile?.full_name, // Prefer business name
           email: user.email || "",
-          avatar: profile?.avatar_url,
+          avatar: businessLogo || profile?.avatar_url, // Prefer business logo
         }}
         lastLogin={lastLogin}
       />
@@ -137,69 +184,75 @@ export function HomePageContent({
         ) : (
           /* Full Dashboard Layout - OPTIMIZED */
           <div className="space-y-6">
-            {/* Top Section: Hero + Progress */}
+            {/* Top Section: Business Profile + Progress */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              {/* Dashboard Hero - Takes more space */}
+              {/* Business Profile Card - Main */}
               <div className="xl:col-span-8">
-                <DashboardHero
-                  userName={profile?.full_name}
-                  timeOfDay={timeOfDay}
-                  stats={{
-                    todayReviews: todayReviewsCount || 0,
-                    weeklyGrowth: weeklyGrowth,
-                    totalReviews: reviewsCount || 0,
-                    averageRating: parseFloat(averageRating) || 0,
-                    responseRate: responseRate,
-                  }}
-                  profileCompletion={
-                    (completedTasksCount / progressItems.length) * 100
-                  }
-                  streak={streak}
-                  achievements={[
-                    {
-                      id: "first-review",
-                      icon: "⭐",
-                      title: "First Review Reply",
-                    },
-                    { id: "week-streak", icon: "🔥", title: "7 Day Streak" },
-                    {
-                      id: "100-reviews",
-                      icon: "💯",
-                      title: "100 Reviews Managed",
-                    },
-                  ]}
-                />
+                {primaryLocation ? (
+                  <BusinessProfileCard
+                    name={primaryLocation.location_name}
+                    category={primaryLocation.category}
+                    address={primaryLocation.address}
+                    phone={primaryLocation.phone}
+                    website={primaryLocation.website}
+                    logoUrl={businessLogo || primaryLocation.logo_url}
+                    coverPhotoUrl={primaryLocation.cover_photo_url}
+                    rating={
+                      primaryLocation.rating || parseFloat(averageRating) || 0
+                    }
+                    reviewCount={
+                      reviewsCount || primaryLocation.review_count || 0
+                    }
+                    responseRate={
+                      responseRate || primaryLocation.response_rate || 0
+                    }
+                    healthScore={calculateHealthScore(
+                      primaryLocation,
+                      reviewsCount,
+                      responseRate,
+                    )}
+                    profileCompleteness={
+                      primaryLocation.profile_completeness ||
+                      calculateProfileCompleteness(primaryLocation)
+                    }
+                    businessHours={primaryLocation.business_hours}
+                    menuUrl={primaryLocation.menu_url}
+                    bookingUrl={primaryLocation.booking_url}
+                    orderUrl={primaryLocation.order_url}
+                    appointmentUrl={primaryLocation.appointment_url}
+                    isVerified={primaryLocation.is_verified}
+                  />
+                ) : (
+                  <DashboardHero
+                    userName={profile?.full_name}
+                    timeOfDay={timeOfDay}
+                    stats={{
+                      todayReviews: todayReviewsCount || 0,
+                      weeklyGrowth: weeklyGrowth,
+                      totalReviews: reviewsCount || 0,
+                      averageRating: parseFloat(averageRating) || 0,
+                      responseRate: responseRate,
+                    }}
+                    profileCompletion={
+                      (completedTasksCount / progressItems.length) * 100
+                    }
+                    streak={streak}
+                    achievements={[]}
+                  />
+                )}
               </div>
 
               {/* Progress Tracker - Sidebar */}
               <div className="xl:col-span-4">
-                <ProgressTracker
+                <SimpleProgressTracker
                   items={progressItems.map((item) => ({
-                    ...item,
-                    icon:
-                      item.id === "profile-complete"
-                        ? CheckCircle
-                        : item.id === "connect-gmb"
-                          ? Building
-                          : item.id === "connect-youtube"
-                            ? Video
-                            : MessageSquare,
-                    reward: {
-                      points: item.completed ? 100 : 50,
-                      badge: item.completed ? "✅" : undefined,
-                    },
-                    difficulty: item.id === "first-review" ? "hard" : "easy",
-                    description:
-                      item.id === "profile-complete"
-                        ? "Add your avatar and business details"
-                        : item.id === "connect-gmb"
-                          ? "Connect your Google Business account to manage reviews"
-                          : item.id === "connect-youtube"
-                            ? "Link your YouTube channel for video management"
-                            : "Reply to customer reviews to build trust",
+                    id: item.id,
+                    label: item.label,
+                    completed: item.completed,
+                    href: item.href,
+                    points: item.completed ? 100 : 50,
                   }))}
                   hideWhenComplete={false}
-                  showRewards={true}
                 />
               </div>
             </div>
@@ -210,51 +263,19 @@ export function HomePageContent({
             {/* Quick Actions - Full Width */}
             <QuickActions />
 
-            {/* Stats Overview */}
-            <StatsOverview
-              stats={{
-                locations: locationsCount || 0,
-                reviews: reviewsCount || 0,
-                avgRating: averageRating,
-                accounts: accountsCount || 0,
-                youtubeSubscribers: youtubeSubs
-                  ? parseInt(youtubeSubs)
-                  : undefined,
-              }}
-              trends={{
-                reviewsTrend: reviewsTrend,
-              }}
-            />
-
-            {/* AI Suggestions */}
-            <AISuggestions
+            {/* Smart AI Suggestions - Based on real data */}
+            <SmartAISuggestions
               userId={user.id}
-              businessData={{
-                reviewCount: reviewsCount || 0,
-                avgRating: parseFloat(averageRating) || 0,
-                responseRate: responseRate,
-                lastActivity: new Date(),
-              }}
+              pendingReviews={0} // TODO: Pass actual pending reviews count
+              responseRate={responseRate}
+              avgRating={parseFloat(averageRating) || 0}
+              totalReviews={reviewsCount || 0}
+              weeklyGrowth={weeklyGrowth}
+              hasAutoReply={false} // TODO: Check from settings
             />
 
             {/* Interactive Dashboard */}
             <InteractiveStatsDashboard />
-
-            {/* AI Insights + Achievements */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* AI Insights */}
-              <AIInsights insights={insights} />
-
-              {/* Achievement System */}
-              <AchievementSystem
-                userId={user.id}
-                initialProgress={userProgress}
-                initialAchievements={userAchievements}
-              />
-            </div>
-
-            {/* Recent Activity */}
-            <RecentActivity activities={activities} limit={10} />
           </div>
         )}
       </main>
@@ -262,8 +283,8 @@ export function HomePageContent({
       {/* AI Chat Widget - Floating Assistant */}
       <AIChatWidget />
 
-      {/* Onboarding Tour - First time users */}
-      <EnhancedOnboarding />
+      {/* Onboarding Tour - Disabled temporarily */}
+      {/* <EnhancedOnboarding /> */}
     </div>
   );
 }

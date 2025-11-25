@@ -129,6 +129,62 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Get trends data (reviews by month)
+    const { data: trendsData } = await supabase
+      .from("gmb_reviews")
+      .select("review_date, rating")
+      .eq("user_id", user.id)
+      .order("review_date", { ascending: true });
+
+    // Process trends by month
+    const trendsByMonth: Record<
+      string,
+      { reviews: number; totalRating: number }
+    > = {};
+    trendsData?.forEach((review) => {
+      if (review.review_date) {
+        const date = new Date(review.review_date);
+        const monthKey = date.toLocaleString("en", { month: "short" });
+        if (!trendsByMonth[monthKey]) {
+          trendsByMonth[monthKey] = { reviews: 0, totalRating: 0 };
+        }
+        trendsByMonth[monthKey].reviews++;
+        trendsByMonth[monthKey].totalRating += review.rating || 0;
+      }
+    });
+
+    const trends = Object.entries(trendsByMonth).map(([date, data]) => ({
+      date,
+      reviews: data.reviews,
+      rating:
+        data.reviews > 0
+          ? Math.round((data.totalRating / data.reviews) * 10) / 10
+          : 0,
+    }));
+
+    // Get rating distribution (demographics)
+    const ratingCounts: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+    trendsData?.forEach((review) => {
+      const rating = Math.round(review.rating || 0);
+      if (rating >= 1 && rating <= 5) {
+        ratingCounts[rating]++;
+      }
+    });
+
+    const demographics = [
+      { name: "1 Star", value: ratingCounts[1] },
+      { name: "2 Stars", value: ratingCounts[2] },
+      { name: "3 Stars", value: ratingCounts[3] },
+      { name: "4 Stars", value: ratingCounts[4] },
+      { name: "5 Stars", value: ratingCounts[5] },
+    ];
+
     // Build response
     const response = {
       // Core metrics
@@ -147,6 +203,10 @@ export async function GET(request: NextRequest) {
       // Additional stats
       repliedReviews: dashboardStats.replied_reviews || 0,
       recentReviews: dashboardStats.recent_reviews || 0,
+
+      // Charts data
+      trends,
+      demographics,
 
       // Metadata
       lastUpdated: new Date().toISOString(),

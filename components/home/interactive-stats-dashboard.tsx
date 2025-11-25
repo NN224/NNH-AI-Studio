@@ -49,7 +49,15 @@ export function InteractiveStatsDashboard() {
         </div>
       </div>
 
-      <OverviewStats data={data?.overview} isLoading={isLoading} />
+      <OverviewStats
+        data={{
+          totalReviews: data?.totalReviews,
+          averageRating: data?.averageRating,
+          totalLocations: data?.totalLocations,
+          totalViews: data?.totalViews ?? 0,
+        }}
+        isLoading={isLoading}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <TrendsChart data={data?.trends} isLoading={isLoading} />

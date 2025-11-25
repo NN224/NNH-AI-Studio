@@ -1,24 +1,34 @@
 export interface DashboardStats {
-  overview: {
-    totalViews: number;
-    totalInteractions: number;
-    averageRating: number;
-    responseRate: number;
-  };
-  trends: {
+  // Core metrics from API
+  totalLocations: number;
+  averageRating: number;
+  totalReviews: number;
+  responseRate: number;
+
+  // Pending items
+  pendingReviews: number;
+  totalQuestions: number;
+  pendingQuestions: number;
+  avgResponseTime: string;
+
+  // Additional stats
+  repliedReviews: number;
+  recentReviews: number;
+  totalViews?: number;
+
+  // Metadata
+  lastUpdated: string;
+  source: string;
+
+  // Optional trend data
+  trends?: {
     date: string;
-    views: number;
-    searches: number;
-    actions: number;
+    reviews: number;
+    rating: number;
   }[];
-  demographics: {
+  demographics?: {
     name: string;
     value: number;
-  }[];
-  platformDistribution: {
-    name: string;
-    value: number;
-    color: string;
   }[];
 }
 

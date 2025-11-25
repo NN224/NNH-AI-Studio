@@ -66,6 +66,7 @@ export default async function HomePage({
     { data: youtubeToken },
     { count: repliedReviewsCount },
     { data: recentActivityDates },
+    { data: primaryLocation },
   ] = await Promise.all([
     supabase
       .from("gmb_locations")
@@ -96,7 +97,40 @@ export default async function HomePage({
       .eq("user_id", userId)
       .order("review_date", { ascending: false })
       .limit(50),
+    // Get primary location with full details
+    supabase
+      .from("gmb_locations")
+      .select(
+        `
+        id, location_name, logo_url, cover_photo_url,
+        address, phone, category, website,
+        rating, review_count, response_rate, health_score,
+        profile_completeness, business_hours, is_verified,
+        menu_url, booking_url, order_url, appointment_url
+      `,
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  // If no logo, try to get from gmb_media
+  let businessLogoUrl =
+    primaryLocation?.logo_url || primaryLocation?.cover_photo_url;
+  if (!businessLogoUrl && primaryLocation?.id) {
+    const { data: mediaLogo } = await supabase
+      .from("gmb_media")
+      .select("url")
+      .eq("location_id", primaryLocation.id)
+      .in("category", ["LOGO", "PROFILE", "COVER"])
+      .limit(1)
+      .maybeSingle();
+
+    if (mediaLogo?.url) {
+      businessLogoUrl = mediaLogo.url;
+    }
+  }
 
   // Calculate response rate
   const responseRate =
@@ -383,23 +417,18 @@ export default async function HomePage({
       profile={profile}
       hasAccounts={hasAccounts}
       accountsCount={accountsCount}
-      locationsCount={locationsCount}
       reviewsCount={reviewsCount}
       averageRating={averageRating}
       todayReviewsCount={todayReviewsCount}
       weeklyGrowth={weeklyGrowth}
-      reviewsTrend={reviewsTrend}
-      youtubeSubs={youtubeSubs ? youtubeSubs.toString() : null}
-      hasYouTube={hasYouTube}
       progressItems={progressItems}
-      activities={activities}
-      insights={insights}
       responseRate={responseRate}
       streak={streak}
       timeOfDay={timeOfDay}
       lastLogin={lastLogin ?? undefined}
-      userProgress={userProgress}
-      userAchievements={userAchievements}
+      businessName={primaryLocation?.location_name}
+      businessLogo={businessLogoUrl}
+      primaryLocation={primaryLocation}
     />
   );
 }

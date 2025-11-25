@@ -1,20 +1,10 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
-import {
-  Sparkles,
-  TrendingUp,
-  Calendar,
-  Zap,
-  MessageSquare,
-  Star,
-} from "lucide-react";
+import { Sparkles, TrendingUp, Zap, MessageSquare, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+// Link removed - achievements section removed
 import { useState, useEffect } from "react";
 
 interface DashboardHeroProps {
@@ -41,13 +31,11 @@ export function DashboardHero({
   userName,
   timeOfDay,
   stats,
-  profileCompletion = 75,
+  // profileCompletion removed - using ProgressTracker instead
   streak = 0,
-  achievements = [],
+  // achievements removed - cleaner UI
 }: DashboardHeroProps) {
   const t = useTranslations("home.hero");
-  const [currentStatIndex, setCurrentStatIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
 
   const getGreeting = () => {
     const greetings = {
@@ -68,56 +56,6 @@ export function DashboardHero({
     };
     return emojis[timeOfDay] || "👋";
   };
-
-  // Additional stats for carousel
-  const statsCarousel = [
-    {
-      icon: Calendar,
-      label: t("stats.today"),
-      value: stats.todayReviews || 0,
-      suffix: t("stats.reviews"),
-      color: "orange",
-      bgColor: "bg-orange-500/20",
-      borderColor: "border-orange-500/30",
-    },
-    {
-      icon: TrendingUp,
-      label: t("stats.growth"),
-      value: `${stats.weeklyGrowth || 0}%`,
-      suffix: t("stats.thisWeek"),
-      color: "green",
-      bgColor: "bg-green-500/20",
-      borderColor: "border-green-500/30",
-    },
-    {
-      icon: MessageSquare,
-      label: "Total Reviews",
-      value: stats.totalReviews || 0,
-      suffix: "all time",
-      color: "blue",
-      bgColor: "bg-blue-500/20",
-      borderColor: "border-blue-500/30",
-    },
-    {
-      icon: Star,
-      label: "Rating",
-      value: stats.averageRating?.toFixed(1) || "0.0",
-      suffix: "average",
-      color: "yellow",
-      bgColor: "bg-yellow-500/20",
-      borderColor: "border-yellow-500/30",
-    },
-  ];
-
-  // Auto-cycle through stats
-  useEffect(() => {
-    if (!isHovered) {
-      const interval = setInterval(() => {
-        setCurrentStatIndex((prev) => (prev + 1) % statsCarousel.length);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [isHovered, statsCarousel.length]);
 
   const motivationalMessages = [
     "You're doing great! Keep up the excellent work.",
@@ -265,169 +203,93 @@ export function DashboardHero({
                   </div>
                 </motion.div>
               </div>
-
-              {/* Right: Profile Completion */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="flex-shrink-0"
-              >
-                <div className="bg-black/40 backdrop-blur-xl border border-orange-500/20 rounded-2xl p-6 min-w-[280px]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-gray-300">
-                      Profile Strength
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className={`
-                        ${
-                          profileCompletion >= 80
-                            ? "border-green-500 text-green-500"
-                            : profileCompletion >= 50
-                              ? "border-yellow-500 text-yellow-500"
-                              : "border-orange-500 text-orange-500"
-                        }
-                      `}
-                    >
-                      {profileCompletion}%
-                    </Badge>
-                  </div>
-
-                  <Progress value={profileCompletion} className="h-2 mb-3" />
-
-                  {profileCompletion < 100 && (
-                    <Link href="/settings">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full justify-between hover:bg-orange-500/10 group"
-                        aria-label="Complete your profile"
-                      >
-                        <span className="text-xs">Complete your profile</span>
-                        <motion.span
-                          animate={{ x: [0, 3, 0] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                          className="text-orange-500"
-                        >
-                          →
-                        </motion.span>
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
             </div>
 
-            {/* Bottom Section: Stats Carousel + Achievements */}
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Stats Carousel */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-                className="flex-1"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              >
-                <div className="relative h-[100px] overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    {statsCarousel.map(
-                      (stat, index) =>
-                        index === currentStatIndex && (
-                          <motion.div
-                            key={stat.label}
-                            initial={{ opacity: 0, x: 100 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -100 }}
-                            transition={{ duration: 0.5, type: "spring" }}
-                            className="absolute inset-0"
-                          >
-                            <div
-                              className={`h-full ${stat.bgColor} backdrop-blur-xl border ${stat.borderColor} rounded-2xl p-6 flex items-center justify-between`}
-                            >
-                              <div className="flex items-center gap-4">
-                                <div
-                                  className={`p-3 rounded-xl ${stat.bgColor} backdrop-blur`}
-                                >
-                                  <stat.icon
-                                    className={`h-6 w-6 text-${stat.color}-500`}
-                                  />
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-400">
-                                    {stat.label}
-                                  </p>
-                                  <p
-                                    className={`text-2xl font-bold text-${stat.color}-500`}
-                                  >
-                                    {stat.value}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {stat.suffix}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Stat navigation dots */}
-                              <div className="flex flex-col gap-1">
-                                {statsCarousel.map((_, idx) => (
-                                  <button
-                                    key={idx}
-                                    onClick={() => setCurrentStatIndex(idx)}
-                                    aria-label={`View stat ${idx + 1}`}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all ${
-                                      idx === currentStatIndex
-                                        ? "bg-orange-500 h-6"
-                                        : "bg-gray-600 hover:bg-gray-400"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ),
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-
-              {/* Achievements Preview */}
-              {achievements.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6, duration: 0.5 }}
-                  className="flex gap-2"
-                >
-                  {achievements.slice(0, 3).map((achievement) => (
-                    <motion.div
-                      key={achievement.id}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border border-orange-500/30 flex items-center justify-center cursor-pointer"
-                      title={achievement.title}
-                    >
-                      <span className="text-2xl">{achievement.icon}</span>
-                    </motion.div>
-                  ))}
-                  {achievements.length > 3 && (
-                    <Link href="/achievements">
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        className="w-16 h-16 rounded-xl bg-black/40 border border-gray-700 flex items-center justify-center cursor-pointer"
-                      >
-                        <span className="text-sm text-gray-400">
-                          +{achievements.length - 3}
-                        </span>
-                      </motion.div>
-                    </Link>
-                  )}
-                </motion.div>
-              )}
-            </div>
+            {/* AI Tip - Smart actionable insight */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="mt-2"
+            >
+              <AITip stats={stats} />
+            </motion.div>
           </div>
         </div>
       </Card>
     </motion.div>
+  );
+}
+
+// AI Tip Component - Shows smart actionable insights
+function AITip({ stats }: { stats: DashboardHeroProps["stats"] }) {
+  // Determine the best tip based on stats
+  const getTip = () => {
+    if ((stats.responseRate || 0) < 80) {
+      return {
+        icon: MessageSquare,
+        text: "Improve your response rate! Reply to pending reviews.",
+        action: "/reviews?filter=pending",
+        actionText: "Reply Now",
+        bgColor: "bg-blue-500/10",
+        borderColor: "border-blue-500/20",
+        hoverColor: "hover:bg-blue-500/20",
+        textColor: "text-blue-500",
+      };
+    }
+    if ((stats.weeklyGrowth || 0) > 0) {
+      return {
+        icon: TrendingUp,
+        text: `Great job! Your reviews grew ${stats.weeklyGrowth}% this week.`,
+        action: "/analytics",
+        actionText: "View Analytics",
+        bgColor: "bg-green-500/10",
+        borderColor: "border-green-500/20",
+        hoverColor: "hover:bg-green-500/20",
+        textColor: "text-green-500",
+      };
+    }
+    if ((stats.averageRating || 0) >= 4.5) {
+      return {
+        icon: Star,
+        text: `Excellent ${stats.averageRating?.toFixed(1)} rating! Keep up the great work.`,
+        action: "/reviews",
+        actionText: "See Reviews",
+        bgColor: "bg-yellow-500/10",
+        borderColor: "border-yellow-500/20",
+        hoverColor: "hover:bg-yellow-500/20",
+        textColor: "text-yellow-500",
+      };
+    }
+    return {
+      icon: Sparkles,
+      text: "Check your dashboard for new insights.",
+      action: "/dashboard",
+      actionText: "Explore",
+      bgColor: "bg-orange-500/10",
+      borderColor: "border-orange-500/20",
+      hoverColor: "hover:bg-orange-500/20",
+      textColor: "text-orange-500",
+    };
+  };
+
+  const tip = getTip();
+  const Icon = tip.icon;
+
+  return (
+    <a
+      href={tip.action}
+      className={`flex items-center gap-3 p-3 rounded-xl ${tip.bgColor} border ${tip.borderColor} ${tip.hoverColor} transition-colors group`}
+    >
+      <div className={`p-2 rounded-lg ${tip.bgColor}`}>
+        <Icon className={`h-4 w-4 ${tip.textColor}`} />
+      </div>
+      <span className="flex-1 text-sm text-gray-300">{tip.text}</span>
+      <span
+        className={`text-xs font-medium ${tip.textColor} group-hover:underline`}
+      >
+        {tip.actionText} →
+      </span>
+    </a>
   );
 }

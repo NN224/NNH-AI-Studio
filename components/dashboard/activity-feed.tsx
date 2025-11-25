@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
-import { 
-  ArrowRight, 
-  MessageSquare, 
-  MapPin, 
-  Star, 
-  Zap, 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowRight,
+  MessageSquare,
+  MapPin,
+  Star,
+  Zap,
   FileText,
   HelpCircle,
   Youtube,
@@ -19,14 +19,14 @@ import {
   CheckCircle,
   XCircle,
   Save,
-  Eye
-} from "lucide-react"
-import { useEffect, useState, useRef, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
-import type { ActivityLog } from "@/lib/types/database"
-import { Skeleton } from "@/components/ui/skeleton"
-import Link from "next/link"
-import { sanitizeText } from "@/lib/utils/sanitize"
+  Eye,
+} from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { ActivityLog } from "@/lib/types/database";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 // خريطة الأيقونات حسب نوع النشاط
 const activityIcons = {
@@ -41,7 +41,7 @@ const activityIcons = {
   question_answered: CheckCircle,
   question_draft: Save,
   question_answer_removed: XCircle,
-  
+
   // YouTube
   youtube_connected: LinkIcon,
   youtube_disconnected: XCircle,
@@ -50,64 +50,64 @@ const activityIcons = {
   youtube_draft_deleted: Trash2,
   youtube_video_uploaded: Upload,
   youtube_analytics_exported: Eye,
-  
+
   // AI
   ai: Zap,
-  
+
   // Default
   default: MessageSquare,
-}
+};
 
 // دالة لتوليد الروابط بناءً على نوع النشاط والـ metadata
 const getActivityLink = (activity: ActivityLog): string | null => {
-  const meta = activity.metadata as Record<string, any> || {}
-  
+  const meta = (activity.metadata as Record<string, any>) || {};
+
   // GMB Posts
-  if (activity.activity_type.includes('post')) {
-    return '/posts'
+  if (activity.activity_type.includes("post")) {
+    return "/posts";
   }
-  
+
   // GMB Reviews
-  if (activity.activity_type.includes('review')) {
-    return '/reviews'
+  if (activity.activity_type.includes("review")) {
+    return "/reviews";
   }
-  
+
   // GMB Questions
-  if (activity.activity_type.includes('question')) {
-    return '/questions'
+  if (activity.activity_type.includes("question")) {
+    return "/questions";
   }
-  
+
   // GMB Locations
-  if (activity.activity_type.includes('location')) {
-    return '/locations'
+  if (activity.activity_type.includes("location")) {
+    return "/locations";
   }
-  
+
   // YouTube
-  if (activity.activity_type.includes('youtube')) {
-    if (activity.activity_type === 'youtube_video_uploaded' && meta.videoId) {
-      return `https://www.youtube.com/watch?v=${meta.videoId}`
+  if (activity.activity_type.includes("youtube")) {
+    if (activity.activity_type === "youtube_video_uploaded" && meta.videoId) {
+      return `https://www.youtube.com/watch?v=${meta.videoId}`;
     }
-    return '/youtube-dashboard'
+    return "/youtube-dashboard";
   }
-  
-  return null
-}
+
+  return null;
+};
 
 export function ActivityFeed() {
-  const [activities, setActivities] = useState<ActivityLog[]>([])
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
-  const channelRef = useRef<any>(null)
-  const isMountedRef = useRef(true)
+  const channelRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
 
   // ✅ FIX: Stabilize state update function to prevent race conditions
   const addActivity = useCallback((newActivity: ActivityLog) => {
     setActivities((prev) => {
       // ✅ Prevent duplicate activities
-      if (prev.some(a => a.id === newActivity.id)) {
+      if (prev.some((a) => a.id === newActivity.id)) {
         return prev;
       }
       // ✅ Add new activity and keep only last 10
@@ -118,18 +118,18 @@ export function ActivityFeed() {
   useEffect(() => {
     isMountedRef.current = true;
     let userId: string | null = null;
-    
+
     const setupActivityFeed = async () => {
       try {
         const {
           data: { user },
-        } = await supabase.auth.getUser()
-        
+        } = await supabase.auth.getUser();
+
         if (!user) {
           if (isMountedRef.current) {
-            setLoading(false)
+            setLoading(false);
           }
-          return
+          return;
         }
 
         userId = user.id;
@@ -139,15 +139,43 @@ export function ActivityFeed() {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(10)
+          .limit(10);
 
         if (!isMountedRef.current) return;
 
         if (error) {
-          console.error("Failed to fetch activities:", error)
-          setActivities([])
-        } else if (data) {
-          setActivities(data)
+          console.error("Failed to fetch activities:", error);
+        }
+
+        // If no activity logs, fetch recent reviews as fallback
+        if (!data || data.length === 0) {
+          const { data: reviews } = await supabase
+            .from("gmb_reviews")
+            .select(
+              "review_id, comment, rating, review_date, location_name, reply_text",
+            )
+            .eq("user_id", user.id)
+            .order("review_date", { ascending: false })
+            .limit(10);
+
+          if (reviews && reviews.length > 0) {
+            const reviewActivities = reviews.map((review) => ({
+              id: review.review_id,
+              user_id: user.id,
+              activity_type: review.reply_text ? "review_replied" : "review",
+              activity_message: review.reply_text
+                ? `Replied to ${review.rating}★ review at ${review.location_name || "your location"}`
+                : `New ${review.rating}★ review at ${review.location_name || "your location"}`,
+              metadata: { rating: review.rating, comment: review.comment },
+              created_at: review.review_date,
+              actionable: false,
+            })) as ActivityLog[];
+            setActivities(reviewActivities);
+          } else {
+            setActivities([]);
+          }
+        } else {
+          setActivities(data);
         }
 
         // ✅ FIX: Subscribe to real-time updates AFTER getting user ID
@@ -170,24 +198,24 @@ export function ActivityFeed() {
               },
             )
             .subscribe((status) => {
-              if (status === 'CHANNEL_ERROR') {
-                console.error('❌ Activity feed subscription error');
+              if (status === "CHANNEL_ERROR") {
+                console.error("❌ Activity feed subscription error");
               }
             });
 
           channelRef.current = channel;
         }
       } catch (err) {
-        console.error("Activity feed error:", err)
+        console.error("Activity feed error:", err);
         if (isMountedRef.current) {
-          setActivities([])
+          setActivities([]);
         }
       } finally {
         if (isMountedRef.current) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
     setupActivityFeed();
 
@@ -197,48 +225,59 @@ export function ActivityFeed() {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
-    }
-  }, [supabase, addActivity])
+    };
+  }, [supabase, addActivity]);
 
   const getActivityIcon = (type: string) => {
-    const IconComponent = activityIcons[type as keyof typeof activityIcons] || activityIcons.default
-    return IconComponent
-  }
+    const IconComponent =
+      activityIcons[type as keyof typeof activityIcons] ||
+      activityIcons.default;
+    return IconComponent;
+  };
 
   // دالة لتحديد لون الأيقونة حسب نوع النشاط
   const getActivityColor = (type: string): string => {
-    if (type.includes('delete') || type.includes('disconnect') || type.includes('removed')) {
-      return 'from-red-500 to-red-600'
+    if (
+      type.includes("delete") ||
+      type.includes("disconnect") ||
+      type.includes("removed")
+    ) {
+      return "from-red-500 to-red-600";
     }
-    if (type.includes('ai') || type.includes('generated')) {
-      return 'from-purple-500 to-pink-500'
+    if (type.includes("ai") || type.includes("generated")) {
+      return "from-purple-500 to-pink-500";
     }
-    if (type.includes('youtube')) {
-      return 'from-red-600 to-red-700'
+    if (type.includes("youtube")) {
+      return "from-red-600 to-red-700";
     }
-    if (type.includes('saved') || type.includes('draft')) {
-      return 'from-blue-500 to-blue-600'
+    if (type.includes("saved") || type.includes("draft")) {
+      return "from-blue-500 to-blue-600";
     }
-    if (type.includes('upload') || type.includes('publish') || type.includes('connected')) {
-      return 'from-green-500 to-green-600'
+    if (
+      type.includes("upload") ||
+      type.includes("publish") ||
+      type.includes("connected")
+    ) {
+      return "from-green-500 to-green-600";
     }
-    if (type.includes('answered') || type.includes('replied')) {
-      return 'from-emerald-500 to-emerald-600'
+    if (type.includes("answered") || type.includes("replied")) {
+      return "from-emerald-500 to-emerald-600";
     }
     // Default
-    return 'from-primary to-accent'
-  }
+    return "from-primary to-accent";
+  };
 
   const formatRelativeTime = (timestamp: string) => {
-    const now = new Date()
-    const then = new Date(timestamp)
-    const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000)
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return "Just now"
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
-    return `${Math.floor(diffInSeconds / 86400)}d ago`
-  }
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
 
   if (loading) {
     return (
@@ -258,7 +297,7 @@ export function ActivityFeed() {
           ))}
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -275,11 +314,11 @@ export function ActivityFeed() {
         ) : (
           <AnimatePresence mode="popLayout">
             {activities.map((activity) => {
-              const Icon = getActivityIcon(activity.activity_type)
-              const activityLink = getActivityLink(activity)
-              const colorClass = getActivityColor(activity.activity_type)
-              const isExternal = activityLink?.startsWith('http')
-              
+              const Icon = getActivityIcon(activity.activity_type);
+              const activityLink = getActivityLink(activity);
+              const colorClass = getActivityColor(activity.activity_type);
+              const isExternal = activityLink?.startsWith("http");
+
               const content = (
                 <motion.div
                   key={activity.id}
@@ -287,28 +326,36 @@ export function ActivityFeed() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   className={`flex items-center gap-4 p-4 rounded-lg bg-secondary border border-primary/20 transition-all duration-200 ${
-                    activityLink ? 'hover:border-primary/40 hover:bg-secondary/80 cursor-pointer focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2' : ''
+                    activityLink
+                      ? "hover:border-primary/40 hover:bg-secondary/80 cursor-pointer focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
+                      : ""
                   }`}
                   role={activityLink ? "button" : "article"}
                   tabIndex={activityLink ? 0 : -1}
-                  aria-label={activityLink ? `${activity.activity_message}. Click to view details.` : activity.activity_message}
+                  aria-label={
+                    activityLink
+                      ? `${activity.activity_message}. Click to view details.`
+                      : activity.activity_message
+                  }
                 >
                   <div className="relative group">
                     <div className="absolute inset-0 rounded-full bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-lg`}>
+                    <div
+                      className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-lg`}
+                    >
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
                     {/* ✅ SECURITY: Sanitize user-generated content to prevent XSS */}
-                    <p 
+                    <p
                       className="text-sm text-foreground font-medium truncate"
                       aria-label={activity.activity_message}
                     >
                       {sanitizeText(activity.activity_message)}
                     </p>
-                    <p 
+                    <p
                       className="text-xs text-muted-foreground"
                       aria-label={`Activity occurred ${formatRelativeTime(activity.created_at)}`}
                     >
@@ -317,12 +364,16 @@ export function ActivityFeed() {
                   </div>
 
                   {activityLink && (
-                    <Button size="sm" variant="ghost" className="shrink-0 text-primary hover:text-accent">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="shrink-0 text-primary hover:text-accent"
+                    >
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   )}
                 </motion.div>
-              )
+              );
 
               // إذا كان هناك رابط، نلف المحتوى بـ Link أو a tag
               if (activityLink) {
@@ -337,20 +388,20 @@ export function ActivityFeed() {
                     >
                       {content}
                     </a>
-                  )
+                  );
                 }
                 return (
                   <Link key={activity.id} href={activityLink}>
                     {content}
                   </Link>
-                )
+                );
               }
 
-              return content
+              return content;
             })}
           </AnimatePresence>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
