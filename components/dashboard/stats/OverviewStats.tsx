@@ -2,11 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, MousePointerClick, Star, MessageSquare } from "lucide-react";
-import { DashboardStats } from "@/lib/services/stats-service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface OverviewStatsProps {
-  data?: DashboardStats["overview"];
+  data?: {
+    totalViews?: number;
+    totalInteractions?: number;
+    averageRating?: number;
+    responseRate?: number;
+  };
   isLoading: boolean;
 }
 

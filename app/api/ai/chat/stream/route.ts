@@ -274,7 +274,7 @@ async function fetchDashboardContext(
     ]);
 
   return {
-    stats: statsResult.data,
+    stats: statsResult.data as Record<string, unknown> | null,
     locations: locationsResult.data || [],
     recentReviews: reviewsResult.data || [],
     pendingReviews: pendingResult.data || [],
@@ -316,7 +316,7 @@ function buildStreamingPrompt(
   context: DashboardContext,
   history: ChatMessage[],
 ): string {
-  const { stats, locations, recentReviews, pendingReviews } = context;
+  const { stats, locations, pendingReviews } = context;
 
   const conversationContext = history
     .slice(-5)

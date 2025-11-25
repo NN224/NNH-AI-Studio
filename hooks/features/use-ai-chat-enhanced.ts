@@ -294,11 +294,14 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
 
     if (!recognitionRef.current) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = "en-US";
+      // Non-null assertion is safe here because we just assigned it above
+      const recognition = recognitionRef.current!;
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
           .map((result: any) => result[0].transcript)
           .join("");
@@ -309,17 +312,17 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
         }
       };
 
-      recognitionRef.current.onerror = () => {
+      recognition.onerror = () => {
         setIsListening(false);
       };
 
-      recognitionRef.current.onend = () => {
+      recognition.onend = () => {
         setIsListening(false);
       };
     }
 
     setIsListening(true);
-    recognitionRef.current.start();
+    recognitionRef.current!.start();
   }, []);
 
   const stopVoiceInput = useCallback(() => {

@@ -89,6 +89,6 @@ export const trackCustomEvent = (
   properties?: Record<string, unknown>,
 ) => {
   if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", eventName, properties);
+    window.gtag("event", eventName, properties || {});
   }
 };

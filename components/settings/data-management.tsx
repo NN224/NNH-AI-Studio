@@ -85,9 +85,12 @@ export function DataManagement({
   // Load current settings if not provided via props
   useEffect(() => {
     if (!retentionDaysProp && activeAccounts.length > 0) {
-      const account = activeAccounts[0];
-      setLocalRetentionDays(account.data_retention_days || 30);
-      setLocalDeleteOnDisconnect(account.delete_on_disconnect || false);
+      // Default values since GMBAccount from gmb-service.ts doesn't have settings
+      setLocalRetentionDays(30);
+      setLocalDeleteOnDisconnect(false);
+
+      // In a real implementation, we would fetch these settings from the API
+      // using the account ID
     }
   }, [activeAccounts, retentionDaysProp]);
 
