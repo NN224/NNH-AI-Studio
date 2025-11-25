@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -56,7 +56,7 @@ export function SmartAISuggestions({
 }: SmartAISuggestionsProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,32 +64,47 @@ export function SmartAISuggestions({
 
   // Load dismissed suggestions from Database
   useEffect(() => {
+    let isMounted = true;
+
     const loadDismissed = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from("user_suggestion_actions")
           .select("suggestion_id")
           .eq("user_id", userId)
           .eq("action_type", "dismissed");
 
-        if (error) throw error;
+        if (fetchError) throw fetchError;
 
-        if (data) {
+        if (isMounted && data) {
           setDismissedIds(data.map((d) => d.suggestion_id));
         }
       } catch (err) {
         console.error("Failed to load dismissed suggestions:", err);
-        // Fallback to localStorage
-        const stored = localStorage.getItem(`dismissed_suggestions_${userId}`);
-        if (stored) {
-          setDismissedIds(JSON.parse(stored));
+        if (!isMounted || typeof window === "undefined") return;
+
+        try {
+          const stored = localStorage.getItem(
+            `dismissed_suggestions_${userId}`,
+          );
+          if (stored) {
+            setDismissedIds(JSON.parse(stored));
+          }
+        } catch (storageError) {
+          console.error("Failed to read dismissed suggestions cache", storageError);
         }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadDismissed();
+
+    return () => {
+      isMounted = false;
+    };
   }, [userId, supabase]);
 
   // Generate SMART suggestions based on REAL data
@@ -198,22 +213,30 @@ export function SmartAISuggestions({
     setDismissedIds(newDismissed);
 
     try {
-      const { error } = await supabase.from("user_suggestion_actions").upsert({
+      const { error: upsertError } = await supabase
+        .from("user_suggestion_actions")
+        .upsert({
         user_id: userId,
         suggestion_id: id,
         action_type: "dismissed",
-      });
+        });
 
-      if (error) throw error;
+      if (upsertError) throw upsertError;
 
       toast({ description: "Suggestion dismissed" });
     } catch (err) {
       console.error("Failed to dismiss suggestion:", err);
       // Fallback to localStorage
-      localStorage.setItem(
-        `dismissed_suggestions_${userId}`,
-        JSON.stringify(newDismissed),
-      );
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            `dismissed_suggestions_${userId}`,
+            JSON.stringify(newDismissed),
+          );
+        } catch (storageError) {
+          console.error("Failed to cache dismissed suggestion", storageError);
+        }
+      }
       toast({ description: "Suggestion dismissed (offline)" });
     }
   };
