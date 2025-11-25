@@ -51,7 +51,10 @@ export function SimpleProgressTracker({
   const incompleteItems = items.filter((item) => !item.completed);
 
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur overflow-hidden">
+    <Card
+      data-tour="progress-tracker"
+      className="border-border/50 bg-card/50 backdrop-blur overflow-hidden"
+    >
       <div className="p-4">
         {/* Header - Always visible */}
         <button

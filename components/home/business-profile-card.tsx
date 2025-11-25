@@ -126,7 +126,10 @@ export function BusinessProfileCard({
   ].filter((link) => link.url);
 
   return (
-    <Card className="border-primary/20 bg-card/50 backdrop-blur overflow-hidden">
+    <Card
+      data-tour="business-profile"
+      className="border-primary/20 bg-card/50 backdrop-blur overflow-hidden"
+    >
       {/* Cover Photo */}
       {coverPhotoUrl && (
         <div className="relative h-32 w-full bg-muted">

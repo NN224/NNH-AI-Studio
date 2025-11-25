@@ -16,7 +16,7 @@ export function InteractiveStatsDashboard() {
   const { data, isLoading, refetch, isRefetching } = useDashboardStats(period);
 
   return (
-    <div className="space-y-8">
+    <div data-tour="stats-dashboard" className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>

@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/home/empty-state";
 import { AnimatedBackground } from "@/components/home/animated-background";
 import { DashboardHero } from "@/components/home/dashboard-hero";
 import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
-import { AIChatWidget } from "@/components/home/ai-chat-widget";
+import { AIChatWidgetEnhanced } from "@/components/home/ai-chat-widget-enhanced";
+import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
@@ -76,6 +77,8 @@ interface HomePageContentProps {
   businessName?: string;
   businessLogo?: string;
   primaryLocation?: PrimaryLocation | null;
+  pendingReviewsCount?: number;
+  hasAutoReply?: boolean;
 }
 
 export function HomePageContent({
@@ -95,6 +98,8 @@ export function HomePageContent({
   businessName,
   businessLogo,
   primaryLocation,
+  pendingReviewsCount = 0,
+  hasAutoReply = false,
 }: HomePageContentProps) {
   // Calculate completed tasks count
   const completedTasksCount = progressItems.filter(
@@ -270,12 +275,12 @@ export function HomePageContent({
             {/* Smart AI Suggestions - Based on real data */}
             <SmartAISuggestions
               userId={user.id}
-              pendingReviews={0} // TODO: Pass actual pending reviews count
+              pendingReviews={pendingReviewsCount}
               responseRate={responseRate}
               avgRating={parseFloat(averageRating) || 0}
               totalReviews={reviewsCount || 0}
               weeklyGrowth={weeklyGrowth}
-              hasAutoReply={false} // TODO: Check from settings
+              hasAutoReply={hasAutoReply}
             />
 
             {/* Keywords & Competitors Section */}
@@ -296,10 +301,10 @@ export function HomePageContent({
       </main>
 
       {/* AI Chat Widget - Floating Assistant */}
-      <AIChatWidget />
+      <AIChatWidgetEnhanced userId={user.id} />
 
-      {/* Onboarding Tour - Disabled temporarily */}
-      {/* <EnhancedOnboarding /> */}
+      {/* Onboarding Tour */}
+      <EnhancedOnboarding />
     </div>
   );
 }

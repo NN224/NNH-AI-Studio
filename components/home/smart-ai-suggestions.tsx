@@ -286,7 +286,10 @@ export function SmartAISuggestions({
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 overflow-hidden">
+    <Card
+      data-tour="ai-suggestions"
+      className="border-border/50 bg-card/50 overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <div className="flex items-center gap-3">

@@ -33,6 +33,7 @@ export function AIChatWidget() {
     <>
       {/* Floating Button */}
       <motion.div
+        data-tour="ai-chat"
         className="fixed bottom-6 right-6 z-50"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
