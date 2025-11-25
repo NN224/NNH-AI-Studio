@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export interface SyncQueueItem {
   id: string;
@@ -26,8 +26,38 @@ export async function addToSyncQueue(
   accountId: string,
   syncType: "full" | "incremental" | "locations_only" = "full",
   priority: number = 0,
+  /**
+   * Optional userId for server-side contexts (e.g. OAuth callback) where
+   * there may be no Supabase session cookie. When provided, we will use the
+   * Admin client to bypass RLS safely and attribute the job to this user.
+   */
+  userId?: string,
 ): Promise<{ success: boolean; queueId?: string; error?: string }> {
   try {
+    // If userId is explicitly provided (server-to-server flow), use admin client
+    if (userId) {
+      const admin = createAdminClient();
+      const { data, error } = await admin
+        .from("sync_queue")
+        .insert({
+          user_id: userId,
+          account_id: accountId,
+          sync_type: syncType,
+          priority,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("[Sync Queue] Failed to add to queue (admin):", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, queueId: data.id };
+    }
+
+    // Otherwise, fall back to authenticated user context
     const supabase = await createClient();
 
     const {
