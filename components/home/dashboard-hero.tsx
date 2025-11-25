@@ -9,6 +9,8 @@ import {
   Zap,
   MessageSquare,
   Star,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -264,6 +266,14 @@ export function DashboardHero({
                     )}
                   </div>
                 </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8, duration: 0.5 }}
+                  className="mt-4"
+                >
+                  <AITip stats={stats} />
+                </motion.div>
               </div>
 
               {/* Right: Profile Completion */}
@@ -429,5 +439,93 @@ export function DashboardHero({
         </div>
       </Card>
     </motion.div>
+  );
+}
+
+interface AITipProps {
+  stats: DashboardHeroProps["stats"];
+}
+
+function AITip({ stats }: AITipProps) {
+  const t = useTranslations("home.hero.aiTip");
+  const responseRate =
+    typeof stats.responseRate === "number" ? stats.responseRate : null;
+  const weeklyGrowth =
+    typeof stats.weeklyGrowth === "number" ? stats.weeklyGrowth : null;
+  const averageRating =
+    typeof stats.averageRating === "number" ? stats.averageRating : null;
+
+  type Tone = "info" | "warning" | "success";
+
+  const tip =
+    responseRate !== null && responseRate < 70
+      ? {
+          tone: "warning" as Tone,
+          title: t("lowResponse.title"),
+          description: t("lowResponse.description", {
+            responseRate: Math.max(0, Math.round(responseRate)),
+          }),
+          actionLabel: t("lowResponse.action"),
+        }
+      : weeklyGrowth !== null && weeklyGrowth < 0
+        ? {
+            tone: "warning" as Tone,
+            title: t("growthDrop.title"),
+            description: t("growthDrop.description", {
+              weeklyGrowth: Math.abs(Math.round(weeklyGrowth)),
+            }),
+            actionLabel: t("growthDrop.action"),
+          }
+        : averageRating !== null && averageRating >= 4.7
+          ? {
+              tone: "success" as Tone,
+              title: t("celebrate.title"),
+              description: t("celebrate.description", {
+                averageRating: averageRating.toFixed(1),
+              }),
+              actionLabel: t("celebrate.action"),
+            }
+          : {
+              tone: "info" as Tone,
+              title: t("default.title"),
+              description: t("default.description"),
+              actionLabel: t("default.action"),
+            };
+
+  const toneStyles: Record<Tone, string> = {
+    success:
+      "border-emerald-400/40 from-emerald-500/20 to-emerald-500/5 text-emerald-50",
+    warning:
+      "border-amber-400/40 from-amber-500/20 to-amber-500/5 text-amber-50",
+    info: "border-blue-400/40 from-blue-500/20 to-blue-500/5 text-blue-50",
+  };
+
+  const toneIcons: Record<Tone, typeof Sparkles> = {
+    success: CheckCircle2,
+    warning: AlertTriangle,
+    info: Sparkles,
+  };
+
+  const Icon = toneIcons[tip.tone];
+
+  return (
+    <div
+      className={`rounded-2xl border bg-gradient-to-br px-4 py-3 ${toneStyles[tip.tone]}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-black/30 p-2">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <div className="space-y-1 text-sm">
+          <p className="font-semibold text-white">{tip.title}</p>
+          <p className="text-xs text-white/70">{tip.description}</p>
+        </div>
+      </div>
+      {tip.actionLabel && (
+        <p className="mt-3 text-xs font-medium text-white/80">
+          {tip.actionLabel}
+        </p>
+      )}
+    </div>
   );
 }

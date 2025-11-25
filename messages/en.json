@@ -547,6 +547,28 @@
         "growth": "Growth",
         "thisWeek": "this week"
       },
+      "aiTip": {
+        "lowResponse": {
+          "title": "Boost your response rate",
+          "description": "Only {responseRate}% of reviews have replies this week. Respond within 24 hours to improve trust.",
+          "action": "Prioritize the pending reviews in your inbox."
+        },
+        "growthDrop": {
+          "title": "Reviews slowed down",
+          "description": "Review growth is down {weeklyGrowth}% week over week. Send a quick review-request reminder to bring momentum back.",
+          "action": "Plan a review request push."
+        },
+        "celebrate": {
+          "title": "Customers love you",
+          "description": "Your average rating is {averageRating}. Keep highlighting recent wins to maintain this streak.",
+          "action": "Share happy customer stories."
+        },
+        "default": {
+          "title": "AI tip",
+          "description": "Keep a steady cadence of replies and posts to stay ahead of competitors.",
+          "action": "Open the reviews workspace."
+        }
+      },
       "badge": "AI-Powered Business Management",
       "title": {
         "main": "Manage Your Business",
