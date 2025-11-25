@@ -27,6 +27,7 @@ interface DashboardHeroProps {
     totalReviews?: number;
     responseRate?: number;
     averageRating?: number;
+    healthScore?: number;
   };
   profileCompletion?: number;
   streak?: number;
@@ -107,6 +108,19 @@ export function DashboardHero({
       bgColor: "bg-yellow-500/20",
       borderColor: "border-yellow-500/30",
     },
+    ...(typeof stats.healthScore === "number"
+      ? [
+          {
+            icon: Sparkles,
+            label: "Health Score",
+            value: `${stats.healthScore}%`,
+            suffix: "overall",
+            color: "purple",
+            bgColor: "bg-purple-500/20",
+            borderColor: "border-purple-500/30",
+          },
+        ]
+      : []),
   ];
 
   // Auto-cycle through stats
@@ -314,6 +328,39 @@ export function DashboardHero({
                         </motion.span>
                       </Button>
                     </Link>
+                  )}
+                  {typeof stats.healthScore === "number" && (
+                    <div className="mt-5 rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-gray-300">
+                          Business Health
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            stats.healthScore >= 80
+                              ? "border-green-500 text-green-500"
+                              : stats.healthScore >= 60
+                                ? "border-yellow-500 text-yellow-500"
+                                : "border-red-500 text-red-500"
+                          }`}
+                        >
+                          {stats.healthScore >= 80
+                            ? "Healthy"
+                            : stats.healthScore >= 60
+                              ? "Needs attention"
+                              : "Critical"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <p className="text-3xl font-bold text-purple-300">
+                          {stats.healthScore}%
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          Based on reviews & response metrics
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
               </motion.div>

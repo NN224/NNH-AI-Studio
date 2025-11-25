@@ -16,6 +16,10 @@ import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { AISuggestions } from "@/components/home/ai-suggestions";
 import { AchievementSystem } from "@/components/home/achievement-system";
+import {
+  calculateHealthScore,
+  calculateProfileCompleteness,
+} from "@/lib/utils/health-metrics";
 import type {
   UserProgress,
   UserAchievement,
@@ -98,10 +102,14 @@ export function HomePageContent({
   userProgress,
   userAchievements = [],
 }: HomePageContentProps) {
-  // Calculate completed tasks count
-  const completedTasksCount = progressItems.filter(
-    (item) => item.completed,
-  ).length;
+  const profileCompletion = calculateProfileCompleteness(progressItems);
+  const healthScore = calculateHealthScore({
+    reviewsCount: reviewsCount || 0,
+    responseRate,
+    averageRating: parseFloat(averageRating) || 0,
+    weeklyGrowth,
+    locationsCount: locationsCount || 0,
+  });
 
   // Use server-provided timeOfDay (always provided now to avoid hydration mismatch)
   const timeOfDay = serverTimeOfDay || "morning";
@@ -150,10 +158,9 @@ export function HomePageContent({
                     totalReviews: reviewsCount || 0,
                     averageRating: parseFloat(averageRating) || 0,
                     responseRate: responseRate,
+                    healthScore,
                   }}
-                  profileCompletion={
-                    (completedTasksCount / progressItems.length) * 100
-                  }
+                  profileCompletion={profileCompletion}
                   streak={streak}
                   achievements={[
                     {
