@@ -6,6 +6,7 @@ import {
   getUserProgress,
   getUserAchievements,
   updateUserAchievements,
+  initializeUserProgress,
   type UserProgress,
   type UserAchievement,
 } from "@/server/actions/achievements";
@@ -253,6 +254,17 @@ export function AchievementSystem({
     {} as Record<string, UserAchievement[]>,
   );
 
+  // Debug logging
+  useEffect(() => {
+    console.log("[AchievementSystem] Current state:", {
+      progress,
+      achievementsCount: achievements.length,
+      filteredCount: filteredAchievements.length,
+      groupedCount: Object.keys(groupedAchievements).length,
+      loading,
+    });
+  }, [progress, achievements, filter, loading]);
+
   // Handle achievement unlock
   const unlockAchievement = (achievementId: string) => {
     const achievement = achievements.find(
@@ -290,6 +302,12 @@ export function AchievementSystem({
             getUserAchievements("all"),
           ]);
 
+          console.log("[AchievementSystem] Loaded data:", {
+            progress: progressData,
+            achievementsCount: achievementsData?.length || 0,
+            achievements: achievementsData,
+          });
+
           if (progressData) setProgress(progressData);
           if (achievementsData) setAchievements(achievementsData);
         } catch (error) {
@@ -297,6 +315,13 @@ export function AchievementSystem({
         } finally {
           setLoading(false);
         }
+      } else {
+        // Data already provided, just stop loading
+        setLoading(false);
+        console.log("[AchievementSystem] Using initial data:", {
+          progress: initialProgress,
+          achievementsCount: initialAchievements.length,
+        });
       }
     }
 
@@ -440,6 +465,39 @@ export function AchievementSystem({
     );
   }
 
+  // Empty state: no progress or achievements
+  if (!progress && achievements.length === 0) {
+    return (
+      <div className="achievements space-y-6">
+        <Card className="p-6 border-orange-500/30 bg-gradient-to-br from-orange-900/20 via-black to-purple-900/20 backdrop-blur-xl">
+          <div className="text-center py-8">
+            <Trophy className="h-12 w-12 text-orange-500 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No Progress Yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Start using the platform to earn achievements and level up!
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await initializeUserProgress();
+                await updateUserAchievements();
+                const [progressData, achievementsData] = await Promise.all([
+                  getUserProgress(),
+                  getUserAchievements("all"),
+                ]);
+                if (progressData) setProgress(progressData);
+                if (achievementsData) setAchievements(achievementsData);
+              }}
+            >
+              Initialize Progress
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="achievements space-y-6">
       {/* Your Progress - Main Container */}
@@ -566,177 +624,198 @@ export function AchievementSystem({
 
           {/* Achievements Grid */}
           <div className="space-y-6">
-            {Object.entries(groupedAchievements).map(
-              ([category, categoryAchievements]) => {
-                const {
-                  icon: CategoryIcon,
-                  label,
-                  iconClass,
-                  badgeClass,
-                } = getCategoryStyle(category);
+            {Object.keys(groupedAchievements).length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="h-12 w-12 text-orange-500 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Achievements Yet
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Achievements will appear here as you use the platform.
+                </p>
+              </div>
+            ) : (
+              Object.entries(groupedAchievements).map(
+                ([category, categoryAchievements]) => {
+                  const {
+                    icon: CategoryIcon,
+                    label,
+                    iconClass,
+                    badgeClass,
+                  } = getCategoryStyle(category);
 
-                return (
-                  <motion.div
-                    key={category}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <div className="flex items-center gap-2 mb-4">
-                      <CategoryIcon className={cn("h-5 w-5", iconClass)} />
-                      <h3 className="text-lg font-semibold capitalize">
-                        {label}
-                      </h3>
-                      <Badge variant="outline" className={badgeClass}>
-                        {categoryAchievements.filter((a) => a.unlocked).length}/
-                        {categoryAchievements.length}
-                      </Badge>
-                    </div>
+                  return (
+                    <motion.div
+                      key={category}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <CategoryIcon className={cn("h-5 w-5", iconClass)} />
+                        <h3 className="text-lg font-semibold capitalize">
+                          {label}
+                        </h3>
+                        <Badge variant="outline" className={badgeClass}>
+                          {
+                            categoryAchievements.filter((a) => a.unlocked)
+                              .length
+                          }
+                          /{categoryAchievements.length}
+                        </Badge>
+                      </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {categoryAchievements.map((achievement) => {
-                        const Icon = getAchievementIcon(
-                          achievement.achievement_id,
-                        );
-                        const levelClasses = getLevelColorClasses(
-                          achievement.level,
-                        );
-                        const isNearUnlock =
-                          achievement.progress &&
-                          achievement.max_progress &&
-                          achievement.progress / achievement.max_progress > 0.8;
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {categoryAchievements.map((achievement) => {
+                          const Icon = getAchievementIcon(
+                            achievement.achievement_id,
+                          );
+                          const levelClasses = getLevelColorClasses(
+                            achievement.level,
+                          );
+                          const isNearUnlock =
+                            achievement.progress &&
+                            achievement.max_progress &&
+                            achievement.progress / achievement.max_progress >
+                              0.8;
 
-                        return (
-                          <motion.div
-                            key={achievement.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setSelectedAchievement(achievement)}
-                            className="relative group cursor-pointer"
-                          >
-                            <Card
-                              className={cn(
-                                "p-4 transition-all",
-                                achievement.unlocked
-                                  ? "border-green-500/30 bg-gradient-to-br from-green-900/10 to-green-800/5"
-                                  : "border-gray-700 bg-gray-900/50",
-                                !achievement.unlocked &&
-                                  "hover:border-gray-600",
-                                isNearUnlock &&
-                                  !achievement.unlocked &&
-                                  "animate-pulse border-yellow-500/30",
-                              )}
+                          return (
+                            <motion.div
+                              key={achievement.id}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() =>
+                                setSelectedAchievement(achievement)
+                              }
+                              className="relative group cursor-pointer"
                             >
-                              {/* Lock overlay */}
-                              {!achievement.unlocked && (
-                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Lock className="h-8 w-8 text-gray-500" />
-                                </div>
-                              )}
-
-                              {/* Content */}
-                              <div
+                              <Card
                                 className={cn(
-                                  "flex items-start gap-3",
-                                  !achievement.unlocked && "opacity-50",
+                                  "p-4 transition-all",
+                                  achievement.unlocked
+                                    ? "border-green-500/30 bg-gradient-to-br from-green-900/10 to-green-800/5"
+                                    : "border-gray-700 bg-gray-900/50",
+                                  !achievement.unlocked &&
+                                    "hover:border-gray-600",
+                                  isNearUnlock &&
+                                    !achievement.unlocked &&
+                                    "animate-pulse border-yellow-500/30",
                                 )}
                               >
+                                {/* Lock overlay */}
+                                {!achievement.unlocked && (
+                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Lock className="h-8 w-8 text-gray-500" />
+                                  </div>
+                                )}
+
+                                {/* Content */}
                                 <div
                                   className={cn(
-                                    "p-3 rounded-lg",
-                                    levelClasses.bg,
+                                    "flex items-start gap-3",
+                                    !achievement.unlocked && "opacity-50",
                                   )}
                                 >
-                                  <Icon
-                                    className={cn("h-6 w-6", levelClasses.text)}
-                                  />
-                                </div>
+                                  <div
+                                    className={cn(
+                                      "p-3 rounded-lg",
+                                      levelClasses.bg,
+                                    )}
+                                  >
+                                    <Icon
+                                      className={cn(
+                                        "h-6 w-6",
+                                        levelClasses.text,
+                                      )}
+                                    />
+                                  </div>
 
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    {achievement.achievement_name}
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {achievement.achievement_description}
-                                  </p>
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">
+                                      {achievement.achievement_name}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {achievement.achievement_description}
+                                    </p>
 
-                                  {/* Progress */}
-                                  {achievement.progress !== undefined &&
-                                    achievement.max_progress &&
-                                    !achievement.unlocked && (
-                                      <div className="mt-3">
-                                        <div className="flex justify-between text-xs mb-1">
-                                          <span>
-                                            {Math.round(achievement.progress)}/
-                                            {achievement.max_progress}
-                                          </span>
-                                          <span>
-                                            {Math.round(
+                                    {/* Progress */}
+                                    {achievement.progress !== undefined &&
+                                      achievement.max_progress &&
+                                      !achievement.unlocked && (
+                                        <div className="mt-3">
+                                          <div className="flex justify-between text-xs mb-1">
+                                            <span>
+                                              {Math.round(achievement.progress)}
+                                              /{achievement.max_progress}
+                                            </span>
+                                            <span>
+                                              {Math.round(
+                                                (achievement.progress /
+                                                  achievement.max_progress) *
+                                                  100,
+                                              )}
+                                              %
+                                            </span>
+                                          </div>
+                                          <Progress
+                                            value={
                                               (achievement.progress /
                                                 achievement.max_progress) *
-                                                100,
-                                            )}
-                                            %
-                                          </span>
+                                              100
+                                            }
+                                            className="h-1"
+                                          />
                                         </div>
-                                        <Progress
-                                          value={
-                                            (achievement.progress /
-                                              achievement.max_progress) *
-                                            100
-                                          }
-                                          className="h-1"
-                                        />
-                                      </div>
-                                    )}
-
-                                  {/* Points & Level */}
-                                  <div className="flex items-center gap-2 mt-3">
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {achievement.points} pts
-                                    </Badge>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-xs capitalize",
-                                        levelClasses.border,
                                       )}
-                                    >
-                                      {achievement.level}
-                                    </Badge>
+
+                                    {/* Points & Level */}
+                                    <div className="flex items-center gap-2 mt-3">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {achievement.points} pts
+                                      </Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-xs capitalize",
+                                          levelClasses.border,
+                                        )}
+                                      >
+                                        {achievement.level}
+                                      </Badge>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Unlock animation */}
-                              <AnimatePresence>
-                                {showUnlockAnimation ===
-                                  achievement.achievement_id && (
-                                  <motion.div
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    className="absolute inset-0 flex items-center justify-center bg-black/90 rounded-lg"
-                                  >
+                                {/* Unlock animation */}
+                                <AnimatePresence>
+                                  {showUnlockAnimation ===
+                                    achievement.achievement_id && (
                                     <motion.div
-                                      animate={{ rotate: 360 }}
-                                      transition={{ duration: 1, repeat: 2 }}
+                                      initial={{ scale: 0, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      exit={{ scale: 0, opacity: 0 }}
+                                      className="absolute inset-0 flex items-center justify-center bg-black/90 rounded-lg"
                                     >
-                                      <Trophy className="h-16 w-16 text-yellow-500" />
+                                      <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: 2 }}
+                                      >
+                                        <Trophy className="h-16 w-16 text-yellow-500" />
+                                      </motion.div>
                                     </motion.div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </Card>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                );
-              },
+                                  )}
+                                </AnimatePresence>
+                              </Card>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  );
+                },
+              )
             )}
           </div>
         </Card>
