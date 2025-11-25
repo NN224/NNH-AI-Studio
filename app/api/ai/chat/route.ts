@@ -126,12 +126,20 @@ async function fetchDashboardContext(userId: string, supabase: any) {
   };
 }
 
+interface DashboardContext {
+  stats: any; // Keeping as any for now as stats comes from RPC
+  locations: any[];
+  recentReviews: any[];
+  pendingReviews: any[];
+  keywords?: any[];
+}
+
 /**
  * Build chat prompt
  */
 function buildChatPrompt(
   userMessage: string,
-  context: any,
+  context: DashboardContext,
   history: ChatMessage[],
 ): string {
   const { stats, locations, recentReviews, pendingReviews } = context;
