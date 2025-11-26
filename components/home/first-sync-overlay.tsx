@@ -88,6 +88,11 @@ export function FirstSyncOverlay({
         }
 
         // Check sync_worker_runs table for latest progress
+        if (!supabase) {
+          console.error("[FirstSyncOverlay] Supabase client not initialized");
+          return;
+        }
+
         const { data: syncRun, error: syncError } = await supabase
           .from("sync_worker_runs")
           .select("*")
