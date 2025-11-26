@@ -1,5 +1,6 @@
 // GMB Sync Queue Worker using PGMQ
 // Processes sync jobs from the queue in real-time
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -22,7 +23,7 @@ interface SyncJob {
   enqueued_at: string;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -41,12 +42,18 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log("[Queue Worker] Starting to process jobs...");
+    console.warn("[Queue Worker] Starting to process jobs...");
 
     let processedCount = 0;
     let successCount = 0;
     let failedCount = 0;
-    const results: any[] = [];
+    const results: Array<{
+      msg_id: number;
+      account_id: string;
+      success: boolean;
+      result?: unknown;
+      error?: string;
+    }> = [];
 
     // Process up to 10 jobs per invocation
     for (let i = 0; i < 10; i++) {
@@ -65,7 +72,7 @@ serve(async (req) => {
       }
 
       if (!messages || messages.length === 0) {
-        console.log("[Queue Worker] No more messages in queue");
+        console.warn("[Queue Worker] No more messages in queue");
         break;
       }
 
@@ -73,7 +80,7 @@ serve(async (req) => {
       const msgId = message.msg_id;
       const job: SyncJob = message.message;
 
-      console.log(`[Queue Worker] Processing job ${msgId}:`, job);
+      console.warn(`[Queue Worker] Processing job ${msgId}:`, job);
       processedCount++;
 
       try {
@@ -99,7 +106,7 @@ serve(async (req) => {
         const syncResult = await syncResponse.json();
 
         if (syncResponse.ok && syncResult.ok) {
-          console.log(`[Queue Worker] ✅ Job ${msgId} succeeded`);
+          console.warn(`[Queue Worker] ✅ Job ${msgId} succeeded`);
           successCount++;
 
           // Delete message from queue via public wrapper
@@ -144,7 +151,7 @@ serve(async (req) => {
       metadata: { results },
     });
 
-    console.log(
+    console.warn(
       `[Queue Worker] Completed: ${successCount}/${processedCount} succeeded`,
     );
 

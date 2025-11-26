@@ -7,8 +7,8 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.fixAll.eslint": "explicit",
+    "source.fixAll": "always",
+    "source.fixAll.eslint": "always",
     "source.organizeImports": "explicit",
     "source.addMissingImports": "explicit"
   },

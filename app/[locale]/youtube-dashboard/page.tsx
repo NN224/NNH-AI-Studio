@@ -1,12 +1,19 @@
-"use client"
+"use client";
 
-import React, { useEffect, useMemo, useState, useRef } from "react"
-import { createClient } from "@/lib/supabase/client"
-// Removed old import - using inline component
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton"
+import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { createClient } from "@/lib/supabase/client";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import YouTubeComingSoon from "./coming-soon";
 
 // Inline StatCard component
-const StatCard = ({ title, value, icon: Icon, change, changeType, index }: any) => (
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  change,
+  changeType,
+  index,
+}: any) => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -15,107 +22,109 @@ const StatCard = ({ title, value, icon: Icon, change, changeType, index }: any) 
     <CardContent>
       <div className="text-2xl font-bold">{value}</div>
       {change && (
-        <p className={`text-xs ${changeType === 'positive' ? 'text-green-600' : 'text-muted-foreground'}`}>
+        <p
+          className={`text-xs ${changeType === "positive" ? "text-green-600" : "text-muted-foreground"}`}
+        >
           {change}
         </p>
       )}
     </CardContent>
   </Card>
-)
+);
 // Removed youtube-sidebar import - component deleted
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import Link from "next/link"
-import { toast } from "sonner"
-import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Youtube,
-  Users,
-  Eye,
-  Video,
-  RefreshCw,
-  Download,
-  ThumbsUp,
-  Calendar,
-  TrendingUp,
-  MessageSquare,
-  Sparkles,
-  Settings as SettingsIcon,
-  Search,
-  Trash2,
-  Save,
-  LayoutGrid,
-  Play,
-  FileVideo,
-  MessageCircle,
-  Wand2,
-  Bell,
-  Check,
-  CheckCheck,
-  AlertCircle,
-  Info,
-  CheckCircle,
-  AlertTriangle,
-  LogOut,
-  Upload,
-  X,
-  Edit,
-  Clock,
-  Filter,
-  Hash,
-  Globe,
-  Lock,
-  Unlock,
-  FileText,
-  Zap,
-  BarChart3,
-  PlusCircle,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Film,
-  Image as ImageIcon,
-  Languages,
-  Shield,
-  ListVideo,
-  CalendarDays,
-  Pencil,
-  Copy,
-  Tags,
-  BookOpen,
-  Target,
-  Lightbulb,
-  TrendingDown,
-  ExternalLink,
-  Mic,
-  Camera,
-  TrendingUp as TrendingUpIcon,
-  Activity,
-  Award,
-  Share2,
-} from "lucide-react"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-  Chart as ChartJS,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import {
+  ArcElement,
+  BarElement,
   CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
   LinearScale,
   PointElement,
-  LineElement,
-  BarElement,
   Title,
   Tooltip,
-  Legend,
-  Filler,
-  ArcElement,
-} from 'chart.js'
-import { Line, Bar, Doughnut } from 'react-chartjs-2'
+} from "chart.js";
+import {
+  Activity,
+  AlertTriangle,
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Calendar,
+  CalendarDays,
+  Camera,
+  Check,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  Edit,
+  ExternalLink,
+  Eye,
+  FileText,
+  Film,
+  Globe,
+  Hash,
+  Image as ImageIcon,
+  Info,
+  Lightbulb,
+  ListVideo,
+  Loader2,
+  Lock,
+  LogOut,
+  MessageSquare,
+  Mic,
+  Pencil,
+  PlusCircle,
+  RefreshCw,
+  Save,
+  Search,
+  Sparkles,
+  Tags,
+  Target,
+  ThumbsUp,
+  Trash2,
+  TrendingUp,
+  TrendingUp as TrendingUpIcon,
+  Unlock,
+  Upload,
+  Users,
+  Video,
+  X,
+  Youtube,
+  Zap,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { toast } from "sonner";
 
 ChartJS.register(
   CategoryScale,
@@ -127,755 +136,893 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
-)
+  Filler,
+);
 
-type YTStatistics = { subscriberCount?: string; viewCount?: string; videoCount?: string }
-type YTMetadata = { email?: string | null; channel_title?: string | null; statistics?: YTStatistics | null }
-type YTVideo = { id: string; title: string; thumbnail: string; views: number; publishedAt: string; url: string; status?: string }
-type YTComment = { id: string; author: string; text: string; likes: number; publishedAt: string; videoUrl: string }
-type YTAnalytics = { lastUpdated: string; months: string[]; viewsPerMonth: number[]; videosPerMonth: number[]; totalViews: number; totalVideos: number }
-type Draft = { id: string; title: string; description: string; hashtags: string; created_at: string }
-type CalendarEvent = { id: string; title: string; date: Date; type: 'published' | 'scheduled' | 'draft'; thumbnail?: string }
+type YTStatistics = {
+  subscriberCount?: string;
+  viewCount?: string;
+  videoCount?: string;
+};
+type YTMetadata = {
+  email?: string | null;
+  channel_title?: string | null;
+  statistics?: YTStatistics | null;
+};
+type YTVideo = {
+  id: string;
+  title: string;
+  thumbnail: string;
+  views: number;
+  publishedAt: string;
+  url: string;
+  status?: string;
+};
+type YTComment = {
+  id: string;
+  author: string;
+  text: string;
+  likes: number;
+  publishedAt: string;
+  videoUrl: string;
+};
+type YTAnalytics = {
+  lastUpdated: string;
+  months: string[];
+  viewsPerMonth: number[];
+  videosPerMonth: number[];
+  totalViews: number;
+  totalVideos: number;
+};
+type Draft = {
+  id: string;
+  title: string;
+  description: string;
+  hashtags: string;
+  created_at: string;
+};
+type CalendarEvent = {
+  id: string;
+  title: string;
+  date: Date;
+  type: "published" | "scheduled" | "draft";
+  thumbnail?: string;
+};
 
 // Video Categories
 const videoCategories = [
-  { value: 'film', label: 'Film & Animation' },
-  { value: 'autos', label: 'Autos & Vehicles' },
-  { value: 'music', label: 'Music' },
-  { value: 'pets', label: 'Pets & Animals' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'travel', label: 'Travel & Events' },
-  { value: 'gaming', label: 'Gaming' },
-  { value: 'comedy', label: 'Comedy' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'education', label: 'Education' },
-  { value: 'science', label: 'Science & Technology' },
-  { value: 'howto', label: 'Howto & Style' },
-]
+  { value: "film", label: "Film & Animation" },
+  { value: "autos", label: "Autos & Vehicles" },
+  { value: "music", label: "Music" },
+  { value: "pets", label: "Pets & Animals" },
+  { value: "sports", label: "Sports" },
+  { value: "travel", label: "Travel & Events" },
+  { value: "gaming", label: "Gaming" },
+  { value: "comedy", label: "Comedy" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "education", label: "Education" },
+  { value: "science", label: "Science & Technology" },
+  { value: "howto", label: "Howto & Style" },
+];
 
 // Languages
 const languages = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'ar', label: 'Arabic' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'zh', label: 'Chinese' },
-  { value: 'ja', label: 'Japanese' },
-]
+  { value: "en", label: "English" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "ar", label: "Arabic" },
+  { value: "hi", label: "Hindi" },
+  { value: "zh", label: "Chinese" },
+  { value: "ja", label: "Japanese" },
+];
+
+// Feature flag: set NEXT_PUBLIC_DISABLE_YOUTUBE_DASHBOARD=0 to enable
+const YT_ENABLED = process.env.NEXT_PUBLIC_DISABLE_YOUTUBE_DASHBOARD === "0";
 
 export default function YoutubeDashboardPage() {
-  const supabase = createClient()
-  if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+  // Gate before any hooks to satisfy React rules
+  if (!YT_ENABLED) {
+    return <YouTubeComingSoon />;
   }
-  const router = useRouter()
 
-  const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [disconnecting, setDisconnecting] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState("overview")
-  
+  return <YoutubeDashboardContent />;
+}
+
+function YoutubeDashboardContent() {
+  const supabase = createClient();
+  if (!supabase) {
+    throw new Error("Failed to initialize Supabase client");
+  }
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+
   // Notifications state
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [notificationsLoading, setNotificationsLoading] = useState(true)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  const [channelTitle, setChannelTitle] = useState<string | null>(null)
-  const [channelEmail, setChannelEmail] = useState<string | null>(null)
-  const [stats, setStats] = useState({ subs: 0, views: 0, videos: 0 })
-  const [videos, setVideos] = useState<YTVideo[]>([])
-  const [comments, setComments] = useState<YTComment[]>([])
-  const [analytics, setAnalytics] = useState<YTAnalytics | null>(null)
-  const [drafts, setDrafts] = useState<Draft[]>([])
-  
+  const [channelTitle, setChannelTitle] = useState<string | null>(null);
+  const [channelEmail, setChannelEmail] = useState<string | null>(null);
+  const [stats, setStats] = useState({ subs: 0, views: 0, videos: 0 });
+  const [videos, setVideos] = useState<YTVideo[]>([]);
+  const [comments, setComments] = useState<YTComment[]>([]);
+  const [analytics, setAnalytics] = useState<YTAnalytics | null>(null);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+
   // Upload state
-  const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadStage, setUploadStage] = useState<'select' | 'details' | 'processing' | 'complete'>('select')
-  const [isDragging, setIsDragging] = useState(false)
-  
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<
+    "select" | "details" | "processing" | "complete"
+  >("select");
+  const [isDragging, setIsDragging] = useState(false);
+
   // Video details
-  const [videoTitle, setVideoTitle] = useState("")
-  const [videoDescription, setVideoDescription] = useState("")
-  const [videoTags, setVideoTags] = useState<string[]>([])
-  const [currentTag, setCurrentTag] = useState("")
-  const [videoCategory, setVideoCategory] = useState("")
-  const [videoLanguage, setVideoLanguage] = useState("en")
-  const [videoPrivacy, setVideoPrivacy] = useState<'public' | 'unlisted' | 'private'>('public')
-  const [allowComments, setAllowComments] = useState(true)
-  const [allowEmbedding, setAllowEmbedding] = useState(true)
-  const [ageRestriction, setAgeRestriction] = useState(false)
-  const [scheduleDate, setScheduleDate] = useState("")
-  
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoDescription, setVideoDescription] = useState("");
+  const [videoTags, setVideoTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState("");
+  const [videoCategory, setVideoCategory] = useState("");
+  const [videoLanguage, setVideoLanguage] = useState("en");
+  const [videoPrivacy, setVideoPrivacy] = useState<
+    "public" | "unlisted" | "private"
+  >("public");
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowEmbedding, setAllowEmbedding] = useState(true);
+  const [ageRestriction, setAgeRestriction] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+
   // AI Tools state
-  const [scriptPrompt, setScriptPrompt] = useState("")
-  const [generatedScript, setGeneratedScript] = useState("")
-  const [seoTitle, setSeoTitle] = useState("")
-  const [generatedSeoTitle, setGeneratedSeoTitle] = useState("")
-  const [descPrompt, setDescPrompt] = useState("")
-  const [generatedDesc, setGeneratedDesc] = useState("")
-  const [tagPrompt, setTagPrompt] = useState("")
-  const [generatedTags, setGeneratedTags] = useState<string[]>([])
-  const [hashtagPrompt, setHashtagPrompt] = useState("")
-  const [generatedHashtags, setGeneratedHashtags] = useState<string[]>([])
-  
+  const [scriptPrompt, setScriptPrompt] = useState("");
+  const [generatedScript, setGeneratedScript] = useState("");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [generatedSeoTitle, setGeneratedSeoTitle] = useState("");
+  const [descPrompt, setDescPrompt] = useState("");
+  const [generatedDesc, setGeneratedDesc] = useState("");
+  const [tagPrompt, setTagPrompt] = useState("");
+  const [generatedTags, setGeneratedTags] = useState<string[]>([]);
+  const [hashtagPrompt, setHashtagPrompt] = useState("");
+  const [generatedHashtags, setGeneratedHashtags] = useState<string[]>([]);
+
   // Content Ideas state
-  const [contentIdeasPrompt, setContentIdeasPrompt] = useState("")
-  const [contentIdeasCategory, setContentIdeasCategory] = useState("all")
-  const [contentIdeasLoading, setContentIdeasLoading] = useState(false)
-  const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([])
-  const [savedIdeas, setSavedIdeas] = useState<Array<{ id: string; idea: string; category: string; created_at: string }>>([])
-  
+  const [contentIdeasPrompt, setContentIdeasPrompt] = useState("");
+  const [contentIdeasCategory, setContentIdeasCategory] = useState("all");
+  const [contentIdeasLoading, setContentIdeasLoading] = useState(false);
+  const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([]);
+  const [savedIdeas, setSavedIdeas] = useState<
+    Array<{ id: string; idea: string; category: string; created_at: string }>
+  >([]);
+
   // Calendar state
-  const [calendarMonth, setCalendarMonth] = useState(new Date())
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // Video Analytics state
-  const [selectedVideoForAnalytics, setSelectedVideoForAnalytics] = useState<string | null>(null)
-  const [videoAnalyticsFilter, setVideoAnalyticsFilter] = useState<'all' | 'top' | 'recent'>('all')
-  
+  const [selectedVideoForAnalytics, setSelectedVideoForAnalytics] = useState<
+    string | null
+  >(null);
+  const [videoAnalyticsFilter, setVideoAnalyticsFilter] = useState<
+    "all" | "top" | "recent"
+  >("all");
+
   // Comments state
-  const [commentSearch, setCommentSearch] = useState("")
-  const [commentFilter, setCommentFilter] = useState<'all' | 'recent' | 'mostLiked'>('all')
-  const [selectedVideoForComments, setSelectedVideoForComments] = useState<string | null>(null)
-  
+  const [commentSearch, setCommentSearch] = useState("");
+  const [commentFilter, setCommentFilter] = useState<
+    "all" | "recent" | "mostLiked"
+  >("all");
+  const [selectedVideoForComments, setSelectedVideoForComments] = useState<
+    string | null
+  >(null);
+
   // Video Manager state
-  const [videoSearch, setVideoSearch] = useState("")
-  const [videoFilter, setVideoFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all')
-  const [selectedVideos, setSelectedVideos] = useState<string[]>([])
-  const [videoPage, setVideoPage] = useState(1)
-  const videosPerPage = 10
-  
+  const [videoSearch, setVideoSearch] = useState("");
+  const [videoFilter, setVideoFilter] = useState<
+    "all" | "published" | "scheduled" | "draft"
+  >("all");
+  const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
+  const [videoPage, setVideoPage] = useState(1);
+  const videosPerPage = 10;
+
   // Refs
-  const videoInputRef = useRef<HTMLInputElement>(null)
-  const thumbnailInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   // Composer state
-  const [prompt, setPrompt] = useState("")
-  const [tone, setTone] = useState<"neutral"|"friendly"|"professional"|"energetic">("neutral")
-  const [genLoading, setGenLoading] = useState(false)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [hashtags, setHashtags] = useState("")
-  const [schedule, setSchedule] = useState("")
-  const [saving, setSaving] = useState(false)
+  const [prompt, setPrompt] = useState("");
+  const [tone, setTone] = useState<
+    "neutral" | "friendly" | "professional" | "energetic"
+  >("neutral");
+  const [genLoading, setGenLoading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [hashtags, setHashtags] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Safe fetch helpers
   const safeGet = async (url: string) => {
-    const r = await fetch(url, { headers: { Accept: "application/json" } })
-    const t = await r.text()
-    let j: any = {}
-    try { j = JSON.parse(t) } catch {}
-    if (!r.ok) throw new Error(j.error || t.slice(0, 300) || `GET ${url} failed`)
-    return j
-  }
-  
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    const t = await r.text();
+    let j: any = {};
+    try {
+      j = JSON.parse(t);
+    } catch {}
+    if (!r.ok)
+      throw new Error(j.error || t.slice(0, 300) || `GET ${url} failed`);
+    return j;
+  };
+
   const safePost = async (url: string, body?: any) => {
     const r = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: body ? JSON.stringify(body) : undefined,
-    })
-    const t = await r.text()
-    let j: any = {}
-    try { j = JSON.parse(t) } catch {}
-    if (!r.ok) throw new Error(j.error || t.slice(0, 300) || `POST ${url} failed`)
-    return j
-  }
-  
+    });
+    const t = await r.text();
+    let j: any = {};
+    try {
+      j = JSON.parse(t);
+    } catch {}
+    if (!r.ok)
+      throw new Error(j.error || t.slice(0, 300) || `POST ${url} failed`);
+    return j;
+  };
+
   const safeDelete = async (url: string) => {
-    const r = await fetch(url, { method: "DELETE", headers: { Accept: "application/json" } })
-    const t = await r.text()
-    let j: any = {}
-    try { j = JSON.parse(t) } catch {}
-    if (!r.ok) throw new Error(j.error || t.slice(0, 300) || `DELETE ${url} failed`)
-    return j
-  }
+    const r = await fetch(url, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+    const t = await r.text();
+    let j: any = {};
+    try {
+      j = JSON.parse(t);
+    } catch {}
+    if (!r.ok)
+      throw new Error(j.error || t.slice(0, 300) || `DELETE ${url} failed`);
+    return j;
+  };
 
   // Data loaders
   const fetchFromDB = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error("Please login first")
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Please login first");
     const { data, error: qErr } = await supabase
       .from("oauth_tokens")
       .select("provider, account_id, metadata")
       .eq("user_id", user.id)
       .eq("provider", "youtube")
-      .maybeSingle()
-    if (qErr) throw qErr
+      .maybeSingle();
+    if (qErr) throw qErr;
     if (!data) {
-      setChannelTitle(null)
-      setChannelEmail(null)
-      setStats({ subs: 0, views: 0, videos: 0 })
-      setVideos([])
-      setComments([])
-      setAnalytics(null)
-      return false
+      setChannelTitle(null);
+      setChannelEmail(null);
+      setStats({ subs: 0, views: 0, videos: 0 });
+      setVideos([]);
+      setComments([]);
+      setAnalytics(null);
+      return false;
     }
-    const meta = (data.metadata || {}) as YTMetadata
-    const s = meta.statistics || {}
-    setChannelTitle(meta.channel_title || "YouTube Channel")
-    setChannelEmail(meta.email || null)
+    const meta = (data.metadata || {}) as YTMetadata;
+    const s = meta.statistics || {};
+    setChannelTitle(meta.channel_title || "YouTube Channel");
+    setChannelEmail(meta.email || null);
     setStats({
       subs: Number(s.subscriberCount || 0),
       views: Number(s.viewCount || 0),
       videos: Number(s.videoCount || 0),
-    })
-    return true
-  }
-  
+    });
+    return true;
+  };
+
   const fetchVideos = async () => {
     try {
-      const j = await safeGet("/api/youtube/videos")
+      const j = await safeGet("/api/youtube/videos");
       if (j.error && j.code === "INSUFFICIENT_SCOPES") {
-        toast.error("Please reconnect your YouTube account. The current connection doesn't have the required permissions.")
-        setVideos([])
-        setCalendarEvents([])
-        return
+        toast.error(
+          "Please reconnect your YouTube account. The current connection doesn't have the required permissions.",
+        );
+        setVideos([]);
+        setCalendarEvents([]);
+        return;
       }
-      const items = j.items || []
-      setVideos(items)
+      const items = j.items || [];
+      setVideos(items);
       // Generate calendar events from videos
       const events = items.map((v: YTVideo) => ({
-      id: v.id,
-      title: v.title,
-      date: new Date(v.publishedAt),
-      type: 'published' as const,
-      thumbnail: v.thumbnail
-    }))
-    setCalendarEvents(events)
+        id: v.id,
+        title: v.title,
+        date: new Date(v.publishedAt),
+        type: "published" as const,
+        thumbnail: v.thumbnail,
+      }));
+      setCalendarEvents(events);
     } catch (e: any) {
       if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
-        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+        toast.error(
+          "Your YouTube connection needs to be updated. Please disconnect and reconnect your account.",
+        );
       }
-      setVideos([])
-      setCalendarEvents([])
+      setVideos([]);
+      setCalendarEvents([]);
     }
-  }
-  
+  };
+
   const fetchComments = async () => {
     try {
-      const j = await safeGet("/api/youtube/comments")
+      const j = await safeGet("/api/youtube/comments");
       if (j.error && j.code === "INSUFFICIENT_SCOPES") {
-        toast.error("Please reconnect your YouTube account to access comments. The current connection doesn't have the required permissions.")
+        toast.error(
+          "Please reconnect your YouTube account to access comments. The current connection doesn't have the required permissions.",
+        );
         // Optionally disconnect to force reconnection
-        return
+        return;
       }
-      setComments(j.items || [])
+      setComments(j.items || []);
     } catch (e: any) {
       if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
-        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+        toast.error(
+          "Your YouTube connection needs to be updated. Please disconnect and reconnect your account.",
+        );
       }
-      setComments([])
+      setComments([]);
     }
-  }
-  
+  };
+
   const fetchAnalytics = async () => {
     try {
-      const j = await safeGet("/api/youtube/analytics")
+      const j = await safeGet("/api/youtube/analytics");
       if (j.error && j.code === "INSUFFICIENT_SCOPES") {
-        toast.error("Please reconnect your YouTube account to access analytics.")
-        return
+        toast.error(
+          "Please reconnect your YouTube account to access analytics.",
+        );
+        return;
       }
-      setAnalytics(j as YTAnalytics)
+      setAnalytics(j as YTAnalytics);
     } catch (e: any) {
       if (e.message?.includes("insufficient") || e.message?.includes("scope")) {
-        toast.error("Your YouTube connection needs to be updated. Please disconnect and reconnect your account.")
+        toast.error(
+          "Your YouTube connection needs to be updated. Please disconnect and reconnect your account.",
+        );
       }
-      setAnalytics(null)
+      setAnalytics(null);
     }
-  }
-  
+  };
+
   const fetchDrafts = async () => {
-    const j = await safeGet("/api/youtube/composer/drafts")
-    setDrafts(j.items || [])
-  }
+    const j = await safeGet("/api/youtube/composer/drafts");
+    setDrafts(j.items || []);
+  };
 
   // Actions
   const handleConnectYoutube = async () => {
     try {
-      setConnecting(true)
-      const data = await safePost("/api/youtube/create-auth-url", {})
-      if (data.authUrl) window.location.href = data.authUrl
+      setConnecting(true);
+      const data = await safePost("/api/youtube/create-auth-url", {});
+      if (data.authUrl) window.location.href = data.authUrl;
     } catch (e: any) {
-      toast.error(e.message || "Failed to start YouTube connection")
-      setConnecting(false)
+      toast.error(e.message || "Failed to start YouTube connection");
+      setConnecting(false);
     }
-  }
+  };
 
   const handleRefresh = async () => {
     try {
-      setRefreshing(true)
-      await safePost("/api/youtube/token/refresh-if-needed")
-      await safePost("/api/youtube/refresh")
-      await Promise.all([fetchFromDB(), fetchVideos(), fetchComments(), fetchAnalytics(), fetchDrafts()])
-      toast.success("Data refreshed successfully!")
+      setRefreshing(true);
+      await safePost("/api/youtube/token/refresh-if-needed");
+      await safePost("/api/youtube/refresh");
+      await Promise.all([
+        fetchFromDB(),
+        fetchVideos(),
+        fetchComments(),
+        fetchAnalytics(),
+        fetchDrafts(),
+      ]);
+      toast.success("Data refreshed successfully!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to update data")
+      toast.error(e.message || "Failed to update data");
     } finally {
-      setRefreshing(false)
+      setRefreshing(false);
     }
-  }
+  };
 
   const handleDisconnect = async () => {
-    if (!confirm("Are you sure you want to disconnect YouTube?")) return
+    if (!confirm("Are you sure you want to disconnect YouTube?")) return;
     try {
-      setDisconnecting(true)
-      await safePost("/api/youtube/disconnect")
-      setChannelTitle(null)
-      setChannelEmail(null)
-      setStats({ subs: 0, views: 0, videos: 0 })
-      setVideos([])
-      setComments([])
-      setAnalytics(null)
-      setDrafts([])
-      toast.success("YouTube disconnected successfully")
+      setDisconnecting(true);
+      await safePost("/api/youtube/disconnect");
+      setChannelTitle(null);
+      setChannelEmail(null);
+      setStats({ subs: 0, views: 0, videos: 0 });
+      setVideos([]);
+      setComments([]);
+      setAnalytics(null);
+      setDrafts([]);
+      toast.success("YouTube disconnected successfully");
     } catch (e: any) {
-      toast.error(e.message || "Failed to disconnect YouTube")
+      toast.error(e.message || "Failed to disconnect YouTube");
     } finally {
-      setDisconnecting(false)
+      setDisconnecting(false);
     }
-  }
+  };
 
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('/api/notifications?limit=10')
-      const data = await res.json()
+      const res = await fetch("/api/notifications?limit=10");
+      const data = await res.json();
       if (res.ok) {
-        setNotifications(data.notifications || [])
-        setUnreadCount(data.unreadCount || 0)
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
       }
     } catch (e) {
-      console.error('Failed to fetch notifications:', e)
+      console.error("Failed to fetch notifications:", e);
     } finally {
-      setNotificationsLoading(false)
+      setNotificationsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (user) {
-      fetchNotifications()
-      const interval = setInterval(fetchNotifications, 30000)
-      return () => clearInterval(interval)
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
     }
-  }, [user])
+  }, [user]);
 
   const markNotificationAsRead = async (id: string) => {
     try {
-      await fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationId: id })
-      })
-      fetchNotifications()
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId: id }),
+      });
+      fetchNotifications();
     } catch (e) {
-      console.error('Failed to mark as read:', e)
+      console.error("Failed to mark as read:", e);
     }
-  }
+  };
 
   // Upload handlers
   const handleVideoSelect = (file: File) => {
-    if (file && file.type.startsWith('video/')) {
-      setVideoFile(file)
-      setUploadStage('details')
-      setUploadProgress(25)
+    if (file && file.type.startsWith("video/")) {
+      setVideoFile(file);
+      setUploadStage("details");
+      setUploadProgress(25);
     } else {
-      toast.error("Please select a valid video file")
+      toast.error("Please select a valid video file");
     }
-  }
-  
+  };
+
   const handleThumbnailSelect = (file: File) => {
-    if (file && file.type.startsWith('image/')) {
-      setThumbnailFile(file)
+    if (file && file.type.startsWith("image/")) {
+      setThumbnailFile(file);
     } else {
-      toast.error("Please select a valid image file")
+      toast.error("Please select a valid image file");
     }
-  }
-  
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-  
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
   const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-  
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    
-    const files = e.dataTransfer.files
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
     if (files && files[0]) {
-      handleVideoSelect(files[0])
+      handleVideoSelect(files[0]);
     }
-  }
-  
+  };
+
   const handleAddTag = () => {
     if (currentTag && videoTags.length < 30) {
-      setVideoTags([...videoTags, currentTag])
-      setCurrentTag("")
+      setVideoTags([...videoTags, currentTag]);
+      setCurrentTag("");
     }
-  }
-  
+  };
+
   const handleRemoveTag = (index: number) => {
-    setVideoTags(videoTags.filter((_, i) => i !== index))
-  }
-  
+    setVideoTags(videoTags.filter((_, i) => i !== index));
+  };
+
   const handleUpload = async () => {
     // Validation
     if (!videoFile) {
-      toast.error("Please select a video file")
-      return
+      toast.error("Please select a video file");
+      return;
     }
-    
+
     if (!videoTitle.trim()) {
-      toast.error("Video title is required")
-      return
+      toast.error("Video title is required");
+      return;
     }
-    
+
     if (!videoDescription.trim()) {
-      toast.error("Video description is required")
-      return
+      toast.error("Video description is required");
+      return;
     }
-    
-    setUploadStage('processing')
-    setUploadProgress(10)
-    
+
+    setUploadStage("processing");
+    setUploadProgress(10);
+
     try {
       // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('video', videoFile)
-      formData.append('title', videoTitle)
-      formData.append('description', videoDescription)
-      formData.append('tags', JSON.stringify(videoTags))
-      formData.append('category', videoCategory)
-      formData.append('language', videoLanguage)
-      formData.append('privacy', videoPrivacy)
-      formData.append('allowComments', String(allowComments))
-      formData.append('allowEmbedding', String(allowEmbedding))
-      formData.append('ageRestriction', String(ageRestriction))
+      const formData = new FormData();
+      formData.append("video", videoFile);
+      formData.append("title", videoTitle);
+      formData.append("description", videoDescription);
+      formData.append("tags", JSON.stringify(videoTags));
+      formData.append("category", videoCategory);
+      formData.append("language", videoLanguage);
+      formData.append("privacy", videoPrivacy);
+      formData.append("allowComments", String(allowComments));
+      formData.append("allowEmbedding", String(allowEmbedding));
+      formData.append("ageRestriction", String(ageRestriction));
       if (scheduleDate) {
-        formData.append('scheduledAt', scheduleDate)
+        formData.append("scheduledAt", scheduleDate);
       }
       if (thumbnailFile) {
-        formData.append('thumbnail', thumbnailFile)
+        formData.append("thumbnail", thumbnailFile);
       }
-      
+
       // Upload video with progress tracking
-      const xhr = new XMLHttpRequest()
-      
-      xhr.upload.addEventListener('progress', (e) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
-          const percentComplete = Math.round((e.loaded / e.total) * 90) + 10 // 10-100%
-          setUploadProgress(percentComplete)
+          const percentComplete = Math.round((e.loaded / e.total) * 90) + 10; // 10-100%
+          setUploadProgress(percentComplete);
         }
-      })
-      
-      xhr.addEventListener('load', async () => {
+      });
+
+      xhr.addEventListener("load", async () => {
         if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText)
-          setUploadProgress(100)
-          setUploadStage('complete')
-          toast.success("Video uploaded successfully!")
-          
+          const response = JSON.parse(xhr.responseText);
+          setUploadProgress(100);
+          setUploadStage("complete");
+          toast.success("Video uploaded successfully!");
+
           // Refresh videos list and show in Manager
           try {
-            await Promise.all([fetchVideos(), fetchFromDB()])
+            await Promise.all([fetchVideos(), fetchFromDB()]);
             // Switch to Manager tab to see the uploaded video
             setTimeout(() => {
-              setActiveTab('manager')
-            }, 1000)
+              setActiveTab("manager");
+            }, 1000);
           } catch (refreshError) {
-            console.error('Failed to refresh videos:', refreshError)
+            console.error("Failed to refresh videos:", refreshError);
             // Still switch to manager even if refresh fails
             setTimeout(() => {
-              setActiveTab('manager')
-            }, 1000)
+              setActiveTab("manager");
+            }, 1000);
           }
         } else {
-          const error = JSON.parse(xhr.responseText || '{}')
-          throw new Error(error.error || 'Upload failed')
+          const error = JSON.parse(xhr.responseText || "{}");
+          throw new Error(error.error || "Upload failed");
         }
-      })
-      
-      xhr.addEventListener('error', () => {
-        throw new Error('Network error during upload')
-      })
-      
-      xhr.open('POST', '/api/youtube/videos/upload')
-      xhr.send(formData)
-      
+      });
+
+      xhr.addEventListener("error", () => {
+        throw new Error("Network error during upload");
+      });
+
+      xhr.open("POST", "/api/youtube/videos/upload");
+      xhr.send(formData);
     } catch (error: any) {
-      console.error('Upload error:', error)
-      toast.error(error.message || 'Failed to upload video')
-      setUploadStage('details')
-      setUploadProgress(0)
+      console.error("Upload error:", error);
+      toast.error(error.message || "Failed to upload video");
+      setUploadStage("details");
+      setUploadProgress(0);
     }
-  }
+  };
 
   // AI Generation handlers
   const generateScript = async () => {
-    if (!scriptPrompt.trim()) return
-    setGenLoading(true)
+    if (!scriptPrompt.trim()) return;
+    setGenLoading(true);
     try {
       const res = await safePost("/api/youtube/composer/generate", {
         prompt: scriptPrompt,
-        tone: "professional"
-      })
-      setGeneratedScript(res.description || "Script generated successfully")
-      toast.success("Script generated!")
+        tone: "professional",
+      });
+      setGeneratedScript(res.description || "Script generated successfully");
+      toast.success("Script generated!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate script")
+      toast.error(e.message || "Failed to generate script");
     } finally {
-      setGenLoading(false)
+      setGenLoading(false);
     }
-  }
-  
+  };
+
   const generateSEOTitle = async () => {
-    if (!seoTitle.trim()) return
-    setGenLoading(true)
+    if (!seoTitle.trim()) return;
+    setGenLoading(true);
     try {
       const res = await safePost("/api/youtube/composer/generate", {
         prompt: `Generate an SEO-optimized YouTube title for: ${seoTitle}`,
-        tone: "neutral"
-      })
-      setGeneratedSeoTitle(res.title || "SEO Optimized Title")
-      toast.success("SEO title generated!")
+        tone: "neutral",
+      });
+      setGeneratedSeoTitle(res.title || "SEO Optimized Title");
+      toast.success("SEO title generated!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate SEO title")
+      toast.error(e.message || "Failed to generate SEO title");
     } finally {
-      setGenLoading(false)
+      setGenLoading(false);
     }
-  }
-  
+  };
+
   const generateDescription = async () => {
-    if (!descPrompt.trim()) return
-    setGenLoading(true)
+    if (!descPrompt.trim()) return;
+    setGenLoading(true);
     try {
       const res = await safePost("/api/youtube/composer/generate", {
         prompt: `Generate a YouTube video description for: ${descPrompt}`,
-        tone: "professional"
-      })
-      setGeneratedDesc(res.description || "Description generated")
-      toast.success("Description generated!")
+        tone: "professional",
+      });
+      setGeneratedDesc(res.description || "Description generated");
+      toast.success("Description generated!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate description")
+      toast.error(e.message || "Failed to generate description");
     } finally {
-      setGenLoading(false)
+      setGenLoading(false);
     }
-  }
-  
+  };
+
   const generateTags = async () => {
-    if (!tagPrompt.trim()) return
-    setGenLoading(true)
+    if (!tagPrompt.trim()) return;
+    setGenLoading(true);
     try {
       const res = await safePost("/api/youtube/composer/generate", {
         prompt: `Generate YouTube tags for: ${tagPrompt}`,
-        tone: "neutral"
-      })
-      const tagsStr = res.hashtags || ""
-      const tagsArray = tagsStr.split(',').map((t: string) => t.trim().replace(/^#/, '')).filter(Boolean)
-      setGeneratedTags(tagsArray.length > 0 ? tagsArray : ['youtube', 'video', 'content'])
-      toast.success("Tags generated!")
+        tone: "neutral",
+      });
+      const tagsStr = res.hashtags || "";
+      const tagsArray = tagsStr
+        .split(",")
+        .map((t: string) => t.trim().replace(/^#/, ""))
+        .filter(Boolean);
+      setGeneratedTags(
+        tagsArray.length > 0 ? tagsArray : ["youtube", "video", "content"],
+      );
+      toast.success("Tags generated!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate tags")
+      toast.error(e.message || "Failed to generate tags");
     } finally {
-      setGenLoading(false)
+      setGenLoading(false);
     }
-  }
-  
+  };
+
   const generateHashtags = async () => {
-    if (!hashtagPrompt.trim()) return
-    setGenLoading(true)
+    if (!hashtagPrompt.trim()) return;
+    setGenLoading(true);
     try {
       const res = await safePost("/api/youtube/composer/generate", {
         prompt: `Generate YouTube hashtags for: ${hashtagPrompt}`,
-        tone: "energetic"
-      })
-      const hashtagsStr = res.hashtags || ""
-      const hashtagsArray = hashtagsStr.split(',').map((h: string) => h.trim().startsWith('#') ? h.trim() : `#${h.trim()}`).filter(Boolean)
-      setGeneratedHashtags(hashtagsArray.length > 0 ? hashtagsArray : ['#YouTube', '#Content'])
-      toast.success("Hashtags generated!")
+        tone: "energetic",
+      });
+      const hashtagsStr = res.hashtags || "";
+      const hashtagsArray = hashtagsStr
+        .split(",")
+        .map((h: string) =>
+          h.trim().startsWith("#") ? h.trim() : `#${h.trim()}`,
+        )
+        .filter(Boolean);
+      setGeneratedHashtags(
+        hashtagsArray.length > 0 ? hashtagsArray : ["#YouTube", "#Content"],
+      );
+      toast.success("Hashtags generated!");
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate hashtags")
+      toast.error(e.message || "Failed to generate hashtags");
     } finally {
-      setGenLoading(false)
+      setGenLoading(false);
     }
-  }
+  };
 
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
-    
-    const days = []
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null)
+      days.push(null);
     }
     for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i))
+      days.push(new Date(year, month, i));
     }
-    
-    return days
-  }
-  
+
+    return days;
+  };
+
   const getEventsForDate = (date: Date | null) => {
-    if (!date) return []
-    return calendarEvents.filter(event => 
-      event.date.toDateString() === date.toDateString()
-    )
-  }
+    if (!date) return [];
+    return calendarEvents.filter(
+      (event) => event.date.toDateString() === date.toDateString(),
+    );
+  };
 
   // Init
   useEffect(() => {
     (async () => {
       try {
-        setLoading(true)
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        
+        setLoading(true);
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+
         if (!authUser) {
-          router.push("/auth/login")
-          return
+          router.push("/auth/login");
+          return;
         }
-        
-        setUser(authUser)
-        await safePost("/api/youtube/token/refresh-if-needed")
-        const has = await fetchFromDB()
+
+        setUser(authUser);
+        await safePost("/api/youtube/token/refresh-if-needed");
+        const has = await fetchFromDB();
         if (has) {
-          await Promise.all([fetchVideos(), fetchComments(), fetchAnalytics(), fetchDrafts()])
+          await Promise.all([
+            fetchVideos(),
+            fetchComments(),
+            fetchAnalytics(),
+            fetchDrafts(),
+          ]);
           // Load saved ideas
           try {
-            const res = await safeGet("/api/youtube/composer/drafts")
-            const drafts = res.items || []
+            const res = await safeGet("/api/youtube/composer/drafts");
+            const drafts = res.items || [];
             const ideas = drafts
               .filter((d: any) => d.description?.includes("Content idea:"))
               .map((d: any) => ({
                 id: d.id,
-                idea: d.title || d.description?.replace("Content idea: ", "") || "",
+                idea:
+                  d.title || d.description?.replace("Content idea: ", "") || "",
                 category: "all",
-                created_at: d.created_at
-              }))
-            setSavedIdeas(ideas)
+                created_at: d.created_at,
+              }));
+            setSavedIdeas(ideas);
           } catch (e) {
             // Silent fail for saved ideas
           }
         }
       } catch (e: any) {
-        toast.error(e.message || "Failed to load channel data")
+        toast.error(e.message || "Failed to load channel data");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    })()
-  }, [])
-  
+    })();
+  }, []);
+
   // Filtered comments
   const filteredComments = useMemo(() => {
-    let filtered = [...comments]
-    
+    let filtered = [...comments];
+
     // Filter by video
     if (selectedVideoForComments) {
-      filtered = filtered.filter(c => c.videoUrl === selectedVideoForComments)
+      filtered = filtered.filter(
+        (c) => c.videoUrl === selectedVideoForComments,
+      );
     }
-    
+
     // Filter by search
     if (commentSearch) {
-      const searchLower = commentSearch.toLowerCase()
-      filtered = filtered.filter(c =>
-        c.author.toLowerCase().includes(searchLower) ||
-        c.text.toLowerCase().includes(searchLower)
-      )
+      const searchLower = commentSearch.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.author.toLowerCase().includes(searchLower) ||
+          c.text.toLowerCase().includes(searchLower),
+      );
     }
-    
+
     // Filter by type
-    if (commentFilter === 'recent') {
-      filtered.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    } else if (commentFilter === 'mostLiked') {
-      filtered.sort((a, b) => b.likes - a.likes)
+    if (commentFilter === "recent") {
+      filtered.sort(
+        (a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      );
+    } else if (commentFilter === "mostLiked") {
+      filtered.sort((a, b) => b.likes - a.likes);
     }
-    
-    return filtered
-  }, [comments, selectedVideoForComments, commentSearch, commentFilter])
+
+    return filtered;
+  }, [comments, selectedVideoForComments, commentSearch, commentFilter]);
 
   // Filtered videos for manager
   const filteredVideos = useMemo(() => {
-    return videos.filter(v => {
-      const matchesSearch = !videoSearch || v.title.toLowerCase().includes(videoSearch.toLowerCase())
-      const matchesFilter = videoFilter === 'all' || v.status === videoFilter
-      return matchesSearch && matchesFilter
-    })
-  }, [videos, videoSearch, videoFilter])
-  
+    return videos.filter((v) => {
+      const matchesSearch =
+        !videoSearch ||
+        v.title.toLowerCase().includes(videoSearch.toLowerCase());
+      const matchesFilter = videoFilter === "all" || v.status === videoFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [videos, videoSearch, videoFilter]);
+
   const paginatedVideos = useMemo(() => {
-    const start = (videoPage - 1) * videosPerPage
-    return filteredVideos.slice(start, start + videosPerPage)
-  }, [filteredVideos, videoPage])
-  
-  const totalVideoPages = Math.ceil(filteredVideos.length / videosPerPage)
+    const start = (videoPage - 1) * videosPerPage;
+    return filteredVideos.slice(start, start + videosPerPage);
+  }, [filteredVideos, videoPage]);
+
+  const totalVideoPages = Math.ceil(filteredVideos.length / videosPerPage);
 
   // Chart data
   const viewsChartData = useMemo(() => {
-    if (!analytics) return null
-    const labels = analytics.months.map((m: string) => m.slice(0, 7))
+    if (!analytics) return null;
+    const labels = analytics.months.map((m: string) => m.slice(0, 7));
     return {
       labels,
-      datasets: [{
-        label: "Views",
-        data: analytics.viewsPerMonth,
-        borderColor: "#FF6B00",
-        backgroundColor: "rgba(255,107,0,0.15)",
-        borderWidth: 2,
-        tension: 0.3,
-        fill: true,
-        pointBackgroundColor: "#FF6B00",
-        pointBorderColor: "#fff",
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }]
-    }
-  }, [analytics])
-  
+      datasets: [
+        {
+          label: "Views",
+          data: analytics.viewsPerMonth,
+          borderColor: "#FF6B00",
+          backgroundColor: "rgba(255,107,0,0.15)",
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: "#FF6B00",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    };
+  }, [analytics]);
+
   const performanceChartData = useMemo(() => {
-    if (!videos.length) return null
+    if (!videos.length) return null;
     return {
-      labels: ['Views', 'Comments', 'Likes'],
-      datasets: [{
-        data: [
-          videos.reduce((sum, v) => sum + v.views, 0),
-          comments.length * 100,
-          videos.length * 500
-        ],
-        backgroundColor: ['#FF6B00', '#FF8C00', '#FFD700'],
-        borderColor: ['#FF6B00', '#FF8C00', '#FFD700'],
-        borderWidth: 1,
-      }]
-    }
-  }, [videos, comments])
+      labels: ["Views", "Comments", "Likes"],
+      datasets: [
+        {
+          data: [
+            videos.reduce((sum, v) => sum + v.views, 0),
+            comments.length * 100,
+            videos.length * 500,
+          ],
+          backgroundColor: ["#FF6B00", "#FF8C00", "#FFD700"],
+          borderColor: ["#FF6B00", "#FF8C00", "#FFD700"],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [videos, comments]);
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { 
-        labels: { 
+      legend: {
+        labels: {
           color: "#888",
-          font: { size: 12 }
-        } 
+          font: { size: 12 },
+        },
       },
       tooltip: {
         backgroundColor: "rgba(0,0,0,0.8)",
@@ -884,24 +1031,24 @@ export default function YoutubeDashboardPage() {
         borderColor: "#FF6B00",
         borderWidth: 1,
         cornerRadius: 8,
-      }
+      },
     },
     scales: {
       x: {
         grid: { color: "rgba(255,107,0,0.05)" },
-        ticks: { color: "#888" }
+        ticks: { color: "#888" },
       },
       y: {
         grid: { color: "rgba(255,107,0,0.05)" },
-        ticks: { color: "#888" }
-      }
-    }
-  }
+        ticks: { color: "#888" },
+      },
+    },
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar - Removed (component deleted) */}
-      
+
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-[240px] transition-all duration-300">
         {/* Header Bar */}
@@ -909,39 +1056,56 @@ export default function YoutubeDashboardPage() {
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex-1">
-                <h1 className="text-2xl font-bold gradient-text-orange">YouTube Studio</h1>
+                <h1 className="text-2xl font-bold gradient-text-orange">
+                  YouTube Studio
+                </h1>
               </div>
 
               {/* Right side - Notifications and Refresh */}
               <div className="flex items-center gap-3">
                 {channelTitle && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={handleRefresh}
                     disabled={refreshing}
                     className="hover:bg-primary hover:text-white transition-colors"
                   >
-                    <RefreshCw className={cn("h-5 w-5", refreshing && "animate-spin")} />
+                    <RefreshCw
+                      className={cn("h-5 w-5", refreshing && "animate-spin")}
+                    />
                   </Button>
                 )}
-                
-                <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+
+                <Popover
+                  open={notificationsOpen}
+                  onOpenChange={setNotificationsOpen}
+                >
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative hover:bg-primary hover:text-white transition-colors">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative hover:bg-primary hover:text-white transition-colors"
+                    >
                       <Bell className="h-5 w-5" />
                       {unreadCount > 0 && (
                         <span className="absolute top-1 right-1 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
-                          {unreadCount > 9 ? '9+' : unreadCount}
+                          {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 md:w-96 p-0 glass-strong border-primary/30" align="end">
+                  <PopoverContent
+                    className="w-80 md:w-96 p-0 glass-strong border-primary/30"
+                    align="end"
+                  >
                     <div className="border-b border-primary/20 p-4 flex items-center justify-between">
                       <h3 className="font-semibold">Notifications</h3>
                       {unreadCount > 0 && (
-                        <Badge variant="outline" className="border-primary text-primary">
+                        <Badge
+                          variant="outline"
+                          className="border-primary text-primary"
+                        >
                           {unreadCount} unread
                         </Badge>
                       )}
@@ -954,31 +1118,50 @@ export default function YoutubeDashboardPage() {
                       ) : notifications.length === 0 ? (
                         <div className="p-8 text-center">
                           <Bell className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-                          <p className="text-sm text-muted-foreground">No notifications yet</p>
+                          <p className="text-sm text-muted-foreground">
+                            No notifications yet
+                          </p>
                         </div>
                       ) : (
                         <div className="divide-y divide-primary/10">
                           {notifications.map((notif: any) => (
                             <div
                               key={notif.id}
-                              onClick={() => !notif.read && markNotificationAsRead(notif.id)}
+                              onClick={() =>
+                                !notif.read && markNotificationAsRead(notif.id)
+                              }
                               className={cn(
                                 "p-4 hover:bg-primary/5 transition-colors cursor-pointer",
-                                !notif.read && "bg-primary/5 border-l-2 border-primary"
+                                !notif.read &&
+                                  "bg-primary/5 border-l-2 border-primary",
                               )}
                             >
                               <div className="flex gap-3">
                                 <div className="mt-1">
-                                  {notif.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                  {notif.type === 'error' && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                                  {notif.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
-                                  {!notif.type && <Bell className="h-4 w-4 text-primary" />}
+                                  {notif.type === "success" && (
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                  )}
+                                  {notif.type === "error" && (
+                                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                                  )}
+                                  {notif.type === "info" && (
+                                    <Info className="h-4 w-4 text-blue-500" />
+                                  )}
+                                  {!notif.type && (
+                                    <Bell className="h-4 w-4 text-primary" />
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium">{notif.title}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
+                                  <p className="text-sm font-medium">
+                                    {notif.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {notif.message}
+                                  </p>
                                   <p className="text-xs text-muted-foreground/70 mt-1">
-                                    {new Date(notif.created_at).toLocaleString()}
+                                    {new Date(
+                                      notif.created_at,
+                                    ).toLocaleString()}
                                   </p>
                                 </div>
                               </div>
@@ -1009,13 +1192,16 @@ export default function YoutubeDashboardPage() {
                     <Youtube className="w-10 h-10 text-primary" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold gradient-text-orange">No YouTube Channel Connected</h3>
+                    <h3 className="text-2xl font-bold gradient-text-orange">
+                      No YouTube Channel Connected
+                    </h3>
                     <p className="text-muted-foreground max-w-md">
-                      Connect your YouTube channel to unlock powerful analytics, content management, and AI-powered tools.
+                      Connect your YouTube channel to unlock powerful analytics,
+                      content management, and AI-powered tools.
                     </p>
                   </div>
-                  <Button 
-                    onClick={handleConnectYoutube} 
+                  <Button
+                    onClick={handleConnectYoutube}
                     disabled={connecting}
                     size="lg"
                     className="mt-4 gap-2 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
@@ -1096,7 +1282,9 @@ export default function YoutubeDashboardPage() {
                                   className="w-24 h-14 object-cover rounded"
                                 />
                                 <div className="flex-1">
-                                  <h4 className="text-sm font-medium line-clamp-1">{video.title}</h4>
+                                  <h4 className="text-sm font-medium line-clamp-1">
+                                    {video.title}
+                                  </h4>
                                   <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                       <Eye className="h-3 w-3" />
@@ -1104,12 +1292,23 @@ export default function YoutubeDashboardPage() {
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Calendar className="h-3 w-3" />
-                                      {new Date(video.publishedAt).toLocaleDateString()}
+                                      {new Date(
+                                        video.publishedAt,
+                                      ).toLocaleDateString()}
                                     </span>
                                   </div>
                                 </div>
-                                <Button variant="ghost" size="icon" asChild className="hover:bg-primary hover:text-white">
-                                  <a href={video.url} target="_blank" rel="noopener noreferrer">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  asChild
+                                  className="hover:bg-primary hover:text-white"
+                                >
+                                  <a
+                                    href={video.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
                                     <ExternalLink className="h-4 w-4" />
                                   </a>
                                 </Button>
@@ -1131,7 +1330,13 @@ export default function YoutubeDashboardPage() {
                       <CardContent className="p-6">
                         <div className="h-[300px]">
                           {performanceChartData ? (
-                            <Doughnut data={performanceChartData} options={{ ...chartOptions, maintainAspectRatio: false }} />
+                            <Doughnut
+                              data={performanceChartData}
+                              options={{
+                                ...chartOptions,
+                                maintainAspectRatio: false,
+                              }}
+                            />
                           ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground">
                               No data available
@@ -1155,15 +1360,17 @@ export default function YoutubeDashboardPage() {
                         <Button
                           variant="outline"
                           className="h-auto p-4 flex flex-col gap-2 hover:bg-primary hover:text-white transition-all hover-lift"
-                          onClick={() => setActiveTab('composer')}
+                          onClick={() => setActiveTab("composer")}
                         >
                           <Upload className="h-6 w-6" />
-                          <span className="text-sm font-medium">Upload Video</span>
+                          <span className="text-sm font-medium">
+                            Upload Video
+                          </span>
                         </Button>
                         <Button
                           variant="outline"
                           className="h-auto p-4 flex flex-col gap-2 hover:bg-primary hover:text-white transition-all hover-lift"
-                          onClick={() => setActiveTab('ai-tools')}
+                          onClick={() => setActiveTab("ai-tools")}
                         >
                           <Sparkles className="h-6 w-6" />
                           <span className="text-sm font-medium">AI Tools</span>
@@ -1171,7 +1378,7 @@ export default function YoutubeDashboardPage() {
                         <Button
                           variant="outline"
                           className="h-auto p-4 flex flex-col gap-2 hover:bg-primary hover:text-white transition-all hover-lift"
-                          onClick={() => setActiveTab('analytics')}
+                          onClick={() => setActiveTab("analytics")}
                         >
                           <BarChart3 className="h-6 w-6" />
                           <span className="text-sm font-medium">Analytics</span>
@@ -1183,7 +1390,9 @@ export default function YoutubeDashboardPage() {
                           disabled={disconnecting}
                         >
                           <LogOut className="h-6 w-6" />
-                          <span className="text-sm font-medium">Disconnect</span>
+                          <span className="text-sm font-medium">
+                            Disconnect
+                          </span>
                         </Button>
                       </div>
                     </CardContent>
@@ -1200,39 +1409,78 @@ export default function YoutubeDashboardPage() {
                         <Upload className="w-6 h-6 text-primary" />
                         Upload Video
                       </CardTitle>
-                      <CardDescription>Upload your video with professional settings and AI-powered optimization</CardDescription>
+                      <CardDescription>
+                        Upload your video with professional settings and
+                        AI-powered optimization
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                       {/* Upload Progress Indicator */}
                       <div className="mb-8">
                         <div className="flex items-center justify-between mb-4">
-                          {['Select', 'Details', 'Processing', 'Complete'].map((stage, index) => (
-                            <div
-                              key={stage}
-                              className={cn(
-                                "flex items-center",
-                                index < ['select', 'details', 'processing', 'complete'].indexOf(uploadStage) && "text-primary",
-                                index === ['select', 'details', 'processing', 'complete'].indexOf(uploadStage) && "text-primary font-semibold",
-                                index > ['select', 'details', 'processing', 'complete'].indexOf(uploadStage) && "text-muted-foreground"
-                              )}
-                            >
+                          {["Select", "Details", "Processing", "Complete"].map(
+                            (stage, index) => (
                               <div
+                                key={stage}
                                 className={cn(
-                                  "w-8 h-8 rounded-full flex items-center justify-center border-2",
-                                  index <= ['select', 'details', 'processing', 'complete'].indexOf(uploadStage)
-                                    ? "border-primary bg-primary text-white"
-                                    : "border-muted-foreground"
+                                  "flex items-center",
+                                  index <
+                                    [
+                                      "select",
+                                      "details",
+                                      "processing",
+                                      "complete",
+                                    ].indexOf(uploadStage) && "text-primary",
+                                  index ===
+                                    [
+                                      "select",
+                                      "details",
+                                      "processing",
+                                      "complete",
+                                    ].indexOf(uploadStage) &&
+                                    "text-primary font-semibold",
+                                  index >
+                                    [
+                                      "select",
+                                      "details",
+                                      "processing",
+                                      "complete",
+                                    ].indexOf(uploadStage) &&
+                                    "text-muted-foreground",
                                 )}
                               >
-                                {index < ['select', 'details', 'processing', 'complete'].indexOf(uploadStage) ? (
-                                  <Check className="w-4 h-4" />
-                                ) : (
-                                  index + 1
-                                )}
+                                <div
+                                  className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center border-2",
+                                    index <=
+                                      [
+                                        "select",
+                                        "details",
+                                        "processing",
+                                        "complete",
+                                      ].indexOf(uploadStage)
+                                      ? "border-primary bg-primary text-white"
+                                      : "border-muted-foreground",
+                                  )}
+                                >
+                                  {index <
+                                  [
+                                    "select",
+                                    "details",
+                                    "processing",
+                                    "complete",
+                                  ].indexOf(uploadStage) ? (
+                                    <Check className="w-4 h-4" />
+                                  ) : (
+                                    index + 1
+                                  )}
+                                </div>
+                                <span className="ml-2 text-sm hidden sm:inline">
+                                  {stage}
+                                </span>
                               </div>
-                              <span className="ml-2 text-sm hidden sm:inline">{stage}</span>
-                            </div>
-                          ))}
+                            ),
+                          )}
                         </div>
                         <div className="w-full bg-secondary rounded-full h-2">
                           <div
@@ -1243,7 +1491,7 @@ export default function YoutubeDashboardPage() {
                       </div>
 
                       {/* Upload Stages */}
-                      {uploadStage === 'select' && (
+                      {uploadStage === "select" && (
                         <div className="space-y-6">
                           <div
                             onDragOver={handleDragOver}
@@ -1253,18 +1501,23 @@ export default function YoutubeDashboardPage() {
                               "border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200",
                               isDragging
                                 ? "border-primary bg-primary/10 glow-orange"
-                                : "border-primary/30 hover:border-primary/50 glass"
+                                : "border-primary/30 hover:border-primary/50 glass",
                             )}
                           >
                             <input
                               ref={videoInputRef}
                               type="file"
                               accept="video/*"
-                              onChange={(e) => e.target.files?.[0] && handleVideoSelect(e.target.files[0])}
+                              onChange={(e) =>
+                                e.target.files?.[0] &&
+                                handleVideoSelect(e.target.files[0])
+                              }
                               className="hidden"
                             />
                             <Film className="w-16 h-16 mx-auto mb-4 text-primary" />
-                            <h3 className="text-xl font-semibold mb-2">Drag and drop your video</h3>
+                            <h3 className="text-xl font-semibold mb-2">
+                              Drag and drop your video
+                            </h3>
                             <p className="text-muted-foreground mb-4">or</p>
                             <Button
                               onClick={() => videoInputRef.current?.click()}
@@ -1273,24 +1526,31 @@ export default function YoutubeDashboardPage() {
                               Select File
                             </Button>
                             <p className="text-sm text-muted-foreground mt-4">
-                              Supported formats: MP4, AVI, MOV, WMV • Max size: 128GB
+                              Supported formats: MP4, AVI, MOV, WMV • Max size:
+                              128GB
                             </p>
                           </div>
                         </div>
                       )}
 
-                      {uploadStage === 'details' && (
+                      {uploadStage === "details" && (
                         <div className="space-y-6">
                           {/* Video Details Form */}
                           <div className="grid gap-6 lg:grid-cols-2">
                             {/* Left Column */}
                             <div className="space-y-6">
                               <div>
-                                <label className="text-sm font-medium text-primary">Title (100 chars)</label>
+                                <label className="text-sm font-medium text-primary">
+                                  Title (100 chars)
+                                </label>
                                 <div className="relative mt-2">
                                   <Input
                                     value={videoTitle}
-                                    onChange={(e) => setVideoTitle(e.target.value.slice(0, 100))}
+                                    onChange={(e) =>
+                                      setVideoTitle(
+                                        e.target.value.slice(0, 100),
+                                      )
+                                    }
                                     placeholder="Enter video title"
                                     className="border-primary/30 focus:border-primary glass"
                                   />
@@ -1301,11 +1561,17 @@ export default function YoutubeDashboardPage() {
                               </div>
 
                               <div>
-                                <label className="text-sm font-medium text-primary">Description (5000 chars)</label>
+                                <label className="text-sm font-medium text-primary">
+                                  Description (5000 chars)
+                                </label>
                                 <div className="relative mt-2">
                                   <Textarea
                                     value={videoDescription}
-                                    onChange={(e) => setVideoDescription(e.target.value.slice(0, 5000))}
+                                    onChange={(e) =>
+                                      setVideoDescription(
+                                        e.target.value.slice(0, 5000),
+                                      )
+                                    }
                                     placeholder="Enter video description"
                                     rows={6}
                                     className="resize-none border-primary/30 focus:border-primary glass"
@@ -1317,19 +1583,28 @@ export default function YoutubeDashboardPage() {
                               </div>
 
                               <div>
-                                <label className="text-sm font-medium text-primary">Tags (up to 30)</label>
+                                <label className="text-sm font-medium text-primary">
+                                  Tags (up to 30)
+                                </label>
                                 <div className="mt-2 space-y-2">
                                   <div className="flex gap-2">
                                     <Input
                                       value={currentTag}
-                                      onChange={(e) => setCurrentTag(e.target.value)}
+                                      onChange={(e) =>
+                                        setCurrentTag(e.target.value)
+                                      }
                                       placeholder="Add a tag"
-                                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                                      onKeyPress={(e) =>
+                                        e.key === "Enter" &&
+                                        (e.preventDefault(), handleAddTag())
+                                      }
                                       className="border-primary/30 focus:border-primary glass"
                                     />
                                     <Button
                                       onClick={handleAddTag}
-                                      disabled={!currentTag || videoTags.length >= 30}
+                                      disabled={
+                                        !currentTag || videoTags.length >= 30
+                                      }
                                       variant="outline"
                                       className="hover:bg-primary hover:text-white"
                                     >
@@ -1360,16 +1635,23 @@ export default function YoutubeDashboardPage() {
                             {/* Right Column */}
                             <div className="space-y-6">
                               <div>
-                                <label className="text-sm font-medium text-primary">Thumbnail</label>
+                                <label className="text-sm font-medium text-primary">
+                                  Thumbnail
+                                </label>
                                 <div
                                   className="mt-2 border-2 border-dashed border-primary/30 rounded-lg p-4 text-center glass hover:border-primary/50 transition-colors cursor-pointer"
-                                  onClick={() => thumbnailInputRef.current?.click()}
+                                  onClick={() =>
+                                    thumbnailInputRef.current?.click()
+                                  }
                                 >
                                   <input
                                     ref={thumbnailInputRef}
                                     type="file"
                                     accept="image/*"
-                                    onChange={(e) => e.target.files?.[0] && handleThumbnailSelect(e.target.files[0])}
+                                    onChange={(e) =>
+                                      e.target.files?.[0] &&
+                                      handleThumbnailSelect(e.target.files[0])
+                                    }
                                     className="hidden"
                                   />
                                   {thumbnailFile ? (
@@ -1384,8 +1666,8 @@ export default function YoutubeDashboardPage() {
                                         size="icon"
                                         className="absolute top-0 right-0"
                                         onClick={(e) => {
-                                          e.stopPropagation()
-                                          setThumbnailFile(null)
+                                          e.stopPropagation();
+                                          setThumbnailFile(null);
                                         }}
                                       >
                                         <X className="w-4 h-4" />
@@ -1394,7 +1676,9 @@ export default function YoutubeDashboardPage() {
                                   ) : (
                                     <>
                                       <ImageIcon className="w-8 h-8 mx-auto mb-2 text-primary" />
-                                      <p className="text-sm text-muted-foreground">Click to upload thumbnail</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Click to upload thumbnail
+                                      </p>
                                     </>
                                   )}
                                 </div>
@@ -1402,28 +1686,48 @@ export default function YoutubeDashboardPage() {
 
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-sm font-medium text-primary">Category</label>
-                                  <Select value={videoCategory} onValueChange={setVideoCategory}>
+                                  <label className="text-sm font-medium text-primary">
+                                    Category
+                                  </label>
+                                  <Select
+                                    value={videoCategory}
+                                    onValueChange={setVideoCategory}
+                                  >
                                     <SelectTrigger className="mt-2 border-primary/30 glass">
                                       <SelectValue placeholder="Select category" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {videoCategories.map(cat => (
-                                        <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                      {videoCategories.map((cat) => (
+                                        <SelectItem
+                                          key={cat.value}
+                                          value={cat.value}
+                                        >
+                                          {cat.label}
+                                        </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </div>
 
                                 <div>
-                                  <label className="text-sm font-medium text-primary">Language</label>
-                                  <Select value={videoLanguage} onValueChange={setVideoLanguage}>
+                                  <label className="text-sm font-medium text-primary">
+                                    Language
+                                  </label>
+                                  <Select
+                                    value={videoLanguage}
+                                    onValueChange={setVideoLanguage}
+                                  >
                                     <SelectTrigger className="mt-2 border-primary/30 glass">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {languages.map(lang => (
-                                        <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
+                                      {languages.map((lang) => (
+                                        <SelectItem
+                                          key={lang.value}
+                                          value={lang.value}
+                                        >
+                                          {lang.label}
+                                        </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -1431,69 +1735,105 @@ export default function YoutubeDashboardPage() {
                               </div>
 
                               <div>
-                                <label className="text-sm font-medium text-primary mb-3 block">Privacy Settings</label>
+                                <label className="text-sm font-medium text-primary mb-3 block">
+                                  Privacy Settings
+                                </label>
                                 <div className="grid grid-cols-3 gap-3">
                                   {[
-                                    { value: 'public', label: 'Public', icon: Globe },
-                                    { value: 'unlisted', label: 'Unlisted', icon: Unlock },
-                                    { value: 'private', label: 'Private', icon: Lock },
-                                  ].map(option => (
+                                    {
+                                      value: "public",
+                                      label: "Public",
+                                      icon: Globe,
+                                    },
+                                    {
+                                      value: "unlisted",
+                                      label: "Unlisted",
+                                      icon: Unlock,
+                                    },
+                                    {
+                                      value: "private",
+                                      label: "Private",
+                                      icon: Lock,
+                                    },
+                                  ].map((option) => (
                                     <button
                                       key={option.value}
-                                      onClick={() => setVideoPrivacy(option.value as any)}
+                                      onClick={() =>
+                                        setVideoPrivacy(option.value as any)
+                                      }
                                       className={cn(
                                         "p-3 rounded-lg border-2 transition-all duration-200",
                                         videoPrivacy === option.value
                                           ? "border-primary bg-primary/10 text-primary"
-                                          : "border-primary/20 hover:border-primary/50 glass"
+                                          : "border-primary/20 hover:border-primary/50 glass",
                                       )}
                                     >
                                       <option.icon className="w-5 h-5 mx-auto mb-1" />
-                                      <span className="text-xs">{option.label}</span>
+                                      <span className="text-xs">
+                                        {option.label}
+                                      </span>
                                     </button>
                                   ))}
                                 </div>
                               </div>
 
                               <div>
-                                <label className="text-sm font-medium text-primary mb-3 block">Advanced Settings</label>
+                                <label className="text-sm font-medium text-primary mb-3 block">
+                                  Advanced Settings
+                                </label>
                                 <div className="space-y-3">
                                   <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={allowComments}
-                                      onChange={(e) => setAllowComments(e.target.checked)}
+                                      onChange={(e) =>
+                                        setAllowComments(e.target.checked)
+                                      }
                                       className="rounded border-primary/50 text-primary focus:ring-primary"
                                     />
-                                    <span className="text-sm">Allow comments</span>
+                                    <span className="text-sm">
+                                      Allow comments
+                                    </span>
                                   </label>
                                   <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={allowEmbedding}
-                                      onChange={(e) => setAllowEmbedding(e.target.checked)}
+                                      onChange={(e) =>
+                                        setAllowEmbedding(e.target.checked)
+                                      }
                                       className="rounded border-primary/50 text-primary focus:ring-primary"
                                     />
-                                    <span className="text-sm">Allow embedding</span>
+                                    <span className="text-sm">
+                                      Allow embedding
+                                    </span>
                                   </label>
                                   <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                       type="checkbox"
                                       checked={ageRestriction}
-                                      onChange={(e) => setAgeRestriction(e.target.checked)}
+                                      onChange={(e) =>
+                                        setAgeRestriction(e.target.checked)
+                                      }
                                       className="rounded border-primary/50 text-primary focus:ring-primary"
                                     />
-                                    <span className="text-sm">Age restriction (18+)</span>
+                                    <span className="text-sm">
+                                      Age restriction (18+)
+                                    </span>
                                   </label>
                                 </div>
                               </div>
 
                               <div>
-                                <label className="text-sm font-medium text-primary">Schedule for later</label>
+                                <label className="text-sm font-medium text-primary">
+                                  Schedule for later
+                                </label>
                                 <Input
                                   type="datetime-local"
                                   value={scheduleDate}
-                                  onChange={(e) => setScheduleDate(e.target.value)}
+                                  onChange={(e) =>
+                                    setScheduleDate(e.target.value)
+                                  }
                                   className="mt-2 border-primary/30 focus:border-primary glass"
                                 />
                               </div>
@@ -1505,8 +1845,8 @@ export default function YoutubeDashboardPage() {
                             <Button
                               variant="outline"
                               onClick={() => {
-                                setUploadStage('select')
-                                setUploadProgress(0)
+                                setUploadStage("select");
+                                setUploadProgress(0);
                               }}
                               className="hover:bg-primary hover:text-white"
                             >
@@ -1524,41 +1864,52 @@ export default function YoutubeDashboardPage() {
                         </div>
                       )}
 
-                      {uploadStage === 'processing' && (
+                      {uploadStage === "processing" && (
                         <div className="text-center py-12">
                           <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-primary" />
-                          <h3 className="text-xl font-semibold mb-2">Processing Video...</h3>
-                          <p className="text-muted-foreground">This may take a few minutes depending on your video size</p>
+                          <h3 className="text-xl font-semibold mb-2">
+                            Processing Video...
+                          </h3>
+                          <p className="text-muted-foreground">
+                            This may take a few minutes depending on your video
+                            size
+                          </p>
                           <div className="mt-6 max-w-xs mx-auto">
-                            <div className="text-2xl font-bold text-primary">{uploadProgress}%</div>
+                            <div className="text-2xl font-bold text-primary">
+                              {uploadProgress}%
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {uploadStage === 'complete' && (
+                      {uploadStage === "complete" && (
                         <div className="text-center py-12">
                           <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
                             <CheckCircle className="w-10 h-10 text-green-500" />
                           </div>
-                          <h3 className="text-xl font-semibold mb-2">Upload Complete!</h3>
-                          <p className="text-muted-foreground mb-6">Your video has been successfully uploaded to YouTube</p>
+                          <h3 className="text-xl font-semibold mb-2">
+                            Upload Complete!
+                          </h3>
+                          <p className="text-muted-foreground mb-6">
+                            Your video has been successfully uploaded to YouTube
+                          </p>
                           <div className="flex gap-3 justify-center">
                             <Button
                               variant="outline"
                               onClick={() => {
-                                setUploadStage('select')
-                                setUploadProgress(0)
-                                setVideoFile(null)
-                                setVideoTitle("")
-                                setVideoDescription("")
-                                setVideoTags([])
+                                setUploadStage("select");
+                                setUploadProgress(0);
+                                setVideoFile(null);
+                                setVideoTitle("");
+                                setVideoDescription("");
+                                setVideoTags([]);
                               }}
                               className="hover:bg-primary hover:text-white"
                             >
                               Upload Another
                             </Button>
                             <Button
-                              onClick={() => setActiveTab('manager')}
+                              onClick={() => setActiveTab("manager")}
                               className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                             >
                               View Videos
@@ -1587,18 +1938,35 @@ export default function YoutubeDashboardPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1))}
+                              onClick={() =>
+                                setCalendarMonth(
+                                  new Date(
+                                    calendarMonth.getFullYear(),
+                                    calendarMonth.getMonth() - 1,
+                                  ),
+                                )
+                              }
                               className="hover:bg-primary hover:text-white"
                             >
                               <ChevronLeft className="w-4 h-4" />
                             </Button>
                             <span className="text-sm font-medium">
-                              {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                              {calendarMonth.toLocaleDateString("en-US", {
+                                month: "long",
+                                year: "numeric",
+                              })}
                             </span>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1))}
+                              onClick={() =>
+                                setCalendarMonth(
+                                  new Date(
+                                    calendarMonth.getFullYear(),
+                                    calendarMonth.getMonth() + 1,
+                                  ),
+                                )
+                              }
                               className="hover:bg-primary hover:text-white"
                             >
                               <ChevronRight className="w-4 h-4" />
@@ -1608,8 +1976,19 @@ export default function YoutubeDashboardPage() {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="grid grid-cols-7 gap-1">
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
+                          {[
+                            "Sun",
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                          ].map((day) => (
+                            <div
+                              key={day}
+                              className="text-center text-sm font-medium text-muted-foreground p-2"
+                            >
                               {day}
                             </div>
                           ))}
@@ -1620,30 +1999,41 @@ export default function YoutubeDashboardPage() {
                               className={cn(
                                 "min-h-[80px] p-2 border rounded-lg transition-all cursor-pointer",
                                 date ? "hover:bg-primary/10 glass" : "",
-                                date && selectedDate?.toDateString() === date.toDateString() && "bg-primary/10 border-primary",
-                                !date && "invisible"
+                                date &&
+                                  selectedDate?.toDateString() ===
+                                    date.toDateString() &&
+                                  "bg-primary/10 border-primary",
+                                !date && "invisible",
                               )}
                             >
                               {date && (
                                 <>
-                                  <div className="text-sm font-medium mb-1">{date.getDate()}</div>
+                                  <div className="text-sm font-medium mb-1">
+                                    {date.getDate()}
+                                  </div>
                                   <div className="space-y-1">
-                                    {getEventsForDate(date).slice(0, 2).map(event => (
-                                      <div
-                                        key={event.id}
-                                        className={cn(
-                                          "text-xs p-1 rounded truncate",
-                                          event.type === 'published' && "bg-green-500/20 text-green-500",
-                                          event.type === 'scheduled' && "bg-yellow-500/20 text-yellow-500",
-                                          event.type === 'draft' && "bg-gray-500/20 text-gray-500"
-                                        )}
-                                      >
-                                        {event.title}
-                                      </div>
-                                    ))}
+                                    {getEventsForDate(date)
+                                      .slice(0, 2)
+                                      .map((event) => (
+                                        <div
+                                          key={event.id}
+                                          className={cn(
+                                            "text-xs p-1 rounded truncate",
+                                            event.type === "published" &&
+                                              "bg-green-500/20 text-green-500",
+                                            event.type === "scheduled" &&
+                                              "bg-yellow-500/20 text-yellow-500",
+                                            event.type === "draft" &&
+                                              "bg-gray-500/20 text-gray-500",
+                                          )}
+                                        >
+                                          {event.title}
+                                        </div>
+                                      ))}
                                     {getEventsForDate(date).length > 2 && (
                                       <div className="text-xs text-muted-foreground">
-                                        +{getEventsForDate(date).length - 2} more
+                                        +{getEventsForDate(date).length - 2}{" "}
+                                        more
                                       </div>
                                     )}
                                   </div>
@@ -1666,23 +2056,37 @@ export default function YoutubeDashboardPage() {
                       <CardContent className="p-6">
                         <ScrollArea className="h-[400px]">
                           <div className="space-y-3">
-                            {drafts.map(draft => (
+                            {drafts.map((draft) => (
                               <div
                                 key={draft.id}
                                 className="p-3 rounded-lg glass hover:bg-primary/10 transition-colors cursor-pointer"
                                 draggable
                               >
-                                <h4 className="text-sm font-medium line-clamp-1">{draft.title}</h4>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{draft.description}</p>
+                                <h4 className="text-sm font-medium line-clamp-1">
+                                  {draft.title}
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {draft.description}
+                                </p>
                                 <div className="flex items-center justify-between mt-2">
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(draft.created_at).toLocaleDateString()}
+                                    {new Date(
+                                      draft.created_at,
+                                    ).toLocaleDateString()}
                                   </span>
                                   <div className="flex gap-1">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                    >
                                       <Calendar className="h-3 w-3" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                    >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </div>
@@ -1766,7 +2170,10 @@ export default function YoutubeDashboardPage() {
                             className="pl-10 border-primary/30 focus:border-primary glass"
                           />
                         </div>
-                        <Select value={videoFilter} onValueChange={(value: any) => setVideoFilter(value)}>
+                        <Select
+                          value={videoFilter}
+                          onValueChange={(value: any) => setVideoFilter(value)}
+                        >
                           <SelectTrigger className="w-full sm:w-48 border-primary/30 glass">
                             <SelectValue />
                           </SelectTrigger>
@@ -1781,7 +2188,7 @@ export default function YoutubeDashboardPage() {
 
                       {/* Video List */}
                       <div className="space-y-3">
-                        {paginatedVideos.map(video => (
+                        {paginatedVideos.map((video) => (
                           <div
                             key={video.id}
                             className="flex items-center gap-4 p-4 rounded-lg glass hover:bg-primary/10 transition-colors"
@@ -1791,9 +2198,16 @@ export default function YoutubeDashboardPage() {
                               checked={selectedVideos.includes(video.id)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedVideos([...selectedVideos, video.id])
+                                  setSelectedVideos([
+                                    ...selectedVideos,
+                                    video.id,
+                                  ]);
                                 } else {
-                                  setSelectedVideos(selectedVideos.filter(id => id !== video.id))
+                                  setSelectedVideos(
+                                    selectedVideos.filter(
+                                      (id) => id !== video.id,
+                                    ),
+                                  );
                                 }
                               }}
                               className="rounded border-primary/50 text-primary focus:ring-primary"
@@ -1804,7 +2218,9 @@ export default function YoutubeDashboardPage() {
                               className="w-32 h-20 object-cover rounded"
                             />
                             <div className="flex-1">
-                              <h4 className="font-medium line-clamp-1">{video.title}</h4>
+                              <h4 className="font-medium line-clamp-1">
+                                {video.title}
+                              </h4>
                               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                   <Eye className="h-3 w-3" />
@@ -1812,25 +2228,38 @@ export default function YoutubeDashboardPage() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {new Date(video.publishedAt).toLocaleDateString()}
+                                  {new Date(
+                                    video.publishedAt,
+                                  ).toLocaleDateString()}
                                 </span>
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    video.status === 'published' && "border-green-500 text-green-500",
-                                    video.status === 'scheduled' && "border-yellow-500 text-yellow-500",
-                                    video.status === 'draft' && "border-gray-500 text-gray-500"
+                                    video.status === "published" &&
+                                      "border-green-500 text-green-500",
+                                    video.status === "scheduled" &&
+                                      "border-yellow-500 text-yellow-500",
+                                    video.status === "draft" &&
+                                      "border-gray-500 text-gray-500",
                                   )}
                                 >
-                                  {video.status || 'published'}
+                                  {video.status || "published"}
                                 </Badge>
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" className="hover:bg-primary hover:text-white">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:bg-primary hover:text-white"
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="hover:bg-destructive hover:text-white">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:bg-destructive hover:text-white"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -1844,7 +2273,9 @@ export default function YoutubeDashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setVideoPage(Math.max(1, videoPage - 1))}
+                            onClick={() =>
+                              setVideoPage(Math.max(1, videoPage - 1))
+                            }
                             disabled={videoPage === 1}
                             className="hover:bg-primary hover:text-white"
                           >
@@ -1856,7 +2287,11 @@ export default function YoutubeDashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setVideoPage(Math.min(totalVideoPages, videoPage + 1))}
+                            onClick={() =>
+                              setVideoPage(
+                                Math.min(totalVideoPages, videoPage + 1),
+                              )
+                            }
                             disabled={videoPage === totalVideoPages}
                             className="hover:bg-primary hover:text-white"
                           >
@@ -1880,7 +2315,9 @@ export default function YoutubeDashboardPage() {
                           <Pencil className="w-5 h-5 text-primary" />
                           Video Script Generator
                         </CardTitle>
-                        <CardDescription>Generate professional video scripts with AI</CardDescription>
+                        <CardDescription>
+                          Generate professional video scripts with AI
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="space-y-4">
@@ -1896,19 +2333,27 @@ export default function YoutubeDashboardPage() {
                             disabled={!scriptPrompt || genLoading}
                             className="w-full bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                           >
-                            {genLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                            {genLoading ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-4 h-4 mr-2" />
+                            )}
                             Generate Script
                           </Button>
                           {generatedScript && (
                             <div className="p-4 rounded-lg glass border border-primary/20">
-                              <p className="whitespace-pre-wrap">{generatedScript}</p>
+                              <p className="whitespace-pre-wrap">
+                                {generatedScript}
+                              </p>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="mt-3 hover:bg-primary hover:text-white"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(generatedScript)
-                                  toast.success("Script copied!")
+                                  navigator.clipboard.writeText(
+                                    generatedScript,
+                                  );
+                                  toast.success("Script copied!");
                                 }}
                               >
                                 <Copy className="w-4 h-4 mr-2" />
@@ -2015,7 +2460,11 @@ export default function YoutubeDashboardPage() {
                             {generatedTags.length > 0 && (
                               <div className="flex flex-wrap gap-2">
                                 {generatedTags.map((tag, idx) => (
-                                  <Badge key={idx} variant="outline" className="border-primary text-primary">
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className="border-primary text-primary"
+                                  >
                                     {tag}
                                   </Badge>
                                 ))}
@@ -2052,7 +2501,11 @@ export default function YoutubeDashboardPage() {
                             {generatedHashtags.length > 0 && (
                               <div className="flex flex-wrap gap-2">
                                 {generatedHashtags.map((tag, idx) => (
-                                  <Badge key={idx} variant="outline" className="border-primary text-primary">
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className="border-primary text-primary"
+                                  >
                                     {tag}
                                   </Badge>
                                 ))}
@@ -2070,25 +2523,55 @@ export default function YoutubeDashboardPage() {
                           <BookOpen className="w-5 h-5 text-primary" />
                           Content Templates
                         </CardTitle>
-                        <CardDescription>Professional templates for different video types</CardDescription>
+                        <CardDescription>
+                          Professional templates for different video types
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                           {[
-                            { icon: Lightbulb, title: 'Tutorial', desc: 'Step-by-step guide template' },
-                            { icon: Camera, title: 'Vlog', desc: 'Personal vlog structure' },
-                            { icon: Target, title: 'Product Review', desc: 'Comprehensive review format' },
-                            { icon: TrendingUp, title: 'How To', desc: 'Educational content template' },
-                            { icon: Zap, title: 'News Update', desc: 'Breaking news format' },
-                            { icon: Mic, title: 'Interview', desc: 'Professional interview structure' },
+                            {
+                              icon: Lightbulb,
+                              title: "Tutorial",
+                              desc: "Step-by-step guide template",
+                            },
+                            {
+                              icon: Camera,
+                              title: "Vlog",
+                              desc: "Personal vlog structure",
+                            },
+                            {
+                              icon: Target,
+                              title: "Product Review",
+                              desc: "Comprehensive review format",
+                            },
+                            {
+                              icon: TrendingUp,
+                              title: "How To",
+                              desc: "Educational content template",
+                            },
+                            {
+                              icon: Zap,
+                              title: "News Update",
+                              desc: "Breaking news format",
+                            },
+                            {
+                              icon: Mic,
+                              title: "Interview",
+                              desc: "Professional interview structure",
+                            },
                           ].map((template, idx) => (
                             <button
                               key={idx}
                               className="p-4 rounded-lg glass border border-primary/20 hover:bg-primary/10 transition-all duration-200 hover-lift text-left"
                             >
                               <template.icon className="w-6 h-6 text-primary mb-2" />
-                              <h4 className="font-medium text-sm">{template.title}</h4>
-                              <p className="text-xs text-muted-foreground mt-1">{template.desc}</p>
+                              <h4 className="font-medium text-sm">
+                                {template.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {template.desc}
+                              </p>
                             </button>
                           ))}
                         </div>
@@ -2115,7 +2598,10 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="h-[350px]">
                             {viewsChartData ? (
-                              <Line data={viewsChartData} options={chartOptions} />
+                              <Line
+                                data={viewsChartData}
+                                options={chartOptions}
+                              />
                             ) : (
                               <div className="flex items-center justify-center h-full text-muted-foreground">
                                 <div className="text-center">
@@ -2139,16 +2625,23 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="h-[350px]">
                             {analytics ? (
-                              <Bar data={{
-                                labels: analytics.months.map((m: string) => m.slice(0, 7)),
-                                datasets: [{
-                                  label: "Videos",
-                                  data: analytics.videosPerMonth,
-                                  backgroundColor: "rgba(255,107,0,0.7)",
-                                  borderColor: "#FF6B00",
-                                  borderWidth: 2,
-                                }]
-                              }} options={chartOptions} />
+                              <Bar
+                                data={{
+                                  labels: analytics.months.map((m: string) =>
+                                    m.slice(0, 7),
+                                  ),
+                                  datasets: [
+                                    {
+                                      label: "Videos",
+                                      data: analytics.videosPerMonth,
+                                      backgroundColor: "rgba(255,107,0,0.7)",
+                                      borderColor: "#FF6B00",
+                                      borderWidth: 2,
+                                    },
+                                  ],
+                                }}
+                                options={chartOptions}
+                              />
                             ) : (
                               <div className="flex items-center justify-center h-full text-muted-foreground">
                                 <div className="text-center">
@@ -2168,26 +2661,41 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm text-muted-foreground">Total Views</p>
-                              <p className="text-2xl font-bold">{analytics?.totalViews.toLocaleString() || '0'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Total Views
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {analytics?.totalViews.toLocaleString() || "0"}
+                              </p>
                               {analytics && analytics.totalViews > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">All time</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  All time
+                                </p>
                               )}
                             </div>
                             <TrendingUp className="w-8 h-8 text-green-500" />
                           </div>
                         </CardContent>
                       </Card>
-                      
+
                       <Card className="glass-strong border-primary/30">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm text-muted-foreground">Total Videos</p>
-                              <p className="text-2xl font-bold">{analytics?.totalVideos || '0'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Total Videos
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {analytics?.totalVideos || "0"}
+                              </p>
                               {analytics && analytics.totalVideos > 0 && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Avg: {Math.round((analytics.totalViews || 0) / (analytics.totalVideos || 1)).toLocaleString()} views/video
+                                  Avg:{" "}
+                                  {Math.round(
+                                    (analytics.totalViews || 0) /
+                                      (analytics.totalVideos || 1),
+                                  ).toLocaleString()}{" "}
+                                  views/video
                                 </p>
                               )}
                             </div>
@@ -2200,11 +2708,19 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm text-muted-foreground">Total Comments</p>
-                              <p className="text-2xl font-bold">{comments.length.toLocaleString()}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Total Comments
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {comments.length.toLocaleString()}
+                              </p>
                               {analytics && analytics.totalVideos > 0 && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {Math.round((comments.length / analytics.totalVideos) * 10) / 10} per video
+                                  {Math.round(
+                                    (comments.length / analytics.totalVideos) *
+                                      10,
+                                  ) / 10}{" "}
+                                  per video
                                 </p>
                               )}
                             </div>
@@ -2212,16 +2728,22 @@ export default function YoutubeDashboardPage() {
                           </div>
                         </CardContent>
                       </Card>
-                      
+
                       <Card className="glass-strong border-primary/30">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm text-muted-foreground">Engagement Rate</p>
+                              <p className="text-sm text-muted-foreground">
+                                Engagement Rate
+                              </p>
                               <p className="text-2xl font-bold">
                                 {analytics && analytics.totalViews > 0
-                                  ? ((comments.length / analytics.totalViews) * 100).toFixed(2)
-                                  : '0.00'}%
+                                  ? (
+                                      (comments.length / analytics.totalViews) *
+                                      100
+                                    ).toFixed(2)
+                                  : "0.00"}
+                                %
                               </p>
                               {analytics && analytics.totalViews > 0 && (
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -2239,13 +2761,18 @@ export default function YoutubeDashboardPage() {
                     <div className="grid gap-6 md:grid-cols-3">
                       <Card className="glass-strong border-primary/30">
                         <CardHeader className="border-b border-primary/20 pb-3">
-                          <CardTitle className="text-sm font-medium">Average Views Per Video</CardTitle>
+                          <CardTitle className="text-sm font-medium">
+                            Average Views Per Video
+                          </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                           <p className="text-3xl font-bold">
                             {analytics && analytics.totalVideos > 0
-                              ? Math.round((analytics.totalViews || 0) / analytics.totalVideos).toLocaleString()
-                              : '0'}
+                              ? Math.round(
+                                  (analytics.totalViews || 0) /
+                                    analytics.totalVideos,
+                                ).toLocaleString()
+                              : "0"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2">
                             Total views divided by total videos
@@ -2255,13 +2782,17 @@ export default function YoutubeDashboardPage() {
 
                       <Card className="glass-strong border-primary/30">
                         <CardHeader className="border-b border-primary/20 pb-3">
-                          <CardTitle className="text-sm font-medium">Channel Status</CardTitle>
+                          <CardTitle className="text-sm font-medium">
+                            Channel Status
+                          </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                           <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${channelTitle ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <div
+                              className={`w-3 h-3 rounded-full ${channelTitle ? "bg-green-500" : "bg-red-500"}`}
+                            />
                             <p className="text-lg font-semibold">
-                              {channelTitle ? 'Connected' : 'Not Connected'}
+                              {channelTitle ? "Connected" : "Not Connected"}
                             </p>
                           </div>
                           {channelTitle && (
@@ -2274,19 +2805,23 @@ export default function YoutubeDashboardPage() {
 
                       <Card className="glass-strong border-primary/30">
                         <CardHeader className="border-b border-primary/20 pb-3">
-                          <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
+                          <CardTitle className="text-sm font-medium">
+                            Last Updated
+                          </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                           <p className="text-sm font-semibold">
                             {analytics?.lastUpdated
-                              ? new Date(analytics.lastUpdated).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                              ? new Date(
+                                  analytics.lastUpdated,
+                                ).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
                                 })
-                              : 'Never'}
+                              : "Never"}
                           </p>
                           <Button
                             variant="outline"
@@ -2295,7 +2830,12 @@ export default function YoutubeDashboardPage() {
                             disabled={refreshing}
                             className="mt-3 w-full hover:bg-primary hover:text-white"
                           >
-                            <RefreshCw className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")} />
+                            <RefreshCw
+                              className={cn(
+                                "w-4 h-4 mr-2",
+                                refreshing && "animate-spin",
+                              )}
+                            />
                             Refresh Data
                           </Button>
                         </CardContent>
@@ -2317,7 +2857,8 @@ export default function YoutubeDashboardPage() {
                           Generate Content Ideas
                         </CardTitle>
                         <CardDescription>
-                          Get AI-powered content ideas based on your niche, trending topics, or specific keywords
+                          Get AI-powered content ideas based on your niche,
+                          trending topics, or specific keywords
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
@@ -2330,63 +2871,105 @@ export default function YoutubeDashboardPage() {
                               </label>
                               <Textarea
                                 value={contentIdeasPrompt}
-                                onChange={(e) => setContentIdeasPrompt(e.target.value)}
+                                onChange={(e) =>
+                                  setContentIdeasPrompt(e.target.value)
+                                }
                                 placeholder="E.g., Tech tutorials, cooking tips, fitness routines, gaming content..."
                                 rows={4}
                                 className="resize-none border-primary/30 focus:border-primary glass"
                               />
                             </div>
-                            
+
                             <div className="grid gap-4 md:grid-cols-2">
                               <div>
                                 <label className="text-sm font-medium text-primary mb-2 block">
                                   Category
                                 </label>
-                                <Select value={contentIdeasCategory} onValueChange={setContentIdeasCategory}>
+                                <Select
+                                  value={contentIdeasCategory}
+                                  onValueChange={setContentIdeasCategory}
+                                >
                                   <SelectTrigger className="border-primary/30 glass">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="tutorial">Tutorial</SelectItem>
-                                    <SelectItem value="review">Review</SelectItem>
-                                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                                    <SelectItem value="educational">Educational</SelectItem>
-                                    <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                                    <SelectItem value="tech">Technology</SelectItem>
-                                    <SelectItem value="gaming">Gaming</SelectItem>
+                                    <SelectItem value="all">
+                                      All Categories
+                                    </SelectItem>
+                                    <SelectItem value="tutorial">
+                                      Tutorial
+                                    </SelectItem>
+                                    <SelectItem value="review">
+                                      Review
+                                    </SelectItem>
+                                    <SelectItem value="entertainment">
+                                      Entertainment
+                                    </SelectItem>
+                                    <SelectItem value="educational">
+                                      Educational
+                                    </SelectItem>
+                                    <SelectItem value="lifestyle">
+                                      Lifestyle
+                                    </SelectItem>
+                                    <SelectItem value="tech">
+                                      Technology
+                                    </SelectItem>
+                                    <SelectItem value="gaming">
+                                      Gaming
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
-                              
+
                               <div className="flex items-end">
                                 <Button
                                   onClick={async () => {
                                     if (!contentIdeasPrompt.trim()) {
-                                      toast.error("Please enter a topic or description")
-                                      return
+                                      toast.error(
+                                        "Please enter a topic or description",
+                                      );
+                                      return;
                                     }
-                                    setContentIdeasLoading(true)
+                                    setContentIdeasLoading(true);
                                     try {
-                                      const res = await safePost("/api/youtube/composer/generate", {
-                                        prompt: `Generate 10 creative YouTube video content ideas for: ${contentIdeasPrompt}. Category: ${contentIdeasCategory}. Return only a numbered list of ideas, one per line, no extra text.`,
-                                        tone: "creative"
-                                      })
-                                      const ideasText = res.description || res.title || ""
+                                      const res = await safePost(
+                                        "/api/youtube/composer/generate",
+                                        {
+                                          prompt: `Generate 10 creative YouTube video content ideas for: ${contentIdeasPrompt}. Category: ${contentIdeasCategory}. Return only a numbered list of ideas, one per line, no extra text.`,
+                                          tone: "creative",
+                                        },
+                                      );
+                                      const ideasText =
+                                        res.description || res.title || "";
                                       const ideas = ideasText
                                         .split(/\n|\d+\./)
-                                        .map((line: string) => line.trim().replace(/^\d+\.?\s*/, ''))
-                                        .filter((line: string) => line.length > 10)
-                                        .slice(0, 10)
-                                      setGeneratedIdeas(ideas.length > 0 ? ideas : ["No ideas generated. Try a different prompt."])
-                                      toast.success("Content ideas generated!")
+                                        .map((line: string) =>
+                                          line.trim().replace(/^\d+\.?\s*/, ""),
+                                        )
+                                        .filter(
+                                          (line: string) => line.length > 10,
+                                        )
+                                        .slice(0, 10);
+                                      setGeneratedIdeas(
+                                        ideas.length > 0
+                                          ? ideas
+                                          : [
+                                              "No ideas generated. Try a different prompt.",
+                                            ],
+                                      );
+                                      toast.success("Content ideas generated!");
                                     } catch (e: any) {
-                                      toast.error(e.message || "Failed to generate ideas")
+                                      toast.error(
+                                        e.message || "Failed to generate ideas",
+                                      );
                                     } finally {
-                                      setContentIdeasLoading(false)
+                                      setContentIdeasLoading(false);
                                     }
                                   }}
-                                  disabled={contentIdeasLoading || !contentIdeasPrompt.trim()}
+                                  disabled={
+                                    contentIdeasLoading ||
+                                    !contentIdeasPrompt.trim()
+                                  }
                                   className="w-full bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                                 >
                                   {contentIdeasLoading ? (
@@ -2409,13 +2992,15 @@ export default function YoutubeDashboardPage() {
                           {generatedIdeas.length > 0 && (
                             <div className="space-y-4">
                               <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold">Generated Ideas ({generatedIdeas.length})</h3>
+                                <h3 className="text-lg font-semibold">
+                                  Generated Ideas ({generatedIdeas.length})
+                                </h3>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => {
-                                    setGeneratedIdeas([])
-                                    setContentIdeasPrompt("")
+                                    setGeneratedIdeas([]);
+                                    setContentIdeasPrompt("");
                                   }}
                                   className="hover:bg-primary hover:text-white"
                                 >
@@ -2424,63 +3009,93 @@ export default function YoutubeDashboardPage() {
                                 </Button>
                               </div>
                               <div className="grid gap-3 md:grid-cols-2">
-                                {generatedIdeas.map((idea: string, idx: number) => (
-                                  <Card key={idx} className="glass border-primary/20 hover:border-primary/40 transition-colors">
-                                    <CardContent className="p-4">
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1">
-                                          <p className="text-sm font-medium leading-relaxed">{idea}</p>
-                                        </div>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 hover:bg-primary hover:text-white"
-                                            onClick={() => {
-                                              navigator.clipboard.writeText(idea)
-                                              toast.success("Idea copied!")
-                                            }}
-                                          >
-                                            <Copy className="w-3.5 h-3.5" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 hover:bg-green-500 hover:text-white"
-                                            onClick={async () => {
-                                              try {
-                                                await safePost("/api/youtube/composer/drafts", {
-                                                  title: idea,
-                                                  description: `Content idea: ${idea}`,
-                                                  hashtags: ""
-                                                })
-                                                toast.success("Idea saved to drafts!")
-                                                // Refresh saved ideas
+                                {generatedIdeas.map(
+                                  (idea: string, idx: number) => (
+                                    <Card
+                                      key={idx}
+                                      className="glass border-primary/20 hover:border-primary/40 transition-colors"
+                                    >
+                                      <CardContent className="p-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="flex-1">
+                                            <p className="text-sm font-medium leading-relaxed">
+                                              {idea}
+                                            </p>
+                                          </div>
+                                          <div className="flex gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 hover:bg-primary hover:text-white"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(
+                                                  idea,
+                                                );
+                                                toast.success("Idea copied!");
+                                              }}
+                                            >
+                                              <Copy className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 hover:bg-green-500 hover:text-white"
+                                              onClick={async () => {
                                                 try {
-                                                  const res = await safeGet("/api/youtube/composer/drafts")
-                                                  const drafts = res.items || []
-                                                  const ideas = drafts
-                                                    .filter((d: any) => d.description?.includes("Content idea:"))
-                                                    .map((d: any) => ({
-                                                      id: d.id,
-                                                      idea: d.title || d.description?.replace("Content idea: ", "") || "",
-                                                      category: "all",
-                                                      created_at: d.created_at
-                                                    }))
-                                                  setSavedIdeas(ideas)
-                                                } catch (e) {}
-                                              } catch (e: any) {
-                                                toast.error("Failed to save idea")
-                                              }
-                                            }}
-                                          >
-                                            <Save className="w-3.5 h-3.5" />
-                                          </Button>
+                                                  await safePost(
+                                                    "/api/youtube/composer/drafts",
+                                                    {
+                                                      title: idea,
+                                                      description: `Content idea: ${idea}`,
+                                                      hashtags: "",
+                                                    },
+                                                  );
+                                                  toast.success(
+                                                    "Idea saved to drafts!",
+                                                  );
+                                                  // Refresh saved ideas
+                                                  try {
+                                                    const res = await safeGet(
+                                                      "/api/youtube/composer/drafts",
+                                                    );
+                                                    const drafts =
+                                                      res.items || [];
+                                                    const ideas = drafts
+                                                      .filter((d: any) =>
+                                                        d.description?.includes(
+                                                          "Content idea:",
+                                                        ),
+                                                      )
+                                                      .map((d: any) => ({
+                                                        id: d.id,
+                                                        idea:
+                                                          d.title ||
+                                                          d.description?.replace(
+                                                            "Content idea: ",
+                                                            "",
+                                                          ) ||
+                                                          "",
+                                                        category: "all",
+                                                        created_at:
+                                                          d.created_at,
+                                                      }));
+                                                    setSavedIdeas(ideas);
+                                                  } catch (e) {}
+                                                } catch (e: any) {
+                                                  toast.error(
+                                                    "Failed to save idea",
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              <Save className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
+                                      </CardContent>
+                                    </Card>
+                                  ),
+                                )}
                               </div>
                             </div>
                           )}
@@ -2513,15 +3128,17 @@ export default function YoutubeDashboardPage() {
                             "Reaction videos",
                             "Unboxing videos",
                             "Top 10 lists",
-                            "Myth busting"
+                            "Myth busting",
                           ].map((topic, idx) => (
                             <Button
                               key={idx}
                               variant="outline"
                               className="justify-start text-left h-auto p-3 hover:bg-primary hover:text-white transition-all"
                               onClick={() => {
-                                setContentIdeasPrompt(topic)
-                                toast.info("Topic added! Click 'Generate Ideas' to get suggestions.")
+                                setContentIdeasPrompt(topic);
+                                toast.info(
+                                  "Topic added! Click 'Generate Ideas' to get suggestions.",
+                                );
                               }}
                             >
                               <Lightbulb className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -2538,27 +3155,38 @@ export default function YoutubeDashboardPage() {
                         <div className="flex items-center justify-between">
                           <CardTitle className="flex items-center gap-2">
                             <Save className="w-5 h-5 text-primary" />
-                            Saved Ideas {savedIdeas.length > 0 && `(${savedIdeas.length})`}
+                            Saved Ideas{" "}
+                            {savedIdeas.length > 0 && `(${savedIdeas.length})`}
                           </CardTitle>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={async () => {
                               try {
-                                const res = await safeGet("/api/youtube/composer/drafts")
-                                const drafts = res.items || []
+                                const res = await safeGet(
+                                  "/api/youtube/composer/drafts",
+                                );
+                                const drafts = res.items || [];
                                 const ideas = drafts
-                                  .filter((d: any) => d.description?.includes("Content idea:"))
+                                  .filter((d: any) =>
+                                    d.description?.includes("Content idea:"),
+                                  )
                                   .map((d: any) => ({
                                     id: d.id,
-                                    idea: d.title || d.description?.replace("Content idea: ", "") || "",
+                                    idea:
+                                      d.title ||
+                                      d.description?.replace(
+                                        "Content idea: ",
+                                        "",
+                                      ) ||
+                                      "",
                                     category: "all",
-                                    created_at: d.created_at
-                                  }))
-                                setSavedIdeas(ideas)
-                                toast.success("Saved ideas refreshed!")
+                                    created_at: d.created_at,
+                                  }));
+                                setSavedIdeas(ideas);
+                                toast.success("Saved ideas refreshed!");
                               } catch (e) {
-                                toast.error("Failed to load saved ideas")
+                                toast.error("Failed to load saved ideas");
                               }
                             }}
                             className="hover:bg-primary hover:text-white"
@@ -2571,55 +3199,84 @@ export default function YoutubeDashboardPage() {
                       <CardContent className="p-6">
                         {savedIdeas.length > 0 ? (
                           <div className="grid gap-3">
-                            {savedIdeas.map((item: { id: string; idea: string; category: string; created_at: string }) => (
-                              <Card key={item.id} className="glass border-primary/20">
-                                <CardContent className="p-4">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium">{item.idea}</p>
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Saved {new Date(item.created_at).toLocaleDateString()}
-                                      </p>
+                            {savedIdeas.map(
+                              (item: {
+                                id: string;
+                                idea: string;
+                                category: string;
+                                created_at: string;
+                              }) => (
+                                <Card
+                                  key={item.id}
+                                  className="glass border-primary/20"
+                                >
+                                  <CardContent className="p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium">
+                                          {item.idea}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          Saved{" "}
+                                          {new Date(
+                                            item.created_at,
+                                          ).toLocaleDateString()}
+                                        </p>
+                                      </div>
+                                      <div className="flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 hover:bg-primary hover:text-white"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(
+                                              item.idea,
+                                            );
+                                            toast.success("Idea copied!");
+                                          }}
+                                        >
+                                          <Copy className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 hover:bg-destructive hover:text-white"
+                                          onClick={async () => {
+                                            try {
+                                              await safeDelete(
+                                                `/api/youtube/composer/drafts?id=${item.id}`,
+                                              );
+                                              setSavedIdeas(
+                                                savedIdeas.filter(
+                                                  (i: { id: string }) =>
+                                                    i.id !== item.id,
+                                                ),
+                                              );
+                                              toast.success("Idea deleted");
+                                            } catch (e) {
+                                              toast.error(
+                                                "Failed to delete idea",
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
                                     </div>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 hover:bg-primary hover:text-white"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(item.idea)
-                                          toast.success("Idea copied!")
-                                        }}
-                                      >
-                                        <Copy className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 hover:bg-destructive hover:text-white"
-                                        onClick={async () => {
-                                          try {
-                                            await safeDelete(`/api/youtube/composer/drafts?id=${item.id}`)
-                                            setSavedIdeas(savedIdeas.filter((i: { id: string }) => i.id !== item.id))
-                                            toast.success("Idea deleted")
-                                          } catch (e) {
-                                            toast.error("Failed to delete idea")
-                                          }
-                                        }}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
+                                  </CardContent>
+                                </Card>
+                              ),
+                            )}
                           </div>
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
                             <Lightbulb className="w-12 h-12 mx-auto mb-3 opacity-50" />
                             <p className="text-sm">No saved ideas yet</p>
-                            <p className="text-xs mt-1">Generate ideas and save them to drafts to see them here</p>
+                            <p className="text-xs mt-1">
+                              Generate ideas and save them to drafts to see them
+                              here
+                            </p>
                           </div>
                         )}
                       </CardContent>
@@ -2640,14 +3297,23 @@ export default function YoutubeDashboardPage() {
                             <Activity className="w-5 h-5 text-primary" />
                             Video Performance Analytics
                           </CardTitle>
-                          <Select value={videoAnalyticsFilter} onValueChange={(value: any) => setVideoAnalyticsFilter(value)}>
+                          <Select
+                            value={videoAnalyticsFilter}
+                            onValueChange={(value: any) =>
+                              setVideoAnalyticsFilter(value)
+                            }
+                          >
                             <SelectTrigger className="w-full sm:w-48 border-primary/30 glass">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Videos</SelectItem>
-                              <SelectItem value="top">Top Performers</SelectItem>
-                              <SelectItem value="recent">Recent Videos</SelectItem>
+                              <SelectItem value="top">
+                                Top Performers
+                              </SelectItem>
+                              <SelectItem value="recent">
+                                Recent Videos
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -2658,210 +3324,348 @@ export default function YoutubeDashboardPage() {
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <Eye className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Total Views</span>
+                              <span className="text-sm text-muted-foreground">
+                                Total Views
+                              </span>
                             </div>
                             <p className="text-2xl font-bold">
-                              {videos.reduce((sum, v) => sum + v.views, 0).toLocaleString()}
+                              {videos
+                                .reduce((sum, v) => sum + v.views, 0)
+                                .toLocaleString()}
                             </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <ThumbsUp className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Avg Views/Video</span>
+                              <span className="text-sm text-muted-foreground">
+                                Avg Views/Video
+                              </span>
                             </div>
                             <p className="text-2xl font-bold">
                               {videos.length > 0
-                                ? Math.round(videos.reduce((sum, v) => sum + v.views, 0) / videos.length).toLocaleString()
-                                : '0'}
+                                ? Math.round(
+                                    videos.reduce(
+                                      (sum, v) => sum + v.views,
+                                      0,
+                                    ) / videos.length,
+                                  ).toLocaleString()
+                                : "0"}
                             </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <Video className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Total Videos</span>
+                              <span className="text-sm text-muted-foreground">
+                                Total Videos
+                              </span>
                             </div>
-                            <p className="text-2xl font-bold">{videos.length}</p>
+                            <p className="text-2xl font-bold">
+                              {videos.length}
+                            </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <MessageSquare className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Total Comments</span>
+                              <span className="text-sm text-muted-foreground">
+                                Total Comments
+                              </span>
                             </div>
-                            <p className="text-2xl font-bold">{comments.length}</p>
+                            <p className="text-2xl font-bold">
+                              {comments.length}
+                            </p>
                           </div>
                         </div>
 
                         {/* Filtered Videos */}
                         <div className="space-y-3">
                           {(() => {
-                            let filteredVids = [...videos]
-                            if (videoAnalyticsFilter === 'top') {
-                              filteredVids.sort((a, b) => b.views - a.views)
-                              filteredVids = filteredVids.slice(0, 10)
-                            } else if (videoAnalyticsFilter === 'recent') {
-                              filteredVids.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-                              filteredVids = filteredVids.slice(0, 10)
+                            let filteredVids = [...videos];
+                            if (videoAnalyticsFilter === "top") {
+                              filteredVids.sort((a, b) => b.views - a.views);
+                              filteredVids = filteredVids.slice(0, 10);
+                            } else if (videoAnalyticsFilter === "recent") {
+                              filteredVids.sort(
+                                (a, b) =>
+                                  new Date(b.publishedAt).getTime() -
+                                  new Date(a.publishedAt).getTime(),
+                              );
+                              filteredVids = filteredVids.slice(0, 10);
                             }
                             return (
                               <>
                                 <h3 className="text-lg font-semibold mb-4">
-                                  {videoAnalyticsFilter === 'top' ? 'Top Performing Videos' :
-                                   videoAnalyticsFilter === 'recent' ? 'Recent Videos' :
-                                   'All Videos'} ({filteredVids.length})
+                                  {videoAnalyticsFilter === "top"
+                                    ? "Top Performing Videos"
+                                    : videoAnalyticsFilter === "recent"
+                                      ? "Recent Videos"
+                                      : "All Videos"}{" "}
+                                  ({filteredVids.length})
                                 </h3>
                                 <ScrollArea className="h-[500px]">
                                   {filteredVids.length === 0 ? (
                                     <div className="text-center py-12 text-muted-foreground">
                                       <Video className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                      <p className="text-sm">No videos available</p>
-                                      <p className="text-xs mt-1">Connect your YouTube channel to see analytics</p>
+                                      <p className="text-sm">
+                                        No videos available
+                                      </p>
+                                      <p className="text-xs mt-1">
+                                        Connect your YouTube channel to see
+                                        analytics
+                                      </p>
                                     </div>
                                   ) : (
                                     filteredVids.map((video) => {
-                                const videoComments = comments.filter(c => c.videoUrl === video.url)
-                                const engagementRate = video.views > 0 
-                                  ? ((videoComments.length / video.views) * 100).toFixed(2)
-                                  : '0.00'
-                                const publishedDate = new Date(video.publishedAt)
-                                const now = new Date()
-                                const daysSincePublished = publishedDate && !isNaN(publishedDate.getTime())
-                                  ? Math.max(1, Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60 * 24)))
-                                  : 1
-                                const viewsPerDay = daysSincePublished > 0 
-                                  ? Math.round(video.views / daysSincePublished)
-                                  : video.views
+                                      const videoComments = comments.filter(
+                                        (c) => c.videoUrl === video.url,
+                                      );
+                                      const engagementRate =
+                                        video.views > 0
+                                          ? (
+                                              (videoComments.length /
+                                                video.views) *
+                                              100
+                                            ).toFixed(2)
+                                          : "0.00";
+                                      const publishedDate = new Date(
+                                        video.publishedAt,
+                                      );
+                                      const now = new Date();
+                                      const daysSincePublished =
+                                        publishedDate &&
+                                        !isNaN(publishedDate.getTime())
+                                          ? Math.max(
+                                              1,
+                                              Math.floor(
+                                                (now.getTime() -
+                                                  publishedDate.getTime()) /
+                                                  (1000 * 60 * 60 * 24),
+                                              ),
+                                            )
+                                          : 1;
+                                      const viewsPerDay =
+                                        daysSincePublished > 0
+                                          ? Math.round(
+                                              video.views / daysSincePublished,
+                                            )
+                                          : video.views;
 
-                                return (
-                                  <Card
-                                    key={video.id}
-                                    className={cn(
-                                      "glass border-primary/20 hover:border-primary/40 transition-all cursor-pointer mb-3",
-                                      selectedVideoForAnalytics === video.id && "border-primary bg-primary/5"
-                                    )}
-                                    onClick={() => setSelectedVideoForAnalytics(selectedVideoForAnalytics === video.id ? null : video.id)}
-                                  >
-                                    <CardContent className="p-4">
-                                      <div className="flex gap-4">
-                                        <img
-                                          src={video.thumbnail}
-                                          alt={video.title}
-                                          className="w-32 h-20 object-cover rounded"
-                                        />
-                                        <div className="flex-1">
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1">
-                                              <h4 className="font-medium line-clamp-1 mb-2">{video.title}</h4>
-                                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                                <div>
-                                                  <p className="text-muted-foreground">Views</p>
-                                                  <p className="font-semibold text-primary">{video.views.toLocaleString()}</p>
-                                                </div>
-                                                <div>
-                                                  <p className="text-muted-foreground">Comments</p>
-                                                  <p className="font-semibold">{videoComments.length}</p>
-                                                </div>
-                                                <div>
-                                                  <p className="text-muted-foreground">Engagement</p>
-                                                  <p className="font-semibold">{engagementRate}%</p>
-                                                </div>
-                                                <div>
-                                                  <p className="text-muted-foreground">Views/Day</p>
-                                                  <p className="font-semibold">{viewsPerDay.toLocaleString()}</p>
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                  <Calendar className="w-3 h-3" />
-                                                  {publishedDate && !isNaN(publishedDate.getTime()) 
-                                                    ? publishedDate.toLocaleDateString()
-                                                    : 'Invalid date'}
-                                                </span>
-                                                <span>{daysSincePublished} {daysSincePublished === 1 ? 'day' : 'days'} ago</span>
-                                              </div>
-                                            </div>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8 hover:bg-primary hover:text-white"
-                                              onClick={(e) => {
-                                                e.stopPropagation()
-                                                window.open(video.url, '_blank')
-                                              }}
-                                            >
-                                              <ExternalLink className="w-4 h-4" />
-                                            </Button>
-                                          </div>
-
-                                          {/* Expanded Analytics */}
-                                          {selectedVideoForAnalytics === video.id && (
-                                            <div className="mt-4 pt-4 border-t border-primary/20">
-                                              <div className="grid gap-4 md:grid-cols-2">
-                                                <div className="space-y-2">
-                                                  <p className="text-sm font-medium">Performance Metrics</p>
-                                                  <div className="space-y-1 text-sm">
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Total Views:</span>
-                                                      <span className="font-medium">{video.views.toLocaleString()}</span>
+                                      return (
+                                        <Card
+                                          key={video.id}
+                                          className={cn(
+                                            "glass border-primary/20 hover:border-primary/40 transition-all cursor-pointer mb-3",
+                                            selectedVideoForAnalytics ===
+                                              video.id &&
+                                              "border-primary bg-primary/5",
+                                          )}
+                                          onClick={() =>
+                                            setSelectedVideoForAnalytics(
+                                              selectedVideoForAnalytics ===
+                                                video.id
+                                                ? null
+                                                : video.id,
+                                            )
+                                          }
+                                        >
+                                          <CardContent className="p-4">
+                                            <div className="flex gap-4">
+                                              <img
+                                                src={video.thumbnail}
+                                                alt={video.title}
+                                                className="w-32 h-20 object-cover rounded"
+                                              />
+                                              <div className="flex-1">
+                                                <div className="flex items-start justify-between gap-3">
+                                                  <div className="flex-1">
+                                                    <h4 className="font-medium line-clamp-1 mb-2">
+                                                      {video.title}
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                      <div>
+                                                        <p className="text-muted-foreground">
+                                                          Views
+                                                        </p>
+                                                        <p className="font-semibold text-primary">
+                                                          {video.views.toLocaleString()}
+                                                        </p>
+                                                      </div>
+                                                      <div>
+                                                        <p className="text-muted-foreground">
+                                                          Comments
+                                                        </p>
+                                                        <p className="font-semibold">
+                                                          {videoComments.length}
+                                                        </p>
+                                                      </div>
+                                                      <div>
+                                                        <p className="text-muted-foreground">
+                                                          Engagement
+                                                        </p>
+                                                        <p className="font-semibold">
+                                                          {engagementRate}%
+                                                        </p>
+                                                      </div>
+                                                      <div>
+                                                        <p className="text-muted-foreground">
+                                                          Views/Day
+                                                        </p>
+                                                        <p className="font-semibold">
+                                                          {viewsPerDay.toLocaleString()}
+                                                        </p>
+                                                      </div>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Comments:</span>
-                                                      <span className="font-medium">{videoComments.length}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Engagement Rate:</span>
-                                                      <span className="font-medium">{engagementRate}%</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Avg Views/Day:</span>
-                                                      <span className="font-medium">{viewsPerDay.toLocaleString()}</span>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <p className="text-sm font-medium">Video Information</p>
-                                                  <div className="space-y-1 text-sm">
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Published:</span>
-                                                      <span className="font-medium">
-                                                        {new Date(video.publishedAt).toLocaleDateString('en-US', {
-                                                          year: 'numeric',
-                                                          month: 'short',
-                                                          day: 'numeric'
-                                                        })}
+                                                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                                      <span className="flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {publishedDate &&
+                                                        !isNaN(
+                                                          publishedDate.getTime(),
+                                                        )
+                                                          ? publishedDate.toLocaleDateString()
+                                                          : "Invalid date"}
+                                                      </span>
+                                                      <span>
+                                                        {daysSincePublished}{" "}
+                                                        {daysSincePublished ===
+                                                        1
+                                                          ? "day"
+                                                          : "days"}{" "}
+                                                        ago
                                                       </span>
                                                     </div>
-                                                    <div className="flex justify-between">
-                                                      <span className="text-muted-foreground">Days Active:</span>
-                                                      <span className="font-medium">{daysSincePublished}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center">
-                                                      <span className="text-muted-foreground">Status:</span>
-                                                      <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                          video.status === 'published' && "border-green-500 text-green-500",
-                                                          video.status === 'scheduled' && "border-yellow-500 text-yellow-500",
-                                                          video.status === 'draft' && "border-gray-500 text-gray-500"
-                                                        )}
-                                                      >
-                                                        {video.status || 'published'}
-                                                      </Badge>
+                                                  </div>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 hover:bg-primary hover:text-white"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      window.open(
+                                                        video.url,
+                                                        "_blank",
+                                                      );
+                                                    }}
+                                                  >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                  </Button>
+                                                </div>
+
+                                                {/* Expanded Analytics */}
+                                                {selectedVideoForAnalytics ===
+                                                  video.id && (
+                                                  <div className="mt-4 pt-4 border-t border-primary/20">
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                      <div className="space-y-2">
+                                                        <p className="text-sm font-medium">
+                                                          Performance Metrics
+                                                        </p>
+                                                        <div className="space-y-1 text-sm">
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Total Views:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {video.views.toLocaleString()}
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Comments:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {
+                                                                videoComments.length
+                                                              }
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Engagement Rate:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {engagementRate}%
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Avg Views/Day:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {viewsPerDay.toLocaleString()}
+                                                            </span>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                      <div className="space-y-2">
+                                                        <p className="text-sm font-medium">
+                                                          Video Information
+                                                        </p>
+                                                        <div className="space-y-1 text-sm">
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Published:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {new Date(
+                                                                video.publishedAt,
+                                                              ).toLocaleDateString(
+                                                                "en-US",
+                                                                {
+                                                                  year: "numeric",
+                                                                  month:
+                                                                    "short",
+                                                                  day: "numeric",
+                                                                },
+                                                              )}
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">
+                                                              Days Active:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                              {
+                                                                daysSincePublished
+                                                              }
+                                                            </span>
+                                                          </div>
+                                                          <div className="flex justify-between items-center">
+                                                            <span className="text-muted-foreground">
+                                                              Status:
+                                                            </span>
+                                                            <Badge
+                                                              variant="outline"
+                                                              className={cn(
+                                                                video.status ===
+                                                                  "published" &&
+                                                                  "border-green-500 text-green-500",
+                                                                video.status ===
+                                                                  "scheduled" &&
+                                                                  "border-yellow-500 text-yellow-500",
+                                                                video.status ===
+                                                                  "draft" &&
+                                                                  "border-gray-500 text-gray-500",
+                                                              )}
+                                                            >
+                                                              {video.status ||
+                                                                "published"}
+                                                            </Badge>
+                                                          </div>
+                                                        </div>
+                                                      </div>
                                                     </div>
                                                   </div>
-                                                </div>
+                                                )}
                                               </div>
                                             </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                    )
-                                  })
+                                          </CardContent>
+                                        </Card>
+                                      );
+                                    })
                                   )}
                                 </ScrollArea>
                               </>
-                            )
+                            );
                           })()}
                         </div>
                       </CardContent>
@@ -2880,22 +3684,31 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="h-[300px]">
                             {videos.length > 0 ? (
-                              <Bar data={{
-                                labels: [...videos]
-                                  .sort((a, b) => b.views - a.views)
-                                  .slice(0, 5)
-                                  .map(v => v.title.length > 20 ? v.title.slice(0, 20) + '...' : v.title),
-                                datasets: [{
-                                  label: 'Views',
-                                  data: [...videos]
+                              <Bar
+                                data={{
+                                  labels: [...videos]
                                     .sort((a, b) => b.views - a.views)
                                     .slice(0, 5)
-                                    .map(v => v.views),
-                                  backgroundColor: 'rgba(255,107,0,0.7)',
-                                  borderColor: '#FF6B00',
-                                  borderWidth: 2,
-                                }]
-                              }} options={chartOptions} />
+                                    .map((v) =>
+                                      v.title.length > 20
+                                        ? v.title.slice(0, 20) + "..."
+                                        : v.title,
+                                    ),
+                                  datasets: [
+                                    {
+                                      label: "Views",
+                                      data: [...videos]
+                                        .sort((a, b) => b.views - a.views)
+                                        .slice(0, 5)
+                                        .map((v) => v.views),
+                                      backgroundColor: "rgba(255,107,0,0.7)",
+                                      borderColor: "#FF6B00",
+                                      borderWidth: 2,
+                                    },
+                                  ],
+                                }}
+                                options={chartOptions}
+                              />
                             ) : (
                               <div className="flex items-center justify-center h-full text-muted-foreground">
                                 <p>No video data available</p>
@@ -2916,30 +3729,41 @@ export default function YoutubeDashboardPage() {
                         <CardContent className="p-6">
                           <div className="h-[300px]">
                             {videos.length > 0 ? (
-                              <Bar data={{
-                                labels: [...videos]
-                                  .slice(0, 5)
-                                  .map(v => v.title.length > 15 ? v.title.slice(0, 15) + '...' : v.title),
-                                datasets: [
-                                  {
-                                    label: 'Views',
-                                    data: [...videos].slice(0, 5).map(v => v.views),
-                                    backgroundColor: 'rgba(255,107,0,0.5)',
-                                    borderColor: '#FF6B00',
-                                    borderWidth: 2,
-                                  },
-                                  {
-                                    label: 'Comments',
-                                    data: [...videos].slice(0, 5).map(v => {
-                                      const vComments = comments.filter(c => c.videoUrl === v.url)
-                                      return vComments.length * 100 // Scale for visibility
-                                    }),
-                                    backgroundColor: 'rgba(0,150,255,0.5)',
-                                    borderColor: '#0096FF',
-                                    borderWidth: 2,
-                                  }
-                                ]
-                              }} options={chartOptions} />
+                              <Bar
+                                data={{
+                                  labels: [...videos]
+                                    .slice(0, 5)
+                                    .map((v) =>
+                                      v.title.length > 15
+                                        ? v.title.slice(0, 15) + "..."
+                                        : v.title,
+                                    ),
+                                  datasets: [
+                                    {
+                                      label: "Views",
+                                      data: [...videos]
+                                        .slice(0, 5)
+                                        .map((v) => v.views),
+                                      backgroundColor: "rgba(255,107,0,0.5)",
+                                      borderColor: "#FF6B00",
+                                      borderWidth: 2,
+                                    },
+                                    {
+                                      label: "Comments",
+                                      data: [...videos].slice(0, 5).map((v) => {
+                                        const vComments = comments.filter(
+                                          (c) => c.videoUrl === v.url,
+                                        );
+                                        return vComments.length * 100; // Scale for visibility
+                                      }),
+                                      backgroundColor: "rgba(0,150,255,0.5)",
+                                      borderColor: "#0096FF",
+                                      borderWidth: 2,
+                                    },
+                                  ],
+                                }}
+                                options={chartOptions}
+                              />
                             ) : (
                               <div className="flex items-center justify-center h-full text-muted-foreground">
                                 <p>No video data available</p>
@@ -2966,17 +3790,33 @@ export default function YoutubeDashboardPage() {
                             Comments Management ({comments.length})
                           </CardTitle>
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <Select value={commentFilter} onValueChange={(value: any) => setCommentFilter(value)}>
+                            <Select
+                              value={commentFilter}
+                              onValueChange={(value: any) =>
+                                setCommentFilter(value)
+                              }
+                            >
                               <SelectTrigger className="w-full sm:w-48 border-primary/30 glass">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="all">All Comments</SelectItem>
+                                <SelectItem value="all">
+                                  All Comments
+                                </SelectItem>
                                 <SelectItem value="recent">Recent</SelectItem>
-                                <SelectItem value="mostLiked">Most Liked</SelectItem>
+                                <SelectItem value="mostLiked">
+                                  Most Liked
+                                </SelectItem>
                               </SelectContent>
                             </Select>
-                            <Select value={selectedVideoForComments || "all"} onValueChange={(value: string) => setSelectedVideoForComments(value === "all" ? null : value)}>
+                            <Select
+                              value={selectedVideoForComments || "all"}
+                              onValueChange={(value: string) =>
+                                setSelectedVideoForComments(
+                                  value === "all" ? null : value,
+                                )
+                              }
+                            >
                               <SelectTrigger className="w-full sm:w-48 border-primary/30 glass">
                                 <SelectValue placeholder="Filter by video" />
                               </SelectTrigger>
@@ -2984,7 +3824,9 @@ export default function YoutubeDashboardPage() {
                                 <SelectItem value="all">All Videos</SelectItem>
                                 {videos.map((v) => (
                                   <SelectItem key={v.id} value={v.url}>
-                                    {v.title.length > 30 ? v.title.slice(0, 30) + '...' : v.title}
+                                    {v.title.length > 30
+                                      ? v.title.slice(0, 30) + "..."
+                                      : v.title}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -2993,23 +3835,33 @@ export default function YoutubeDashboardPage() {
                               variant="outline"
                               onClick={() => {
                                 const csvContent = [
-                                  ['Author', 'Comment', 'Likes', 'Published Date', 'Video URL'].join(','),
-                                  ...filteredComments.map((c: YTComment) => [
-                                    `"${c.author}"`,
-                                    `"${c.text.replace(/"/g, '""')}"`,
-                                    c.likes,
-                                    c.publishedAt,
-                                    c.videoUrl
-                                  ].join(','))
-                                ].join('\n')
-                                const blob = new Blob([csvContent], { type: 'text/csv' })
-                                const url = URL.createObjectURL(blob)
-                                const a = document.createElement('a')
-                                a.href = url
-                                a.download = `youtube-comments-${new Date().toISOString().split('T')[0]}.csv`
-                                a.click()
-                                URL.revokeObjectURL(url)
-                                toast.success("Comments exported to CSV!")
+                                  [
+                                    "Author",
+                                    "Comment",
+                                    "Likes",
+                                    "Published Date",
+                                    "Video URL",
+                                  ].join(","),
+                                  ...filteredComments.map((c: YTComment) =>
+                                    [
+                                      `"${c.author}"`,
+                                      `"${c.text.replace(/"/g, '""')}"`,
+                                      c.likes,
+                                      c.publishedAt,
+                                      c.videoUrl,
+                                    ].join(","),
+                                  ),
+                                ].join("\n");
+                                const blob = new Blob([csvContent], {
+                                  type: "text/csv",
+                                });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `youtube-comments-${new Date().toISOString().split("T")[0]}.csv`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                toast.success("Comments exported to CSV!");
                               }}
                               className="hover:bg-primary hover:text-white"
                             >
@@ -3035,37 +3887,49 @@ export default function YoutubeDashboardPage() {
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <MessageSquare className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Total Comments</span>
+                              <span className="text-sm text-muted-foreground">
+                                Total Comments
+                              </span>
                             </div>
-                            <p className="text-2xl font-bold">{comments.length}</p>
+                            <p className="text-2xl font-bold">
+                              {comments.length}
+                            </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <ThumbsUp className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Total Likes</span>
+                              <span className="text-sm text-muted-foreground">
+                                Total Likes
+                              </span>
                             </div>
                             <p className="text-2xl font-bold">
-                              {comments.reduce((sum, c) => sum + c.likes, 0).toLocaleString()}
+                              {comments
+                                .reduce((sum, c) => sum + c.likes, 0)
+                                .toLocaleString()}
                             </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <Users className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Unique Authors</span>
+                              <span className="text-sm text-muted-foreground">
+                                Unique Authors
+                              </span>
                             </div>
                             <p className="text-2xl font-bold">
-                              {new Set(comments.map(c => c.author)).size}
+                              {new Set(comments.map((c) => c.author)).size}
                             </p>
                           </div>
                           <div className="p-4 rounded-lg glass border border-primary/20">
                             <div className="flex items-center gap-2 mb-2">
                               <Video className="w-4 h-4 text-primary" />
-                              <span className="text-sm text-muted-foreground">Avg Comments/Video</span>
+                              <span className="text-sm text-muted-foreground">
+                                Avg Comments/Video
+                              </span>
                             </div>
                             <p className="text-2xl font-bold">
                               {videos.length > 0
                                 ? Math.round(comments.length / videos.length)
-                                : '0'}
+                                : "0"}
                             </p>
                           </div>
                         </div>
@@ -3073,7 +3937,8 @@ export default function YoutubeDashboardPage() {
                         {/* Comments List */}
                         <div className="space-y-3">
                           <h3 className="text-lg font-semibold mb-4">
-                            {filteredComments.length} Comment{filteredComments.length !== 1 ? 's' : ''}
+                            {filteredComments.length} Comment
+                            {filteredComments.length !== 1 ? "s" : ""}
                           </h3>
                           <ScrollArea className="h-[500px]">
                             {filteredComments.length === 0 ? (
@@ -3081,17 +3946,27 @@ export default function YoutubeDashboardPage() {
                                 <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                                 <p className="text-sm">No comments found</p>
                                 <p className="text-xs mt-1">
-                                  {commentSearch || selectedVideoForComments || commentFilter !== 'all'
-                                    ? 'Try adjusting your filters'
-                                    : 'No comments available for your videos'}
+                                  {commentSearch ||
+                                  selectedVideoForComments ||
+                                  commentFilter !== "all"
+                                    ? "Try adjusting your filters"
+                                    : "No comments available for your videos"}
                                 </p>
                               </div>
                             ) : (
                               filteredComments.map((comment: YTComment) => {
-                                const video = videos.find(v => v.url === comment.videoUrl)
-                                const commentDate = new Date(comment.publishedAt)
-                                const daysAgo = Math.floor((new Date().getTime() - commentDate.getTime()) / (1000 * 60 * 60 * 24))
-                                
+                                const video = videos.find(
+                                  (v) => v.url === comment.videoUrl,
+                                );
+                                const commentDate = new Date(
+                                  comment.publishedAt,
+                                );
+                                const daysAgo = Math.floor(
+                                  (new Date().getTime() -
+                                    commentDate.getTime()) /
+                                    (1000 * 60 * 60 * 24),
+                                );
+
                                 return (
                                   <Card
                                     key={comment.id}
@@ -3108,9 +3983,14 @@ export default function YoutubeDashboardPage() {
                                           <div className="flex items-start justify-between gap-3 mb-2">
                                             <div className="flex-1">
                                               <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-semibold text-primary">{comment.author}</h4>
+                                                <h4 className="font-semibold text-primary">
+                                                  {comment.author}
+                                                </h4>
                                                 {comment.likes > 0 && (
-                                                  <Badge variant="outline" className="border-primary/30 text-xs">
+                                                  <Badge
+                                                    variant="outline"
+                                                    className="border-primary/30 text-xs"
+                                                  >
                                                     <ThumbsUp className="w-3 h-3 mr-1" />
                                                     {comment.likes}
                                                   </Badge>
@@ -3121,22 +4001,33 @@ export default function YoutubeDashboardPage() {
                                               </p>
                                             </div>
                                           </div>
-                                          
+
                                           <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary/10">
                                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                               <span className="flex items-center gap-1">
                                                 <Calendar className="w-3 h-3" />
-                                                {commentDate.toLocaleDateString('en-US', {
-                                                  year: 'numeric',
-                                                  month: 'short',
-                                                  day: 'numeric'
-                                                })}
+                                                {commentDate.toLocaleDateString(
+                                                  "en-US",
+                                                  {
+                                                    year: "numeric",
+                                                    month: "short",
+                                                    day: "numeric",
+                                                  },
+                                                )}
                                               </span>
-                                              <span>{daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`}</span>
+                                              <span>
+                                                {daysAgo === 0
+                                                  ? "Today"
+                                                  : daysAgo === 1
+                                                    ? "Yesterday"
+                                                    : `${daysAgo} days ago`}
+                                              </span>
                                               {video && (
                                                 <span className="flex items-center gap-1">
                                                   <Video className="w-3 h-3" />
-                                                  <span className="max-w-[200px] truncate">{video.title}</span>
+                                                  <span className="max-w-[200px] truncate">
+                                                    {video.title}
+                                                  </span>
                                                 </span>
                                               )}
                                             </div>
@@ -3146,7 +4037,10 @@ export default function YoutubeDashboardPage() {
                                                 size="icon"
                                                 className="h-8 w-8 hover:bg-primary hover:text-white"
                                                 onClick={() => {
-                                                  window.open(comment.videoUrl, '_blank')
+                                                  window.open(
+                                                    comment.videoUrl,
+                                                    "_blank",
+                                                  );
                                                 }}
                                                 title="Open video"
                                               >
@@ -3157,8 +4051,12 @@ export default function YoutubeDashboardPage() {
                                                 size="icon"
                                                 className="h-8 w-8 hover:bg-green-500 hover:text-white"
                                                 onClick={() => {
-                                                  navigator.clipboard.writeText(comment.text)
-                                                  toast.success("Comment copied to clipboard!")
+                                                  navigator.clipboard.writeText(
+                                                    comment.text,
+                                                  );
+                                                  toast.success(
+                                                    "Comment copied to clipboard!",
+                                                  );
                                                 }}
                                                 title="Copy comment"
                                               >
@@ -3170,7 +4068,7 @@ export default function YoutubeDashboardPage() {
                                       </div>
                                     </CardContent>
                                   </Card>
-                                )
+                                );
                               })
                             )}
                           </ScrollArea>
@@ -3185,5 +4083,5 @@ export default function YoutubeDashboardPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
