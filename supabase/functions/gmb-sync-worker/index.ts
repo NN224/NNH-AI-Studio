@@ -647,13 +647,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify trigger secret
+    // Verify authorization (either trigger secret or service role key)
     const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET") || "replace-me-now";
-    const provided =
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    const triggerSecret =
       req.headers.get("X-Trigger-Secret") ||
       req.headers.get("X-Internal-Worker");
+    const authHeader = req.headers.get("Authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
-    if (!provided || provided !== TRIGGER_SECRET) {
+    const isValidTrigger = triggerSecret && triggerSecret === TRIGGER_SECRET;
+    const isValidServiceRole = bearerToken && bearerToken === SERVICE_ROLE_KEY;
+
+    if (!isValidTrigger && !isValidServiceRole) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: corsHeaders,

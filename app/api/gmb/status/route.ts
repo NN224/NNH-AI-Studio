@@ -1,6 +1,6 @@
 // GMB Status API - Returns connection status for authenticated user
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET(_request: NextRequest) {
     let { data: account, error: dbError } = await supabase
       .from("gmb_accounts")
       .select(
-        "id, account_id, account_name, email, is_active, last_sync, created_at, token_expires_at",
+        "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at",
       )
       .eq("user_id", user.id)
       .eq("is_active", true)
@@ -33,19 +33,15 @@ export async function GET(_request: NextRequest) {
       const { data: inactiveAccount } = await supabase
         .from("gmb_accounts")
         .select(
-          "id, account_id, account_name, email, is_active, last_sync, created_at, token_expires_at, access_token, disconnected_at",
+          "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at, access_token",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
 
-      // Only auto-activate if account has valid tokens (wasn't disconnected)
-      if (
-        inactiveAccount &&
-        inactiveAccount.access_token &&
-        !inactiveAccount.disconnected_at
-      ) {
+      // Only auto-activate if account has valid tokens
+      if (inactiveAccount && inactiveAccount.access_token) {
         // Auto-activate the account
         const { error: updateError } = await supabase
           .from("gmb_accounts")
@@ -91,7 +87,7 @@ export async function GET(_request: NextRequest) {
             is_active: account.is_active,
           }
         : null,
-      lastSync: account?.last_sync || null,
+      lastSync: account?.last_synced_at || null,
       hasLocations: (locationsCount || 0) > 0,
       locationsCount: locationsCount || 0,
     };

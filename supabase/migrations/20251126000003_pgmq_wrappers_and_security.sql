@@ -129,24 +129,27 @@ REVOKE ALL ON FUNCTION public.enqueue_sync_job(uuid, uuid, text, integer) FROM P
 GRANT EXECUTE ON FUNCTION public.enqueue_sync_job(uuid, uuid, text, integer) TO authenticated;
 
 -- =====================================================
+-- Remove old cron job and create new one with correct URL
 DO $outer$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'gmb-sync-queue-worker-every-2min') THEN
-    PERFORM cron.schedule(
-      'gmb-sync-queue-worker-every-2min',
-      '*/2 * * * *',
-      $job$
-      SELECT net.http_post(
-        url := 'https://rrarhekwhgpgkakqrlyn.supabase.co/functions/v1/gmb-sync-queue-worker',
-        headers := jsonb_build_object(
-          'Content-Type', 'application/json',
-          'X-Trigger-Secret', '0a943a6fb8321ab8ed21847771488223cfbb058cb4dfd9ccb0df3a8b9c448cd1'
-        ),
-        body := '{}'::jsonb
-      );
-      $job$
+  -- Remove old job if exists
+  PERFORM cron.unschedule('gmb-sync-queue-worker-every-2min');
+
+  -- Create new job with correct URL
+  PERFORM cron.schedule(
+    'gmb-sync-worker-every-2min',
+    '*/2 * * * *',
+    $job$
+    SELECT net.http_post(
+      url := 'https://rrarhekwhgpgkakqrlyn.supabase.co/functions/v1/gmb-sync-worker',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
+      ),
+      body := '{}'::jsonb
     );
-  END IF;
+    $job$
+  );
 END$outer$;
 
 SELECT 'PGMQ wrappers, security, and cron synced with DB' AS result;
