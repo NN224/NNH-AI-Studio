@@ -624,11 +624,44 @@ export async function performTransactionalSync(
 
   if (isInternalCall) {
     // For internal worker calls, get user_id from the account directly
-    const { data: accountData, error: accountLookupError } = await supabase
+    // Try first with account_id (from GMB API) then with id (internal PK)
+    // Try by ID first, then by account_id if that fails
+    // Try by ID first
+    let { data: accountData, error: accountLookupError } = await supabase
       .from("gmb_accounts")
-      .select("user_id")
+      .select("user_id, id, account_id")
       .eq("id", accountId)
-      .single();
+      .maybeSingle();
+
+    // If not found, try by account_id
+    if (!accountData) {
+      const { data: accountData2 } = await supabase
+        .from("gmb_accounts")
+        .select("user_id, id, account_id")
+        .eq("account_id", accountId)
+        .maybeSingle();
+
+      if (accountData2?.user_id) {
+        accountData = accountData2;
+        accountLookupError = null;
+      }
+    }
+
+    // If not found, try one more time with special characters removed
+    // For Google-format account IDs like "accounts/123456789"
+    if (!accountData) {
+      const normalizedId = accountId.replace(/[\W_]+/g, "");
+      const { data: accountData2 } = await supabase
+        .from("gmb_accounts")
+        .select("user_id, id, account_id")
+        .filter("account_id", "ilike", `%${normalizedId}%`)
+        .maybeSingle();
+
+      if (accountData2?.user_id) {
+        accountData = accountData2;
+        accountLookupError = null;
+      }
+    }
 
     if (accountLookupError || !accountData?.user_id) {
       throw new Error("Account not found for internal call");
