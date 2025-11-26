@@ -1,22 +1,18 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { useSyncContextSafe, type SyncStage } from "@/contexts/sync-context";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart3,
   CheckCircle2,
-  Loader2,
-  MapPin,
-  Star,
-  MessageSquare,
   HelpCircle,
   Image,
-  BarChart3,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  Star,
 } from "lucide-react";
-import {
-  useSyncContextSafe,
-  STAGE_PROGRESS,
-  type SyncStage,
-} from "@/contexts/sync-context";
-import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 interface SyncProgressOverlayProps {
@@ -25,55 +21,46 @@ interface SyncProgressOverlayProps {
 
 const STAGE_CONFIG: Record<
   SyncStage,
-  { icon: React.ReactNode; label: string; labelAr: string }
+  { icon: React.ReactNode; label: string }
 > = {
-  idle: { icon: null, label: "Idle", labelAr: "جاهز" },
+  idle: { icon: null, label: "Idle" },
   queued: {
     icon: <Loader2 className="h-5 w-5" />,
     label: "Starting",
-    labelAr: "جاري البدء",
   },
   locations: {
     icon: <MapPin className="h-5 w-5" />,
     label: "Locations",
-    labelAr: "المواقع",
   },
   reviews: {
     icon: <Star className="h-5 w-5" />,
     label: "Reviews",
-    labelAr: "التقييمات",
   },
   questions: {
     icon: <HelpCircle className="h-5 w-5" />,
     label: "Q&A",
-    labelAr: "الأسئلة",
   },
   posts: {
     icon: <MessageSquare className="h-5 w-5" />,
     label: "Posts",
-    labelAr: "المنشورات",
   },
   media: {
     icon: <Image className="h-5 w-5" />,
     label: "Media",
-    labelAr: "الوسائط",
   },
   performance: {
     icon: <BarChart3 className="h-5 w-5" />,
     label: "Analytics",
-    labelAr: "الإحصائيات",
   },
   completing: {
     icon: <Loader2 className="h-5 w-5 animate-spin" />,
     label: "Saving",
-    labelAr: "جاري الحفظ",
   },
   completed: {
     icon: <CheckCircle2 className="h-5 w-5" />,
     label: "Done",
-    labelAr: "تم",
   },
-  error: { icon: null, label: "Error", labelAr: "خطأ" },
+  error: { icon: null, label: "Error" },
 };
 
 const VISIBLE_STAGES: SyncStage[] = [
@@ -183,10 +170,10 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
                   <CheckCircle2 className="h-10 w-10 text-emerald-400" />
                 </motion.div>
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  🎉 مرحباً بك!
+                  🎉 Welcome!
                 </h2>
                 <p className="text-gray-400">
-                  تم إعداد حسابك بنجاح. بياناتك جاهزة الآن.
+                  Your account is ready. Your data has been synced successfully.
                 </p>
               </>
             ) : (
@@ -195,10 +182,10 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
                   <Loader2 className="h-10 w-10 text-blue-400 animate-spin" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  جاري إعداد حسابك...
+                  Setting up your account...
                 </h2>
                 <p className="text-gray-400">
-                  {message || "نقوم بجلب بيانات نشاطك التجاري من Google"}
+                  {message || "Fetching your business data from Google"}
                 </p>
               </>
             )}
@@ -212,7 +199,7 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
             className="mb-8"
           >
             <div className="flex justify-between text-sm text-gray-400 mb-2">
-              <span>التقدم</span>
+              <span>Progress</span>
               <span className="tabular-nums">{progress}%</span>
             </div>
             <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -283,7 +270,7 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
                       !isActive && !isCompleted && "text-gray-500",
                     )}
                   >
-                    {config.labelAr}
+                    {config.label}
                   </span>
                   {count !== undefined && count > 0 && (
                     <span className="text-xs text-gray-500 mt-0.5">
@@ -296,18 +283,6 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
           </motion.div>
 
           {/* Tip */}
-          {status === "syncing" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-8 text-center"
-            >
-              <p className="text-sm text-gray-500">
-                💡 نصيحة: يمكنك استكشاف التطبيق أثناء الانتظار
-              </p>
-            </motion.div>
-          )}
 
           {/* Continue Button (when completed) */}
           {status === "completed" && (
@@ -326,7 +301,7 @@ export function SyncProgressOverlay({ className }: SyncProgressOverlayProps) {
                   "hover:shadow-emerald-500/40 transition-shadow",
                 )}
               >
-                ابدأ الآن 🚀
+                Get Started 🚀
               </button>
             </motion.div>
           )}

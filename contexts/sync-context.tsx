@@ -77,16 +77,16 @@ export const STAGE_PROGRESS: Record<SyncStage, number> = {
 
 const STAGE_MESSAGES: Record<SyncStage, string> = {
   idle: "",
-  queued: "جاري بدء المزامنة...",
-  locations: "جاري جلب المواقع...",
-  reviews: "جاري جلب التقييمات...",
-  questions: "جاري جلب الأسئلة...",
-  posts: "جاري جلب المنشورات...",
-  media: "جاري جلب الوسائط...",
-  performance: "جاري جلب الإحصائيات...",
-  completing: "جاري حفظ البيانات...",
-  completed: "تمت المزامنة بنجاح!",
-  error: "حدث خطأ في المزامنة",
+  queued: "Starting sync...",
+  locations: "Fetching locations...",
+  reviews: "Fetching reviews...",
+  questions: "Fetching Q&A...",
+  posts: "Fetching posts...",
+  media: "Fetching media...",
+  performance: "Fetching analytics...",
+  completing: "Saving data...",
+  completed: "Sync completed successfully!",
+  error: "Sync failed",
 };
 
 const BROADCAST_CHANNEL_NAME = "nnh-sync-channel";
@@ -208,7 +208,7 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
             setState(initialState);
           }, 3000);
         } else if (status === "failed") {
-          const errorMsg = errorField || "فشلت المزامنة";
+          const errorMsg = errorField || "Sync failed";
 
           // Check if this was a cancellation due to disconnect
           const isCancelled =
@@ -272,7 +272,7 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
             setState(initialState);
           }, 3000);
         } else if (status === "failed") {
-          const errorMsg = errorField || "فشلت المزامنة";
+          const errorMsg = errorField || "Sync failed";
           setState((prev) => ({
             ...prev,
             status: "error",
@@ -403,6 +403,69 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
   }, [userId, supabase, handleRealtimeUpdate, handleSyncStatusUpdate]);
 
   // ============================================================================
+  // Polling fallback for sync status (in case Realtime fails)
+  // ============================================================================
+
+  useEffect(() => {
+    if (!userId || !supabase) return;
+    if (state.status !== "syncing") return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        // Check sync_queue for latest status
+        const { data: queueData } = await supabase
+          .from("sync_queue")
+          .select("status, error_message")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (queueData) {
+          if (
+            queueData.status === "succeeded" ||
+            queueData.status === "completed"
+          ) {
+            setState((prev) => ({
+              ...prev,
+              status: "completed",
+              stage: "completed",
+              progress: 100,
+              message: STAGE_MESSAGES.completed,
+              lastSyncAt: new Date().toISOString(),
+            }));
+            invalidateAllQueries();
+            setTimeout(() => {
+              setIsBannerVisible(false);
+              setState(initialState);
+            }, 3000);
+          } else if (queueData.status === "failed") {
+            setState((prev) => ({
+              ...prev,
+              status: "error",
+              stage: "error",
+              error: queueData.error_message || "Sync failed",
+              message: queueData.error_message || "Sync failed",
+            }));
+          } else if (queueData.status === "processing") {
+            // Simulate progress based on time
+            setState((prev) => ({
+              ...prev,
+              progress: Math.min(prev.progress + 10, 90),
+              stage: "reviews",
+              message: STAGE_MESSAGES.reviews,
+            }));
+          }
+        }
+      } catch (error) {
+        console.warn("[SyncContext] Polling error:", error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [userId, supabase, state.status, invalidateAllQueries]);
+
+  // ============================================================================
   // Actions
   // ============================================================================
 
@@ -443,7 +506,7 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
         // The realtime subscription will handle the rest
       } catch (error) {
         const errorMsg =
-          error instanceof Error ? error.message : "فشل بدء المزامنة";
+          error instanceof Error ? error.message : "Failed to start sync";
         setState((prev) => ({
           ...prev,
           status: "error",

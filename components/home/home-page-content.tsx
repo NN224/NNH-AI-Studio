@@ -113,12 +113,12 @@ export function HomePageContent({
     if (lastLogin && !hasShownWelcomeBack) {
       const lastLoginDate = new Date(lastLogin);
       const now = new Date();
-      const daysSinceLastLogin = Math.floor(
-        (now.getTime() - lastLoginDate.getTime()) / (1000 * 60 * 60 * 24),
+      const hoursSinceLastLogin = Math.floor(
+        (now.getTime() - lastLoginDate.getTime()) / (1000 * 60 * 60),
       );
 
-      // Show welcome back if user hasn't logged in for 3+ days
-      if (daysSinceLastLogin >= 3) {
+      // Show welcome back if user hasn't logged in for 1+ hours (for testing, change to 72 for 3 days in production)
+      if (hoursSinceLastLogin >= 1) {
         setShowWelcomeBack(true);
         setHasShownWelcomeBack(true);
       }
