@@ -18,7 +18,7 @@ import type {
 } from "@/lib/gmb/sync-types";
 import { logAction } from "@/lib/monitoring/audit";
 import { trackSyncResult } from "@/lib/monitoring/metrics";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
 import { randomUUID } from "crypto";
 
@@ -623,11 +623,11 @@ export async function performTransactionalSync(
   let userId: string;
 
   if (isInternalCall) {
-    // For internal worker calls, get user_id from the account directly
-    // Try first with account_id (from GMB API) then with id (internal PK)
-    // Try by ID first, then by account_id if that fails
+    // For internal worker calls, use admin client to bypass RLS
+    const adminClient = createAdminClient();
+
     // Try by ID first
-    let { data: accountData, error: accountLookupError } = await supabase
+    let { data: accountData, error: accountLookupError } = await adminClient
       .from("gmb_accounts")
       .select("user_id, id, account_id")
       .eq("id", accountId)
@@ -635,7 +635,7 @@ export async function performTransactionalSync(
 
     // If not found, try by account_id
     if (!accountData) {
-      const { data: accountData2 } = await supabase
+      const { data: accountData2 } = await adminClient
         .from("gmb_accounts")
         .select("user_id, id, account_id")
         .eq("account_id", accountId)
@@ -651,7 +651,7 @@ export async function performTransactionalSync(
     // For Google-format account IDs like "accounts/123456789"
     if (!accountData) {
       const normalizedId = accountId.replace(/[\W_]+/g, "");
-      const { data: accountData2 } = await supabase
+      const { data: accountData2 } = await adminClient
         .from("gmb_accounts")
         .select("user_id, id, account_id")
         .filter("account_id", "ilike", `%${normalizedId}%`)
