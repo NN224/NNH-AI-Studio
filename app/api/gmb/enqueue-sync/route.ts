@@ -94,33 +94,44 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Insert sync job into queue
-    const { data: job, error: insertError } = await supabase
-      .from("sync_queue")
-      .insert({
-        user_id: user.id,
-        account_id: accountId,
-        sync_type: syncType,
-        status: "pending",
-        priority: priority,
-        attempts: 0,
-        max_attempts: 3,
-        scheduled_at: scheduled_at || new Date().toISOString(),
-        metadata: {
-          account_name: account.account_name,
-          enqueued_via: "api",
-          enqueued_at: new Date().toISOString(),
-        },
-      })
-      .select()
-      .single();
+    // Enqueue sync job using PGMQ
+    const { data: msgData, error: enqueueError } = await supabase.rpc(
+      "enqueue_sync_job",
+      {
+        p_account_id: accountId,
+        p_user_id: user.id,
+        p_sync_type: syncType,
+        p_priority: priority,
+      },
+    );
 
-    if (insertError) {
-      console.error("[Enqueue Sync] Failed to enqueue job:", insertError);
+    if (enqueueError) {
+      console.error("[Enqueue Sync] Failed to enqueue job:", enqueueError);
       return NextResponse.json(
         {
           error: "Failed to enqueue sync job",
-          details: insertError.message,
+          details: enqueueError.message,
+        },
+        { status: 500 },
+      );
+    }
+
+    // Get the created job for response
+    const { data: job, error: fetchError } = await supabase
+      .from("sync_queue")
+      .select()
+      .eq("user_id", user.id)
+      .eq("account_id", accountId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (fetchError || !job) {
+      console.error("[Enqueue Sync] Failed to fetch created job:", fetchError);
+      return NextResponse.json(
+        {
+          error: "Failed to fetch sync job",
+          details: fetchError?.message || "Job not found",
         },
         { status: 500 },
       );
