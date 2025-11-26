@@ -1,10 +1,10 @@
 // lib/gmb/helpers.ts
 // Shared GMB helper functions for token management and resource building
 
-import { encryptToken, resolveTokenValue } from '@/lib/security/encryption';
-import { createAdminClient } from '@/lib/supabase/server';
+import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
+import { createAdminClient } from "@/lib/supabase/server";
 
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 /**
  * Refresh Google OAuth access token
@@ -20,14 +20,14 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error('Missing Google OAuth configuration');
+    throw new Error("Missing Google OAuth configuration");
   }
 
   const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       refresh_token: refreshToken,
       client_id: clientId,
       client_secret: clientSecret,
@@ -37,7 +37,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(`Token refresh failed: ${data.error || 'Unknown error'}`);
+    throw new Error(`Token refresh failed: ${data.error || "Unknown error"}`);
   }
 
   return data;
@@ -51,20 +51,20 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
  */
 export async function getValidAccessToken(
   supabase: any,
-  accountId: string
+  accountId: string,
 ): Promise<string> {
   // Use admin client to bypass RLS for token operations (privileged operation)
   const adminClient = createAdminClient();
 
   const { data: account, error } = await adminClient
-    .from('gmb_accounts')
-    .select('access_token, refresh_token, token_expires_at, expires_at')
-    .eq('id', accountId)
+    .from("gmb_accounts")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("id", accountId)
     .maybeSingle();
 
   if (error || !account) {
-    console.error('[GMB Helpers] Account not found:', accountId, error);
-    throw new Error('Account not found');
+    console.error("[GMB Helpers] Account not found:", accountId, error);
+    throw new Error("Account not found");
   }
 
   // Decrypt tokens - will throw EncryptionError if decryption fails
@@ -72,45 +72,50 @@ export async function getValidAccessToken(
   let refreshToken: string | null;
 
   try {
-    accessToken = resolveTokenValue(account.access_token, { context: 'gmb_accounts.access_token' });
-    refreshToken = resolveTokenValue(account.refresh_token, { context: 'gmb_accounts.refresh_token' });
+    accessToken = resolveTokenValue(account.access_token, {
+      context: "gmb_accounts.access_token",
+    });
+    refreshToken = resolveTokenValue(account.refresh_token, {
+      context: "gmb_accounts.refresh_token",
+    });
   } catch (error) {
-    console.error('[GMB Helpers] Token decryption failed for account:', accountId);
+    console.error(
+      "[GMB Helpers] Token decryption failed for account:",
+      accountId,
+    );
 
     // Mark account as inactive - requires reconnection
     await adminClient
-      .from('gmb_accounts')
+      .from("gmb_accounts")
       .update({
         is_active: false,
-        last_error: 'Token decryption failed - reconnection required',
+        last_error: "Token decryption failed - reconnection required",
         updated_at: new Date().toISOString(),
       })
-      .eq('id', accountId);
+      .eq("id", accountId);
 
     throw new Error(
-      'Your Google account connection has expired. Please reconnect in Settings. ' +
-      'انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.'
+      "Your Google account connection has expired. Please reconnect in Settings. " +
+        "انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.",
     );
   }
 
   const now = Date.now();
   const expiresAt = account.token_expires_at
     ? new Date(account.token_expires_at).getTime()
-    : account.expires_at
-    ? new Date(account.expires_at).getTime()
     : 0;
 
   const needsRefresh = !accessToken || !expiresAt || now >= expiresAt;
 
   if (!needsRefresh) {
     if (!accessToken) {
-      throw new Error('Access token is null after decryption');
+      throw new Error("Access token is null after decryption");
     }
     return accessToken;
   }
 
   if (!refreshToken) {
-    throw new Error('No refresh token available');
+    throw new Error("No refresh token available");
   }
 
   const tokens = await refreshAccessToken(refreshToken);
@@ -128,9 +133,9 @@ export async function getValidAccessToken(
   }
 
   await adminClient
-    .from('gmb_accounts')
+    .from("gmb_accounts")
     .update(updatePayload)
-    .eq('id', accountId);
+    .eq("id", accountId);
 
   return tokens.access_token;
 }
@@ -138,16 +143,23 @@ export async function getValidAccessToken(
 /**
  * Build GMB location resource name in format: accounts/{accountId}/locations/{locationId}
  */
-export function buildLocationResourceName(accountId: string, locationId: string): string {
+export function buildLocationResourceName(
+  accountId: string,
+  locationId: string,
+): string {
   const cleanAccountId = accountId.replace(/^accounts\//, "");
-  const cleanLocationId = locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "");
+  const cleanLocationId = locationId.replace(
+    /^(accounts\/[^/]+\/)?locations\//,
+    "",
+  );
   return `accounts/${cleanAccountId}/locations/${cleanLocationId}`;
 }
 
 export const GMB_CONSTANTS = {
-  BUSINESS_INFORMATION_BASE: 'https://mybusinessbusinessinformation.googleapis.com/v1',
-  GBP_LOC_BASE: 'https://mybusinessbusinessinformation.googleapis.com/v1',
-  QANDA_BASE: 'https://mybusinessqanda.googleapis.com/v1',
-  GMB_V4_BASE: 'https://mybusiness.googleapis.com/v4',
+  BUSINESS_INFORMATION_BASE:
+    "https://mybusinessbusinessinformation.googleapis.com/v1",
+  GBP_LOC_BASE: "https://mybusinessbusinessinformation.googleapis.com/v1",
+  QANDA_BASE: "https://mybusinessqanda.googleapis.com/v1",
+  GMB_V4_BASE: "https://mybusiness.googleapis.com/v4",
   GOOGLE_TOKEN_URL,
 };

@@ -680,6 +680,12 @@ export async function performTransactionalSync(
     userId = user.id;
   }
 
+  console.log(
+    "[DEBUG] Second lookup - accountId:",
+    accountId,
+    "userId:",
+    userId,
+  );
   const { data: account, error: accountError } = await supabase
     .from("gmb_accounts")
     .select("id, user_id, account_id")
@@ -688,7 +694,15 @@ export async function performTransactionalSync(
     .single();
 
   if (accountError || !account) {
-    throw new Error("GMB account not found");
+    console.error(
+      "[DEBUG] Second lookup failed:",
+      accountError,
+      "account:",
+      account,
+    );
+    throw new Error(
+      `GMB account not found - accountId: ${accountId}, userId: ${userId}`,
+    );
   }
 
   const progressEmitter = createProgressEmitter({
