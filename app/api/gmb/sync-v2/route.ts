@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { performTransactionalSync } from "@/server/actions/gmb-sync";
+import { NextResponse } from "next/server";
 
 function resolveBaseUrl(request: Request) {
   return (
@@ -94,9 +94,17 @@ export async function POST(request: Request) {
 
     try {
       const baseUrl = resolveBaseUrl(request);
+      // Pass authentication headers to fallback
+      const authHeader = request.headers.get("Authorization");
+      const internalRunHeader = request.headers.get("X-Internal-Run");
+
       const fallbackResponse = await fetch(`${baseUrl}/api/gmb/sync`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authHeader && { Authorization: authHeader }),
+          ...(internalRunHeader && { "X-Internal-Run": internalRunHeader }),
+        },
         body: JSON.stringify({ accountId, syncType: "full" }),
       });
       const fallbackData = await fallbackResponse.json().catch(() => ({}));
