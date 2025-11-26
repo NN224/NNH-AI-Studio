@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "@/lib/navigation";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -15,6 +14,8 @@ import {
   Star,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const features = [
   {
@@ -41,6 +42,48 @@ const features = [
 
 export function EmptyState() {
   const t = useTranslations("home.emptyState");
+  const [isConnectingGMB, setIsConnectingGMB] = useState(false);
+  const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
+
+  const handleConnectGMB = async () => {
+    setIsConnectingGMB(true);
+    try {
+      const response = await fetch("/api/gmb/create-auth-url");
+      const data = await response.json();
+
+      if (data.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Failed to create authentication URL");
+        setIsConnectingGMB(false);
+      }
+    } catch (error) {
+      console.error("Error connecting GMB:", error);
+      toast.error("Failed to connect Google My Business");
+      setIsConnectingGMB(false);
+    }
+  };
+
+  const handleConnectYouTube = async () => {
+    setIsConnectingYouTube(true);
+    try {
+      const response = await fetch("/api/youtube/create-auth-url");
+      const data = await response.json();
+
+      if (data.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Failed to create authentication URL");
+        setIsConnectingYouTube(false);
+      }
+    } catch (error) {
+      console.error("Error connecting YouTube:", error);
+      toast.error("Failed to connect YouTube");
+      setIsConnectingYouTube(false);
+    }
+  };
 
   return (
     <motion.div
@@ -124,26 +167,26 @@ export function EmptyState() {
 
               {/* Right: Buttons */}
               <div className="flex flex-col gap-3 w-full md:w-auto">
-                <Link href="/settings">
-                  <Button
-                    size="lg"
-                    className="w-full md:w-auto gap-2 bg-[#4285F4] hover:bg-[#357ABD] text-white shadow-lg"
-                  >
-                    <Building2 className="w-5 h-5" />
-                    {t("connectGMB")}
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  onClick={handleConnectGMB}
+                  disabled={isConnectingGMB}
+                  className="w-full md:w-auto gap-2 bg-[#4285F4] hover:bg-[#357ABD] text-white shadow-lg"
+                >
+                  <Building2 className="w-5 h-5" />
+                  {isConnectingGMB ? "Connecting..." : t("connectGMB")}
+                </Button>
 
-                <Link href="/youtube-dashboard">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full md:w-auto gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10"
-                  >
-                    <Play className="w-5 h-5" />
-                    {t("connectYouTube")}
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleConnectYouTube}
+                  disabled={isConnectingYouTube}
+                  className="w-full md:w-auto gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10"
+                >
+                  <Play className="w-5 h-5" />
+                  {isConnectingYouTube ? "Connecting..." : t("connectYouTube")}
+                </Button>
               </div>
             </div>
           </div>
