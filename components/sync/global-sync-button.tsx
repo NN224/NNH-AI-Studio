@@ -1,70 +1,95 @@
-'use client'
+"use client";
 
-import { useSync } from '@/contexts/SyncContext'
-import { Button } from '@/components/ui/button'
-import { RefreshCw, Check, AlertCircle } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { ar } from 'date-fns/locale'
-import { useParams } from 'next/navigation'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { toast } from 'sonner'
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useSyncContextSafe } from "@/contexts/sync-context";
+import { useGMBStatus } from "@/hooks/features/use-gmb";
+import { formatDistanceToNow } from "date-fns";
+import { ar } from "date-fns/locale";
+import { AlertCircle, Check, RefreshCw } from "lucide-react";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
 
 export function GlobalSyncButton() {
-  const { status, triggerSync } = useSync()
-  const params = useParams()
-  const locale = (params?.locale as string) || 'en'
-  const isRTL = locale === 'ar'
+  const syncContext = useSyncContextSafe();
+  const { data: gmbStatus } = useGMBStatus();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
+  const isRTL = locale === "ar";
+
+  const activeAccountId = gmbStatus?.activeAccount?.id;
+  const isSyncing = syncContext?.state.status === "syncing";
+  const progress = syncContext?.state.progress || 0;
+  const error = syncContext?.state.error;
+  const lastSyncAt = syncContext?.state.lastSyncAt;
 
   const handleSync = async () => {
+    if (!activeAccountId) {
+      toast.error(isRTL ? "لا يوجد حساب GMB متصل" : "No GMB account connected");
+      return;
+    }
+
+    if (!syncContext) {
+      toast.error(isRTL ? "خطأ في النظام" : "System error");
+      return;
+    }
+
     try {
-      await triggerSync()
-      toast.success(isRTL ? 'بدأ التزامن...' : 'Sync started...')
-    } catch (error) {
+      await syncContext.startSync(activeAccountId, false);
+      toast.success(isRTL ? "بدأ التزامن..." : "Sync started...");
+    } catch (err) {
       toast.error(
         isRTL
-          ? `فشل التزامن: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
-          : `Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      )
+          ? `فشل التزامن: ${err instanceof Error ? err.message : "خطأ غير معروف"}`
+          : `Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
     }
-  }
+  };
 
   const getTooltipContent = () => {
-    if (status.isSyncing) {
-      return isRTL ? `جاري التزامن... ${status.percentage}%` : `Syncing... ${status.percentage}%`
+    if (isSyncing) {
+      return isRTL ? `جاري التزامن... ${progress}%` : `Syncing... ${progress}%`;
     }
 
-    if (status.error) {
-      return isRTL ? `خطأ: ${status.error}` : `Error: ${status.error}`
+    if (error) {
+      return isRTL ? `خطأ: ${error}` : `Error: ${error}`;
     }
 
-    if (status.lastSync) {
-      const timeAgo = formatDistanceToNow(status.lastSync, {
+    if (lastSyncAt) {
+      const timeAgo = formatDistanceToNow(new Date(lastSyncAt), {
         addSuffix: true,
         locale: isRTL ? ar : undefined,
-      })
-      return isRTL ? `آخر تزامن: ${timeAgo}` : `Last sync: ${timeAgo}`
+      });
+      return isRTL ? `آخر تزامن: ${timeAgo}` : `Last sync: ${timeAgo}`;
     }
 
-    return isRTL ? 'انقر للمزامنة' : 'Click to sync'
-  }
+    return isRTL ? "انقر للمزامنة" : "Click to sync";
+  };
 
   const getStatusIcon = () => {
-    if (status.isSyncing) {
-      return null // Will use spinning RefreshCw
+    if (isSyncing) {
+      return null;
     }
 
-    if (status.error) {
+    if (error) {
       return (
         <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
-      )
+      );
     }
 
-    if (status.lastSync) {
-      return <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+    if (lastSyncAt) {
+      return (
+        <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+      );
     }
 
-    return null
-  }
+    return null;
+  };
 
   return (
     <TooltipProvider>
@@ -74,21 +99,22 @@ export function GlobalSyncButton() {
             variant="outline"
             size="sm"
             onClick={handleSync}
-            disabled={status.isSyncing}
+            disabled={isSyncing || !activeAccountId}
             className="relative gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${status.isSyncing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+            />
             <span className="hidden md:inline">
-              {status.isSyncing
+              {isSyncing
                 ? isRTL
-                  ? 'جاري المزامنة...'
-                  : 'Syncing...'
+                  ? "جاري المزامنة..."
+                  : "Syncing..."
                 : isRTL
-                  ? 'مزامنة'
-                  : 'Sync'}
+                  ? "مزامنة"
+                  : "Sync"}
             </span>
 
-            {/* Status indicator dot */}
             {getStatusIcon()}
           </Button>
         </TooltipTrigger>
@@ -97,38 +123,27 @@ export function GlobalSyncButton() {
           <div className="text-sm space-y-1">
             <p className="font-medium">{getTooltipContent()}</p>
 
-            {status.isSyncing && status.currentStage && (
-              <p className="text-xs text-muted-foreground">{status.currentStage}</p>
-            )}
-
-            {status.isSyncing && status.estimatedTimeMs && (
+            {isSyncing && syncContext?.state.message && (
               <p className="text-xs text-muted-foreground">
-                {isRTL
-                  ? `الوقت المتبقي: ${Math.ceil(status.estimatedTimeMs / 1000)}ث`
-                  : `ETA: ${Math.ceil(status.estimatedTimeMs / 1000)}s`}
+                {syncContext.state.message}
               </p>
             )}
 
-            {/* Show counts when syncing */}
-            {status.isSyncing && (
+            {isSyncing && (
               <div className="text-xs text-muted-foreground pt-1 border-t">
                 <div className="flex items-center gap-2">
-                  {status.progress.locations === 'done' && (
+                  {syncContext?.state.counts.locations && (
                     <span className="flex items-center gap-1">
                       <Check className="h-3 w-3 text-green-500" />
-                      {status.counts.locations} {isRTL ? 'موقع' : 'loc'}
+                      {syncContext.state.counts.locations}{" "}
+                      {isRTL ? "موقع" : "loc"}
                     </span>
                   )}
-                  {status.progress.reviews === 'done' && (
+                  {syncContext?.state.counts.reviews && (
                     <span className="flex items-center gap-1">
                       <Check className="h-3 w-3 text-green-500" />
-                      {status.counts.reviews} {isRTL ? 'مراجعة' : 'rev'}
-                    </span>
-                  )}
-                  {status.progress.questions === 'done' && (
-                    <span className="flex items-center gap-1">
-                      <Check className="h-3 w-3 text-green-500" />
-                      {status.counts.questions} {isRTL ? 'سؤال' : 'q'}
+                      {syncContext.state.counts.reviews}{" "}
+                      {isRTL ? "مراجعة" : "rev"}
                     </span>
                   )}
                 </div>
@@ -138,41 +153,49 @@ export function GlobalSyncButton() {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
+  );
 }
 
 // Compact version for mobile/sidebar
 export function GlobalSyncButtonCompact() {
-  const { status, triggerSync } = useSync()
-  const params = useParams()
-  const locale = (params?.locale as string) || 'en'
-  const isRTL = locale === 'ar'
+  const syncContext = useSyncContextSafe();
+  const { data: gmbStatus } = useGMBStatus();
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
+  const isRTL = locale === "ar";
+
+  const activeAccountId = gmbStatus?.activeAccount?.id;
+  const isSyncing = syncContext?.state.status === "syncing";
+  const error = syncContext?.state.error;
+  const lastSyncAt = syncContext?.state.lastSyncAt;
 
   const handleSync = async () => {
+    if (!activeAccountId || !syncContext) return;
+
     try {
-      await triggerSync()
+      await syncContext.startSync(activeAccountId, false);
     } catch {
-      toast.error(isRTL ? 'فشل التزامن' : 'Sync failed')
+      toast.error(isRTL ? "فشل التزامن" : "Sync failed");
     }
-  }
+  };
 
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={handleSync}
-      disabled={status.isSyncing}
+      disabled={isSyncing || !activeAccountId}
       className="relative h-9 w-9"
     >
-      {status.error ? (
+      {error ? (
         <AlertCircle className="h-4 w-4 text-destructive" />
       ) : (
-        <RefreshCw className={`h-4 w-4 ${status.isSyncing ? 'animate-spin' : ''}`} />
+        <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
       )}
 
-      {!status.isSyncing && !status.error && status.lastSync && (
+      {!isSyncing && !error && lastSyncAt && (
         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
       )}
     </Button>
-  )
+  );
 }

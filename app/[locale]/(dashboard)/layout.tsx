@@ -2,27 +2,26 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
+import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
+import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { CommandPalette } from "@/components/layout/command-palette";
-import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
-import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
-import { SyncProvider } from "@/contexts/SyncContext";
-import { FirstSyncOverlay } from "@/components/sync/first-sync-overlay";
+import { Sidebar } from "@/components/layout/sidebar";
+import { SyncBanner, SyncProgressOverlay } from "@/components/sync";
 import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
-import { createClient } from "@/lib/supabase/client";
-import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
+import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
+import { SyncProvider } from "@/contexts/sync-context";
 import { useGMBStatus } from "@/hooks/features/use-gmb";
-import { useSyncStatus } from "@/hooks/use-sync-status";
-import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
+import { createClient } from "@/lib/supabase/client";
+import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
 import * as Sentry from "@sentry/nextjs";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Loader2, RefreshCw } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // Create a client instance for React Query
 const queryClient = new QueryClient({
@@ -137,10 +136,6 @@ export default function DashboardLayout({
   const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
   // Consider connected if has account OR has locations (data already synced)
   const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
-  const activeAccount = gmbStatus?.activeAccount ?? null;
-
-  // Sync Status
-  const { isSyncing } = useSyncStatus(userId || undefined);
 
   // Check if current route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
@@ -208,30 +203,18 @@ export default function DashboardLayout({
     return null;
   }
 
-  // Determine Sync State
-  const isFirstSync = isSyncing && activeAccount && !gmbStatus?.lastSync;
-  const isSubsequentSync = isSyncing && activeAccount && !!gmbStatus?.lastSync;
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProfileProvider>
-        <SyncProvider>
+        <SyncProvider userId={userId || undefined}>
           <DynamicThemeProvider>
             <KeyboardProvider
               onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
             >
               <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
                 <div className="relative min-h-screen bg-background">
-                  {/* Sync Banner for subsequent syncs */}
-                  {isSubsequentSync && (
-                    <div className="bg-blue-600 text-white px-4 py-2 text-sm text-center font-medium animate-in slide-in-from-top">
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Updating your dashboard with the latest data from
-                        Google...
-                      </div>
-                    </div>
-                  )}
+                  {/* Unified Sync Banner */}
+                  <SyncBanner />
 
                   <Sidebar
                     isOpen={sidebarOpen}
@@ -261,27 +244,6 @@ export default function DashboardLayout({
                           </div>
                         ) : isProtectedRoute && !gmbConnected ? (
                           <GMBOnboardingView />
-                        ) : isFirstSync ? (
-                          // First Sync Overlay
-                          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 animate-in fade-in zoom-in duration-500">
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-                              <RefreshCw className="h-16 w-16 text-primary animate-spin relative z-10" />
-                            </div>
-                            <div className="text-center space-y-2 max-w-md">
-                              <h2 className="text-2xl font-bold tracking-tight">
-                                Setting up your dashboard
-                              </h2>
-                              <p className="text-muted-foreground">
-                                We are importing your business locations,
-                                reviews, and insights from Google. This may take
-                                a minute...
-                              </p>
-                            </div>
-                            <div className="w-full max-w-xs bg-secondary/50 rounded-full h-2 overflow-hidden">
-                              <div className="h-full bg-primary animate-progress-indeterminate" />
-                            </div>
-                          </div>
                         ) : (
                           children
                         )}
@@ -296,8 +258,8 @@ export default function DashboardLayout({
                     onOpenChange={setCommandPaletteOpen}
                   />
 
-                  {/* Global First Sync Overlay */}
-                  <FirstSyncOverlay />
+                  {/* Unified Sync Progress Overlay for new users */}
+                  <SyncProgressOverlay />
 
                   {/* Background Auto-Sync */}
                   <BackgroundSyncWrapper

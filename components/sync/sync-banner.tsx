@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useSyncContextSafe } from "@/contexts/sync-context";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, X } from "lucide-react";
 
 interface SyncBannerProps {
   className?: string;
@@ -25,31 +25,35 @@ export function SyncBanner({ className }: SyncBannerProps) {
     switch (status) {
       case "syncing":
         return {
-          bg: "bg-gradient-to-r from-blue-600/90 to-indigo-600/90",
-          border: "border-blue-500/30",
+          bg: "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600",
+          border: "border-purple-400/40",
           icon: <Loader2 className="h-4 w-4 animate-spin" />,
-          iconBg: "bg-blue-500/20",
+          iconBg: "bg-white/20",
+          glow: "shadow-lg shadow-purple-500/30",
         };
       case "completed":
         return {
-          bg: "bg-gradient-to-r from-emerald-600/90 to-green-600/90",
-          border: "border-emerald-500/30",
+          bg: "bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500",
+          border: "border-emerald-400/40",
           icon: <CheckCircle2 className="h-4 w-4" />,
-          iconBg: "bg-emerald-500/20",
+          iconBg: "bg-white/20",
+          glow: "shadow-lg shadow-emerald-500/30",
         };
       case "error":
         return {
-          bg: "bg-gradient-to-r from-red-600/90 to-rose-600/90",
-          border: "border-red-500/30",
+          bg: "bg-gradient-to-r from-red-500 via-rose-500 to-pink-500",
+          border: "border-red-400/40",
           icon: <AlertCircle className="h-4 w-4" />,
-          iconBg: "bg-red-500/20",
+          iconBg: "bg-white/20",
+          glow: "shadow-lg shadow-red-500/30",
         };
       default:
         return {
-          bg: "bg-gray-800/90",
-          border: "border-gray-700/30",
+          bg: "bg-gradient-to-r from-slate-700 to-slate-800",
+          border: "border-slate-600/40",
           icon: <RefreshCw className="h-4 w-4" />,
-          iconBg: "bg-gray-500/20",
+          iconBg: "bg-white/10",
+          glow: "",
         };
     }
   };
@@ -64,8 +68,9 @@ export function SyncBanner({ className }: SyncBannerProps) {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50",
+          "fixed top-8 left-0 right-0 z-40",
           "backdrop-blur-md",
+          styles.glow,
           className,
         )}
       >
@@ -150,7 +155,7 @@ export function SyncBannerCompact({ className }: SyncBannerProps) {
   }
 
   const { state } = syncContext;
-  const { status, progress, message } = state;
+  const { status, progress, message: _message } = state;
 
   if (status === "idle") return null;
 

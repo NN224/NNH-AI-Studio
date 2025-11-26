@@ -1,35 +1,61 @@
 "use client";
 
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import {
-  CheckCircle,
-  AlertTriangle,
-  RefreshCw,
-  Unlink,
-  Link2,
-} from "lucide-react";
-import {
-  useGMBStatus,
   useGMBConnection,
+  useGMBStatus,
   useGMBSync,
 } from "@/hooks/features/use-gmb";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Link2,
+  RefreshCw,
+  ShieldAlert,
+  Unlink,
+} from "lucide-react";
+import { useState } from "react";
+import { DisconnectSuccessScreen } from "./DisconnectSuccessScreen";
 
 export function GMBConnectionCard() {
   const { data: status, isLoading } = useGMBStatus();
   const { connect, isConnecting, disconnect, isDisconnecting } =
-    useGMBConnection();
+    useGMBConnection({
+      onDisconnectSuccess: () => {
+        setShowSuccessScreen(true);
+      },
+    });
   const { mutate: sync, isPending: isSyncing } = useGMBSync();
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+
+  const handleDisconnect = () => {
+    if (activeAccount?.id) {
+      disconnect({ accountId: activeAccount.id });
+      setShowDisconnectDialog(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -101,7 +127,7 @@ export function GMBConnectionCard() {
 
             <Button
               variant="outline"
-              onClick={() => disconnect({ accountId: activeAccount?.id })}
+              onClick={() => setShowDisconnectDialog(true)}
               disabled={isDisconnecting || !activeAccount?.id}
               className="text-red-500 hover:text-red-600 hover:bg-red-50"
             >
@@ -129,6 +155,53 @@ export function GMBConnectionCard() {
           </p>
         )}
       </CardContent>
+
+      {/* Disconnect Success Screen */}
+      {showSuccessScreen && (
+        <DisconnectSuccessScreen
+          onReconnect={() => {
+            setShowSuccessScreen(false);
+            connect();
+          }}
+          isConnecting={isConnecting}
+        />
+      )}
+
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog
+        open={showDisconnectDialog}
+        onOpenChange={setShowDisconnectDialog}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+              <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-400" />
+            </div>
+            <AlertDialogTitle className="text-center">
+              Disconnect Google Business Profile?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <p>
+                You are about to disconnect{" "}
+                <strong>{activeAccount?.accountName || "your account"}</strong>.
+              </p>
+              <p className="text-sm">
+                This will stop all synchronization and you won&apos;t receive
+                updates for reviews, questions, or insights.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-2">
+            <AlertDialogCancel className="sm:w-32">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDisconnect}
+              className="sm:w-32 bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

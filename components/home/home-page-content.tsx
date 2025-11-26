@@ -1,20 +1,23 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { SmartHeader } from "@/components/home/smart-header";
-import { QuickActions } from "@/components/home/quick-actions";
-import { EmptyState } from "@/components/home/empty-state";
-import { AnimatedBackground } from "@/components/home/animated-background";
-import { DashboardHero } from "@/components/home/dashboard-hero";
-import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
 import { AIChatWidgetEnhanced } from "@/components/home/ai-chat-widget-enhanced";
-import { EnhancedOnboarding } from "@/components/home/enhanced-onboarding";
-import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
-import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
-import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+import { AnimatedBackground } from "@/components/home/animated-background";
 import { BusinessProfileCard } from "@/components/home/business-profile-card";
-import { KeywordsCard } from "@/components/home/keywords-card";
 import { CompetitorsCard } from "@/components/home/competitors-card";
+import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
+import { DashboardHero } from "@/components/home/dashboard-hero";
+import { EmptyState } from "@/components/home/empty-state";
+import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
+import { KeywordsCard } from "@/components/home/keywords-card";
+import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
+import { QuickActions } from "@/components/home/quick-actions";
+import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
+import { SmartHeader } from "@/components/home/smart-header";
+import { OnboardingChecklist, WelcomeBack } from "@/components/onboarding";
+import { motion } from "framer-motion";
+import { Bot, Building2, MessageSquare, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface BusinessHours {
   [key: string]: {
@@ -101,6 +104,33 @@ export function HomePageContent({
   pendingReviewsCount = 0,
   hasAutoReply = false,
 }: HomePageContentProps) {
+  const router = useRouter();
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [hasShownWelcomeBack, setHasShownWelcomeBack] = useState(false);
+
+  // Check if user is returning after a while
+  useEffect(() => {
+    if (lastLogin && !hasShownWelcomeBack) {
+      const lastLoginDate = new Date(lastLogin);
+      const now = new Date();
+      const daysSinceLastLogin = Math.floor(
+        (now.getTime() - lastLoginDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Show welcome back if user hasn't logged in for 3+ days
+      if (daysSinceLastLogin >= 3) {
+        setShowWelcomeBack(true);
+        setHasShownWelcomeBack(true);
+      }
+    }
+  }, [lastLogin, hasShownWelcomeBack]);
+
+  // Calculate stats for welcome back
+  const welcomeBackStats = {
+    newReviews: todayReviewsCount || 0,
+    pendingReplies: pendingReviewsCount,
+    ratingChange: weeklyGrowth ? weeklyGrowth / 100 : undefined,
+  };
   // Calculate completed tasks count
   const completedTasksCount = progressItems.filter(
     (item) => item.completed,
@@ -166,6 +196,18 @@ export function HomePageContent({
     <div className="min-h-screen bg-black relative">
       {/* Animated Background */}
       <AnimatedBackground />
+
+      {/* Welcome Back for returning users */}
+      {showWelcomeBack && (
+        <WelcomeBack
+          userName={profile?.full_name || businessName}
+          lastLogin={lastLogin}
+          stats={welcomeBackStats}
+          onDismiss={() => setShowWelcomeBack(false)}
+          onViewReviews={() => router.push("/reviews")}
+          onViewQuestions={() => router.push("/questions")}
+        />
+      )}
 
       {/* Smart Header */}
       <SmartHeader
@@ -252,7 +294,7 @@ export function HomePageContent({
               </div>
 
               {/* Progress Tracker - Sidebar */}
-              <div className="xl:col-span-4">
+              <div className="xl:col-span-4 space-y-6">
                 <SimpleProgressTracker
                   items={progressItems.map((item) => ({
                     id: item.id,
@@ -263,6 +305,47 @@ export function HomePageContent({
                   }))}
                   hideWhenComplete={false}
                 />
+
+                {/* Onboarding Checklist for new users */}
+                {completedTasksCount < progressItems.length && (
+                  <OnboardingChecklist
+                    items={[
+                      {
+                        id: "connect-gmb",
+                        title: "Connect Google Business",
+                        description:
+                          "Link your business to start managing reviews",
+                        completed: (accountsCount || 0) > 0,
+                        href: "/settings",
+                        icon: Building2,
+                      },
+                      {
+                        id: "first-review",
+                        title: "Reply to your first review",
+                        description: "Respond to a customer review",
+                        completed: responseRate > 0,
+                        href: "/reviews",
+                        icon: MessageSquare,
+                      },
+                      {
+                        id: "setup-ai",
+                        title: "Configure AI settings",
+                        description: "Customize how AI generates responses",
+                        completed: false, // TODO: Check if AI settings configured
+                        href: "/settings/ai",
+                        icon: Bot,
+                      },
+                      {
+                        id: "enable-autopilot",
+                        title: "Enable Auto-Reply",
+                        description: "Let AI handle responses automatically",
+                        completed: hasAutoReply,
+                        href: "/settings/auto-pilot",
+                        icon: Settings,
+                      },
+                    ]}
+                  />
+                )}
               </div>
             </div>
 
@@ -302,9 +385,6 @@ export function HomePageContent({
 
       {/* AI Chat Widget - Floating Assistant */}
       <AIChatWidgetEnhanced userId={user.id} />
-
-      {/* Onboarding Tour */}
-      <EnhancedOnboarding />
     </div>
   );
 }

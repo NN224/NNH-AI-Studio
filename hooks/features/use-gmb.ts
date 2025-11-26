@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GMBService, GMBStatus } from "@/lib/services/gmb-service";
+import { GMBService } from "@/lib/services/gmb-service";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 // Keys for React Query cache
@@ -20,7 +20,9 @@ export function useGMBStatus() {
   });
 }
 
-export function useGMBConnection() {
+export function useGMBConnection(options?: {
+  onDisconnectSuccess?: () => void;
+}) {
   const queryClient = useQueryClient();
 
   const connectMutation = useMutation({
@@ -36,7 +38,6 @@ export function useGMBConnection() {
   const disconnectMutation = useMutation({
     mutationFn: GMBService.disconnect,
     onSuccess: () => {
-      toast.success("Disconnected successfully");
       // Invalidate all GMB queries to refresh UI
       queryClient.invalidateQueries({ queryKey: GMB_KEYS.all });
       // Reset status immediately in cache to appear disconnected
@@ -44,6 +45,8 @@ export function useGMBConnection() {
         connected: false,
         activeAccount: null,
       });
+      // Call custom success handler if provided
+      options?.onDisconnectSuccess?.();
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to disconnect");
@@ -55,6 +58,7 @@ export function useGMBConnection() {
     isConnecting: connectMutation.isPending,
     disconnect: disconnectMutation.mutate,
     isDisconnecting: disconnectMutation.isPending,
+    isDisconnectSuccess: disconnectMutation.isSuccess,
   };
 }
 
