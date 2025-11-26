@@ -373,7 +373,7 @@ async function updateJobStatus(
         .update({
           status: "succeeded",
           completed_at: now,
-          last_error: null,
+          error_message: null,
         })
         .eq("id", job.id);
 
@@ -421,7 +421,7 @@ async function updateJobStatus(
           .update({
             status: "pending",
             scheduled_at,
-            last_error: result.error || "Unknown error",
+            error_message: result.error || "Unknown error",
             started_at: null, // Reset so it can be picked again
             completed_at: null,
           })
@@ -443,7 +443,7 @@ async function updateJobStatus(
           .update({
             status: "failed",
             completed_at: now,
-            last_error: result.error || "Unknown error",
+            error_message: result.error || "Unknown error",
           })
           .eq("id", job.id);
 

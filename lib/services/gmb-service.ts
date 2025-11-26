@@ -61,19 +61,22 @@ export const GMBService = {
     return response.json();
   },
 
-  // Sync
+  // Sync - uses enqueue-sync for reliable background processing
   sync: async (
     accountId: string,
     type: "full" | "locations" | "reviews" = "full",
   ) => {
-    const response = await fetch("/api/gmb/sync", {
+    const response = await fetch("/api/gmb/enqueue-sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountId, syncType: type }),
+      body: JSON.stringify({
+        accountId,
+        syncType: type === "full" ? "full" : "incremental",
+      }),
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Sync failed");
+      throw new Error(error.message || error.error || "Sync failed");
     }
     return response.json();
   },

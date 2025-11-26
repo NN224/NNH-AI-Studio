@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
-import { HomePageContent } from "@/components/home/home-page-content";
+import { HomeWithSync } from "@/components/home/home-with-sync";
 import { HomeErrorBoundary } from "@/components/home/home-error-boundary";
 import { getCachedDashboardData } from "@/server/actions/dashboard";
 import {
@@ -425,25 +425,28 @@ export default async function HomePage({
   const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
 
   return (
-    <HomePageContent
-      user={user!}
-      profile={profile}
-      hasAccounts={hasAccounts}
-      accountsCount={accountsCount}
-      reviewsCount={reviewsCount}
-      averageRating={averageRating}
-      todayReviewsCount={todayReviewsCount}
-      weeklyGrowth={weeklyGrowth}
-      progressItems={progressItems}
-      responseRate={responseRate}
-      streak={streak}
-      timeOfDay={timeOfDay}
-      lastLogin={lastLogin ?? undefined}
-      businessName={primaryLocation?.location_name}
-      businessLogo={businessLogoUrl}
-      primaryLocation={primaryLocation}
-      pendingReviewsCount={pendingReviewsCount}
-      hasAutoReply={autopilotSettings?.auto_reply_enabled ?? false}
+    <HomeWithSync
+      userId={userId}
+      homePageProps={{
+        user: user!,
+        profile,
+        hasAccounts,
+        accountsCount,
+        reviewsCount,
+        averageRating,
+        todayReviewsCount,
+        weeklyGrowth,
+        progressItems,
+        responseRate,
+        streak,
+        timeOfDay,
+        lastLogin: lastLogin ?? undefined,
+        businessName: primaryLocation?.location_name,
+        businessLogo: businessLogoUrl,
+        primaryLocation,
+        pendingReviewsCount,
+        hasAutoReply: autopilotSettings?.auto_reply_enabled ?? false,
+      }}
     />
   );
 }
