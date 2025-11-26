@@ -122,12 +122,28 @@ Deno.serve(async (req) => {
     const apiUrl = `${APP_URL}/api/gmb/sync-v2`;
     console.log(`[GMB Sync] Calling ${apiUrl}`);
 
+    // For internal calls, we need to create a service role JWT
+    let authHeader = hasUserAuth;
+
+    if (isInternal) {
+      // Get Supabase service role key
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get(
+        "SUPABASE_SERVICE_ROLE_KEY",
+      );
+      if (SUPABASE_SERVICE_ROLE_KEY) {
+        authHeader = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+      }
+    }
+
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(isInternal
-          ? { "X-Internal-Run": TRIGGER }
+          ? {
+              "X-Internal-Run": TRIGGER,
+              Authorization: authHeader || "",
+            }
           : { Authorization: hasUserAuth }),
       },
       body: JSON.stringify({
