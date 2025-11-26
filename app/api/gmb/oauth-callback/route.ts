@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { logAction } from "@/lib/monitoring/audit";
+import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
 import { getBaseUrlDynamic } from "@/lib/utils/get-base-url-dynamic";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
-import { logAction } from "@/lib/monitoring/audit";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -394,19 +394,18 @@ export async function GET(request: NextRequest) {
         account_id: accountId,
         account_name: accountName,
         email: userInfo.email,
-        google_account_id: userInfo.id,
         access_token: encryptedAccessToken,
         refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
-        last_sync: new Date().toISOString(),
+        last_synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
       const { data: upsertedAccount, error: upsertError } = await adminClient
         .from("gmb_accounts")
         .upsert(upsertData, {
-          onConflict: "user_id,account_id",
+          onConflict: "account_id",
           ignoreDuplicates: false,
         })
         .select("id")
@@ -473,7 +472,9 @@ export async function GET(request: NextRequest) {
                 }`
               : null,
             phone: location.phoneNumbers?.primaryPhone || null,
-            category: location.categories?.primaryCategory?.displayName || null,
+            categories: location.categories
+              ? { primary: location.categories.primaryCategory }
+              : null,
             website: location.websiteUri || null,
             is_active: true,
             metadata: location,
@@ -481,11 +482,11 @@ export async function GET(request: NextRequest) {
           };
 
           // Use UPSERT to insert or update the location in a single query
-          // The unique constraint on (gmb_account_id, location_id) will handle the conflict
+          // The unique constraint on location_id will handle the conflict
           const { error: upsertLocationError } = await adminClient
             .from("gmb_locations")
             .upsert(locationData, {
-              onConflict: "gmb_account_id,location_id",
+              onConflict: "location_id",
               ignoreDuplicates: false,
             });
 
