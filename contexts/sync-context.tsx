@@ -1,16 +1,16 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 // ============================================================================
 // Types
@@ -209,17 +209,30 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
           }, 3000);
         } else if (status === "failed") {
           const errorMsg = errorField || "فشلت المزامنة";
-          setState((prev) => ({
-            ...prev,
-            status: "error",
-            stage: "error",
-            error: errorMsg,
-            message: errorMsg,
-          }));
-          broadcastChannelRef.current?.postMessage({
-            type: "SYNC_ERROR",
-            payload: { error: errorMsg },
-          });
+
+          // Check if this was a cancellation due to disconnect
+          const isCancelled =
+            errorMsg.toLowerCase().includes("cancelled") ||
+            errorMsg.toLowerCase().includes("disconnected");
+
+          if (isCancelled) {
+            // Silently dismiss - user intentionally disconnected
+            setIsBannerVisible(false);
+            setState(initialState);
+          } else {
+            // Real error - show error state
+            setState((prev) => ({
+              ...prev,
+              status: "error",
+              stage: "error",
+              error: errorMsg,
+              message: errorMsg,
+            }));
+            broadcastChannelRef.current?.postMessage({
+              type: "SYNC_ERROR",
+              payload: { error: errorMsg },
+            });
+          }
         }
       }
     },

@@ -1,28 +1,121 @@
 {
+  // ═══════════════════════════════════════════════════════════
+  // 📝 Formatting - تنسيق الكود
+  // ═══════════════════════════════════════════════════════════
   "editor.formatOnSave": true,
   "editor.formatOnPaste": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.addMissingImports": "explicit"
   },
 
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "json"],
+  // ═══════════════════════════════════════════════════════════
+  // 🔍 ESLint
+  // ═══════════════════════════════════════════════════════════
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "json"
+  ],
 
+  // ═══════════════════════════════════════════════════════════
+  // 📁 Files
+  // ═══════════════════════════════════════════════════════════
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/.git": true
+  },
 
+  // ═══════════════════════════════════════════════════════════
+  // 🎨 Tailwind CSS
+  // ═══════════════════════════════════════════════════════════
   "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.includeLanguages": {
+    "typescriptreact": "html",
+    "javascriptreact": "html"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\"([^\"]*)\"", 1],
+    ["class=\"([^\"]*)\"", 1],
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
 
+  // ═══════════════════════════════════════════════════════════
+  // ✨ Editor
+  // ═══════════════════════════════════════════════════════════
+  "editor.inlineSuggest.enabled": true,
+  "editor.suggestSelection": "first",
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  "editor.minimap.enabled": false,
+  "editor.tabSize": 2,
+  "editor.cursorBlinking": "smooth",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.stickyScroll.enabled": true,
+
+  // ═══════════════════════════════════════════════════════════
+  // 📦 TypeScript / JavaScript
+  // ═══════════════════════════════════════════════════════════
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "javascript.suggest.autoImports": true,
+
+  // ═══════════════════════════════════════════════════════════
+  // 📁 Git
+  // ═══════════════════════════════════════════════════════════
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔍 GitLens
+  // ═══════════════════════════════════════════════════════════
   "gitlens.currentLine.enabled": true,
   "gitlens.hovers.currentLine.over": "line",
 
-  "editor.minimap.enabled": false,
-
+  // ═══════════════════════════════════════════════════════════
+  // 💅 Prettier
+  // ═══════════════════════════════════════════════════════════
   "prettier.singleQuote": true,
   "prettier.trailingComma": "all",
   "prettier.semi": false,
-  "prettier.printWidth": 100
+  "prettier.printWidth": 100,
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔧 Other
+  // ═══════════════════════════════════════════════════════════
+  "rest-client.environmentVariables": {
+    "$shared": {}
+  },
+  "workbench.startupEditor": "none",
+  "workbench.editor.enablePreview": false,
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔎 Search - تسريع البحث
+  // ═══════════════════════════════════════════════════════════
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/coverage": true,
+    "**/*.lock": true
+  }
 }
