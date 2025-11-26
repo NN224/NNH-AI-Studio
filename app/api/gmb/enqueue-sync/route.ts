@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Enqueue Sync API Endpoint
@@ -32,12 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json().catch(() => ({}));
-    const {
-      accountId,
-      syncType = "full",
-      priority = 0,
-      scheduled_at = null,
-    } = body;
+    const { accountId, syncType = "full", priority = 0, scheduled_at } = body;
 
     if (!accountId) {
       return NextResponse.json(
@@ -110,7 +105,7 @@ export async function POST(request: NextRequest) {
         priority: priority,
         attempts: 0,
         max_attempts: 3,
-        scheduled_at: scheduled_at,
+        scheduled_at: scheduled_at || new Date().toISOString(),
         metadata: {
           account_name: account.account_name,
           enqueued_via: "api",
