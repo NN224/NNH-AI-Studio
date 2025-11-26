@@ -17,7 +17,10 @@ export async function POST(request: Request) {
   // INTERNAL AUTH FOR SUPABASE WORKER CALLS
   const internalSecret =
     process.env.CRON_SECRET || process.env.TRIGGER_SECRET || null;
-  const internalHeader = request.headers.get("X-Internal-Run");
+  const internalHeader =
+    request.headers.get("X-Internal-Run") ||
+    request.headers.get("X-Trigger-Secret") ||
+    request.headers.get("X-Internal-Worker");
   const isInternal =
     internalSecret && internalHeader && internalHeader === internalSecret;
 

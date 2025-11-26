@@ -37,10 +37,11 @@ const corsHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "https://www.nnh.ae",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Trigger-Secret",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Client-Info, Apikey, X-Trigger-Secret",
   "Access-Control-Max-Age": "86400",
   "X-Content-Type-Options": "nosniff",
-  "Content-Security-Policy": "default-src 'none'"
+  "Content-Security-Policy": "default-src 'none'",
 };
 
 // ============================================================================
@@ -48,7 +49,7 @@ const corsHeaders = {
 // ============================================================================
 
 interface TriggerRequest {
-  sync_type?: 'full' | 'incremental';
+  sync_type?: "full" | "incremental";
   limit?: number;
   cursor?: string; // For pagination
   priority?: number; // 1-10, lower = higher priority
@@ -76,8 +77,8 @@ function getAdminClient(): SupabaseClient {
   return createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 }
 
@@ -88,12 +89,12 @@ function getAdminClient(): SupabaseClient {
 async function enqueueJobsForActiveAccounts(
   admin: SupabaseClient,
   options: {
-    sync_type: 'full' | 'incremental';
+    sync_type: "full" | "incremental";
     limit: number;
     cursor: string | null;
     priority: number;
     dry_run: boolean;
-  }
+  },
 ): Promise<{
   results: EnqueueResult[];
   next_cursor: string | null;
@@ -123,7 +124,7 @@ async function enqueueJobsForActiveAccounts(
     return {
       results: [],
       next_cursor: null,
-      total_enqueued: 0
+      total_enqueued: 0,
     };
   }
 
@@ -137,7 +138,7 @@ async function enqueueJobsForActiveAccounts(
         results.push({
           account_id: account.id,
           enqueued: true,
-          reason: 'dry_run'
+          reason: "dry_run",
         });
         continue;
       }
@@ -153,11 +154,14 @@ async function enqueueJobsForActiveAccounts(
         .maybeSingle();
 
       if (checkError) {
-        console.error(`Error checking existing jobs for ${account.id}:`, checkError);
+        console.error(
+          `Error checking existing jobs for ${account.id}:`,
+          checkError,
+        );
         results.push({
           account_id: account.id,
           enqueued: false,
-          reason: `check_error: ${checkError.message}`
+          reason: `check_error: ${checkError.message}`,
         });
         continue;
       }
@@ -166,29 +170,27 @@ async function enqueueJobsForActiveAccounts(
         results.push({
           account_id: account.id,
           enqueued: false,
-          reason: `already_${existing.status}`
+          reason: `already_${existing.status}`,
         });
         continue;
       }
 
       // Insert new job
-      const { error: insertError } = await admin
-        .from("sync_queue")
-        .insert({
-          account_id: account.id,
-          sync_type,
-          priority,
-          status: 'pending',
-          scheduled_at: new Date().toISOString(),
-          created_by: 'dispatcher'
-        });
+      const { error: insertError } = await admin.from("sync_queue").insert({
+        account_id: account.id,
+        sync_type,
+        priority,
+        status: "pending",
+        scheduled_at: new Date().toISOString(),
+        created_by: "dispatcher",
+      });
 
       if (insertError) {
         console.error(`Error inserting job for ${account.id}:`, insertError);
         results.push({
           account_id: account.id,
           enqueued: false,
-          reason: `insert_error: ${insertError.message}`
+          reason: `insert_error: ${insertError.message}`,
         });
         continue;
       }
@@ -196,25 +198,25 @@ async function enqueueJobsForActiveAccounts(
       enqueued_count++;
       results.push({
         account_id: account.id,
-        enqueued: true
+        enqueued: true,
       });
-
     } catch (err: any) {
       console.error(`Unexpected error for ${account.id}:`, err);
       results.push({
         account_id: account.id,
         enqueued: false,
-        reason: `exception: ${err.message}`
+        reason: `exception: ${err.message}`,
       });
     }
   }
 
-  const next_cursor = accounts.length === limit ? accounts[accounts.length - 1].id : null;
+  const next_cursor =
+    accounts.length === limit ? accounts[accounts.length - 1].id : null;
 
   return {
     results,
     next_cursor,
-    total_enqueued: enqueued_count
+    total_enqueued: enqueued_count,
   };
 }
 
@@ -229,22 +231,27 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: corsHeaders,
+    });
   }
 
   try {
     // Verify trigger secret
     const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET") || "replace-me-now";
-    const provided = req.headers.get("X-Trigger-Secret");
 
-    if (!provided || provided !== TRIGGER_SECRET) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: corsHeaders }
-      );
+    const providedSecret =
+      req.headers.get("X-Internal-Run") ||
+      req.headers.get("X-Trigger-Secret") ||
+      req.headers.get("X-Internal-Worker") ||
+      "";
+
+    if (providedSecret !== TRIGGER_SECRET) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     // Parse request body
@@ -255,7 +262,7 @@ Deno.serve(async (req) => {
       // Empty body is OK, use defaults
     }
 
-    const sync_type = body.sync_type || 'incremental';
+    const sync_type = body.sync_type || "incremental";
     const limit = Math.min(Math.max(Number(body.limit ?? 100), 1), 500);
     const cursor = body.cursor ?? null;
     const priority = Math.min(Math.max(Number(body.priority ?? 5), 1), 10);
@@ -270,10 +277,12 @@ Deno.serve(async (req) => {
       limit,
       cursor,
       priority,
-      dry_run
+      dry_run,
     });
 
-    console.log(`✅ Enqueued ${result.total_enqueued} jobs (type: ${sync_type})`);
+    console.log(
+      `✅ Enqueued ${result.total_enqueued} jobs (type: ${sync_type})`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -281,20 +290,19 @@ Deno.serve(async (req) => {
         enqueued: result.total_enqueued,
         total_accounts: result.results.length,
         next_cursor: result.next_cursor,
-        results: result.results
+        results: result.results,
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: corsHeaders },
     );
-
   } catch (error: any) {
     console.error("❌ Dispatcher error:", error);
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || "Internal server error"
+        error: error.message || "Internal server error",
       }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders },
     );
   }
 });
