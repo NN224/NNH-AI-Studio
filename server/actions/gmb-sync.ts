@@ -299,15 +299,16 @@ export async function fetchReviewsDataForSync(
   userId: string,
   accessToken: string,
 ): Promise<ReviewData[]> {
-  const reviews: ReviewData[] = [];
   const reviewsTimerStart = Date.now();
 
-  for (const location of locations) {
+  // ⚡ OPTIMIZED: Parallel fetching for all locations
+  const reviewsPromises = locations.map(async (location) => {
+    const locationReviews: ReviewData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
     );
-    if (!locationResource) continue;
+    if (!locationResource) return [];
 
     let nextPageToken: string | undefined;
     do {
@@ -317,65 +318,79 @@ export async function fetchReviewsDataForSync(
         url.searchParams.set("pageToken", nextPageToken);
       }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn("[GMB Sync v2] Reviews fetch failed", {
-          location: location.location_id,
-          error: errorData,
+      try {
+        const response = await fetch(url.toString(), {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
         });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn("[GMB Sync v2] Reviews fetch failed", {
+            location: location.location_id,
+            error: errorData,
+          });
+          break;
+        }
+
+        const payload = await response.json();
+        const googleReviews = payload.reviews || [];
+
+        for (const review of googleReviews) {
+          const reviewId = review.reviewId || review.name?.split("/").pop();
+          if (!reviewId) continue;
+
+          locationReviews.push({
+            user_id: userId,
+            location_id: undefined,
+            google_location_id: location.location_id,
+            gmb_account_id: gmbAccountId,
+            review_id: reviewId,
+            reviewer_name: review.reviewer?.displayName || "Anonymous",
+            reviewer_display_name: review.reviewer?.displayName || null,
+            reviewer_photo: review.reviewer?.profilePhotoUrl || null,
+            rating: mapStarRating(review.starRating),
+            review_text: review.comment || null,
+            review_date: review.createTime || new Date().toISOString(),
+            reply_text: review.reviewReply?.comment || null,
+            reply_date: review.reviewReply?.updateTime || null,
+            has_reply: Boolean(review.reviewReply),
+            status: review.reviewReply ? "responded" : "pending",
+            sentiment: review.commentSummary?.positiveRatio
+              ? review.commentSummary.positiveRatio > 0.5
+                ? "positive"
+                : "neutral"
+              : null,
+            google_name: review.name || null,
+            review_url: null,
+          });
+        }
+
+        nextPageToken = payload.nextPageToken;
+      } catch (error) {
+        console.error(
+          `[GMB Sync v2] Error fetching reviews for ${location.location_id}:`,
+          error,
+        );
         break;
       }
-
-      const payload = await response.json();
-      const googleReviews = payload.reviews || [];
-
-      for (const review of googleReviews) {
-        const reviewId = review.reviewId || review.name?.split("/").pop();
-        if (!reviewId) continue;
-
-        reviews.push({
-          user_id: userId,
-          location_id: undefined,
-          google_location_id: location.location_id,
-          gmb_account_id: gmbAccountId,
-          review_id: reviewId,
-          reviewer_name: review.reviewer?.displayName || "Anonymous",
-          reviewer_display_name: review.reviewer?.displayName || null,
-          reviewer_photo: review.reviewer?.profilePhotoUrl || null,
-          rating: mapStarRating(review.starRating),
-          review_text: review.comment || null,
-          review_date: review.createTime || new Date().toISOString(),
-          reply_text: review.reviewReply?.comment || null,
-          reply_date: review.reviewReply?.updateTime || null,
-          has_reply: Boolean(review.reviewReply),
-          status: review.reviewReply ? "responded" : "pending",
-          sentiment: review.commentSummary?.positiveRatio
-            ? review.commentSummary.positiveRatio > 0.5
-              ? "positive"
-              : "neutral"
-            : null,
-          google_name: review.name || null,
-          review_url: null,
-        });
-      }
-
-      nextPageToken = payload.nextPageToken;
     } while (nextPageToken);
-  }
+
+    return locationReviews;
+  });
+
+  // Wait for all locations in parallel
+  const reviewsByLocation = await Promise.all(reviewsPromises);
+  const allReviews = reviewsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchReviews completed in",
     Date.now() - reviewsTimerStart,
-    "ms",
+    "ms (parallel execution)",
   );
-  return reviews;
+  return allReviews;
 }
 
 export async function fetchQuestionsDataForSync(
@@ -385,73 +400,87 @@ export async function fetchQuestionsDataForSync(
   userId: string,
   accessToken: string,
 ): Promise<QuestionData[]> {
-  const questions: QuestionData[] = [];
   const questionsTimerStart = Date.now();
 
-  for (const location of locations) {
+  // ⚡ OPTIMIZED: Parallel fetching for all locations
+  const questionsPromises = locations.map(async (location) => {
+    const locationQuestions: QuestionData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
     );
-    if (!locationResource) continue;
+    if (!locationResource) return [];
 
-    const endpoint = `${QANDA_BASE}/${locationResource}/questions`;
-    const response = await fetch(endpoint, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.warn("[GMB Sync v2] Questions fetch failed", {
-        location: location.location_id,
-        error: errorData,
+    try {
+      const endpoint = `${QANDA_BASE}/${locationResource}/questions`;
+      const response = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
       });
-      continue;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn("[GMB Sync v2] Questions fetch failed", {
+          location: location.location_id,
+          error: errorData,
+        });
+        return [];
+      }
+
+      const payload = await response.json();
+      const googleQuestions = payload.questions || [];
+
+      for (const question of googleQuestions) {
+        const questionId = question.name?.split("/").pop();
+        if (!questionId) continue;
+
+        const topAnswer = question.topAnswers?.[0] || null;
+        const status = topAnswer?.text ? "answered" : "unanswered";
+
+        locationQuestions.push({
+          user_id: userId,
+          location_id: undefined,
+          google_location_id: location.location_id,
+          gmb_account_id: gmbAccountId,
+          question_id: questionId,
+          author_name: question.author?.displayName || "Anonymous",
+          author_display_name: question.author?.displayName || null,
+          author_profile_photo_url: question.author?.profilePhotoUrl || null,
+          author_type: question.author?.type || "CUSTOMER",
+          question_text: question.text || "",
+          question_date: question.createTime || new Date().toISOString(),
+          answer_text: topAnswer?.text || null,
+          answer_date: topAnswer?.updateTime || null,
+          answer_author: topAnswer?.author?.displayName || null,
+          answer_id: topAnswer?.name?.split("/").pop() || null,
+          upvote_count: question.upvoteCount || 0,
+          total_answer_count: question.totalAnswerCount || 0,
+          status,
+          google_resource_name: question.name || null,
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[GMB Sync v2] Error fetching questions for ${location.location_id}:`,
+        error,
+      );
     }
 
-    const payload = await response.json();
-    const googleQuestions = payload.questions || [];
+    return locationQuestions;
+  });
 
-    for (const question of googleQuestions) {
-      const questionId = question.name?.split("/").pop();
-      if (!questionId) continue;
-
-      const topAnswer = question.topAnswers?.[0] || null;
-      const status = topAnswer?.text ? "answered" : "unanswered";
-
-      questions.push({
-        user_id: userId,
-        location_id: undefined,
-        google_location_id: location.location_id,
-        gmb_account_id: gmbAccountId,
-        question_id: questionId,
-        author_name: question.author?.displayName || "Anonymous",
-        author_display_name: question.author?.displayName || null,
-        author_profile_photo_url: question.author?.profilePhotoUrl || null,
-        author_type: question.author?.type || "CUSTOMER",
-        question_text: question.text || "",
-        question_date: question.createTime || new Date().toISOString(),
-        answer_text: topAnswer?.text || null,
-        answer_date: topAnswer?.updateTime || null,
-        answer_author: topAnswer?.author?.displayName || null,
-        answer_id: topAnswer?.name?.split("/").pop() || null,
-        upvote_count: question.upvoteCount || 0,
-        total_answer_count: question.totalAnswerCount || 0,
-        status,
-        google_resource_name: question.name || null,
-      });
-    }
-  }
+  // Wait for all locations in parallel
+  const questionsByLocation = await Promise.all(questionsPromises);
+  const allQuestions = questionsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchQuestions completed in",
     Date.now() - questionsTimerStart,
-    "ms",
+    "ms (parallel execution)",
   );
-  return questions;
+  return allQuestions;
 }
 
 export async function fetchPostsDataForSync(
@@ -461,18 +490,18 @@ export async function fetchPostsDataForSync(
   userId: string,
   accessToken: string,
 ): Promise<any[]> {
-  const posts: any[] = [];
   const postsTimerStart = Date.now();
 
-  for (const location of locations) {
+  // ⚡ OPTIMIZED: Parallel fetching for all locations
+  const postsPromises = locations.map(async (location) => {
+    const locationPosts: any[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
     );
-    if (!locationResource) continue;
+    if (!locationResource) return [];
 
     try {
-      // Fetch local posts for this location
       const endpoint = `${POSTS_BASE}/${locationResource}/localPosts`;
       const response = await fetch(endpoint, {
         headers: {
@@ -486,7 +515,7 @@ export async function fetchPostsDataForSync(
           location: location.location_id,
           status: response.status,
         });
-        continue;
+        return [];
       }
 
       const payload = await response.json();
@@ -496,7 +525,7 @@ export async function fetchPostsDataForSync(
         const postId = post.name?.split("/").pop();
         if (!postId) continue;
 
-        posts.push({
+        locationPosts.push({
           user_id: userId,
           gmb_account_id: gmbAccountId,
           google_location_id: location.location_id,
@@ -522,19 +551,25 @@ export async function fetchPostsDataForSync(
         });
       }
     } catch (error) {
-      console.warn("[GMB Sync v2] Error fetching posts", {
-        location: location.location_id,
+      console.error(
+        `[GMB Sync v2] Error fetching posts for ${location.location_id}:`,
         error,
-      });
+      );
     }
-  }
+
+    return locationPosts;
+  });
+
+  // Wait for all locations in parallel
+  const postsByLocation = await Promise.all(postsPromises);
+  const allPosts = postsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchPosts completed in",
     Date.now() - postsTimerStart,
-    "ms",
+    "ms (parallel execution)",
   );
-  return posts;
+  return allPosts;
 }
 
 export async function fetchMediaDataForSync(
@@ -544,18 +579,18 @@ export async function fetchMediaDataForSync(
   userId: string,
   accessToken: string,
 ): Promise<any[]> {
-  const media: any[] = [];
   const mediaTimerStart = Date.now();
 
-  for (const location of locations) {
+  // ⚡ OPTIMIZED: Parallel fetching for all locations
+  const mediaPromises = locations.map(async (location) => {
+    const locationMedia: any[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
     );
-    if (!locationResource) continue;
+    if (!locationResource) return [];
 
     try {
-      // Fetch media items for this location
       const endpoint = `${POSTS_BASE}/${locationResource}/media`;
       const response = await fetch(endpoint, {
         headers: {
@@ -569,7 +604,7 @@ export async function fetchMediaDataForSync(
           location: location.location_id,
           status: response.status,
         });
-        continue;
+        return [];
       }
 
       const payload = await response.json();
@@ -579,7 +614,7 @@ export async function fetchMediaDataForSync(
         const mediaId = item.name?.split("/").pop();
         if (!mediaId) continue;
 
-        media.push({
+        locationMedia.push({
           user_id: userId,
           gmb_account_id: gmbAccountId,
           google_location_id: location.location_id,
@@ -595,19 +630,25 @@ export async function fetchMediaDataForSync(
         });
       }
     } catch (error) {
-      console.warn("[GMB Sync v2] Error fetching media", {
-        location: location.location_id,
+      console.error(
+        `[GMB Sync v2] Error fetching media for ${location.location_id}:`,
         error,
-      });
+      );
     }
-  }
+
+    return locationMedia;
+  });
+
+  // Wait for all locations in parallel
+  const mediaByLocation = await Promise.all(mediaPromises);
+  const allMedia = mediaByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchMedia completed in",
     Date.now() - mediaTimerStart,
-    "ms",
+    "ms (parallel execution)",
   );
-  return media;
+  return allMedia;
 }
 
 export async function performTransactionalSync(

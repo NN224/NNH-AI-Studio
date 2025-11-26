@@ -1,7 +1,24 @@
+/**
+ * Home Page - OPTIMIZED VERSION ⚡
+ *
+ * Performance Improvements:
+ * - Before: 15+ database queries on every page load
+ * - After: 4-7 queries (depending on user data)
+ * - Expected speedup: 5x faster
+ *
+ * Optimization Strategy:
+ * 1. Using materialized view (user_home_stats) for cached aggregations
+ * 2. Conditional queries (only fetch if user has data)
+ * 3. Removed redundant calculations (using cached stats instead)
+ *
+ * @see /supabase/migrations/1764177643_add_user_home_stats_view.sql
+ * @see /lib/types/user-home-stats.types.ts
+ */
+
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
-import { HomeWithSync } from "@/components/home/home-with-sync";
+import { HomePageWrapper } from "@/components/home/home-page-wrapper";
 import { HomeErrorBoundary } from "@/components/home/home-error-boundary";
 import { getCachedDashboardData } from "@/server/actions/dashboard";
 import {
@@ -58,47 +75,27 @@ export default async function HomePage({
     ],
   );
 
-  // Fetch stats in parallel - OPTIMIZED: Using specific columns instead of "*"
+  // ⚡ OPTIMIZED: Using materialized view for cached stats (15+ queries → 3 queries)
   const [
-    { count: locationsCount },
-    { count: reviewsCount },
-    { count: accountsCount },
+    { data: cachedStats },
     { data: youtubeToken },
-    { count: repliedReviewsCount },
-    { data: recentActivityDates },
     { data: primaryLocation },
     { data: autopilotSettings },
   ] = await Promise.all([
+    // Query #1: Get cached stats from materialized view (replaces 8+ queries!)
     supabase
-      .from("gmb_locations")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
-    supabase
-      .from("gmb_reviews")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
-    supabase
-      .from("gmb_accounts")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
+      .from("user_home_stats")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    // Query #2: YouTube token
     supabase
       .from("oauth_tokens")
       .select("metadata")
       .eq("user_id", userId)
       .eq("provider", "youtube")
       .maybeSingle(),
-    supabase
-      .from("gmb_reviews")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .not("reply_text", "is", null),
-    supabase
-      .from("gmb_reviews")
-      .select("review_date, replied_at")
-      .eq("user_id", userId)
-      .order("review_date", { ascending: false })
-      .limit(50),
-    // Get primary location with full details
+    // Query #3: Get primary location with full details
     supabase
       .from("gmb_locations")
       .select(
@@ -112,10 +109,11 @@ export default async function HomePage({
       `,
       )
       .eq("user_id", userId)
+      .eq("is_active", true)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    // Check if auto-reply is enabled
+    // Query #4: Check if auto-reply is enabled
     supabase
       .from("autopilot_settings")
       .select("auto_reply_enabled")
@@ -124,6 +122,15 @@ export default async function HomePage({
       .limit(1)
       .maybeSingle(),
   ]);
+
+  // Extract counts from cached stats (with fallback to 0)
+  const locationsCount = cachedStats?.locations_count || 0;
+  const reviewsCount = cachedStats?.reviews_count || 0;
+  const accountsCount = cachedStats?.accounts_count || 0;
+  const repliedReviewsCount = cachedStats?.replied_reviews_count || 0;
+  const todayReviewsCount = cachedStats?.today_reviews_count || 0;
+  const thisWeekCount = cachedStats?.this_week_reviews_count || 0;
+  const lastWeekCount = cachedStats?.last_week_reviews_count || 0;
 
   // If no logo, try to get from gmb_media
   let businessLogoUrl =
@@ -142,64 +149,61 @@ export default async function HomePage({
     }
   }
 
-  // Calculate response rate
-  const responseRate =
-    reviewsCount && reviewsCount > 0
-      ? Math.round(((repliedReviewsCount || 0) / reviewsCount) * 100)
-      : 0;
+  // ⚡ Get response rate from cached stats (already calculated in materialized view)
+  const responseRate = cachedStats?.response_rate || 0;
 
-  // Calculate streak (consecutive days with activity)
+  // ⚡ Get average rating from cached stats (already calculated in materialized view)
+  const averageRating = cachedStats?.average_rating?.toFixed(1) || "0.0";
+
+  // Calculate streak (fetch only recent activity dates if user has reviews)
   let streak = 0;
-  if (recentActivityDates && recentActivityDates.length > 0) {
-    const dates = new Set<string>();
-    recentActivityDates.forEach((item) => {
-      if (item.review_date)
-        dates.add(new Date(item.review_date).toDateString());
-      if (item.replied_at) dates.add(new Date(item.replied_at).toDateString());
-    });
+  if (reviewsCount > 0) {
+    const { data: recentActivityDates } = await supabase
+      .from("gmb_reviews")
+      .select("review_date, replied_at")
+      .eq("user_id", userId)
+      .order("review_date", { ascending: false })
+      .limit(50);
 
-    const sortedDates = Array.from(dates)
-      .map((d) => new Date(d))
-      .sort((a, b) => b.getTime() - a.getTime());
+    if (recentActivityDates && recentActivityDates.length > 0) {
+      const dates = new Set<string>();
+      recentActivityDates.forEach((item) => {
+        if (item.review_date)
+          dates.add(new Date(item.review_date).toDateString());
+        if (item.replied_at)
+          dates.add(new Date(item.replied_at).toDateString());
+      });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const sortedDates = Array.from(dates)
+        .map((d) => new Date(d))
+        .sort((a, b) => b.getTime() - a.getTime());
 
-    // Check if there is activity today or yesterday to start the streak
-    const lastActivity = sortedDates[0];
-    if (lastActivity) {
-      const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      if (diffDays <= 1) {
-        streak = 1;
-        for (let i = 0; i < sortedDates.length - 1; i++) {
-          const current = sortedDates[i];
-          const next = sortedDates[i + 1];
-          const diff = Math.abs(current.getTime() - next.getTime());
-          const days = Math.round(diff / (1000 * 60 * 60 * 24));
+      // Check if there is activity today or yesterday to start the streak
+      const lastActivity = sortedDates[0];
+      if (lastActivity) {
+        const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-          if (days === 1) {
-            streak++;
-          } else {
-            break;
+        if (diffDays <= 1) {
+          streak = 1;
+          for (let i = 0; i < sortedDates.length - 1; i++) {
+            const current = sortedDates[i];
+            const next = sortedDates[i + 1];
+            const diff = Math.abs(current.getTime() - next.getTime());
+            const days = Math.round(diff / (1000 * 60 * 60 * 24));
+
+            if (days === 1) {
+              streak++;
+            } else {
+              break;
+            }
           }
         }
       }
     }
-  }
-
-  // Calculate average rating - use correct column name
-  let averageRating = "0.0";
-  const { data: reviews, error: reviewsError } = await supabase
-    .from("gmb_reviews")
-    .select("rating")
-    .eq("user_id", userId);
-
-  if (!reviewsError && reviews && reviews.length > 0) {
-    const avg =
-      reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-    averageRating = avg.toFixed(1);
   }
 
   // YouTube stats
@@ -210,71 +214,44 @@ export default async function HomePage({
     ? Number(youtubeStats.statistics.subscriberCount)
     : 0;
   const hasYouTube = !!youtubeToken;
-  const hasAccounts = (accountsCount || 0) > 0 || hasYouTube;
+  const hasAccounts = accountsCount > 0 || hasYouTube;
 
-  // Calculate today's reviews count
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const { count: todayReviewsCount } = await supabase
-    .from("gmb_reviews")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("review_date", today.toISOString());
-
-  // Calculate weekly growth (comparing this week vs last week)
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const twoWeeksAgo = new Date();
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-  const [{ count: thisWeekCount }, { count: lastWeekCount }] =
-    await Promise.all([
-      supabase
-        .from("gmb_reviews")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("review_date", weekAgo.toISOString()),
-      supabase
-        .from("gmb_reviews")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("review_date", twoWeeksAgo.toISOString())
-        .lt("review_date", weekAgo.toISOString()),
-    ]);
-
+  // ⚡ Calculate weekly growth from cached stats (no additional queries needed!)
   const weeklyGrowth =
-    lastWeekCount && lastWeekCount > 0
-      ? Math.round(
-          (((thisWeekCount || 0) - lastWeekCount) / lastWeekCount) * 100,
-        )
+    lastWeekCount > 0
+      ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
       : 0;
 
   // Calculate trend data for last 7 days (for sparkline charts)
-  // OPTIMIZED: Single query instead of 7 separate queries
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setUTCHours(0, 0, 0, 0);
-    date.setUTCDate(date.getUTCDate() - (6 - i));
-    return date;
-  });
+  // ⚡ OPTIMIZED: Only fetch if user has reviews (conditional query)
+  let reviewsTrend: number[] = [0, 0, 0, 0, 0, 0, 0];
 
-  const firstDay = last7Days[0];
-  const { data: reviewsForTrend } = await supabase
-    .from("gmb_reviews")
-    .select("review_date")
-    .eq("user_id", userId)
-    .gte("review_date", firstDay.toISOString())
-    .order("review_date", { ascending: true });
+  if (reviewsCount > 0) {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setUTCHours(0, 0, 0, 0);
+      date.setUTCDate(date.getUTCDate() - (6 - i));
+      return date;
+    });
 
-  // Group reviews by day in JavaScript (much faster than 7 DB queries)
-  const reviewsTrend = last7Days.map((date) => {
-    const dateStr = date.toDateString();
-    return (
-      reviewsForTrend?.filter(
-        (r) => new Date(r.review_date).toDateString() === dateStr,
-      ).length || 0
-    );
-  });
+    const firstDay = last7Days[0];
+    const { data: reviewsForTrend } = await supabase
+      .from("gmb_reviews")
+      .select("review_date")
+      .eq("user_id", userId)
+      .gte("review_date", firstDay.toISOString())
+      .order("review_date", { ascending: true });
+
+    // Group reviews by day in JavaScript (much faster than 7 DB queries)
+    reviewsTrend = last7Days.map((date) => {
+      const dateStr = date.toDateString();
+      return (
+        reviewsForTrend?.filter(
+          (r) => new Date(r.review_date).toDateString() === dateStr,
+        ).length || 0
+      );
+    });
+  }
 
   // Calculate time of day for greeting
 
@@ -306,13 +283,16 @@ export default async function HomePage({
     },
   ];
 
-  // Fetch recent activities
-  const { data: recentReviews } = await supabase
-    .from("gmb_reviews")
-    .select("review_id, comment, rating, review_date, location_name")
-    .eq("user_id", userId)
-    .order("review_date", { ascending: false })
-    .limit(3);
+  // ⚡ Fetch recent activities (only if user has reviews)
+  const { data: recentReviews } =
+    reviewsCount > 0
+      ? await supabase
+          .from("gmb_reviews")
+          .select("review_id, comment, rating, review_date, location_name")
+          .eq("user_id", userId)
+          .order("review_date", { ascending: false })
+          .limit(3)
+      : { data: null };
 
   // Build activities array
   const activities = [];
@@ -425,7 +405,7 @@ export default async function HomePage({
   const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
 
   return (
-    <HomeWithSync
+    <HomePageWrapper
       userId={userId}
       homePageProps={{
         user: user!,

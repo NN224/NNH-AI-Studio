@@ -8,6 +8,50 @@
       "description": "Transform your business with AI-powered Google My Business and YouTube management tools."
     }
   },
+  "Home": {
+    "welcome": {
+      "title": "Welcome to NNH AI Studio! 🎉",
+      "description": "Get started by completing these quick setup steps",
+      "progress": "Setup Progress",
+      "completed": "Completed",
+      "clickToStart": "Click to get started",
+      "getStarted": "Get Started",
+      "allDone": "All set! You're ready to go."
+    },
+    "firstSync": {
+      "title": "⚡ Syncing Your Business Data",
+      "description": "Please wait while we import your data from Google...",
+      "starting": "Starting sync...",
+      "syncing": "Syncing your data...",
+      "success": "Sync completed successfully!",
+      "failed": "Sync failed. Please try again.",
+      "timeout": "Sync is taking longer than expected. Please refresh the page.",
+      "retrying": "Retrying sync...",
+      "successTitle": "🎉 Sync Complete!",
+      "successMessage": "Your business data is ready!",
+      "errorTitle": "⚠️ Sync Error",
+      "errorMessage": "Something went wrong during sync. Please try again.",
+      "retry": "Retry Sync",
+      "continue": "Continue Anyway",
+      "stages": {
+        "initializing": "Initializing",
+        "fetchingLocations": "Fetching locations",
+        "fetchingReviews": "Fetching reviews",
+        "fetchingQuestions": "Fetching questions",
+        "fetchingPosts": "Fetching posts",
+        "fetchingMedia": "Fetching media",
+        "savingData": "Saving data",
+        "refreshingCache": "Refreshing cache",
+        "complete": "Complete"
+      },
+      "counts": {
+        "locations": "Locations",
+        "reviews": "Reviews",
+        "questions": "Questions",
+        "posts": "Posts"
+      }
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

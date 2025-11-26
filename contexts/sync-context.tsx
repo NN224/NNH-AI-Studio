@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -135,6 +136,7 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
   const [state, setState] = useState<SyncState>(initialState);
   const [isBannerVisible, setIsBannerVisible] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
   const supabase = createClient();
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
   const realtimeChannelRef = useRef<ReturnType<
@@ -146,13 +148,17 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
   // ============================================================================
 
   const invalidateAllQueries = useCallback(() => {
+    // Invalidate React Query cache
     queryClient.invalidateQueries({ queryKey: ["gmb"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["locations"] });
     queryClient.invalidateQueries({ queryKey: ["reviews"] });
     queryClient.invalidateQueries({ queryKey: ["questions"] });
     queryClient.invalidateQueries({ queryKey: ["analytics"] });
-  }, [queryClient]);
+
+    // Refresh Server Component data (Phase 3: Auto-refresh)
+    router.refresh();
+  }, [queryClient, router]);
 
   // ============================================================================
   // Handlers (defined before useEffects that use them)
