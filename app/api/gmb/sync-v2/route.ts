@@ -14,6 +14,49 @@ function resolveBaseUrl(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // INTERNAL AUTH FOR SUPABASE WORKER CALLS
+  const internalSecret =
+    process.env.CRON_SECRET || process.env.TRIGGER_SECRET || null;
+  const internalHeader = request.headers.get("X-Internal-Run");
+  const isInternal =
+    internalSecret && internalHeader && internalHeader === internalSecret;
+
+  // If internal worker call, bypass user auth and run sync directly
+  if (isInternal) {
+    console.log("[sync-v2] Internal worker call authorized");
+
+    try {
+      const body = await request.json();
+      const internalAccountId = body.accountId || body.account_id;
+      const internalIncludeQuestions =
+        typeof body.includeQuestions === "boolean"
+          ? body.includeQuestions
+          : true;
+
+      if (!internalAccountId) {
+        return NextResponse.json(
+          { error: "accountId is required" },
+          { status: 400 },
+        );
+      }
+
+      const result = await performTransactionalSync(
+        internalAccountId,
+        internalIncludeQuestions,
+      );
+
+      return NextResponse.json({
+        ...result,
+        mode: "internal",
+      });
+    } catch (err: any) {
+      return NextResponse.json(
+        { error: err?.message || "Internal sync error" },
+        { status: 500 },
+      );
+    }
+  }
+
   let accountId: string | undefined;
   let includeQuestions = true;
 
