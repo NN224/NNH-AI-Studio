@@ -46,6 +46,9 @@ export async function POST(request: Request) {
       const result = await performTransactionalSync(
         internalAccountId,
         internalIncludeQuestions,
+        false, // includePosts
+        false, // includeMedia
+        true, // isInternalCall
       );
 
       return NextResponse.json({

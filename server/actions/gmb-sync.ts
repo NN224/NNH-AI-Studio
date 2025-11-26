@@ -1,25 +1,25 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import {
-  getValidAccessToken,
+  CacheBucket,
+  publishSyncProgress,
+  refreshCache,
+  type SyncProgressEvent,
+} from "@/lib/cache/cache-manager";
+import {
   buildLocationResourceName,
+  getValidAccessToken,
   GMB_CONSTANTS,
 } from "@/lib/gmb/helpers";
 import type {
   LocationData,
-  ReviewData,
   QuestionData,
+  ReviewData,
 } from "@/lib/gmb/sync-types";
-import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
-import {
-  CacheBucket,
-  refreshCache,
-  publishSyncProgress,
-  type SyncProgressEvent,
-} from "@/lib/cache/cache-manager";
 import { logAction } from "@/lib/monitoring/audit";
 import { trackSyncResult } from "@/lib/monitoring/metrics";
+import { createClient } from "@/lib/supabase/server";
+import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
 import { randomUUID } from "crypto";
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
@@ -615,24 +615,43 @@ export async function performTransactionalSync(
   includeQuestions = true,
   includePosts = false,
   includeMedia = false,
+  isInternalCall = false,
 ) {
   const supabase = await createClient();
   const operationStart = Date.now();
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  let userId: string;
 
-  if (authError || !user) {
-    throw new Error("Not authenticated");
+  if (isInternalCall) {
+    // For internal worker calls, get user_id from the account directly
+    const { data: accountData, error: accountLookupError } = await supabase
+      .from("gmb_accounts")
+      .select("user_id")
+      .eq("id", accountId)
+      .single();
+
+    if (accountLookupError || !accountData?.user_id) {
+      throw new Error("Account not found for internal call");
+    }
+    userId = accountData.user_id;
+  } else {
+    // For user calls, verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error("Not authenticated");
+    }
+    userId = user.id;
   }
 
   const { data: account, error: accountError } = await supabase
     .from("gmb_accounts")
     .select("id, user_id, account_id")
     .eq("id", accountId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (accountError || !account) {
@@ -640,7 +659,7 @@ export async function performTransactionalSync(
   }
 
   const progressEmitter = createProgressEmitter({
-    userId: user.id,
+    userId,
     accountId,
     includeQuestions,
     includePosts,
@@ -802,7 +821,7 @@ export async function performTransactionalSync(
       took_ms: durationMs,
       error: message,
     });
-    await trackSyncResult(user?.id ?? null, false, durationMs);
+    await trackSyncResult(userId ?? null, false, durationMs);
     throw error;
   }
 }
