@@ -679,7 +679,7 @@ export async function performTransactionalSync(
     const locations = await fetchLocationsDataForSync(
       account.account_id,
       accountId,
-      user.id,
+      userId,
       accessToken,
     );
     progressEmitter.emit("locations_fetch", "completed", {
@@ -692,7 +692,7 @@ export async function performTransactionalSync(
       locations,
       account.account_id,
       accountId,
-      user.id,
+      userId,
       accessToken,
     );
     progressEmitter.emit("reviews_fetch", "completed", {
@@ -707,7 +707,7 @@ export async function performTransactionalSync(
         locations,
         account.account_id,
         accountId,
-        user.id,
+        userId,
         accessToken,
       );
       progressEmitter.emit("questions_fetch", "completed", {
@@ -723,7 +723,7 @@ export async function performTransactionalSync(
         locations,
         account.account_id,
         accountId,
-        user.id,
+        userId,
         accessToken,
       );
       progressEmitter.emit("posts_fetch", "completed", {
@@ -739,7 +739,7 @@ export async function performTransactionalSync(
         locations,
         account.account_id,
         accountId,
-        user.id,
+        userId,
         accessToken,
       );
       progressEmitter.emit("media_fetch", "completed", {
@@ -780,7 +780,7 @@ export async function performTransactionalSync(
     progressEmitter.emit("cache_refresh", "running", {
       message: "Refreshing dashboard caches",
     });
-    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
+    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
     progressEmitter.emit("cache_refresh", "completed", {
       message: "Cache refreshed",
     });
@@ -799,7 +799,7 @@ export async function performTransactionalSync(
         questions: transactionResult.questions_synced,
       },
     });
-    await trackSyncResult(user.id, true, durationMs);
+    await trackSyncResult(userId, true, durationMs);
 
     return {
       ...transactionResult,
