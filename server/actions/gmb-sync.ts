@@ -680,13 +680,10 @@ export async function performTransactionalSync(
     userId = user.id;
   }
 
-  console.log(
-    "[DEBUG] Second lookup - accountId:",
-    accountId,
-    "userId:",
-    userId,
-  );
-  const { data: account, error: accountError } = await supabase
+  // Use admin client for internal calls to bypass RLS
+  const dbClient = isInternalCall ? createAdminClient() : supabase;
+
+  const { data: account, error: accountError } = await dbClient
     .from("gmb_accounts")
     .select("id, user_id, account_id")
     .eq("id", accountId)
@@ -694,15 +691,8 @@ export async function performTransactionalSync(
     .single();
 
   if (accountError || !account) {
-    console.error(
-      "[DEBUG] Second lookup failed:",
-      accountError,
-      "account:",
-      account,
-    );
-    throw new Error(
-      `GMB account not found - accountId: ${accountId}, userId: ${userId}`,
-    );
+    console.error("[GMB Sync] Account lookup failed:", accountError);
+    throw new Error("GMB account not found");
   }
 
   const progressEmitter = createProgressEmitter({
