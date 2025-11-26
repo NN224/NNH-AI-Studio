@@ -114,8 +114,10 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------------
     const APP_URL =
       Deno.env.get("NEXT_PUBLIC_APP_URL") ||
+      Deno.env.get("NEXT_PUBLIC_BASE_URL") ||
       Deno.env.get("APP_URL") ||
-      "https://nnh.ae";
+      Deno.env.get("FRONTEND_URL") ||
+      "https://www.nnh.ae";
 
     const apiUrl = `${APP_URL}/api/gmb/sync-v2`;
     console.log(`[GMB Sync] Calling ${apiUrl}`);
