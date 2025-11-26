@@ -48,7 +48,17 @@ export function EmptyState() {
   const handleConnectGMB = async () => {
     setIsConnectingGMB(true);
     try {
-      const response = await fetch("/api/gmb/create-auth-url");
+      const response = await fetch("/api/gmb/create-auth-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.authUrl) {
@@ -68,7 +78,17 @@ export function EmptyState() {
   const handleConnectYouTube = async () => {
     setIsConnectingYouTube(true);
     try {
-      const response = await fetch("/api/youtube/create-auth-url");
+      const response = await fetch("/api/youtube/create-auth-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.authUrl) {

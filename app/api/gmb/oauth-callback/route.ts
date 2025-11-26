@@ -314,6 +314,7 @@ export async function GET(request: NextRequest) {
 
     // Process each GMB account
     let savedAccountId: string | null = null;
+    const savedAccountIds: string[] = [];
 
     for (const gmbAccount of gmbAccounts) {
       const accountName = gmbAccount.accountName || gmbAccount.name;
@@ -427,6 +428,7 @@ export async function GET(request: NextRequest) {
       }
 
       savedAccountId = upsertedAccount.id;
+      savedAccountIds.push(upsertedAccount.id);
       console.warn(
         `[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`,
       );
@@ -561,9 +563,22 @@ export async function GET(request: NextRequest) {
       console.error("[OAuth Callback] Error adding to queue:", syncError);
     }
 
-    // Redirect to home with newUser flag to trigger first-sync overlay
+    // If multiple accounts were saved, redirect to account selection page
+    if (savedAccountIds.length > 1) {
+      const redirectUrl = `${baseUrl}/${localeCookie}/select-account`;
+      console.warn(
+        "[OAuth Callback] Multiple accounts found, redirecting to selection:",
+        redirectUrl,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Single account - redirect to home with newUser flag to trigger first-sync overlay
     const redirectUrl = `${baseUrl}/${localeCookie}/home?newUser=true&accountId=${savedAccountId}`;
-    console.warn("[OAuth Callback] Redirecting to:", redirectUrl);
+    console.warn(
+      "[OAuth Callback] Single account, redirecting to home:",
+      redirectUrl,
+    );
     return NextResponse.redirect(redirectUrl);
   } catch (error: unknown) {
     console.error("[OAuth Callback] Unexpected error:", error);

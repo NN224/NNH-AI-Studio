@@ -9,12 +9,44 @@ import {
   MessageSquare,
   Rocket,
 } from "lucide-react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export function GMBOnboardingView() {
   const params = useParams();
   const locale = params?.locale || "en";
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectGMB = async () => {
+    setIsConnecting(true);
+    try {
+      const response = await fetch("/api/gmb/create-auth-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Failed to create authentication URL");
+        setIsConnecting(false);
+      }
+    } catch (error) {
+      console.error("Error connecting GMB:", error);
+      toast.error("Failed to connect Google My Business");
+      setIsConnecting(false);
+    }
+  };
 
   const features = [
     {
@@ -68,15 +100,15 @@ export function GMBOnboardingView() {
           </p>
         </div>
 
-        <Link href={`/${locale}/settings`}>
-          <Button
-            size="lg"
-            className="h-14 px-8 text-lg gap-3 bg-linear-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 shadow-lg shadow-orange-500/20 transition-all hover:scale-105"
-          >
-            Connect Google Business
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        </Link>
+        <Button
+          size="lg"
+          onClick={handleConnectGMB}
+          disabled={isConnecting}
+          className="h-14 px-8 text-lg gap-3 bg-linear-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 shadow-lg shadow-orange-500/20 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isConnecting ? "Connecting..." : "Connect Google Business"}
+          <ArrowRight className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Features Grid */}
