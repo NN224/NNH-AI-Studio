@@ -117,5 +117,6 @@
     "**/.git": true,
     "**/coverage": true,
     "**/*.lock": true
-  }
+  },
+  "nxConsole.nxWorkspacePath": ""
 }
