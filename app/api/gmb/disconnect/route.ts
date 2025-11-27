@@ -91,17 +91,19 @@ export async function POST(request: NextRequest) {
         .eq("account_id", accountId)
         .eq("status", "running");
 
+      // Update gmb_accounts to mark as inactive
       const { error } = await supabase
         .from("gmb_accounts")
         .update({
           is_active: false,
           disconnected_at: new Date().toISOString(),
-          access_token: null,
-          refresh_token: null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", accountId)
         .eq("user_id", user.id);
+
+      // Also delete tokens from gmb_secrets (tokens are stored separately)
+      await supabase.from("gmb_secrets").delete().eq("account_id", accountId);
 
       if (error) {
         console.error(
@@ -175,16 +177,26 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id)
       .eq("status", "running");
 
+    // Get all account IDs for this user to delete their secrets
+    const { data: userAccounts } = await supabase
+      .from("gmb_accounts")
+      .select("id")
+      .eq("user_id", user.id);
+
     const { error } = await supabase
       .from("gmb_accounts")
       .update({
         is_active: false,
         disconnected_at: new Date().toISOString(),
-        access_token: null,
-        refresh_token: null,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);
+
+    // Delete tokens from gmb_secrets for all user's accounts
+    if (userAccounts && userAccounts.length > 0) {
+      const accountIds = userAccounts.map((a) => a.id);
+      await supabase.from("gmb_secrets").delete().in("account_id", accountIds);
+    }
 
     if (error) {
       console.error(

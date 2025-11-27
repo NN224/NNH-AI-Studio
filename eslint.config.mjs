@@ -25,21 +25,17 @@ export default tseslint.config(
     },
     rules: {
       // React rules
-      "react/react-in-jsx-scope": "off", // Not needed in Next.js
-      "react/prop-types": "off", // Using TypeScript
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 
       // TypeScript rules
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-        },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
 
       // General rules
       "no-console": ["warn", { allow: ["warn", "error"] }],
@@ -50,7 +46,8 @@ export default tseslint.config(
         version: "detect",
       },
     },
-  }, // Ignore patterns
+  },
+  // Ignore patterns
   {
     ignores: [
       "node_modules/**",

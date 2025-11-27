@@ -1,66 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { applySafeSearchFilter } from '@/lib/utils/secure-search';
+import { createClient } from "@/lib/supabase/server";
+import { applySafeSearchFilter } from "@/lib/utils/secure-search";
+import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      console.error('Auth error:', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.error("Auth error:", authError);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log('Fetching reviews for user:', user.id);
+    console.log("Fetching reviews for user:", user.id);
 
     const { searchParams } = new URL(request.url);
-    
+
     // Parse filter parameters
-    const rating = searchParams.get('rating');
-    const sentiment = searchParams.get('sentiment');
-    const status = searchParams.get('status');
-    const locationId = searchParams.get('locationId');
-    const searchQuery = searchParams.get('search');
-    const dateFrom = searchParams.get('dateFrom');
-    const dateTo = searchParams.get('dateTo');
-    const exportFormat = searchParams.get('export');
-    const isCsvExport = exportFormat === 'csv';
-    
+    const rating = searchParams.get("rating");
+    const sentiment = searchParams.get("sentiment");
+    const status = searchParams.get("status");
+    const locationId = searchParams.get("locationId");
+    const searchQuery = searchParams.get("search");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+    const exportFormat = searchParams.get("export");
+    const isCsvExport = exportFormat === "csv";
+
     // Parse pagination parameters
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
-    
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
+
     // Validate pagination parameters
     const validPage = Math.max(1, page);
     const validPageSize = Math.min(Math.max(1, pageSize), 100); // Max 100 items per page
     const offset = (validPage - 1) * validPageSize;
 
     // Build query with count for pagination
+    // Note: Using actual DB column names (review_text not comment, sentiment not ai_sentiment)
     let query = supabase
-      .from('gmb_reviews')
-      .select(`
+      .from("gmb_reviews")
+      .select(
+        `
         id,
         review_id,
         reviewer_name,
         rating,
-        comment,
         review_text,
         reply_text,
-        review_reply,
-        response_text,
         has_reply,
-        has_response,
         review_date,
-        replied_at,
-        responded_at,
-        ai_sentiment,
+        reply_date,
+        sentiment,
         location_id,
-        external_review_id,
         gmb_account_id,
         status,
         created_at,
@@ -71,78 +70,87 @@ export async function GET(request: NextRequest) {
           address,
           user_id
         )
-      `, { count: 'exact' })
-      .not('gmb_locations.user_id', 'is', null)
-      .eq('gmb_locations.user_id', user.id);
+      `,
+        { count: "exact" },
+      )
+      .not("gmb_locations.user_id", "is", null)
+      .eq("gmb_locations.user_id", user.id);
 
     // Apply server-side filters
     if (rating) {
-      query = query.eq('rating', parseInt(rating));
+      query = query.eq("rating", parseInt(rating));
     }
 
     if (sentiment) {
-      query = query.eq('ai_sentiment', sentiment);
+      query = query.eq("sentiment", sentiment);
     }
-    
+
     if (status) {
       // Map status to database conditions
-      if (status === 'pending') {
-        query = query.or('has_reply.is.null,has_reply.eq.false');
-      } else if (status === 'replied') {
-        query = query.eq('has_reply', true);
+      if (status === "pending") {
+        query = query.or("has_reply.is.null,has_reply.eq.false");
+      } else if (status === "replied") {
+        query = query.eq("has_reply", true);
       } else {
-        query = query.eq('status', status);
+        query = query.eq("status", status);
       }
     }
-    
+
     if (locationId) {
-      query = query.eq('location_id', locationId);
+      query = query.eq("location_id", locationId);
     }
-    
+
     // Date range filtering
     if (dateFrom) {
-      query = query.gte('review_date', dateFrom);
+      query = query.gte("review_date", dateFrom);
     }
-    
+
     if (dateTo) {
-      query = query.lte('review_date', dateTo);
+      query = query.lte("review_date", dateTo);
     }
-    
+
     // Server-side search filtering with secure implementation
     if (searchQuery) {
       try {
         // Use the secure search filter utility that validates and escapes input
-        query = applySafeSearchFilter(query, searchQuery, ['review_text', 'comment', 'reviewer_name']);
+        query = applySafeSearchFilter(query, searchQuery, [
+          "review_text",
+          "comment",
+          "reviewer_name",
+        ]);
       } catch (error) {
         // If search validation fails, log and continue without search filter
-        console.warn('Invalid search input detected:', error);
+        console.warn("Invalid search input detected:", error);
         // Continue without applying search to prevent breaking the query
       }
     }
 
     // Order by review date (newest first)
-    query = query.order('review_date', { ascending: false, nullsFirst: false });
-    
+    query = query.order("review_date", { ascending: false, nullsFirst: false });
+
     // Apply pagination with range
     query = query.range(offset, offset + validPageSize - 1);
 
     const { data: reviews, error, count } = await query;
 
     if (error) {
-      console.error('Supabase query error:', error);
-      console.error('Full error object:', JSON.stringify(error, null, 2));
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-      
-      return NextResponse.json({ 
-        error: 'Failed to fetch reviews',
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      }, { status: 500 });
+      console.error("Supabase query error:", error);
+      console.error("Full error object:", JSON.stringify(error, null, 2));
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      console.error("Error details:", error.details);
+      console.error("Error hint:", error.hint);
+
+      return NextResponse.json(
+        {
+          error: "Failed to fetch reviews",
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        },
+        { status: 500 },
+      );
     }
 
     const totalCount = count || 0;
@@ -150,7 +158,9 @@ export async function GET(request: NextRequest) {
     const hasNextPage = validPage < totalPages;
     const hasPreviousPage = validPage > 1;
 
-    console.log(`Found ${reviews?.length || 0} reviews (page ${validPage} of ${totalPages}, total: ${totalCount})`);
+    console.log(
+      `Found ${reviews?.length || 0} reviews (page ${validPage} of ${totalPages}, total: ${totalCount})`,
+    );
 
     // Transform data properly - handle both 'comment' and 'review_text' fields
     const transformedReviews = (reviews || []).map((r: any) => {
@@ -161,20 +171,20 @@ export async function GET(request: NextRequest) {
       } else if (r.gmb_locations) {
         location = r.gmb_locations;
       }
-      
+
       // Extract location name - use location_name (the actual column name)
-      const locationName = location?.location_name || 'Unknown Location';
-      
+      const locationName = location?.location_name || "Unknown Location";
+
       // Get review text - prefer 'comment' field, fallback to 'review_text'
-      const reviewText = (r.comment || r.review_text || '').trim();
-      
+      const reviewText = (r.comment || r.review_text || "").trim();
+
       // Get reply text from any of the possible fields
-      const replyText = r.reply_text || r.review_reply || r.response_text || '';
-      
+      const replyText = r.reply_text || r.review_reply || r.response_text || "";
+
       return {
         id: r.id,
         review_id: r.review_id,
-        reviewer_name: r.reviewer_name || 'Anonymous',
+        reviewer_name: r.reviewer_name || "Anonymous",
         rating: r.rating || 0,
         comment: reviewText,
         review_text: reviewText,
@@ -191,7 +201,7 @@ export async function GET(request: NextRequest) {
         gmb_account_id: r.gmb_account_id,
         status: r.status,
         updated_at: r.updated_at,
-        location_name: locationName
+        location_name: locationName,
       };
     });
 
@@ -206,14 +216,14 @@ export async function GET(request: NextRequest) {
       };
 
       const headerRow = [
-        'Review ID',
-        'Reviewer',
-        'Rating',
-        'Comment',
-        'Status',
-        'Location',
-        'Review Date',
-        'Reply',
+        "Review ID",
+        "Reviewer",
+        "Rating",
+        "Comment",
+        "Status",
+        "Location",
+        "Review Date",
+        "Reply",
       ];
 
       const csvRows = transformedReviews.map((review) => [
@@ -221,23 +231,25 @@ export async function GET(request: NextRequest) {
         escapeCsv(review.reviewer_name),
         escapeCsv(review.rating),
         escapeCsv(review.comment),
-        escapeCsv(review.status ?? 'pending'),
+        escapeCsv(review.status ?? "pending"),
         escapeCsv(review.location_name),
-        escapeCsv(review.review_date ?? ''),
-        escapeCsv(review.reply_text ?? ''),
+        escapeCsv(review.review_date ?? ""),
+        escapeCsv(review.reply_text ?? ""),
       ]);
 
-      const csvContent = [headerRow, ...csvRows].map((row) => row.join(',')).join('\n');
+      const csvContent = [headerRow, ...csvRows]
+        .map((row) => row.join(","))
+        .join("\n");
 
       return new NextResponse(csvContent, {
         headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="reviews-export.csv"',
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="reviews-export.csv"',
         },
       });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       reviews: transformedReviews,
       pagination: {
         total: totalCount,
@@ -248,14 +260,16 @@ export async function GET(request: NextRequest) {
         hasPreviousPage,
       },
     });
-
   } catch (error: any) {
-    console.error('API route error:', error);
-    console.error('Error stack:', error.stack);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, { status: 500 });
+    console.error("API route error:", error);
+    console.error("Error stack:", error.stack);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

@@ -61,8 +61,8 @@ export default async function HomePage({
   await initializeUserProgress();
 
   // Fetch user profile and achievements
-  const [{ data: profile }, userProgress, userAchievements] = await Promise.all(
-    [
+  const [{ data: profile }, _userProgress, _userAchievements] =
+    await Promise.all([
       supabase
         .from("profiles")
         .select("full_name, email, avatar_url")
@@ -70,8 +70,7 @@ export default async function HomePage({
         .maybeSingle(),
       getUserProgress(),
       getUserAchievements("all"),
-    ],
-  );
+    ]);
 
   // ⚡ OPTIMIZED: Using materialized view for cached stats (15+ queries → 5 queries)
   const [
@@ -218,7 +217,7 @@ export default async function HomePage({
   const youtubeStats = youtubeToken?.metadata as unknown as {
     statistics?: { subscriberCount?: string | number };
   } | null;
-  const youtubeSubs = youtubeStats?.statistics?.subscriberCount
+  const _youtubeSubs = youtubeStats?.statistics?.subscriberCount
     ? Number(youtubeStats.statistics.subscriberCount)
     : 0;
   const hasYouTube = !!youtubeToken;
@@ -232,7 +231,7 @@ export default async function HomePage({
 
   // Calculate trend data for last 7 days (for sparkline charts)
   // ⚡ OPTIMIZED: Only fetch if user has reviews (conditional query)
-  let reviewsTrend: number[] = [0, 0, 0, 0, 0, 0, 0];
+  let _reviewsTrend: number[] = [0, 0, 0, 0, 0, 0, 0];
 
   if (reviewsCount > 0) {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -251,7 +250,7 @@ export default async function HomePage({
       .order("review_date", { ascending: true });
 
     // Group reviews by day in JavaScript (much faster than 7 DB queries)
-    reviewsTrend = last7Days.map((date) => {
+    _reviewsTrend = last7Days.map((date) => {
       const dateStr = date.toDateString();
       return (
         reviewsForTrend?.filter(
