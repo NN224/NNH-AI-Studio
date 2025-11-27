@@ -5,30 +5,29 @@
 ### الإحصائيات الكاملة:
 
 ```
-الجداول:        34 جدول (verified in production Nov 25, 2025)
-الأعمدة:         600 عمود (verified in production)
+الجداول:        40 جدول (verified in production Nov 27, 2025)
+الأعمدة:         671 عمود (verified in production)
 Views:          7 views (cleaned up old views)
 Materialized:   2 materialized views (mv_user_dashboard_stats, mv_location_stats)
 Functions:      108 functions (including get_user_dashboard_stats, refresh_dashboard_stats_view)
-Indexes:        297 indexes (optimized for performance)
-Triggers:       19 triggers (cleaned up duplicates)
-Policies:       97 RLS policies (cleaned up 11 duplicates)
+Indexes:        303 indexes (optimized for performance)
+Triggers:       24 triggers (added 5 new update triggers)
+Policies:       112 RLS policies (added 15 new policies)
 Extensions:     10 extensions
-Migrations:     94 migration files (cleaned up 5 duplicates Nov 2025)
+Migrations:     95 migration files (added critical schema fix Nov 27, 2025)
 ```
 
 ### 📝 آخر تحديث:
 
-- **التاريخ:** نوفمبر 25, 2025
+- **التاريخ:** نوفمبر 27, 2025
 - **الإجراءات:**
-  - ✅ تنظيف ملفات المايقريشن (حذف 5 ملفات مكررة: 99 → 94)
-  - ✅ إزالة RLS policies المكررة (108 → 97)
-  - ✅ إزالة Triggers المكررة (23 → 19)
-  - ✅ تنظيف Views القديمة (11 → 7)
-  - ✅ إضافة oauth_tokens table
-  - ✅ إضافة mv_user_dashboard_stats (materialized view)
-  - ✅ مزامنة كاملة مع Production (verified 100%)
-  - ✅ تحديث الإحصائيات من Production الفعلي
+  - ✅ إضافة 6 جداول مفقودة (teams, team_members, team_invitations, brand_profiles, autopilot_logs, question_templates)
+  - ✅ إصلاح أخطاء الأعمدة في onboarding.ts و questions-management.ts
+  - ✅ إضافة 15 RLS policies جديدة
+  - ✅ إضافة 5 update triggers جديدة
+  - ✅ إضافة 6 partial unique indexes
+  - ✅ زيادة الأعمدة من 600 → 671 (+71 عمود)
+  - ✅ زيادة الجداول من 34 → 40 (+6 جداول)
 
 ---
 
@@ -239,6 +238,55 @@ Migrations:     94 migration files (cleaned up 5 duplicates Nov 2025)
 - `response_delay_minutes` (integer)
 - `require_approval` (boolean)
 
+#### `brand_profiles` (15 columns) - NEW ✨
+
+**الاستخدام:** Brand voice and guidelines for AI content generation
+
+- **Indexes:** 3
+- **RLS Policies:** 4 (view, create, update, delete)
+- **Partial Unique Index:** Only one active profile per user
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `user_id` (uuid, FK → auth.users)
+- `brand_name` (varchar) - Business/brand name
+- `industry` (varchar) - Industry category
+- `target_audience` (text) - Target demographic
+- `voice` (varchar) - professional/casual/formal
+- `tone_guidelines` (text) - Brand tone instructions
+- `writing_style` (text) - Writing style preferences
+- `keywords` (text[]) - Preferred keywords
+- `avoid_words` (text[]) - Words to avoid
+- `creativity_level` (integer) - 1-10 scale
+- `formality_level` (integer) - 1-10 scale
+- `example_posts` (text[]) - Sample brand posts
+- `example_responses` (text[]) - Sample brand responses
+- `is_active` (boolean) - Active profile flag
+
+#### `question_templates` (13 columns) - NEW ✨
+
+**الاستخدام:** Templates for answering common questions
+
+- **Indexes:** 4
+- **RLS Policies:** 4 (view, create, update, delete)
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `user_id` (uuid, FK → auth.users)
+- `title` (varchar) - Template name
+- `question_pattern` (text) - Question matching pattern
+- `answer_template` (text) - Answer template text
+- `category` (varchar) - Template category
+- `tags` (text[]) - Searchable tags
+- `use_ai_enhancement` (boolean) - Enable AI enhancement
+- `tone` (varchar) - professional/friendly/etc
+- `times_used` (integer) - Usage counter
+- `last_used_at` (timestamptz) - Last usage timestamp
+- `is_active` (boolean) - Active template flag
+- `priority` (integer) - Display priority
+
 ---
 
 ### 4. System & Logging Tables
@@ -273,6 +321,31 @@ Migrations:     94 migration files (cleaned up 5 duplicates Nov 2025)
 
 **الاستخدام:** طابور المزامنة
 
+#### `autopilot_logs` (14 columns) - NEW ✨
+
+**الاستخدام:** Audit log for all automated AI actions
+
+- **Indexes:** 6
+- **RLS Policies:** 2 (view own logs, system insert)
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `user_id` (uuid, FK → auth.users)
+- `action_type` (varchar) - review_reply/question_answer/post_generation
+- `entity_type` (varchar) - review/question/post
+- `entity_id` (uuid) - Reference to the entity
+- `ai_provider` (varchar) - anthropic/openai/google/groq/deepseek
+- `ai_model` (varchar) - Model name used
+- `prompt_text` (text) - AI prompt sent
+- `response_text` (text) - AI response received
+- `confidence_score` (decimal) - 0.00-1.00 confidence
+- `tokens_used` (integer) - Total tokens consumed
+- `cost_usd` (decimal) - Cost in USD
+- `status` (varchar) - success/error/pending
+- `error_message` (text) - Error details if failed
+- `processing_time_ms` (integer) - Processing duration
+
 ---
 
 ### 5. User & Auth Tables
@@ -288,6 +361,73 @@ Migrations:     94 migration files (cleaned up 5 duplicates Nov 2025)
 **الاستخدام:** OAuth flow temporary state
 
 - **Indexes:** 6
+
+#### `teams` (10 columns) - NEW ✨
+
+**الاستخدام:** Teams/organizations for multi-user workspaces
+
+- **Indexes:** 2
+- **RLS Policies:** 4 (view, update, delete, insert)
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `name` (varchar) - Team name
+- `slug` (varchar, unique) - URL-friendly identifier
+- `owner_id` (uuid, FK → auth.users) - Team owner
+- `plan` (varchar) - free/pro/enterprise
+- `max_members` (integer) - Maximum team size
+- `logo_url` (text) - Team logo
+- `website` (text) - Team website
+- `description` (text) - Team description
+
+#### `team_members` (8 columns) - NEW ✨
+
+**الاستخدام:** Team membership and role-based access control (RBAC)
+
+- **Indexes:** 3
+- **RLS Policies:** 4 (view, insert, update, delete)
+- **Unique Constraint:** (team_id, user_id)
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `team_id` (uuid, FK → teams)
+- `user_id` (uuid, FK → auth.users)
+- `role` (varchar) - owner/admin/member
+- `permissions` (jsonb) - Granular permissions
+  ```json
+  {
+    "reviews": {"read": true, "write": false, "delete": false},
+    "questions": {"read": true, "write": false, "delete": false},
+    "posts": {"read": true, "write": false, "delete": false},
+    "locations": {"read": true, "write": false, "delete": false},
+    "settings": {"read": false, "write": false, "delete": false}
+  }
+  ```
+- `status` (varchar) - active/inactive/suspended
+- `joined_at` (timestamptz) - Membership start date
+
+#### `team_invitations` (11 columns) - NEW ✨
+
+**الاستخدام:** Pending invitations for users to join teams
+
+- **Indexes:** 4
+- **RLS Policies:** 3 (view, insert, update)
+- **Unique Constraint:** (team_id, email, status)
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `team_id` (uuid, FK → teams)
+- `email` (varchar) - Invitee email
+- `invited_by` (uuid, FK → auth.users) - Inviter
+- `role` (varchar) - Role to assign
+- `token` (varchar, unique) - Invitation token
+- `expires_at` (timestamptz) - Expiration date
+- `status` (varchar) - pending/accepted/expired/cancelled
+- `accepted_at` (timestamptz) - Acceptance date
+- `accepted_by` (uuid, FK → auth.users) - Who accepted
 
 ---
 
