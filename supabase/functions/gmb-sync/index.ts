@@ -1,29 +1,34 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /**
  * ============================================================================
- * GMB Sync Edge Function (FINAL VERSION)
+ * GMB Sync Edge Function (PRODUCTION VERSION)
  * ============================================================================
  *
  * PURPOSE:
- * Syncs GMB data for a single account by calling the Next.js API.
+ * Enqueues GMB sync jobs to PGMQ queue and returns immediately.
+ * Does NOT wait for sync to complete - prevents 504 timeouts.
  *
- * INTERNAL CALLS (from worker):
- *   - Must include:  X-Internal-Run: <TRIGGER_SECRET>
- *   - No user JWT required
- *
- * EXTERNAL CALLS (from browser / dashboard):
- *   - Must include: Authorization: Bearer <JWT>
- *
- * This function proxies all sync operations to:
- *   NEXT_PUBLIC_APP_URL/api/gmb/sync-v2
+ * FLOW:
+ * 1. Validate request (user auth or internal secret)
+ * 2. Enqueue job to PGMQ
+ * 3. Return 200 OK with job_id immediately
+ * 4. Worker processes the job asynchronously
  *
  * ============================================================================
  */
 
+// Get environment variables
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const APP_URL =
+  Deno.env.get("NEXT_PUBLIC_APP_URL") || Deno.env.get("APP_URL") || "*";
+
+// Dynamic CORS based on environment
 const corsHeaders = {
   "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "https://www.nnh.ae",
+  "Access-Control-Allow-Origin": APP_URL,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Internal-Run",
   "Access-Control-Max-Age": "86400",
@@ -48,21 +53,12 @@ Deno.serve(async (req) => {
 
   try {
     // ---------------------------------------------------------------------
-    // INTERNAL AUTH
+    // AUTHENTICATION
     // ---------------------------------------------------------------------
-    const TRIGGER = Deno.env.get("TRIGGER_SECRET");
-    const providedSecret =
-      req.headers.get("X-Internal-Run") ||
-      req.headers.get("X-Trigger-Secret") ||
-      req.headers.get("X-Internal-Worker") ||
-      "";
+    const authHeader = req.headers.get("Authorization");
 
-    const isInternal = TRIGGER && providedSecret === TRIGGER;
-
-    const hasUserAuth = req.headers.get("Authorization");
-
-    if (!isInternal && !hasUserAuth) {
-      console.error("[GMB Sync] Unauthorized: Missing authentication");
+    if (!authHeader) {
+      console.error("[GMB Sync] Unauthorized: Missing Authorization header");
       return new Response(
         JSON.stringify({
           ok: false,
@@ -73,16 +69,45 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Create Supabase client with user's JWT
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Verify user authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error("[GMB Sync] Auth verification failed:", authError);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "unauthorized",
+          message: "Invalid authentication",
+        }),
+        { status: 401, headers: corsHeaders },
+      );
+    }
+
     // ---------------------------------------------------------------------
     // Parse request body
     // ---------------------------------------------------------------------
-    let accountId;
-    let syncType = "incremental";
+    let accountId: string;
+    let syncType = "full";
+    let priority = 0;
 
     try {
       const body = await req.json();
       accountId = body.accountId || body.account_id;
-      syncType = body.syncType || body.sync_type || "incremental";
+      syncType = body.syncType || body.sync_type || "full";
+      priority = body.priority || 0;
     } catch (error) {
       return new Response(
         JSON.stringify({
@@ -106,125 +131,57 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[GMB Sync] Starting sync for account ${accountId} (${syncType})`,
+      `[GMB Sync] Enqueuing sync job for account ${accountId} (${syncType}) by user ${user.id}`,
     );
 
     // ---------------------------------------------------------------------
-    // CALL NEXT.JS APP (sync-v2)
+    // ENQUEUE JOB TO PGMQ (NO WAITING)
     // ---------------------------------------------------------------------
-    const APP_URL =
-      Deno.env.get("NEXT_PUBLIC_APP_URL") ||
-      Deno.env.get("NEXT_PUBLIC_BASE_URL") ||
-      Deno.env.get("APP_URL") ||
-      Deno.env.get("FRONTEND_URL") ||
-      "https://www.nnh.ae";
+    // Use service role client for database operations
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const apiUrl = `${APP_URL}/api/gmb/sync-v2`;
-    console.log(`[GMB Sync] Calling ${apiUrl}`);
-
-    // For internal calls, we need to create a service role JWT
-    let authHeader = hasUserAuth;
-
-    if (isInternal) {
-      // Get Supabase service role key
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get(
-        "SUPABASE_SERVICE_ROLE_KEY",
-      );
-      if (SUPABASE_SERVICE_ROLE_KEY) {
-        authHeader = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
-      }
-    }
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(isInternal
-          ? {
-              "X-Internal-Run": TRIGGER,
-              Authorization: authHeader || "",
-            }
-          : { Authorization: hasUserAuth }),
+    // Call the enqueue_sync_job function
+    const { data: jobId, error: enqueueError } = await serviceClient.rpc(
+      "enqueue_sync_job",
+      {
+        p_account_id: accountId,
+        p_user_id: user.id,
+        p_sync_type: syncType,
+        p_priority: priority,
       },
-      body: JSON.stringify({
-        accountId,
-        includeQuestions: syncType === "full",
-      }),
-    });
+    );
 
-    const tookMs = Date.now() - startTime;
-
-    // ---------------------------------------------------------------------
-    // Handle errors from Next.js
-    // ---------------------------------------------------------------------
-    if (!response.ok) {
-      let errorText = "Unknown error";
-      let errorJson = null;
-
-      try {
-        errorJson = await response.json();
-        errorText = errorJson.error || errorJson.message || errorText;
-      } catch {
-        try {
-          errorText = await response.text();
-        } catch {
-          errorText = `HTTP ${response.status}`;
-        }
-      }
-
-      const errorType = errorJson?.error || "api_error";
-
-      console.error(`[GMB Sync] API error (${response.status}):`, errorText);
-
-      // auth / token issues
-      if (
-        response.status === 401 ||
-        errorType.includes("token") ||
-        errorType.includes("auth")
-      ) {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: "account_not_found",
-            message: errorText,
-            mode: "internal",
-            accountId,
-            syncType,
-            took_ms: tookMs,
-          }),
-          { status: response.status, headers: corsHeaders },
-        );
-      }
-
-      // Google locations / API errors
+    if (enqueueError) {
+      console.error("[GMB Sync] Failed to enqueue job:", enqueueError);
       return new Response(
         JSON.stringify({
           ok: false,
-          error: "locations_api_error",
-          message: errorText,
-          mode: "internal",
-          accountId,
-          syncType,
-          took_ms: tookMs,
+          error: "enqueue_failed",
+          message: enqueueError.message || "Failed to enqueue sync job",
         }),
-        { status: response.status, headers: corsHeaders },
+        { status: 500, headers: corsHeaders },
       );
     }
 
-    // ---------------------------------------------------------------------
-    // Success
-    // ---------------------------------------------------------------------
-    const result = await response.json();
+    const tookMs = Date.now() - startTime;
 
-    console.log(`[GMB Sync] Success for account ${accountId} in ${tookMs}ms`);
+    console.log(
+      `[GMB Sync] Job enqueued successfully: ${jobId} in ${tookMs}ms`,
+    );
 
+    // ---------------------------------------------------------------------
+    // Return immediately with job ID
+    // ---------------------------------------------------------------------
     return new Response(
       JSON.stringify({
         ok: true,
-        ...result,
-        mode: "internal",
-        accountId,
-        syncType,
+        status: "queued",
+        job_id: jobId,
+        account_id: accountId,
+        sync_type: syncType,
+        priority,
+        message:
+          "Sync job queued successfully. Worker will process it shortly.",
         took_ms: tookMs,
       }),
       { status: 200, headers: corsHeaders },
