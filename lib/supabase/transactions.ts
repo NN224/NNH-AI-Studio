@@ -1,7 +1,5 @@
 import type {
   LocationData,
-  MediaData,
-  PostData,
   QuestionData,
   ReviewData,
 } from "@/lib/gmb/sync-types";
@@ -13,8 +11,13 @@ export interface SyncTransactionPayload {
   locations: LocationData[];
   reviews: ReviewData[];
   questions: QuestionData[];
-  posts?: PostData[];
-  media?: MediaData[];
+  // Note: We intentionally keep these payloads untyped here because this module
+  // only forwards them to the database RPC. The exact shape is defined and
+  // validated within the SQL function `sync_gmb_data_transactional`.
+  // This allows server/actions to evolve post/media shapes without breaking
+  // this transport layer.
+  posts?: unknown[];
+  media?: unknown[];
   insights?: InsightsData[];
 }
 
