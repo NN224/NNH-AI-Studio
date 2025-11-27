@@ -451,7 +451,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // Use UPSERT to insert or update the account
+      // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
       console.warn(`[OAuth Callback] Upserting GMB account ${accountId}`);
 
       const upsertData = {
@@ -459,12 +459,9 @@ export async function GET(request: NextRequest) {
         account_id: accountId,
         account_name: accountName,
         email: userInfo.email,
-        // google_account_id is optional - not setting it as it's nullable in DB
-        access_token: encryptedAccessToken,
-        refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
-        last_sync: new Date().toISOString(),
+        last_synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -482,11 +479,7 @@ export async function GET(request: NextRequest) {
           code: upsertError.code,
           details: upsertError.details,
           hint: upsertError.hint,
-          upsertData: {
-            ...upsertData,
-            access_token: "[REDACTED]",
-            refresh_token: "[REDACTED]",
-          },
+          upsertData,
         });
         handleApiError(
           upsertError,
@@ -503,7 +496,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // Then fetch the account to get its ID
+      // Fetch the account to get its UUID
       const { data: upsertedAccount, error: fetchError } = await adminClient
         .from("gmb_accounts")
         .select("id")
@@ -511,22 +504,43 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (fetchError || !upsertedAccount) {
-        handleApiError(
-          fetchError ||
-            new Error("[OAuth Callback] Failed to fetch account after upsert"),
-          "[OAuth Callback] Failed to retrieve GMB account",
+        console.error(
+          "[OAuth Callback] Failed to fetch account after upsert:",
+          fetchError,
         );
-
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
           `/${localeCookie}/settings`,
           {
-            error:
-              "Failed to save Google My Business account. Please try again.",
+            error: "Failed to retrieve account after save",
             error_code: "gmb_account_fetch_failed",
           },
         );
         return NextResponse.redirect(redirectUrl);
+      }
+
+      // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
+      console.warn(
+        `[OAuth Callback] Storing tokens in gmb_secrets for account ${upsertedAccount.id}`,
+      );
+      const { error: secretsError } = await adminClient
+        .from("gmb_secrets")
+        .upsert(
+          {
+            account_id: upsertedAccount.id,
+            access_token: encryptedAccessToken,
+            refresh_token: encryptedRefreshToken,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "account_id",
+            ignoreDuplicates: false,
+          },
+        );
+
+      if (secretsError) {
+        console.error("[OAuth Callback] Failed to store tokens:", secretsError);
+        // Continue anyway - account is saved, user can re-authenticate if needed
       }
 
       savedAccountId = upsertedAccount.id;
