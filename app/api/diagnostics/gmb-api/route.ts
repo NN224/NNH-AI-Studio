@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
 import { GMB_CONSTANTS, buildLocationResourceName } from "@/lib/gmb/helpers";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * GMB API Connectivity Test
@@ -74,7 +74,7 @@ export async function GET() {
     // Get a test location for location-specific tests
     const { data: location } = await supabase
       .from("gmb_locations")
-      .select("id, location_id, account_id")
+      .select("id, location_id, gmb_account_id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1)
@@ -143,9 +143,9 @@ export async function GET() {
     }
 
     // Only test location-specific endpoints if we have a location
-    if (location && location.location_id && location.account_id) {
+    if (location && location.location_id && location.gmb_account_id) {
       const locationName = buildLocationResourceName(
-        location.account_id,
+        location.gmb_account_id,
         location.location_id,
       );
 
