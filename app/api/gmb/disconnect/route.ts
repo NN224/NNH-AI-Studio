@@ -81,12 +81,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Also clean up sync_status
+      // Also clean up sync_status (mark running syncs as completed)
       await supabase
         .from("sync_status")
         .update({
-          status: "idle",
-          finished_at: new Date().toISOString(),
+          status: "completed",
+          message: "Cancelled - account disconnected",
+          updated_at: new Date().toISOString(),
         })
         .eq("account_id", accountId)
         .eq("status", "running");
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
         .from("gmb_accounts")
         .update({
           is_active: false,
-          disconnected_at: new Date().toISOString(),
+          last_error: "Account disconnected by user",
           updated_at: new Date().toISOString(),
         })
         .eq("id", accountId)
@@ -167,12 +168,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Also clean up sync_status for all user's accounts
+    // Also clean up sync_status for all user's accounts (mark running syncs as completed)
     await supabase
       .from("sync_status")
       .update({
-        status: "idle",
-        finished_at: new Date().toISOString(),
+        status: "completed",
+        message: "Cancelled - all accounts disconnected",
+        updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
       .eq("status", "running");
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
       .from("gmb_accounts")
       .update({
         is_active: false,
-        disconnected_at: new Date().toISOString(),
+        last_error: "Account disconnected by user",
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id);

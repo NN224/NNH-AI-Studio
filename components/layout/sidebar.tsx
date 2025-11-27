@@ -53,6 +53,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       icon: LayoutDashboard,
     },
     {
+      name: "AI Command Center",
+      href: "/dashboard",
+      icon: Sparkles,
+    },
+    {
       name: "Locations",
       href: "/locations",
       icon: MapPin,

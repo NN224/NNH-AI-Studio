@@ -263,7 +263,7 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
             message: STAGE_MESSAGES.locations,
           }));
           setIsBannerVisible(true);
-        } else if (status === "success") {
+        } else if (status === "completed") {
           setState((prev) => ({
             ...prev,
             status: "completed",
