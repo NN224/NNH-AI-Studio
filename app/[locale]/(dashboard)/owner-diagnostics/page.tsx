@@ -35,6 +35,7 @@ export default function OwnerDiagnosticsPage() {
     apiHealth: null,
     integrity: null,
     dataSyncCheck: null,
+    syncDebug: null,
   });
   const [loading, setLoading] = useState<Record<string, boolean>>({
     oauth: false,
@@ -51,6 +52,7 @@ export default function OwnerDiagnosticsPage() {
     apiHealth: false,
     integrity: false,
     dataSyncCheck: false,
+    syncDebug: false,
   });
 
   const runTest = async (testKey: string, endpoint: string) => {
@@ -193,13 +195,12 @@ export default function OwnerDiagnosticsPage() {
       category: "system",
     },
     {
-      key: "dataSyncCheck",
-      label: "Data Sync Check",
-      title: "Database-Website Sync Check",
-      description:
-        "Check for inconsistencies between database and website data",
-      endpoint: "/api/diagnostics/data-sync-check",
-      category: "database",
+      key: "syncDebug",
+      label: "Sync Debug",
+      title: "Sync Process Debug Info",
+      description: "Debug information for sync process and user data",
+      endpoint: "/api/diagnostics/sync-debug",
+      category: "sync",
     },
   ];
 
@@ -217,7 +218,7 @@ export default function OwnerDiagnosticsPage() {
             🔐 GMB & OAuth (2)
           </span>
           <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-            🔄 Sync & Data (4)
+            🔄 Sync & Data (5)
           </span>
           <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
             🤖 AI (1)
