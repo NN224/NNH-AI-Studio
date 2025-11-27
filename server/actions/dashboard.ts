@@ -221,15 +221,20 @@ export async function getCachedDashboardData(userId: string) {
       .limit(5);
 
     // Transform for UI
-    const formattedRecentReviews =
-      recentReviews?.map((r) => ({
+    const formattedRecentReviews = (recentReviews || []).map((r: any) => {
+      // Supabase join can return an object or an array depending on relation typing
+      const loc = Array.isArray(r.gmb_locations)
+        ? r.gmb_locations[0]
+        : r.gmb_locations;
+      return {
         review_id: r.review_id,
         comment: r.review_text, // Map to UI expectation
         star_rating: r.rating,
         create_time: r.review_date,
         reviewer_name: r.reviewer_name,
-        location_name: r.gmb_locations?.location_name,
-      })) || [];
+        location_name: loc?.location_name ?? null,
+      };
+    });
 
     // 3. Calculate Response Rate & Rating
     const responseRate =
