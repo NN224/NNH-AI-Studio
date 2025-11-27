@@ -574,9 +574,7 @@ export async function GET(request: NextRequest) {
                 }`
               : null,
             phone: location.phoneNumbers?.primaryPhone || null,
-            categories: location.categories
-              ? { primary: location.categories.primaryCategory }
-              : null,
+            category: location.categories?.primaryCategory?.displayName || null,
             website: location.websiteUri || null,
             is_active: true,
             metadata: location,
