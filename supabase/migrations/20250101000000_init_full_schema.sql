@@ -459,6 +459,7 @@ CREATE POLICY "Service role has full access to sync_status" ON sync_status
 COMMENT ON TABLE sync_status IS 'Real-time sync progress tracking';
 
 -- Sync Worker Runs
+-- CRITICAL: This table tracks worker invocations. The TS code MUST match these columns exactly.
 CREATE TABLE sync_worker_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed')),
@@ -468,8 +469,9 @@ CREATE TABLE sync_worker_runs (
   notes TEXT,
   metadata JSONB DEFAULT '{}'::JSONB,
   started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,  -- ✅ CORRECT: TS code uses completed_at (NOT finished_at)
   created_at TIMESTAMPTZ DEFAULT NOW()
+  -- ❌ NO jobs_processed column - TS code must NOT try to update this
 );
 
 CREATE INDEX idx_sync_worker_runs_status ON sync_worker_runs(status);

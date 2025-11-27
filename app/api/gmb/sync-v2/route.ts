@@ -43,11 +43,13 @@ export async function POST(request: Request) {
         );
       }
 
+      // performTransactionalSync(accountId, includeQuestions, includePosts, includeMedia, includeInsights, isInternalCall)
       const result = await performTransactionalSync(
         internalAccountId,
         internalIncludeQuestions,
-        false, // includePosts
-        false, // includeMedia
+        body.includePosts ?? false,
+        body.includeMedia ?? false,
+        body.includeInsights ?? true,
         true, // isInternalCall
       );
 

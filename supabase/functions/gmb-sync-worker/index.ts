@@ -3,7 +3,22 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 /**
  * ============================================================================
- * GMB Sync Worker (FIXED PRODUCTION VERSION)
+ * GMB Sync Worker - PRODUCTION VERSION
+ * ============================================================================
+ *
+ * SCHEMA CONTRACT (sync_worker_runs table):
+ * - id: UUID (PK)
+ * - status: 'pending' | 'running' | 'completed' | 'failed'
+ * - jobs_picked: INTEGER
+ * - jobs_succeeded: INTEGER
+ * - jobs_failed: INTEGER
+ * - notes: TEXT
+ * - metadata: JSONB
+ * - started_at: TIMESTAMPTZ
+ * - completed_at: TIMESTAMPTZ  <-- NOT finished_at
+ * - created_at: TIMESTAMPTZ
+ *
+ * ⚠️ NO jobs_processed column exists in DB - do not try to update it
  * ============================================================================
  */
 
@@ -23,27 +38,18 @@ const corsHeaders = {
 // ============================================================================
 
 const CONFIG = {
-  // Worker timeouts
-  WORKER_TIMEOUT_MS: 55000, // Total worker execution time (55s)
-  JOB_TIMEOUT_MS: 45000, // Max time per job (45s)
-  TIMEOUT_MARGIN_MS: 5000, // Stop processing 5s before worker timeout
-
-  // Job processing
-  MAX_JOBS_PER_RUN: 10, // Max jobs to process per worker invocation
-
-  // Retry configuration
+  WORKER_TIMEOUT_MS: 55000,
+  JOB_TIMEOUT_MS: 45000,
+  TIMEOUT_MARGIN_MS: 5000,
+  MAX_JOBS_PER_RUN: 10,
   DEFAULT_MAX_ATTEMPTS: 3,
-  RETRY_DELAY_BASE_MS: 60000, // 1 minute base delay for retries
-
-  // Stale job detection
-  STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000, // 10 minutes
-
-  // Circuit breaker
-  CIRCUIT_BREAKER_THRESHOLD: 5, // Stop after N consecutive failures
+  RETRY_DELAY_BASE_MS: 60000,
+  STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000,
+  CIRCUIT_BREAKER_THRESHOLD: 5,
 };
 
 // ============================================================================
-// Types
+// Types - Matched to DB Schema
 // ============================================================================
 
 interface SyncJob {
@@ -64,10 +70,10 @@ interface JobResult {
   duration_ms: number;
 }
 
+/** Internal stats - jobs_processed is for internal tracking only, NOT saved to DB */
 interface WorkerRunStats {
   run_id: string;
   jobs_picked: number;
-  jobs_processed: number; // Internal use only
   jobs_succeeded: number;
   jobs_failed: number;
   results: JobResult[];
@@ -128,30 +134,35 @@ async function createWorkerRun(admin: SupabaseClient): Promise<string> {
 
 /**
  * Update worker run with final stats
- * ✅ FIXED: Matched column names with database schema
+ *
+ * DB COLUMNS (sync_worker_runs):
+ * - completed_at (NOT finished_at)
+ * - jobs_picked, jobs_succeeded, jobs_failed
+ * - NO jobs_processed column
  */
 async function updateWorkerRun(
   admin: SupabaseClient,
   run_id: string,
   stats: Partial<WorkerRunStats> & { status: string; notes?: string },
-) {
+): Promise<void> {
+  const updatePayload = {
+    completed_at: new Date().toISOString(),
+    status: stats.status,
+    jobs_picked: stats.jobs_picked ?? 0,
+    jobs_succeeded: stats.jobs_succeeded ?? 0,
+    jobs_failed: stats.jobs_failed ?? 0,
+    notes: stats.notes ?? null,
+    metadata: stats.results ? { results: stats.results } : {},
+  };
+
   const { error } = await admin
     .from("sync_worker_runs")
-    .update({
-      completed_at: new Date().toISOString(), // ✅ FIXED: Changed finished_at to completed_at
-      status: stats.status,
-      jobs_picked: stats.jobs_picked ?? 0,
-      // ❌ REMOVED: jobs_processed (does not exist in DB)
-      jobs_succeeded: stats.jobs_succeeded ?? 0,
-      jobs_failed: stats.jobs_failed ?? 0,
-      notes: stats.notes,
-      metadata: stats.results ? { results: stats.results } : null,
-    })
+    .update(updatePayload)
     .eq("id", run_id);
 
   if (error) {
     console.error(
-      `Failed to update worker run ${run_id}:`,
+      `[Worker] Failed to update run ${run_id}:`,
       getErrorMessage(error),
     );
   }
@@ -383,7 +394,6 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
   const stats: WorkerRunStats = {
     run_id,
     jobs_picked: 0,
-    jobs_processed: 0,
     jobs_succeeded: 0,
     jobs_failed: 0,
     results: [],
@@ -440,7 +450,6 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
 
       const result = await processJob(job, SUPABASE_URL, TRIGGER_SECRET);
       stats.results.push(result);
-      stats.jobs_processed++;
 
       if (result.success) {
         stats.jobs_succeeded++;
@@ -466,10 +475,11 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       await resetJobsToPending(admin, unprocessedJobIds);
     }
 
+    const jobsProcessed = stats.results.length;
     const notes =
       unprocessedJobIds.length > 0
-        ? `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs (${unprocessedJobIds.length} reset)`
-        : `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs`;
+        ? `Processed ${jobsProcessed}/${stats.jobs_picked} jobs (${unprocessedJobIds.length} reset)`
+        : `Processed ${jobsProcessed}/${stats.jobs_picked} jobs`;
 
     await updateWorkerRun(admin, run_id, {
       ...stats,
