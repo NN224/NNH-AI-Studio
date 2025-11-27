@@ -3,8 +3,22 @@
 -- =====================================================
 -- Description: Dummy data for testing GMB sync locally
 -- Usage: Run after migrations to populate test data
+-- Note: This seed file is OPTIONAL - run manually if needed
 -- =====================================================
 
+-- Skip seed data by default since test users don't exist in auth.users
+-- To use this seed file:
+-- 1. First create test users via Supabase Auth UI or API
+-- 2. Then run: psql -f supabase/seed.sql
+
+DO $$
+BEGIN
+  RAISE NOTICE 'Seed file loaded. No data inserted - create test users first.';
+END $$;
+
+-- Uncomment below after creating test users in auth.users:
+
+/*
 BEGIN;
 
 -- =====================================================
@@ -613,3 +627,5 @@ FROM sync_queue;
 -- =====================================================
 
 SELECT 'Seed data created successfully! Ready for local testing.' AS result;
+
+*/

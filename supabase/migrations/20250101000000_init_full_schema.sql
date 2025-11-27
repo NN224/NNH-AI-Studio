@@ -6,7 +6,8 @@
 -- Version: 1.0.0
 -- =====================================================
 
-BEGIN;
+-- Note: Supabase migrations run in public schema by default
+-- No explicit schema specification needed
 
 -- =====================================================
 -- STEP 1: DROP ALL EXISTING TABLES (Clean Slate)
@@ -67,14 +68,18 @@ DROP VIEW IF EXISTS user_home_stats CASCADE;
 -- STEP 2: ENABLE REQUIRED EXTENSIONS
 -- =====================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-CREATE EXTENSION IF NOT EXISTS "pg_cron";
-CREATE EXTENSION IF NOT EXISTS "pgmq" CASCADE;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA public;
+-- Note: pg_cron and pgmq are optional, skip if not available
+-- CREATE EXTENSION IF NOT EXISTS "pg_cron";
+-- CREATE EXTENSION IF NOT EXISTS "pgmq" CASCADE;
 
 -- =====================================================
 -- STEP 3: CREATE CORE TABLES
 -- =====================================================
+
+-- Ensure we're in public schema
+SET search_path TO public, extensions;
 
 -- ==================== USER MANAGEMENT ====================
 
@@ -586,13 +591,14 @@ CREATE INDEX idx_rate_limit_requests_user_endpoint_time ON rate_limit_requests(u
 COMMENT ON TABLE rate_limit_requests IS 'Rate limiting tracking';
 
 -- =====================================================
--- STEP 4: CREATE PGMQ QUEUE SYSTEM
+-- STEP 4: CREATE PGMQ QUEUE SYSTEM (OPTIONAL)
 -- =====================================================
+-- Note: PGMQ extension must be enabled in Supabase Dashboard first
+-- Uncomment the following lines after enabling PGMQ extension:
 
--- Create the PGMQ queue for GMB sync jobs
-SELECT pgmq.create('gmb_sync_queue');
-
-COMMENT ON SCHEMA pgmq IS 'PostgreSQL Message Queue for async job processing';
+-- CREATE EXTENSION IF NOT EXISTS "pgmq" CASCADE;
+-- SELECT pgmq.create('gmb_sync_queue');
+-- COMMENT ON SCHEMA pgmq IS 'PostgreSQL Message Queue for async job processing';
 
 -- =====================================================
 -- STEP 5: CREATE HELPER FUNCTIONS
@@ -650,7 +656,8 @@ CREATE TRIGGER update_sync_status_updated_at
   BEFORE UPDATE ON sync_status
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Function to enqueue a sync job to PGMQ
+-- Function to enqueue a sync job (simplified version without PGMQ)
+-- Note: Enable PGMQ extension for full queue functionality
 CREATE OR REPLACE FUNCTION enqueue_sync_job(
   p_account_id UUID,
   p_user_id UUID,
@@ -659,22 +666,9 @@ CREATE OR REPLACE FUNCTION enqueue_sync_job(
 )
 RETURNS BIGINT AS $$
 DECLARE
-  v_msg_id BIGINT;
+  v_job_id BIGINT;
 BEGIN
-  -- Send message to PGMQ queue
-  SELECT pgmq.send(
-    queue_name := 'gmb_sync_queue',
-    msg := jsonb_build_object(
-      'account_id', p_account_id,
-      'user_id', p_user_id,
-      'sync_type', p_sync_type,
-      'priority', p_priority,
-      'enqueued_at', NOW()
-    ),
-    delay := 0
-  ) INTO v_msg_id;
-
-  -- Also insert into sync_queue for tracking
+  -- Insert into sync_queue for tracking
   INSERT INTO sync_queue (
     user_id,
     account_id,
@@ -690,31 +684,39 @@ BEGIN
     'pending',
     p_priority,
     NOW(),
-    jsonb_build_object('pgmq_msg_id', v_msg_id)
-  );
+    '{}'::jsonb
+  )
+  RETURNING id INTO v_job_id;
 
-  RETURN v_msg_id;
+  RETURN v_job_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION enqueue_sync_job(UUID, UUID, TEXT, INTEGER) IS 'Enqueues a sync job to PGMQ queue';
+COMMENT ON FUNCTION enqueue_sync_job(UUID, UUID, TEXT, INTEGER) IS 'Enqueues a sync job to sync_queue table';
 
--- Function to get queue metrics
+-- Function to get queue metrics (simplified without PGMQ)
 CREATE OR REPLACE FUNCTION get_queue_metrics()
 RETURNS TABLE (
   queue_name TEXT,
-  queue_length BIGINT,
-  newest_msg_age_sec INTEGER,
-  oldest_msg_age_sec INTEGER,
-  total_messages BIGINT
+  pending_count BIGINT,
+  processing_count BIGINT,
+  completed_count BIGINT,
+  failed_count BIGINT
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT * FROM pgmq.metrics('gmb_sync_queue');
+  SELECT
+    'sync_queue'::TEXT,
+    COUNT(*) FILTER (WHERE status = 'pending'),
+    COUNT(*) FILTER (WHERE status = 'processing'),
+    COUNT(*) FILTER (WHERE status = 'succeeded'),
+    COUNT(*) FILTER (WHERE status = 'failed')
+  FROM sync_queue
+  WHERE created_at > NOW() - INTERVAL '24 hours';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION get_queue_metrics() IS 'Returns PGMQ queue metrics for monitoring';
+COMMENT ON FUNCTION get_queue_metrics() IS 'Returns sync queue metrics for monitoring';
 
 -- Cleanup function for rate limiting
 CREATE OR REPLACE FUNCTION cleanup_rate_limit_requests()
@@ -1105,8 +1107,6 @@ LEFT JOIN gmb_questions q ON q.user_id = u.id
 GROUP BY u.id;
 
 COMMENT ON VIEW user_home_stats IS 'Dashboard statistics for users';
-
-COMMIT;
 
 -- =====================================================
 -- MIGRATION COMPLETE
