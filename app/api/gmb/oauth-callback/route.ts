@@ -458,11 +458,12 @@ export async function GET(request: NextRequest) {
         account_id: accountId,
         account_name: accountName,
         email: userInfo.email,
+        // google_account_id is optional - not setting it as it's nullable in DB
         access_token: encryptedAccessToken,
         refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
-        last_synced_at: new Date().toISOString(),
+        last_sync: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -475,6 +476,17 @@ export async function GET(request: NextRequest) {
         });
 
       if (upsertError) {
+        console.error("[OAuth Callback] UPSERT ERROR DETAILS:", {
+          message: upsertError.message,
+          code: upsertError.code,
+          details: upsertError.details,
+          hint: upsertError.hint,
+          upsertData: {
+            ...upsertData,
+            access_token: "[REDACTED]",
+            refresh_token: "[REDACTED]",
+          },
+        });
         handleApiError(
           upsertError,
           "[OAuth Callback] Failed to upsert GMB account",
@@ -483,8 +495,7 @@ export async function GET(request: NextRequest) {
           baseUrl,
           `/${localeCookie}/settings`,
           {
-            error:
-              "Failed to save Google My Business account. Please try again.",
+            error: `Failed to save GMB account: ${upsertError.message}`,
             error_code: "gmb_account_upsert_failed",
           },
         );
