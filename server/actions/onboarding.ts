@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { OnboardingDataSchema } from "@/lib/validations/onboarding";
+import { z } from "zod";
 
 export interface OnboardingTask {
   id: string;
@@ -209,4 +211,146 @@ export async function getProfileStrength(): Promise<{
     totalTasks: total,
     estimatedMinutes,
   };
+}
+
+/**
+ * Complete onboarding with optional user data
+ * This function validates all input data before updating the profile
+ */
+export async function completeOnboarding(
+  data?: unknown,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // ✅ Validate onboarding data if provided
+    let validated = null;
+    if (data) {
+      validated = OnboardingDataSchema.parse({
+        ...data,
+        user_id: user.id,
+        onboarding_completed: true,
+      });
+    }
+
+    // Update profile with onboarding completion
+    const updateData: any = {
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add validated fields if provided
+    if (validated) {
+      if (validated.business_name)
+        updateData.business_name = validated.business_name;
+      if (validated.business_type)
+        updateData.business_type = validated.business_type;
+      if (validated.industry) updateData.industry = validated.industry;
+      if (validated.preferred_language)
+        updateData.preferred_language = validated.preferred_language;
+      if (validated.timezone) updateData.timezone = validated.timezone;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateData)
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("[Onboarding] Failed to update profile:", error);
+      return { success: false, error: "Failed to complete onboarding" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      console.error("[Onboarding] Validation error:", error.errors);
+      return {
+        success: false,
+        error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+      };
+    }
+
+    console.error("[Onboarding] Error completing onboarding:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+/**
+ * Update onboarding task completion status
+ */
+export async function updateOnboardingTask(
+  taskId: unknown,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // ✅ Validate task ID
+    const taskIdSchema = z.string().min(1, "Task ID is required");
+    const validatedTaskId = taskIdSchema.parse(taskId);
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Get current profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("metadata")
+      .eq("id", user.id)
+      .single();
+
+    const metadata = profile?.metadata || {};
+    const completedTasks = metadata.completed_tasks || [];
+
+    // Add task to completed list if not already there
+    if (!completedTasks.includes(validatedTaskId)) {
+      completedTasks.push(validatedTaskId);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          metadata: {
+            ...metadata,
+            completed_tasks: completedTasks,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("[Onboarding] Failed to update task:", error);
+        return { success: false, error: "Failed to update task" };
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      console.error("[Onboarding] Validation error:", error.errors);
+      return {
+        success: false,
+        error: `Validation failed: ${error.errors[0]?.message}`,
+      };
+    }
+
+    console.error("[Onboarding] Error updating task:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
 }
