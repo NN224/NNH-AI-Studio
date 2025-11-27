@@ -2,7 +2,7 @@ import { logAction } from "@/lib/monitoring/audit";
 import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
-import { getBaseUrlDynamic } from "@/lib/utils/get-base-url-dynamic";
+import { getSafeBaseUrl } from "@/lib/utils/safe-redirect";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[OAuth Callback] OAuth error from provider:", error);
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           `OAuth error: ${error}`,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Validate parameters
     if (!code || !state) {
       console.error("[OAuth Callback] Missing code or state");
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Missing authorization code or state",
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     // OAuth callback can arrive without a valid Supabase session cookie due to
     // cross-site redirects or SameSite policies, so we must bypass RLS safely
     // using the server role. We still derive user_id from the validated state.
-    const supabase = await createClient();
+    const _supabase = await createClient();
     const adminClient = createAdminClient();
 
     // Verify state and get user ID
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     if (stateError || !stateRecord) {
       console.error("[OAuth Callback] Invalid state:", stateError);
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Invalid or expired authorization state",
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const expiresAt = new Date(stateRecord.expires_at);
     if (expiresAt < new Date()) {
       console.error("[OAuth Callback] State has expired");
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Authorization state has expired",
@@ -99,14 +99,14 @@ export async function GET(request: NextRequest) {
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const baseUrl = getBaseUrlDynamic(request);
+    const baseUrl = getSafeBaseUrl(request);
     // Ensure consistent redirect_uri - must match create-auth-url exactly
     const redirectUri =
       process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/api/gmb/oauth-callback`;
 
     if (!clientId || !clientSecret) {
       console.error("[OAuth Callback] Missing Google OAuth configuration");
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Server configuration error",
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
         status: tokenResponse.status,
         error: tokenData,
       });
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           `Token exchange failed: ${tokenData.error_description || tokenData.error}`,
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       console.error("[OAuth Callback] Failed to fetch user info", {
         status: userInfoResponse.status,
       });
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Failed to fetch user information",
@@ -289,7 +289,7 @@ export async function GET(request: NextRequest) {
         status: gmbAccountsResponse.status,
         body_snippet: text.substring(0, 500),
       });
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Failed to fetch Google My Business accounts",
@@ -304,7 +304,7 @@ export async function GET(request: NextRequest) {
 
     if (gmbAccounts.length === 0) {
       console.warn("[OAuth Callback] No GMB accounts found for user");
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "No Google My Business accounts found",
@@ -335,7 +335,7 @@ export async function GET(request: NextRequest) {
         console.error(
           "[OAuth Callback] Security violation: GMB account already linked to different user",
         );
-        const baseUrl = getBaseUrlDynamic(request);
+        const baseUrl = getSafeBaseUrl(request);
         return NextResponse.redirect(
           `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
             "This Google My Business account is already linked to another user",
@@ -378,7 +378,7 @@ export async function GET(request: NextRequest) {
           "[OAuth Callback] Failed to encrypt tokens:",
           encryptionError,
         );
-        const baseUrl = getBaseUrlDynamic(request);
+        const baseUrl = getSafeBaseUrl(request);
         return NextResponse.redirect(
           `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
             "Failed to secure OAuth tokens. Please try again.",
@@ -418,7 +418,7 @@ export async function GET(request: NextRequest) {
           "[OAuth Callback] Failed to upsert GMB account",
         );
 
-        const baseUrl = getBaseUrlDynamic(request);
+        const baseUrl = getSafeBaseUrl(request);
         return NextResponse.redirect(
           `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
             "Failed to save Google My Business account. Please try again.",
@@ -509,7 +509,7 @@ export async function GET(request: NextRequest) {
     // Redirect to GMB dashboard with success or error
     if (!savedAccountId) {
       console.error("[OAuth Callback] No account was saved");
-      const baseUrl = getBaseUrlDynamic(request);
+      const baseUrl = getSafeBaseUrl(request);
       return NextResponse.redirect(
         `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
           "Failed to save any account",
@@ -583,7 +583,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   } catch (error: unknown) {
     console.error("[OAuth Callback] Unexpected error:", error);
-    const baseUrl = getBaseUrlDynamic(request);
+    const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
     return NextResponse.redirect(
       `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(

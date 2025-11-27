@@ -1,33 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSafeBaseUrl } from "@/lib/utils/safe-redirect";
 import { NextResponse } from "next/server";
-
-function getOriginFromRequest(request: Request): string {
-  // Allow explicit override via environment variable
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-
-  const requestUrl = new URL(request.url);
-
-  // Get host from headers (respects reverse proxy/CDN)
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const host = request.headers.get("host") || requestUrl.host;
-
-  // Determine protocol: prefer forwarded header, then request URL protocol
-  const proto = forwardedProto || requestUrl.protocol.replace(":", "");
-
-  // Use forwarded host if available, otherwise host header
-  const finalHost = forwardedHost || host;
-
-  return `${proto}://${finalHost}`;
-}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const state = requestUrl.searchParams.get("state");
-  const baseUrl = getOriginFromRequest(request);
+  const baseUrl = getSafeBaseUrl(request);
 
   // Extract locale from URL path (e.g., /en/auth/callback or /ar/auth/callback)
   const pathSegments = requestUrl.pathname.split("/").filter(Boolean);
@@ -52,7 +31,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
 
     // Exchange code for session
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       return NextResponse.redirect(
