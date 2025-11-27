@@ -409,7 +409,16 @@ async function checkSecurity(adminClient: any, issues: HealthIssue[]) {
 
     if (accounts && accounts.length > 0) {
       const token = accounts[0].access_token;
-      if (token && !token.startsWith("encrypted:")) {
+      // Check if token looks like encrypted base64 (should be long and not contain readable text)
+      const isEncrypted =
+        token &&
+        token.length > 50 && // Encrypted tokens are long
+        /^[A-Za-z0-9+/]+=*$/.test(token) && // Base64 format
+        !token.includes("ya29.") && // Not a Google access token
+        !token.includes("Bearer") && // Not a bearer token
+        !token.includes("http"); // Not a URL
+
+      if (token && !isEncrypted) {
         issues.push({
           severity: "critical",
           category: "Security",
