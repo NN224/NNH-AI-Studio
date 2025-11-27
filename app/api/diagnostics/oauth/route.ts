@@ -1,22 +1,19 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/admin-check";
 import { GMB_CONSTANTS } from "@/lib/gmb/helpers";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
+    // Check admin access first
+    const adminCheck = await requireAdmin();
+    if (adminCheck) {
+      return adminCheck; // Return error response if not admin
+    }
+
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
-    if (!user) {
-      return Response.json(
-        {
-          success: false,
-          error: "Unauthorized - No user session",
-        },
-        { status: 401 },
-      );
-    }
 
     // Check GMB accounts for OAuth status
     const { data: accounts, error: accountsError } = await supabase

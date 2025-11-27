@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,14 +9,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlayCircle, Loader2 } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
+import { useRouter } from "next/router";
+import { useState } from "react";
 
 interface DiagnosticResult {
   [key: string]: unknown;
 }
 
 export default function OwnerDiagnosticsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("oauth");
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [results, setResults] = useState<
     Record<string, DiagnosticResult | null>
   >({
@@ -34,6 +37,7 @@ export default function OwnerDiagnosticsPage() {
     logs: null,
     apiHealth: null,
     integrity: null,
+    dataSyncCheck: null,
   });
   const [loading, setLoading] = useState<Record<string, boolean>>({
     oauth: false,
@@ -49,6 +53,7 @@ export default function OwnerDiagnosticsPage() {
     logs: false,
     apiHealth: false,
     integrity: false,
+    dataSyncCheck: false,
   });
 
   const runTest = async (testKey: string, endpoint: string) => {
@@ -190,6 +195,15 @@ export default function OwnerDiagnosticsPage() {
       endpoint: "/api/diagnostics/api-health",
       category: "system",
     },
+    {
+      key: "dataSyncCheck",
+      label: "Data Sync Check",
+      title: "Database-Website Sync Check",
+      description:
+        "Check for inconsistencies between database and website data",
+      endpoint: "/api/diagnostics/data-sync-check",
+      category: "database",
+    },
   ];
 
   return (
@@ -212,7 +226,7 @@ export default function OwnerDiagnosticsPage() {
             🤖 AI (1)
           </span>
           <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded">
-            💾 Database (3)
+            💾 Database (4)
           </span>
           <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
             🔧 System (2)

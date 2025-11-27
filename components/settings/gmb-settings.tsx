@@ -1,25 +1,17 @@
 "use client";
 
-import { t } from "@/lib/i18n/stub";
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Save,
-  Shield,
-  Globe,
-  Sparkles,
-  Bell,
-  Database,
-  Palette,
-  Bot,
-} from "lucide-react";
-import { toast } from "sonner";
+import { t } from "@/lib/i18n/stub";
 import { createClient } from "@/lib/supabase/client";
+import { Bot, Database, Globe, Save, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { DataManagement } from "./data-management";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AccountConnectionTab } from "./account-connection-tab";
+import { AdminSection } from "./admin-section";
 import { AppSettingsTab } from "./app-settings-tab";
+import { DataManagement } from "./data-management";
 
 interface GMBAccount {
   id: string;
@@ -354,6 +346,9 @@ export function GMBSettings() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Admin Section - Only visible to owners */}
+      <AdminSection />
 
       {/* Save Button - Fixed at bottom */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-primary/20 pt-4">

@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
+import { NextResponse, type NextRequest } from "next/server";
 import { locales } from "./i18n";
 
 export async function middleware(request: NextRequest) {
@@ -60,6 +60,8 @@ export async function middleware(request: NextRequest) {
     "/locations",
     "/youtube-dashboard",
     "/home",
+    "/owner-diagnostics",
+    "/sync-diagnostics",
   ];
 
   const isProtectedRoute = protectedPaths.some((path) =>
@@ -73,8 +75,17 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
+      // Clear any stale session cookies on session expiry
+      if (error?.code === "session_expired") {
+        console.warn(
+          "[Middleware] Session expired, clearing cookies and redirecting to login",
+        );
+      }
       const loginUrl = new URL(`/${locale}/auth/login`, request.url);
       loginUrl.searchParams.set("redirectedFrom", pathname);
+      if (error?.code === "session_expired") {
+        loginUrl.searchParams.set("error", "session_expired");
+      }
       return NextResponse.redirect(loginUrl);
     }
   }
