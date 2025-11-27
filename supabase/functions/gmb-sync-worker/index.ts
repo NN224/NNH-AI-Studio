@@ -3,28 +3,7 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 /**
  * ============================================================================
- * GMB Sync Worker
- * ============================================================================
- *
- * PURPOSE:
- * This Edge Function processes sync jobs from the sync_queue table. It:
- * - Picks pending jobs using FOR UPDATE SKIP LOCKED (prevents race conditions)
- * - Processes each job by calling the gmb-process Edge Function
- * - Updates job status (succeeded/failed) and sync_status table
- * - Handles retries with exponential backoff
- * - Respects timeout limits (55s total worker runtime)
- * - Tracks execution in sync_worker_runs for diagnostics
- *
- * ARCHITECTURE:
- * - Called by: Cron scheduler (every 2-5 minutes) or manually via CURL
- * - Security: Requires X-Trigger-Secret header (or service role key)
- * - Processing: Sequential (one job at a time to avoid rate limits)
- *
- * ENVIRONMENT VARIABLES REQUIRED:
- * - SUPABASE_URL: Your Supabase project URL
- * - SUPABASE_SERVICE_ROLE_KEY: Service role key (admin access)
- * - TRIGGER_SECRET: Secret for authenticating trigger calls
- *
+ * GMB Sync Worker (FIXED PRODUCTION VERSION)
  * ============================================================================
  */
 
@@ -88,7 +67,7 @@ interface JobResult {
 interface WorkerRunStats {
   run_id: string;
   jobs_picked: number;
-  jobs_processed: number; // Kept in interface for internal logic, but not saved to DB
+  jobs_processed: number; // Internal use only
   jobs_succeeded: number;
   jobs_failed: number;
   results: JobResult[];
@@ -98,25 +77,14 @@ interface WorkerRunStats {
 // Helper Functions
 // ============================================================================
 
-/**
- * Safely extract error message from any error object
- */
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "string") {
-    return error;
-  }
-  if (error && typeof error === "object" && "message" in error) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error)
     return String(error.message);
-  }
   return "Unknown error";
 }
 
-/**
- * Safely truncate error message for database storage
- */
 function truncateError(error: unknown, maxLength = 500): string {
   const message = getErrorMessage(error);
   return message.slice(0, maxLength);
@@ -160,7 +128,7 @@ async function createWorkerRun(admin: SupabaseClient): Promise<string> {
 
 /**
  * Update worker run with final stats
- * FIXED: matched column names with database schema
+ * ✅ FIXED: Matched column names with database schema
  */
 async function updateWorkerRun(
   admin: SupabaseClient,
@@ -170,10 +138,10 @@ async function updateWorkerRun(
   const { error } = await admin
     .from("sync_worker_runs")
     .update({
-      completed_at: new Date().toISOString(), // Fixed: was finished_at
+      completed_at: new Date().toISOString(), // ✅ FIXED: Changed finished_at to completed_at
       status: stats.status,
       jobs_picked: stats.jobs_picked ?? 0,
-      // jobs_processed removed as it doesn't exist in DB table
+      // ❌ REMOVED: jobs_processed (does not exist in DB)
       jobs_succeeded: stats.jobs_succeeded ?? 0,
       jobs_failed: stats.jobs_failed ?? 0,
       notes: stats.notes,
@@ -190,7 +158,7 @@ async function updateWorkerRun(
 }
 
 /**
- * Reset jobs back to pending state (used when worker times out before processing)
+ * Reset jobs back to pending state
  */
 async function resetJobsToPending(
   admin: SupabaseClient,
@@ -203,7 +171,7 @@ async function resetJobsToPending(
     .update({
       status: "pending",
       started_at: null,
-      attempts: admin.sql`attempts - 1`, // Decrement since pick_sync_jobs incremented it
+      attempts: admin.sql`attempts - 1`,
     })
     .in("id", jobIds);
 
@@ -215,8 +183,7 @@ async function resetJobsToPending(
 }
 
 /**
- * Pick pending jobs from queue using FOR UPDATE SKIP LOCKED
- * This prevents race conditions when multiple workers run simultaneously
+ * Pick pending jobs from queue
  */
 async function pickJobsForProcessing(
   admin: SupabaseClient,
@@ -224,20 +191,12 @@ async function pickJobsForProcessing(
 ): Promise<SyncJob[]> {
   try {
     // First, mark stale jobs as failed
-    const { error: staleError } = await admin.rpc("mark_stale_sync_jobs");
-    if (staleError) {
-      console.error(
-        "⚠️ Failed to mark stale jobs:",
-        getErrorMessage(staleError),
-      );
-      // Continue anyway - not critical
-    }
+    await admin.rpc("mark_stale_sync_jobs");
   } catch (err) {
     console.error("⚠️ Exception marking stale jobs:", getErrorMessage(err));
-    // Continue anyway
   }
 
-  // Pick jobs using RPC function with FOR UPDATE SKIP LOCKED
+  // Pick jobs using RPC function
   const { data, error } = await admin.rpc("pick_sync_jobs", {
     job_limit: limit,
   });
@@ -265,8 +224,6 @@ async function processJob(
     const timeout = setTimeout(() => controller.abort(), CONFIG.JOB_TIMEOUT_MS);
 
     // Call gmb-process Edge Function (THE ACTUAL PROCESSOR)
-    // This function does the real work: calls Google API and saves to DB
-    // Using X-Internal-Run header for internal authentication
     const response = await fetch(`${supabaseUrl}/functions/v1/gmb-process`, {
       method: "POST",
       headers: {
@@ -320,20 +277,15 @@ async function processJob(
   }
 }
 
-/**
- * Update sync_status when job starts (sets last_sync_started_at)
- */
 async function recordSyncStart(
   admin: SupabaseClient,
   job: SyncJob,
 ): Promise<void> {
-  const now = new Date().toISOString();
-
   try {
     await admin.from("sync_status").upsert(
       {
         account_id: job.account_id,
-        last_sync_started_at: now,
+        last_sync_started_at: new Date().toISOString(),
         last_sync_status: "running",
       },
       {
@@ -346,14 +298,9 @@ async function recordSyncStart(
       `Failed to record sync start for ${job.account_id}:`,
       getErrorMessage(error),
     );
-    // Non-critical, continue
   }
 }
 
-/**
- * Update job status in sync_queue after processing
- * Now with comprehensive error handling and database-level increments
- */
 async function updateJobStatus(
   admin: SupabaseClient,
   job: SyncJob,
@@ -364,75 +311,45 @@ async function updateJobStatus(
   try {
     if (result.success) {
       // Mark job as succeeded
-      const { error: updateError } = await admin
+      await admin
         .from("sync_queue")
         .update({
-          status: "succeeded",
+          status: "completed", // Fixed: matches DB constraint
           completed_at: now,
           error_message: null,
         })
         .eq("id", job.id);
 
-      if (updateError) {
-        throw new Error(
-          `Failed to update job status: ${getErrorMessage(updateError)}`,
-        );
-      }
-
-      // Update sync_status using Postgres function (atomic, no race condition)
-      const { error: statusError } = await admin.rpc(
-        "update_sync_status_success",
-        {
-          p_account_id: job.account_id,
-          p_sync_type: job.sync_type,
-          p_completed_at: now,
-        },
-      );
-
-      if (statusError) {
-        console.error(
-          `Failed to update sync_status: ${getErrorMessage(statusError)}`,
-        );
-        // Non-critical for job completion
-      }
+      await admin.rpc("update_sync_status_success", {
+        p_account_id: job.account_id,
+        p_sync_type: job.sync_type,
+        p_completed_at: now,
+      });
     } else {
-      // Job failed - check if we should retry
+      // Job failed
       const should_retry = job.attempts < job.max_attempts;
 
       if (should_retry) {
-        // Calculate exponential backoff delay
-        const retryNumber = job.attempts - 1; // 0-based for cleaner exponential
+        const retryNumber = job.attempts - 1;
         const delay_ms = CONFIG.RETRY_DELAY_BASE_MS * Math.pow(2, retryNumber);
         const scheduled_at = new Date(Date.now() + delay_ms).toISOString();
 
-        console.log(
-          `🔄 Scheduling retry ${job.attempts}/${job.max_attempts} for job ${job.id} in ${delay_ms}ms`,
-        );
+        console.log(`🔄 Scheduling retry for job ${job.id}`);
 
-        // Reset to pending for retry
-        const { error: retryError } = await admin
+        await admin
           .from("sync_queue")
           .update({
             status: "pending",
             scheduled_at,
             error_message: result.error || "Unknown error",
-            started_at: null, // Reset so it can be picked again
+            started_at: null,
             completed_at: null,
           })
           .eq("id", job.id);
-
-        if (retryError) {
-          throw new Error(
-            `Failed to schedule retry: ${getErrorMessage(retryError)}`,
-          );
-        }
       } else {
-        // Max attempts reached, mark as permanently failed
-        console.error(
-          `❌ Job ${job.id} failed permanently after ${job.attempts} attempts`,
-        );
+        console.error(`❌ Job ${job.id} failed permanently`);
 
-        const { error: failError } = await admin
+        await admin
           .from("sync_queue")
           .update({
             status: "failed",
@@ -441,31 +358,14 @@ async function updateJobStatus(
           })
           .eq("id", job.id);
 
-        if (failError) {
-          throw new Error(
-            `Failed to mark job as failed: ${getErrorMessage(failError)}`,
-          );
-        }
-
-        // Update sync_status using Postgres function
-        const { error: statusError } = await admin.rpc(
-          "update_sync_status_failure",
-          {
-            p_account_id: job.account_id,
-            p_error: result.error || "Unknown error",
-            p_completed_at: now,
-          },
-        );
-
-        if (statusError) {
-          console.error(
-            `Failed to update sync_status: ${getErrorMessage(statusError)}`,
-          );
-        }
+        await admin.rpc("update_sync_status_failure", {
+          p_account_id: job.account_id,
+          p_error: result.error || "Unknown error",
+          p_completed_at: now,
+        });
       }
     }
   } catch (error) {
-    // Critical error updating job status
     console.error(
       `🚨 CRITICAL: Failed to update job ${job.id} status:`,
       getErrorMessage(error),
@@ -503,7 +403,6 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
   }
 
   try {
-    // Pick jobs
     const jobs = await pickJobsForProcessing(admin, CONFIG.MAX_JOBS_PER_RUN);
     stats.jobs_picked = jobs.length;
 
@@ -519,81 +418,57 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
 
     console.log(`📋 Picked ${jobs.length} jobs for processing`);
 
-    // Track consecutive failures for circuit breaker
     let consecutiveFailures = 0;
     const unprocessedJobIds: string[] = [];
 
-    // Process jobs sequentially (to avoid rate limits)
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
-
-      // Check if we're approaching timeout BEFORE starting job
       const elapsed = Date.now() - startTime;
       const remainingTime =
         CONFIG.WORKER_TIMEOUT_MS - CONFIG.TIMEOUT_MARGIN_MS - elapsed;
 
       if (remainingTime < CONFIG.JOB_TIMEOUT_MS) {
-        console.warn(
-          `⏱️ Insufficient time remaining (${remainingTime}ms), stopping early`,
-        );
-        // Collect remaining unprocessed jobs
+        console.warn(`⏱️ Insufficient time remaining, stopping early`);
         for (let j = i; j < jobs.length; j++) {
           unprocessedJobIds.push(jobs[j].id);
         }
         break;
       }
 
-      console.log(
-        `🔄 Processing job ${i + 1}/${jobs.length}: ${job.id} (account: ${job.account_id}, type: ${job.sync_type}, attempt: ${job.attempts}/${job.max_attempts})`,
-      );
-
-      // Record sync start in sync_status
+      console.log(`🔄 Processing job ${job.id}`);
       await recordSyncStart(admin, job);
 
-      // Process the job
       const result = await processJob(job, SUPABASE_URL, TRIGGER_SECRET);
       stats.results.push(result);
       stats.jobs_processed++;
 
       if (result.success) {
         stats.jobs_succeeded++;
-        consecutiveFailures = 0; // Reset circuit breaker
-        console.log(`✅ Job ${job.id} succeeded (${result.duration_ms}ms)`);
+        consecutiveFailures = 0;
       } else {
         stats.jobs_failed++;
         consecutiveFailures++;
-        console.error(
-          `❌ Job ${job.id} failed: ${result.error} (${result.duration_ms}ms)`,
-        );
 
-        // Circuit breaker: stop if too many consecutive failures
         if (consecutiveFailures >= CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
-          console.error(
-            `🔴 Circuit breaker triggered after ${consecutiveFailures} consecutive failures`,
-          );
-          // Collect remaining unprocessed jobs
+          console.error(`🔴 Circuit breaker triggered`);
           for (let j = i + 1; j < jobs.length; j++) {
             unprocessedJobIds.push(jobs[j].id);
           }
-          // Update current job status before breaking
           await updateJobStatus(admin, job, result);
           break;
         }
       }
 
-      // Update job status
       await updateJobStatus(admin, job, result);
     }
 
-    // Reset any unprocessed jobs back to pending
     if (unprocessedJobIds.length > 0) {
       await resetJobsToPending(admin, unprocessedJobIds);
     }
 
-    // Update worker run with success
     const notes =
       unprocessedJobIds.length > 0
-        ? `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs (${unprocessedJobIds.length} reset to pending)`
+        ? `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs (${unprocessedJobIds.length} reset)`
         : `Processed ${stats.jobs_processed}/${stats.jobs_picked} jobs`;
 
     await updateWorkerRun(admin, run_id, {
@@ -601,19 +476,13 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       status: "completed",
       notes,
     });
-
-    console.log(
-      `✅ Worker completed: ${stats.jobs_succeeded} succeeded, ${stats.jobs_failed} failed, ${unprocessedJobIds.length} reset`,
-    );
   } catch (error: unknown) {
     console.error("❌ Worker error:", getErrorMessage(error));
-
     await updateWorkerRun(admin, run_id, {
       ...stats,
       status: "failed",
       notes: truncateError(error),
     });
-
     throw error;
   }
 
@@ -625,7 +494,6 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
 // ============================================================================
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
@@ -638,8 +506,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify authorization (either trigger secret or service role key)
-    const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET") || "replace-me-now";
+    const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET");
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const triggerSecret =
@@ -660,10 +527,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get admin client
     const admin = getAdminClient();
-
-    // Run worker
     const stats = await runWorker(admin);
 
     return new Response(
@@ -671,15 +535,12 @@ Deno.serve(async (req) => {
         success: true,
         run_id: stats.run_id,
         jobs_picked: stats.jobs_picked,
-        jobs_processed: stats.jobs_processed,
         jobs_succeeded: stats.jobs_succeeded,
         jobs_failed: stats.jobs_failed,
       }),
       { status: 200, headers: corsHeaders },
     );
   } catch (error: unknown) {
-    console.error("❌ Worker handler error:", getErrorMessage(error));
-
     return new Response(
       JSON.stringify({
         success: false,

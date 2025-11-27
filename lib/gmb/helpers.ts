@@ -1,16 +1,8 @@
-// lib/gmb/helpers.ts
-// Shared GMB helper functions for token management and resource building
-
-import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
+import { resolveTokenValue, encryptToken } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/server";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-/**
- * Refresh Google OAuth access token
- * @param refreshToken - The refresh token from gmb_accounts table
- * @returns New access token, expires_in, and optionally a new refresh_token
- */
 export async function refreshAccessToken(refreshToken: string): Promise<{
   access_token: string;
   expires_in: number;
@@ -43,106 +35,81 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
   return data;
 }
 
-/**
- * Get a valid access token for a GMB account, refreshing if necessary.
- * Uses admin client to bypass RLS for secure token operations.
- * Assumes gmb_accounts schema contains: access_token, refresh_token, token_expires_at.
- * @throws Error if account not found or token decryption fails (requires re-authentication)
- */
 export async function getValidAccessToken(
-  supabase: any,
+  supabase: any, // Client is kept for compatibility but not used for secrets
   accountId: string,
 ): Promise<string> {
-  // Use admin client to bypass RLS for token operations (privileged operation)
+  // Always use Admin Client to access the secure gmb_secrets table
   const adminClient = createAdminClient();
 
-  const { data: account, error } = await adminClient
+  // 1. Fetch encrypted tokens from gmb_secrets
+  const { data: secrets, error: secretError } = await adminClient
+    .from("gmb_secrets")
+    .select("access_token, refresh_token")
+    .eq("account_id", accountId)
+    .single();
+
+  // Also fetch expiry from main account table
+  const { data: account, error: accountError } = await adminClient
     .from("gmb_accounts")
-    .select("access_token, refresh_token, token_expires_at")
+    .select("token_expires_at")
     .eq("id", accountId)
-    .maybeSingle();
+    .single();
 
-  if (error || !account) {
-    console.error("[GMB Helpers] Account not found:", accountId, error);
-    throw new Error("Account not found");
+  if (secretError || !secrets || accountError || !account) {
+    console.error("[GMB Helpers] Credentials not found for:", accountId);
+    throw new Error("Account credentials not found");
   }
 
-  // Decrypt tokens - will throw EncryptionError if decryption fails
-  let accessToken: string | null;
-  let refreshToken: string | null;
+  // 2. Decrypt tokens
+  const accessToken = resolveTokenValue(secrets.access_token);
+  const refreshToken = resolveTokenValue(secrets.refresh_token);
 
-  try {
-    accessToken = resolveTokenValue(account.access_token, {
-      context: "gmb_accounts.access_token",
-    });
-    refreshToken = resolveTokenValue(account.refresh_token, {
-      context: "gmb_accounts.refresh_token",
-    });
-  } catch (error) {
-    console.error(
-      "[GMB Helpers] Token decryption failed for account:",
-      accountId,
-    );
-
-    // Mark account as inactive - requires reconnection
-    await adminClient
-      .from("gmb_accounts")
-      .update({
-        is_active: false,
-        last_error: "Token decryption failed - reconnection required",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", accountId);
-
-    throw new Error(
-      "Your Google account connection has expired. Please reconnect in Settings. " +
-        "انتهت صلاحية اتصال حساب Google. يُرجى إعادة الاتصال في الإعدادات.",
-    );
+  if (!accessToken || !refreshToken) {
+    throw new Error("Failed to decrypt tokens");
   }
 
+  // 3. Check expiration
   const now = Date.now();
   const expiresAt = account.token_expires_at
     ? new Date(account.token_expires_at).getTime()
     : 0;
 
-  const needsRefresh = !accessToken || !expiresAt || now >= expiresAt;
+  // Buffer: Refresh 5 minutes early
+  if (now >= expiresAt - 300000) {
+    console.log("Token expired, refreshing...");
+    const tokens = await refreshAccessToken(refreshToken);
 
-  if (!needsRefresh) {
-    if (!accessToken) {
-      throw new Error("Access token is null after decryption");
-    }
-    return accessToken;
+    // Update DB with new encrypted tokens
+    const newExpiresAt = new Date(now + tokens.expires_in * 1000);
+
+    // Update gmb_accounts (expiry)
+    await adminClient
+      .from("gmb_accounts")
+      .update({
+        token_expires_at: newExpiresAt.toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", accountId);
+
+    // Update gmb_secrets (tokens)
+    await adminClient
+      .from("gmb_secrets")
+      .update({
+        access_token: encryptToken(tokens.access_token),
+        ...(tokens.refresh_token && {
+          refresh_token: encryptToken(tokens.refresh_token),
+        }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("account_id", accountId);
+
+    return tokens.access_token;
   }
 
-  if (!refreshToken) {
-    throw new Error("No refresh token available");
-  }
-
-  const tokens = await refreshAccessToken(refreshToken);
-  const newExpiresAt = new Date(now);
-  newExpiresAt.setSeconds(newExpiresAt.getSeconds() + (tokens.expires_in || 0));
-
-  const updatePayload: Record<string, any> = {
-    access_token: encryptToken(tokens.access_token),
-    token_expires_at: newExpiresAt.toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (tokens.refresh_token) {
-    updatePayload.refresh_token = encryptToken(tokens.refresh_token);
-  }
-
-  await adminClient
-    .from("gmb_accounts")
-    .update(updatePayload)
-    .eq("id", accountId);
-
-  return tokens.access_token;
+  return accessToken;
 }
 
-/**
- * Build GMB location resource name in format: accounts/{accountId}/locations/{locationId}
- */
 export function buildLocationResourceName(
   accountId: string,
   locationId: string,
@@ -161,7 +128,6 @@ export const GMB_CONSTANTS = {
   GBP_LOC_BASE: "https://mybusinessbusinessinformation.googleapis.com/v1",
   QANDA_BASE: "https://mybusinessqanda.googleapis.com/v1",
   GMB_V4_BASE: "https://mybusiness.googleapis.com/v4",
-  // Business Profile Performance API v1 (replaces deprecated reportInsights)
   PERFORMANCE_BASE: "https://businessprofileperformance.googleapis.com/v1",
   GOOGLE_TOKEN_URL,
 };
