@@ -1,29 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-/**
- * ============================================================================
- * GMB Process Edge Function (HEAVY LIFTER)
- * ============================================================================
- *
- * PURPOSE:
- * Performs the ACTUAL sync logic (Google API → Database).
- * This is the function that does the real work.
- *
- * CALLED BY:
- * - gmb-sync-worker ONLY (via Internal Secret)
- *
- * FLOW:
- * 1. Verify internal secret
- * 2. Get account and decrypt tokens
- * 3. Call Next.js API /api/gmb/sync-v2 (which has all the logic)
- * 4. Return result
- *
- * NOTE: This function proxies to Next.js because the actual sync logic
- * is complex and already implemented there. We don't duplicate it here.
- *
- * ============================================================================
- */
-
 const corsHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +8,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
@@ -47,78 +22,40 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // ---------------------------------------------------------------------
-    // VERIFY INTERNAL SECRET (Worker Only)
-    // ---------------------------------------------------------------------
+    // 1. Verify Secret
     const TRIGGER_SECRET = Deno.env.get("TRIGGER_SECRET");
     const providedSecret = req.headers.get("X-Internal-Run");
 
     if (!TRIGGER_SECRET || providedSecret !== TRIGGER_SECRET) {
-      console.error("[GMB Process] Unauthorized: Invalid internal secret");
       return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "unauthorized",
-          message: "Internal access only",
-        }),
+        JSON.stringify({ ok: false, error: "unauthorized" }),
         { status: 401, headers: corsHeaders },
       );
     }
 
-    // ---------------------------------------------------------------------
-    // PARSE REQUEST
-    // ---------------------------------------------------------------------
-    let accountId: string;
-    let userId: string;
-    let syncType = "full";
-
-    try {
-      const body = await req.json();
-      accountId = body.accountId || body.account_id;
-      userId = body.userId || body.user_id;
-      syncType = body.syncType || body.sync_type || "full";
-    } catch (error) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "invalid_request",
-          message: "Invalid JSON payload",
-        }),
-        { status: 400, headers: corsHeaders },
-      );
-    }
+    // 2. Parse Body
+    const body = await req.json();
+    const accountId = body.accountId || body.account_id;
+    const userId = body.userId || body.user_id;
+    const syncType = body.syncType || body.sync_type || "full";
 
     if (!accountId || !userId) {
       return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "invalid_request",
-          message: "accountId and userId are required",
-        }),
+        JSON.stringify({ ok: false, error: "missing_params" }),
         { status: 400, headers: corsHeaders },
       );
     }
 
-    console.log(
-      `[GMB Process] Processing sync for account ${accountId}, user ${userId}`,
-    );
-
-    // ---------------------------------------------------------------------
-    // CALL NEXT.JS API (Where the actual logic lives)
-    // ---------------------------------------------------------------------
+    // 3. Call Next.js API
     const APP_URL =
-      Deno.env.get("NEXT_PUBLIC_APP_URL") ||
-      Deno.env.get("APP_URL") ||
-      "https://www.nnh.ae";
-
-    const apiUrl = `${APP_URL}/api/gmb/sync-v2`;
-
-    console.log(`[GMB Process] Calling ${apiUrl}`);
-
-    // Create a service role token for internal call
+      Deno.env.get("NEXT_PUBLIC_APP_URL") || Deno.env.get("APP_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    const response = await fetch(apiUrl, {
+    if (!APP_URL) throw new Error("APP_URL is not set");
+
+    console.log(`[GMB Process] Forwarding to ${APP_URL}/api/gmb/sync-v2`);
+
+    const response = await fetch(`${APP_URL}/api/gmb/sync-v2`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -136,70 +73,37 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const tookMs = Date.now() - startTime;
-
-    // ---------------------------------------------------------------------
-    // HANDLE RESPONSE
-    // ---------------------------------------------------------------------
+    // Handle Response
     if (!response.ok) {
-      let errorText = "Unknown error";
-      let errorJson = null;
-
+      let errorText = await response.text().catch(() => "Unknown error");
       try {
-        errorJson = await response.json();
-        errorText = errorJson.error || errorJson.message || errorText;
+        const json = JSON.parse(errorText);
+        errorText = json.error || json.message || errorText;
       } catch {
-        try {
-          errorText = await response.text();
-        } catch {
-          errorText = `HTTP ${response.status}`;
-        }
+        // Ignore JSON parse errors for error text
       }
 
-      console.error(`[GMB Process] API error (${response.status}):`, errorText);
-
+      console.error(
+        `[GMB Process] API Error (${response.status}): ${errorText}`,
+      );
       return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "sync_failed",
-          message: errorText,
-          account_id: accountId,
-          took_ms: tookMs,
-        }),
+        JSON.stringify({ ok: false, error: "sync_failed", message: errorText }),
         { status: response.status, headers: corsHeaders },
       );
     }
 
-    // ---------------------------------------------------------------------
-    // SUCCESS
-    // ---------------------------------------------------------------------
     const result = await response.json();
-
-    console.log(
-      `[GMB Process] Sync completed successfully for account ${accountId} in ${tookMs}ms`,
-    );
-
     return new Response(
-      JSON.stringify({
-        ok: true,
-        ...result,
-        account_id: accountId,
-        took_ms: tookMs,
-      }),
+      JSON.stringify({ ok: true, ...result, took_ms: Date.now() - startTime }),
       { status: 200, headers: corsHeaders },
     );
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    const tookMs = Date.now() - startTime;
-
+  } catch (error: any) {
     console.error("[GMB Process] Exception:", error);
-
     return new Response(
       JSON.stringify({
         ok: false,
         error: "internal_error",
-        message: msg,
-        took_ms: tookMs,
+        message: error.message,
       }),
       { status: 500, headers: corsHeaders },
     );

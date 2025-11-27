@@ -20,20 +20,21 @@ import { logAction } from "@/lib/monitoring/audit";
 import { trackSyncResult } from "@/lib/monitoring/metrics";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
 const REVIEWS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const QANDA_BASE = GMB_CONSTANTS.QANDA_BASE;
-const POSTS_BASE = GMB_CONSTANTS.GMB_V4_BASE; // Posts use v4 API (localPosts endpoint)
-const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE; // Media uses v4 API
+const POSTS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
+const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 
 // Rate limiting configuration
-const MAX_CONCURRENT_REQUESTS = 5; // Max parallel requests to Google API
-const REQUEST_DELAY_MS = 200; // Delay between batches to avoid rate limiting
+const MAX_CONCURRENT_REQUESTS = 5;
+const REQUEST_DELAY_MS = 200;
 
 // Token refresh configuration
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 /**
  * Token manager to handle automatic refresh during long-running sync operations
@@ -41,13 +42,13 @@ const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh token 5 minutes before
 class TokenManager {
   private token: string;
   private tokenExpiresAt: number;
-  private supabase: Awaited<ReturnType<typeof createClient>>;
+  private supabase: SupabaseClient;
   private accountId: string;
 
   constructor(
     initialToken: string,
     expiresInSeconds: number,
-    supabase: Awaited<ReturnType<typeof createClient>>,
+    supabase: SupabaseClient,
     accountId: string,
   ) {
     this.token = initialToken;
@@ -58,12 +59,10 @@ class TokenManager {
   }
 
   async getToken(): Promise<string> {
-    // Check if token needs refresh
     if (Date.now() >= this.tokenExpiresAt) {
       console.warn("[GMB Sync] Token expired or expiring soon, refreshing...");
       try {
         this.token = await getValidAccessToken(this.supabase, this.accountId);
-        // Assume new token is valid for 1 hour
         this.tokenExpiresAt =
           Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
         console.warn("[GMB Sync] Token refreshed successfully");
@@ -76,12 +75,6 @@ class TokenManager {
   }
 }
 
-/**
- * Execute promises with concurrency limit to avoid Google API rate limiting
- * @param items - Array of items to process
- * @param fn - Async function to execute for each item
- * @param concurrency - Maximum concurrent executions (default: 5)
- */
 async function withConcurrencyLimit<T, R>(
   items: T[],
   fn: (item: T) => Promise<R>,
@@ -99,7 +92,6 @@ async function withConcurrencyLimit<T, R>(
 
     if (executing.length >= concurrency) {
       await Promise.race(executing);
-      // Remove completed promises
       const completed = executing.filter((p) => {
         let resolved = false;
         p.then(() => {
@@ -110,13 +102,10 @@ async function withConcurrencyLimit<T, R>(
         return resolved;
       });
       executing.splice(0, completed.length);
-
-      // Add small delay between batches to be safe
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
     }
   }
 
-  // Wait for remaining promises
   await Promise.all(executing);
   return results;
 }
@@ -146,7 +135,6 @@ const BASE_STAGES: SyncStage[] = [
   "complete",
 ];
 
-// Business Profile Performance API v1 (replaces deprecated v4 reportInsights)
 const PERFORMANCE_BASE = GMB_CONSTANTS.PERFORMANCE_BASE;
 
 function createProgressEmitter(options: {
@@ -160,7 +148,6 @@ function createProgressEmitter(options: {
   let activeSyncId: string = randomUUID();
   let stageOrder: SyncStage[] = [...BASE_STAGES];
 
-  // Filter stages based on options
   if (!options.includeQuestions) {
     stageOrder = stageOrder.filter((stage) => stage !== "questions_fetch");
   }
@@ -293,6 +280,72 @@ function formatAddress(address?: GoogleAddress | null) {
   return segments || null;
 }
 
+// Basic types for Google API responses to avoid 'any'
+interface GooglePost {
+  name: string;
+  topicType?: string;
+  summary?: string;
+  languageCode?: string;
+  media?: Array<{ googleUrl?: string; sourceUrl?: string }>;
+  event?: {
+    title?: string;
+    schedule?: { startDate?: string; endDate?: string };
+  };
+  offer?: { couponCode?: string; redeemOnlineUrl?: string };
+  callToAction?: { actionType?: string; url?: string };
+  createTime?: string;
+  updateTime?: string;
+  state?: string;
+}
+
+interface GoogleMediaItem {
+  name: string;
+  mediaFormat?: string;
+  sourceUrl?: string;
+  googleUrl?: string;
+  thumbnailUrl?: string;
+  description?: string;
+  locationAssociation?: { category?: string };
+  createTime?: string;
+}
+
+interface UnifiedPostData {
+  user_id: string;
+  gmb_account_id: string;
+  google_location_id: string;
+  post_id: string;
+  post_type: string;
+  title: string | null;
+  content: string | null;
+  media_urls: string[];
+  event_title: string | null;
+  event_start_date: string | null;
+  event_end_date: string | null;
+  offer_code: string | null;
+  offer_url: string | null;
+  call_to_action: string | null;
+  call_to_action_url: string | null;
+  created_at: string;
+  updated_at: string;
+  state: string;
+  google_name: string | null;
+}
+
+interface UnifiedMediaData {
+  user_id: string;
+  gmb_account_id: string;
+  google_location_id: string;
+  media_id: string;
+  media_format: string;
+  source_url: string | null;
+  google_url: string | null;
+  thumbnail_url: string | null;
+  description: string | null;
+  location_association: string | null;
+  create_time: string;
+  google_name: string | null;
+}
+
 export async function fetchLocationsDataForSync(
   accountResource: string,
   gmbAccountId: string,
@@ -307,13 +360,11 @@ export async function fetchLocationsDataForSync(
 
   do {
     const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
-    // OPTIMIZED: Only request essential fields to reduce memory usage and response size
-    // Removed: regularHours,specialHours,moreHours,serviceItems,labels (rarely used, can be fetched on-demand)
     url.searchParams.set(
       "readMask",
       "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,openInfo,metadata,latlng",
     );
-    url.searchParams.set("pageSize", "50"); // Reduced from 100 to prevent memory issues
+    url.searchParams.set("pageSize", "50");
     url.searchParams.set("alt", "json");
     if (nextPageToken) {
       url.searchParams.set("pageToken", nextPageToken);
@@ -406,7 +457,6 @@ export async function fetchReviewsDataForSync(
 ): Promise<ReviewData[]> {
   const reviewsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit to avoid rate limiting
   const fetchReviewsForLocation = async (location: LocationData) => {
     const locationReviews: ReviewData[] = [];
     const locationResource = resolveLocationResource(
@@ -486,7 +536,6 @@ export async function fetchReviewsDataForSync(
     return locationReviews;
   };
 
-  // Use concurrency limit to avoid rate limiting (max 5 parallel requests)
   const reviewsByLocation = await withConcurrencyLimit(
     locations,
     fetchReviewsForLocation,
@@ -510,7 +559,6 @@ export async function fetchQuestionsDataForSync(
 ): Promise<QuestionData[]> {
   const questionsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
   const fetchQuestionsForLocation = async (location: LocationData) => {
     const locationQuestions: QuestionData[] = [];
     const locationResource = resolveLocationResource(
@@ -579,7 +627,6 @@ export async function fetchQuestionsDataForSync(
     return locationQuestions;
   };
 
-  // Use concurrency limit to avoid rate limiting
   const questionsByLocation = await withConcurrencyLimit(
     locations,
     fetchQuestionsForLocation,
@@ -600,12 +647,11 @@ export async function fetchPostsDataForSync(
   gmbAccountId: string,
   userId: string,
   accessToken: string,
-): Promise<any[]> {
+): Promise<UnifiedPostData[]> {
   const postsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
   const fetchPostsForLocation = async (location: LocationData) => {
-    const locationPosts: any[] = [];
+    const locationPosts: UnifiedPostData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
@@ -630,7 +676,7 @@ export async function fetchPostsDataForSync(
       }
 
       const payload = await response.json();
-      const googlePosts = payload.localPosts || [];
+      const googlePosts: GooglePost[] = payload.localPosts || [];
 
       for (const post of googlePosts) {
         const postId = post.name?.split("/").pop();
@@ -671,7 +717,6 @@ export async function fetchPostsDataForSync(
     return locationPosts;
   };
 
-  // Use concurrency limit to avoid rate limiting
   const postsByLocation = await withConcurrencyLimit(
     locations,
     fetchPostsForLocation,
@@ -692,12 +737,11 @@ export async function fetchMediaDataForSync(
   gmbAccountId: string,
   userId: string,
   accessToken: string,
-): Promise<any[]> {
+): Promise<UnifiedMediaData[]> {
   const mediaTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
   const fetchMediaForLocation = async (location: LocationData) => {
-    const locationMedia: any[] = [];
+    const locationMedia: UnifiedMediaData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
       location.location_id,
@@ -722,7 +766,7 @@ export async function fetchMediaDataForSync(
       }
 
       const payload = await response.json();
-      const googleMedia = payload.mediaItems || [];
+      const googleMedia: GoogleMediaItem[] = payload.mediaItems || [];
 
       for (const item of googleMedia) {
         const mediaId = item.name?.split("/").pop();
@@ -753,7 +797,6 @@ export async function fetchMediaDataForSync(
     return locationMedia;
   };
 
-  // Use concurrency limit to avoid rate limiting
   const mediaByLocation = await withConcurrencyLimit(
     locations,
     fetchMediaForLocation,
@@ -786,10 +829,6 @@ export interface InsightsData {
   metadata: Record<string, unknown> | null;
 }
 
-/**
- * Performance API v1 daily metrics
- * @see https://developers.google.com/my-business/reference/performance/rest/v1/locations/fetchMultiDailyMetricsTimeSeries
- */
 const PERFORMANCE_METRICS = [
   "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
   "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
@@ -810,35 +849,23 @@ export async function fetchInsightsDataForSync(
   userId: string,
   accessToken: string,
 ): Promise<InsightsData[]> {
-  const insightsTimerStart = Date.now();
+  // const insightsTimerStart = Date.now(); // Removed unused var
 
-  // Calculate date range (last 30 days)
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30);
 
-  // Format dates as YYYY-MM-DD for Performance API
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
-  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
   const fetchInsightsForLocation = async (location: LocationData) => {
     const locationInsights: InsightsData[] = [];
-    const locationResource = resolveLocationResource(
-      accountResource,
-      location.location_id,
+    const cleanLocationId = location.location_id.replace(
+      /^(accounts\/[^/]+\/)?locations\//,
+      "",
     );
-    if (!locationResource) return [];
+    const endpoint = `${PERFORMANCE_BASE}/locations/${cleanLocationId}:fetchMultiDailyMetricsTimeSeries`;
 
     try {
-      // Use Business Profile Performance API v1 - fetchMultiDailyMetricsTimeSeries
-      // Format: locations/{locationId}:fetchMultiDailyMetricsTimeSeries
-      const cleanLocationId = location.location_id.replace(
-        /^(accounts\/[^/]+\/)?locations\//,
-        "",
-      );
-      const endpoint = `${PERFORMANCE_BASE}/locations/${cleanLocationId}:fetchMultiDailyMetricsTimeSeries`;
-
-      // Build URL with query parameters (Performance API uses GET with params)
       const url = new URL(endpoint);
       url.searchParams.set(
         "dailyRange.startDate.year",
@@ -865,7 +892,6 @@ export async function fetchInsightsDataForSync(
         endDate.getDate().toString(),
       );
 
-      // Add metrics to request
       PERFORMANCE_METRICS.forEach((metric) => {
         url.searchParams.append("dailyMetrics", metric);
       });
@@ -879,12 +905,6 @@ export async function fetchInsightsDataForSync(
       });
 
       if (!response.ok) {
-        const errorBody = await response.text().catch(() => "");
-        console.warn("[GMB Sync v2] Performance API fetch failed", {
-          location: location.location_id,
-          status: response.status,
-          error: errorBody,
-        });
         return [];
       }
 
@@ -892,14 +912,11 @@ export async function fetchInsightsDataForSync(
       const multiDailyMetricTimeSeries =
         payload.multiDailyMetricTimeSeries || [];
 
-      // Aggregate all daily values into totals
       const metrics: Record<string, number> = {};
 
       for (const series of multiDailyMetricTimeSeries) {
         const metricName = series.dailyMetric;
         const dailyValues = series.timeSeries?.datedValues || [];
-
-        // Sum all daily values for this metric
         let total = 0;
         for (const dv of dailyValues) {
           total += parseInt(dv.value || "0", 10);
@@ -907,7 +924,6 @@ export async function fetchInsightsDataForSync(
         metrics[metricName] = total;
       }
 
-      // Calculate aggregated metrics
       const viewsSearch =
         (metrics["BUSINESS_IMPRESSIONS_DESKTOP_SEARCH"] || 0) +
         (metrics["BUSINESS_IMPRESSIONS_MOBILE_SEARCH"] || 0);
@@ -925,9 +941,9 @@ export async function fetchInsightsDataForSync(
         website_clicks: metrics["WEBSITE_CLICKS"] || null,
         phone_calls: metrics["CALL_CLICKS"] || null,
         direction_requests: metrics["BUSINESS_DIRECTION_REQUESTS"] || null,
-        photo_views: null, // Not available in Performance API v1
+        photo_views: null,
         total_searches: viewsSearch + viewsMaps || null,
-        direct_searches: null, // Search type breakdown not available in v1
+        direct_searches: null,
         discovery_searches: null,
         branded_searches: null,
         metadata: {
@@ -949,19 +965,11 @@ export async function fetchInsightsDataForSync(
     return locationInsights;
   };
 
-  // Use concurrency limit to avoid rate limiting
   const insightsByLocation = await withConcurrencyLimit(
     locations,
     fetchInsightsForLocation,
   );
-  const allInsights = insightsByLocation.flat();
-
-  console.warn(
-    "[GMB Sync v2] fetchInsights completed in",
-    Date.now() - insightsTimerStart,
-    "ms (rate-limited parallel execution)",
-  );
-  return allInsights;
+  return insightsByLocation.flat();
 }
 
 export async function performTransactionalSync(
@@ -969,7 +977,7 @@ export async function performTransactionalSync(
   includeQuestions = true,
   includePosts = false,
   includeMedia = false,
-  includeInsights = true, // Enable insights by default
+  includeInsights = true,
   isInternalCall = false,
 ) {
   const supabase = await createClient();
@@ -978,17 +986,14 @@ export async function performTransactionalSync(
   let userId: string;
 
   if (isInternalCall) {
-    // For internal worker calls, use admin client to bypass RLS
     const adminClient = createAdminClient();
 
-    // Try by ID first
     let { data: accountData, error: accountLookupError } = await adminClient
       .from("gmb_accounts")
       .select("user_id, id, account_id")
       .eq("id", accountId)
       .maybeSingle();
 
-    // If not found, try by account_id
     if (!accountData) {
       const { data: accountData2 } = await adminClient
         .from("gmb_accounts")
@@ -1002,8 +1007,6 @@ export async function performTransactionalSync(
       }
     }
 
-    // If not found, try one more time with special characters removed
-    // For Google-format account IDs like "accounts/123456789"
     if (!accountData) {
       const normalizedId = accountId.replace(/[\W_]+/g, "");
       const { data: accountData2 } = await adminClient
@@ -1023,7 +1026,6 @@ export async function performTransactionalSync(
     }
     userId = accountData.user_id;
   } else {
-    // For user calls, verify authentication
     const {
       data: { user },
       error: authError,
@@ -1035,7 +1037,8 @@ export async function performTransactionalSync(
     userId = user.id;
   }
 
-  // Use admin client for internal calls to bypass RLS
+  // ✅ CORRECTED: Select the right client for DB operations
+  // If internal, use adminClient (bypass RLS). If user, use supabase (standard).
   const dbClient = isInternalCall ? createAdminClient() : supabase;
 
   const { data: account, error: accountError } = await dbClient
@@ -1066,12 +1069,11 @@ export async function performTransactionalSync(
   let currentStage: SyncStage = "init";
 
   try {
-    // Use TokenManager to handle automatic token refresh during long-running sync
-    const initialToken = await getValidAccessToken(supabase, accountId);
+    const initialToken = await getValidAccessToken(dbClient, accountId);
     const tokenManager = new TokenManager(
       initialToken,
       3600,
-      supabase,
+      dbClient,
       accountId,
     );
 
@@ -1080,7 +1082,7 @@ export async function performTransactionalSync(
       account.account_id,
       accountId,
       userId,
-      await tokenManager.getToken(), // Get fresh token if needed
+      await tokenManager.getToken(),
     );
     progressEmitter.emit("locations_fetch", "completed", {
       counts: { locations: locations.length },
@@ -1093,7 +1095,7 @@ export async function performTransactionalSync(
       account.account_id,
       accountId,
       userId,
-      await tokenManager.getToken(), // Get fresh token if needed
+      await tokenManager.getToken(),
     );
     progressEmitter.emit("reviews_fetch", "completed", {
       counts: { reviews: reviews.length },
@@ -1108,7 +1110,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        await tokenManager.getToken(), // Get fresh token if needed
+        await tokenManager.getToken(),
       );
       progressEmitter.emit("questions_fetch", "completed", {
         counts: { questions: questions.length },
@@ -1116,7 +1118,7 @@ export async function performTransactionalSync(
       });
     }
 
-    let posts: any[] = [];
+    let posts: UnifiedPostData[] = [];
     if (includePosts) {
       currentStage = "posts_fetch";
       posts = await fetchPostsDataForSync(
@@ -1124,7 +1126,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        await tokenManager.getToken(), // Get fresh token if needed
+        await tokenManager.getToken(),
       );
       progressEmitter.emit("posts_fetch", "completed", {
         counts: { posts: posts.length },
@@ -1132,7 +1134,7 @@ export async function performTransactionalSync(
       });
     }
 
-    let media: any[] = [];
+    let media: UnifiedMediaData[] = [];
     if (includeMedia) {
       currentStage = "media_fetch";
       media = await fetchMediaDataForSync(
@@ -1140,7 +1142,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        await tokenManager.getToken(), // Get fresh token if needed
+        await tokenManager.getToken(),
       );
       progressEmitter.emit("media_fetch", "completed", {
         counts: { media: media.length },
@@ -1156,7 +1158,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        await tokenManager.getToken(), // Get fresh token if needed
+        await tokenManager.getToken(),
       );
       progressEmitter.emit("insights_fetch", "completed", {
         counts: { insights: insights.length },
@@ -1168,8 +1170,9 @@ export async function performTransactionalSync(
     progressEmitter.emit("transaction", "running", {
       message: "Applying transactional sync",
     });
+
     const transactionResult = await runSyncTransactionWithRetry(
-      supabase,
+      dbClient,
       {
         accountId,
         locations,
