@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, PlayCircle } from "lucide-react";
-import { useRouter } from "next/router";
 import { useState } from "react";
 
 interface DiagnosticResult {
@@ -18,9 +17,7 @@ interface DiagnosticResult {
 }
 
 export default function OwnerDiagnosticsPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState("oauth");
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [results, setResults] = useState<
     Record<string, DiagnosticResult | null>
   >({
