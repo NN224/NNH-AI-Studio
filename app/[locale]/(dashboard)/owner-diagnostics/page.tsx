@@ -36,6 +36,7 @@ export default function OwnerDiagnosticsPage() {
     integrity: null,
     dataSyncCheck: null,
     syncDebug: null,
+    missingTables: null,
   });
   const [loading, setLoading] = useState<Record<string, boolean>>({
     oauth: false,
@@ -53,6 +54,7 @@ export default function OwnerDiagnosticsPage() {
     integrity: false,
     dataSyncCheck: false,
     syncDebug: false,
+    missingTables: false,
   });
 
   const runTest = async (testKey: string, endpoint: string) => {
@@ -195,12 +197,12 @@ export default function OwnerDiagnosticsPage() {
       category: "system",
     },
     {
-      key: "syncDebug",
-      label: "Sync Debug",
-      title: "Sync Process Debug Info",
-      description: "Debug information for sync process and user data",
-      endpoint: "/api/diagnostics/sync-debug",
-      category: "sync",
+      key: "missingTables",
+      label: "Missing Tables",
+      title: "Database Schema Check",
+      description: "Check for missing database tables and generate SQL",
+      endpoint: "/api/diagnostics/missing-tables",
+      category: "database",
     },
   ];
 
@@ -224,7 +226,7 @@ export default function OwnerDiagnosticsPage() {
             🤖 AI (1)
           </span>
           <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded">
-            💾 Database (4)
+            💾 Database (5)
           </span>
           <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
             🔧 System (2)
