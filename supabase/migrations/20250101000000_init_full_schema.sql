@@ -86,6 +86,7 @@ SET search_path TO public, extensions;
 -- User Profiles
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
   full_name TEXT,
   avatar_url TEXT,
   phone TEXT,
@@ -592,6 +593,63 @@ CREATE INDEX idx_rate_limit_requests_user_endpoint_time ON rate_limit_requests(u
 
 COMMENT ON TABLE rate_limit_requests IS 'Rate limiting tracking';
 
+-- ==================== GAMIFICATION ====================
+
+-- User Progress (levels, points, streaks)
+CREATE TABLE user_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  current_level INTEGER DEFAULT 1,
+  total_points INTEGER DEFAULT 0,
+  streak_days INTEGER DEFAULT 0,
+  last_activity_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_progress_user_id ON user_progress(user_id);
+
+ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own progress" ON user_progress
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own progress" ON user_progress
+  FOR UPDATE USING (auth.uid() = user_id);
+
+COMMENT ON TABLE user_progress IS 'User gamification progress tracking';
+
+-- User Achievements
+CREATE TABLE user_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  achievement_id TEXT NOT NULL,
+  achievement_name TEXT NOT NULL,
+  achievement_description TEXT,
+  category TEXT DEFAULT 'special' CHECK (category IN ('reviews', 'growth', 'engagement', 'special')),
+  points INTEGER DEFAULT 0,
+  level TEXT DEFAULT 'bronze' CHECK (level IN ('bronze', 'silver', 'gold', 'platinum')),
+  progress INTEGER DEFAULT 0,
+  max_progress INTEGER,
+  unlocked BOOLEAN DEFAULT false,
+  unlocked_at TIMESTAMPTZ,
+  reward_type TEXT CHECK (reward_type IN ('badge', 'feature', 'discount', 'bonus')),
+  reward_value TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, achievement_id)
+);
+
+CREATE INDEX idx_user_achievements_user_id ON user_achievements(user_id);
+CREATE INDEX idx_user_achievements_category ON user_achievements(category);
+CREATE INDEX idx_user_achievements_unlocked ON user_achievements(unlocked);
+
+ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own achievements" ON user_achievements
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own achievements" ON user_achievements
+  FOR UPDATE USING (auth.uid() = user_id);
+
+COMMENT ON TABLE user_achievements IS 'User achievement and badge tracking';
+
 -- =====================================================
 -- STEP 4: CREATE PGMQ QUEUE SYSTEM (OPTIONAL)
 -- =====================================================
@@ -741,6 +799,103 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON FUNCTION cleanup_expired_oauth_states() IS 'Clean up expired OAuth states';
+
+-- Initialize user progress and default achievements
+CREATE OR REPLACE FUNCTION initialize_user_progress(p_user_id UUID)
+RETURNS void AS $$
+BEGIN
+  -- Create user progress record if not exists
+  INSERT INTO user_progress (user_id, current_level, total_points, streak_days)
+  VALUES (p_user_id, 1, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  -- Create default achievements for the user
+  INSERT INTO user_achievements (user_id, achievement_id, achievement_name, achievement_description, category, points, level, max_progress)
+  VALUES
+    (p_user_id, 'first_review_reply', 'First Response', 'Reply to your first review', 'reviews', 10, 'bronze', 1),
+    (p_user_id, 'review_master_10', 'Review Master', 'Reply to 10 reviews', 'reviews', 50, 'silver', 10),
+    (p_user_id, 'review_champion_50', 'Review Champion', 'Reply to 50 reviews', 'reviews', 200, 'gold', 50),
+    (p_user_id, 'first_post', 'Content Creator', 'Create your first post', 'engagement', 10, 'bronze', 1),
+    (p_user_id, 'weekly_poster', 'Weekly Poster', 'Post content for 4 consecutive weeks', 'engagement', 100, 'silver', 4),
+    (p_user_id, 'rating_boost', 'Rating Booster', 'Improve your average rating by 0.5 stars', 'growth', 150, 'gold', 1),
+    (p_user_id, 'streak_7', 'Week Warrior', 'Maintain a 7-day activity streak', 'special', 75, 'silver', 7),
+    (p_user_id, 'streak_30', 'Monthly Master', 'Maintain a 30-day activity streak', 'special', 300, 'platinum', 30)
+  ON CONFLICT (user_id, achievement_id) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION initialize_user_progress(UUID) IS 'Initialize user progress and default achievements';
+
+-- Update user achievements based on activity
+CREATE OR REPLACE FUNCTION update_user_achievements(p_user_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_unlocked_count INTEGER := 0;
+  v_review_count INTEGER;
+  v_post_count INTEGER;
+  v_streak_days INTEGER;
+BEGIN
+  -- Get current stats
+  SELECT COUNT(*) INTO v_review_count
+  FROM gmb_reviews r
+  JOIN gmb_locations l ON r.location_id = l.id
+  JOIN gmb_accounts a ON l.account_id = a.id
+  WHERE a.user_id = p_user_id AND r.reply_comment IS NOT NULL;
+
+  SELECT COUNT(*) INTO v_post_count
+  FROM gmb_posts p
+  JOIN gmb_locations l ON p.location_id = l.id
+  JOIN gmb_accounts a ON l.account_id = a.id
+  WHERE a.user_id = p_user_id;
+
+  SELECT streak_days INTO v_streak_days
+  FROM user_progress
+  WHERE user_id = p_user_id;
+
+  -- Update review achievements
+  UPDATE user_achievements
+  SET progress = v_review_count,
+      unlocked = CASE WHEN v_review_count >= max_progress THEN true ELSE unlocked END,
+      unlocked_at = CASE WHEN v_review_count >= max_progress AND unlocked = false THEN NOW() ELSE unlocked_at END,
+      updated_at = NOW()
+  WHERE user_id = p_user_id AND category = 'reviews';
+
+  -- Update engagement achievements
+  UPDATE user_achievements
+  SET progress = v_post_count,
+      unlocked = CASE WHEN v_post_count >= max_progress THEN true ELSE unlocked END,
+      unlocked_at = CASE WHEN v_post_count >= max_progress AND unlocked = false THEN NOW() ELSE unlocked_at END,
+      updated_at = NOW()
+  WHERE user_id = p_user_id AND achievement_id = 'first_post';
+
+  -- Update streak achievements
+  UPDATE user_achievements
+  SET progress = COALESCE(v_streak_days, 0),
+      unlocked = CASE WHEN COALESCE(v_streak_days, 0) >= max_progress THEN true ELSE unlocked END,
+      unlocked_at = CASE WHEN COALESCE(v_streak_days, 0) >= max_progress AND unlocked = false THEN NOW() ELSE unlocked_at END,
+      updated_at = NOW()
+  WHERE user_id = p_user_id AND achievement_id IN ('streak_7', 'streak_30');
+
+  -- Count newly unlocked achievements
+  SELECT COUNT(*) INTO v_unlocked_count
+  FROM user_achievements
+  WHERE user_id = p_user_id AND unlocked = true AND unlocked_at > NOW() - INTERVAL '1 minute';
+
+  -- Update user points
+  UPDATE user_progress
+  SET total_points = (
+    SELECT COALESCE(SUM(points), 0)
+    FROM user_achievements
+    WHERE user_id = p_user_id AND unlocked = true
+  ),
+  updated_at = NOW()
+  WHERE user_id = p_user_id;
+
+  RETURN v_unlocked_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION update_user_achievements(UUID) IS 'Update user achievements based on activity and return count of newly unlocked';
 
 -- =====================================================
 -- STEP 6: CREATE SYNC RPC FUNCTION
