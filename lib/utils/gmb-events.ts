@@ -27,8 +27,9 @@ export function dispatchGmbConnectionEvent(
 
 /**
  * Force refresh all GMB-related data
+ * @param skipReload - If true, skip the page reload (useful when React Query handles refresh)
  */
-export function forceGmbRefresh() {
+export function forceGmbRefresh(skipReload = false) {
   if (typeof window === "undefined") return;
 
   // Clear localStorage cache
@@ -39,14 +40,21 @@ export function forceGmbRefresh() {
     }
   });
 
-  // Clear sessionStorage
-  sessionStorage.clear();
+  // Clear sessionStorage GMB data
+  const sessionKeys = Object.keys(sessionStorage);
+  sessionKeys.forEach((key) => {
+    if (key.startsWith("gmb_") || key.startsWith("dashboard_")) {
+      sessionStorage.removeItem(key);
+    }
+  });
 
-  // Dispatch events
+  // Dispatch events to notify components
   dispatchGmbConnectionEvent("connected");
 
-  // Force immediate page reload to refresh all GMB state
-  window.location.reload();
+  // Only reload if not skipped - React Query's refetchOnMount handles most cases
+  if (!skipReload) {
+    window.location.reload();
+  }
 }
 
 /**

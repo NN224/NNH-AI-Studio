@@ -14,6 +14,7 @@ import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
 } from "@/lib/utils/safe-redirect";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -666,6 +667,15 @@ export async function GET(request: NextRequest) {
     } catch (syncError) {
       console.error("[OAuth Callback] Error adding to queue:", syncError);
     }
+
+    // ✅ CRITICAL: Invalidate Next.js cache so Settings page shows fresh data
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidatePath("/en/settings");
+    revalidatePath("/ar/settings");
+    revalidatePath("/en/dashboard");
+    revalidatePath("/ar/dashboard");
 
     // If multiple accounts were saved, redirect to account selection page
     if (savedAccountIds.length > 1) {

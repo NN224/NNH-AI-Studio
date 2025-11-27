@@ -13,10 +13,12 @@ export function useGMBStatus() {
   return useQuery({
     queryKey: GMB_KEYS.status(),
     queryFn: GMBService.getStatus,
-    // Keep data fresh for 1 minute, cache for 10 minutes
-    staleTime: 1000 * 60,
+    // Keep data fresh for 30 seconds to ensure quick updates after OAuth
+    staleTime: 1000 * 30,
     gcTime: 1000 * 60 * 10,
     retry: 1,
+    // Always refetch on mount to ensure fresh data after OAuth redirect
+    refetchOnMount: "always",
   });
 }
 
