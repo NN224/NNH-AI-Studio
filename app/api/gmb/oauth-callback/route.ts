@@ -574,10 +574,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Single account - redirect to home with newUser flag to trigger first-sync overlay
-    const redirectUrl = `${baseUrl}/${localeCookie}/home?newUser=true&accountId=${savedAccountId}`;
+    // Single account - redirect to settings with success flag
+    const redirectUrl = `${baseUrl}/${localeCookie}/settings?gmb_connected=true&accountId=${savedAccountId}`;
     console.warn(
-      "[OAuth Callback] Single account, redirecting to home:",
+      "[OAuth Callback] Single account, redirecting to settings:",
       redirectUrl,
     );
     return NextResponse.redirect(redirectUrl);

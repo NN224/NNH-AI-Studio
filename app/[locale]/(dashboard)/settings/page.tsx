@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { GMBSettings } from "@/components/settings/gmb-settings";
-import { toast } from "sonner";
 import { forceGmbRefresh } from "@/lib/utils/gmb-events";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const t = useTranslations("dashboard.settings");
@@ -13,12 +13,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Check if user just connected GMB account
-    const connected = searchParams?.get("connected");
+    const connected =
+      searchParams?.get("connected") || searchParams?.get("gmb_connected");
 
     if (connected === "true") {
       // Clean up URL FIRST to prevent reload loop
       const url = new URL(window.location.href);
       url.searchParams.delete("connected");
+      url.searchParams.delete("gmb_connected");
       window.history.replaceState({}, "", url.toString());
 
       // Show success toast with sync status
