@@ -2,7 +2,8 @@
 
 import { useSyncContextSafe } from "@/contexts/sync-context";
 import { useGMBStatus } from "@/hooks/features/use-gmb";
-import { useEffect, useRef } from "react";
+import * as Sentry from "@sentry/nextjs";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 interface BackgroundSyncOptions {
@@ -117,8 +118,11 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
     return minutesSinceLastSync >= intervalMinutes;
   };
 
-  // Helper: Perform background sync
-  const performSync = async () => {
+  // Retry counter for error recovery
+  const retryCount = useRef(0);
+
+  // Helper: Perform background sync with error recovery
+  const performSync = useCallback(async () => {
     if (!shouldSync()) return;
 
     try {
@@ -132,6 +136,9 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         await syncContext.startSync(activeAccountId, false);
       }
 
+      // Reset retry count on success
+      retryCount.current = 0;
+
       if (showNotifications) {
         toast.success("✓ Data updated successfully", {
           duration: 2000,
@@ -140,14 +147,24 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
     } catch (error) {
       console.error("[Background Sync] Failed:", error);
 
+      // Track retry attempts
+      retryCount.current = retryCount.current + 1;
+
       if (showNotifications) {
         toast.error("Background sync failed", {
           description: error instanceof Error ? error.message : "Unknown error",
           duration: 3000,
         });
       }
+
+      // Report to error monitoring
+      Sentry.captureException(error, {
+        tags: { component: "background-sync" },
+        extra: { retryCount: retryCount.current },
+      });
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shouldSync intentionally reads latest values at execution time
+  }, [activeAccountId, syncContext, showNotifications]);
 
   // Sync on mount if needed
   useEffect(() => {
@@ -165,6 +182,16 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
     return () => clearTimeout(timeout);
   }, [syncOnMount]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Async wrapper for periodic sync to properly handle errors
+  const runPeriodicSync = useCallback(async () => {
+    try {
+      await performSync();
+    } catch (error) {
+      // Errors already handled in performSync, but catch any unexpected ones
+      console.error("[Periodic Sync] Unexpected error:", error);
+    }
+  }, [performSync]);
+
   // Set up periodic background sync
   useEffect(() => {
     // Clear any existing interval
@@ -172,10 +199,10 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
       clearInterval(syncIntervalRef.current);
     }
 
-    // Set up new interval
+    // Set up new interval - properly await async calls
     syncIntervalRef.current = setInterval(
       () => {
-        performSync();
+        void runPeriodicSync(); // Use void to explicitly mark fire-and-forget with proper error handling
       },
       intervalMinutes * 60 * 1000,
     );
@@ -187,7 +214,19 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         syncIntervalRef.current = null;
       }
     };
-  }, [intervalMinutes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [intervalMinutes, runPeriodicSync]);
+
+  // Async wrapper for visibility change sync
+  const runSyncOnVisible = useCallback(async () => {
+    try {
+      if (shouldSync()) {
+        await performSync();
+      }
+    } catch (error) {
+      console.error("[Visibility Sync] Error:", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shouldSync intentionally reads latest values at execution time
+  }, [performSync]);
 
   // Pause sync when page is hidden, resume when visible
   useEffect(() => {
@@ -203,15 +242,13 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         if (!syncIntervalRef.current) {
           syncIntervalRef.current = setInterval(
             () => {
-              performSync();
+              void runPeriodicSync(); // Use void to explicitly mark fire-and-forget with proper error handling
             },
             intervalMinutes * 60 * 1000,
           );
 
-          // Check if sync needed immediately
-          if (shouldSync()) {
-            performSync();
-          }
+          // Check if sync needed immediately - properly handle async
+          void runSyncOnVisible();
         }
       }
     };
@@ -221,7 +258,7 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [intervalMinutes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [intervalMinutes, runPeriodicSync, runSyncOnVisible]);
 }
 
 /**

@@ -1,37 +1,66 @@
-import { cookies } from 'next/headers';
-import { NextRequest } from 'next/server';
+import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 
-// Use crypto from web API instead of Node.js crypto
-const getRandomToken = () => {
-  if (typeof window === 'undefined' && global.crypto) {
-    // Server-side: use Web Crypto API
+/**
+ * Generates a cryptographically secure random token for CSRF protection.
+ *
+ * @returns {string} A 64-character hex string (32 bytes of entropy)
+ * @throws {Error} If cryptographically secure random generation is unavailable
+ *
+ * @security CRITICAL - This function MUST use cryptographic randomness.
+ * Never use Math.random() or other predictable sources as it would make
+ * CSRF tokens predictable and vulnerable to attacks.
+ */
+const getRandomToken = (): string => {
+  // Server-side: use global.crypto (available in Node.js 19+ and Edge Runtime)
+  if (
+    typeof window === "undefined" &&
+    typeof global !== "undefined" &&
+    global.crypto?.getRandomValues
+  ) {
     const buffer = new Uint8Array(32);
     global.crypto.getRandomValues(buffer);
-    return Array.from(buffer, b => b.toString(16).padStart(2, '0')).join('');
-  } else if (typeof window !== 'undefined' && window.crypto) {
-    // Client-side: use Web Crypto API
+    return Array.from(buffer, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // Client-side: use window.crypto (Web Crypto API)
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
     const buffer = new Uint8Array(32);
     window.crypto.getRandomValues(buffer);
-    return Array.from(buffer, b => b.toString(16).padStart(2, '0')).join('');
-  } else {
-    // Fallback
-    return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    return Array.from(buffer, (b) => b.toString(16).padStart(2, "0")).join("");
   }
+
+  // Check for crypto.randomUUID as alternative
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    // randomUUID returns a UUID v4 (122 bits of randomness)
+    // Combine two UUIDs for extra entropy
+    return (
+      crypto.randomUUID().replace(/-/g, "") +
+      crypto.randomUUID().replace(/-/g, "")
+    );
+  }
+
+  // FAIL SECURELY - Never use weak randomness for security tokens
+  throw new Error(
+    "CSRF Protection Error: Cryptographically secure random number generation is not available. " +
+      "This is required for security. Please ensure your environment supports Web Crypto API " +
+      "(Node.js 19+, modern browsers, or Edge Runtime).",
+  );
 };
 
 // CSRF token configuration
-const CSRF_TOKEN_LENGTH = 32;
-const CSRF_COOKIE_NAME = 'csrf-token';
-const CSRF_HEADER_NAME = 'x-csrf-token';
-const CSRF_FORM_FIELD = 'csrfToken';
+const _CSRF_TOKEN_LENGTH = 32; // Reserved for future use
+const CSRF_COOKIE_NAME = "csrf-token";
+const CSRF_HEADER_NAME = "x-csrf-token";
+const _CSRF_FORM_FIELD = "csrfToken"; // Reserved for form-based CSRF
 
 // Methods that should be protected
-const PROTECTED_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
+const PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 
 // Paths that should be excluded from CSRF protection
 const EXCLUDED_PATHS = [
-  '/api/auth/callback', // OAuth callbacks
-  '/api/webhook',        // External webhooks
+  "/api/auth/callback", // OAuth callbacks
+  "/api/webhook", // External webhooks
 ];
 
 /**
@@ -66,7 +95,7 @@ export async function getCSRFTokenFromCookie(): Promise<string | null> {
     const token = cookieStore.get(CSRF_COOKIE_NAME);
     return token?.value || null;
   } catch (error) {
-    console.error('Error reading CSRF cookie:', error);
+    console.error("Error reading CSRF cookie:", error);
     return null;
   }
 }
@@ -79,13 +108,13 @@ export async function setCSRFTokenCookie(token: string): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.set(CSRF_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
       maxAge: 60 * 60 * 24, // 24 hours
     });
   } catch (error) {
-    console.error('Error setting CSRF cookie:', error);
+    console.error("Error setting CSRF cookie:", error);
     // Silently fail - cookie setting may not be available in all contexts
   }
 }
@@ -93,7 +122,10 @@ export async function setCSRFTokenCookie(token: string): Promise<void> {
 /**
  * Verify CSRF token
  */
-export function verifyCSRFToken(requestToken: string | null, cookieToken: string | null): boolean {
+export function verifyCSRFToken(
+  requestToken: string | null,
+  cookieToken: string | null,
+): boolean {
   if (!requestToken || !cookieToken) {
     return false;
   }
@@ -122,7 +154,7 @@ export function shouldProtectRequest(request: NextRequest): boolean {
 
   // Check if path is excluded
   const pathname = new URL(request.url).pathname;
-  if (EXCLUDED_PATHS.some(path => pathname.startsWith(path))) {
+  if (EXCLUDED_PATHS.some((path) => pathname.startsWith(path))) {
     return false;
   }
 
@@ -132,7 +164,9 @@ export function shouldProtectRequest(request: NextRequest): boolean {
 /**
  * CSRF protection middleware helper
  */
-export async function validateCSRF(request: NextRequest): Promise<{ valid: boolean; token?: string }> {
+export async function validateCSRF(
+  request: NextRequest,
+): Promise<{ valid: boolean; token?: string }> {
   // Skip CSRF check for non-protected requests
   if (!shouldProtectRequest(request)) {
     return { valid: true };
@@ -161,11 +195,11 @@ export async function validateCSRF(request: NextRequest): Promise<{ valid: boole
  */
 export async function getCSRFToken(): Promise<string> {
   try {
-    const response = await fetch('/api/csrf-token');
+    const response = await fetch("/api/csrf-token");
     const data = await response.json();
-    return data.token || '';
+    return data.token || "";
   } catch (error) {
-    console.error('Failed to get CSRF token:', error);
-    return '';
+    console.error("Failed to get CSRF token:", error);
+    return "";
   }
 }

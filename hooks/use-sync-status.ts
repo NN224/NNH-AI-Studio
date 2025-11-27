@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useEffect, useRef, useState } from "react";
 
 export interface SyncJob {
   id: string;
@@ -21,12 +21,15 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastJob, setLastJob] = useState<SyncJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
 
+    // Create supabase client INSIDE useEffect to avoid infinite re-renders
+    // createClient() returns a new object instance on every call, so putting it
+    // in the dependency array would cause the effect to run infinitely
+    const supabase = createClient();
     if (!supabase) return;
 
     const checkSyncStatus = async () => {
@@ -83,7 +86,7 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
       mountedRef.current = false;
       clearInterval(intervalId);
     };
-  }, [userId, supabase]);
+  }, [userId]); // Only userId in dependencies - supabase is created inside effect
 
   return { isSyncing, lastJob, error };
 }

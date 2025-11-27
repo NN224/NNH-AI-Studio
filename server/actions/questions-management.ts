@@ -1,11 +1,11 @@
 "use server";
 
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
+import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
+import type { QuestionData } from "@/lib/gmb/sync-types";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
-import type { QuestionData } from "@/lib/gmb/sync-types";
-import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 
 const GMB_API_BASE = GMB_CONSTANTS.QANDA_BASE;
 
@@ -17,7 +17,9 @@ interface QuestionFetchContext {
   internalLocationId?: string;
 }
 
-async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promise<QuestionData[]> {
+async function collectQuestionsFromGoogle(
+  context: QuestionFetchContext,
+): Promise<QuestionData[]> {
   const endpoint = `${GMB_API_BASE}/${context.googleLocationId}/questions`;
   const response = await fetch(endpoint, {
     headers: {
@@ -28,7 +30,9 @@ async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promis
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new Error("Authentication expired. Please reconnect your Google account.");
+      throw new Error(
+        "Authentication expired. Please reconnect your Google account.",
+      );
     }
     if (response.status === 404) {
       throw new Error("Location not found on Google.");
@@ -39,7 +43,9 @@ async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promis
       status: response.status,
       error: errorData,
     });
-    throw new Error(errorData?.error?.message || "Failed to fetch questions from Google");
+    throw new Error(
+      errorData?.error?.message || "Failed to fetch questions from Google",
+    );
   }
 
   const data = await response.json();
@@ -83,7 +89,7 @@ async function collectQuestionsFromGoogle(context: QuestionFetchContext): Promis
 
 export async function fetchQuestionsFromGoogle(
   locationId: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<QuestionData[]> {
   const supabase = await createClient();
   const { data: location, error } = await supabase
@@ -106,20 +112,20 @@ export async function fetchQuestionsFromGoogle(
 }
 
 // Validation schemas
-const AnswerQuestionSchema = z.object({
+const _AnswerQuestionSchema = z.object({
   questionId: z.string().uuid(),
   answerText: z.string().min(1).max(2000),
-});
+}); // Reserved for future validation use
 
 // ============================================
 // 1. GET QUESTIONS WITH FILTERS
 // ============================================
 export async function getQuestions(params: {
   locationId?: string;
-  status?: 'unanswered' | 'answered' | 'all';
+  status?: "unanswered" | "answered" | "all";
   priority?: string;
   searchQuery?: string;
-  sortBy?: 'newest' | 'oldest' | 'most_upvoted' | 'urgent';
+  sortBy?: "newest" | "oldest" | "most_upvoted" | "urgent";
   limit?: number;
   offset?: number;
 }) {
@@ -151,7 +157,7 @@ export async function getQuestions(params: {
           address
         )
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .eq("user_id", user.id);
 
@@ -163,7 +169,9 @@ export async function getQuestions(params: {
     // Filter by status
     if (params.status && params.status !== "all") {
       if (params.status === "unanswered") {
-        query = query.or("answer_status.eq.unanswered,answer_status.eq.pending");
+        query = query.or(
+          "answer_status.eq.unanswered,answer_status.eq.pending",
+        );
       } else if (params.status === "answered") {
         query = query.eq("answer_status", "answered");
       }
@@ -178,14 +186,17 @@ export async function getQuestions(params: {
     // Search
     if (params.searchQuery) {
       query = query.or(
-        `question_text.ilike.%${params.searchQuery}%,answer_text.ilike.%${params.searchQuery}%`
+        `question_text.ilike.%${params.searchQuery}%,answer_text.ilike.%${params.searchQuery}%`,
       );
     }
 
     // Sort
     switch (params.sortBy) {
       case "newest":
-        query = query.order("asked_at", { ascending: false, nullsFirst: false });
+        query = query.order("asked_at", {
+          ascending: false,
+          nullsFirst: false,
+        });
         break;
       case "oldest":
         query = query.order("asked_at", { ascending: true, nullsFirst: false });
@@ -224,11 +235,12 @@ export async function getQuestions(params: {
       data: data || [],
       count: count || 0,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Get questions error:", error);
     return {
       success: false,
-      error: error.message || "Failed to fetch questions",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch questions",
       data: [],
       count: 0,
     };
@@ -282,7 +294,7 @@ export async function answerQuestion(questionId: string, answerText: string) {
           user_id,
           gmb_accounts!inner(id, account_id)
         )
-      `
+      `,
       )
       .eq("id", questionId)
       .eq("user_id", user.id)
@@ -299,7 +311,8 @@ export async function answerQuestion(questionId: string, answerText: string) {
     if (question.answer_status === "answered" && question.answer_text) {
       return {
         success: false,
-        error: "This question has already been answered. Use updateAnswer to modify it.",
+        error:
+          "This question has already been answered. Use updateAnswer to modify it.",
       };
     }
 
@@ -307,24 +320,31 @@ export async function answerQuestion(questionId: string, answerText: string) {
       ? question.gmb_locations[0]
       : question.gmb_locations;
     const account =
-      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
-      null;
+      (Array.isArray(location?.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location?.gmb_accounts) || null;
 
     if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
     // Get question_id (use question_id or external_question_id)
-    const googleQuestionId = question.question_id || question.external_question_id;
+    const googleQuestionId =
+      question.question_id || question.external_question_id;
     if (!googleQuestionId) {
       return {
         success: false,
-        error: "Question ID not found. Please sync questions from Google first.",
+        error:
+          "Question ID not found. Please sync questions from Google first.",
       };
     }
 
@@ -348,12 +368,14 @@ export async function answerQuestion(questionId: string, answerText: string) {
       if (response.status === 401) {
         return {
           success: false,
-          error: "Authentication expired. Please reconnect your Google account.",
+          error:
+            "Authentication expired. Please reconnect your Google account.",
         };
       } else if (response.status === 403) {
         return {
           success: false,
-          error: "Permission denied. You don't have permission to answer this question.",
+          error:
+            "Permission denied. You don't have permission to answer this question.",
         };
       } else if (response.status === 404) {
         return {
@@ -368,7 +390,9 @@ export async function answerQuestion(questionId: string, answerText: string) {
       } else {
         return {
           success: false,
-          error: errorData.error?.message || `Failed to post answer (${response.status})`,
+          error:
+            errorData.error?.message ||
+            `Failed to post answer (${response.status})`,
         };
       }
     }
@@ -407,11 +431,11 @@ export async function answerQuestion(questionId: string, answerText: string) {
       data: result,
       message: "Answer posted successfully!",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Answer question error:", error);
     return {
       success: false,
-      error: error.message || "Failed to post answer",
+      error: error instanceof Error ? error.message : "Failed to post answer",
     };
   }
 }
@@ -462,7 +486,7 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
           user_id,
           gmb_accounts!inner(id, account_id)
         )
-      `
+      `,
       )
       .eq("id", questionId)
       .eq("user_id", user.id)
@@ -478,7 +502,8 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
     if (question.answer_status !== "answered" || !question.answer_id) {
       return {
         success: false,
-        error: "No answer to update. Use answerQuestion to create a new answer.",
+        error:
+          "No answer to update. Use answerQuestion to create a new answer.",
       };
     }
 
@@ -486,19 +511,25 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       ? question.gmb_locations[0]
       : question.gmb_locations;
     const account =
-      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
-      null;
+      (Array.isArray(location?.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location?.gmb_accounts) || null;
 
     if (!location?.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
-    const googleQuestionId = question.question_id || question.external_question_id;
+    const googleQuestionId =
+      question.question_id || question.external_question_id;
     if (!googleQuestionId) {
       return {
         success: false,
@@ -526,7 +557,8 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       if (response.status === 401) {
         return {
           success: false,
-          error: "Authentication expired. Please reconnect your Google account.",
+          error:
+            "Authentication expired. Please reconnect your Google account.",
         };
       } else if (response.status === 404) {
         return {
@@ -567,11 +599,11 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       data: result,
       message: "Answer updated!",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Update answer error:", error);
     return {
       success: false,
-      error: error.message || "Failed to update answer",
+      error: error instanceof Error ? error.message : "Failed to update answer",
     };
   }
 }
@@ -608,7 +640,7 @@ export async function deleteAnswer(questionId: string) {
           user_id,
           gmb_accounts!inner(id, account_id)
         )
-      `
+      `,
       )
       .eq("id", questionId)
       .eq("user_id", user.id)
@@ -632,8 +664,9 @@ export async function deleteAnswer(questionId: string) {
       ? question.gmb_locations[0]
       : question.gmb_locations;
     const account =
-      (Array.isArray(location?.gmb_accounts) ? location.gmb_accounts[0] : location?.gmb_accounts) ||
-      null;
+      (Array.isArray(location?.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location?.gmb_accounts) || null;
 
     if (!location?.gmb_account_id || !account?.account_id) {
       return {
@@ -642,9 +675,13 @@ export async function deleteAnswer(questionId: string) {
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
 
-    const googleQuestionId = question.question_id || question.external_question_id;
+    const googleQuestionId =
+      question.question_id || question.external_question_id;
     if (!googleQuestionId) {
       return {
         success: false,
@@ -696,11 +733,11 @@ export async function deleteAnswer(questionId: string) {
       success: true,
       message: "Answer deleted!",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Delete answer error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete answer",
+      error: error instanceof Error ? error.message : "Failed to delete answer",
     };
   }
 }
@@ -710,7 +747,7 @@ export async function deleteAnswer(questionId: string) {
 // ============================================
 export async function bulkAnswerQuestions(
   questionIds: string[],
-  answerTemplate: string
+  answerTemplate: string,
 ) {
   try {
     if (!questionIds || questionIds.length === 0) {
@@ -753,11 +790,14 @@ export async function bulkAnswerQuestions(
       data: results,
       message: `Answered ${results.success.length} of ${questionIds.length} questions`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Bulk answer error:", error);
     return {
       success: false,
-      error: error.message || "Failed to bulk answer questions",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to bulk answer questions",
     };
   }
 }
@@ -792,7 +832,7 @@ export async function syncQuestionsFromGoogle(locationId: string) {
         user_id,
         metadata,
         gmb_accounts!inner(id, account_id)
-      `
+      `,
       )
       .eq("id", locationId)
       .eq("user_id", user.id)
@@ -806,17 +846,22 @@ export async function syncQuestionsFromGoogle(locationId: string) {
     }
 
     const account =
-      (Array.isArray(location.gmb_accounts) ? location.gmb_accounts[0] : location.gmb_accounts) ||
-      null;
+      (Array.isArray(location.gmb_accounts)
+        ? location.gmb_accounts[0]
+        : location.gmb_accounts) || null;
 
     if (!location.gmb_account_id || !account?.account_id) {
       return {
         success: false,
-        error: "Linked Google account not found. Please reconnect your Google account.",
+        error:
+          "Linked Google account not found. Please reconnect your Google account.",
       };
     }
 
-    const accessToken = await getValidAccessToken(supabase, location.gmb_account_id);
+    const accessToken = await getValidAccessToken(
+      supabase,
+      location.gmb_account_id,
+    );
     const questionDataset = await collectQuestionsFromGoogle({
       userId: user.id,
       accountId: location.gmb_account_id,
@@ -914,11 +959,12 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       message: `Synced ${synced} questions successfully`,
       data: { synced },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Sync questions error:", error);
     return {
       success: false,
-      error: error.message || "Failed to sync questions",
+      error:
+        error instanceof Error ? error.message : "Failed to sync questions",
     };
   }
 }
@@ -927,11 +973,14 @@ export async function syncQuestionsFromGoogle(locationId: string) {
 // 7. GET QUESTION STATISTICS
 // ============================================
 type QuestionStatsContext = {
-  supabase?: Awaited<ReturnType<typeof createClient>>
-  userId?: string
-}
+  supabase?: Awaited<ReturnType<typeof createClient>>;
+  userId?: string;
+};
 
-export async function getQuestionStats(locationId?: string, context?: QuestionStatsContext) {
+export async function getQuestionStats(
+  locationId?: string,
+  context?: QuestionStatsContext,
+) {
   try {
     const supabase = context?.supabase ?? (await createClient());
     let resolvedUserId = context?.userId;
@@ -975,13 +1024,15 @@ export async function getQuestionStats(locationId?: string, context?: QuestionSt
     const stats = {
       total: data.length,
       unanswered: data.filter(
-        (q) => q.answer_status === "unanswered" || q.answer_status === "pending"
+        (q) =>
+          q.answer_status === "unanswered" || q.answer_status === "pending",
       ).length,
       answered: data.filter((q) => q.answer_status === "answered").length,
       totalUpvotes: data.reduce((sum, q) => sum + (q.upvote_count || 0), 0),
       avgUpvotes:
         data.length > 0
-          ? data.reduce((sum, q) => sum + (q.upvote_count || 0), 0) / data.length
+          ? data.reduce((sum, q) => sum + (q.upvote_count || 0), 0) /
+            data.length
           : 0,
       answerRate:
         (data.filter((q) => q.answer_status === "answered").length /
@@ -993,11 +1044,12 @@ export async function getQuestionStats(locationId?: string, context?: QuestionSt
       success: true,
       data: stats,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Get stats error:", error);
     return {
       success: false,
-      error: error.message || "Failed to get statistics",
+      error:
+        error instanceof Error ? error.message : "Failed to get statistics",
       data: null,
     };
   }
@@ -1009,7 +1061,7 @@ export async function getQuestionStats(locationId?: string, context?: QuestionSt
 export async function saveAnswerTemplate(
   category: string,
   questionPattern: string,
-  templateAnswer: string
+  templateAnswer: string,
 ) {
   try {
     const supabase = await createClient();
@@ -1045,11 +1097,11 @@ export async function saveAnswerTemplate(
       success: true,
       message: "Template saved!",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Save template error:", error);
     return {
       success: false,
-      error: error.message || "Failed to save template",
+      error: error instanceof Error ? error.message : "Failed to save template",
     };
   }
 }
@@ -1096,13 +1148,12 @@ export async function getAnswerTemplates(category?: string) {
       success: true,
       data: data || [],
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Questions] Get templates error:", error);
     return {
       success: false,
-      error: error.message || "Failed to get templates",
+      error: error instanceof Error ? error.message : "Failed to get templates",
       data: [],
     };
   }
 }
-
