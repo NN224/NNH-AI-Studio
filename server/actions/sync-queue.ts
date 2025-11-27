@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export interface SyncQueueItem {
   id: string;
@@ -41,7 +41,7 @@ export async function addToSyncQueue(
         .from("sync_queue")
         .insert({
           user_id: userId,
-          account_id: accountId,
+          gmb_account_id: accountId,
           sync_type: syncType,
           priority,
           status: "pending",
@@ -71,7 +71,7 @@ export async function addToSyncQueue(
       .from("sync_queue")
       .insert({
         user_id: user.id,
-        account_id: accountId,
+        gmb_account_id: accountId,
         sync_type: syncType,
         priority,
         status: "pending",

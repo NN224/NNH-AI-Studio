@@ -1,6 +1,60 @@
 import { requireAdmin } from "@/lib/auth/admin-check";
 import { createAdminClient } from "@/lib/supabase/server";
 
+// Expected schema for each table (columns that the code expects)
+const EXPECTED_SCHEMA: Record<string, string[]> = {
+  gmb_accounts: [
+    "id",
+    "user_id",
+    "account_id",
+    "account_name",
+    "email",
+    "access_token",
+    "refresh_token",
+    "token_expires_at",
+    "is_active",
+    "last_sync",
+    "updated_at",
+    "created_at",
+  ],
+  gmb_locations: [
+    "id",
+    "gmb_account_id",
+    "user_id",
+    "location_name",
+    "location_id",
+    "address",
+    "phone",
+    "website",
+    "categories",
+    "is_active",
+    "metadata",
+    "updated_at",
+    "created_at",
+  ],
+  sync_queue: [
+    "id",
+    "user_id",
+    "gmb_account_id",
+    "sync_type",
+    "priority",
+    "status",
+    "attempts",
+    "created_at",
+    "updated_at",
+  ],
+  oauth_states: [
+    "id",
+    "state",
+    "user_id",
+    "provider",
+    "expires_at",
+    "used",
+    "created_at",
+  ],
+  profiles: ["id", "email", "full_name", "avatar_url", "updated_at"],
+};
+
 export async function GET() {
   try {
     // Check admin access first
@@ -23,37 +77,76 @@ export async function GET() {
       "gmb_services",
       "sync_queue",
       "gmb_sync_logs",
-      "oauth_states", // This is the missing one
+      "oauth_states",
       "notifications",
       "user_settings",
     ];
 
-    const tableStatus: Record<string, any> = {};
+    const tableStatus: Record<string, TableStatus> = {};
     const missingTables: string[] = [];
     const workingTables: string[] = [];
+    const columnIssues: ColumnIssue[] = [];
 
     // Check each table
     for (const tableName of requiredTables) {
       try {
-        const { data, error } = await adminClient
-          .from(tableName)
-          .select("*")
-          .limit(1);
+        // Try to select with expected columns to detect missing columns
+        const expectedColumns = EXPECTED_SCHEMA[tableName];
 
-        if (error) {
-          tableStatus[tableName] = {
-            exists: false,
-            error: error.message,
-            code: error.code,
-            hint: error.hint,
-          };
-          missingTables.push(tableName);
-        } else {
+        if (expectedColumns) {
+          // Test each column individually
+          const missingColumns: string[] = [];
+          const workingColumns: string[] = [];
+
+          for (const column of expectedColumns) {
+            const { error } = await adminClient
+              .from(tableName)
+              .select(column)
+              .limit(1);
+
+            if (error && error.message.includes(column)) {
+              missingColumns.push(column);
+              columnIssues.push({
+                table: tableName,
+                column: column,
+                error: error.message,
+              });
+            } else if (!error) {
+              workingColumns.push(column);
+            }
+          }
+
           tableStatus[tableName] = {
             exists: true,
-            sample_count: data?.length || 0,
+            working_columns: workingColumns,
+            missing_columns: missingColumns,
+            column_issues: missingColumns.length > 0,
           };
-          workingTables.push(tableName);
+
+          if (missingColumns.length === 0) {
+            workingTables.push(tableName);
+          }
+        } else {
+          // No schema defined, just check if table exists
+          const { data, error } = await adminClient
+            .from(tableName)
+            .select("*")
+            .limit(1);
+
+          if (error) {
+            tableStatus[tableName] = {
+              exists: false,
+              error: error.message,
+              code: error.code,
+            };
+            missingTables.push(tableName);
+          } else {
+            tableStatus[tableName] = {
+              exists: true,
+              sample_count: data?.length || 0,
+            };
+            workingTables.push(tableName);
+          }
         }
       } catch (err) {
         tableStatus[tableName] = {
@@ -64,21 +157,27 @@ export async function GET() {
       }
     }
 
-    // Generate SQL for missing tables
-    const createTableSQL = generateCreateTableSQL(missingTables);
+    // Generate SQL for missing tables and columns
+    const tableSQL = generateCreateTableSQL(missingTables);
+    const columnSQL = generateColumnFixSQL(columnIssues);
 
     return Response.json({
-      success: true,
+      success: columnIssues.length === 0 && missingTables.length === 0,
       summary: {
         total_tables: requiredTables.length,
         working_tables: workingTables.length,
         missing_tables: missingTables.length,
+        column_issues: columnIssues.length,
       },
       working_tables: workingTables,
       missing_tables: missingTables,
+      column_issues: columnIssues,
       table_details: tableStatus,
-      create_sql: createTableSQL,
-      recommendations: generateRecommendations(missingTables),
+      fix_sql: {
+        tables: tableSQL,
+        columns: columnSQL,
+      },
+      recommendations: generateRecommendations(missingTables, columnIssues),
     });
   } catch (error) {
     return Response.json(
@@ -90,6 +189,22 @@ export async function GET() {
       { status: 500 },
     );
   }
+}
+
+interface TableStatus {
+  exists: boolean;
+  working_columns?: string[];
+  missing_columns?: string[];
+  column_issues?: boolean;
+  sample_count?: number;
+  error?: string;
+  code?: string;
+}
+
+interface ColumnIssue {
+  table: string;
+  column: string;
+  error: string;
 }
 
 function generateCreateTableSQL(
@@ -172,38 +287,70 @@ CREATE POLICY "Users can manage their own settings" ON user_settings
   return sqlStatements;
 }
 
-function generateRecommendations(missingTables: string[]): string[] {
+function generateColumnFixSQL(
+  columnIssues: ColumnIssue[],
+): Record<string, string> {
+  const sqlStatements: Record<string, string> = {};
+
+  for (const issue of columnIssues) {
+    const key = `${issue.table}.${issue.column}`;
+
+    // Generate ALTER TABLE statement based on column name
+    let columnDef = "TEXT";
+    if (issue.column.includes("_id")) columnDef = "UUID";
+    if (issue.column.includes("_at")) columnDef = "TIMESTAMPTZ DEFAULT NOW()";
+    if (issue.column === "is_active") columnDef = "BOOLEAN DEFAULT TRUE";
+    if (issue.column === "priority") columnDef = "INTEGER DEFAULT 5";
+    if (issue.column === "attempts") columnDef = "INTEGER DEFAULT 0";
+    if (issue.column === "status") columnDef = "VARCHAR(50) DEFAULT 'pending'";
+    if (issue.column === "sync_type") columnDef = "VARCHAR(50) DEFAULT 'full'";
+    if (issue.column === "categories" || issue.column === "metadata")
+      columnDef = "JSONB DEFAULT '{}'";
+    if (issue.column === "used") columnDef = "BOOLEAN DEFAULT FALSE";
+
+    sqlStatements[key] =
+      `ALTER TABLE ${issue.table} ADD COLUMN IF NOT EXISTS ${issue.column} ${columnDef};`;
+  }
+
+  return sqlStatements;
+}
+
+function generateRecommendations(
+  missingTables: string[],
+  columnIssues: ColumnIssue[],
+): string[] {
   const recommendations: string[] = [];
 
-  if (missingTables.length === 0) {
-    recommendations.push("✅ All required tables exist!");
+  if (missingTables.length === 0 && columnIssues.length === 0) {
+    recommendations.push("✅ All required tables and columns exist!");
     return recommendations;
   }
 
-  recommendations.push(`❌ Found ${missingTables.length} missing tables`);
+  if (missingTables.length > 0) {
+    recommendations.push(`❌ Found ${missingTables.length} missing tables`);
+  }
+
+  if (columnIssues.length > 0) {
+    recommendations.push(`❌ Found ${columnIssues.length} missing columns`);
+
+    // Group by table
+    const byTable: Record<string, string[]> = {};
+    for (const issue of columnIssues) {
+      if (!byTable[issue.table]) byTable[issue.table] = [];
+      byTable[issue.table].push(issue.column);
+    }
+
+    for (const [table, columns] of Object.entries(byTable)) {
+      recommendations.push(`  🔧 ${table}: missing ${columns.join(", ")}`);
+    }
+  }
 
   if (missingTables.includes("oauth_states")) {
-    recommendations.push(
-      "🔧 oauth_states table is critical for OAuth flow - this is why GMB connection button doesn't work",
-    );
+    recommendations.push("🔧 oauth_states table is critical for OAuth flow");
   }
 
-  if (missingTables.includes("notifications")) {
-    recommendations.push(
-      "⚠️ notifications table missing - user notifications won't work",
-    );
-  }
-
-  if (missingTables.includes("user_settings")) {
-    recommendations.push(
-      "⚠️ user_settings table missing - user preferences won't be saved",
-    );
-  }
-
-  recommendations.push(
-    "📝 Use the provided SQL statements to create missing tables",
-  );
-  recommendations.push("🔄 After creating tables, restart the application");
+  recommendations.push("📝 Use the provided SQL statements to fix issues");
+  recommendations.push("🔄 After running SQL, restart the application");
 
   return recommendations;
 }
