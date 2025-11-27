@@ -143,9 +143,10 @@ export async function GET() {
     }
 
     // Only test location-specific endpoints if we have a location
-    if (location && location.location_id && location.gmb_account_id) {
+    if (location && location.location_id && account.account_id) {
+      // Use account.account_id (Google account ID like "accounts/123") not location.gmb_account_id (UUID)
       const locationName = buildLocationResourceName(
-        location.gmb_account_id,
+        account.account_id,
         location.location_id,
       );
 

@@ -25,7 +25,101 @@ import { randomUUID } from "crypto";
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
 const REVIEWS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const QANDA_BASE = GMB_CONSTANTS.QANDA_BASE;
-const POSTS_BASE = GMB_CONSTANTS.GBP_LOC_BASE; // Posts use same base as locations
+const POSTS_BASE = GMB_CONSTANTS.GMB_V4_BASE; // Posts use v4 API (localPosts endpoint)
+const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE; // Media uses v4 API
+
+// Rate limiting configuration
+const MAX_CONCURRENT_REQUESTS = 5; // Max parallel requests to Google API
+const REQUEST_DELAY_MS = 200; // Delay between batches to avoid rate limiting
+
+// Token refresh configuration
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
+
+/**
+ * Token manager to handle automatic refresh during long-running sync operations
+ */
+class TokenManager {
+  private token: string;
+  private tokenExpiresAt: number;
+  private supabase: Awaited<ReturnType<typeof createClient>>;
+  private accountId: string;
+
+  constructor(
+    initialToken: string,
+    expiresInSeconds: number,
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    accountId: string,
+  ) {
+    this.token = initialToken;
+    this.tokenExpiresAt =
+      Date.now() + expiresInSeconds * 1000 - TOKEN_REFRESH_BUFFER_MS;
+    this.supabase = supabase;
+    this.accountId = accountId;
+  }
+
+  async getToken(): Promise<string> {
+    // Check if token needs refresh
+    if (Date.now() >= this.tokenExpiresAt) {
+      console.warn("[GMB Sync] Token expired or expiring soon, refreshing...");
+      try {
+        this.token = await getValidAccessToken(this.supabase, this.accountId);
+        // Assume new token is valid for 1 hour
+        this.tokenExpiresAt =
+          Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
+        console.warn("[GMB Sync] Token refreshed successfully");
+      } catch (error) {
+        console.error("[GMB Sync] Failed to refresh token:", error);
+        throw new Error("Failed to refresh access token during sync");
+      }
+    }
+    return this.token;
+  }
+}
+
+/**
+ * Execute promises with concurrency limit to avoid Google API rate limiting
+ * @param items - Array of items to process
+ * @param fn - Async function to execute for each item
+ * @param concurrency - Maximum concurrent executions (default: 5)
+ */
+async function withConcurrencyLimit<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number = MAX_CONCURRENT_REQUESTS,
+): Promise<R[]> {
+  const results: R[] = [];
+  const executing: Promise<void>[] = [];
+
+  for (const item of items) {
+    const promise = fn(item).then((result) => {
+      results.push(result);
+    });
+
+    executing.push(promise);
+
+    if (executing.length >= concurrency) {
+      await Promise.race(executing);
+      // Remove completed promises
+      const completed = executing.filter((p) => {
+        let resolved = false;
+        p.then(() => {
+          resolved = true;
+        }).catch(() => {
+          resolved = true;
+        });
+        return resolved;
+      });
+      executing.splice(0, completed.length);
+
+      // Add small delay between batches to be safe
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+    }
+  }
+
+  // Wait for remaining promises
+  await Promise.all(executing);
+  return results;
+}
 
 type SyncStage =
   | "init"
@@ -34,6 +128,7 @@ type SyncStage =
   | "questions_fetch"
   | "posts_fetch"
   | "media_fetch"
+  | "insights_fetch"
   | "transaction"
   | "cache_refresh"
   | "complete";
@@ -45,10 +140,14 @@ const BASE_STAGES: SyncStage[] = [
   "questions_fetch",
   "posts_fetch",
   "media_fetch",
+  "insights_fetch",
   "transaction",
   "cache_refresh",
   "complete",
 ];
+
+// Performance Insights API base (v4)
+const INSIGHTS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 
 function createProgressEmitter(options: {
   userId: string;
@@ -56,6 +155,7 @@ function createProgressEmitter(options: {
   includeQuestions: boolean;
   includePosts?: boolean;
   includeMedia?: boolean;
+  includeInsights?: boolean;
 }) {
   let activeSyncId: string = randomUUID();
   let stageOrder: SyncStage[] = [...BASE_STAGES];
@@ -69,6 +169,9 @@ function createProgressEmitter(options: {
   }
   if (!options.includeMedia) {
     stageOrder = stageOrder.filter((stage) => stage !== "media_fetch");
+  }
+  if (!options.includeInsights) {
+    stageOrder = stageOrder.filter((stage) => stage !== "insights_fetch");
   }
 
   const totalStages = stageOrder.length;
@@ -204,11 +307,13 @@ export async function fetchLocationsDataForSync(
 
   do {
     const url = new URL(`${GBP_LOC_BASE}/${accountResource}/locations`);
+    // OPTIMIZED: Only request essential fields to reduce memory usage and response size
+    // Removed: regularHours,specialHours,moreHours,serviceItems,labels (rarely used, can be fetched on-demand)
     url.searchParams.set(
       "readMask",
-      "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels",
+      "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,openInfo,metadata,latlng",
     );
-    url.searchParams.set("pageSize", "100");
+    url.searchParams.set("pageSize", "50"); // Reduced from 100 to prevent memory issues
     url.searchParams.set("alt", "json");
     if (nextPageToken) {
       url.searchParams.set("pageToken", nextPageToken);
@@ -301,8 +406,8 @@ export async function fetchReviewsDataForSync(
 ): Promise<ReviewData[]> {
   const reviewsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching for all locations
-  const reviewsPromises = locations.map(async (location) => {
+  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit to avoid rate limiting
+  const fetchReviewsForLocation = async (location: LocationData) => {
     const locationReviews: ReviewData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
@@ -379,16 +484,19 @@ export async function fetchReviewsDataForSync(
     } while (nextPageToken);
 
     return locationReviews;
-  });
+  };
 
-  // Wait for all locations in parallel
-  const reviewsByLocation = await Promise.all(reviewsPromises);
+  // Use concurrency limit to avoid rate limiting (max 5 parallel requests)
+  const reviewsByLocation = await withConcurrencyLimit(
+    locations,
+    fetchReviewsForLocation,
+  );
   const allReviews = reviewsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchReviews completed in",
     Date.now() - reviewsTimerStart,
-    "ms (parallel execution)",
+    "ms (rate-limited parallel execution)",
   );
   return allReviews;
 }
@@ -402,8 +510,8 @@ export async function fetchQuestionsDataForSync(
 ): Promise<QuestionData[]> {
   const questionsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching for all locations
-  const questionsPromises = locations.map(async (location) => {
+  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
+  const fetchQuestionsForLocation = async (location: LocationData) => {
     const locationQuestions: QuestionData[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
@@ -469,16 +577,19 @@ export async function fetchQuestionsDataForSync(
     }
 
     return locationQuestions;
-  });
+  };
 
-  // Wait for all locations in parallel
-  const questionsByLocation = await Promise.all(questionsPromises);
+  // Use concurrency limit to avoid rate limiting
+  const questionsByLocation = await withConcurrencyLimit(
+    locations,
+    fetchQuestionsForLocation,
+  );
   const allQuestions = questionsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchQuestions completed in",
     Date.now() - questionsTimerStart,
-    "ms (parallel execution)",
+    "ms (rate-limited parallel execution)",
   );
   return allQuestions;
 }
@@ -492,8 +603,8 @@ export async function fetchPostsDataForSync(
 ): Promise<any[]> {
   const postsTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching for all locations
-  const postsPromises = locations.map(async (location) => {
+  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
+  const fetchPostsForLocation = async (location: LocationData) => {
     const locationPosts: any[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
@@ -558,16 +669,19 @@ export async function fetchPostsDataForSync(
     }
 
     return locationPosts;
-  });
+  };
 
-  // Wait for all locations in parallel
-  const postsByLocation = await Promise.all(postsPromises);
+  // Use concurrency limit to avoid rate limiting
+  const postsByLocation = await withConcurrencyLimit(
+    locations,
+    fetchPostsForLocation,
+  );
   const allPosts = postsByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchPosts completed in",
     Date.now() - postsTimerStart,
-    "ms (parallel execution)",
+    "ms (rate-limited parallel execution)",
   );
   return allPosts;
 }
@@ -581,8 +695,8 @@ export async function fetchMediaDataForSync(
 ): Promise<any[]> {
   const mediaTimerStart = Date.now();
 
-  // ⚡ OPTIMIZED: Parallel fetching for all locations
-  const mediaPromises = locations.map(async (location) => {
+  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
+  const fetchMediaForLocation = async (location: LocationData) => {
     const locationMedia: any[] = [];
     const locationResource = resolveLocationResource(
       accountResource,
@@ -591,7 +705,7 @@ export async function fetchMediaDataForSync(
     if (!locationResource) return [];
 
     try {
-      const endpoint = `${POSTS_BASE}/${locationResource}/media`;
+      const endpoint = `${MEDIA_BASE}/${locationResource}/media`;
       const response = await fetch(endpoint, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -637,18 +751,167 @@ export async function fetchMediaDataForSync(
     }
 
     return locationMedia;
-  });
+  };
 
-  // Wait for all locations in parallel
-  const mediaByLocation = await Promise.all(mediaPromises);
+  // Use concurrency limit to avoid rate limiting
+  const mediaByLocation = await withConcurrencyLimit(
+    locations,
+    fetchMediaForLocation,
+  );
   const allMedia = mediaByLocation.flat();
 
   console.warn(
     "[GMB Sync v2] fetchMedia completed in",
     Date.now() - mediaTimerStart,
-    "ms (parallel execution)",
+    "ms (rate-limited parallel execution)",
   );
   return allMedia;
+}
+
+export interface InsightsData {
+  user_id: string;
+  location_id: string;
+  gmb_account_id: string;
+  metric_date: string;
+  views_search: number | null;
+  views_maps: number | null;
+  website_clicks: number | null;
+  phone_calls: number | null;
+  direction_requests: number | null;
+  photo_views: number | null;
+  total_searches: number | null;
+  direct_searches: number | null;
+  discovery_searches: number | null;
+  branded_searches: number | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export async function fetchInsightsDataForSync(
+  locations: LocationData[],
+  accountResource: string,
+  gmbAccountId: string,
+  userId: string,
+  accessToken: string,
+): Promise<InsightsData[]> {
+  const insightsTimerStart = Date.now();
+
+  // Calculate date range (last 30 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+  // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
+  const fetchInsightsForLocation = async (location: LocationData) => {
+    const locationInsights: InsightsData[] = [];
+    const locationResource = resolveLocationResource(
+      accountResource,
+      location.location_id,
+    );
+    if (!locationResource) return [];
+
+    try {
+      // Use the reportInsights endpoint (v4 API)
+      const endpoint = `${INSIGHTS_BASE}/${locationResource}:reportInsights`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          locationNames: [locationResource],
+          basicRequest: {
+            metricRequests: [
+              { metric: "QUERIES_DIRECT" },
+              { metric: "QUERIES_INDIRECT" },
+              { metric: "QUERIES_CHAIN" },
+              { metric: "VIEWS_MAPS" },
+              { metric: "VIEWS_SEARCH" },
+              { metric: "ACTIONS_WEBSITE" },
+              { metric: "ACTIONS_PHONE" },
+              { metric: "ACTIONS_DRIVING_DIRECTIONS" },
+              { metric: "PHOTOS_VIEWS_MERCHANT" },
+              { metric: "PHOTOS_VIEWS_CUSTOMERS" },
+            ],
+            timeRange: {
+              startTime: `${formatDate(startDate)}T00:00:00Z`,
+              endTime: `${formatDate(endDate)}T23:59:59Z`,
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn("[GMB Sync v2] Insights fetch failed", {
+          location: location.location_id,
+          status: response.status,
+        });
+        return [];
+      }
+
+      const payload = await response.json();
+      const locationReports = payload.locationMetrics || [];
+
+      for (const report of locationReports) {
+        const metricValues = report.metricValues || [];
+
+        // Aggregate metrics into a single record per location
+        const metrics: Record<string, number> = {};
+        for (const mv of metricValues) {
+          const metricName = mv.metric;
+          const totalValue = mv.totalValue?.value || 0;
+          metrics[metricName] = totalValue;
+        }
+
+        locationInsights.push({
+          user_id: userId,
+          location_id: location.location_id,
+          gmb_account_id: gmbAccountId,
+          metric_date: formatDate(endDate),
+          views_search: metrics["VIEWS_SEARCH"] || null,
+          views_maps: metrics["VIEWS_MAPS"] || null,
+          website_clicks: metrics["ACTIONS_WEBSITE"] || null,
+          phone_calls: metrics["ACTIONS_PHONE"] || null,
+          direction_requests: metrics["ACTIONS_DRIVING_DIRECTIONS"] || null,
+          photo_views:
+            (metrics["PHOTOS_VIEWS_MERCHANT"] || 0) +
+              (metrics["PHOTOS_VIEWS_CUSTOMERS"] || 0) || null,
+          total_searches:
+            (metrics["QUERIES_DIRECT"] || 0) +
+              (metrics["QUERIES_INDIRECT"] || 0) +
+              (metrics["QUERIES_CHAIN"] || 0) || null,
+          direct_searches: metrics["QUERIES_DIRECT"] || null,
+          discovery_searches: metrics["QUERIES_INDIRECT"] || null,
+          branded_searches: metrics["QUERIES_CHAIN"] || null,
+          metadata: payload,
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[GMB Sync v2] Error fetching insights for ${location.location_id}:`,
+        error,
+      );
+    }
+
+    return locationInsights;
+  };
+
+  // Use concurrency limit to avoid rate limiting
+  const insightsByLocation = await withConcurrencyLimit(
+    locations,
+    fetchInsightsForLocation,
+  );
+  const allInsights = insightsByLocation.flat();
+
+  console.warn(
+    "[GMB Sync v2] fetchInsights completed in",
+    Date.now() - insightsTimerStart,
+    "ms (rate-limited parallel execution)",
+  );
+  return allInsights;
 }
 
 export async function performTransactionalSync(
@@ -656,6 +919,7 @@ export async function performTransactionalSync(
   includeQuestions = true,
   includePosts = false,
   includeMedia = false,
+  includeInsights = true, // Enable insights by default
   isInternalCall = false,
 ) {
   const supabase = await createClient();
@@ -742,6 +1006,7 @@ export async function performTransactionalSync(
     includeQuestions,
     includePosts,
     includeMedia,
+    includeInsights,
   });
 
   progressEmitter.emit("init", "running", {
@@ -751,14 +1016,21 @@ export async function performTransactionalSync(
   let currentStage: SyncStage = "init";
 
   try {
-    const accessToken = await getValidAccessToken(supabase, accountId);
+    // Use TokenManager to handle automatic token refresh during long-running sync
+    const initialToken = await getValidAccessToken(supabase, accountId);
+    const tokenManager = new TokenManager(
+      initialToken,
+      3600,
+      supabase,
+      accountId,
+    );
 
     currentStage = "locations_fetch";
     const locations = await fetchLocationsDataForSync(
       account.account_id,
       accountId,
       userId,
-      accessToken,
+      await tokenManager.getToken(), // Get fresh token if needed
     );
     progressEmitter.emit("locations_fetch", "completed", {
       counts: { locations: locations.length },
@@ -771,7 +1043,7 @@ export async function performTransactionalSync(
       account.account_id,
       accountId,
       userId,
-      accessToken,
+      await tokenManager.getToken(), // Get fresh token if needed
     );
     progressEmitter.emit("reviews_fetch", "completed", {
       counts: { reviews: reviews.length },
@@ -786,7 +1058,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        accessToken,
+        await tokenManager.getToken(), // Get fresh token if needed
       );
       progressEmitter.emit("questions_fetch", "completed", {
         counts: { questions: questions.length },
@@ -802,7 +1074,7 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        accessToken,
+        await tokenManager.getToken(), // Get fresh token if needed
       );
       progressEmitter.emit("posts_fetch", "completed", {
         counts: { posts: posts.length },
@@ -818,11 +1090,27 @@ export async function performTransactionalSync(
         account.account_id,
         accountId,
         userId,
-        accessToken,
+        await tokenManager.getToken(), // Get fresh token if needed
       );
       progressEmitter.emit("media_fetch", "completed", {
         counts: { media: media.length },
         message: `Fetched ${media.length} media items`,
+      });
+    }
+
+    let insights: InsightsData[] = [];
+    if (includeInsights) {
+      currentStage = "insights_fetch";
+      insights = await fetchInsightsDataForSync(
+        locations,
+        account.account_id,
+        accountId,
+        userId,
+        await tokenManager.getToken(), // Get fresh token if needed
+      );
+      progressEmitter.emit("insights_fetch", "completed", {
+        counts: { insights: insights.length },
+        message: `Fetched ${insights.length} performance metrics`,
       });
     }
 
@@ -839,6 +1127,7 @@ export async function performTransactionalSync(
         questions,
         posts: includePosts ? posts : undefined,
         media: includeMedia ? media : undefined,
+        insights: includeInsights ? insights : undefined,
       },
       3,
     );
@@ -850,6 +1139,7 @@ export async function performTransactionalSync(
         questions: transactionResult.questions_synced,
         posts: transactionResult.posts_synced || 0,
         media: transactionResult.media_synced || 0,
+        insights: transactionResult.insights_synced || 0,
       },
       message: "Database transaction committed",
     });
