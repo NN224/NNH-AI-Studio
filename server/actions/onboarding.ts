@@ -40,12 +40,12 @@ export async function getOnboardingTasks(): Promise<OnboardingTask[]> {
     const [locationsRes, reviewsRes, postsRes] = await Promise.all([
       supabase
         .from("gmb_locations")
-        .select("id, photos, business_description, business_hours")
+        .select("id, metadata, regular_hours")
         .eq("user_id", user.id)
         .in("gmb_account_id", activeAccountIds),
       supabase
         .from("gmb_reviews")
-        .select("id, review_reply")
+        .select("id, reply_comment, has_reply")
         .eq("user_id", user.id),
       supabase
         .from("gmb_posts")
@@ -58,10 +58,10 @@ export async function getOnboardingTasks(): Promise<OnboardingTask[]> {
     posts = postsRes.data || []
   }
 
-  const repliedReviews = reviews.filter(r => r.review_reply && r.review_reply.trim().length > 0)
-  const locationsWithPhotos = locations.filter(l => l.photos && l.photos.length >= 3)
-  const locationsWithDescription = locations.filter(l => l.business_description && l.business_description.trim().length > 0)
-  const locationsWithHours = locations.filter(l => l.business_hours)
+  const repliedReviews = reviews.filter(r => r.has_reply === true)
+  const locationsWithPhotos = locations.filter(l => l.metadata?.photos && l.metadata.photos.length >= 3)
+  const locationsWithDescription = locations.filter(l => l.metadata?.description && l.metadata.description.trim().length > 0)
+  const locationsWithHours = locations.filter(l => l.regular_hours)
 
   const tasks: OnboardingTask[] = [
     {

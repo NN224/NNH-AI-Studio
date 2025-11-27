@@ -169,10 +169,11 @@ export async function getQuestions(params: {
       }
     }
 
-    // Filter by priority
-    if (params.priority) {
-      query = query.eq("priority", params.priority);
-    }
+    // Note: Priority filtering removed - column doesn't exist in gmb_questions table
+    // TODO: Add priority column to gmb_questions table if needed
+    // if (params.priority) {
+    //   query = query.eq("priority", params.priority);
+    // }
 
     // Search
     if (params.searchQuery) {
@@ -193,7 +194,9 @@ export async function getQuestions(params: {
         query = query.order("upvote_count", { ascending: false });
         break;
       case "urgent":
-        query = query.order("priority", { ascending: false });
+        // Note: Sorting by priority removed - column doesn't exist
+        // Fallback to upvote_count for urgency indication
+        query = query.order("upvote_count", { ascending: false });
         break;
       default:
         query = query.order("created_at", { ascending: false });
@@ -951,7 +954,7 @@ export async function getQuestionStats(locationId?: string, context?: QuestionSt
 
     let query = supabase
       .from("gmb_questions")
-      .select("answer_status, upvote_count, ai_category, priority")
+      .select("answer_status, upvote_count")
       .eq("user_id", resolvedUserId);
 
     if (locationId && locationId !== "all") {
@@ -980,12 +983,6 @@ export async function getQuestionStats(locationId?: string, context?: QuestionSt
         data.length > 0
           ? data.reduce((sum, q) => sum + (q.upvote_count || 0), 0) / data.length
           : 0,
-      byPriority: {
-        urgent: data.filter((q) => q.priority === "urgent").length,
-        high: data.filter((q) => q.priority === "high").length,
-        medium: data.filter((q) => q.priority === "medium").length,
-        low: data.filter((q) => q.priority === "low").length,
-      },
       answerRate:
         (data.filter((q) => q.answer_status === "answered").length /
           (data.length || 1)) *
