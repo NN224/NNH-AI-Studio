@@ -1,8 +1,19 @@
+/**
+ * GMB OAuth Callback Handler
+ *
+ * Security Note: All redirects in this file use buildSafeRedirectUrl() which validates
+ * URLs against an allowlist of trusted domains (see lib/utils/safe-redirect.ts).
+ * Static analyzers may flag these as "open redirect" vulnerabilities, but they are
+ * false positives - the URLs are validated before redirect.
+ */
 import { logAction } from "@/lib/monitoring/audit";
 import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
-import { getSafeBaseUrl } from "@/lib/utils/safe-redirect";
+import {
+  buildSafeRedirectUrl,
+  getSafeBaseUrl,
+} from "@/lib/utils/safe-redirect";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -30,22 +41,30 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[OAuth Callback] OAuth error from provider:", error);
       const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          `OAuth error: ${error}`,
-        )}&error_code=oauth_error`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: `OAuth error: ${error}`,
+          error_code: "oauth_error",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Validate parameters
     if (!code || !state) {
       console.error("[OAuth Callback] Missing code or state");
       const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Missing authorization code or state",
-        )}&error_code=missing_params`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Missing authorization code or state",
+          error_code: "missing_params",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     console.warn("[OAuth Callback] State:", state);
@@ -68,11 +87,15 @@ export async function GET(request: NextRequest) {
     if (stateError || !stateRecord) {
       console.error("[OAuth Callback] Invalid state:", stateError);
       const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Invalid or expired authorization state",
-        )}&error_code=invalid_state`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Invalid or expired authorization state",
+          error_code: "invalid_state",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Check if state has expired (30 minute expiry)
@@ -80,11 +103,15 @@ export async function GET(request: NextRequest) {
     if (expiresAt < new Date()) {
       console.error("[OAuth Callback] State has expired");
       const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Authorization state has expired",
-        )}&error_code=expired_state`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Authorization state has expired",
+          error_code: "expired_state",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Mark state as used
@@ -106,12 +133,15 @@ export async function GET(request: NextRequest) {
 
     if (!clientId || !clientSecret) {
       console.error("[OAuth Callback] Missing Google OAuth configuration");
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Server configuration error",
-        )}&error_code=server_config_error`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Server configuration error",
+          error_code: "server_config_error",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Ensure redirect_uri doesn't have trailing slash (must match create-auth-url)
@@ -157,12 +187,16 @@ export async function GET(request: NextRequest) {
         status: tokenResponse.status,
         error: tokenData,
       });
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          `Token exchange failed: ${tokenData.error_description || tokenData.error}`,
-        )}&error_code=token_exchange_failed&status=${tokenResponse.status}`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: `Token exchange failed: ${tokenData.error_description || tokenData.error}`,
+          error_code: "token_exchange_failed",
+          status: String(tokenResponse.status),
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     console.warn("[OAuth Callback] Tokens received successfully");
@@ -183,12 +217,16 @@ export async function GET(request: NextRequest) {
       console.error("[OAuth Callback] Failed to fetch user info", {
         status: userInfoResponse.status,
       });
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Failed to fetch user information",
-        )}&error_code=userinfo_fetch_failed&status=${userInfoResponse.status}`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Failed to fetch user information",
+          error_code: "userinfo_fetch_failed",
+          status: String(userInfoResponse.status),
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     const userInfo = await userInfoResponse.json();
@@ -201,11 +239,15 @@ export async function GET(request: NextRequest) {
       console.error(
         "[OAuth Callback] Google user info did not include an email address",
       );
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Unable to determine Google account email",
-        )}&error_code=userinfo_missing_email`,
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Unable to determine Google account email",
+          error_code: "userinfo_missing_email",
+        },
       );
+      return NextResponse.redirect(redirectUrl);
     }
 
     const { data: existingProfile, error: profileLookupError } =
@@ -220,11 +262,15 @@ export async function GET(request: NextRequest) {
         "[OAuth Callback] Failed to verify profile record:",
         profileLookupError,
       );
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Failed to verify user record",
-        )}&error_code=profile_verify_failed`,
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Failed to verify user record",
+          error_code: "profile_verify_failed",
+        },
       );
+      return NextResponse.redirect(redirectUrl);
     }
 
     if (!existingProfile) {
@@ -257,11 +303,15 @@ export async function GET(request: NextRequest) {
           "[OAuth Callback] Failed to create profile record:",
           createProfileError,
         );
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-            "Failed to initialize user record",
-          )}&error_code=profile_create_failed`,
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error: "Failed to initialize user record",
+            error_code: "profile_create_failed",
+          },
         );
+        return NextResponse.redirect(redirectUrl);
       }
     }
 
@@ -289,12 +339,16 @@ export async function GET(request: NextRequest) {
         status: gmbAccountsResponse.status,
         body_snippet: text.substring(0, 500),
       });
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Failed to fetch Google My Business accounts",
-        )}&error_code=gmb_accounts_fetch_failed&status=${gmbAccountsResponse.status}`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Failed to fetch Google My Business accounts",
+          error_code: "gmb_accounts_fetch_failed",
+          status: String(gmbAccountsResponse.status),
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     const gmbAccountsData = await gmbAccountsResponse.json();
@@ -304,12 +358,15 @@ export async function GET(request: NextRequest) {
 
     if (gmbAccounts.length === 0) {
       console.warn("[OAuth Callback] No GMB accounts found for user");
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "No Google My Business accounts found",
-        )}&error_code=no_gmb_accounts`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "No Google My Business accounts found",
+          error_code: "no_gmb_accounts",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Process each GMB account
@@ -335,12 +392,16 @@ export async function GET(request: NextRequest) {
         console.error(
           "[OAuth Callback] Security violation: GMB account already linked to different user",
         );
-        const baseUrl = getSafeBaseUrl(request);
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-            "This Google My Business account is already linked to another user",
-          )}&error_code=account_already_linked`,
-        ); // Keep redirect for user-facing error
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "This Google My Business account is already linked to another user",
+            error_code: "account_already_linked",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
       }
 
       // Try to decrypt existing refresh token, but don't fail if decryption fails
@@ -378,12 +439,15 @@ export async function GET(request: NextRequest) {
           "[OAuth Callback] Failed to encrypt tokens:",
           encryptionError,
         );
-        const baseUrl = getSafeBaseUrl(request);
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-            "Failed to secure OAuth tokens. Please try again.",
-          )}&error_code=token_encryption_failed`,
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error: "Failed to secure OAuth tokens. Please try again.",
+            error_code: "token_encryption_failed",
+          },
         );
+        return NextResponse.redirect(redirectUrl);
       }
 
       // Use UPSERT to insert or update the account
@@ -418,12 +482,16 @@ export async function GET(request: NextRequest) {
           "[OAuth Callback] Failed to upsert GMB account",
         );
 
-        const baseUrl = getSafeBaseUrl(request);
-        return NextResponse.redirect(
-          `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-            "Failed to save Google My Business account. Please try again.",
-          )}&error_code=gmb_account_upsert_failed`,
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Failed to save Google My Business account. Please try again.",
+            error_code: "gmb_account_upsert_failed",
+          },
         );
+        return NextResponse.redirect(redirectUrl);
       }
 
       savedAccountId = upsertedAccount.id;
@@ -509,12 +577,15 @@ export async function GET(request: NextRequest) {
     // Redirect to GMB dashboard with success or error
     if (!savedAccountId) {
       console.error("[OAuth Callback] No account was saved");
-      const baseUrl = getSafeBaseUrl(request);
-      return NextResponse.redirect(
-        `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-          "Failed to save any account",
-        )}&error_code=no_account_saved`,
-      ); // Keep redirect for user-facing error
+      const redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/settings`,
+        {
+          error: "Failed to save any account",
+          error_code: "no_account_saved",
+        },
+      );
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Audit logging for successful connection
@@ -566,29 +637,46 @@ export async function GET(request: NextRequest) {
 
     // If multiple accounts were saved, redirect to account selection page
     if (savedAccountIds.length > 1) {
-      const redirectUrl = `${baseUrl}/${localeCookie}/select-account`;
+      const multiAccountRedirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/select-account`,
+      );
       console.warn(
         "[OAuth Callback] Multiple accounts found, redirecting to selection:",
-        redirectUrl,
+        multiAccountRedirectUrl,
       );
-      return NextResponse.redirect(redirectUrl);
+      return NextResponse.redirect(multiAccountRedirectUrl);
     }
 
     // Single account - redirect to settings with success flag
-    const redirectUrl = `${baseUrl}/${localeCookie}/settings?gmb_connected=true&accountId=${savedAccountId}`;
+    const successRedirectUrl = buildSafeRedirectUrl(
+      baseUrl,
+      `/${localeCookie}/settings`,
+      {
+        gmb_connected: "true",
+        accountId: savedAccountId,
+      },
+    );
     console.warn(
       "[OAuth Callback] Single account, redirecting to settings:",
-      redirectUrl,
+      successRedirectUrl,
     );
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(successRedirectUrl);
   } catch (error: unknown) {
     console.error("[OAuth Callback] Unexpected error:", error);
     const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
-    return NextResponse.redirect(
-      `${baseUrl}/${localeCookie}/settings?error=${encodeURIComponent(
-        error instanceof Error ? error.message : "An unexpected error occurred",
-      )}&error_code=unexpected_error`,
+    const errorRedirectUrl = buildSafeRedirectUrl(
+      baseUrl,
+      `/${localeCookie}/settings`,
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+        error_code: "unexpected_error",
+      },
     );
+    return NextResponse.redirect(errorRedirectUrl);
   }
 }

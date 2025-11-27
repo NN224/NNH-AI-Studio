@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSafeBaseUrl } from "@/lib/utils/safe-redirect";
+import {
+  buildSafeRedirectUrl,
+  getSafeBaseUrl,
+} from "@/lib/utils/safe-redirect";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -21,9 +24,11 @@ export async function GET(request: Request) {
     // GMB OAuth is handled by /api/gmb/oauth-callback directly
     // This route should not be used for GMB OAuth
     // Redirect to the Next.js API route instead
-    return NextResponse.redirect(
-      `${baseUrl}/api/gmb/oauth-callback${requestUrl.search}`,
+    const gmbRedirectUrl = buildSafeRedirectUrl(
+      baseUrl,
+      `/api/gmb/oauth-callback${requestUrl.search}`,
     );
+    return NextResponse.redirect(gmbRedirectUrl);
   }
 
   // Handle Supabase auth callback (only code, no state)
@@ -34,14 +39,21 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      return NextResponse.redirect(
-        `${baseUrl}/${locale}/auth/login?error=${encodeURIComponent(error.message)}`,
+      const errorRedirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${locale}/auth/login`,
+        {
+          error: error.message,
+        },
       );
+      return NextResponse.redirect(errorRedirectUrl);
     }
 
     // Redirect to home with success
-    return NextResponse.redirect(`${baseUrl}/${locale}/home`);
+    const homeRedirectUrl = buildSafeRedirectUrl(baseUrl, `/${locale}/home`);
+    return NextResponse.redirect(homeRedirectUrl);
   }
 
-  return NextResponse.redirect(`${baseUrl}/${locale}`);
+  const defaultRedirectUrl = buildSafeRedirectUrl(baseUrl, `/${locale}`);
+  return NextResponse.redirect(defaultRedirectUrl);
 }

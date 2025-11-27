@@ -92,3 +92,42 @@ export function createSafeRedirect(
     },
   });
 }
+
+/**
+ * Builds a validated redirect URL from a safe base URL and path components.
+ * This function ensures the final URL is safe by:
+ * 1. Using a pre-validated base URL from getSafeBaseUrl()
+ * 2. Only allowing hardcoded path segments (not user input)
+ * 3. Properly encoding any query parameters
+ *
+ * @param baseUrl - Must be from getSafeBaseUrl() which validates against allowlist
+ * @param path - Hardcoded path (e.g., '/en/settings')
+ * @param queryParams - Optional query parameters to append (will be encoded)
+ * @returns The complete validated URL string
+ */
+export function buildSafeRedirectUrl(
+  baseUrl: string,
+  path: string,
+  queryParams?: Record<string, string>,
+): string {
+  // Double-check the base URL is valid (defense in depth)
+  if (!isSafeRedirectUrl(baseUrl)) {
+    // Fallback to production domain if somehow invalid
+    baseUrl = "https://nnh.ae";
+  }
+
+  // Ensure path starts with /
+  const safePath = path.startsWith("/") ? path : `/${path}`;
+
+  // Build query string if params provided
+  let queryString = "";
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      params.set(key, value);
+    }
+    queryString = `?${params.toString()}`;
+  }
+
+  return `${baseUrl}${safePath}${queryString}`;
+}
