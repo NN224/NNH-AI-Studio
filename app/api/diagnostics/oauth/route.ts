@@ -15,6 +15,16 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) {
+      return Response.json(
+        {
+          success: false,
+          error: "User not authenticated",
+        },
+        { status: 401 },
+      );
+    }
+
     // Check GMB accounts for OAuth status
     const { data: accounts, error: accountsError } = await supabase
       .from("gmb_accounts")
