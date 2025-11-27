@@ -118,5 +118,6 @@
     "**/coverage": true,
     "**/*.lock": true
   },
-  "nxConsole.nxWorkspacePath": ""
+  "nxConsole.nxWorkspacePath": "",
+  "aikido.showIgnoredProblems": true
 }
