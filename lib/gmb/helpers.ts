@@ -161,5 +161,7 @@ export const GMB_CONSTANTS = {
   GBP_LOC_BASE: "https://mybusinessbusinessinformation.googleapis.com/v1",
   QANDA_BASE: "https://mybusinessqanda.googleapis.com/v1",
   GMB_V4_BASE: "https://mybusiness.googleapis.com/v4",
+  // Business Profile Performance API v1 (replaces deprecated reportInsights)
+  PERFORMANCE_BASE: "https://businessprofileperformance.googleapis.com/v1",
   GOOGLE_TOKEN_URL,
 };

@@ -270,31 +270,64 @@ export async function GET() {
           error instanceof Error ? error.message : "Unknown error";
       }
 
-      // Test 7: Insights API (Uses v4 API - reportLocationInsights)
+      // Test 7: Performance API v1 (replaces deprecated v4 reportLocationInsights)
       try {
         const startTime = Date.now();
-        const response = await fetch(
-          `${GMB_CONSTANTS.GMB_V4_BASE}/${locationName}:reportLocationInsights`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              locationNames: [locationName],
-              basicRequest: {
-                metricRequests: [{ metric: "ALL" }],
-                timeRange: {
-                  startTime: new Date(
-                    Date.now() - 7 * 24 * 60 * 60 * 1000,
-                  ).toISOString(),
-                  endTime: new Date().toISOString(),
-                },
-              },
-            }),
-          },
+        // Extract clean location ID for Performance API
+        const cleanLocationId = location.location_id.replace(
+          /^(accounts\/[^/]+\/)?locations\//,
+          "",
         );
+
+        // Build Performance API URL with query params
+        const performanceUrl = new URL(
+          `${GMB_CONSTANTS.PERFORMANCE_BASE}/locations/${cleanLocationId}:fetchMultiDailyMetricsTimeSeries`,
+        );
+
+        // Set date range (last 7 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+
+        performanceUrl.searchParams.set(
+          "dailyRange.startDate.year",
+          startDate.getFullYear().toString(),
+        );
+        performanceUrl.searchParams.set(
+          "dailyRange.startDate.month",
+          (startDate.getMonth() + 1).toString(),
+        );
+        performanceUrl.searchParams.set(
+          "dailyRange.startDate.day",
+          startDate.getDate().toString(),
+        );
+        performanceUrl.searchParams.set(
+          "dailyRange.endDate.year",
+          endDate.getFullYear().toString(),
+        );
+        performanceUrl.searchParams.set(
+          "dailyRange.endDate.month",
+          (endDate.getMonth() + 1).toString(),
+        );
+        performanceUrl.searchParams.set(
+          "dailyRange.endDate.day",
+          endDate.getDate().toString(),
+        );
+
+        // Request basic metrics
+        performanceUrl.searchParams.append(
+          "dailyMetrics",
+          "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+        );
+        performanceUrl.searchParams.append("dailyMetrics", "WEBSITE_CLICKS");
+
+        const response = await fetch(performanceUrl.toString(), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
+        });
         apiTests.insights.response_time_ms = Date.now() - startTime;
         apiTests.insights.success = response.ok;
         if (!response.ok) {

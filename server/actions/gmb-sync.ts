@@ -146,8 +146,8 @@ const BASE_STAGES: SyncStage[] = [
   "complete",
 ];
 
-// Performance Insights API base (v4)
-const INSIGHTS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
+// Business Profile Performance API v1 (replaces deprecated v4 reportInsights)
+const PERFORMANCE_BASE = GMB_CONSTANTS.PERFORMANCE_BASE;
 
 function createProgressEmitter(options: {
   userId: string;
@@ -786,6 +786,23 @@ export interface InsightsData {
   metadata: Record<string, unknown> | null;
 }
 
+/**
+ * Performance API v1 daily metrics
+ * @see https://developers.google.com/my-business/reference/performance/rest/v1/locations/fetchMultiDailyMetricsTimeSeries
+ */
+const PERFORMANCE_METRICS = [
+  "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+  "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+  "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+  "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+  "BUSINESS_CONVERSATIONS",
+  "BUSINESS_DIRECTION_REQUESTS",
+  "CALL_CLICKS",
+  "WEBSITE_CLICKS",
+  "BUSINESS_BOOKINGS",
+  "BUSINESS_FOOD_ORDERS",
+] as const;
+
 export async function fetchInsightsDataForSync(
   locations: LocationData[],
   accountResource: string,
@@ -800,6 +817,7 @@ export async function fetchInsightsDataForSync(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30);
 
+  // Format dates as YYYY-MM-DD for Performance API
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
   // ⚡ OPTIMIZED: Parallel fetching with concurrency limit
@@ -812,83 +830,115 @@ export async function fetchInsightsDataForSync(
     if (!locationResource) return [];
 
     try {
-      // Use the reportInsights endpoint (v4 API)
-      const endpoint = `${INSIGHTS_BASE}/${locationResource}:reportInsights`;
+      // Use Business Profile Performance API v1 - fetchMultiDailyMetricsTimeSeries
+      // Format: locations/{locationId}:fetchMultiDailyMetricsTimeSeries
+      const cleanLocationId = location.location_id.replace(
+        /^(accounts\/[^/]+\/)?locations\//,
+        "",
+      );
+      const endpoint = `${PERFORMANCE_BASE}/locations/${cleanLocationId}:fetchMultiDailyMetricsTimeSeries`;
 
-      const response = await fetch(endpoint, {
-        method: "POST",
+      // Build URL with query parameters (Performance API uses GET with params)
+      const url = new URL(endpoint);
+      url.searchParams.set(
+        "dailyRange.startDate.year",
+        startDate.getFullYear().toString(),
+      );
+      url.searchParams.set(
+        "dailyRange.startDate.month",
+        (startDate.getMonth() + 1).toString(),
+      );
+      url.searchParams.set(
+        "dailyRange.startDate.day",
+        startDate.getDate().toString(),
+      );
+      url.searchParams.set(
+        "dailyRange.endDate.year",
+        endDate.getFullYear().toString(),
+      );
+      url.searchParams.set(
+        "dailyRange.endDate.month",
+        (endDate.getMonth() + 1).toString(),
+      );
+      url.searchParams.set(
+        "dailyRange.endDate.day",
+        endDate.getDate().toString(),
+      );
+
+      // Add metrics to request
+      PERFORMANCE_METRICS.forEach((metric) => {
+        url.searchParams.append("dailyMetrics", metric);
+      });
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        body: JSON.stringify({
-          locationNames: [locationResource],
-          basicRequest: {
-            metricRequests: [
-              { metric: "QUERIES_DIRECT" },
-              { metric: "QUERIES_INDIRECT" },
-              { metric: "QUERIES_CHAIN" },
-              { metric: "VIEWS_MAPS" },
-              { metric: "VIEWS_SEARCH" },
-              { metric: "ACTIONS_WEBSITE" },
-              { metric: "ACTIONS_PHONE" },
-              { metric: "ACTIONS_DRIVING_DIRECTIONS" },
-              { metric: "PHOTOS_VIEWS_MERCHANT" },
-              { metric: "PHOTOS_VIEWS_CUSTOMERS" },
-            ],
-            timeRange: {
-              startTime: `${formatDate(startDate)}T00:00:00Z`,
-              endTime: `${formatDate(endDate)}T23:59:59Z`,
-            },
-          },
-        }),
       });
 
       if (!response.ok) {
-        console.warn("[GMB Sync v2] Insights fetch failed", {
+        const errorBody = await response.text().catch(() => "");
+        console.warn("[GMB Sync v2] Performance API fetch failed", {
           location: location.location_id,
           status: response.status,
+          error: errorBody,
         });
         return [];
       }
 
       const payload = await response.json();
-      const locationReports = payload.locationMetrics || [];
+      const multiDailyMetricTimeSeries =
+        payload.multiDailyMetricTimeSeries || [];
 
-      for (const report of locationReports) {
-        const metricValues = report.metricValues || [];
+      // Aggregate all daily values into totals
+      const metrics: Record<string, number> = {};
 
-        // Aggregate metrics into a single record per location
-        const metrics: Record<string, number> = {};
-        for (const mv of metricValues) {
-          const metricName = mv.metric;
-          const totalValue = mv.totalValue?.value || 0;
-          metrics[metricName] = totalValue;
+      for (const series of multiDailyMetricTimeSeries) {
+        const metricName = series.dailyMetric;
+        const dailyValues = series.timeSeries?.datedValues || [];
+
+        // Sum all daily values for this metric
+        let total = 0;
+        for (const dv of dailyValues) {
+          total += parseInt(dv.value || "0", 10);
         }
-
-        locationInsights.push({
-          user_id: userId,
-          location_id: location.location_id,
-          gmb_account_id: gmbAccountId,
-          metric_date: formatDate(endDate),
-          views_search: metrics["VIEWS_SEARCH"] || null,
-          views_maps: metrics["VIEWS_MAPS"] || null,
-          website_clicks: metrics["ACTIONS_WEBSITE"] || null,
-          phone_calls: metrics["ACTIONS_PHONE"] || null,
-          direction_requests: metrics["ACTIONS_DRIVING_DIRECTIONS"] || null,
-          photo_views:
-            (metrics["PHOTOS_VIEWS_MERCHANT"] || 0) +
-              (metrics["PHOTOS_VIEWS_CUSTOMERS"] || 0) || null,
-          total_searches:
-            (metrics["QUERIES_DIRECT"] || 0) +
-              (metrics["QUERIES_INDIRECT"] || 0) +
-              (metrics["QUERIES_CHAIN"] || 0) || null,
-          direct_searches: metrics["QUERIES_DIRECT"] || null,
-          discovery_searches: metrics["QUERIES_INDIRECT"] || null,
-          branded_searches: metrics["QUERIES_CHAIN"] || null,
-          metadata: payload,
-        });
+        metrics[metricName] = total;
       }
+
+      // Calculate aggregated metrics
+      const viewsSearch =
+        (metrics["BUSINESS_IMPRESSIONS_DESKTOP_SEARCH"] || 0) +
+        (metrics["BUSINESS_IMPRESSIONS_MOBILE_SEARCH"] || 0);
+      const viewsMaps =
+        (metrics["BUSINESS_IMPRESSIONS_DESKTOP_MAPS"] || 0) +
+        (metrics["BUSINESS_IMPRESSIONS_MOBILE_MAPS"] || 0);
+
+      locationInsights.push({
+        user_id: userId,
+        location_id: location.location_id,
+        gmb_account_id: gmbAccountId,
+        metric_date: formatDate(endDate),
+        views_search: viewsSearch || null,
+        views_maps: viewsMaps || null,
+        website_clicks: metrics["WEBSITE_CLICKS"] || null,
+        phone_calls: metrics["CALL_CLICKS"] || null,
+        direction_requests: metrics["BUSINESS_DIRECTION_REQUESTS"] || null,
+        photo_views: null, // Not available in Performance API v1
+        total_searches: viewsSearch + viewsMaps || null,
+        direct_searches: null, // Search type breakdown not available in v1
+        discovery_searches: null,
+        branded_searches: null,
+        metadata: {
+          api_version: "performance_v1",
+          raw_metrics: metrics,
+          date_range: {
+            start: formatDate(startDate),
+            end: formatDate(endDate),
+          },
+        },
+      });
     } catch (error) {
       console.error(
         `[GMB Sync v2] Error fetching insights for ${location.location_id}:`,

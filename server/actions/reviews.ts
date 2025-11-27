@@ -104,7 +104,7 @@ export async function addReviewReply(reviewId: string, reply: string) {
   try {
     const validatedData = ReviewReplySchema.parse({ reviewId, reply });
 
-    // 1. Get the review with its Google resource name and account info
+    // 1. Get the review with its Google resource name, account info, and location info
     const { data: review, error: reviewError } = await supabase
       .from("gmb_reviews")
       .select(
@@ -113,9 +113,14 @@ export async function addReviewReply(reviewId: string, reply: string) {
         google_name,
         review_id,
         gmb_account_id,
+        google_location_id,
         gmb_accounts!inner (
           id,
           account_id
+        ),
+        gmb_locations!inner (
+          id,
+          location_id
         )
       `,
       )
@@ -147,16 +152,28 @@ export async function addReviewReply(reviewId: string, reply: string) {
     const gmbAccount = review.gmb_accounts as unknown as {
       account_id: string;
     } | null;
-    const googleReviewName =
-      review.google_name ||
-      (gmbAccount
-        ? `${gmbAccount.account_id}/reviews/${review.review_id}`
-        : null);
+    const gmbLocation = review.gmb_locations as unknown as {
+      location_id: string;
+    } | null;
+
+    let googleReviewName = review.google_name;
+
+    // If google_name is not stored, build it from components
+    if (!googleReviewName && gmbAccount && gmbLocation && review.review_id) {
+      // Use google_location_id if available, otherwise use location_id from gmb_locations
+      const locationId = review.google_location_id || gmbLocation.location_id;
+
+      // Ensure locationId is valid before building the resource name
+      if (locationId) {
+        googleReviewName = `${gmbAccount.account_id}/locations/${locationId}/reviews/${review.review_id}`;
+      }
+    }
 
     if (!googleReviewName) {
       return {
         success: false,
-        error: "Cannot determine Google review resource name",
+        error:
+          "Cannot determine Google review resource name. Missing account, location, or review ID.",
       };
     }
 
