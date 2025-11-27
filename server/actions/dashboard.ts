@@ -7,6 +7,159 @@ import {
   CacheBucket,
 } from "@/lib/cache/cache-manager";
 
+// ==========================================
+// 1. Core Statistics (Legacy & API Support)
+// ==========================================
+
+export async function getDashboardStats() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Not authenticated");
+  }
+
+  // Fetch basic counts
+  const { count: totalLocations } = await supabase
+    .from("gmb_locations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("is_active", true);
+
+  const { data: reviews, error: reviewsError } = await supabase
+    .from("gmb_reviews")
+    .select("rating, has_reply")
+    .eq("user_id", user.id);
+
+  if (reviewsError) throw new Error(reviewsError.message);
+
+  const totalReviews = reviews?.length || 0;
+
+  const averageRating =
+    reviews && reviews.length > 0
+      ? (
+          reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length
+        ).toFixed(1)
+      : "0.0";
+
+  const respondedReviews = reviews?.filter((r) => r.has_reply).length || 0;
+
+  const responseRate =
+    totalReviews > 0 ? Math.round((respondedReviews / totalReviews) * 100) : 0;
+
+  return {
+    totalLocations: totalLocations || 0,
+    totalReviews,
+    averageRating,
+    responseRate,
+  };
+}
+
+export async function getActivityLogs(limit: number = 10) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { activities: [], error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("activity_logs")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return { activities: [], error: error.message };
+
+  return { activities: data || [], error: null };
+}
+
+type MonthlyStatsContext = {
+  supabase?: Awaited<ReturnType<typeof createClient>>;
+  userId?: string;
+};
+
+// This function was missing and causing the build error
+export async function getMonthlyStats(context?: MonthlyStatsContext) {
+  const supabase = context?.supabase ?? (await createClient());
+  let resolvedUserId = context?.userId;
+
+  if (!resolvedUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { data: [], error: "Not authenticated" };
+    resolvedUserId = user.id;
+  }
+
+  // Get active reviews with dates using NEW schema columns
+  const { data: reviews, error } = await supabase
+    .from("gmb_reviews")
+    .select("rating, review_date, created_at")
+    .eq("user_id", resolvedUserId)
+    .order("review_date", { ascending: true, nullsFirst: false });
+
+  if (error) return { data: [], error: error.message };
+
+  // Group by month
+  const monthlyData: Record<string, { sum: number; count: number }> = {};
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  reviews?.forEach((review) => {
+    // Prefer review_date (actual Google date), fallback to created_at
+    const dateStr = review.review_date || review.created_at;
+    if (!dateStr) return;
+
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return;
+
+    const monthKey = `${months[date.getMonth()]} ${date.getFullYear()}`;
+
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { sum: 0, count: 0 };
+    }
+
+    monthlyData[monthKey].count += 1;
+    monthlyData[monthKey].sum += review.rating || 0;
+  });
+
+  const chartData = Object.entries(monthlyData)
+    .map(([monthYear, data]) => {
+      const [month, year] = monthYear.split(" ");
+      return {
+        month: monthYear,
+        rating: data.count > 0 ? Number((data.sum / data.count).toFixed(1)) : 0,
+        reviews: data.count,
+        sortKey: new Date(`${month} 1, ${year}`).getTime(),
+      };
+    })
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ month, rating, reviews }) => ({ month, rating, reviews }));
+
+  return { data: chartData, error: null };
+}
+
+// ==========================================
+// 2. Cached Dashboard Data (Main Home Logic)
+// ==========================================
+
 export async function getCachedDashboardData(userId: string) {
   const cacheKey = `${userId}:home-dashboard`;
 
