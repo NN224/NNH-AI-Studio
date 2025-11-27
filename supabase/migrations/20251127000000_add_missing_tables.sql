@@ -98,12 +98,16 @@ CREATE TABLE IF NOT EXISTS brand_profiles (
   example_responses TEXT[],
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  UNIQUE(user_id, is_active) WHERE is_active = true
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
 CREATE INDEX idx_brand_profiles_user_id ON brand_profiles(user_id);
 CREATE INDEX idx_brand_profiles_is_active ON brand_profiles(is_active);
+
+-- Partial unique index: Only one active brand profile per user
+CREATE UNIQUE INDEX idx_brand_profiles_user_active
+  ON brand_profiles(user_id)
+  WHERE is_active = true;
 
 -- ----------------------------------------------------------------------------
 -- 5. AUTOPILOT_LOGS TABLE
