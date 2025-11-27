@@ -94,16 +94,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Enqueue sync job using PGMQ
-    const { data: msgData, error: enqueueError } = await supabase.rpc(
-      "enqueue_sync_job",
-      {
-        p_account_id: accountId,
-        p_user_id: user.id,
-        p_sync_type: syncType,
-        p_priority: priority,
-      },
-    );
+    // Enqueue sync job directly (more reliable than RPC)
+    const { error: enqueueError } = await supabase
+      .from("sync_queue")
+      .insert({
+        user_id: user.id,
+        account_id: accountId,
+        sync_type: syncType,
+        priority,
+        status: "pending",
+        scheduled_at: scheduled_at || new Date().toISOString(),
+      })
+      .select("id")
+      .single();
 
     if (enqueueError) {
       console.error("[Enqueue Sync] Failed to enqueue job:", enqueueError);

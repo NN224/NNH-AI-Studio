@@ -41,7 +41,7 @@ export async function addToSyncQueue(
         .from("sync_queue")
         .insert({
           user_id: userId,
-          gmb_account_id: accountId,
+          account_id: accountId,
           sync_type: syncType,
           priority,
           status: "pending",
@@ -71,7 +71,7 @@ export async function addToSyncQueue(
       .from("sync_queue")
       .insert({
         user_id: user.id,
-        gmb_account_id: accountId,
+        account_id: accountId,
         sync_type: syncType,
         priority,
         status: "pending",

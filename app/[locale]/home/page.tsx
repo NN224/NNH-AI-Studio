@@ -15,17 +15,15 @@
  * @see /lib/types/user-home-stats.types.ts
  */
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { Metadata } from "next";
 import { HomePageWrapper } from "@/components/home/home-page-wrapper";
-import { HomeErrorBoundary } from "@/components/home/home-error-boundary";
-import { getCachedDashboardData } from "@/server/actions/dashboard";
+import { createClient } from "@/lib/supabase/server";
 import {
-  getUserProgress,
   getUserAchievements,
+  getUserProgress,
   initializeUserProgress,
 } from "@/server/actions/achievements";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -75,12 +73,13 @@ export default async function HomePage({
     ],
   );
 
-  // ⚡ OPTIMIZED: Using materialized view for cached stats (15+ queries → 3 queries)
+  // ⚡ OPTIMIZED: Using materialized view for cached stats (15+ queries → 5 queries)
   const [
     { data: cachedStats },
     { data: youtubeToken },
     { data: primaryLocation },
     { data: autopilotSettings },
+    { count: gmbAccountsCount },
   ] = await Promise.all([
     // Query #1: Get cached stats from materialized view (replaces 8+ queries!)
     supabase
@@ -121,15 +120,24 @@ export default async function HomePage({
       .eq("is_enabled", true)
       .limit(1)
       .maybeSingle(),
+    // Query #5: Get GMB accounts count (view doesn't have this)
+    supabase
+      .from("gmb_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_active", true),
   ]);
 
   // Extract counts from cached stats (with fallback to 0)
-  const locationsCount = cachedStats?.locations_count || 0;
+  // Note: accountsCount comes from direct query since view doesn't have it
+  const locationsCount =
+    cachedStats?.total_locations || cachedStats?.locations_count || 0;
   const reviewsCount = cachedStats?.reviews_count || 0;
-  const accountsCount = cachedStats?.accounts_count || 0;
+  const accountsCount = gmbAccountsCount || 0;
   const repliedReviewsCount = cachedStats?.replied_reviews_count || 0;
   const todayReviewsCount = cachedStats?.today_reviews_count || 0;
-  const thisWeekCount = cachedStats?.this_week_reviews_count || 0;
+  const thisWeekCount =
+    cachedStats?.this_week_reviews_count || cachedStats?.reviews_this_week || 0;
   const lastWeekCount = cachedStats?.last_week_reviews_count || 0;
 
   // If no logo, try to get from gmb_media

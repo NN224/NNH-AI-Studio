@@ -28,20 +28,20 @@ export async function GET(_request: NextRequest) {
       .eq("is_active", true)
       .single();
 
-    // If no active account found, check for any account that has valid tokens
+    // If no active account found, check for any account
     if (!account || (dbError && dbError.code === "PGRST116")) {
       const { data: inactiveAccount } = await supabase
         .from("gmb_accounts")
         .select(
-          "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at, access_token",
+          "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
 
-      // Only auto-activate if account has valid tokens
-      if (inactiveAccount && inactiveAccount.access_token) {
+      // Auto-activate if we found an account (tokens are stored in gmb_secrets)
+      if (inactiveAccount) {
         // Auto-activate the account
         const { error: updateError } = await supabase
           .from("gmb_accounts")
@@ -50,7 +50,7 @@ export async function GET(_request: NextRequest) {
 
         if (!updateError) {
           account = { ...inactiveAccount, is_active: true };
-          console.log(
+          console.warn(
             `[GET /api/gmb/status] Auto-activated account: ${inactiveAccount.id}`,
           );
         } else {
