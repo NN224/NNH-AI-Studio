@@ -92,7 +92,7 @@ export function GMBSettings() {
       // Load GMB accounts
       const { data: accounts, error: accountsError } = await supabase
         .from("gmb_accounts")
-        .select("id, account_name, is_active, last_sync, settings")
+        .select("id, account_name, is_active, last_synced_at, settings")
         .eq("user_id", user.id);
 
       if (accountsError) {
