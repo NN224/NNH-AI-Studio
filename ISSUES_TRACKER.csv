@@ -1,0 +1,41 @@
+ID,Domain,Severity,Issue Type,File,Line,Description,Impact,Fix Priority,Estimated Hours,Status
+1,Security,Critical,CSRF,lib/security/csrf.ts,5-20,Weak CSRF token generation using Math.random(),Attackers can predict tokens and perform CSRF attacks,P0,4,Not Started
+2,Security,Critical,Rate Limiting,lib/rate-limit.ts,48-55,Rate limiter fails open when Redis unavailable,Allows all requests during outage - DoS vulnerability,P0,4,Not Started
+3,Security,Critical,Validation,server/actions/auto-reply.ts,26-28,Missing Zod validation for AutoReplySettings,Invalid data reaches database,P0,2,Not Started
+4,Security,Critical,SQL Injection,server/actions/reviews-management.ts,231,Search query vulnerable to operator injection,SQL injection possible in search,P0,3,Not Started
+5,Memory,Critical,Leak,hooks/use-toast.ts,182,useToast listener array grows infinitely,Memory leak in toast notifications,P0,2,Not Started
+6,Memory,Critical,Cache,lib/cache/cache-manager.ts,55,In-memory cache grows unbounded,Can cause OOM crashes in production,P0,4,Not Started
+7,Runtime,Critical,Import,hooks/use-safe-timer.ts,120-183,useState used before React import,Runtime error - hook crashes,P0,0.5,Not Started
+8,Runtime,Critical,Import,hooks/use-safe-event-listener.ts,168-196,React.useState before React import,Runtime error - hook crashes,P0,0.5,Not Started
+9,Runtime,Critical,Import,hooks/use-safe-fetch.ts,99-114,React.useState before React import,Runtime error - hook crashes,P0,0.5,Not Started
+10,i18n,High,Hardcoded Text,components/reviews/ReviewAISettings.tsx,62-81,Hardcoded Arabic text without i18n,Users see wrong language,P1,2,Not Started
+11,i18n,High,Hardcoded Text,components/questions/QuestionAISettings.tsx,53-72,Hardcoded Arabic text without i18n,Users see wrong language,P1,2,Not Started
+12,i18n,High,Hardcoded Text,components/settings/ai-settings-form.tsx,multiple,Mixed hardcoded English/Arabic,Users see wrong language,P1,3,Not Started
+13,i18n,High,Hardcoded Text,components/media/MediaUploader.tsx,79-84,Hardcoded English messages,Users see wrong language,P1,1,Not Started
+14,UI,High,Layout,components/*,all,314+ files missing BETA banner offset,Content hidden behind BETA banner,P1,8,Not Started
+15,Type Safety,High,Any Type,dialog.tsx,94,Component: any type,Loss of type safety,P1,1,Not Started
+16,Type Safety,High,Any Type,validation-panel.tsx,25-26,profile: any and onChange: any,Loss of type safety,P1,1,Not Started
+17,Type Safety,High,Any Type,lazy-dashboard-components.tsx,54-76,Three components with any types,Loss of type safety,P1,2,Not Started
+18,Performance,High,N+1 Query,server/actions/accounts.ts,25-37,Separate query per account,Performance degradation,P1,3,Not Started
+19,Performance,High,N+1 Query,server/actions/gmb-sync.ts,1030-1046,Loop inside loop,Performance degradation,P1,4,Not Started
+20,Error Handling,High,Exposed Details,server/actions/reviews-management.ts,196-204,Exposes Google API error details,Security risk - information disclosure,P1,2,Not Started
+21,Error Handling,High,Inconsistent,Multiple files,various,Different error response formats,Frontend must handle multiple formats,P1,4,Not Started
+22,AI,High,Incomplete Fallback,lib/ai/provider.ts,420-471,Only tries 3 of 5 providers,Groq and DeepSeek never utilized,P1,3,Not Started
+23,AI,High,No Timeout,lib/ai/provider.ts,125-211,AI API calls lack timeout,Requests can hang indefinitely,P1,3,Not Started
+24,Race Condition,High,Filters,hooks/use-locations.ts,407-425,Multiple fetch operations can race,Stale data displayed,P1,3,Not Started
+25,Memory,High,Cache,hooks/use-dashboard-cache.ts,12-68,Global cache never cleaned,Memory leak - expired entries accumulate,P1,4,Not Started
+26,Memory,High,Dependency,hooks/use-sync-status.ts,86,Supabase in dependency array,Infinite polling loops,P1,2,Not Started
+27,Memory,High,EventSource,hooks/use-sync-progress.ts,134-203,EventSource cleanup races,Memory leak and double connections,P1,3,Not Started
+28,Accessibility,Medium,ARIA,components/reviews/ReviewAISettings.tsx,60-120,Missing ARIA labels,Poor accessibility,P2,2,Not Started
+29,Accessibility,Medium,ARIA,components/questions/QuestionAISettings.tsx,multiple,Missing ARIA labels,Poor accessibility,P2,2,Not Started
+30,Accessibility,Medium,Alt Text,Multiple components,various,Missing image alt text,Poor accessibility,P2,3,Not Started
+31,Code Quality,Medium,Console Logs,Multiple files,various,149 console.log statements,Production logs polluted,P2,4,Not Started
+32,Code Quality,Medium,Magic Numbers,Multiple files,various,Hardcoded values throughout,Poor maintainability,P2,3,Not Started
+33,Code Quality,Medium,Any Types,Multiple files,various,176 instances of any type,Type safety compromised,P2,10,Not Started
+34,Caching,Medium,Pub/Sub,lib/cache/cache-manager.ts,139-281,Pub/sub completely disabled,Stale cache in multi-instance,P2,6,Not Started
+35,Caching,Medium,Stampede,lib/cache/cache-manager.ts,112-129,No cache stampede prevention,Thundering herd problem,P2,4,Not Started
+36,Transaction,Medium,Rollback,server/actions/reviews-management.ts,1010-1016,Batch operations without transactions,Inconsistent state on failure,P2,3,Not Started
+37,Validation,Medium,UUID,server/actions/locations.ts,167-169,Weak UUID validation,Type checking insufficient,P2,2,Not Started
+38,Timestamp,Medium,Inconsistent,server/actions/reviews-management.ts,425-444,Multiple columns for same data,Data inconsistency,P2,4,Not Started
+39,Documentation,Low,JSDoc,lib/ai/provider.ts,383-471,Missing JSDoc comments,Poor developer experience,P3,2,Not Started
+40,Documentation,Low,TODO,Multiple files,various,Unresolved TODO comments,Technical debt,P3,2,Not Started
