@@ -9,15 +9,15 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
  * PURPOSE:
  * This Edge Function processes sync jobs from the sync_queue table. It:
  * - Picks pending jobs using FOR UPDATE SKIP LOCKED (prevents race conditions)
- * - Processes each job by calling the existing gmb-sync Edge Function
+ * - Processes each job by calling the gmb-process Edge Function
  * - Updates job status (succeeded/failed) and sync_status table
  * - Handles retries with exponential backoff
  * - Respects timeout limits (55s total worker runtime)
  * - Tracks execution in sync_worker_runs for diagnostics
  *
  * ARCHITECTURE:
- * - Called by: Cron scheduler (every 2-5 minutes)
- * - Security: Requires X-Trigger-Secret header
+ * - Called by: Cron scheduler (every 2-5 minutes) or manually via CURL
+ * - Security: Requires X-Trigger-Secret header (or service role key)
  * - Processing: Sequential (one job at a time to avoid rate limits)
  *
  * ENVIRONMENT VARIABLES REQUIRED:
@@ -25,14 +25,6 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
  * - SUPABASE_SERVICE_ROLE_KEY: Service role key (admin access)
  * - TRIGGER_SECRET: Secret for authenticating trigger calls
  *
- * CRON SCHEDULE (recommended):
- * - Every 5 minutes (cron expression: asterisk-slash-five asterisk asterisk asterisk asterisk)
- * - Or every 2 minutes for faster processing (cron expression: asterisk-slash-two asterisk asterisk asterisk asterisk)
- *
- * المنطق (Logic in Arabic):
- * العامل (Worker) يقوم بمعالجة المهام من الطابور بشكل متسلسل.
- * يستخدم FOR UPDATE SKIP LOCKED لتجنب التضارب عند تشغيل عدة workers.
- * كل مهمة لها حد أقصى من المحاولات (3 محاولات افتراضياً).
  * ============================================================================
  */
 
@@ -96,7 +88,7 @@ interface JobResult {
 interface WorkerRunStats {
   run_id: string;
   jobs_picked: number;
-  jobs_processed: number;
+  jobs_processed: number; // Kept in interface for internal logic, but not saved to DB
   jobs_succeeded: number;
   jobs_failed: number;
   results: JobResult[];
@@ -168,6 +160,7 @@ async function createWorkerRun(admin: SupabaseClient): Promise<string> {
 
 /**
  * Update worker run with final stats
+ * FIXED: matched column names with database schema
  */
 async function updateWorkerRun(
   admin: SupabaseClient,
@@ -177,10 +170,10 @@ async function updateWorkerRun(
   const { error } = await admin
     .from("sync_worker_runs")
     .update({
-      finished_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(), // Fixed: was finished_at
       status: stats.status,
       jobs_picked: stats.jobs_picked ?? 0,
-      jobs_processed: stats.jobs_processed ?? 0,
+      // jobs_processed removed as it doesn't exist in DB table
       jobs_succeeded: stats.jobs_succeeded ?? 0,
       jobs_failed: stats.jobs_failed ?? 0,
       notes: stats.notes,
@@ -258,7 +251,7 @@ async function pickJobsForProcessing(
 }
 
 /**
- * Process a single sync job by calling gmb-sync Edge Function
+ * Process a single sync job by calling gmb-process Edge Function
  */
 async function processJob(
   job: SyncJob,
@@ -408,8 +401,6 @@ async function updateJobStatus(
 
       if (should_retry) {
         // Calculate exponential backoff delay
-        // job.attempts has already been incremented by pick_sync_jobs
-        // So: attempts=1 → 1st retry → delay=2min, attempts=2 → 2nd retry → delay=4min, etc.
         const retryNumber = job.attempts - 1; // 0-based for cleaner exponential
         const delay_ms = CONFIG.RETRY_DELAY_BASE_MS * Math.pow(2, retryNumber);
         const scheduled_at = new Date(Date.now() + delay_ms).toISOString();
@@ -456,7 +447,7 @@ async function updateJobStatus(
           );
         }
 
-        // Update sync_status using Postgres function (atomic, no race condition)
+        // Update sync_status using Postgres function
         const { error: statusError } = await admin.rpc(
           "update_sync_status_failure",
           {
@@ -470,7 +461,6 @@ async function updateJobStatus(
           console.error(
             `Failed to update sync_status: ${getErrorMessage(statusError)}`,
           );
-          // Non-critical for job completion
         }
       }
     }
@@ -480,8 +470,6 @@ async function updateJobStatus(
       `🚨 CRITICAL: Failed to update job ${job.id} status:`,
       getErrorMessage(error),
     );
-    // Don't re-throw - we want to continue processing other jobs
-    // This job will be marked as stale eventually and retried
   }
 }
 
