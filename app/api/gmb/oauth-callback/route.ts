@@ -466,20 +466,43 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      const { data: upsertedAccount, error: upsertError } = await adminClient
+      // First try to upsert the account
+      const { error: upsertError } = await adminClient
         .from("gmb_accounts")
         .upsert(upsertData, {
           onConflict: "account_id",
           ignoreDuplicates: false,
-        })
+        });
+
+      if (upsertError) {
+        handleApiError(
+          upsertError,
+          "[OAuth Callback] Failed to upsert GMB account",
+        );
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Failed to save Google My Business account. Please try again.",
+            error_code: "gmb_account_upsert_failed",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      // Then fetch the account to get its ID
+      const { data: upsertedAccount, error: fetchError } = await adminClient
+        .from("gmb_accounts")
         .select("id")
+        .eq("account_id", accountId)
         .single();
 
-      if (upsertError || !upsertedAccount) {
+      if (fetchError || !upsertedAccount) {
         handleApiError(
-          upsertError ||
-            new Error("[OAuth Callback] Account upsert returned no data"),
-          "[OAuth Callback] Failed to upsert GMB account",
+          fetchError ||
+            new Error("[OAuth Callback] Failed to fetch account after upsert"),
+          "[OAuth Callback] Failed to retrieve GMB account",
         );
 
         const redirectUrl = buildSafeRedirectUrl(
@@ -488,7 +511,7 @@ export async function GET(request: NextRequest) {
           {
             error:
               "Failed to save Google My Business account. Please try again.",
-            error_code: "gmb_account_upsert_failed",
+            error_code: "gmb_account_fetch_failed",
           },
         );
         return NextResponse.redirect(redirectUrl);
