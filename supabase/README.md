@@ -186,20 +186,31 @@ User clicks "Sync"
 - ❌ No retry mechanism
 - ❌ HTTP overhead
 
-### New Flow (Production-Ready)
+### New Flow (Production-Ready) ✅
 
 ```
-User clicks "Sync"
-  → Edge Function enqueues job to PGMQ
-    → Returns immediately (200 OK with job_id)
+1. USER TRIGGERS SYNC:
+   User clicks "Sync"
+     → gmb-sync Edge Function
+       → Enqueues job to PGMQ
+         → Returns immediately (200 OK with job_id)
 
-Worker (separate process):
-  → Polls PGMQ queue
-    → Picks job
-      → Calls Next.js API
-        → Processes sync
-          → Updates sync_status
-            → Marks job complete
+2. WORKER PROCESSES QUEUE:
+   gmb-sync-worker (cron: every 2-5 min)
+     → Picks job from sync_queue
+       → Calls gmb-process Edge Function
+         → gmb-process calls Next.js /api/gmb/sync-v2
+           → Next.js fetches from Google API
+             → Next.js saves to database via RPC
+               → Returns result to gmb-process
+                 → gmb-process returns to worker
+                   → Worker updates sync_queue status
+
+3. SCHEDULED SYNC:
+   scheduled-sync (cron: every 1 hour)
+     → Fetches all active accounts
+       → Batch-enqueues jobs to PGMQ
+         → Returns summary
 ```
 
 **Benefits**:
@@ -209,6 +220,7 @@ Worker (separate process):
 - ✅ Built-in retry mechanism
 - ✅ Queue-based architecture
 - ✅ Scalable
+- ✅ **NO INFINITE LOOP** (gmb-sync → queue, gmb-process → actual work)
 
 ## 🛠️ Edge Functions
 
@@ -287,19 +299,60 @@ Content-Type: application/json
 - ✅ Batch processing
 - ✅ Error tracking
 
-### 3. gmb-sync-worker (Queue Processor)
+### 3. gmb-process (Heavy Lifter) 🔥
 
-**Purpose**: Process jobs from PGMQ queue
+**Purpose**: Performs the ACTUAL sync work (Google API → Database)
+
+**Endpoint**: `https://[project].supabase.co/functions/v1/gmb-process`
+
+**Called By**: gmb-sync-worker ONLY (internal)
+
+**Request**:
+
+```json
+POST /functions/v1/gmb-process
+X-Internal-Run: <TRIGGER_SECRET>
+Content-Type: application/json
+
+{
+  "accountId": "uuid",
+  "userId": "uuid",
+  "syncType": "full"
+}
+```
 
 **Flow**:
 
-1. Poll PGMQ queue (`gmb_sync_queue`)
-2. Pick job (with visibility timeout)
-3. Call Next.js API `/api/gmb/sync-v2`
-4. Update `sync_status` table
-5. Delete job from queue (or retry)
+1. Verify internal secret
+2. Call Next.js `/api/gmb/sync-v2`
+3. Next.js fetches from Google API
+4. Next.js saves to database
+5. Return result
 
-**Note**: This worker should run continuously or be triggered by pg_notify.
+**Key Points**:
+
+- ✅ Internal access only (requires secret)
+- ✅ Proxies to Next.js (where logic lives)
+- ✅ Can take 30-60 seconds (that's OK, it's async)
+- ✅ No infinite loop (doesn't call gmb-sync)
+
+### 4. gmb-sync-worker (Queue Processor)
+
+**Purpose**: Process jobs from sync_queue table
+
+**Flow**:
+
+1. Pick jobs from `sync_queue` (FOR UPDATE SKIP LOCKED)
+2. For each job:
+   - Call `gmb-process` Edge Function
+   - Wait for result
+   - Update job status (succeeded/failed)
+   - Handle retries with exponential backoff
+3. Update `sync_worker_runs` table
+
+**Cron Schedule**: Every 2-5 minutes
+
+**Note**: This worker orchestrates the sync process but doesn't do the actual work.
 
 ## 🧪 Testing
 

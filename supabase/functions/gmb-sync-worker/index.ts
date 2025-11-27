@@ -77,6 +77,7 @@ const CONFIG = {
 
 interface SyncJob {
   id: string;
+  user_id: string;
   account_id: string;
   sync_type: "full" | "incremental";
   attempts: number;
@@ -270,9 +271,10 @@ async function processJob(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CONFIG.JOB_TIMEOUT_MS);
 
-    // Call the existing gmb-sync Edge Function
-    // Using X-Internal-Run header for internal authentication (matches gmb-sync's expected header)
-    const response = await fetch(`${supabaseUrl}/functions/v1/gmb-sync`, {
+    // Call gmb-process Edge Function (THE ACTUAL PROCESSOR)
+    // This function does the real work: calls Google API and saves to DB
+    // Using X-Internal-Run header for internal authentication
+    const response = await fetch(`${supabaseUrl}/functions/v1/gmb-process`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -280,6 +282,7 @@ async function processJob(
       },
       body: JSON.stringify({
         accountId: job.account_id,
+        userId: job.user_id,
         syncType: job.sync_type,
       }),
       signal: controller.signal,
