@@ -53,6 +53,9 @@ export function EmptyState() {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          returnUrl: window.location.pathname, // Remember where user came from
+        }),
       });
 
       if (!response.ok) {

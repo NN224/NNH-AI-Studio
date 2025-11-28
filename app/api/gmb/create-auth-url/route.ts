@@ -30,6 +30,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get returnUrl from request body (where to redirect after OAuth)
+    let returnUrl = "/dashboard"; // Default fallback
+    try {
+      const body = await request.json();
+      if (body.returnUrl) {
+        returnUrl = body.returnUrl;
+      }
+    } catch {
+      // If no body or invalid JSON, use default
+    }
+
     // Ensure user has a profile (optional check - profiles table may not be required)
     // This is just a safety check, but since we use auth.users FK, it's not critical
     const { error: profileError } = await supabase
@@ -82,6 +93,7 @@ export async function POST(request: NextRequest) {
         state,
         user_id: user.id,
         provider: "google",
+        redirect_uri: returnUrl, // Store where to redirect after OAuth
         expires_at: expiresAt.toISOString(),
         used: false,
       })
