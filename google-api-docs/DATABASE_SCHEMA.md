@@ -5,29 +5,37 @@
 ### الإحصائيات الكاملة:
 
 ```
-الجداول:        40 جدول (verified in production Nov 27, 2025)
-الأعمدة:         671 عمود (verified in production)
+الجداول:        40 جدول (verified in production Nov 27, 2025 + gmb_services Nov 28)
+الأعمدة:         689 عمود (+18 from gmb_services)
 Views:          7 views (cleaned up old views)
 Materialized:   2 materialized views (mv_user_dashboard_stats, mv_location_stats)
 Functions:      108 functions (including get_user_dashboard_stats, refresh_dashboard_stats_view)
-Indexes:        303 indexes (optimized for performance)
-Triggers:       24 triggers (added 5 new update triggers)
-Policies:       112 RLS policies (added 15 new policies)
+Indexes:        311 indexes (+8 from gmb_services)
+Triggers:       25 triggers (+1 gmb_services update trigger)
+Policies:       117 RLS policies (+5 gmb_services policies)
 Extensions:     10 extensions
-Migrations:     95 migration files (added critical schema fix Nov 27, 2025)
+Migrations:     96 migration files (+1 gmb_services creation)
 ```
 
 ### 📝 آخر تحديث:
 
-- **التاريخ:** نوفمبر 27, 2025
+- **التاريخ:** نوفمبر 28, 2025
 - **الإجراءات:**
-  - ✅ إضافة 6 جداول مفقودة (teams, team_members, team_invitations, brand_profiles, autopilot_logs, question_templates)
-  - ✅ إصلاح أخطاء الأعمدة في onboarding.ts و questions-management.ts
-  - ✅ إضافة 15 RLS policies جديدة
-  - ✅ إضافة 5 update triggers جديدة
-  - ✅ إضافة 6 partial unique indexes
-  - ✅ زيادة الأعمدة من 600 → 671 (+71 عمود)
-  - ✅ زيادة الجداول من 34 → 40 (+6 جداول)
+  - ✅ **إضافة جدول gmb_services** - إصلاح 404 errors في Production
+  - ✅ إضافة 18 أعمدة جديدة (id, user_id, location_id, name, category, price, etc.)
+  - ✅ إضافة 8 indexes محسّنة للأداء
+  - ✅ إضافة 5 RLS policies للأمان
+  - ✅ إضافة update trigger تلقائي
+  - ✅ دعم AI post generation مع السياق
+  - ✅ زيادة الأعمدة من 671 → 689 (+18 عمود)
+  - ✅ زيادة الـ Indexes من 303 → 311 (+8)
+
+**التحديث السابق (نوفمبر 27, 2025):**
+
+- ✅ إضافة 6 جداول مفقودة (teams, team_members, team_invitations, brand_profiles, autopilot_logs, question_templates)
+- ✅ إصلاح أخطاء الأعمدة في onboarding.ts و questions-management.ts
+- ✅ زيادة الأعمدة من 600 → 671 (+71 عمود)
+- ✅ زيادة الجداول من 34 → 40 (+6 جداول)
 
 ---
 
@@ -151,9 +159,38 @@ Migrations:     95 migration files (added critical schema fix Nov 27, 2025)
 
 **الاستخدام:** منتجات GMB
 
-#### `gmb_services` (12 columns) - 16 kB
+#### `gmb_services` (18 columns) - NEW ✨
 
-**الاستخدام:** خدمات GMB
+**الاستخدام:** خدمات ومنتجات الأعمال المقدمة في مواقع GMB
+
+- **Real-time enabled** ✅
+- **Indexes:** 8 (optimized for performance)
+- **Status:** ✅ **CREATED Nov 28, 2025** - Fixes 404 production errors
+
+**الأعمدة الرئيسية:**
+
+- `id` (uuid, PK)
+- `user_id` (uuid, FK → auth.users)
+- `location_id` (uuid, FK → gmb_locations)
+- `gmb_account_id` (uuid, FK → gmb_accounts)
+- `name` (text, NOT NULL) - Service name
+- `category` (text) - Service category
+- `description` (text) - Service details
+- `price` (numeric(10,2)) - Service price
+- `currency` (text, DEFAULT 'USD') - ISO 4217 code
+- `price_type` (text) - fixed/range/starting_at/free/unknown
+- `duration_minutes` (integer) - Service duration
+- `is_active` (boolean, DEFAULT true) - Active status
+- `external_service_id` (text, UNIQUE) - GMB sync ID
+- `synced_at` (timestamptz) - Last GMB sync
+- `metadata` (jsonb) - Additional data
+- `created_at`, `updated_at` (timestamptz)
+
+**استخدامات:**
+
+- AI post generation with services context
+- Services management dashboard
+- Pricing display and quotes
 
 #### `gmb_messages` (10 columns) - 32 kB
 
@@ -398,11 +435,11 @@ Migrations:     95 migration files (added critical schema fix Nov 27, 2025)
 - `permissions` (jsonb) - Granular permissions
   ```json
   {
-    "reviews": {"read": true, "write": false, "delete": false},
-    "questions": {"read": true, "write": false, "delete": false},
-    "posts": {"read": true, "write": false, "delete": false},
-    "locations": {"read": true, "write": false, "delete": false},
-    "settings": {"read": false, "write": false, "delete": false}
+    "reviews": { "read": true, "write": false, "delete": false },
+    "questions": { "read": true, "write": false, "delete": false },
+    "posts": { "read": true, "write": false, "delete": false },
+    "locations": { "read": true, "write": false, "delete": false },
+    "settings": { "read": false, "write": false, "delete": false }
   }
   ```
 - `status` (varchar) - active/inactive/suspended
