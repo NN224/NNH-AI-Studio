@@ -40,7 +40,7 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
     const supabase = createClient();
 
     const checkSyncStatus = async () => {
-      if (!userId) return;
+      if (!userId || !supabase) return;
 
       try {
         // Check for any active jobs (pending or processing)
