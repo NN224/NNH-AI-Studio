@@ -1052,7 +1052,7 @@ function YoutubeDashboardContent() {
       {/* Main Content Area */}
       <div className="flex-1 lg:ml-[240px] transition-all duration-300">
         {/* Header Bar */}
-        <header className="sticky top-0 z-20 glass-header border-b border-primary/30">
+        <header className="sticky top-8 z-20 glass-header border-b border-primary/30">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex-1">
@@ -1204,7 +1204,7 @@ function YoutubeDashboardContent() {
                     onClick={handleConnectYoutube}
                     disabled={connecting}
                     size="lg"
-                    className="mt-4 gap-2 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
+                    className="mt-4 gap-2 bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
                   >
                     {connecting ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -1484,7 +1484,7 @@ function YoutubeDashboardContent() {
                         </div>
                         <div className="w-full bg-secondary rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-primary to-orange-600 h-2 rounded-full transition-all duration-500"
+                            className="bg-linear-to-r from-primary to-orange-600 h-2 rounded-full transition-all duration-500"
                             style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
@@ -1521,7 +1521,7 @@ function YoutubeDashboardContent() {
                             <p className="text-muted-foreground mb-4">or</p>
                             <Button
                               onClick={() => videoInputRef.current?.click()}
-                              className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
+                              className="bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                             >
                               Select File
                             </Button>
@@ -1855,7 +1855,7 @@ function YoutubeDashboardContent() {
                             </Button>
                             <Button
                               onClick={handleUpload}
-                              className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
+                              className="bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white shadow-lg hover-glow"
                             >
                               Upload Video
                               <ChevronRight className="w-4 h-4 ml-2" />
@@ -1910,7 +1910,7 @@ function YoutubeDashboardContent() {
                             </Button>
                             <Button
                               onClick={() => setActiveTab("manager")}
-                              className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
+                              className="bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                             >
                               View Videos
                             </Button>
@@ -2331,7 +2331,7 @@ function YoutubeDashboardContent() {
                           <Button
                             onClick={generateScript}
                             disabled={!scriptPrompt || genLoading}
-                            className="w-full bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
+                            className="w-full bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                           >
                             {genLoading ? (
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -2970,7 +2970,7 @@ function YoutubeDashboardContent() {
                                     contentIdeasLoading ||
                                     !contentIdeasPrompt.trim()
                                   }
-                                  className="w-full bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
+                                  className="w-full bg-linear-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-600/90 text-white"
                                 >
                                   {contentIdeasLoading ? (
                                     <>
@@ -3141,7 +3141,7 @@ function YoutubeDashboardContent() {
                                 );
                               }}
                             >
-                              <Lightbulb className="w-4 h-4 mr-2 flex-shrink-0" />
+                              <Lightbulb className="w-4 h-4 mr-2 shrink-0" />
                               <span className="text-sm">{topic}</span>
                             </Button>
                           ))}
@@ -3974,7 +3974,7 @@ function YoutubeDashboardContent() {
                                   >
                                     <CardContent className="p-4">
                                       <div className="flex gap-4">
-                                        <div className="flex-shrink-0">
+                                        <div className="shrink-0">
                                           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                                             <MessageSquare className="w-5 h-5 text-primary" />
                                           </div>
@@ -3996,7 +3996,7 @@ function YoutubeDashboardContent() {
                                                   </Badge>
                                                 )}
                                               </div>
-                                              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                                              <p className="text-sm text-foreground whitespace-pre-wrap wrap-break-word">
                                                 {comment.text}
                                               </p>
                                             </div>

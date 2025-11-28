@@ -43,6 +43,8 @@ let cachedUpstashConfig: UpstashConfig | null = null;
 let upstashDepsPromise: Promise<UpstashDeps> | null = null;
 let redisClient: RedisInstance | null = null;
 let upstashDisabledAfterFailure = false;
+let lastUpstashFailure = 0;
+const UPSTASH_RETRY_INTERVAL_MS = 60 * 1000; // Retry Upstash every 60 seconds after failure
 let edgeRuntimeWarningLogged = false;
 
 function validateUpstashConfig(): UpstashConfig | null {
@@ -97,8 +99,16 @@ async function tryApplyUpstashRateLimit(
   identifier: string,
   { limit, windowMs, prefix }: ApplyRateLimitOptions,
 ): Promise<RateLimitResult | null> {
+  const now = Date.now();
+
+  // Circuit breaker: If Upstash failed, wait before retrying
   if (upstashDisabledAfterFailure) {
-    return null;
+    if (now - lastUpstashFailure < UPSTASH_RETRY_INTERVAL_MS) {
+      return null; // Still in cooldown, use fallback
+    }
+    // Time to retry Upstash
+
+    console.warn("[RateLimit] Retrying Upstash connection after cooldown...");
   }
 
   if (isEdgeRuntime) {
@@ -135,6 +145,12 @@ async function tryApplyUpstashRateLimit(
 
     const result = await limiter.limit(identifier);
 
+    // If we were in fallback mode and Upstash is now working, log recovery
+    if (upstashDisabledAfterFailure) {
+      console.warn("[RateLimit] Upstash connection restored successfully");
+      upstashDisabledAfterFailure = false;
+    }
+
     return {
       success: result.success,
       limit: result.limit,
@@ -146,12 +162,36 @@ async function tryApplyUpstashRateLimit(
         "X-RateLimit-Reset": result.reset.toString(),
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     upstashDisabledAfterFailure = true;
+    lastUpstashFailure = Date.now();
     console.warn(
-      "Upstash rate limiting failed, falling back to memory:",
-      error,
+      "[RateLimit] Upstash rate limiting failed, falling back to in-memory. Will retry in 60s.",
+      error instanceof Error ? error.message : error,
     );
+
+    // Report to Sentry for monitoring
+    if (typeof window === "undefined") {
+      // Server-side only
+      import("@sentry/nextjs")
+        .then((Sentry) => {
+          Sentry.captureMessage(
+            "Rate limiting using in-memory fallback - Upstash unavailable",
+            {
+              level: "warning",
+              tags: { component: "rate-limit" },
+              extra: {
+                identifier,
+                error: error instanceof Error ? error.message : String(error),
+              },
+            },
+          );
+        })
+        .catch(() => {
+          // Sentry not available, ignore
+        });
+    }
+
     return null;
   }
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { Link } from "@/lib/navigation";
-import Image from "next/image";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/lib/navigation";
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 export function PublicHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,7 +16,7 @@ export function PublicHeader() {
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-50 w-full border-b border-primary/20 bg-black/95 backdrop-blur-xl"
+        className="sticky top-8 z-50 w-full border-b border-primary/20 bg-black/95 backdrop-blur-xl"
       >
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3 group">
@@ -27,7 +27,7 @@ export function PublicHeader() {
               height={40}
               className="object-contain group-hover:scale-110 transition-transform"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
               NNH - AI Studio
             </span>
           </Link>
@@ -78,7 +78,7 @@ export function PublicHeader() {
             </Button>
             <Button
               asChild
-              className="hidden sm:flex bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+              className="hidden sm:flex bg-linear-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
             >
               <Link href="/auth/signup">Get Started</Link>
             </Button>
@@ -155,7 +155,7 @@ export function PublicHeader() {
               </Button>
               <Button
                 asChild
-                className="w-full bg-gradient-to-r from-primary to-accent"
+                className="w-full bg-linear-to-r from-primary to-accent"
               >
                 <Link
                   href="/auth/signup"

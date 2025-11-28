@@ -1,8 +1,12 @@
-"use server";
+"use serve   r";
 
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
 import type { GMBPost } from "@/lib/types/database";
+import {
+  buildIlikePattern,
+  sanitizeSearchQuery,
+} from "@/lib/utils/sanitize-search";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -202,17 +206,10 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
     }
 
     if (validatedParams.searchQuery) {
-      // SECURITY: Sanitize search query to prevent SQL injection and syntax errors
-      // Escape special characters that could break the query or be used for injection
-      const sanitizedQuery = validatedParams.searchQuery
-        .replace(/[%_\\]/g, "\\$&") // Escape SQL wildcards and backslash
-        .replace(/['"]/g, "") // Remove quotes
-        .trim();
-
-      if (sanitizedQuery.length > 0) {
-        query = query.or(
-          `content.ilike.%${sanitizedQuery}%,title.ilike.%${sanitizedQuery}%`,
-        );
+      const sanitized = sanitizeSearchQuery(validatedParams.searchQuery);
+      if (sanitized) {
+        const pattern = buildIlikePattern(sanitized);
+        query = query.or(`content.ilike.${pattern},title.ilike.${pattern}`);
       }
     }
 

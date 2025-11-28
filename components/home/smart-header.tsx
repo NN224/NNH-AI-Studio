@@ -1,15 +1,15 @@
 "use client";
 
+import { SmartNotifications } from "@/components/home/smart-notifications";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, Loader2 } from "lucide-react";
 import { Link } from "@/lib/navigation";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
-import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
-import { SmartNotifications } from "@/components/home/smart-notifications";
-import { formatDistanceToNow } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
+import { Loader2, LogOut, Settings } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 // Format last login to human-readable format
@@ -53,7 +53,7 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
 
   return (
     <motion.header
-      className="sticky top-0 z-50 border-b border-orange-500/20 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80"
+      className="sticky top-8 z-50 border-b border-orange-500/20 bg-black/95 backdrop-blur md:supports-backdrop-filter:bg-black/80"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}

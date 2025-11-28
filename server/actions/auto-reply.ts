@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/utils/get-base-url";
+import { SaveAutoReplySettingsInputSchema } from "@/lib/validations/auto-reply";
+import { z } from "zod";
 
 export interface AutoReplySettings {
   enabled: boolean;
@@ -23,9 +25,7 @@ export interface AutoReplySettings {
 /**
  * Save auto-reply settings for a user
  */
-export async function saveAutoReplySettings(
-  settings: AutoReplySettings
-) {
+export async function saveAutoReplySettings(settings: unknown) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -40,7 +40,10 @@ export async function saveAutoReplySettings(
   }
 
   try {
-    const targetLocationId = settings.locationId ?? null;
+    // ✅ Validate input with Zod
+    const validated = SaveAutoReplySettingsInputSchema.parse(settings);
+
+    const targetLocationId = validated.locationId ?? null;
 
     const existingQuery = supabase
       .from("auto_reply_settings")
@@ -55,10 +58,14 @@ export async function saveAutoReplySettings(
       existingQuery.is("location_id", null);
     }
 
-    const { data: existingRow, error: existingError } = await existingQuery.maybeSingle();
+    const { data: existingRow, error: existingError } =
+      await existingQuery.maybeSingle();
 
     if (existingError && existingError.code !== "PGRST116") {
-      console.error("[AutoReply] Failed to fetch existing settings:", existingError);
+      console.error(
+        "[AutoReply] Failed to fetch existing settings:",
+        existingError,
+      );
       return {
         success: false,
         error: existingError.message,
@@ -68,20 +75,25 @@ export async function saveAutoReplySettings(
     const payload = {
       user_id: user.id,
       location_id: targetLocationId,
-      enabled: settings.enabled,
-      reply_to_positive: settings.replyToPositive,
-      reply_to_neutral: settings.replyToNeutral,
-      reply_to_negative: settings.replyToNegative,
-      require_approval: settings.requireApproval,
-      response_style: settings.tone,
-      response_delay_minutes: settings.minRating,
+      enabled: validated.enabled,
+      reply_to_positive: validated.replyToPositive,
+      reply_to_neutral: validated.replyToNeutral,
+      reply_to_negative: validated.replyToNegative,
+      require_approval: validated.requireApproval,
+      response_style: validated.tone,
+      response_delay_minutes: validated.minRating,
       language: "en",
       // New per-rating controls
-      auto_reply_1_star: settings.autoReply1Star ?? settings.replyToNegative ?? true,
-      auto_reply_2_star: settings.autoReply2Star ?? settings.replyToNegative ?? true,
-      auto_reply_3_star: settings.autoReply3Star ?? settings.replyToNeutral ?? true,
-      auto_reply_4_star: settings.autoReply4Star ?? settings.replyToPositive ?? true,
-      auto_reply_5_star: settings.autoReply5Star ?? settings.replyToPositive ?? true,
+      auto_reply_1_star:
+        validated.autoReply1Star ?? validated.replyToNegative ?? true,
+      auto_reply_2_star:
+        validated.autoReply2Star ?? validated.replyToNegative ?? true,
+      auto_reply_3_star:
+        validated.autoReply3Star ?? validated.replyToNeutral ?? true,
+      auto_reply_4_star:
+        validated.autoReply4Star ?? validated.replyToPositive ?? true,
+      auto_reply_5_star:
+        validated.autoReply5Star ?? validated.replyToPositive ?? true,
       updated_at: new Date().toISOString(),
     };
 
@@ -120,6 +132,15 @@ export async function saveAutoReplySettings(
       message: "Auto-reply settings saved successfully",
     };
   } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      console.error("[AutoReply] Validation error:", error.errors);
+      return {
+        success: false,
+        error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+      };
+    }
+
     console.error("Error in saveAutoReplySettings:", error);
     return {
       success: false,
@@ -189,7 +210,7 @@ export async function getAutoReplySettings(locationId?: string) {
           auto_reply_3_star,
           auto_reply_4_star,
           auto_reply_5_star
-        `
+        `,
       )
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
@@ -220,7 +241,8 @@ export async function getAutoReplySettings(locationId?: string) {
     }
 
     const resolvedTone =
-      typeof row.response_style === "string" && allowedTones.includes(row.response_style as AutoReplySettings["tone"])
+      typeof row.response_style === "string" &&
+      allowedTones.includes(row.response_style as AutoReplySettings["tone"])
         ? (row.response_style as AutoReplySettings["tone"])
         : defaultSettings.tone;
 
@@ -234,10 +256,13 @@ export async function getAutoReplySettings(locationId?: string) {
       data: {
         enabled: row.enabled ?? defaultSettings.enabled,
         minRating: resolvedMinRating,
-        replyToPositive: row.reply_to_positive ?? defaultSettings.replyToPositive,
+        replyToPositive:
+          row.reply_to_positive ?? defaultSettings.replyToPositive,
         replyToNeutral: row.reply_to_neutral ?? defaultSettings.replyToNeutral,
-        replyToNegative: row.reply_to_negative ?? defaultSettings.replyToNegative,
-        requireApproval: row.require_approval ?? defaultSettings.requireApproval,
+        replyToNegative:
+          row.reply_to_negative ?? defaultSettings.replyToNegative,
+        requireApproval:
+          row.require_approval ?? defaultSettings.requireApproval,
         tone: resolvedTone,
         locationId: locationId || undefined,
         // New per-rating controls
@@ -277,8 +302,10 @@ const DEFAULT_APP_URL = getBaseUrl();
 async function fetchReviewRecord(
   supabase: SupabaseClient,
   reviewId: string,
-  userId: string
-): Promise<{ success: true; review: ReviewRecord } | { success: false; error: string }> {
+  userId: string,
+): Promise<
+  { success: true; review: ReviewRecord } | { success: false; error: string }
+> {
   const { data: review, error: reviewError } = await supabase
     .from("gmb_reviews")
     .select("*")
@@ -295,7 +322,7 @@ async function fetchReviewRecord(
 
 function evaluateAutoReplyEligibility(
   review: ReviewRecord,
-  settings: AutoReplySettings
+  settings: AutoReplySettings,
 ): { allowed: boolean; reason?: string } {
   if (review.has_reply || review.reply_text) {
     return { allowed: false, reason: "Review already has a reply" };
@@ -309,19 +336,24 @@ function evaluateAutoReplyEligibility(
   let ratingAllowed = false;
   switch (review.rating) {
     case 1:
-      ratingAllowed = settings.autoReply1Star ?? settings.replyToNegative ?? false;
+      ratingAllowed =
+        settings.autoReply1Star ?? settings.replyToNegative ?? false;
       break;
     case 2:
-      ratingAllowed = settings.autoReply2Star ?? settings.replyToNegative ?? false;
+      ratingAllowed =
+        settings.autoReply2Star ?? settings.replyToNegative ?? false;
       break;
     case 3:
-      ratingAllowed = settings.autoReply3Star ?? settings.replyToNeutral ?? false;
+      ratingAllowed =
+        settings.autoReply3Star ?? settings.replyToNeutral ?? false;
       break;
     case 4:
-      ratingAllowed = settings.autoReply4Star ?? settings.replyToPositive ?? false;
+      ratingAllowed =
+        settings.autoReply4Star ?? settings.replyToPositive ?? false;
       break;
     case 5:
-      ratingAllowed = settings.autoReply5Star ?? settings.replyToPositive ?? false;
+      ratingAllowed =
+        settings.autoReply5Star ?? settings.replyToPositive ?? false;
       break;
     default:
       ratingAllowed = false;
@@ -336,11 +368,17 @@ function evaluateAutoReplyEligibility(
   }
 
   if (!ratingAllowed) {
-    return { allowed: false, reason: `Auto-reply is disabled for ${review.rating}-star reviews` };
+    return {
+      allowed: false,
+      reason: `Auto-reply is disabled for ${review.rating}-star reviews`,
+    };
   }
 
   if (review.rating < settings.minRating) {
-    return { allowed: false, reason: "Review rating is below minimum threshold" };
+    return {
+      allowed: false,
+      reason: "Review rating is below minimum threshold",
+    };
   }
 
   return { allowed: true };
@@ -350,8 +388,11 @@ async function generateReviewReply(
   review: ReviewRecord,
   settings: AutoReplySettings,
   userId: string,
-  supabase: SupabaseClient
-): Promise<{ success: true; reply: string; confidence?: number } | { success: false; error: string }> {
+  supabase: SupabaseClient,
+): Promise<
+  | { success: true; reply: string; confidence?: number }
+  | { success: false; error: string }
+> {
   const maxRetries = 3;
   let lastError: string | null = null;
 
@@ -359,15 +400,17 @@ async function generateReviewReply(
     try {
       // Try enhanced service first
       try {
-        const { generateAIReviewReply, logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
-        
+        const { generateAIReviewReply, logReplyGeneration } = await import(
+          "@/lib/services/ai-review-reply-service"
+        );
+
         // Fetch location name if available
         let locationName = "Business";
         if (review.location_id) {
           const { data: location } = await supabase
-            .from('gmb_locations')
-            .select('location_name')
-            .eq('id', review.location_id)
+            .from("gmb_locations")
+            .select("location_name")
+            .eq("id", review.location_id)
             .single();
           if (location?.location_name) {
             locationName = location.location_name;
@@ -382,7 +425,7 @@ async function generateReviewReply(
         };
 
         const result = await generateAIReviewReply(context, settings, userId);
-        
+
         // Log the generation attempt
         await logReplyGeneration(userId, review.id, result, context);
 
@@ -390,9 +433,11 @@ async function generateReviewReply(
           // Check confidence threshold (default: 70%)
           const minConfidence = 70;
           if (result.confidence < minConfidence && attempt < maxRetries) {
-            console.warn(`[AutoReply] Low confidence (${result.confidence}%), retrying... (attempt ${attempt}/${maxRetries})`);
+            console.warn(
+              `[AutoReply] Low confidence (${result.confidence}%), retrying... (attempt ${attempt}/${maxRetries})`,
+            );
             lastError = `Low confidence: ${result.confidence}%`;
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
             continue;
           }
 
@@ -404,12 +449,15 @@ async function generateReviewReply(
         } else {
           lastError = result.error;
           if (attempt < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
             continue;
           }
         }
       } catch (serviceError) {
-        console.warn('[AutoReply] Enhanced service failed, falling back to legacy:', serviceError);
+        console.warn(
+          "[AutoReply] Enhanced service failed, falling back to legacy:",
+          serviceError,
+        );
         // Fall through to legacy method
       }
 
@@ -417,51 +465,54 @@ async function generateReviewReply(
       let locationName = "Business";
       if (review.location_id) {
         const { data: location } = await supabase
-          .from('gmb_locations')
-          .select('location_name')
-          .eq('id', review.location_id)
+          .from("gmb_locations")
+          .select("location_name")
+          .eq("id", review.location_id)
           .single();
         if (location?.location_name) {
           locationName = location.location_name;
         }
       }
 
-      const aiResponse = await fetch(`${DEFAULT_APP_URL}/api/ai/generate-review-reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviewText: review.review_text || "",
-          rating: review.rating,
-          tone: settings.tone,
-          locationName,
-        }),
-      });
+      const aiResponse = await fetch(
+        `${DEFAULT_APP_URL}/api/ai/generate-review-reply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reviewText: review.review_text || "",
+            rating: review.rating,
+            tone: settings.tone,
+            locationName,
+          }),
+        },
+      );
 
       if (!aiResponse.ok) {
         const errorData = await aiResponse.json().catch(() => ({}));
         lastError = errorData.error || "Failed to generate AI reply";
         if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
         return {
           success: false,
-          error: lastError || 'Failed to generate reply',
+          error: lastError || "Failed to generate reply",
         };
       }
 
       const data = await aiResponse.json();
       const generatedReply = data.reply || data.content || "";
-      
+
       if (!generatedReply) {
         lastError = "No response generated";
         if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
         return {
           success: false,
-          error: lastError || 'Failed to generate reply',
+          error: lastError || "Failed to generate reply",
         };
       }
 
@@ -470,11 +521,15 @@ async function generateReviewReply(
         reply: generatedReply,
       };
     } catch (error) {
-      lastError = error instanceof Error ? error.message : "Failed to generate reply";
-      console.error(`[AutoReply] Error generating reply (attempt ${attempt}/${maxRetries}):`, error);
-      
+      lastError =
+        error instanceof Error ? error.message : "Failed to generate reply";
+      console.error(
+        `[AutoReply] Error generating reply (attempt ${attempt}/${maxRetries}):`,
+        error,
+      );
+
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
         continue;
       }
     }
@@ -489,7 +544,7 @@ async function generateReviewReply(
 async function persistApprovalDraft(
   supabase: SupabaseClient,
   reviewId: string,
-  reply: string
+  reply: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   const { error: updateError } = await supabase
     .from("gmb_reviews")
@@ -538,7 +593,9 @@ export async function processAutoReply(reviewId: string) {
     }
 
     const review = reviewResult.review;
-    const settingsResult = await getAutoReplySettings(review.location_id || undefined);
+    const settingsResult = await getAutoReplySettings(
+      review.location_id || undefined,
+    );
     if (!settingsResult.success || !settingsResult.data) {
       return {
         success: false,
@@ -552,16 +609,24 @@ export async function processAutoReply(reviewId: string) {
     if (!eligibility.allowed) {
       // Log the rejection
       try {
-        const { logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
-        await logReplyGeneration(user.id, reviewId, {
-          success: false,
-          error: eligibility.reason || "Review is not eligible for auto-reply",
-        }, {
-          reviewText: review.review_text || "",
-          rating: review.rating,
-        });
+        const { logReplyGeneration } = await import(
+          "@/lib/services/ai-review-reply-service"
+        );
+        await logReplyGeneration(
+          user.id,
+          reviewId,
+          {
+            success: false,
+            error:
+              eligibility.reason || "Review is not eligible for auto-reply",
+          },
+          {
+            reviewText: review.review_text || "",
+            rating: review.rating,
+          },
+        );
       } catch (logError) {
-        console.error('[AutoReply] Failed to log rejection:', logError);
+        console.error("[AutoReply] Failed to log rejection:", logError);
       }
 
       return {
@@ -570,35 +635,56 @@ export async function processAutoReply(reviewId: string) {
       };
     }
 
-    const generationResult = await generateReviewReply(review, settings, user.id, supabase);
+    const generationResult = await generateReviewReply(
+      review,
+      settings,
+      user.id,
+      supabase,
+    );
     if (!generationResult.success) {
       // Log the failure
       try {
-        const { logReplyGeneration } = await import('@/lib/services/ai-review-reply-service');
-        await logReplyGeneration(user.id, reviewId, {
-          success: false,
-          error: generationResult.error,
-        }, {
-          reviewText: review.review_text || "",
-          rating: review.rating,
-        });
+        const { logReplyGeneration } = await import(
+          "@/lib/services/ai-review-reply-service"
+        );
+        await logReplyGeneration(
+          user.id,
+          reviewId,
+          {
+            success: false,
+            error: generationResult.error,
+          },
+          {
+            reviewText: review.review_text || "",
+            rating: review.rating,
+          },
+        );
       } catch (logError) {
-        console.error('[AutoReply] Failed to log failure:', logError);
+        console.error("[AutoReply] Failed to log failure:", logError);
       }
 
       return generationResult;
     }
 
     const generatedReply = generationResult.reply;
-    
+
     // Check confidence threshold if available
-    if (generationResult.confidence !== undefined && generationResult.confidence < 70) {
-      console.warn(`[AutoReply] Low confidence reply (${generationResult.confidence}%) for review ${reviewId}`);
+    if (
+      generationResult.confidence !== undefined &&
+      generationResult.confidence < 70
+    ) {
+      console.warn(
+        `[AutoReply] Low confidence reply (${generationResult.confidence}%) for review ${reviewId}`,
+      );
       // Still proceed, but log the warning
     }
 
     if (settings.requireApproval) {
-      const draftResult = await persistApprovalDraft(supabase, reviewId, generatedReply);
+      const draftResult = await persistApprovalDraft(
+        supabase,
+        reviewId,
+        generatedReply,
+      );
       if (!draftResult.success) {
         return draftResult;
       }
@@ -633,4 +719,3 @@ export async function processAutoReply(reviewId: string) {
     };
   }
 }
-

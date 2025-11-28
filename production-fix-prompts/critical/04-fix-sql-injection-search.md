@@ -15,6 +15,7 @@
 Search queries in several server actions are vulnerable to **SQL operator injection** because user input is directly interpolated into SQL ILIKE patterns without proper escaping.
 
 **Files Affected:**
+
 1. `server/actions/reviews-management.ts` - Line 231
 2. `server/actions/questions-management.ts` - Line 180
 3. `server/actions/posts-management.ts` - Lines 207-216 (partial fix exists)
@@ -44,6 +45,7 @@ if (validatedParams.searchQuery) {
 ```
 
 **What's Wrong:**
+
 - User input directly interpolated into query
 - Special characters `%`, `_`, `\` not escaped
 - Attackers can inject SQL operators
@@ -65,8 +67,8 @@ if (validatedParams.searchQuery) {
 ```typescript
 // ✅ BETTER - Has sanitization
 const sanitizedQuery = validatedParams.searchQuery
-  .replace(/[%_\\]/g, "\\$&")  // Escapes wildcards
-  .replace(/['"]/g, "")        // Removes quotes
+  .replace(/[%_\\]/g, "\\$&") // Escapes wildcards
+  .replace(/['"]/g, "") // Removes quotes
   .trim();
 
 // But this pattern is not reused elsewhere!
@@ -96,7 +98,7 @@ export function sanitizeSearchQuery(
     maxLength?: number;
     allowWildcards?: boolean;
     trimWhitespace?: boolean;
-  } = {}
+  } = {},
 ): string {
   const {
     maxLength = 100,
@@ -106,7 +108,7 @@ export function sanitizeSearchQuery(
 
   // Handle null/undefined
   if (!query) {
-    return '';
+    return "";
   }
 
   // Convert to string and trim if needed
@@ -121,34 +123,34 @@ export function sanitizeSearchQuery(
   }
 
   // Remove null bytes (PostgreSQL safety)
-  sanitized = sanitized.replace(/\0/g, '');
+  sanitized = sanitized.replace(/\0/g, "");
 
   if (allowWildcards) {
     // Escape backslashes first (must be done before other escapes)
-    sanitized = sanitized.replace(/\\/g, '\\\\');
+    sanitized = sanitized.replace(/\\/g, "\\\\");
 
     // User can use % and _, but we need to validate they're not malicious
     // For now, we'll allow them but log suspicious patterns
     if (sanitized.match(/^%+$/) || sanitized.match(/^_+$/)) {
-      console.warn('[Search] Suspicious wildcard-only query:', sanitized);
-      return ''; // Return empty - don't allow wildcard-only searches
+      console.warn("[Search] Suspicious wildcard-only query:", sanitized);
+      return ""; // Return empty - don't allow wildcard-only searches
     }
   } else {
     // Escape SQL LIKE special characters
     // Order matters: backslash first, then others
-    sanitized = sanitized.replace(/\\/g, '\\\\');  // Backslash
-    sanitized = sanitized.replace(/%/g, '\\%');     // Percent
-    sanitized = sanitized.replace(/_/g, '\\_');     // Underscore
+    sanitized = sanitized.replace(/\\/g, "\\\\"); // Backslash
+    sanitized = sanitized.replace(/%/g, "\\%"); // Percent
+    sanitized = sanitized.replace(/_/g, "\\_"); // Underscore
   }
 
   // Remove potentially dangerous characters
   // Single/double quotes, semicolons, SQL keywords
-  sanitized = sanitized.replace(/['"`;]/g, '');
+  sanitized = sanitized.replace(/['"`;]/g, "");
 
   // Remove SQL comment markers
-  sanitized = sanitized.replace(/--/g, '');
-  sanitized = sanitized.replace(/\/\*/g, '');
-  sanitized = sanitized.replace(/\*\//g, '');
+  sanitized = sanitized.replace(/--/g, "");
+  sanitized = sanitized.replace(/\/\*/g, "");
+  sanitized = sanitized.replace(/\*\//g, "");
 
   // Final trim
   if (trimWhitespace) {
@@ -167,8 +169,16 @@ export function validateSearchQuery(query: string): {
 } {
   // Check for SQL keywords (basic check)
   const sqlKeywords = [
-    'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'UNION',
-    'EXEC', 'EXECUTE', 'SCRIPT', 'JAVASCRIPT'
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "UNION",
+    "EXEC",
+    "EXECUTE",
+    "SCRIPT",
+    "JAVASCRIPT",
   ];
 
   const upperQuery = query.toUpperCase();
@@ -177,16 +187,16 @@ export function validateSearchQuery(query: string): {
     if (upperQuery.includes(keyword)) {
       return {
         valid: false,
-        reason: `Query contains potentially dangerous keyword: ${keyword}`
+        reason: `Query contains potentially dangerous keyword: ${keyword}`,
       };
     }
   }
 
   // Check for suspicious patterns
-  if (query.includes('/*') || query.includes('*/') || query.includes('--')) {
+  if (query.includes("/*") || query.includes("*/") || query.includes("--")) {
     return {
       valid: false,
-      reason: 'Query contains SQL comment markers'
+      reason: "Query contains SQL comment markers",
     };
   }
 
@@ -197,7 +207,10 @@ export function validateSearchQuery(query: string): {
 ### Step 2: Update reviews-management.ts
 
 ```typescript
-import { sanitizeSearchQuery, validateSearchQuery } from '@/lib/utils/sanitize-search';
+import {
+  sanitizeSearchQuery,
+  validateSearchQuery,
+} from "@/lib/utils/sanitize-search";
 
 // ... in the search function ...
 
@@ -205,18 +218,18 @@ if (validatedParams.searchQuery) {
   // ✅ Validate first
   const validation = validateSearchQuery(validatedParams.searchQuery);
   if (!validation.valid) {
-    console.warn('[Reviews] Invalid search query:', validation.reason);
+    console.warn("[Reviews] Invalid search query:", validation.reason);
     return {
       success: false,
-      error: 'Invalid search query',
-      data: []
+      error: "Invalid search query",
+      data: [],
     };
   }
 
   // ✅ Sanitize the search query
   const sanitized = sanitizeSearchQuery(validatedParams.searchQuery, {
     maxLength: 100,
-    allowWildcards: false,  // Don't allow user-supplied wildcards
+    allowWildcards: false, // Don't allow user-supplied wildcards
     trimWhitespace: true,
   });
 
@@ -228,7 +241,7 @@ if (validatedParams.searchQuery) {
     );
   } else {
     // Empty search after sanitization - return all results
-    console.warn('[Reviews] Empty search query after sanitization');
+    console.warn("[Reviews] Empty search query after sanitization");
   }
 }
 ```
@@ -236,7 +249,10 @@ if (validatedParams.searchQuery) {
 ### Step 3: Update questions-management.ts
 
 ```typescript
-import { sanitizeSearchQuery, validateSearchQuery } from '@/lib/utils/sanitize-search';
+import {
+  sanitizeSearchQuery,
+  validateSearchQuery,
+} from "@/lib/utils/sanitize-search";
 
 // ... in the search function ...
 
@@ -245,8 +261,8 @@ if (validatedParams.searchQuery) {
   if (!validation.valid) {
     return {
       success: false,
-      error: 'Invalid search query',
-      data: []
+      error: "Invalid search query",
+      data: [],
     };
   }
 
@@ -266,7 +282,7 @@ if (validatedParams.searchQuery) {
 ### Step 4: Update posts-management.ts (Refactor to use shared sanitizer)
 
 ```typescript
-import { sanitizeSearchQuery } from '@/lib/utils/sanitize-search';
+import { sanitizeSearchQuery } from "@/lib/utils/sanitize-search";
 
 // ✅ Replace inline sanitization with shared function
 if (validatedParams.searchQuery) {
@@ -285,6 +301,7 @@ if (validatedParams.searchQuery) {
 ## 🔍 Step-by-Step Implementation
 
 ### Step 1: Create Sanitizer
+
 ```bash
 # Create file
 touch lib/utils/sanitize-search.ts
@@ -293,6 +310,7 @@ touch lib/utils/sanitize-search.ts
 ```
 
 ### Step 2: Find All Search Queries
+
 ```bash
 # Find all ilike usages
 grep -rn "\.ilike\." server/actions/ --include="*.ts"
@@ -302,6 +320,7 @@ grep -rn "searchQuery" server/actions/ --include="*.ts"
 ```
 
 ### Step 3: Update Each File
+
 1. Import sanitizer
 2. Add validation
 3. Sanitize before use
@@ -312,72 +331,72 @@ grep -rn "searchQuery" server/actions/ --include="*.ts"
 Create `lib/utils/sanitize-search.test.ts`:
 
 ```typescript
-import { describe, it, expect } from '@jest/globals';
-import { sanitizeSearchQuery, validateSearchQuery } from './sanitize-search';
+import { describe, it, expect } from "@jest/globals";
+import { sanitizeSearchQuery, validateSearchQuery } from "./sanitize-search";
 
-describe('sanitizeSearchQuery', () => {
-  it('should allow normal text', () => {
-    expect(sanitizeSearchQuery('hello world')).toBe('hello world');
+describe("sanitizeSearchQuery", () => {
+  it("should allow normal text", () => {
+    expect(sanitizeSearchQuery("hello world")).toBe("hello world");
   });
 
-  it('should escape % wildcard', () => {
-    expect(sanitizeSearchQuery('test%')).toBe('test\\%');
+  it("should escape % wildcard", () => {
+    expect(sanitizeSearchQuery("test%")).toBe("test\\%");
   });
 
-  it('should escape _ wildcard', () => {
-    expect(sanitizeSearchQuery('test_name')).toBe('test\\_name');
+  it("should escape _ wildcard", () => {
+    expect(sanitizeSearchQuery("test_name")).toBe("test\\_name");
   });
 
-  it('should escape backslash', () => {
-    expect(sanitizeSearchQuery('test\\value')).toBe('test\\\\value');
+  it("should escape backslash", () => {
+    expect(sanitizeSearchQuery("test\\value")).toBe("test\\\\value");
   });
 
-  it('should remove quotes', () => {
-    expect(sanitizeSearchQuery(`test"value'`)).toBe('testvalue');
+  it("should remove quotes", () => {
+    expect(sanitizeSearchQuery(`test"value'`)).toBe("testvalue");
   });
 
-  it('should remove SQL comments', () => {
-    expect(sanitizeSearchQuery('test--comment')).toBe('testcomment');
-    expect(sanitizeSearchQuery('test/*comment*/')).toBe('testcomment');
+  it("should remove SQL comments", () => {
+    expect(sanitizeSearchQuery("test--comment")).toBe("testcomment");
+    expect(sanitizeSearchQuery("test/*comment*/")).toBe("testcomment");
   });
 
-  it('should enforce max length', () => {
-    const long = 'a'.repeat(200);
+  it("should enforce max length", () => {
+    const long = "a".repeat(200);
     const result = sanitizeSearchQuery(long, { maxLength: 50 });
     expect(result).toHaveLength(50);
   });
 
-  it('should reject wildcard-only queries', () => {
-    expect(sanitizeSearchQuery('%%%')).toBe('');
-    expect(sanitizeSearchQuery('___')).toBe('');
+  it("should reject wildcard-only queries", () => {
+    expect(sanitizeSearchQuery("%%%")).toBe("");
+    expect(sanitizeSearchQuery("___")).toBe("");
   });
 
-  it('should allow wildcards when enabled', () => {
-    const result = sanitizeSearchQuery('test%', { allowWildcards: true });
+  it("should allow wildcards when enabled", () => {
+    const result = sanitizeSearchQuery("test%", { allowWildcards: true });
     // Should not escape % when allowed
     // But should still validate it's not malicious
   });
 });
 
-describe('validateSearchQuery', () => {
-  it('should allow normal queries', () => {
-    const result = validateSearchQuery('hello world');
+describe("validateSearchQuery", () => {
+  it("should allow normal queries", () => {
+    const result = validateSearchQuery("hello world");
     expect(result.valid).toBe(true);
   });
 
-  it('should reject SQL keywords', () => {
-    const result = validateSearchQuery('SELECT * FROM users');
+  it("should reject SQL keywords", () => {
+    const result = validateSearchQuery("SELECT * FROM users");
     expect(result.valid).toBe(false);
-    expect(result.reason).toContain('SELECT');
+    expect(result.reason).toContain("SELECT");
   });
 
-  it('should reject SQL comments', () => {
-    const result = validateSearchQuery('test--comment');
+  it("should reject SQL comments", () => {
+    const result = validateSearchQuery("test--comment");
     expect(result.valid).toBe(false);
   });
 
-  it('should reject SQL comment blocks', () => {
-    const result = validateSearchQuery('test/*malicious*/');
+  it("should reject SQL comment blocks", () => {
+    const result = validateSearchQuery("test/*malicious*/");
     expect(result.valid).toBe(false);
   });
 });
@@ -471,11 +490,11 @@ Add to your monitoring:
 ```typescript
 if (!validation.valid) {
   // Log security event
-  logger.security('Suspicious search query detected', {
+  logger.security("Suspicious search query detected", {
     query: validatedParams.searchQuery,
     reason: validation.reason,
     userId: user.id,
-    ip: request.headers.get('x-forwarded-for'),
+    ip: request.headers.get("x-forwarded-for"),
     timestamp: new Date().toISOString(),
   });
 }
@@ -491,7 +510,8 @@ if (!validation.valid) {
 
 ---
 
-**Status:** 🔴 NOT STARTED
+**Status:** ✅ COMPLETED
+**Completed Date:** 2025-11-28
 **Estimated Time:** 3 hours
 **Priority:** P0 - CRITICAL
 
