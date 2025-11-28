@@ -14,7 +14,7 @@ import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
 } from "@/lib/utils/safe-redirect";
-import { revalidatePath } from "next/cache";
+import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -683,13 +683,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ CRITICAL: Invalidate Next.js cache so Settings page shows fresh data
-    revalidatePath("/settings");
-    revalidatePath("/dashboard");
-    revalidatePath("/");
-    revalidatePath("/en/settings");
-    revalidatePath("/ar/settings");
-    revalidatePath("/en/dashboard");
-    revalidatePath("/ar/dashboard");
+    await invalidateGMBCache(userId);
 
     // If multiple accounts were saved, redirect to account selection page
     if (savedAccountIds.length > 1) {
@@ -707,14 +701,6 @@ export async function GET(request: NextRequest) {
     // ✅ FIXED: Redirect to source page (returnUrl) instead of hardcoded /settings
     // Get returnUrl from state record (stored in redirect_uri column)
     const returnUrl = stateRecord.redirect_uri || "/dashboard";
-
-    // ✅ CRITICAL: Revalidate home and dashboard pages to show fresh data
-    revalidatePath("/[locale]/home", "page");
-    revalidatePath("/[locale]/(dashboard)/dashboard", "page");
-    revalidatePath("/[locale]/(dashboard)/reviews", "layout");
-    revalidatePath("/[locale]/(dashboard)/questions", "layout");
-    revalidatePath("/[locale]/(dashboard)/posts", "layout");
-    revalidatePath("/[locale]/(dashboard)/locations", "layout");
 
     // Single account - redirect back to where user came from
     const successRedirectUrl = buildSafeRedirectUrl(
