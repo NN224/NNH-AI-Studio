@@ -94,7 +94,7 @@ class LRUCache<K, V> {
 
     // Evict oldest (first) entry if over limit
     if (this.cache.size > this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
+      const firstKey = this.cache.keys().next().value as K;
       this.cache.delete(firstKey);
     }
   }
