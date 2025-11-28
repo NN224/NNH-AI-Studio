@@ -15,23 +15,30 @@ class DashboardCache {
   private cache: Map<string, CacheEntry<any>> = new Map()
   private defaultTTL = 5 * 60 * 1000 // 5 minutes
   private defaultSWR = 1 * 60 * 1000 // 1 minute
+  private hits = 0
+  private misses = 0
 
   /**
    * Get data from cache
    */
   get<T>(key: string): T | null {
     const entry = this.cache.get(key)
-    
-    if (!entry) return null
 
-    const now = Date.now()
-    
-    // Check if expired
-    if (now > entry.expiresAt) {
-      this.cache.delete(key)
+    if (!entry) {
+      this.misses++
       return null
     }
 
+    const now = Date.now()
+
+    // Check if expired
+    if (now > entry.expiresAt) {
+      this.cache.delete(key)
+      this.misses++
+      return null
+    }
+
+    this.hits++
     return entry.data as T
   }
 
@@ -40,8 +47,9 @@ class DashboardCache {
    */
   getWithSWR<T>(key: string): { data: T | null; isStale: boolean } {
     const entry = this.cache.get(key)
-    
+
     if (!entry) {
+      this.misses++
       return { data: null, isStale: false }
     }
 
@@ -51,12 +59,14 @@ class DashboardCache {
     // Check if expired
     if (now > entry.expiresAt) {
       this.cache.delete(key)
+      this.misses++
       return { data: null, isStale: false }
     }
 
     // Check if stale but still valid
     const isStale = now > staleTime
 
+    this.hits++
     return { data: entry.data as T, isStale }
   }
 
@@ -122,12 +132,17 @@ class DashboardCache {
       }
     }
 
+    const totalRequests = this.hits + this.misses
+    const hitRate = totalRequests > 0 ? this.hits / totalRequests : 0
+
     return {
       totalEntries: this.cache.size,
       validEntries,
       staleEntries,
       expiredEntries,
-      hitRate: 0, // TODO: Track hits/misses
+      hits: this.hits,
+      misses: this.misses,
+      hitRate,
     }
   }
 
@@ -136,12 +151,20 @@ class DashboardCache {
    */
   cleanup(): void {
     const now = Date.now()
-    
+
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiresAt) {
         this.cache.delete(key)
       }
     }
+  }
+
+  /**
+   * Reset hit/miss statistics
+   */
+  resetStats(): void {
+    this.hits = 0
+    this.misses = 0
   }
 }
 
