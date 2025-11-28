@@ -6,6 +6,7 @@ import {
   refreshCache,
   type SyncProgressEvent,
 } from "@/lib/cache/cache-manager";
+import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
 import {
   buildLocationResourceName,
   getValidAccessToken,
@@ -1202,15 +1203,9 @@ export async function performTransactionalSync(
     progressEmitter.emit("cache_refresh", "running", {
       message: "Refreshing dashboard caches",
     });
-    await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
 
-    // ✅ Invalidate all pages that display synced GMB data
-    revalidatePath("/[locale]/home", "page");
-    revalidatePath("/[locale]/(dashboard)/dashboard", "page");
-    revalidatePath("/[locale]/(dashboard)/reviews", "layout");
-    revalidatePath("/[locale]/(dashboard)/questions", "layout");
-    revalidatePath("/[locale]/(dashboard)/posts", "layout");
-    revalidatePath("/[locale]/(dashboard)/locations", "layout");
+    // ✅ Use centralized cache invalidation
+    await invalidateGMBCache(userId);
 
     progressEmitter.emit("cache_refresh", "completed", {
       message: "Cache refreshed",
