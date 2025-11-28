@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
-  RefreshCw,
   Download,
   Grid3x3,
   List,
@@ -68,12 +67,6 @@ export function LocationsOverviewTab() {
     };
     checkGMBAccount();
   }, []);
-
-  // Sync functionality moved to global sync button in header
-  const handleSync = () => {
-    // Legacy sync function - redirects to use global sync
-    toast.info("Please use the global sync button in the header");
-  };
 
   const handleBulkSync = async () => {
     if (selectedLocations.length === 0) {
@@ -271,7 +264,6 @@ export function LocationsOverviewTab() {
               </>
             )}
           </Button>
-          {/* Sync button removed - use global sync in header */}
           <Button
             variant="outline"
             size="sm"
