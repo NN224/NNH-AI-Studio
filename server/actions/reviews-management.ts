@@ -449,8 +449,10 @@ export async function replyToReview(reviewId: string, replyText: string) {
       console.error("[Reviews] Database update error:", updateError);
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath("/reviews");
+    // ✅ Invalidate all pages that show review data
+    revalidatePath("/[locale]/home", "page");
+    revalidatePath("/[locale]/(dashboard)/dashboard", "page");
+    revalidatePath("/[locale]/(dashboard)/reviews", "layout");
 
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, user.id);
 

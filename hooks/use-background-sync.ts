@@ -140,6 +140,21 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
     } catch (error) {
       console.error("[Background Sync] Failed:", error);
 
+      // ✅ Report to error monitoring
+      if (typeof window !== "undefined" && (window as any).Sentry) {
+        (window as any).Sentry.captureException(error, {
+          tags: {
+            hook: "useBackgroundSync",
+            accountId: activeAccountId
+          },
+          extra: {
+            intervalMinutes,
+            syncOnMount,
+            showNotifications
+          },
+        });
+      }
+
       if (showNotifications) {
         toast.error("Background sync failed", {
           description: error instanceof Error ? error.message : "Unknown error",
@@ -172,10 +187,21 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
       clearInterval(syncIntervalRef.current);
     }
 
+    // ✅ CRITICAL FIX: Wrapper to properly await async performSync
+    const runPeriodicSync = async () => {
+      try {
+        await performSync();
+      } catch (error) {
+        // Errors already handled in performSync, but log here for debugging
+        console.error("[Background Sync] Periodic sync error:", error);
+      }
+    };
+
     // Set up new interval
     syncIntervalRef.current = setInterval(
       () => {
-        performSync();
+        // ✅ FIXED: Call async wrapper instead of performSync directly
+        runPeriodicSync();
       },
       intervalMinutes * 60 * 1000,
     );
@@ -191,6 +217,26 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
 
   // Pause sync when page is hidden, resume when visible
   useEffect(() => {
+    // ✅ CRITICAL FIX: Async wrapper for visibility sync
+    const runSyncOnVisible = async () => {
+      try {
+        if (shouldSync()) {
+          await performSync();
+        }
+      } catch (error) {
+        console.error("[Background Sync] Visibility sync error:", error);
+      }
+    };
+
+    // ✅ CRITICAL FIX: Reusable async wrapper for periodic sync
+    const runPeriodicSync = async () => {
+      try {
+        await performSync();
+      } catch (error) {
+        console.error("[Background Sync] Periodic sync error:", error);
+      }
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // Page hidden - pause interval
@@ -203,15 +249,15 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         if (!syncIntervalRef.current) {
           syncIntervalRef.current = setInterval(
             () => {
-              performSync();
+              // ✅ FIXED: Use async wrapper
+              runPeriodicSync();
             },
             intervalMinutes * 60 * 1000,
           );
 
           // Check if sync needed immediately
-          if (shouldSync()) {
-            performSync();
-          }
+          // ✅ FIXED: Use async wrapper
+          runSyncOnVisible();
         }
       }
     };

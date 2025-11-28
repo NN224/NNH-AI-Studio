@@ -17,17 +17,27 @@ interface UseSyncStatusResult {
   error: string | null;
 }
 
+/**
+ * Hook to monitor GMB sync status
+ *
+ * CRITICAL FIX: Supabase client created INSIDE useEffect to avoid infinite loops
+ * Previous bug: supabase in dependency array caused 1000s of re-renders
+ *
+ * @param userId - User ID to monitor sync status for
+ * @returns Sync status, last job, and any errors
+ */
 export function useSyncStatus(userId?: string): UseSyncStatusResult {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastJob, setLastJob] = useState<SyncJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    if (!supabase) return;
+    // ✅ CRITICAL FIX: Create Supabase client INSIDE effect
+    // This ensures stable reference and prevents infinite loops
+    const supabase = createClient();
 
     const checkSyncStatus = async () => {
       if (!userId) return;
@@ -67,8 +77,16 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
         }
       } catch (err) {
         if (mountedRef.current) {
-          console.error("Error checking sync status:", err);
+          console.error("[useSyncStatus] Error checking sync status:", err);
           setError(err instanceof Error ? err.message : "Unknown error");
+
+          // Report to Sentry if available
+          if (typeof window !== "undefined" && (window as any).Sentry) {
+            (window as any).Sentry.captureException(err, {
+              tags: { hook: "useSyncStatus" },
+              extra: { userId },
+            });
+          }
         }
       }
     };
@@ -83,7 +101,7 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
       mountedRef.current = false;
       clearInterval(intervalId);
     };
-  }, [userId, supabase]);
+  }, [userId]); // ✅ FIXED: Only userId in dependencies, NOT supabase!
 
   return { isSyncing, lastJob, error };
 }
