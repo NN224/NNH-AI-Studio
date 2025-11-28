@@ -1,13 +1,17 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import type { ReviewData } from "@/lib/gmb/sync-types";
-import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 import { logAction } from "@/lib/monitoring/audit";
 import { trackApiResponse } from "@/lib/monitoring/metrics";
+import { createClient } from "@/lib/supabase/server";
+import {
+  buildIlikePattern,
+  sanitizeSearchQuery,
+} from "@/lib/utils/sanitize-search";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 const GMB_API_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const STAR_RATING_TO_SCORE: Record<string, number> = {
@@ -227,9 +231,13 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
     }
 
     if (validatedParams.searchQuery) {
-      query = query.or(
-        `review_text.ilike.%${validatedParams.searchQuery}%,reviewer_name.ilike.%${validatedParams.searchQuery}%`,
-      );
+      const sanitized = sanitizeSearchQuery(validatedParams.searchQuery);
+      if (sanitized) {
+        const pattern = buildIlikePattern(sanitized);
+        query = query.or(
+          `review_text.ilike.${pattern},reviewer_name.ilike.${pattern}`,
+        );
+      }
     }
 
     // Apply sorting

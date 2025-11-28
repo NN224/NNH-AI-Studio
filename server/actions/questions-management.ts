@@ -4,6 +4,10 @@ import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
 import type { QuestionData } from "@/lib/gmb/sync-types";
 import { createClient } from "@/lib/supabase/server";
+import {
+  buildIlikePattern,
+  sanitizeSearchQuery,
+} from "@/lib/utils/sanitize-search";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -185,9 +189,13 @@ export async function getQuestions(params: {
 
     // Search
     if (params.searchQuery) {
-      query = query.or(
-        `question_text.ilike.%${params.searchQuery}%,answer_text.ilike.%${params.searchQuery}%`,
-      );
+      const sanitized = sanitizeSearchQuery(params.searchQuery);
+      if (sanitized) {
+        const pattern = buildIlikePattern(sanitized);
+        query = query.or(
+          `question_text.ilike.${pattern},answer_text.ilike.${pattern}`,
+        );
+      }
     }
 
     // Sort
