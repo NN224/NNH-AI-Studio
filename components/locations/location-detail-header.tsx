@@ -1,14 +1,13 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { useRouter } from '@/lib/navigation'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import React, { useState } from "react";
+import { useRouter } from "@/lib/navigation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft,
   Edit,
-  RefreshCw,
   MoreVertical,
   MapPin,
   Phone,
@@ -17,23 +16,26 @@ import {
   ExternalLink,
   Trash2,
   Settings,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { toast } from 'sonner'
-import { getHealthScoreColor, getStatusColor } from '@/components/locations/location-types'
-import { formatLargeNumber } from '@/components/locations/location-types'
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import {
+  getHealthScoreColor,
+  getStatusColor,
+} from "@/components/locations/location-types";
+import { formatLargeNumber } from "@/components/locations/location-types";
 
 interface LocationDetailHeaderProps {
-  location: any
-  locationId: string
-  metadata: any
-  onRefresh: () => void
-  gmbAccountId?: string // Optional: pass accountId if available
+  location: any;
+  locationId: string;
+  metadata: any;
+  onRefresh: () => void;
+  gmbAccountId?: string; // Optional: pass accountId if available
 }
 
 export function LocationDetailHeader({
@@ -43,103 +45,103 @@ export function LocationDetailHeader({
   onRefresh,
   gmbAccountId,
 }: LocationDetailHeaderProps) {
-  const router = useRouter()
-  const [syncing, setSyncing] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [accountId, setAccountId] = useState<string | null>(gmbAccountId || null)
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(
+    gmbAccountId || null,
+  );
 
   // Fetch accountId if not provided
   React.useEffect(() => {
-    if (accountId) return // Already have accountId
+    if (accountId) return; // Already have accountId
 
     const fetchAccountId = async () => {
       try {
         // Try to get accountId from location detail API
-        const res = await fetch(`/api/gmb/location/${locationId}`)
+        const res = await fetch(`/api/gmb/location/${locationId}`);
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (data?.gmb_account_id) {
-            setAccountId(data.gmb_account_id)
-            return
+            setAccountId(data.gmb_account_id);
+            return;
           }
         }
 
         // Fallback: get first active account
-        const accountsRes = await fetch('/api/gmb/accounts')
-        const accountsData = await accountsRes.json()
+        const accountsRes = await fetch("/api/gmb/accounts");
+        const accountsData = await accountsRes.json();
         if (accountsData && accountsData.length > 0) {
-          const activeAccount = accountsData.find((acc: any) => acc.is_active) || accountsData[0]
+          const activeAccount =
+            accountsData.find((acc: any) => acc.is_active) || accountsData[0];
           if (activeAccount?.id) {
-            setAccountId(activeAccount.id)
+            setAccountId(activeAccount.id);
           }
         }
       } catch (error) {
-        console.error('Failed to fetch accountId:', error)
+        console.error("Failed to fetch accountId:", error);
       }
-    }
+    };
 
-    fetchAccountId()
-  }, [locationId, accountId])
+    fetchAccountId();
+  }, [locationId, accountId]);
 
-  const name = location?.name || location?.title || 'Unnamed Location'
+  const name = location?.name || location?.title || "Unnamed Location";
   const address =
     location?.storefrontAddress?.addressLines?.[0] ||
     location?.address ||
     metadata?.address ||
-    'N/A'
+    "N/A";
   const phone =
     location?.phoneNumbers?.primaryPhoneNumber?.phoneNumber ||
     location?.phone ||
     metadata?.phone ||
-    null
-  const website = location?.websiteUri || location?.website || metadata?.website || null
-  const rating = location?.rating || metadata?.rating || 0
-  const reviewCount = location?.reviewCount || metadata?.reviewCount || 0
-  const healthScore = metadata?.healthScore || metadata?.health_score || 0
-  const status = location?.status || metadata?.status || 'verified'
-  const isOpen = location?.openInfo?.status === 'OPEN' || metadata?.isOpen
-
-  // Sync functionality moved to global sync button in header
-  const handleSync = () => {
-    // Legacy sync function - redirects to use global sync
-    toast.info('Please use the global sync button in the header')
-  }
+    null;
+  const website =
+    location?.websiteUri || location?.website || metadata?.website || null;
+  const rating = location?.rating || metadata?.rating || 0;
+  const reviewCount = location?.reviewCount || metadata?.reviewCount || 0;
+  const healthScore = metadata?.healthScore || metadata?.health_score || 0;
+  const status = location?.status || metadata?.status || "verified";
+  const isOpen = location?.openInfo?.status === "OPEN" || metadata?.isOpen;
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this location? This action cannot be undone.",
+      )
+    ) {
+      return;
     }
 
     try {
-      setDeleting(true)
+      setDeleting(true);
       const response = await fetch(`/api/locations?id=${locationId}`, {
-        method: 'DELETE',
-      })
+        method: "DELETE",
+      });
 
       if (!response.ok) {
-        throw new Error('Delete failed')
+        throw new Error("Delete failed");
       }
 
-      toast.success('Location deleted successfully')
-      router.push('/locations')
+      toast.success("Location deleted successfully");
+      router.push("/locations");
     } catch (error) {
-      console.error('Delete error:', error)
-      toast.error('Failed to delete location')
+      console.error("Delete error:", error);
+      toast.error("Failed to delete location");
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
       {/* Breadcrumb & Actions */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push('/locations')}>
+        <Button variant="ghost" onClick={() => router.push("/locations")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Locations
         </Button>
         <div className="flex items-center gap-2">
-          {/* Sync button removed - use global sync in header */}
           <Button
             variant="outline"
             size="sm"
@@ -159,14 +161,16 @@ export function LocationDetailHeader({
                 onClick={() =>
                   window.open(
                     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
-                    '_blank',
+                    "_blank",
                   )
                 }
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View on Google Maps
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/locations/${locationId}/settings`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/locations/${locationId}/settings`)}
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
@@ -176,7 +180,7 @@ export function LocationDetailHeader({
                 disabled={deleting}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {deleting ? 'Deleting...' : 'Delete Location'}
+                {deleting ? "Deleting..." : "Delete Location"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -194,12 +198,18 @@ export function LocationDetailHeader({
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge className={getStatusColor(status)}>{status}</Badge>
                   {isOpen && (
-                    <Badge variant="outline" className="text-green-600 border-green-600">
+                    <Badge
+                      variant="outline"
+                      className="text-green-600 border-green-600"
+                    >
                       Open Now
                     </Badge>
                   )}
                   {healthScore > 0 && (
-                    <Badge variant="secondary" className={getHealthScoreColor(healthScore)}>
+                    <Badge
+                      variant="secondary"
+                      className={getHealthScoreColor(healthScore)}
+                    >
                       Health: {healthScore}%
                     </Badge>
                   )}
@@ -208,10 +218,12 @@ export function LocationDetailHeader({
 
               {/* Address & Contact */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {address && address !== 'N/A' && (
+                {address && address !== "N/A" && (
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">{address}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {address}
+                    </span>
                   </div>
                 )}
                 {phone && (
@@ -251,7 +263,8 @@ export function LocationDetailHeader({
                   )}
                   {reviewCount > 0 && (
                     <span className="text-sm text-muted-foreground">
-                      {formatLargeNumber(reviewCount)} {reviewCount === 1 ? 'review' : 'reviews'}
+                      {formatLargeNumber(reviewCount)}{" "}
+                      {reviewCount === 1 ? "review" : "reviews"}
                     </span>
                   )}
                 </div>
@@ -261,5 +274,5 @@ export function LocationDetailHeader({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

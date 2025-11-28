@@ -373,6 +373,8 @@ export async function GET(request: NextRequest) {
     // Process each GMB account
     let savedAccountId: string | null = null;
     const savedAccountIds: string[] = [];
+    let userState: "FIRST_TIME" | "ADDITIONAL_ACCOUNT" | "RE_AUTH" =
+      "FIRST_TIME"; // Track user state
 
     for (const gmbAccount of gmbAccounts) {
       const accountName = gmbAccount.accountName || gmbAccount.name;
@@ -450,6 +452,45 @@ export async function GET(request: NextRequest) {
         );
         return NextResponse.redirect(redirectUrl);
       }
+
+      // ✅ NEW: Determine user state BEFORE upsert to detect first-time vs re-auth
+      console.warn(
+        `[OAuth Callback] Checking user state for account ${accountId}`,
+      );
+
+      // Check if this account already exists for this user (re-auth scenario)
+      const { data: existingAccountForReauth } = await adminClient
+        .from("gmb_accounts")
+        .select("id, account_id")
+        .eq("account_id", accountId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const isReAuth = !!existingAccountForReauth;
+
+      // Check if user has any OTHER GMB accounts (to detect first-time vs additional)
+      const { data: otherAccounts } = await adminClient
+        .from("gmb_accounts")
+        .select("id")
+        .eq("user_id", userId)
+        .neq("account_id", accountId); // Exclude current account
+
+      const hasOtherAccounts = otherAccounts && otherAccounts.length > 0;
+
+      // Determine user state (update the outer variable)
+      if (isReAuth) {
+        userState = "RE_AUTH";
+      } else if (hasOtherAccounts) {
+        userState = "ADDITIONAL_ACCOUNT";
+      } else {
+        userState = "FIRST_TIME";
+      }
+
+      console.warn(`[OAuth Callback] User state: ${userState}`, {
+        isReAuth,
+        hasOtherAccounts,
+        otherAccountsCount: otherAccounts?.length || 0,
+      });
 
       // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
       console.warn(`[OAuth Callback] Upserting GMB account ${accountId}`);
@@ -641,42 +682,90 @@ export async function GET(request: NextRequest) {
       state_token: state,
     });
 
-    // Add to sync queue instead of direct sync
+    // ✅ NEW: Smart sync strategy based on user state
     try {
       // Dynamically import to avoid circular dependencies
       const { addToSyncQueue } = await import("@/server/actions/sync-queue");
 
-      // Pass userId explicitly to avoid reliance on browser session here
-      const result = await addToSyncQueue(savedAccountId, "full", 10, userId); // High priority for new connections
+      let syncPriority: number;
+      let shouldTriggerImmediate: boolean;
 
-      if (result.success) {
-        console.warn("[OAuth Callback] Added to sync queue:", result.queueId);
-
-        // Trigger immediate processing (fire and forget)
-        const cronSecret = process.env.CRON_SECRET;
-        if (cronSecret) {
+      switch (userState) {
+        case "FIRST_TIME":
+          // 🎉 First-time user - highest priority, immediate sync
+          syncPriority = 10;
+          shouldTriggerImmediate = true;
           console.warn(
-            "[OAuth Callback] Triggering immediate queue processing...",
+            "[OAuth Callback] FIRST_TIME user - full sync with overlay",
           );
-          const processUrl = `${baseUrl}/api/gmb/queue/process`;
-          fetch(processUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${cronSecret}`,
-            },
-          }).catch((err) => {
-            console.error(
-              "[OAuth Callback] Failed to trigger queue processing:",
-              err,
-            );
-          });
-        } else {
+          break;
+
+        case "ADDITIONAL_ACCOUNT":
+          // ⚡ Additional account - high priority, background sync
+          syncPriority = 7;
+          shouldTriggerImmediate = true;
           console.warn(
-            "[OAuth Callback] CRON_SECRET not set, cannot trigger immediate processing",
+            "[OAuth Callback] ADDITIONAL_ACCOUNT - background sync for new account",
+          );
+          break;
+
+        case "RE_AUTH":
+          // 🔄 Re-auth - no sync needed (just token refresh)
+          syncPriority = 0;
+          shouldTriggerImmediate = false;
+          console.warn(
+            "[OAuth Callback] RE_AUTH - skipping sync (token refresh only)",
+          );
+          break;
+
+        default:
+          syncPriority = 5;
+          shouldTriggerImmediate = false;
+      }
+
+      // Only add to sync queue if needed (not for re-auth)
+      if (userState !== "RE_AUTH") {
+        const result = await addToSyncQueue(
+          savedAccountId,
+          "full",
+          syncPriority,
+          userId,
+        );
+
+        if (result.success) {
+          console.warn("[OAuth Callback] Added to sync queue:", result.queueId);
+
+          // Trigger immediate processing if needed
+          if (shouldTriggerImmediate) {
+            const cronSecret = process.env.CRON_SECRET;
+            if (cronSecret) {
+              console.warn(
+                "[OAuth Callback] Triggering immediate queue processing...",
+              );
+              const processUrl = `${baseUrl}/api/gmb/queue/process`;
+              fetch(processUrl, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${cronSecret}`,
+                },
+              }).catch((err) => {
+                console.error(
+                  "[OAuth Callback] Failed to trigger queue processing:",
+                  err,
+                );
+              });
+            } else {
+              console.warn(
+                "[OAuth Callback] CRON_SECRET not set, cannot trigger immediate processing",
+              );
+            }
+          }
+        } else {
+          console.error(
+            "[OAuth Callback] Failed to add to queue:",
+            result.error,
           );
         }
-      } else {
-        console.error("[OAuth Callback] Failed to add to queue:", result.error);
       }
     } catch (syncError) {
       console.error("[OAuth Callback] Error adding to queue:", syncError);
@@ -698,22 +787,62 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(multiAccountRedirectUrl);
     }
 
-    // ✅ FIXED: Redirect to source page (returnUrl) instead of hardcoded /settings
+    // ✅ IMPROVED: Smart redirect based on user state
     // Get returnUrl from state record (stored in redirect_uri column)
     const returnUrl = stateRecord.redirect_uri || "/dashboard";
 
-    // Single account - redirect back to where user came from
+    // Build redirect parameters based on user state
+    let redirectParams: Record<string, string>;
+
+    switch (userState) {
+      case "FIRST_TIME":
+        // 🎉 First-time - show sync overlay
+        redirectParams = {
+          newUser: "true",
+          accountId: savedAccountId,
+        };
+        console.warn(
+          "[OAuth Callback] FIRST_TIME redirect - will show sync overlay",
+        );
+        break;
+
+      case "ADDITIONAL_ACCOUNT":
+        // ⚡ Additional account - background sync notification
+        redirectParams = {
+          accountAdded: "true",
+          accountId: savedAccountId,
+        };
+        console.warn(
+          "[OAuth Callback] ADDITIONAL_ACCOUNT redirect - background sync",
+        );
+        break;
+
+      case "RE_AUTH":
+        // 🔄 Re-auth - just success message
+        redirectParams = {
+          reauth: "true",
+        };
+        console.warn("[OAuth Callback] RE_AUTH redirect - quick refresh");
+        break;
+
+      default:
+        // Fallback
+        redirectParams = {
+          gmb_connected: "true",
+          accountId: savedAccountId,
+        };
+    }
+
     const successRedirectUrl = buildSafeRedirectUrl(
       baseUrl,
       returnUrl.startsWith("/") ? returnUrl : `/${localeCookie}/${returnUrl}`,
-      {
-        gmb_connected: "true",
-        accountId: savedAccountId,
-      },
+      redirectParams,
     );
     console.warn(
-      "[OAuth Callback] Single account, redirecting to:",
+      "[OAuth Callback] Redirecting to:",
       successRedirectUrl,
+      "with params:",
+      redirectParams,
     );
     return NextResponse.redirect(successRedirectUrl);
   } catch (error: unknown) {

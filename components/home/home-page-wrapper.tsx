@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { FirstSyncOverlay } from "./first-sync-overlay";
 import { HomeWithSync } from "./home-with-sync";
 
@@ -21,17 +22,42 @@ function HomePageContent({ userId, homePageProps }: HomePageWrapperProps) {
 
   const accountId = searchParams.get("accountId");
 
-  // ✅ CRITICAL FIX: Refresh page after GMB OAuth connection
-  // This ensures server-side data is refetched with new account
+  // ✅ IMPROVED: Smart handling for different OAuth states
   useEffect(() => {
-    if (searchParams.get("gmb_connected") === "true") {
-      // Clean up URL params
+    const params = searchParams;
+
+    // CASE 1: Legacy gmb_connected (fallback)
+    if (params.get("gmb_connected") === "true") {
       const url = new URL(window.location.href);
       url.searchParams.delete("gmb_connected");
       url.searchParams.delete("accountId");
       router.replace(url.pathname + url.search);
+      router.refresh();
+    }
 
-      // Force refresh to get updated data
+    // CASE 2: Additional account added - show background sync notification
+    else if (params.get("accountAdded") === "true") {
+      toast.info("Syncing new account in background...", {
+        description:
+          "Your new GMB account is being synced. This may take a few moments.",
+        duration: 5000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("accountAdded");
+      url.searchParams.delete("accountId");
+      router.replace(url.pathname + url.search);
+      router.refresh();
+    }
+
+    // CASE 3: Re-authentication completed
+    else if (params.get("reauth") === "true") {
+      toast.success("Connection refreshed successfully", {
+        description: "Your GMB connection has been updated.",
+        duration: 3000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reauth");
+      router.replace(url.pathname + url.search);
       router.refresh();
     }
   }, [searchParams, router]);

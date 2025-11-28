@@ -56,7 +56,7 @@ export async function invalidateGMBCache(userId?: string): Promise<void> {
   // ✅ Refresh React Query / Redis cache buckets
   const cacheBuckets = [
     CacheBucket.DASHBOARD_OVERVIEW,
-    CacheBucket.GMB_LOCATIONS,
+    CacheBucket.LOCATIONS,
     CacheBucket.REVIEWS,
     CacheBucket.QUESTIONS,
   ];
@@ -170,7 +170,7 @@ export async function invalidateLocationsCache(userId?: string): Promise<void> {
 
   if (userId) {
     try {
-      await refreshCache(CacheBucket.GMB_LOCATIONS, userId);
+      await refreshCache(CacheBucket.LOCATIONS, userId);
       await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
     } catch (error) {
       console.warn("[GMB Cache] Failed to refresh locations cache:", error);

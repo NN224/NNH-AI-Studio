@@ -7,7 +7,7 @@ import { ManagementSectionsGrid } from "@/components/ai-command-center/managemen
 import { useTranslations } from "next-intl";
 import { Sparkles, RefreshCw, AlertCircle, Activity, Home } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
   useAICommandCenterData,
   useAIChat,
@@ -28,6 +28,8 @@ import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb
 export default function DashboardPage() {
   const t = useTranslations("aiCommandCenter");
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = params?.locale || "en";
   const { data, isLoading, error, refetch, isFetching } =
     useAICommandCenterData();
@@ -74,6 +76,46 @@ export default function DashboardPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // ✅ Handle OAuth callback states
+  useEffect(() => {
+    const params = searchParams;
+
+    // CASE 1: Additional account added
+    if (params.get("accountAdded") === "true") {
+      toast.info("Syncing new account in background...", {
+        description:
+          "Your new GMB account is being synced. This may take a few moments.",
+        duration: 5000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("accountAdded");
+      url.searchParams.delete("accountId");
+      router.replace(url.pathname + url.search);
+      refetch();
+    }
+
+    // CASE 2: Re-authentication completed
+    else if (params.get("reauth") === "true") {
+      toast.success("Connection refreshed successfully", {
+        description: "Your GMB connection has been updated.",
+        duration: 3000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reauth");
+      router.replace(url.pathname + url.search);
+      refetch();
+    }
+
+    // CASE 3: First-time connection (newUser handled by GMBOnboardingView)
+    else if (params.get("gmb_connected") === "true") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("gmb_connected");
+      url.searchParams.delete("accountId");
+      router.replace(url.pathname + url.search);
+      refetch();
+    }
+  }, [searchParams, router, refetch]);
 
   const handleAIAction = async (itemId: string) => {
     try {

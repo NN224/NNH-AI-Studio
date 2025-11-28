@@ -1,18 +1,6 @@
 import { performTransactionalSync } from "@/server/actions/gmb-sync";
 import { NextResponse } from "next/server";
 
-function resolveBaseUrl(request: Request) {
-  return (
-    request.headers.get("origin") ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    (process.env.NODE_ENV === "production"
-      ? "https://nnh.ae"
-      : "http://localhost:5050")
-  );
-}
-
 export async function POST(request: Request) {
   // INTERNAL AUTH FOR SUPABASE WORKER CALLS
   const internalSecret =
@@ -92,45 +80,10 @@ export async function POST(request: Request) {
     const result = await performTransactionalSync(accountId, includeQuestions);
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error(
-      "[GMB Sync v2] transactional sync failed, falling back to legacy route",
-      error,
+    console.error("[GMB Sync v2] Sync failed:", error);
+    return NextResponse.json(
+      { error: error?.message || "Sync failed" },
+      { status: 500 },
     );
-
-    try {
-      const baseUrl = resolveBaseUrl(request);
-      // Pass authentication headers to fallback
-      const authHeader = request.headers.get("Authorization");
-      const internalRunHeader = request.headers.get("X-Internal-Run");
-
-      const fallbackResponse = await fetch(`${baseUrl}/api/gmb/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader && { Authorization: authHeader }),
-          ...(internalRunHeader && { "X-Internal-Run": internalRunHeader }),
-        },
-        body: JSON.stringify({ accountId, syncType: "full" }),
-      });
-      const fallbackData = await fallbackResponse.json().catch(() => ({}));
-
-      if (!fallbackResponse.ok) {
-        return NextResponse.json(
-          {
-            error: error?.message || "Sync failed",
-            fallback: fallbackData,
-          },
-          { status: fallbackResponse.status },
-        );
-      }
-
-      return NextResponse.json(fallbackData);
-    } catch (fallbackError: any) {
-      console.error("[GMB Sync v2] legacy fallback failed", fallbackError);
-      return NextResponse.json(
-        { error: fallbackError?.message || "Legacy fallback failed" },
-        { status: 500 },
-      );
-    }
   }
 }
