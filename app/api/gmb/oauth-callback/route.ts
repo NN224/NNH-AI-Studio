@@ -704,17 +704,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(multiAccountRedirectUrl);
     }
 
-    // Single account - redirect to settings with success flag
+    // ✅ FIXED: Redirect to source page (returnUrl) instead of hardcoded /settings
+    // Get returnUrl from state record (stored in redirect_uri column)
+    const returnUrl = stateRecord.redirect_uri || "/dashboard";
+
+    // ✅ CRITICAL: Revalidate home and dashboard pages to show fresh data
+    revalidatePath("/[locale]/home", "page");
+    revalidatePath("/[locale]/(dashboard)/dashboard", "page");
+    revalidatePath("/[locale]/(dashboard)/reviews", "layout");
+    revalidatePath("/[locale]/(dashboard)/questions", "layout");
+    revalidatePath("/[locale]/(dashboard)/posts", "layout");
+    revalidatePath("/[locale]/(dashboard)/locations", "layout");
+
+    // Single account - redirect back to where user came from
     const successRedirectUrl = buildSafeRedirectUrl(
       baseUrl,
-      `/${localeCookie}/settings`,
+      returnUrl.startsWith("/") ? returnUrl : `/${localeCookie}/${returnUrl}`,
       {
         gmb_connected: "true",
         accountId: savedAccountId,
       },
     );
     console.warn(
-      "[OAuth Callback] Single account, redirecting to settings:",
+      "[OAuth Callback] Single account, redirecting to:",
       successRedirectUrl,
     );
     return NextResponse.redirect(successRedirectUrl);

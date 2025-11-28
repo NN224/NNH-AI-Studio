@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FirstSyncOverlay } from "./first-sync-overlay";
 import { HomeWithSync } from "./home-with-sync";
@@ -20,6 +20,21 @@ function HomePageContent({ userId, homePageProps }: HomePageWrapperProps) {
   });
 
   const accountId = searchParams.get("accountId");
+
+  // ✅ CRITICAL FIX: Refresh page after GMB OAuth connection
+  // This ensures server-side data is refetched with new account
+  useEffect(() => {
+    if (searchParams.get("gmb_connected") === "true") {
+      // Clean up URL params
+      const url = new URL(window.location.href);
+      url.searchParams.delete("gmb_connected");
+      url.searchParams.delete("accountId");
+      router.replace(url.pathname + url.search);
+
+      // Force refresh to get updated data
+      router.refresh();
+    }
+  }, [searchParams, router]);
 
   const handleSyncComplete = () => {
     setShowOverlay(false);
