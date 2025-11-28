@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
+  validateSearchQuery,
 } from "@/lib/utils/sanitize-search";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -189,6 +190,21 @@ export async function getQuestions(params: {
 
     // Search
     if (params.searchQuery) {
+      // Validate for SQL injection attempts
+      const validation = validateSearchQuery(params.searchQuery);
+      if (!validation.valid) {
+        console.warn(
+          "[Questions] Suspicious search query blocked:",
+          validation.reason,
+        );
+        return {
+          success: false,
+          error: "Invalid search query",
+          data: [],
+          count: 0,
+        };
+      }
+
       const sanitized = sanitizeSearchQuery(params.searchQuery);
       if (sanitized) {
         const pattern = buildIlikePattern(sanitized);

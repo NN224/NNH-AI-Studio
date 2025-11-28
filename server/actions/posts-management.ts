@@ -1,4 +1,4 @@
-"use serve   r";
+"use server";
 
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +6,7 @@ import type { GMBPost } from "@/lib/types/database";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
+  validateSearchQuery,
 } from "@/lib/utils/sanitize-search";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -17,7 +18,19 @@ type CreatePostPayload = z.infer<typeof CreatePostSchema>;
 type UpdatePostPayload = z.infer<typeof UpdatePostSchema>;
 
 // Cache for location data to reduce database queries
-const locationCache = new Map<string, { data: any; timestamp: number }>();
+interface CachedLocation {
+  id: string;
+  location_id: string;
+  gmb_account_id: string;
+  gmb_accounts:
+    | { id: string; account_id: string }
+    | { id: string; account_id: string }[];
+}
+
+const locationCache = new Map<
+  string,
+  { data: CachedLocation; timestamp: number }
+>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function buildV4LocationResource(
@@ -93,7 +106,10 @@ function mapGoogleToPostType(googleTopicType: string): GMBPost["post_type"] {
     EVENT: "event",
     OFFER: "offer",
   };
-  return (mapping as any)[googleTopicType] || "whats_new";
+  return (
+    (mapping as Record<string, GMBPost["post_type"]>)[googleTopicType] ||
+    "whats_new"
+  );
 }
 
 /**
@@ -110,11 +126,11 @@ function createErrorResponse(error: string, errorCode?: string) {
 /**
  * Standardized success response builder
  */
-function createSuccessResponse(message: string, data?: any) {
+function createSuccessResponse<T = unknown>(message: string, data?: T) {
   return {
     success: true as const,
     message,
-    ...(data && { data }),
+    ...(data !== undefined && { data }),
   };
 }
 
@@ -122,10 +138,10 @@ function createSuccessResponse(message: string, data?: any) {
  * Get location with caching to reduce DB queries
  */
 async function getCachedLocation(
-  supabase: any,
+  supabase: SupabaseServerClient,
   locationId: string,
   userId: string,
-) {
+): Promise<CachedLocation | null> {
   const cacheKey = `${userId}-${locationId}`;
   const cached = locationCache.get(cacheKey);
 
@@ -206,6 +222,21 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
     }
 
     if (validatedParams.searchQuery) {
+      // Validate for SQL injection attempts
+      const validation = validateSearchQuery(validatedParams.searchQuery);
+      if (!validation.valid) {
+        console.warn(
+          "[Posts] Suspicious search query blocked:",
+          validation.reason,
+        );
+        return {
+          success: false,
+          error: "Invalid search query",
+          data: [],
+          count: 0,
+        };
+      }
+
       const sanitized = sanitizeSearchQuery(validatedParams.searchQuery);
       if (sanitized) {
         const pattern = buildIlikePattern(sanitized);
@@ -257,7 +288,7 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
     }
 
     // Transform data to include location_name
-    const posts = (data || []).map((post: any) => ({
+    const posts = (data || []).map((post) => ({
       ...post,
       location_name: post.gmb_locations?.location_name,
       location_address: post.gmb_locations?.address,
@@ -268,7 +299,7 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
       data: posts,
       count: count || 0,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Get posts error:", error);
     if (error instanceof z.ZodError) {
       return {
@@ -280,7 +311,7 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
     }
     return {
       success: false,
-      error: error.message || "Failed to fetch posts",
+      error: error instanceof Error ? error.message : "Failed to fetch posts",
       data: [],
       count: 0,
     };
@@ -525,7 +556,13 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
     });
 
     if (!publishOutcome.success) {
-      return publishOutcome.errorResponse;
+      // Type narrowing: if success is false, errorResponse must exist
+      return (
+        publishOutcome as {
+          success: false;
+          errorResponse: ReturnType<typeof createErrorResponse>;
+        }
+      ).errorResponse;
     }
 
     return persistPublishedPost({
@@ -535,7 +572,7 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       googleResult: publishOutcome.googleResult,
       locationId: validatedData.locationId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Create post error:", error);
 
     if (error instanceof z.ZodError) {
@@ -544,7 +581,9 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       );
     }
 
-    return createErrorResponse(error.message || "An unexpected error occurred");
+    return createErrorResponse(
+      error instanceof Error ? error.message : "An unexpected error occurred",
+    );
   }
 }
 
@@ -593,7 +632,7 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
     revalidatePostViews();
 
     return createSuccessResponse("Post updated successfully");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Update post error:", error);
 
     if (error instanceof z.ZodError) {
@@ -602,7 +641,9 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
       );
     }
 
-    return createErrorResponse(error.message || "Failed to update post");
+    return createErrorResponse(
+      error instanceof Error ? error.message : "Failed to update post",
+    );
   }
 }
 
@@ -773,7 +814,7 @@ async function persistPublishedPost(params: {
   supabase: SupabaseServerClient;
   userId: string;
   validatedData: CreatePostPayload;
-  googleResult: any;
+  googleResult: GooglePostResult | null;
   locationId: string;
 }) {
   const { supabase, userId, validatedData, googleResult, locationId } = params;
@@ -808,7 +849,10 @@ async function persistPublishedPost(params: {
   return createSuccessResponse("Post published successfully");
 }
 
-function mapGoogleApiError(status: number, errorData: any) {
+function mapGoogleApiError(
+  status: number,
+  errorData: { error?: { message?: string } },
+) {
   if (status === 401) {
     return createErrorResponse(
       "Authentication expired. Please reconnect your Google account.",
@@ -841,7 +885,7 @@ async function fetchPostForUpdate(
   postId: string,
   userId: string,
 ): Promise<{
-  post?: any;
+  post?: Record<string, unknown>;
   errorResponse?: ReturnType<typeof createErrorResponse>;
 }> {
   const { data: post, error } = await supabase
@@ -869,7 +913,7 @@ async function fetchPostForUpdate(
 }
 
 function buildPostUpdatePayload(validatedData: UpdatePostPayload) {
-  const updateData: Record<string, any> = {
+  const updateData: Record<string, string | null> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -890,7 +934,10 @@ function buildPostUpdatePayload(validatedData: UpdatePostPayload) {
   return updateData;
 }
 
-function shouldSyncPostToGoogle(post: any, validatedData: UpdatePostPayload) {
+function shouldSyncPostToGoogle(
+  post: Record<string, unknown>,
+  validatedData: UpdatePostPayload,
+) {
   return (
     post.status === "published" &&
     post.provider_post_id &&
@@ -904,7 +951,7 @@ function shouldSyncPostToGoogle(post: any, validatedData: UpdatePostPayload) {
 
 async function syncPostUpdateWithGoogle(
   supabase: SupabaseServerClient,
-  post: any,
+  post: Record<string, unknown>,
   validatedData: UpdatePostPayload,
 ) {
   const location = Array.isArray(post.gmb_locations)
@@ -939,7 +986,7 @@ async function syncPostUpdateWithGoogle(
     const postBody = buildGooglePostBody({
       ...post,
       ...validatedData,
-    } as GMBPost);
+    } as unknown as GMBPost);
     const updateMask = buildUpdateMask(post, validatedData);
 
     if (updateMask.length > 0) {
@@ -963,7 +1010,10 @@ async function syncPostUpdateWithGoogle(
   }
 }
 
-function buildUpdateMask(post: any, validatedData: UpdatePostPayload) {
+function buildUpdateMask(
+  post: Record<string, unknown>,
+  validatedData: UpdatePostPayload,
+) {
   const mask: string[] = [];
 
   if (validatedData.description) mask.push("summary");
@@ -1100,11 +1150,11 @@ export async function deletePost(postId: string) {
       success: true,
       message: "Post deleted successfully",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Delete error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete post",
+      error: error instanceof Error ? error.message : "Failed to delete post",
     };
   }
 }
@@ -1262,11 +1312,11 @@ export async function publishPost(postId: string) {
       success: true,
       message: "Post published successfully",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Publish post error:", error);
     return {
       success: false,
-      error: error.message || "Failed to publish post",
+      error: error instanceof Error ? error.message : "Failed to publish post",
     };
   }
 }
@@ -1410,11 +1460,11 @@ export async function syncPostsFromGoogle(locationId?: string) {
       message: `Synced ${totalSynced} posts`,
       synced: totalSynced,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Sync posts error:", error);
     return {
       success: false,
-      error: error.message || "Failed to sync posts",
+      error: error instanceof Error ? error.message : "Failed to sync posts",
       synced: 0,
     };
   }
@@ -1496,11 +1546,14 @@ export async function getPostStats(
       success: true,
       stats,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Get stats error:", error);
     return {
       success: false,
-      error: error.message || "Failed to get post statistics",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to get post statistics",
       stats: null,
     };
   }
@@ -1552,11 +1605,11 @@ export async function bulkDeletePosts(postIds: string[]) {
       deleted,
       errors: errors.length > 0 ? errors : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Bulk delete error:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete posts",
+      error: error instanceof Error ? error.message : "Failed to delete posts",
       deleted: 0,
     };
   }
@@ -1613,9 +1666,11 @@ export async function archivePost(postId: string) {
     revalidatePath("/dashboard");
 
     return createSuccessResponse("Post archived successfully");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Archive error:", error);
-    return createErrorResponse(error.message || "Failed to archive post");
+    return createErrorResponse(
+      error instanceof Error ? error.message : "Failed to archive post",
+    );
   }
 }
 
@@ -1655,7 +1710,7 @@ export async function bulkArchivePosts(postIds: string[]) {
       if (result.success) {
         archived++;
       } else {
-        errors.push(result.error || "Unknown error");
+        errors.push("error" in result ? result.error : "Unknown error");
       }
     }
 
@@ -1665,11 +1720,11 @@ export async function bulkArchivePosts(postIds: string[]) {
       archived,
       errors: errors.length > 0 ? errors : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Bulk archive error:", error);
     return {
       success: false,
-      error: error.message || "Failed to archive posts",
+      error: error instanceof Error ? error.message : "Failed to archive posts",
       archived: 0,
     };
   }
@@ -1717,11 +1772,11 @@ export async function bulkPublishPosts(postIds: string[]) {
       published,
       errors: errors.length > 0 ? errors : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Posts] Bulk publish error:", error);
     return {
       success: false,
-      error: error.message || "Failed to publish posts",
+      error: error instanceof Error ? error.message : "Failed to publish posts",
       published: 0,
     };
   }

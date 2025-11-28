@@ -1,7 +1,7 @@
 "use server";
 
 import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
-import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
+import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
 import type { ReviewData } from "@/lib/gmb/sync-types";
 import { logAction } from "@/lib/monitoring/audit";
 import { trackApiResponse } from "@/lib/monitoring/metrics";
@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
+  validateSearchQuery,
 } from "@/lib/utils/sanitize-search";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -231,6 +232,21 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
     }
 
     if (validatedParams.searchQuery) {
+      // Validate for SQL injection attempts
+      const validation = validateSearchQuery(validatedParams.searchQuery);
+      if (!validation.valid) {
+        console.warn(
+          "[Reviews] Suspicious search query blocked:",
+          validation.reason,
+        );
+        return {
+          success: false,
+          error: "Invalid search query",
+          data: [],
+          count: 0,
+        };
+      }
+
       const sanitized = sanitizeSearchQuery(validatedParams.searchQuery);
       if (sanitized) {
         const pattern = buildIlikePattern(sanitized);
