@@ -1,7 +1,7 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useRef, useState } from "react";
 
 export interface SyncJob {
   id: string;
@@ -17,6 +17,15 @@ interface UseSyncStatusResult {
   error: string | null;
 }
 
+/**
+ * Hook to monitor GMB sync status
+ *
+ * CRITICAL FIX: Supabase client created INSIDE useEffect to avoid infinite loops
+ * Previous bug: supabase in dependency array caused 1000s of re-renders
+ *
+ * @param userId - User ID to monitor sync status for
+ * @returns Sync status, last job, and any errors
+ */
 export function useSyncStatus(userId?: string): UseSyncStatusResult {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastJob, setLastJob] = useState<SyncJob | null>(null);
@@ -26,14 +35,12 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Create supabase client INSIDE useEffect to avoid infinite re-renders
-    // createClient() returns a new object instance on every call, so putting it
-    // in the dependency array would cause the effect to run infinitely
+    // ✅ CRITICAL FIX: Create Supabase client INSIDE effect
+    // This ensures stable reference and prevents infinite loops
     const supabase = createClient();
-    if (!supabase) return;
 
     const checkSyncStatus = async () => {
-      if (!userId) return;
+      if (!userId || !supabase) return;
 
       try {
         // Check for any active jobs (pending or processing)
@@ -70,8 +77,16 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
         }
       } catch (err) {
         if (mountedRef.current) {
-          console.error("Error checking sync status:", err);
+          console.error("[useSyncStatus] Error checking sync status:", err);
           setError(err instanceof Error ? err.message : "Unknown error");
+
+          // Report to Sentry if available
+          if (typeof window !== "undefined" && (window as any).Sentry) {
+            (window as any).Sentry.captureException(err, {
+              tags: { hook: "useSyncStatus" },
+              extra: { userId },
+            });
+          }
         }
       }
     };
@@ -86,7 +101,7 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
       mountedRef.current = false;
       clearInterval(intervalId);
     };
-  }, [userId]); // Only userId in dependencies - supabase is created inside effect
+  }, [userId]); // ✅ FIXED: Only userId in dependencies, NOT supabase!
 
   return { isSyncing, lastJob, error };
 }

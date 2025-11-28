@@ -154,7 +154,9 @@ export interface DashboardSnapshot {
       unanswered: number;
       answered: number;
     };
-    byPriority: Record<"urgent" | "high" | "medium" | "low", number>;
+    // NOTE: byPriority is optional - priority column doesn't exist in gmb_questions table
+    // TODO: Add priority column to gmb_questions if needed in future
+    byPriority?: Record<"urgent" | "high" | "medium" | "low", number>;
     byStatus: Record<"pending" | "answered" | "hidden", number>;
     answerRate: number;
     lastSync: string | null;

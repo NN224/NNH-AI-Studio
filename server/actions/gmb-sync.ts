@@ -21,6 +21,7 @@ import { trackSyncResult } from "@/lib/monitoring/metrics";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
@@ -1202,6 +1203,15 @@ export async function performTransactionalSync(
       message: "Refreshing dashboard caches",
     });
     await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
+
+    // ✅ Invalidate all pages that display synced GMB data
+    revalidatePath("/[locale]/home", "page");
+    revalidatePath("/[locale]/(dashboard)/dashboard", "page");
+    revalidatePath("/[locale]/(dashboard)/reviews", "layout");
+    revalidatePath("/[locale]/(dashboard)/questions", "layout");
+    revalidatePath("/[locale]/(dashboard)/posts", "layout");
+    revalidatePath("/[locale]/(dashboard)/locations", "layout");
+
     progressEmitter.emit("cache_refresh", "completed", {
       message: "Cache refreshed",
     });

@@ -486,12 +486,8 @@ export async function GET(request: Request) {
         unanswered: questionStatsData?.unanswered ?? 0,
         answered: questionStatsData?.answered ?? 0,
       },
-      byPriority: {
-        urgent: 0, // Priority data not available from getQuestionStats
-        high: 0,
-        medium: 0,
-        low: 0,
-      },
+      // NOTE: byPriority removed - priority column doesn't exist in gmb_questions table
+      // TODO: Add priority column to gmb_questions if needed in future
       byStatus: {
         pending: questionStatsData?.unanswered ?? 0,
         answered: questionStatsData?.answered ?? 0,
