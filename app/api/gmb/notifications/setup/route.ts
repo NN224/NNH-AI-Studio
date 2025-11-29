@@ -37,11 +37,9 @@ export async function GET(_request: NextRequest) {
     if (accountError) {
       console.error(
         "[Notifications Setup API] Failed to load GMB account:",
-        accountError,
+        accountError.message,
       );
-      return errorResponse(
-        new ApiError("Failed to load GMB account", 500, accountError),
-      );
+      return errorResponse(new ApiError("Failed to load GMB account", 500));
     }
 
     if (!account) {
@@ -93,14 +91,13 @@ export async function GET(_request: NextRequest) {
         });
       }
 
+      const errorMessage = String(
+        (errorData.error as Record<string, unknown>)?.message ||
+          errorData.message ||
+          "Failed to fetch notification settings",
+      );
       return errorResponse(
-        new ApiError(
-          errorData.error?.message ||
-            errorData.message ||
-            "Failed to fetch notification settings",
-          response.status,
-          errorData,
-        ),
+        new ApiError(errorMessage, response.status, errorData),
       );
     }
 
@@ -210,14 +207,13 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
+      const errorMessage = String(
+        (errorData.error as Record<string, unknown>)?.message ||
+          errorData.message ||
+          "Failed to update notification settings",
+      );
       return errorResponse(
-        new ApiError(
-          errorData.error?.message ||
-            errorData.message ||
-            "Failed to update notification settings",
-          response.status,
-          errorData,
-        ),
+        new ApiError(errorMessage, response.status, errorData),
       );
     }
 

@@ -1,28 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AIHeroChat } from "@/components/ai-command-center/ai/ai-hero-chat";
-import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
-import { ManagementSectionsGrid } from "@/components/ai-command-center/management/management-sections-grid";
-import { useTranslations } from "next-intl";
-import { Sparkles, RefreshCw, AlertCircle, Activity, Home } from "lucide-react";
-import Link from "next/link";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
-import {
-  useAICommandCenterData,
-  useAIChat,
-  useAIActions,
-} from "@/hooks/use-ai-command-center";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
-  updateAccountSyncSettings,
+  useAIActions,
+  useAIChat,
+  useAICommandCenterData,
+} from "@/hooks/use-ai-command-center";
+import {
   getAccountSyncSettings,
+  updateAccountSyncSettings,
 } from "@/server/actions/gmb-settings";
+import { Activity, AlertCircle, Home, RefreshCw, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
+
+// ============================================================================
+// Lazy-loaded heavy components for better initial page load
+// ============================================================================
+
+const AIHeroChat = dynamic(
+  () =>
+    import("@/components/ai-command-center/ai/ai-hero-chat").then(
+      (mod) => mod.AIHeroChat,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[500px] bg-zinc-900/50 rounded-lg animate-pulse flex items-center justify-center">
+        <Skeleton className="h-12 w-48" />
+      </div>
+    ),
+  },
+);
+
+const UrgentItemsFeed = dynamic(
+  () =>
+    import("@/components/ai-command-center/urgent/urgent-items-feed").then(
+      (mod) => mod.UrgentItemsFeed,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 bg-zinc-900/50 rounded-lg animate-pulse" />
+    ),
+  },
+);
+
+const ManagementSectionsGrid = dynamic(
+  () =>
+    import(
+      "@/components/ai-command-center/management/management-sections-grid"
+    ).then((mod) => mod.ManagementSectionsGrid),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 bg-zinc-900/50 rounded-lg animate-pulse" />
+    ),
+  },
+);
+
+const GMBOnboardingView = dynamic(
+  () =>
+    import(
+      "@/components/ai-command-center/onboarding/gmb-onboarding-view"
+    ).then((mod) => mod.GMBOnboardingView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] bg-zinc-900/50 rounded-lg animate-pulse" />
+    ),
+  },
+);
 
 // AI Command Center is now the main dashboard
 export default function DashboardPage() {
