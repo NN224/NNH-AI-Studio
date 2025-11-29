@@ -47,78 +47,119 @@ CREATE TABLE IF NOT EXISTS gmb_services (
 -- ==================== INDEXES ====================
 
 -- Performance indexes for common queries
-CREATE INDEX idx_gmb_services_user_id
+CREATE INDEX IF NOT EXISTS idx_gmb_services_user_id
   ON gmb_services(user_id)
   WHERE is_active = true;
 
-CREATE INDEX idx_gmb_services_location_id
+CREATE INDEX IF NOT EXISTS idx_gmb_services_location_id
   ON gmb_services(location_id)
   WHERE is_active = true;
 
-CREATE INDEX idx_gmb_services_account_id
+CREATE INDEX IF NOT EXISTS idx_gmb_services_account_id
   ON gmb_services(gmb_account_id)
   WHERE gmb_account_id IS NOT NULL;
 
-CREATE INDEX idx_gmb_services_category
+CREATE INDEX IF NOT EXISTS idx_gmb_services_category
   ON gmb_services(category)
   WHERE category IS NOT NULL AND is_active = true;
 
-CREATE INDEX idx_gmb_services_external_id
+CREATE INDEX IF NOT EXISTS idx_gmb_services_external_id
   ON gmb_services(external_service_id)
   WHERE external_service_id IS NOT NULL;
 
 -- GIN index for JSONB metadata queries
-CREATE INDEX idx_gmb_services_metadata
+CREATE INDEX IF NOT EXISTS idx_gmb_services_metadata
   ON gmb_services USING gin(metadata);
 
 -- Composite index for common query patterns
-CREATE INDEX idx_gmb_services_user_location_active
+CREATE INDEX IF NOT EXISTS idx_gmb_services_user_location_active
   ON gmb_services(user_id, location_id, is_active);
 
 -- ==================== TRIGGERS ====================
 
--- Auto-update updated_at timestamp
-CREATE TRIGGER set_updated_at_gmb_services
-  BEFORE UPDATE ON gmb_services
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_gmb_services'
+  ) THEN
+    CREATE TRIGGER set_updated_at_gmb_services
+      BEFORE UPDATE ON gmb_services
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- ==================== ROW LEVEL SECURITY ====================
 
 ALTER TABLE gmb_services ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own services
-CREATE POLICY "Users can view own services"
-  ON gmb_services
-  FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own services'
+  ) THEN
+    CREATE POLICY "Users can view own services"
+      ON gmb_services
+      FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Users can insert their own services
-CREATE POLICY "Users can insert own services"
-  ON gmb_services
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own services'
+  ) THEN
+    CREATE POLICY "Users can insert own services"
+      ON gmb_services
+      FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Users can update their own services
-CREATE POLICY "Users can update own services"
-  ON gmb_services
-  FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own services'
+  ) THEN
+    CREATE POLICY "Users can update own services"
+      ON gmb_services
+      FOR UPDATE
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Users can delete their own services
-CREATE POLICY "Users can delete own services"
-  ON gmb_services
-  FOR DELETE
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete own services'
+  ) THEN
+    CREATE POLICY "Users can delete own services"
+      ON gmb_services
+      FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Service role has full access for admin operations
-CREATE POLICY "Service role has full access to services"
-  ON gmb_services
-  FOR ALL
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Service role has full access to services'
+  ) THEN
+    CREATE POLICY "Service role has full access to services"
+      ON gmb_services
+      FOR ALL
+      TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 -- ==================== COMMENTS ====================
 
