@@ -1,18 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * Create Post API Route
+ * Uses secure handler with Zod validation
+ */
+
+import { createPostSchema } from "@/lib/api/schemas";
+import {
+  ApiError,
+  ErrorCode,
+  assertAuthenticated,
+  success,
+  withSecureApi,
+} from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
-export async function POST(request: NextRequest) {
-  try {
+export const dynamic = "force-dynamic";
+
+// Infer the body type from the schema
+type CreatePost = z.infer<typeof createPostSchema>;
+
+export const POST = withSecureApi<CreatePost>(
+  async (_request, { user, body }) => {
+    // User is guaranteed by requireAuth, but TypeScript needs assertion
+    assertAuthenticated(user);
+
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
+    // Body is already validated by Zod schema
     const {
       locationId,
       content,
@@ -21,17 +35,32 @@ export async function POST(request: NextRequest) {
       aiGenerated,
       promptUsed,
       tone,
+      postType,
+      scheduledAt,
     } = body;
 
-    if (!locationId || !content) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 },
+    // Verify location belongs to user
+    const { data: location, error: locationError } = await supabase
+      .from("gmb_locations")
+      .select("id, user_id")
+      .eq("id", locationId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (locationError || !location) {
+      throw new ApiError(
+        ErrorCode.NOT_FOUND,
+        "Location not found or access denied",
+        404,
       );
     }
 
-    // 1. Save to Database
-    const { data: post, error } = await supabase
+    // Determine status based on scheduledAt
+    const status = scheduledAt ? "scheduled" : "published";
+    const publishedAt = scheduledAt ? null : new Date().toISOString();
+
+    // Create the post
+    const { data: post, error: insertError } = await supabase
       .from("gmb_posts")
       .insert({
         user_id: user.id,
@@ -41,32 +70,49 @@ export async function POST(request: NextRequest) {
         media_url: mediaUrl,
         ai_generated: aiGenerated,
         prompt_used: promptUsed,
-        tone: tone,
-        status: "published", // Assuming immediate publish for now
-        published_at: new Date().toISOString(),
+        tone,
+        post_type: postType,
+        status,
+        scheduled_at: scheduledAt,
+        published_at: publishedAt,
       })
       .select()
       .single();
 
-    if (error) {
-      console.error("[Create Post] DB Error:", error);
-      return NextResponse.json(
-        { message: "Failed to save post" },
-        { status: 500 },
+    if (insertError) {
+      // Log full error internally
+      console.error("[Create Post] Database error:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+      });
+
+      // Check for specific error types
+      if (insertError.code === "23505") {
+        throw new ApiError(
+          ErrorCode.CONFLICT,
+          "A similar post already exists",
+          409,
+        );
+      }
+
+      throw new ApiError(
+        ErrorCode.DATABASE_ERROR,
+        "Failed to create post",
+        500,
       );
     }
 
-    // 2. Trigger GMB API (Placeholder for now)
-    // In a real implementation, we would call the Google My Business API here
-    // using the user's access token.
-    // await publishToGMB(post);
-
-    return NextResponse.json(post);
-  } catch (error) {
-    console.error("[Create Post] Error:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
+    return success({
+      post,
+      message:
+        status === "scheduled"
+          ? "Post scheduled successfully"
+          : "Post created successfully",
+    });
+  },
+  {
+    bodySchema: createPostSchema,
+    requireAuth: true,
+  },
+);

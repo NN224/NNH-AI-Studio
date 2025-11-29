@@ -1,51 +1,60 @@
+/**
+ * Reviews API Route
+ * Uses secure handler with Zod validation
+ */
+
+import { reviewsQuerySchema } from "@/lib/api/schemas";
+import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
 import { applySafeSearchFilter } from "@/lib/utils/secure-search";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  try {
+// Infer the query type from the schema
+type ReviewsQuery = z.infer<typeof reviewsQuerySchema>;
+
+// Define the review type for proper typing
+interface ReviewLocation {
+  id: string;
+  location_name: string;
+  address: string | null;
+  user_id: string;
+}
+
+export const GET = withSecureApi<unknown, ReviewsQuery>(
+  async (_request, { user, query: params }) => {
     const supabase = await createClient();
 
-    // Check authentication
+    // Query params are already validated by Zod schema
     const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+      page,
+      pageSize,
+      rating,
+      sentiment,
+      status,
+      locationId,
+      search: searchQuery,
+      dateFrom,
+      dateTo,
+      export: exportFormat,
+    } = params;
 
-    if (authError || !user) {
-      console.error("Auth error:", authError);
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const isCsvExport = exportFormat === "csv";
+    const offset = (page - 1) * pageSize;
+
+    // User is guaranteed to exist since requireAuth defaults to true
+    if (!user) {
+      throw new ApiError(
+        ErrorCode.UNAUTHORIZED,
+        "Authentication required",
+        401,
+      );
     }
 
-    console.log("Fetching reviews for user:", user.id);
-
-    const { searchParams } = new URL(request.url);
-
-    // Parse filter parameters
-    const rating = searchParams.get("rating");
-    const sentiment = searchParams.get("sentiment");
-    const status = searchParams.get("status");
-    const locationId = searchParams.get("locationId");
-    const searchQuery = searchParams.get("search");
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    const exportFormat = searchParams.get("export");
-    const isCsvExport = exportFormat === "csv";
-
-    // Parse pagination parameters
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
-
-    // Validate pagination parameters
-    const validPage = Math.max(1, page);
-    const validPageSize = Math.min(Math.max(1, pageSize), 100); // Max 100 items per page
-    const offset = (validPage - 1) * validPageSize;
-
     // Build query with count for pagination
-    // Note: Using actual DB column names (review_text not comment, sentiment not ai_sentiment)
-    let query = supabase
+    let dbQuery = supabase
       .from("gmb_reviews")
       .select(
         `
@@ -78,108 +87,100 @@ export async function GET(request: NextRequest) {
 
     // Apply server-side filters
     if (rating) {
-      query = query.eq("rating", parseInt(rating));
+      dbQuery = dbQuery.eq("rating", rating);
     }
 
     if (sentiment) {
-      query = query.eq("sentiment", sentiment);
+      dbQuery = dbQuery.eq("sentiment", sentiment);
     }
 
     if (status) {
-      // Map status to database conditions
       if (status === "pending") {
-        query = query.or("has_reply.is.null,has_reply.eq.false");
+        dbQuery = dbQuery.or("has_reply.is.null,has_reply.eq.false");
       } else if (status === "replied") {
-        query = query.eq("has_reply", true);
+        dbQuery = dbQuery.eq("has_reply", true);
       } else {
-        query = query.eq("status", status);
+        dbQuery = dbQuery.eq("status", status);
       }
     }
 
     if (locationId) {
-      query = query.eq("location_id", locationId);
+      dbQuery = dbQuery.eq("location_id", locationId);
     }
 
-    // Date range filtering
     if (dateFrom) {
-      query = query.gte("review_date", dateFrom);
+      dbQuery = dbQuery.gte("review_date", dateFrom);
     }
 
     if (dateTo) {
-      query = query.lte("review_date", dateTo);
+      dbQuery = dbQuery.lte("review_date", dateTo);
     }
 
-    // Server-side search filtering with secure implementation
     if (searchQuery) {
       try {
-        // Use the secure search filter utility that validates and escapes input
-        query = applySafeSearchFilter(query, searchQuery, [
+        dbQuery = applySafeSearchFilter(dbQuery, searchQuery, [
           "review_text",
           "comment",
           "reviewer_name",
         ]);
-      } catch (error) {
-        // If search validation fails, log and continue without search filter
-        console.warn("Invalid search input detected:", error);
-        // Continue without applying search to prevent breaking the query
+      } catch (searchError) {
+        console.warn("Invalid search input detected:", searchError);
       }
     }
 
-    // Order by review date (newest first)
-    query = query.order("review_date", { ascending: false, nullsFirst: false });
+    dbQuery = dbQuery.order("review_date", {
+      ascending: false,
+      nullsFirst: false,
+    });
+    dbQuery = dbQuery.range(offset, offset + pageSize - 1);
 
-    // Apply pagination with range
-    query = query.range(offset, offset + validPageSize - 1);
-
-    const { data: reviews, error, count } = await query;
+    const { data: reviews, error, count } = await dbQuery;
 
     if (error) {
-      console.error("Supabase query error:", error);
-      console.error("Full error object:", JSON.stringify(error, null, 2));
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-      console.error("Error hint:", error.hint);
+      console.error("[Reviews API] Database error:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
 
-      return NextResponse.json(
-        {
-          error: "Failed to fetch reviews",
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        },
-        { status: 500 },
+      throw new ApiError(
+        ErrorCode.DATABASE_ERROR,
+        "Failed to fetch reviews",
+        500,
       );
     }
 
     const totalCount = count || 0;
-    const totalPages = Math.ceil(totalCount / validPageSize);
-    const hasNextPage = validPage < totalPages;
-    const hasPreviousPage = validPage > 1;
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
 
-    console.log(
-      `Found ${reviews?.length || 0} reviews (page ${validPage} of ${totalPages}, total: ${totalCount})`,
-    );
-
-    // Transform data properly - handle both 'comment' and 'review_text' fields
-    const transformedReviews = (reviews || []).map((r: any) => {
+    // Transform data properly - use explicit typing
+    const transformedReviews = (reviews || []).map((r) => {
       // Handle gmb_locations - it can be an array or single object
-      let location = null;
-      if (Array.isArray(r.gmb_locations)) {
-        location = r.gmb_locations[0];
-      } else if (r.gmb_locations) {
-        location = r.gmb_locations;
+      const locations = r.gmb_locations as
+        | ReviewLocation
+        | ReviewLocation[]
+        | null;
+      let location: ReviewLocation | null = null;
+      if (Array.isArray(locations)) {
+        location = locations[0] || null;
+      } else if (locations) {
+        location = locations;
       }
 
-      // Extract location name - use location_name (the actual column name)
       const locationName = location?.location_name || "Unknown Location";
-
-      // Get review text - prefer 'comment' field, fallback to 'review_text'
-      const reviewText = (r.comment || r.review_text || "").trim();
-
-      // Get reply text from any of the possible fields
-      const replyText = r.reply_text || r.review_reply || r.response_text || "";
+      const reviewText = (
+        ((r as Record<string, unknown>).comment as string) ||
+        r.review_text ||
+        ""
+      ).trim();
+      const replyText =
+        r.reply_text ||
+        ((r as Record<string, unknown>).review_reply as string) ||
+        ((r as Record<string, unknown>).response_text as string) ||
+        "";
 
       return {
         id: r.id,
@@ -189,15 +190,20 @@ export async function GET(request: NextRequest) {
         comment: reviewText,
         review_text: reviewText,
         reply_text: replyText,
-        review_reply: replyText, // Include for backward compatibility
-        response_text: replyText, // Include for backward compatibility
+        review_reply: replyText,
+        response_text: replyText,
         has_reply: Boolean(replyText || r.has_reply),
         review_date: r.review_date,
         created_at: r.created_at,
-        replied_at: r.replied_at || r.responded_at,
-        ai_sentiment: r.ai_sentiment,
+        replied_at:
+          ((r as Record<string, unknown>).replied_at as string) ||
+          ((r as Record<string, unknown>).responded_at as string) ||
+          null,
+        ai_sentiment:
+          ((r as Record<string, unknown>).ai_sentiment as string) || null,
         location_id: r.location_id,
-        external_review_id: r.external_review_id,
+        external_review_id:
+          ((r as Record<string, unknown>).external_review_id as string) || null,
         gmb_account_id: r.gmb_account_id,
         status: r.status,
         updated_at: r.updated_at,
@@ -205,8 +211,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Handle CSV export
     if (isCsvExport) {
-      const escapeCsv = (value: unknown) => {
+      const escapeCsv = (value: unknown): string => {
         if (value === null || value === undefined) {
           return '""';
         }
@@ -249,27 +256,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Return JSON response
     return NextResponse.json({
-      reviews: transformedReviews,
-      pagination: {
-        total: totalCount,
-        page: validPage,
-        pageSize: validPageSize,
-        totalPages,
-        hasNextPage,
-        hasPreviousPage,
+      success: true,
+      data: {
+        reviews: transformedReviews,
+        pagination: {
+          total: totalCount,
+          page,
+          pageSize,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage,
+        },
       },
     });
-  } catch (error: any) {
-    console.error("API route error:", error);
-    console.error("Error stack:", error.stack);
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+  {
+    querySchema: reviewsQuerySchema,
+    requireAuth: true,
+  },
+);
