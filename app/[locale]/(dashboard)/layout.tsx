@@ -8,8 +8,10 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
-import { SyncBanner, SyncProgressOverlay } from "@/components/sync";
+// Direct imports for better tree-shaking
 import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
+import { SyncBanner } from "@/components/sync/sync-banner";
+import { SyncProgressOverlay } from "@/components/sync/sync-progress-overlay";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { Button } from "@/components/ui/button";
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext";

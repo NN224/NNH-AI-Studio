@@ -1,11 +1,11 @@
 "use client";
 
-import {
-  WelcomeNewUser,
-  useCelebration,
-  useGuidedTour,
-} from "@/components/onboarding";
-import { SyncBanner, SyncProgressOverlay } from "@/components/sync";
+// Direct imports for better tree-shaking
+import { useGuidedTour } from "@/components/onboarding/GuidedTour";
+import { useCelebration } from "@/components/onboarding/SuccessCelebration";
+import { WelcomeNewUser } from "@/components/onboarding/WelcomeNewUser";
+import { SyncBanner } from "@/components/sync/sync-banner";
+import { SyncProgressOverlay } from "@/components/sync/sync-progress-overlay";
 import { SyncProvider, useSyncContext } from "@/contexts/sync-context";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -13,7 +13,9 @@ import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple
 import { QuickActions } from "@/components/home/quick-actions";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
 import { SmartHeader } from "@/components/home/smart-header";
-import { OnboardingChecklist, WelcomeBack } from "@/components/onboarding";
+// Direct imports for better tree-shaking
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
+import { WelcomeBack } from "@/components/onboarding/WelcomeBack";
 import { motion } from "framer-motion";
 import { Bot, Building2, MessageSquare, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
