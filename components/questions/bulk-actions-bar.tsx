@@ -105,7 +105,7 @@ export function BulkActionsBar({
 
   return (
     <>
-      <div className="sticky top-8 z-20 flex items-center gap-4 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800 px-6 py-4">
+      <div className="sticky top-16 z-20 flex items-center gap-4 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800 px-6 py-4">
         <span className="text-sm font-medium text-zinc-400">
           {selectedCount} question{selectedCount !== 1 ? "s" : ""} selected
         </span>

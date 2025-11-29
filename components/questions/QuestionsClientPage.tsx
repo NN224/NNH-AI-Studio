@@ -1,93 +1,102 @@
-'use client'
+"use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { toast } from 'sonner'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import type { GMBQuestion } from "@/lib/types/database";
+import {
+  ArrowUpRight,
+  BookOpen,
+  Bot,
+  Download,
+  Layers,
+  Lightbulb,
+  Pause,
   RefreshCw,
   Search,
-  Bot,
+  Shield,
   Sparkles,
   TrendingUp,
-  Zap,
-  Shield,
-  Lightbulb,
-  Layers,
-  Download,
-  Pause,
-  Play,
   XCircle,
-  BookOpen,
-  ArrowUpRight,
-} from 'lucide-react'
-import { QuestionCard } from './question-card'
-import { AnswerDialog } from './answer-dialog'
-import { QuestionAISettings } from './QuestionAISettings'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache'
-import type { GMBQuestion } from '@/lib/types/database'
-import type { DashboardSnapshot } from '@/types/dashboard'
-import { BulkActionsBar } from './bulk-actions-bar'
+  Zap,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import { toast } from "sonner";
+import { QuestionAISettings } from "./QuestionAISettings";
+import { AnswerDialog } from "./answer-dialog";
+import { BulkActionsBar } from "./bulk-actions-bar";
+import { QuestionCard } from "./question-card";
 
 type QuestionEntity = GMBQuestion & {
-  locationId: string
-  questionText: string
-  createdAt: string | null
-  answerStatus: GMBQuestion['answer_status'] | 'unanswered'
-  upvoteCount: number
-}
+  locationId: string;
+  questionText: string;
+  createdAt: string | null;
+  answerStatus: GMBQuestion["answer_status"] | "unanswered";
+  upvoteCount: number;
+};
 
 interface QuestionStatsSnapshot {
-  total: number
-  unanswered: number
-  answered: number
-  answerRate: number
-  totalUpvotes: number
-  avgUpvotes: number
+  total: number;
+  unanswered: number;
+  answered: number;
+  answerRate: number;
+  totalUpvotes: number;
+  avgUpvotes: number;
   byPriority: {
-    urgent: number
-    high: number
-    medium: number
-    low: number
-  }
-  recentQuestions: QuestionEntity[]
+    urgent: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  recentQuestions: QuestionEntity[];
 }
 
 interface QuestionsClientPageProps {
-  initialQuestions: QuestionEntity[]
-  totalCount: number
-  locations: Array<{ id: string; location_name: string }>
+  initialQuestions: QuestionEntity[];
+  totalCount: number;
+  locations: Array<{ id: string; location_name: string }>;
   currentFilters: {
-    locationId?: string
-    status?: string
-    priority?: string
-    searchQuery?: string
-    page?: number
-    sortBy?: string
-  }
+    locationId?: string;
+    status?: string;
+    priority?: string;
+    searchQuery?: string;
+    page?: number;
+    sortBy?: string;
+  };
 }
 
 interface KnowledgeBaseItem {
-  label: string
-  ready: boolean
-  count: number
+  label: string;
+  ready: boolean;
+  count: number;
 }
 
 interface SuggestionInfo {
-  title: string
-  topic: string
-  confidence: number
-  description: string
+  title: string;
+  topic: string;
+  confidence: number;
+  description: string;
 }
 
 interface InsightItem {
-  label: string
-  value: string
+  label: string;
+  value: string;
 }
 
 export function QuestionsClientPage({
@@ -96,31 +105,36 @@ export function QuestionsClientPage({
   locations,
   currentFilters,
 }: QuestionsClientPageProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const searchParamsString = searchParams?.toString() || ''
-  const [isPending, startTransition] = useTransition()
-  const [selectedQuestion, setSelectedQuestion] = useState<QuestionEntity | null>(null)
-  const [answerDialogOpen, setAnswerDialogOpen] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [aiPanelOpen, setAiPanelOpen] = useState(false)
-  const [searchInput, setSearchInput] = useState(currentFilters.searchQuery ?? '')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [autoAnswerEnabled, setAutoAnswerEnabled] = useState(false)
-  const [autoAnswerLoading, setAutoAnswerLoading] = useState(false)
-  const [bulkAnswering, setBulkAnswering] = useState(false)
-  const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 })
-  const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
-  const { data: dashboardSnapshot } = useDashboardSnapshot()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() || "";
+  const [isPending, startTransition] = useTransition();
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<QuestionEntity | null>(null);
+  const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
+  const [_isSyncing, _setIsSyncing] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(
+    currentFilters.searchQuery ?? "",
+  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [autoAnswerEnabled, setAutoAnswerEnabled] = useState(false);
+  const [autoAnswerLoading, setAutoAnswerLoading] = useState(false);
+  const [bulkAnswering, setBulkAnswering] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ completed: 0, total: 0 });
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const { data: dashboardSnapshot } = useDashboardSnapshot();
 
   const stats = useMemo<QuestionStatsSnapshot | null>(() => {
-    const questionStats = dashboardSnapshot?.questionStats
+    const questionStats = dashboardSnapshot?.questionStats;
     if (!questionStats) {
-      return null
+      return null;
     }
 
-    const recent = (questionStats.recentQuestions ?? []).map(normalizeQuestionEntity)
-    const upvotes = recent.reduce((acc: number, q) => acc + q.upvoteCount, 0)
+    const recent = (questionStats.recentQuestions ?? []).map(
+      normalizeQuestionEntity,
+    );
+    const upvotes = recent.reduce((acc: number, q) => acc + q.upvoteCount, 0);
 
     return {
       total: questionStats.totals?.total ?? 0,
@@ -136,62 +150,66 @@ export function QuestionsClientPage({
         low: 0,
       },
       recentQuestions: recent,
-    }
-  }, [dashboardSnapshot?.questionStats])
+    };
+  }, [dashboardSnapshot?.questionStats]);
 
-  const normalizedQuestions = useMemo(
-    () => (initialQuestions ?? []).map(normalizeQuestionEntity),
-    [initialQuestions],
-  )
+  const normalizedQuestions = useMemo(() => {
+    return Array.isArray(initialQuestions) ? initialQuestions : [];
+  }, [initialQuestions]);
 
   const topicStats = useMemo(() => {
-    const pool = [...(stats?.recentQuestions ?? []), ...normalizedQuestions]
+    const pool = [...(stats?.recentQuestions ?? []), ...normalizedQuestions];
     const definitions = [
       {
-        key: 'hours',
-        label: 'Hours',
-        keywords: ['hour', 'open', 'close', 'time'],
+        key: "hours",
+        label: "Hours",
+        keywords: ["hour", "open", "close", "time"],
       },
       {
-        key: 'delivery',
-        label: 'Delivery',
-        keywords: ['deliver', 'delivery', 'shipping'],
+        key: "delivery",
+        label: "Delivery",
+        keywords: ["deliver", "delivery", "shipping"],
       },
       {
-        key: 'wifi',
-        label: 'WiFi',
-        keywords: ['wifi', 'internet', 'password'],
+        key: "wifi",
+        label: "WiFi",
+        keywords: ["wifi", "internet", "password"],
       },
-      { key: 'pricing', label: 'Pricing', keywords: ['price', 'cost', 'fee'] },
+      { key: "pricing", label: "Pricing", keywords: ["price", "cost", "fee"] },
       {
-        key: 'parking',
-        label: 'Parking',
-        keywords: ['parking', 'park', 'garage'],
+        key: "parking",
+        label: "Parking",
+        keywords: ["parking", "park", "garage"],
       },
       {
-        key: 'services',
-        label: 'Services',
-        keywords: ['service', 'offer', 'provide'],
+        key: "services",
+        label: "Services",
+        keywords: ["service", "offer", "provide"],
       },
-    ]
+    ];
 
     return definitions
       .map((definition) => {
         const count = pool.reduce((acc, question) => {
-          const text = (question.questionText ?? '').toLowerCase()
-          return definition.keywords.some((keyword) => text.includes(keyword)) ? acc + 1 : acc
-        }, 0)
+          const text = (question.questionText ?? "").toLowerCase();
+          return definition.keywords.some((keyword) => text.includes(keyword))
+            ? acc + 1
+            : acc;
+        }, 0);
 
         return {
           key: definition.key,
           label: definition.label,
           count,
-        }
+        };
       })
-      .sort((a, b) => b.count - a.count)
-  }, [initialQuestions, stats?.recentQuestions, normalizedQuestions])
+      .sort((a, b) => b.count - a.count);
+  }, [stats?.recentQuestions, normalizedQuestions]);
 
-  const patterns = useMemo(() => topicStats.filter((topic) => topic.count > 0), [topicStats])
+  const patterns = useMemo(
+    () => topicStats.filter((topic) => topic.count > 0),
+    [topicStats],
+  );
 
   const knowledgeBaseItems: KnowledgeBaseItem[] = useMemo(
     () =>
@@ -201,225 +219,226 @@ export function QuestionsClientPage({
         count: topic.count,
       })),
     [topicStats],
-  )
+  );
 
   const suggestion = useMemo<SuggestionInfo | null>(() => {
-    const pool = [...(stats?.recentQuestions ?? []), ...normalizedQuestions]
+    const pool = [...(stats?.recentQuestions ?? []), ...normalizedQuestions];
     if (pool.length === 0) {
-      return null
+      return null;
     }
 
     const target =
       pool.find((question) => {
-        const status = question.answerStatus ?? question.answer_status
-        const hasAnswer = Boolean(question.answer_text)
-        return !hasAnswer && (status === 'unanswered' || status === 'pending')
-      }) ?? pool[0]
+        const status = question.answerStatus ?? question.answer_status;
+        const hasAnswer = Boolean(question.answer_text);
+        return !hasAnswer && (status === "unanswered" || status === "pending");
+      }) ?? pool[0];
 
-    const text = (target.questionText ?? 'Upcoming question').trim()
-    const topic = patterns[0]?.label ?? 'General'
-    const confidence = Math.min(98, Math.max(72, target.upvoteCount * 3 + 85))
+    const text = (target.questionText ?? "Upcoming question").trim();
+    const topic = patterns[0]?.label ?? "General";
+    const confidence = Math.min(98, Math.max(72, target.upvoteCount * 3 + 85));
 
     return {
       title: text.length > 80 ? `${text.slice(0, 80)}…` : text,
       topic,
       confidence,
-      description: 'Let AI draft a human-quality answer based on your knowledge base.',
-    }
-  }, [normalizedQuestions, patterns, stats?.recentQuestions])
+      description:
+        "Let AI draft a human-quality answer based on your knowledge base.",
+    };
+  }, [normalizedQuestions, patterns, stats?.recentQuestions]);
 
   const insights: InsightItem[] = useMemo(() => {
-    const topPattern = patterns[0]
+    const topPattern = patterns[0];
     return [
       {
-        label: 'Most asked',
-        value: topPattern ? `${topPattern.label} (${topPattern.count})` : '—',
+        label: "Most asked",
+        value: topPattern ? `${topPattern.label} (${topPattern.count})` : "—",
       },
       {
-        label: 'Answer rate',
-        value: `${stats ? stats.answerRate.toFixed(1) : '0'}%`,
+        label: "Answer rate",
+        value: `${stats ? stats.answerRate.toFixed(1) : "0"}%`,
       },
       {
-        label: 'Avg. upvotes',
-        value: stats ? stats.avgUpvotes.toFixed(1) : '0',
+        label: "Avg. upvotes",
+        value: stats ? stats.avgUpvotes.toFixed(1) : "0",
       },
-    ]
-  }, [patterns, stats])
+    ];
+  }, [patterns, stats]);
 
-  const pendingCount = stats?.unanswered ?? 0
+  const pendingCount = stats?.unanswered ?? 0;
 
   const bulkProgressPct = useMemo(() => {
     if (!bulkProgress.total) {
-      return 0
+      return 0;
     }
-    return Math.round((bulkProgress.completed / bulkProgress.total) * 100)
-  }, [bulkProgress])
+    return Math.round((bulkProgress.completed / bulkProgress.total) * 100);
+  }, [bulkProgress]);
 
   const updateFilter = useCallback(
     (key: string, value: string | null) => {
-      const params = new URLSearchParams(searchParamsString)
+      const params = new URLSearchParams(searchParamsString);
 
       if (value && value.length > 0) {
-        params.set(key, value)
+        params.set(key, value);
       } else {
-        params.delete(key)
+        params.delete(key);
       }
 
-      if (key !== 'page') {
-        params.set('page', '1')
+      if (key !== "page") {
+        params.set("page", "1");
       }
 
-      router.push(`/questions?${params.toString()}`)
+      router.push(`/questions?${params.toString()}`);
     },
     [router, searchParamsString],
-  )
+  );
 
   // Selection handlers
   const handleSelectQuestion = (questionId: string, isSelected: boolean) => {
     setSelectedIds((prev) => {
-      const newSet = new Set(prev)
+      const newSet = new Set(prev);
       if (isSelected) {
-        newSet.add(questionId)
+        newSet.add(questionId);
       } else {
-        newSet.delete(questionId)
+        newSet.delete(questionId);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
-  const handleSelectAll = () => {
-    const safeQuestions = Array.isArray(questions) ? questions : []
+  const _handleSelectAll = () => {
+    const safeQuestions = Array.isArray(questions) ? questions : [];
     if (selectedIds.size === safeQuestions.length) {
-      setSelectedIds(new Set())
+      setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(safeQuestions.map((q) => q.id)))
+      setSelectedIds(new Set(safeQuestions.map((q) => q.id)));
     }
-  }
+  };
 
   const handleClearSelection = () => {
-    setSelectedIds(new Set())
-  }
+    setSelectedIds(new Set());
+  };
 
   const refreshData = useCallback(() => {
     startTransition(() => {
-      router.refresh()
-    })
-  }, [router, startTransition])
+      router.refresh();
+    });
+  }, [router, startTransition]);
 
   useEffect(() => {
-    setSearchInput(currentFilters.searchQuery ?? '')
-  }, [currentFilters.searchQuery])
+    setSearchInput(currentFilters.searchQuery ?? "");
+  }, [currentFilters.searchQuery]);
 
   useEffect(() => {
-    const initialValue = currentFilters.searchQuery ?? ''
+    const initialValue = currentFilters.searchQuery ?? "";
     if (searchInput === initialValue) {
-      return
+      return;
     }
 
     const timer = setTimeout(() => {
-      const normalized = searchInput.trim()
-      if (normalized === (currentFilters.searchQuery ?? '')) {
-        return
+      const normalized = searchInput.trim();
+      if (normalized === (currentFilters.searchQuery ?? "")) {
+        return;
       }
-      updateFilter('search', normalized.length ? normalized : null)
-    }, 400)
+      updateFilter("search", normalized.length ? normalized : null);
+    }, 400);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [searchInput, currentFilters.searchQuery, updateFilter])
+      clearTimeout(timer);
+    };
+  }, [searchInput, currentFilters.searchQuery, updateFilter]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     const handleRefresh = () => {
-      refreshData()
-    }
+      refreshData();
+    };
 
-    window.addEventListener('dashboard:refresh', handleRefresh)
-    window.addEventListener('gmb-sync-complete', handleRefresh)
+    window.addEventListener("dashboard:refresh", handleRefresh);
+    window.addEventListener("gmb-sync-complete", handleRefresh);
 
     return () => {
-      window.removeEventListener('dashboard:refresh', handleRefresh)
-      window.removeEventListener('gmb-sync-complete', handleRefresh)
-    }
-  }, [refreshData])
+      window.removeEventListener("dashboard:refresh", handleRefresh);
+      window.removeEventListener("gmb-sync-complete", handleRefresh);
+    };
+  }, [refreshData]);
 
   // Sync functionality moved to global sync button in header
 
   const handleAnswer = useCallback((question: QuestionEntity) => {
-    setSelectedQuestion(question)
-    setAnswerDialogOpen(true)
-  }, [])
+    setSelectedQuestion(question);
+    setAnswerDialogOpen(true);
+  }, []);
 
   const handleToggleAutoAnswer = useCallback(async (enabled: boolean) => {
-    setAutoAnswerLoading(true)
+    setAutoAnswerLoading(true);
     try {
-      setAutoAnswerEnabled(enabled)
-      toast.success(enabled ? 'Auto-answer enabled' : 'Auto-answer paused')
+      setAutoAnswerEnabled(enabled);
+      toast.success(enabled ? "Auto-answer enabled" : "Auto-answer paused");
     } catch (error) {
-      console.error('[Questions] Auto-answer toggle error:', error)
-      toast.error('Unable to update auto-answer right now')
+      console.error("[Questions] Auto-answer toggle error:", error);
+      toast.error("Unable to update auto-answer right now");
     } finally {
-      setAutoAnswerLoading(false)
+      setAutoAnswerLoading(false);
     }
-  }, [])
+  }, []);
 
   const handleBulkAnswer = useCallback(() => {
     if (bulkAnswering) {
-      return
+      return;
     }
 
     if (!pendingCount) {
-      toast.info('No pending questions to answer')
-      return
+      toast.info("No pending questions to answer");
+      return;
     }
 
-    setBulkAnswering(true)
-    setBulkProgress({ completed: 0, total: pendingCount })
-    toast.info('Bulk answering queued (beta)')
+    setBulkAnswering(true);
+    setBulkProgress({ completed: 0, total: pendingCount });
+    toast.info("Bulk answering queued (beta)");
 
     setTimeout(() => {
-      setBulkProgress({ completed: pendingCount, total: pendingCount })
-      setBulkAnswering(false)
-    }, 1200)
-  }, [bulkAnswering, pendingCount])
+      setBulkProgress({ completed: pendingCount, total: pendingCount });
+      setBulkAnswering(false);
+    }, 1200);
+  }, [bulkAnswering, pendingCount]);
 
-  const handlePauseBulk = useCallback(() => {
-    toast.info('Bulk answering paused')
-  }, [])
+  const _handlePauseBulk = useCallback(() => {
+    toast.info("Bulk answering paused");
+  }, []);
 
   const handleCancelBulk = useCallback(() => {
-    setBulkProgress({ completed: 0, total: 0 })
-    setBulkAnswering(false)
-    toast.success('Bulk queue cleared')
-  }, [])
+    setBulkProgress({ completed: 0, total: 0 });
+    setBulkAnswering(false);
+    toast.success("Bulk queue cleared");
+  }, []);
 
   const handleExport = useCallback(() => {
-    toast.info('CSV export coming soon')
-  }, [])
+    toast.info("CSV export coming soon");
+  }, []);
 
   const onOpenAnswerDialog = useCallback(() => {
     if (!selectedQuestion) {
-      toast.info('Select a question first')
-      return
+      toast.info("Select a question first");
+      return;
     }
-    setAnswerDialogOpen(true)
-  }, [selectedQuestion])
+    setAnswerDialogOpen(true);
+  }, [selectedQuestion]);
 
-  const canSync = Boolean(currentFilters.locationId)
-  const questions = normalizedQuestions
-  const totalPages = Math.max(1, Math.ceil(totalCount / 50))
-  const currentPage = currentFilters.page ?? 1
+  const _canSync = Boolean(currentFilters.locationId);
+  const questions = normalizedQuestions;
+  const totalPages = Math.max(1, Math.ceil(totalCount / 50));
+  const currentPage = currentFilters.page ?? 1;
   const hasActiveFilters = Boolean(
     currentFilters.locationId ||
       currentFilters.status ||
       currentFilters.priority ||
       (currentFilters.searchQuery && currentFilters.searchQuery.length > 0) ||
-      (currentFilters.sortBy && currentFilters.sortBy !== 'newest'),
-  )
+      (currentFilters.sortBy && currentFilters.sortBy !== "newest"),
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100">
@@ -444,7 +463,7 @@ export function QuestionsClientPage({
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         hasActiveFilters={hasActiveFilters}
-        onClearFilters={() => router.push('/questions')}
+        onClearFilters={() => router.push("/questions")}
         onExport={handleExport}
       />
 
@@ -469,7 +488,7 @@ export function QuestionsClientPage({
             bulkAnswering={bulkAnswering}
             bulkProgressPct={bulkProgressPct}
             onBulkAnswer={handleBulkAnswer}
-            onPauseBulk={handlePauseBulk}
+            onPauseBulk={_handlePauseBulk}
             onCancelBulk={handleCancelBulk}
             knowledgeBase={knowledgeBaseItems}
             suggestion={suggestion}
@@ -487,20 +506,20 @@ export function QuestionsClientPage({
       <QuestionsPagination
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={(page) => updateFilter('page', String(page))}
+        onPageChange={(page) => updateFilter("page", String(page))}
       />
 
       <AnswerDialog
         question={selectedQuestion}
         isOpen={answerDialogOpen}
         onClose={() => {
-          setAnswerDialogOpen(false)
-          setSelectedQuestion(null)
+          setAnswerDialogOpen(false);
+          setSelectedQuestion(null);
         }}
         onSuccess={() => {
-          refreshData()
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('dashboard:refresh'))
+          refreshData();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("dashboard:refresh"));
           }
         }}
       />
@@ -523,7 +542,7 @@ export function QuestionsClientPage({
               bulkAnswering={bulkAnswering}
               bulkProgressPct={bulkProgressPct}
               onBulkAnswer={handleBulkAnswer}
-              onPauseBulk={handlePauseBulk}
+              onPauseBulk={_handlePauseBulk}
               onCancelBulk={handleCancelBulk}
               knowledgeBase={knowledgeBaseItems}
               suggestion={suggestion}
@@ -541,14 +560,14 @@ export function QuestionsClientPage({
         locationId={currentFilters.locationId}
       />
     </div>
-  )
+  );
 }
 
 interface QuestionsOverviewHeaderProps {
-  stats: QuestionStatsSnapshot | null
-  pendingCount: number
-  onOpenAssistant: () => void
-  onOpenAISettings?: () => void
+  stats: QuestionStatsSnapshot | null;
+  pendingCount: number;
+  onOpenAssistant: () => void;
+  onOpenAISettings?: () => void;
 }
 
 function QuestionsOverviewHeader({
@@ -561,10 +580,12 @@ function QuestionsOverviewHeader({
     <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
       <div className="flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-white">Questions Command Center</h1>
+          <h1 className="text-3xl font-semibold text-white">
+            Questions Command Center
+          </h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Monitor community questions, automate AI answers, and uncover intent patterns in one
-            place.
+            Monitor community questions, automate AI answers, and uncover intent
+            patterns in one place.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -608,7 +629,7 @@ function QuestionsOverviewHeader({
         />
         <MetricTile
           label="Answer Rate"
-          value={`${stats ? stats.answerRate.toFixed(1) : '0'}%`}
+          value={`${stats ? stats.answerRate.toFixed(1) : "0"}%`}
           accent="bg-emerald-500/10 text-emerald-200 border-emerald-500/30"
         />
         <MetricTile
@@ -618,7 +639,7 @@ function QuestionsOverviewHeader({
         />
       </div>
     </header>
-  )
+  );
 }
 
 function MetricTile({
@@ -626,9 +647,9 @@ function MetricTile({
   value,
   accent,
 }: {
-  label: string
-  value: number | string
-  accent: string
+  label: string;
+  value: number | string;
+  accent: string;
 }) {
   return (
     <Card className={`border bg-zinc-900/60 ${accent}`}>
@@ -637,18 +658,18 @@ function MetricTile({
         <p className="mt-1 text-3xl font-semibold">{value}</p>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 interface QuestionsFilterBarProps {
-  locations: Array<{ id: string; location_name: string }>
-  filters: QuestionsClientPageProps['currentFilters']
-  updateFilter: (key: string, value: string | null) => void
-  searchInput: string
-  onSearchChange: (value: string) => void
-  hasActiveFilters: boolean
-  onClearFilters: () => void
-  onExport: () => void
+  locations: Array<{ id: string; location_name: string }>;
+  filters: QuestionsClientPageProps["currentFilters"];
+  updateFilter: (key: string, value: string | null) => void;
+  searchInput: string;
+  onSearchChange: (value: string) => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
+  onExport: () => void;
 }
 
 function QuestionsFilterBar({
@@ -663,45 +684,51 @@ function QuestionsFilterBar({
 }: QuestionsFilterBarProps) {
   const quickFilters = [
     {
-      id: 'all',
-      label: 'All',
-      active: !filters.status && (!filters.sortBy || filters.sortBy === 'newest'),
+      id: "all",
+      label: "All",
+      active:
+        !filters.status && (!filters.sortBy || filters.sortBy === "newest"),
       onClick: () => {
-        updateFilter('status', null)
-        updateFilter('sortBy', 'newest')
+        updateFilter("status", null);
+        updateFilter("sortBy", "newest");
       },
     },
     {
-      id: 'pending',
-      label: 'Pending',
-      active: filters.status === 'unanswered',
-      onClick: () => updateFilter('status', 'unanswered'),
+      id: "pending",
+      label: "Pending",
+      active: filters.status === "unanswered",
+      onClick: () => updateFilter("status", "unanswered"),
     },
     {
-      id: 'answered',
-      label: 'Answered',
-      active: filters.status === 'answered',
-      onClick: () => updateFilter('status', 'answered'),
+      id: "answered",
+      label: "Answered",
+      active: filters.status === "answered",
+      onClick: () => updateFilter("status", "answered"),
     },
     {
-      id: 'popular',
-      label: 'Popular',
-      active: filters.sortBy === 'most_upvoted',
-      onClick: () => updateFilter('sortBy', 'most_upvoted'),
+      id: "popular",
+      label: "Popular",
+      active: filters.sortBy === "most_upvoted",
+      onClick: () => updateFilter("sortBy", "most_upvoted"),
     },
     {
-      id: 'recent',
-      label: 'Recent',
-      active: !filters.status && (!filters.sortBy || filters.sortBy === 'newest'),
-      onClick: () => updateFilter('sortBy', 'newest'),
+      id: "recent",
+      label: "Recent",
+      active:
+        !filters.status && (!filters.sortBy || filters.sortBy === "newest"),
+      onClick: () => updateFilter("sortBy", "newest"),
     },
-  ]
+  ];
 
   return (
     <section className="border-b border-zinc-800 bg-zinc-950/60 px-6 py-5">
       <div className="flex flex-wrap items-center gap-2">
         {quickFilters.map((filter) => (
-          <FilterChip key={filter.id} active={filter.active} onClick={filter.onClick}>
+          <FilterChip
+            key={filter.id}
+            active={filter.active}
+            onClick={filter.onClick}
+          >
             {filter.label}
           </FilterChip>
         ))}
@@ -721,8 +748,10 @@ function QuestionsFilterBar({
             Location
           </label>
           <select
-            value={filters.locationId ?? ''}
-            onChange={(event) => updateFilter('location', event.target.value || null)}
+            value={filters.locationId ?? ""}
+            onChange={(event) =>
+              updateFilter("location", event.target.value || null)
+            }
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All locations</option>
@@ -739,8 +768,10 @@ function QuestionsFilterBar({
             Priority
           </label>
           <select
-            value={filters.priority ?? ''}
-            onChange={(event) => updateFilter('priority', event.target.value || null)}
+            value={filters.priority ?? ""}
+            onChange={(event) =>
+              updateFilter("priority", event.target.value || null)
+            }
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="">All priorities</option>
@@ -756,8 +787,8 @@ function QuestionsFilterBar({
             Sort by
           </label>
           <select
-            value={filters.sortBy ?? 'newest'}
-            onChange={(event) => updateFilter('sortBy', event.target.value)}
+            value={filters.sortBy ?? "newest"}
+            onChange={(event) => updateFilter("sortBy", event.target.value)}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
           >
             <option value="newest">Newest first</option>
@@ -768,7 +799,9 @@ function QuestionsFilterBar({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">Search</label>
+          <label className="mb-1 block text-xs uppercase tracking-wide text-zinc-500">
+            Search
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <Input
@@ -783,13 +816,18 @@ function QuestionsFilterBar({
 
       {hasActiveFilters && (
         <div className="mt-3">
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-zinc-400">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearFilters}
+            className="text-zinc-400"
+          >
             Reset filters
           </Button>
         </div>
       )}
     </section>
-  )
+  );
 }
 
 function FilterChip({
@@ -797,9 +835,9 @@ function FilterChip({
   onClick,
   children,
 }: {
-  active?: boolean
-  onClick?: () => void
-  children: React.ReactNode
+  active?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <button
@@ -807,23 +845,23 @@ function FilterChip({
       onClick={onClick}
       className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
         active
-          ? 'border-orange-500 bg-orange-500/20 text-orange-200 shadow-[0_0_12px_rgba(251,146,60,0.2)]'
-          : 'border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-orange-500/40 hover:text-orange-200'
+          ? "border-orange-500 bg-orange-500/20 text-orange-200 shadow-[0_0_12px_rgba(251,146,60,0.2)]"
+          : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-orange-500/40 hover:text-orange-200"
       }`}
     >
       {children}
     </button>
-  )
+  );
 }
 
 interface QuestionsFeedSectionProps {
-  questions: QuestionEntity[]
-  isPending: boolean
-  selectedQuestion: QuestionEntity | null
-  onSelectQuestion: (question: QuestionEntity) => void
-  onAnswer: (question: QuestionEntity) => void
-  selectedIds?: Set<string>
-  onCheckChange?: (questionId: string, checked: boolean) => void
+  questions: QuestionEntity[];
+  isPending: boolean;
+  selectedQuestion: QuestionEntity | null;
+  onSelectQuestion: (question: QuestionEntity) => void;
+  onAnswer: (question: QuestionEntity) => void;
+  selectedIds?: Set<string>;
+  onCheckChange?: (questionId: string, checked: boolean) => void;
 }
 
 function QuestionsFeedSection({
@@ -843,20 +881,23 @@ function QuestionsFeedSection({
           Refreshing questions…
         </div>
       </section>
-    )
+    );
   }
 
-  const safeQuestions = Array.isArray(questions) ? questions : []
+  const safeQuestions = Array.isArray(questions) ? questions : [];
 
   if (!safeQuestions.length) {
     return (
       <section className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/30 text-center">
-        <h3 className="text-lg font-semibold text-zinc-200">No questions found</h3>
+        <h3 className="text-lg font-semibold text-zinc-200">
+          No questions found
+        </h3>
         <p className="max-w-md text-sm text-zinc-500">
-          Try syncing Google Business questions or adjust your filters to see more conversations.
+          Try syncing Google Business questions or adjust your filters to see
+          more conversations.
         </p>
       </section>
-    )
+    );
   }
 
   return (
@@ -870,30 +911,32 @@ function QuestionsFeedSection({
           onClick={() => onSelectQuestion(question)}
           onAnswer={() => onAnswer(question)}
           onCheckChange={
-            onCheckChange ? (checked) => onCheckChange(question.id, checked) : undefined
+            onCheckChange
+              ? (checked) => onCheckChange(question.id, checked)
+              : undefined
           }
         />
       ))}
     </section>
-  )
+  );
 }
 
 interface AutoAnswerSidebarProps {
-  pendingCount: number
-  selectedQuestion: QuestionEntity | null
-  autoAnswerEnabled: boolean
-  autoAnswerLoading: boolean
-  onToggleAutoAnswer: (enabled: boolean) => void
-  bulkAnswering: boolean
-  bulkProgressPct: number
-  onBulkAnswer: () => void
-  onPauseBulk: () => void
-  onCancelBulk: () => void
-  knowledgeBase: KnowledgeBaseItem[]
-  suggestion: SuggestionInfo | null
-  insights: InsightItem[]
-  onOpenAnswerDialog: () => void
-  isMobile?: boolean
+  pendingCount: number;
+  selectedQuestion: QuestionEntity | null;
+  autoAnswerEnabled: boolean;
+  autoAnswerLoading: boolean;
+  onToggleAutoAnswer: (enabled: boolean) => void;
+  bulkAnswering: boolean;
+  bulkProgressPct: number;
+  onBulkAnswer: () => void;
+  onPauseBulk: () => void;
+  onCancelBulk: () => void;
+  knowledgeBase: KnowledgeBaseItem[];
+  suggestion: SuggestionInfo | null;
+  insights: InsightItem[];
+  onOpenAnswerDialog: () => void;
+  isMobile?: boolean;
 }
 
 function AutoAnswerSidebar({
@@ -915,13 +958,13 @@ function AutoAnswerSidebar({
 }: AutoAnswerSidebarProps) {
   return (
     <div
-      className={`flex h-full flex-col gap-4 rounded-xl border border-orange-500/20 bg-gradient-to-br from-zinc-950/90 via-zinc-950 to-zinc-900/90 p-6 shadow-[0_0_40px_rgba(251,146,60,0.08)] ${
-        isMobile ? '' : 'sticky top-6'
+      className={`flex h-full flex-col gap-4 rounded-xl border border-orange-500/20 bg-linear-to-br from-zinc-950/90 via-zinc-950 to-zinc-900/90 p-6 shadow-[0_0_40px_rgba(251,146,60,0.08)] ${
+        isMobile ? "" : "sticky top-14"
       }`}
     >
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30">
             <Sparkles className="h-5 w-5" />
           </div>
           <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full border border-zinc-900 bg-emerald-400" />
@@ -933,7 +976,7 @@ function AutoAnswerSidebar({
           </p>
         </div>
         <Badge className="bg-orange-500/20 text-orange-200 border border-orange-500/40">
-          {autoAnswerEnabled ? 'Active' : 'Standby'}
+          {autoAnswerEnabled ? "Active" : "Standby"}
         </Badge>
       </div>
 
@@ -945,7 +988,9 @@ function AutoAnswerSidebar({
               <div>
                 <p className="text-sm font-semibold text-white">Auto-answer</p>
                 <p className="text-xs text-zinc-400">
-                  {autoAnswerEnabled ? 'AI replies to new questions.' : 'Manual reviews required.'}
+                  {autoAnswerEnabled
+                    ? "AI replies to new questions."
+                    : "Manual reviews required."}
                 </p>
               </div>
             </div>
@@ -959,7 +1004,10 @@ function AutoAnswerSidebar({
           <div className="flex items-center gap-3 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2">
             <Lightbulb className="h-4 w-4 text-amber-300" />
             <p className="text-xs text-zinc-400">
-              Pending queue: <span className="font-semibold text-zinc-200">{pendingCount}</span>{' '}
+              Pending queue:{" "}
+              <span className="font-semibold text-zinc-200">
+                {pendingCount}
+              </span>{" "}
               questions need answers.
             </p>
           </div>
@@ -987,11 +1035,11 @@ function AutoAnswerSidebar({
                 variant="outline"
                 className={`${
                   item.ready
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
-                    : 'border-zinc-700 bg-zinc-800 text-zinc-300'
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                    : "border-zinc-700 bg-zinc-800 text-zinc-300"
                 }`}
               >
-                {item.ready ? 'Ready' : 'Missing'} · {item.count}
+                {item.ready ? "Ready" : "Missing"} · {item.count}
               </Badge>
             </div>
           ))}
@@ -1003,14 +1051,17 @@ function AutoAnswerSidebar({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-white">AI suggestion</p>
-              <p className="text-xs text-orange-100/80">Topic: {suggestion?.topic ?? 'General'}</p>
+              <p className="text-xs text-orange-100/80">
+                Topic: {suggestion?.topic ?? "General"}
+              </p>
             </div>
             <Badge className="bg-white/10 text-white">
-              {suggestion ? `${suggestion.confidence}% match` : 'Ready'}
+              {suggestion ? `${suggestion.confidence}% match` : "Ready"}
             </Badge>
           </div>
           <p className="text-sm text-orange-50/90">
-            {suggestion?.title ?? 'Select a question to generate a tailored answer.'}
+            {suggestion?.title ??
+              "Select a question to generate a tailored answer."}
           </p>
           <Button
             onClick={onOpenAnswerDialog}
@@ -1024,17 +1075,19 @@ function AutoAnswerSidebar({
 
       <Card className="border border-zinc-800/60 bg-zinc-900/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Bulk answering</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">
+            Bulk answering
+          </CardTitle>
           <Zap className="h-4 w-4 text-orange-300" />
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Status: {bulkAnswering ? 'Processing…' : 'Idle'}</span>
+            <span>Status: {bulkAnswering ? "Processing…" : "Idle"}</span>
             <span>{bulkProgressPct}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 transition-all"
+              className="h-full rounded-full bg-linear-to-r from-orange-500 via-amber-400 to-yellow-300 transition-all"
               style={{ width: `${bulkProgressPct}%` }}
             />
           </div>
@@ -1068,7 +1121,9 @@ function AutoAnswerSidebar({
 
       <Card className="border border-zinc-800/60 bg-zinc-900/40">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-zinc-200">Performance snapshot</CardTitle>
+          <CardTitle className="text-sm font-medium text-zinc-200">
+            Performance snapshot
+          </CardTitle>
           <TrendingUp className="h-4 w-4 text-emerald-300" />
         </CardHeader>
         <CardContent className="grid gap-2">
@@ -1077,19 +1132,23 @@ function AutoAnswerSidebar({
               key={item.label}
               className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2"
             >
-              <span className="text-xs uppercase tracking-wide text-zinc-500">{item.label}</span>
-              <span className="text-sm font-semibold text-zinc-100">{item.value}</span>
+              <span className="text-xs uppercase tracking-wide text-zinc-500">
+                {item.label}
+              </span>
+              <span className="text-sm font-semibold text-zinc-100">
+                {item.value}
+              </span>
             </div>
           ))}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 interface QuestionInsightsCardProps {
-  stats: QuestionStatsSnapshot | null
-  patterns: Array<{ key: string; label: string; count: number }>
+  stats: QuestionStatsSnapshot | null;
+  patterns: Array<{ key: string; label: string; count: number }>;
 }
 
 function QuestionInsightsCard({ stats, patterns }: QuestionInsightsCardProps) {
@@ -1097,7 +1156,9 @@ function QuestionInsightsCard({ stats, patterns }: QuestionInsightsCardProps) {
     <Card className="border border-zinc-800 bg-zinc-900/40">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div>
-          <CardTitle className="text-base font-semibold text-white">Smart insights</CardTitle>
+          <CardTitle className="text-base font-semibold text-white">
+            Smart insights
+          </CardTitle>
           <p className="text-xs text-zinc-500">
             Trending topics and engagement patterns across locations
           </p>
@@ -1122,54 +1183,72 @@ function QuestionInsightsCard({ stats, patterns }: QuestionInsightsCardProps) {
           ))}
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-xs text-zinc-400">
-          Answer rate sits at{' '}
+          Answer rate sits at{" "}
           <span className="font-semibold text-zinc-100">
-            {stats ? stats.answerRate.toFixed(1) : '0'}%
-          </span>{' '}
-          with an average of{' '}
+            {stats ? stats.answerRate.toFixed(1) : "0"}%
+          </span>{" "}
+          with an average of{" "}
           <span className="font-semibold text-zinc-100">
-            {stats ? stats.avgUpvotes.toFixed(1) : '0'}
-          </span>{' '}
+            {stats ? stats.avgUpvotes.toFixed(1) : "0"}
+          </span>{" "}
           helpful votes per response.
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function AutoAnswerSettingsCard() {
   return (
     <Card className="border border-zinc-800 bg-zinc-900/40">
       <CardHeader>
-        <CardTitle className="text-base font-semibold text-white">Automation settings</CardTitle>
+        <CardTitle className="text-base font-semibold text-white">
+          Automation settings
+        </CardTitle>
         <p className="text-xs text-zinc-500">
           Fine-tune tone, escalation rules, and compliance safeguards
         </p>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <Sparkles className="mr-3 h-4 w-4 text-orange-300" /> Configure AI rules
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <Sparkles className="mr-3 h-4 w-4 text-orange-300" /> Configure AI
+          rules
         </Button>
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <Shield className="mr-3 h-4 w-4 text-emerald-300" /> Sensitive topic guardrails
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <Shield className="mr-3 h-4 w-4 text-emerald-300" /> Sensitive topic
+          guardrails
         </Button>
-        <Button variant="outline" className="justify-start border-zinc-700 text-zinc-200">
-          <BookOpen className="mr-3 h-4 w-4 text-sky-300" /> Manage FAQ knowledge base
+        <Button
+          variant="outline"
+          className="justify-start border-zinc-700 text-zinc-200"
+        >
+          <BookOpen className="mr-3 h-4 w-4 text-sky-300" /> Manage FAQ
+          knowledge base
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 interface QuestionsPaginationProps {
-  currentPage: number
-  totalPages: number
-  onPageChange: (page: number) => void
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-function QuestionsPagination({ currentPage, totalPages, onPageChange }: QuestionsPaginationProps) {
+function QuestionsPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: QuestionsPaginationProps) {
   if (totalPages <= 1) {
-    return null
+    return null;
   }
 
   return (
@@ -1185,7 +1264,7 @@ function QuestionsPagination({ currentPage, totalPages, onPageChange }: Question
           Previous
         </Button>
         <span>
-          Page <span className="text-zinc-100">{currentPage}</span> of{' '}
+          Page <span className="text-zinc-100">{currentPage}</span> of{" "}
           <span className="text-zinc-100">{totalPages}</span>
         </span>
         <Button
@@ -1199,60 +1278,98 @@ function QuestionsPagination({ currentPage, totalPages, onPageChange }: Question
         </Button>
       </div>
     </footer>
-  )
+  );
 }
 
 function normalizeQuestionEntity(
-  questionInput: Partial<GMBQuestion> & Record<string, any>,
+  questionInput: Partial<GMBQuestion> & Record<string, unknown>,
 ): QuestionEntity {
-  const q = questionInput as Record<string, any>
-  const now = new Date().toISOString()
+  const q = questionInput as Record<string, unknown>;
+  const now = new Date().toISOString();
 
-  const locationId = q.location_id ?? q.locationId ?? ''
-  const questionText = q.question_text ?? q.questionText ?? ''
-  const createdAtValue = q.asked_at ?? q.created_at ?? q.createdAt ?? null
-  const createdAt = typeof createdAtValue === 'string' ? createdAtValue : null
+  // Safe type extraction with proper fallbacks
+  const getString = (key: string, fallback = ""): string => {
+    const value = q[key];
+    return typeof value === "string" ? value : fallback;
+  };
+
+  const getOptionalString = (key: string): string | undefined => {
+    const value = q[key];
+    return typeof value === "string" ? value : undefined;
+  };
+
+  const getNumber = (key: string, fallback = 0): number => {
+    const value = q[key];
+    return typeof value === "number" ? value : fallback;
+  };
+
+  const getOptionalNumber = (key: string): number | undefined => {
+    const value = q[key];
+    return typeof value === "number" ? value : undefined;
+  };
+
+  const getOptionalBoolean = (key: string): boolean | undefined => {
+    const value = q[key];
+    return typeof value === "boolean" ? value : undefined;
+  };
+
+  const locationId = getString("location_id") || getString("locationId") || "";
+  const questionText =
+    getString("question_text") || getString("questionText") || "";
+  const createdAtValue = q.asked_at ?? q.created_at ?? q.createdAt ?? null;
+  const createdAt = typeof createdAtValue === "string" ? createdAtValue : null;
   const answerStatusRaw =
     q.answer_status ??
-    (q.status === 'answered' ? 'answered' : q.status === 'pending' ? 'pending' : undefined)
-  const answerStatus = (answerStatusRaw ?? 'unanswered') as QuestionEntity['answerStatus']
-  const upvoteCount = q.upvote_count ?? q.upvoteCount ?? 0
+    (q.status === "answered"
+      ? "answered"
+      : q.status === "pending"
+        ? "pending"
+        : undefined);
+  const answerStatus = (answerStatusRaw ??
+    "unanswered") as QuestionEntity["answerStatus"];
+  const upvoteCount =
+    getNumber("upvote_count") || getNumber("upvoteCount") || 0;
 
   const base: GMBQuestion = {
-    id: q.id ?? crypto.randomUUID?.() ?? `${Date.now()}`,
+    id: getString("id") || crypto.randomUUID?.() || `${Date.now()}`,
     location_id: locationId,
-    user_id: q.user_id ?? '',
-    gmb_account_id: q.gmb_account_id ?? undefined,
-    question_id: q.question_id ?? undefined,
-    external_question_id: q.external_question_id ?? undefined,
+    user_id: getString("user_id"),
+    gmb_account_id: getOptionalString("gmb_account_id"),
+    question_id: getOptionalString("question_id"),
+    external_question_id: getOptionalString("external_question_id"),
     question_text: questionText,
     asked_at: createdAt ?? undefined,
-    author_name: q.author_name ?? undefined,
-    author_display_name: q.author_display_name ?? undefined,
-    author_profile_photo_url: q.author_profile_photo_url ?? undefined,
-    author_type: q.author_type ?? undefined,
-    answer_text: q.answer_text ?? undefined,
-    answered_at: q.answered_at ?? undefined,
-    answered_by: q.answered_by ?? undefined,
+    author_name: getOptionalString("author_name"),
+    author_display_name: getOptionalString("author_display_name"),
+    author_profile_photo_url: getOptionalString("author_profile_photo_url"),
+    author_type: getOptionalString("author_type"),
+    answer_text: getOptionalString("answer_text"),
+    answered_at: getOptionalString("answered_at"),
+    answered_by: getOptionalString("answered_by"),
     answer_status:
-      answerStatus === 'unanswered' ? 'unanswered' : (answerStatus as GMBQuestion['answer_status']),
-    answer_id: q.answer_id ?? undefined,
+      answerStatus === "unanswered"
+        ? "unanswered"
+        : (answerStatus as GMBQuestion["answer_status"]),
+    answer_id: getOptionalString("answer_id"),
     upvote_count: upvoteCount,
-    total_answer_count: q.total_answer_count ?? undefined,
-    ai_suggested_answer: q.ai_suggested_answer ?? undefined,
-    ai_confidence_score: q.ai_confidence_score ?? undefined,
-    ai_answer_generated: q.ai_answer_generated ?? undefined,
-    ai_category: q.ai_category ?? undefined,
-    status: q.status ?? undefined,
-    priority: q.priority ?? undefined,
-    question_url: q.question_url ?? undefined,
-    google_resource_name: q.google_resource_name ?? undefined,
-    internal_notes: q.internal_notes ?? undefined,
-    created_at: q.created_at ?? createdAt ?? now,
-    updated_at: q.updated_at ?? now,
-    location_name: q.location_name ?? q.locationName ?? undefined,
-    location_address: q.location_address ?? q.locationAddress ?? undefined,
-  }
+    total_answer_count: getOptionalNumber("total_answer_count"),
+    ai_suggested_answer: getOptionalString("ai_suggested_answer"),
+    ai_confidence_score: getOptionalNumber("ai_confidence_score"),
+    ai_answer_generated: getOptionalBoolean("ai_answer_generated"),
+    ai_category: getOptionalString("ai_category"),
+    status: getOptionalString("status") as GMBQuestion["status"],
+    priority: getOptionalString("priority") as GMBQuestion["priority"],
+    question_url: getOptionalString("question_url"),
+    google_resource_name: getOptionalString("google_resource_name"),
+    internal_notes: getOptionalString("internal_notes"),
+    created_at: getString("created_at") || createdAt || now,
+    updated_at: getString("updated_at") || now,
+    location_name:
+      getOptionalString("location_name") || getOptionalString("locationName"),
+    location_address:
+      getOptionalString("location_address") ||
+      getOptionalString("locationAddress"),
+  };
 
   return {
     ...base,
@@ -1261,5 +1378,5 @@ function normalizeQuestionEntity(
     createdAt,
     answerStatus,
     upvoteCount,
-  }
+  };
 }

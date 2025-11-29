@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type EventHandler<K extends keyof WindowEventMap> = (
   event: WindowEventMap[K],
@@ -165,7 +165,7 @@ export function useEventListeners<T extends HTMLElement = HTMLElement>(
  * Hook to track online/offline status
  */
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = React.useState(
+  const [isOnline, setIsOnline] = useState(
     typeof window !== "undefined" ? navigator.onLine : true,
   );
 
@@ -179,7 +179,7 @@ export function useOnlineStatus() {
  * Hook to track page visibility
  */
 export function usePageVisibility() {
-  const [isVisible, setIsVisible] = React.useState(
+  const [isVisible, setIsVisible] = useState(
     typeof document !== "undefined"
       ? document.visibilityState === "visible"
       : true,
@@ -191,6 +191,3 @@ export function usePageVisibility() {
 
   return isVisible;
 }
-
-// Add missing React import
-import React from "react";

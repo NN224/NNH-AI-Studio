@@ -68,11 +68,11 @@ export function WelcomeBack({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ duration: 0.3 }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg mx-4"
+          className="fixed top-28 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg mx-4"
         >
           <Card className="bg-card/95 backdrop-blur-md border-primary/20 shadow-2xl overflow-hidden">
             {/* Gradient Top Border */}
-            <div className="h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500" />
+            <div className="h-1 bg-linear-to-r from-primary via-purple-500 to-pink-500" />
 
             <div className="p-5">
               {/* Header */}

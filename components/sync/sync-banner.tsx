@@ -68,7 +68,7 @@ export function SyncBanner({ className }: SyncBannerProps) {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={cn(
-          "fixed top-8 left-0 right-0 z-40",
+          "fixed top-16 left-0 right-0 z-40",
           "backdrop-blur-md",
           styles.glow,
           className,

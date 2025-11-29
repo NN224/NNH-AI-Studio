@@ -86,7 +86,14 @@ export async function middleware(request: NextRequest) {
       if (error?.code === "session_expired") {
         loginUrl.searchParams.set("error", "session_expired");
       }
-      return NextResponse.redirect(loginUrl);
+      // Validate redirect URL to prevent open redirect attacks
+      if (loginUrl.origin === new URL(request.url).origin) {
+        return NextResponse.redirect(loginUrl);
+      }
+      // Fallback to safe redirect if URL validation fails
+      return NextResponse.redirect(
+        new URL(`/${locale}/auth/login`, request.url),
+      );
     }
   }
 
@@ -100,7 +107,9 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (user) {
-      return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
+      // Safe redirect to home page (same origin)
+      const homeUrl = new URL(`/${locale}/home`, request.url);
+      return NextResponse.redirect(homeUrl);
     }
   }
 

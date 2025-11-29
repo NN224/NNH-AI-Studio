@@ -222,7 +222,7 @@ export default function DashboardLayout({
                     userProfile={userProfile}
                   />
 
-                  <div className="lg:pl-[280px] pt-8">
+                  <div className="lg:pl-[280px] pt-16">
                     <Header
                       onMenuClick={() => setSidebarOpen(!sidebarOpen)}
                       onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
@@ -230,7 +230,7 @@ export default function DashboardLayout({
                       userId={userId || undefined}
                     />
 
-                    <main className="min-h-[calc(100vh-4rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
+                    <main className="min-h-[calc(100vh-6rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
                       <div className="mx-auto max-w-7xl">
                         {/* Route Protection Logic */}
                         {isProtectedRoute && gmbLoading ? (

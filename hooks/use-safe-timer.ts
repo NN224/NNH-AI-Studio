@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Hook to manage setTimeout safely with automatic cleanup
@@ -180,4 +180,3 @@ export function useThrottle<T extends unknown[]>(
 }
 
 // Add missing import
-import { useState } from "react";
