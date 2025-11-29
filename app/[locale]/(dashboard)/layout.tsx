@@ -10,12 +10,10 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 // Direct imports for better tree-shaking
 import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
-import { SyncBanner } from "@/components/sync/sync-banner";
-import { SyncProgressOverlay } from "@/components/sync/sync-progress-overlay";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { Button } from "@/components/ui/button";
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
-import { SyncProvider } from "@/contexts/sync-context";
+// Note: SyncProvider is now in app/providers.tsx for global state sharing
 import { useGMBStatus } from "@/hooks/features/use-gmb";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
@@ -208,72 +206,68 @@ export default function DashboardLayout({
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProfileProvider>
-        <SyncProvider userId={userId || undefined}>
-          <DynamicThemeProvider>
-            <KeyboardProvider
-              onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
-            >
-              <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
-                <div className="relative min-h-screen bg-background">
-                  {/* Unified Sync Banner */}
-                  <SyncBanner />
+        <DynamicThemeProvider>
+          <KeyboardProvider
+            onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+          >
+            <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
+              <div className="relative min-h-screen bg-background">
+                {/* Note: SyncBanner is now rendered globally in GlobalSyncProvider */}
 
-                  <Sidebar
-                    isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
+                <Sidebar
+                  isOpen={sidebarOpen}
+                  onClose={() => setSidebarOpen(false)}
+                  userProfile={userProfile}
+                />
+
+                <div className="lg:pl-[280px] pt-16">
+                  <Header
+                    onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+                    onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
                     userProfile={userProfile}
+                    userId={userId || undefined}
                   />
 
-                  <div className="lg:pl-[280px] pt-16">
-                    <Header
-                      onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-                      onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
-                      userProfile={userProfile}
-                      userId={userId || undefined}
-                    />
-
-                    <main className="min-h-[calc(100vh-6rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
-                      <div className="mx-auto max-w-7xl">
-                        {/* Route Protection Logic */}
-                        {isProtectedRoute && gmbLoading ? (
-                          <div className="flex items-center justify-center min-h-[60vh]">
-                            <div className="text-center space-y-3">
-                              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                              <p className="text-sm text-muted-foreground">
-                                Checking GMB connection...
-                              </p>
-                            </div>
+                  <main className="min-h-[calc(100vh-6rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
+                    <div className="mx-auto max-w-7xl">
+                      {/* Route Protection Logic */}
+                      {isProtectedRoute && gmbLoading ? (
+                        <div className="flex items-center justify-center min-h-[60vh]">
+                          <div className="text-center space-y-3">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                            <p className="text-sm text-muted-foreground">
+                              Checking GMB connection...
+                            </p>
                           </div>
-                        ) : isProtectedRoute && !gmbConnected ? (
-                          <GMBOnboardingView />
-                        ) : (
-                          children
-                        )}
-                      </div>
-                    </main>
-                  </div>
-
-                  <MobileNav />
-
-                  <CommandPalette
-                    open={commandPaletteOpen}
-                    onOpenChange={setCommandPaletteOpen}
-                  />
-
-                  {/* Unified Sync Progress Overlay for new users */}
-                  <SyncProgressOverlay />
-
-                  {/* Background Auto-Sync */}
-                  <BackgroundSyncWrapper
-                    enabled={true}
-                    intervalMinutes={30}
-                    showNotifications={false}
-                  />
+                        </div>
+                      ) : isProtectedRoute && !gmbConnected ? (
+                        <GMBOnboardingView />
+                      ) : (
+                        children
+                      )}
+                    </div>
+                  </main>
                 </div>
-              </Sentry.ErrorBoundary>
-            </KeyboardProvider>
-          </DynamicThemeProvider>
-        </SyncProvider>
+
+                <MobileNav />
+
+                <CommandPalette
+                  open={commandPaletteOpen}
+                  onOpenChange={setCommandPaletteOpen}
+                />
+
+                {/* Note: SyncProgressOverlay is now rendered globally in GlobalSyncProvider */}
+
+                {/* Background Auto-Sync */}
+                <BackgroundSyncWrapper
+                  enabled={true}
+                  intervalMinutes={30}
+                  showNotifications={false}
+                />
+              </div>
+            </Sentry.ErrorBoundary>
+          </KeyboardProvider>
+        </DynamicThemeProvider>
       </BrandProfileProvider>
     </QueryClientProvider>
   );

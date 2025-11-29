@@ -4,9 +4,8 @@
 import { useGuidedTour } from "@/components/onboarding/GuidedTour";
 import { useCelebration } from "@/components/onboarding/SuccessCelebration";
 import { WelcomeNewUser } from "@/components/onboarding/WelcomeNewUser";
-import { SyncBanner } from "@/components/sync/sync-banner";
-import { SyncProgressOverlay } from "@/components/sync/sync-progress-overlay";
-import { SyncProvider, useSyncContext } from "@/contexts/sync-context";
+// Note: SyncBanner and SyncProgressOverlay are now rendered globally in GlobalSyncProvider
+import { useSyncContext } from "@/contexts/sync-context";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HomePageContent } from "./home-page-content";
@@ -17,7 +16,9 @@ interface HomeWithSyncProps {
 }
 
 /**
- * Inner component that uses sync context
+ * Home page component that uses the global sync context.
+ * Note: SyncProvider is now in app/providers.tsx for global state sharing,
+ * so sync state persists when navigating between /home and /dashboard.
  */
 function HomeWithSyncInner({
   homePageProps,
@@ -84,11 +85,7 @@ function HomeWithSyncInner({
 
   return (
     <>
-      {/* Sync Banner for returning users */}
-      <SyncBanner />
-
-      {/* Full-screen overlay for new users */}
-      <SyncProgressOverlay />
+      {/* Note: SyncBanner and SyncProgressOverlay are now rendered globally in GlobalSyncProvider */}
 
       {/* Welcome screen for new users after sync */}
       {showWelcomeScreen && (
@@ -115,12 +112,15 @@ function HomeWithSyncInner({
 }
 
 /**
- * Home page wrapper with sync functionality
+ * Home page wrapper with sync functionality.
+ * Note: SyncProvider is now in app/providers.tsx for global state sharing.
+ * This component directly uses the global sync context.
  */
-export function HomeWithSync({ userId, homePageProps }: HomeWithSyncProps) {
-  return (
-    <SyncProvider userId={userId}>
-      <HomeWithSyncInner homePageProps={homePageProps} />
-    </SyncProvider>
-  );
+export function HomeWithSync({
+  userId: _userId,
+  homePageProps,
+}: HomeWithSyncProps) {
+  // userId is kept in props for backward compatibility but not used here
+  // since SyncProvider is now global and gets userId from auth state
+  return <HomeWithSyncInner homePageProps={homePageProps} />;
 }
