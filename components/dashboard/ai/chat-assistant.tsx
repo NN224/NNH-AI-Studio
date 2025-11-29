@@ -1,76 +1,93 @@
-'use client';
+'use client'
 
+import { metadata } from '@/app/layout'
 /**
  * AI Chat Assistant
  * Floating chat widget for natural language queries
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import {
-  MessageCircle,
-  X,
-  Send,
-  Loader2,
-  Sparkles,
-  User,
-  Bot,
-  ArrowRight,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import type { ChatMessage, ChatResponse } from '@/lib/types/ai';
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+// import type { ChatMessage } from '@/lib/types/ai'
+import { ArrowRight, Bot, Loader2, MessageCircle, Send, Sparkles, User, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useRef, useState } from 'react'
 
 interface ChatAssistantProps {
-  userId: string;
+  userId: string
+}
+
+interface ChatAction {
+  label: string
+  type: string
+  data?: Record<string, unknown>
+}
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+  metadata?: {
+    suggestions?: string[]
+    actions?: ChatAction[]
+    [key: string]: unknown
+  }
+}
+
+interface ChatResponse {
+  message: string | { content: string }
+  suggestions?: string[]
+  actions?: ChatAction[]
 }
 
 export function ChatAssistant({ userId }: ChatAssistantProps) {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m your AI assistant. Ask me anything about your dashboard, reviews, or business metrics!',
+      content:
+        "Hi! I'm your AI assistant. Ask me anything about your dashboard, reviews, or business metrics!",
       timestamp: new Date(),
     },
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages]);
+  }, [messages])
 
   // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading) return
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date(),
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
+    setMessages((prev) => [...prev, userMessage])
+    setInput('')
+    setLoading(true)
 
     try {
       const response = await fetch('/api/ai/chat', {
@@ -80,13 +97,13 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
           message: userMessage.content,
           conversationHistory: messages.slice(-5), // Last 5 messages for context
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        throw new Error('Failed to get response')
       }
 
-      const data: ChatResponse = await response.json();
+      const data: ChatResponse = await response.json()
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -94,44 +111,45 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
         content: typeof data.message === 'string' ? data.message : data.message.content,
         timestamp: new Date(),
         metadata: {
-          suggestions: data.suggestions,
+          suggestions: data.suggestions || [],
+          actions: data.actions || [],
         },
-      };
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   const handleActionClick = (action: any) => {
     if (action.actionType === 'navigate' && action.actionUrl) {
-      router.push(action.actionUrl);
-      setIsOpen(false);
+      router.push(action.actionUrl)
+      setIsOpen(false)
     } else if (action.actionType === 'external_link' && action.actionUrl) {
-      window.open(action.actionUrl, '_blank');
+      window.open(action.actionUrl, '_blank')
     }
-  };
+  }
 
   const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion);
-    inputRef.current?.focus();
-  };
+    setInput(suggestion)
+    inputRef.current?.focus()
+  }
 
   return (
     <>
@@ -200,15 +218,11 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
                 disabled={loading}
                 className="flex-1"
               />
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || loading}
-                size="icon"
-              >
+              <Button onClick={handleSend} disabled={!input.trim() || loading} size="icon">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            
+
             {/* Quick Suggestions */}
             <div className="flex flex-wrap gap-2 mt-2">
               {[
@@ -232,7 +246,7 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
         </Card>
       )}
     </>
-  );
+  )
 }
 
 /**
@@ -243,11 +257,11 @@ function MessageBubble({
   onActionClick,
   onSuggestionClick,
 }: {
-  message: ChatMessage;
-  onActionClick: (action: any) => void;
-  onSuggestionClick: (suggestion: string) => void;
+  message: ChatMessage
+  onActionClick: (action: any) => void
+  onSuggestionClick: (suggestion: string) => void
 }) {
-  const isUser = message.role === 'user';
+  const isUser = message.role === 'user'
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -266,9 +280,7 @@ function MessageBubble({
       <div className={`flex-1 space-y-2 ${isUser ? 'items-end' : ''}`}>
         <div
           className={`rounded-lg p-3 max-w-[85%] ${
-            isUser
-              ? 'bg-blue-500 text-white ml-auto'
-              : 'bg-muted'
+            isUser ? 'bg-blue-500 text-white ml-auto' : 'bg-muted'
           }`}
         >
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -316,6 +328,5 @@ function MessageBubble({
         </p>
       </div>
     </div>
-  );
+  )
 }
-

@@ -562,7 +562,7 @@ export function LocationAttributesDialog({
                               <div className="flex items-center gap-2 mt-1">
                                 <Input
                                   type="url"
-                                  value={value}
+                                  value={typeof value === 'string' ? value : ''}
                                   onChange={(e) =>
                                     handleAttributeChange(link.name, e.target.value || null, link)
                                   }
@@ -572,7 +572,7 @@ export function LocationAttributesDialog({
                                 />
                                 {value && (
                                   <a
-                                    href={value}
+                                    href={typeof value === 'string' ? value : '#'}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex-shrink-0"
