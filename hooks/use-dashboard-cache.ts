@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
 import type { DashboardSnapshot } from "@/types/dashboard";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CacheEntry<T> {
   data: T;
@@ -150,26 +150,28 @@ interface DateRangeOption {
   end?: Date;
 }
 
-export function useDashboardStats(dateRange?: DateRangeOption) {
-  const params = new URLSearchParams();
-  if (dateRange?.preset !== "custom") {
-    const now = new Date();
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const start = new Date(end);
-    if (dateRange?.preset === "7d") start.setDate(end.getDate() - 7);
-    if (dateRange?.preset === "30d") start.setDate(end.getDate() - 30);
-    if (dateRange?.preset === "90d") start.setDate(end.getDate() - 90);
-    params.set("start", start.toISOString());
-    params.set("end", end.toISOString());
-  } else if (dateRange?.start && dateRange?.end) {
-    params.set("start", dateRange.start.toISOString());
-    params.set("end", dateRange.end.toISOString());
-  }
+/**
+ * @deprecated Use useBusinessStats from hooks/features/use-business-stats.ts instead
+ * This prevents redundant fetches between Home and Dashboard.
+ */
+export function useDashboardStats(_dateRange?: DateRangeOption) {
+  // Use cached fetch as fallback for backward compatibility
+  // New code should use useBusinessStats directly
+  const { data, loading, error, refetch } = useCachedFetch(
+    "/api/dashboard/stats",
+    undefined,
+    "business-stats",
+    5 * 60 * 1000, // 5 minutes - matches useBusinessStats
+  );
 
-  const url = `/api/dashboard/stats?${params.toString()}`;
-  const cacheKey = `dashboard-stats-${params.toString()}`;
-
-  return useCachedFetch(url, undefined, cacheKey, 3 * 60 * 1000); // 3 minutes cache
+  return {
+    data,
+    loading,
+    error,
+    fetchData: refetch,
+    invalidate: refetch,
+    refetch,
+  };
 }
 
 export function useDashboardSnapshot() {

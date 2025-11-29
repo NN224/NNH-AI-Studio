@@ -1,5 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { StatsService, DashboardStats } from "@/lib/services/stats-service";
+/**
+ * @deprecated Use useBusinessStats from hooks/features/use-business-stats.ts instead
+ * This hook is kept for backward compatibility but will be removed in the future.
+ * The new unified hook prevents redundant fetches between Home and Dashboard.
+ */
+
+import { useBusinessStats } from "./use-business-stats";
 
 export const STATS_KEYS = {
   all: ["stats"] as const,
@@ -7,13 +12,12 @@ export const STATS_KEYS = {
     [...STATS_KEYS.all, "dashboard", period] as const,
 };
 
+/**
+ * @deprecated Use useBusinessStats instead
+ */
 export function useDashboardStats(
-  period: "day" | "week" | "month" | "year" = "month",
+  _period: "day" | "week" | "month" | "year" = "month",
 ) {
-  return useQuery({
-    queryKey: STATS_KEYS.dashboard(period),
-    queryFn: () => StatsService.getDashboardStats(period),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
-  });
+  // Redirect to unified hook
+  return useBusinessStats();
 }
