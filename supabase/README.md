@@ -1,13 +1,65 @@
 # Supabase Production Setup
 
-## 🎯 Overview
+This directory contains the Supabase configuration and database migrations for NNH AI Studio.
 
-This directory contains a **production-ready** Supabase configuration with:
+## Database Migrations Workflow
 
-- ✅ **Secure token isolation** - OAuth tokens stored in separate `gmb_secrets` table
-- ✅ **PGMQ queue system** - Async job processing with PostgreSQL Message Queue
-- ✅ **Optimized Edge Functions** - No timeouts, immediate response
-- ✅ **Consolidated migrations** - Single source of truth
+### Prerequisites
+
+```bash
+# Install Supabase CLI
+brew install supabase/tap/supabase
+
+# Login and link project
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+```
+
+### Creating New Migrations
+
+```bash
+# Create a timestamped migration file
+supabase migration new <descriptive_name>
+
+# Example:
+supabase migration new add_user_preferences_table
+# Creates: supabase/migrations/YYYYMMDDHHMMSS_add_user_preferences_table.sql
+```
+
+### Applying Migrations
+
+```bash
+# Push to remote (production/staging)
+supabase db push
+
+# Reset local database (applies all migrations fresh)
+supabase db reset
+
+# Check migration status
+supabase migration list
+```
+
+### Generating TypeScript Types
+
+```bash
+# From remote database
+supabase gen types typescript --project-id YOUR_PROJECT_REF > lib/types/database.types.ts
+
+# From local database
+supabase gen types typescript --local > lib/types/database.types.ts
+```
+
+### Migration Best Practices
+
+1. **Use IF NOT EXISTS / IF EXISTS** for idempotent migrations
+2. **Always enable RLS** on new tables
+3. **Add indexes** for frequently queried columns
+4. **Never edit production schema manually** - all changes via migrations
+
+---
+
+## Features
+
 - ✅ **Row Level Security** - Properly configured RLS policies
 - ✅ **Seed data** - Ready for local testing
 
