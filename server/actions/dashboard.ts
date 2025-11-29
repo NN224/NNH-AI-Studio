@@ -1,9 +1,9 @@
 "use server";
 
 import {
-    CacheBucket,
-    getCacheValue,
-    setCacheValue,
+  CacheBucket,
+  getCacheValue,
+  setCacheValue,
 } from "@/lib/cache/cache-manager";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,8 +16,8 @@ import { getDashboardData } from "@/app/[locale]/(dashboard)/dashboard/actions";
 
 export async function getDashboardStats() {
   // Use new dashboard service with caching
-  const cacheKey = 'dashboard-stats';
-  const cached = await getCacheValue(CacheBucket.DASHBOARD, cacheKey);
+  const cacheKey = "dashboard-stats";
+  const cached = await getCacheValue(CacheBucket.DASHBOARD_OVERVIEW, cacheKey);
 
   if (cached) {
     return cached;
@@ -46,60 +46,69 @@ export async function getDashboardStats() {
       youtubeSubs: stats.youtube_subs,
       weeklyGrowth: stats.weekly_growth,
       reviewsTrend: stats.reviews_trend,
-      streak: stats.streak
+      streak: stats.streak,
     };
 
     // Cache for 5 minutes
-    await setCacheValue(CacheBucket.DASHBOARD, cacheKey, legacyStats, 300);
+    await setCacheValue(
+      CacheBucket.DASHBOARD_OVERVIEW,
+      cacheKey,
+      legacyStats,
+      300,
+    );
 
     return legacyStats;
   } catch (error) {
-    console.error('[getDashboardStats] Error:', error);
+    console.error("[getDashboardStats] Error:", error);
     // Fallback to original implementation if new service fails
     const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  if (authError || !user) {
-    throw new Error("Not authenticated");
+    if (authError || !user) {
+      throw new Error("Not authenticated");
+    }
+
+    // Fetch basic counts
+    const { count: totalLocations } = await supabase
+      .from("gmb_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+
+    const { data: reviews, error: reviewsError } = await supabase
+      .from("gmb_reviews")
+      .select("rating, has_reply")
+      .eq("user_id", user.id);
+
+    if (reviewsError) throw new Error(reviewsError.message);
+
+    const totalReviews = reviews?.length || 0;
+
+    const averageRating =
+      reviews && reviews.length > 0
+        ? (
+            reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
+            reviews.length
+          ).toFixed(1)
+        : "0.0";
+
+    const respondedReviews = reviews?.filter((r) => r.has_reply).length || 0;
+
+    const responseRate =
+      totalReviews > 0
+        ? Math.round((respondedReviews / totalReviews) * 100)
+        : 0;
+
+    return {
+      totalLocations: totalLocations || 0,
+      totalReviews,
+      averageRating,
+      responseRate,
+    };
   }
-
-  // Fetch basic counts
-  const { count: totalLocations } = await supabase
-    .from("gmb_locations")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-
-  const { data: reviews, error: reviewsError } = await supabase
-    .from("gmb_reviews")
-    .select("rating, has_reply")
-    .eq("user_id", user.id);
-
-  if (reviewsError) throw new Error(reviewsError.message);
-
-  const totalReviews = reviews?.length || 0;
-
-  const averageRating =
-    reviews && reviews.length > 0
-      ? (
-          reviews.reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.length
-        ).toFixed(1)
-      : "0.0";
-
-  const respondedReviews = reviews?.filter((r) => r.has_reply).length || 0;
-
-  const responseRate =
-    totalReviews > 0 ? Math.round((respondedReviews / totalReviews) * 100) : 0;
-
-  return {
-    totalLocations: totalLocations || 0,
-    totalReviews,
-    averageRating,
-    responseRate,
-  };
 }
 
 export async function getActivityLogs(limit: number = 10) {

@@ -1,29 +1,29 @@
 "use client";
 
-import { t } from "@/lib/i18n/stub";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { FeaturesTab, BusinessInfoTab } from "./TabComponents";
-import { ProfileCompletenessCard } from "./ProfileCompletenessCard";
-import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
-import type { BusinessProfilePayload } from "@/types/features";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import {
-  Shield,
-  FileText,
-  Sparkles,
-  RotateCcw,
-  Save,
-  Copy,
-  History,
-  Download,
-} from "lucide-react";
-import { ValidationPanel } from "@/components/features/validation-panel";
-import { ChangeHistoryPanel } from "@/components/features/change-history-panel";
 import { BulkUpdateDialog } from "@/components/features/bulk-update-dialog";
 import { BusinessHoursDisplay } from "@/components/features/business-hours-display";
+import { ChangeHistoryPanel } from "@/components/features/change-history-panel";
 import { ServiceItemsDisplay } from "@/components/features/service-items-display";
+import { ValidationPanel } from "@/components/features/validation-panel";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import { t } from "@/lib/i18n/stub";
+import type { BusinessProfilePayload } from "@/types/features";
+import {
+  Copy,
+  Download,
+  FileText,
+  History,
+  RotateCcw,
+  Save,
+  Shield,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { ProfileCompletenessCard } from "./ProfileCompletenessCard";
+import { BusinessInfoTab, FeaturesTab } from "./TabComponents";
 
 interface TabDefinition {
   readonly id: TabKey;
@@ -468,7 +468,11 @@ export default function BusinessProfilePage() {
                   <div className="mt-6 space-y-6">
                     <BusinessHoursDisplay
                       regularHours={profile.regularHours}
-                      moreHours={profile.moreHours}
+                      moreHours={
+                        Array.isArray(profile.moreHours)
+                          ? profile.moreHours
+                          : undefined
+                      }
                     />
                     <ServiceItemsDisplay />
                   </div>

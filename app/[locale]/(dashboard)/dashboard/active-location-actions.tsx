@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { disconnectLocation } from "./actions";
 
@@ -19,7 +19,7 @@ export function ActiveLocationActions({ locationId }: { locationId: string }) {
         window.dispatchEvent(new Event("dashboard:refresh"));
         router.refresh();
       } else {
-        toast.error(result.error || "Failed to disconnect location");
+        toast.error(result.message || "Failed to disconnect location");
       }
     } catch (error) {
       console.error("[ActiveLocationActions] Disconnect failed:", error);
