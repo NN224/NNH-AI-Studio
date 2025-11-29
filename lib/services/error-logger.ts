@@ -2,52 +2,52 @@
  * Centralized error logging service
  */
 
-import React from "react";
+import React from 'react'
 
 export interface ErrorContext {
-  userId?: string;
-  sessionId?: string;
-  component?: string;
-  action?: string;
-  metadata?: Record<string, any>;
+  userId?: string
+  sessionId?: string
+  component?: string
+  action?: string
+  metadata?: Record<string, string | number | boolean | undefined>
 }
 
 export interface ErrorLog {
-  id: string;
-  message: string;
-  stack?: string;
-  level: "error" | "warning" | "info";
-  timestamp: Date;
-  context?: ErrorContext;
-  userAgent?: string;
-  url?: string;
+  id: string
+  message: string
+  stack?: string
+  level: 'error' | 'warning' | 'info'
+  timestamp: Date
+  context?: ErrorContext
+  userAgent?: string
+  url?: string
 }
 
 class ErrorLogger {
-  private static instance: ErrorLogger;
-  private queue: ErrorLog[] = [];
-  private isOnline: boolean = true;
-  private flushTimer: NodeJS.Timeout | null = null;
+  private static instance: ErrorLogger
+  private queue: ErrorLog[] = []
+  private isOnline: boolean = true
+  private flushTimer: NodeJS.Timeout | null = null
 
   private constructor() {
     // Listen for online/offline events
-    if (typeof window !== "undefined") {
-      window.addEventListener("online", () => {
-        this.isOnline = true;
-        this.flushQueue();
-      });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.isOnline = true
+        this.flushQueue()
+      })
 
-      window.addEventListener("offline", () => {
-        this.isOnline = false;
-      });
+      window.addEventListener('offline', () => {
+        this.isOnline = false
+      })
     }
   }
 
   static getInstance(): ErrorLogger {
     if (!ErrorLogger.instance) {
-      ErrorLogger.instance = new ErrorLogger();
+      ErrorLogger.instance = new ErrorLogger()
     }
-    return ErrorLogger.instance;
+    return ErrorLogger.instance
   }
 
   /**
@@ -56,7 +56,7 @@ class ErrorLogger {
   async logError(
     error: Error | string,
     context?: ErrorContext,
-    level: "error" | "warning" | "info" = "error",
+    level: 'error' | 'warning' | 'info' = 'error',
   ): Promise<void> {
     const errorLog: ErrorLog = {
       id: this.generateId(),
@@ -65,22 +65,21 @@ class ErrorLogger {
       level,
       timestamp: new Date(),
       context,
-      userAgent:
-        typeof window !== "undefined" ? window.navigator.userAgent : undefined,
-      url: typeof window !== "undefined" ? window.location.href : undefined,
-    };
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    }
 
     // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("[ErrorLogger]", errorLog);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[ErrorLogger]', errorLog)
     }
 
     // Add to queue
-    this.queue.push(errorLog);
+    this.queue.push(errorLog)
 
     // Send immediately if online, otherwise queue
     if (this.isOnline) {
-      this.scheduleFlush();
+      this.scheduleFlush()
     }
   }
 
@@ -88,53 +87,53 @@ class ErrorLogger {
    * Log a warning
    */
   async logWarning(message: string, context?: ErrorContext): Promise<void> {
-    return this.logError(message, context, "warning");
+    return this.logError(message, context, 'warning')
   }
 
   /**
    * Log info
    */
   async logInfo(message: string, context?: ErrorContext): Promise<void> {
-    return this.logError(message, context, "info");
+    return this.logError(message, context, 'info')
   }
 
   /**
    * Schedule queue flush
    */
   private scheduleFlush(): void {
-    if (this.flushTimer) return;
+    if (this.flushTimer) return
 
     // Batch errors and send every 5 seconds
     this.flushTimer = setTimeout(() => {
-      this.flushQueue();
-      this.flushTimer = null;
-    }, 5000);
+      this.flushQueue()
+      this.flushTimer = null
+    }, 5000)
   }
 
   /**
    * Flush error queue to server
    */
   private async flushQueue(): Promise<void> {
-    if (this.queue.length === 0 || !this.isOnline) return;
+    if (this.queue.length === 0 || !this.isOnline) return
 
-    const errors = [...this.queue];
-    this.queue = [];
+    const errors = [...this.queue]
+    this.queue = []
 
     try {
-      const response = await fetch("/api/log-errors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/log-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ errors }),
-      });
+      })
 
       if (!response.ok) {
         // Put errors back in queue if sending failed
-        this.queue.unshift(...errors);
+        this.queue.unshift(...errors)
       }
     } catch (error) {
       // Put errors back in queue if network failed
-      this.queue.unshift(...errors);
-      console.error("Failed to send error logs:", error);
+      this.queue.unshift(...errors)
+      console.error('Failed to send error logs:', error)
     }
   }
 
@@ -142,71 +141,59 @@ class ErrorLogger {
    * Generate unique error ID
    */
   private generateId(): string {
-    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }
 
   /**
    * Clear error queue (useful for testing)
    */
   clearQueue(): void {
-    this.queue = [];
+    this.queue = []
   }
 
   /**
    * Get queue size
    */
   getQueueSize(): number {
-    return this.queue.length;
+    return this.queue.length
   }
 }
 
 // Export singleton instance
-export const errorLogger = ErrorLogger.getInstance();
+export const errorLogger = ErrorLogger.getInstance()
 
 /**
  * React hook for error logging
  */
 export function useErrorLogger() {
-  const logError = React.useCallback(
-    (error: Error | string, context?: ErrorContext) => {
-      errorLogger.logError(error, context);
-    },
-    [],
-  );
+  const logError = React.useCallback((error: Error | string, context?: ErrorContext) => {
+    errorLogger.logError(error, context)
+  }, [])
 
-  const logWarning = React.useCallback(
-    (message: string, context?: ErrorContext) => {
-      errorLogger.logWarning(message, context);
-    },
-    [],
-  );
+  const logWarning = React.useCallback((message: string, context?: ErrorContext) => {
+    errorLogger.logWarning(message, context)
+  }, [])
 
-  const logInfo = React.useCallback(
-    (message: string, context?: ErrorContext) => {
-      errorLogger.logInfo(message, context);
-    },
-    [],
-  );
+  const logInfo = React.useCallback((message: string, context?: ErrorContext) => {
+    errorLogger.logInfo(message, context)
+  }, [])
 
-  return { logError, logWarning, logInfo };
+  return { logError, logWarning, logInfo }
 }
 
 /**
  * Error logging middleware for API calls
  */
-export function withErrorLogging<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
+export function withErrorLogging<TReturn>(
+  fn: (...args: unknown[]) => Promise<TReturn>,
   context?: ErrorContext,
-): T {
-  return (async (...args: Parameters<T>) => {
+): (...args: unknown[]) => Promise<TReturn> {
+  return async (...args: unknown[]) => {
     try {
-      return await fn(...args);
+      return await fn(...args)
     } catch (error) {
-      await errorLogger.logError(
-        error instanceof Error ? error : new Error(String(error)),
-        context,
-      );
-      throw error;
+      await errorLogger.logError(error instanceof Error ? error : new Error(String(error)), context)
+      throw error
     }
-  }) as T;
+  }
 }

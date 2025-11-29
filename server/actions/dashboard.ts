@@ -1,18 +1,62 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import {
-  getCacheValue,
-  setCacheValue,
-  CacheBucket,
+    CacheBucket,
+    getCacheValue,
+    setCacheValue,
 } from "@/lib/cache/cache-manager";
+import { createClient } from "@/lib/supabase/server";
+
+// Import new dashboard services
+import { getDashboardData } from "@/app/[locale]/(dashboard)/dashboard/actions";
 
 // ==========================================
 // 1. Core Statistics (Legacy & API Support)
 // ==========================================
 
 export async function getDashboardStats() {
-  const supabase = await createClient();
+  // Use new dashboard service with caching
+  const cacheKey = 'dashboard-stats';
+  const cached = await getCacheValue(CacheBucket.DASHBOARD, cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const dashboardData = await getDashboardData();
+    const stats = dashboardData.stats;
+
+    // Transform to legacy format for backward compatibility
+    const legacyStats = {
+      totalLocations: stats.locations_count,
+      averageRating: stats.average_rating,
+      totalReviews: stats.reviews_count,
+      responseRate: stats.response_rate_percent,
+      pendingReviews: 0, // Calculate if needed
+      totalQuestions: 0, // Calculate if needed
+      pendingQuestions: 0, // Calculate if needed
+      avgResponseTime: "0h", // Calculate if needed
+      repliedReviews: stats.replied_reviews_count,
+      recentReviews: stats.today_reviews_count,
+      lastUpdated: new Date().toISOString(),
+      source: "new-dashboard-service",
+      hasAccounts: stats.has_accounts,
+      hasYoutube: stats.has_youtube,
+      youtubeSubs: stats.youtube_subs,
+      weeklyGrowth: stats.weekly_growth,
+      reviewsTrend: stats.reviews_trend,
+      streak: stats.streak
+    };
+
+    // Cache for 5 minutes
+    await setCacheValue(CacheBucket.DASHBOARD, cacheKey, legacyStats, 300);
+
+    return legacyStats;
+  } catch (error) {
+    console.error('[getDashboardStats] Error:', error);
+    // Fallback to original implementation if new service fails
+    const supabase = await createClient();
   const {
     data: { user },
     error: authError,

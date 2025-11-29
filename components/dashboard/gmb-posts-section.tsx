@@ -1,23 +1,46 @@
-"use client"
+'use client'
 
-import { useState, useEffect, useRef } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { sanitizeText } from "@/lib/utils/sanitize"
-import { 
-  Sparkles, Calendar, Image as ImageIcon, Loader2, Send, Timer, Wand2, Upload, X, 
-  Edit, Clock, FileText, Tag, Gift, CalendarClock, Link2, ExternalLink, Info,
-  CheckCircle, AlertTriangle, Users, MessageSquare, Trash2
-} from "lucide-react"
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { sanitizeText } from '@/lib/utils/sanitize'
+import {
+  AlertTriangle,
+  Calendar,
+  CalendarClock,
+  CheckCircle,
+  Clock,
+  FileText,
+  Gift,
+  Image as ImageIcon,
+  Info,
+  Loader2,
+  MessageSquare,
+  Send,
+  Sparkles,
+  Tag,
+  Timer,
+  Trash2,
+  Upload,
+  Users,
+  Wand2,
+  X,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 type LocationItem = { id: string; location_name: string }
 
@@ -56,125 +79,139 @@ export function GMBPostsSection() {
 
   // Post form state
   const [postType, setPostType] = useState<'whats_new' | 'event' | 'offer'>('whats_new')
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [mediaUrl, setMediaUrl] = useState("")
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [mediaUrl, setMediaUrl] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string>("")
-  const [cta, setCta] = useState("")
-  const [ctaUrl, setCtaUrl] = useState("")
-  const [schedule, setSchedule] = useState<string>("")
+  const [imagePreview, setImagePreview] = useState<string>('')
+  const [cta, setCta] = useState('')
+  const [ctaUrl, setCtaUrl] = useState('')
+  const [schedule, setSchedule] = useState<string>('')
   const [genLoading, setGenLoading] = useState(false)
   const [aiGenerated, setAiGenerated] = useState(false)
 
   // Event-specific fields
-  const [eventTitle, setEventTitle] = useState("")
-  const [eventStartDate, setEventStartDate] = useState("")
-  const [eventEndDate, setEventEndDate] = useState("")
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventStartDate, setEventStartDate] = useState('')
+  const [eventEndDate, setEventEndDate] = useState('')
 
   // Offer-specific fields
-  const [offerTitle, setOfferTitle] = useState("")
-  const [couponCode, setCouponCode] = useState("")
-  const [redeemUrl, setRedeemUrl] = useState("")
-  const [terms, setTerms] = useState("")
+  const [offerTitle, setOfferTitle] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [redeemUrl, setRedeemUrl] = useState('')
+  const [terms, setTerms] = useState('')
 
   // Posts list state
   const [posts, setPosts] = useState<Post[]>([])
   const [listLoading, setListLoading] = useState(true)
-  const [postTypeFilter, setPostTypeFilter] = useState<'all' | 'whats_new' | 'event' | 'offer'>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all')
+  const [postTypeFilter, setPostTypeFilter] = useState<'all' | 'whats_new' | 'event' | 'offer'>(
+    'all',
+  )
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'scheduled' | 'draft'>(
+    'all',
+  )
   const [isDragging, setIsDragging] = useState(false)
   const [editingPost, setEditingPost] = useState<Post | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Templates state
-  const [templateSearch, setTemplateSearch] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [activeTab, setActiveTab] = useState<string>("create")
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<string>('create')
 
   // Enhanced Templates with categories and metadata
   const templates = [
-    { 
-      id: 'promo', 
-      label: 'Special Promotion', 
+    {
+      id: 'promo',
+      label: 'Special Promotion',
       category: 'promotion',
       icon: Sparkles,
-      content: '🎉 Special Offer! Limited time only - visit us today for exclusive deals. Don\'t miss out!',
-      description: 'Perfect for announcing sales and special offers'
+      content:
+        "🎉 Special Offer! Limited time only - visit us today for exclusive deals. Don't miss out!",
+      description: 'Perfect for announcing sales and special offers',
     },
-    { 
-      id: 'event', 
-      label: 'Upcoming Event', 
+    {
+      id: 'event',
+      label: 'Upcoming Event',
       category: 'event',
       icon: Calendar,
-      content: '📅 Join us for our upcoming event! Mark your calendars and be part of something special.',
-      description: 'Great for announcing events and gatherings'
+      content:
+        '📅 Join us for our upcoming event! Mark your calendars and be part of something special.',
+      description: 'Great for announcing events and gatherings',
     },
-    { 
-      id: 'update', 
-      label: 'Business Update', 
+    {
+      id: 'update',
+      label: 'Business Update',
       category: 'announcement',
       icon: MessageSquare,
-      content: '📢 Important update: We have news to share with our valued customers. Stay informed!',
-      description: 'Use for business updates and announcements'
+      content:
+        '📢 Important update: We have news to share with our valued customers. Stay informed!',
+      description: 'Use for business updates and announcements',
     },
-    { 
-      id: 'holiday', 
-      label: 'Holiday Greetings', 
+    {
+      id: 'holiday',
+      label: 'Holiday Greetings',
       category: 'seasonal',
       icon: Gift,
-      content: '🎄 Season\'s Greetings! Wishing you joy and happiness. Special holiday hours in effect.',
-      description: 'Perfect for holiday messages and special hours'
+      content:
+        "🎄 Season's Greetings! Wishing you joy and happiness. Special holiday hours in effect.",
+      description: 'Perfect for holiday messages and special hours',
     },
-    { 
-      id: 'new-product', 
-      label: 'New Product Launch', 
+    {
+      id: 'new-product',
+      label: 'New Product Launch',
       category: 'promotion',
       icon: Sparkles,
-      content: '✨ Exciting news! We\'ve just launched our newest product. Come check it out and be among the first to experience it!',
-      description: 'Announce new products or services'
+      content:
+        "✨ Exciting news! We've just launched our newest product. Come check it out and be among the first to experience it!",
+      description: 'Announce new products or services',
     },
-    { 
-      id: 'customer-appreciation', 
-      label: 'Customer Appreciation', 
+    {
+      id: 'customer-appreciation',
+      label: 'Customer Appreciation',
       category: 'announcement',
       icon: Users,
-      content: '🙏 Thank you to all our amazing customers! Your support means the world to us. We appreciate you!',
-      description: 'Show gratitude to your customers'
+      content:
+        '🙏 Thank you to all our amazing customers! Your support means the world to us. We appreciate you!',
+      description: 'Show gratitude to your customers',
     },
-    { 
-      id: 'hours-update', 
-      label: 'Hours Update', 
+    {
+      id: 'hours-update',
+      label: 'Hours Update',
       category: 'announcement',
       icon: Clock,
-      content: '⏰ Updated Hours: We\'ve updated our business hours. Check our profile for the latest schedule!',
-      description: 'Inform customers about schedule changes'
+      content:
+        "⏰ Updated Hours: We've updated our business hours. Check our profile for the latest schedule!",
+      description: 'Inform customers about schedule changes',
     },
-    { 
-      id: 'grand-opening', 
-      label: 'Grand Opening', 
+    {
+      id: 'grand-opening',
+      label: 'Grand Opening',
       category: 'event',
       icon: Sparkles,
-      content: '🎊 Grand Opening! We\'re thrilled to announce our grand opening. Join us for special celebrations and exclusive offers!',
-      description: 'Celebrate business openings'
+      content:
+        "🎊 Grand Opening! We're thrilled to announce our grand opening. Join us for special celebrations and exclusive offers!",
+      description: 'Celebrate business openings',
     },
-    { 
-      id: 'seasonal-sale', 
-      label: 'Seasonal Sale', 
+    {
+      id: 'seasonal-sale',
+      label: 'Seasonal Sale',
       category: 'promotion',
       icon: Gift,
-      content: '🛍️ Seasonal Sale Now On! Don\'t miss our biggest sale of the season. Amazing discounts on selected items!',
-      description: 'Promote seasonal sales and discounts'
+      content:
+        "🛍️ Seasonal Sale Now On! Don't miss our biggest sale of the season. Amazing discounts on selected items!",
+      description: 'Promote seasonal sales and discounts',
     },
-    { 
-      id: 'community-event', 
-      label: 'Community Event', 
+    {
+      id: 'community-event',
+      label: 'Community Event',
       category: 'event',
       icon: Users,
-      content: '🤝 Join us for our community event! We\'re bringing the neighborhood together for a special gathering. All are welcome!',
-      description: 'Promote community involvement'
-    }
+      content:
+        "🤝 Join us for our community event! We're bringing the neighborhood together for a special gathering. All are welcome!",
+      description: 'Promote community involvement',
+    },
   ]
 
   // Template categories
@@ -187,10 +224,11 @@ export function GMBPostsSection() {
   ]
 
   // Filter templates based on search and category
-  const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.label.toLowerCase().includes(templateSearch.toLowerCase()) ||
-                         template.content.toLowerCase().includes(templateSearch.toLowerCase()) ||
-                         template.description.toLowerCase().includes(templateSearch.toLowerCase())
+  const filteredTemplates = templates.filter((template) => {
+    const matchesSearch =
+      template.label.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      template.content.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      template.description.toLowerCase().includes(templateSearch.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
     return matchesSearch && matchesCategory
   })
@@ -202,7 +240,7 @@ export function GMBPostsSection() {
     { value: 'SHOP', label: 'Shop', icon: ImageIcon },
     { value: 'LEARN_MORE', label: 'Learn More', icon: Info },
     { value: 'SIGN_UP', label: 'Sign Up', icon: Users },
-    { value: 'CALL', label: 'Call', icon: MessageSquare }
+    { value: 'CALL', label: 'Call', icon: MessageSquare },
   ]
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,7 +280,7 @@ export function GMBPostsSection() {
       formData.append('file', file)
       const res = await fetch('/api/upload/image', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       if (!res.ok) {
@@ -265,11 +303,12 @@ export function GMBPostsSection() {
   const handleGenerate = async () => {
     try {
       setGenLoading(true)
-      const prompt = postType === 'event' ? 
-        `Create an event post for: ${eventTitle || content}` :
-        postType === 'offer' ?
-        `Create an offer post for: ${offerTitle || content}` :
-        content || title
+      const prompt =
+        postType === 'event'
+          ? `Create an event post for: ${eventTitle || content}`
+          : postType === 'offer'
+            ? `Create an offer post for: ${offerTitle || content}`
+            : content || title
 
       if (!prompt.trim()) {
         toast.error('Please provide some content to generate from')
@@ -279,7 +318,7 @@ export function GMBPostsSection() {
       const res = await fetch('/api/ai/generate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform: 'gmb', prompt, tone: 'friendly' })
+        body: JSON.stringify({ platform: 'gmb', prompt, tone: 'friendly' }),
       })
 
       if (!res.ok) {
@@ -292,9 +331,10 @@ export function GMBPostsSection() {
       if (data?.description) setContent(data.description)
       setAiGenerated(true)
       toast.success('Content generated successfully!')
-    } catch (error: any) {
-      console.error('Generate error:', error)
-      toast.error(error.message || 'Failed to generate content')
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('Generate error:', err)
+      toast.error(err.message || 'Failed to generate content')
     } finally {
       setGenLoading(false)
     }
@@ -303,7 +343,9 @@ export function GMBPostsSection() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
         if (!user) {
           setLoading(false)
           setListLoading(false)
@@ -312,28 +354,28 @@ export function GMBPostsSection() {
 
         // First get active GMB account IDs
         const { data: activeAccounts, error: accountsError } = await supabase
-          .from("gmb_accounts")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("is_active", true)
+          .from('gmb_accounts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
 
         if (accountsError) {
           console.error('Failed to fetch active accounts:', accountsError)
           toast.error('Failed to load accounts')
           setLocations([])
         } else {
-          const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+          const activeAccountIds = activeAccounts?.map((acc) => acc.id) || []
 
           if (activeAccountIds.length === 0) {
             setLocations([])
           } else {
             // Only fetch locations from active accounts
             const { data: locationsData, error: locationsError } = await supabase
-              .from("gmb_locations")
-              .select("id, location_name")
-              .eq("user_id", user.id)
-              .in("gmb_account_id", activeAccountIds)
-              .order("location_name")
+              .from('gmb_locations')
+              .select('id, location_name')
+              .eq('user_id', user.id)
+              .in('gmb_account_id', activeAccountIds)
+              .order('location_name')
 
             if (locationsError) {
               console.error('Failed to fetch locations:', locationsError)
@@ -375,7 +417,7 @@ export function GMBPostsSection() {
 
   const handleSave = async () => {
     if (selectedLocations.length === 0 || !content.trim()) {
-      toast.error("Please select at least one location and add content")
+      toast.error('Please select at least one location and add content')
       return
     }
 
@@ -390,7 +432,24 @@ export function GMBPostsSection() {
       }
 
       // Build post data based on type
-      const postData: any = {
+      interface PostData {
+        title?: string
+        content: string
+        mediaUrl?: string
+        callToAction?: string
+        callToActionUrl?: string
+        scheduledAt?: string
+        postType: string
+        aiGenerated: boolean
+        eventTitle?: string
+        eventStartDate?: string
+        eventEndDate?: string
+        offerTitle?: string
+        couponCode?: string
+        redeemUrl?: string
+        terms?: string
+      }
+      const postData: PostData = {
         title: title || undefined,
         content,
         mediaUrl: uploadedMediaUrl || undefined,
@@ -414,27 +473,27 @@ export function GMBPostsSection() {
       }
 
       // Save post for each selected location
-      const savePromises = selectedLocations.map(locationId =>
-        fetch("/api/gmb/posts/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+      const savePromises = selectedLocations.map((locationId) =>
+        fetch('/api/gmb/posts/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...postData, locationId }),
-        })
+        }),
       )
 
       const results = await Promise.allSettled(savePromises)
-      const responses = results.map(result => 
-        result.status === 'fulfilled' ? result.value : null
-      ).filter(r => r !== null) as Response[]
+      const responses = results
+        .map((result) => (result.status === 'fulfilled' ? result.value : null))
+        .filter((r) => r !== null) as Response[]
 
       const responsesData = await Promise.allSettled(
-        responses.map(r => r.json().catch(() => ({})))
+        responses.map((r) => r.json().catch(() => ({}))),
       )
-      const results_data = responsesData.map(result =>
-        result.status === 'fulfilled' ? result.value : {}
+      const results_data = responsesData.map((result) =>
+        result.status === 'fulfilled' ? result.value : {},
       )
 
-      const successful = responses.filter(r => r.ok).length
+      const successful = responses.filter((r) => r.ok).length
       const failed = responses.length - successful
 
       if (successful > 0) {
@@ -445,13 +504,14 @@ export function GMBPostsSection() {
         // Refresh posts list
         await refreshPosts()
         // Return the first post ID for publishing
-        return results_data.find(r => r.post?.id)?.post?.id
+        return results_data.find((r) => r.post?.id)?.post?.id
       } else {
-        throw new Error("Failed to save posts")
+        throw new Error('Failed to save posts')
       }
-    } catch (error: any) {
-      console.error('Save error:', error)
-      toast.error(error.message || 'Failed to save post')
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('Save error:', err)
+      toast.error(err.message || 'Failed to save post')
       return null
     } finally {
       setSaving(false)
@@ -460,13 +520,15 @@ export function GMBPostsSection() {
 
   const handlePublish = async () => {
     if (selectedLocations.length === 0 || !content.trim()) {
-      toast.error("Please select at least one location and add content")
+      toast.error('Please select at least one location and add content')
       return
     }
 
     // Validate: Event and Offer posts cannot be published
     if (postType === 'event' || postType === 'offer') {
-      toast.error("Event and Offer posts cannot be published to Google. Google Business Profile API only supports 'What's New' posts. You can save them as drafts.")
+      toast.error(
+        "Event and Offer posts cannot be published to Google. Google Business Profile API only supports 'What's New' posts. You can save them as drafts.",
+      )
       return
     }
 
@@ -478,14 +540,16 @@ export function GMBPostsSection() {
       const res = await fetch('/api/gmb/posts/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId })
+        body: JSON.stringify({ postId }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
         if (data.code === 'INSUFFICIENT_SCOPES') {
-          toast.error('Your Google Business Profile connection needs to be updated. Please disconnect and reconnect your account.')
+          toast.error(
+            'Your Google Business Profile connection needs to be updated. Please disconnect and reconnect your account.',
+          )
           return
         }
         if (data.code === 'UNSUPPORTED_POST_TYPE') {
@@ -502,9 +566,10 @@ export function GMBPostsSection() {
 
       // Refresh posts list
       await refreshPosts()
-    } catch (error: any) {
-      console.error('Publish error:', error)
-      toast.error(error.message || 'Failed to publish post')
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('Publish error:', err)
+      toast.error(err.message || 'Failed to publish post')
     }
   }
 
@@ -515,7 +580,7 @@ export function GMBPostsSection() {
       const res = await fetch('/api/gmb/posts/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId })
+        body: JSON.stringify({ postId }),
       })
 
       if (!res.ok) {
@@ -525,9 +590,10 @@ export function GMBPostsSection() {
 
       toast.success('Post deleted successfully')
       await refreshPosts()
-    } catch (error: any) {
-      console.error('Delete error:', error)
-      toast.error(error.message || 'Failed to delete post')
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error))
+      console.error('Delete error:', err)
+      toast.error(err.message || 'Failed to delete post')
     }
   }
 
@@ -549,22 +615,22 @@ export function GMBPostsSection() {
   }
 
   const resetForm = () => {
-    setTitle("")
-    setContent("")
-    setMediaUrl("")
+    setTitle('')
+    setContent('')
+    setMediaUrl('')
     setImageFile(null)
-    setImagePreview("")
-    setCta("")
-    setCtaUrl("")
-    setSchedule("")
+    setImagePreview('')
+    setCta('')
+    setCtaUrl('')
+    setSchedule('')
     setSelectedLocations([])
-    setEventTitle("")
-    setEventStartDate("")
-    setEventEndDate("")
-    setOfferTitle("")
-    setCouponCode("")
-    setRedeemUrl("")
-    setTerms("")
+    setEventTitle('')
+    setEventStartDate('')
+    setEventEndDate('')
+    setOfferTitle('')
+    setCouponCode('')
+    setRedeemUrl('')
+    setTerms('')
     setAiGenerated(false)
   }
 
@@ -610,7 +676,7 @@ export function GMBPostsSection() {
   }
 
   // Filter posts
-  const filteredPosts = posts.filter(post => {
+  const filteredPosts = posts.filter((post) => {
     const postType = post.post_type || post.postType
     if (postTypeFilter !== 'all' && postType !== postTypeFilter) return false
     if (statusFilter !== 'all' && post.status !== statusFilter) return false
@@ -621,15 +687,24 @@ export function GMBPostsSection() {
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 glass-strong border-primary/30">
-          <TabsTrigger value="create" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+          <TabsTrigger
+            value="create"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white"
+          >
             <Wand2 className="w-4 h-4 mr-2" />
             Create Post
           </TabsTrigger>
-          <TabsTrigger value="manager" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+          <TabsTrigger
+            value="manager"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white"
+          >
             <FileText className="w-4 h-4 mr-2" />
             Posts Manager
           </TabsTrigger>
-          <TabsTrigger value="templates" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+          <TabsTrigger
+            value="templates"
+            className="data-[state=active]:bg-primary data-[state=active]:text-white"
+          >
             <Tag className="w-4 h-4 mr-2" />
             Templates
           </TabsTrigger>
@@ -642,7 +717,9 @@ export function GMBPostsSection() {
                 <Sparkles className="w-6 h-6 text-primary" />
                 Create GMB Post
               </CardTitle>
-              <CardDescription>Create and publish posts to your Business Profile locations</CardDescription>
+              <CardDescription>
+                Create and publish posts to your Business Profile locations
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               {/* Warning Alert for Event/Offer Posts */}
@@ -655,7 +732,8 @@ export function GMBPostsSection() {
                         Limited Publishing Support
                       </h4>
                       <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                        Event and Offer posts can only be saved as drafts. Google Business Profile API currently only supports "What's New" posts for publishing.
+                        Event and Offer posts can only be saved as drafts. Google Business Profile
+                        API currently only supports "What's New" posts for publishing.
                       </p>
                     </div>
                   </div>
@@ -667,21 +745,41 @@ export function GMBPostsSection() {
                 <label className="text-sm font-medium text-primary">Post Type</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[
-                    { value: 'whats_new', label: "What's New", icon: Sparkles, description: 'Share updates & news' },
-                    { value: 'event', label: 'Event', icon: CalendarClock, description: 'Announce events' },
-                    { value: 'offer', label: 'Offer', icon: Gift, description: 'Share special offers' }
+                    {
+                      value: 'whats_new',
+                      label: "What's New",
+                      icon: Sparkles,
+                      description: 'Share updates & news',
+                    },
+                    {
+                      value: 'event',
+                      label: 'Event',
+                      icon: CalendarClock,
+                      description: 'Announce events',
+                    },
+                    {
+                      value: 'offer',
+                      label: 'Offer',
+                      icon: Gift,
+                      description: 'Share special offers',
+                    },
                   ].map((type) => (
                     <button
                       key={type.value}
                       onClick={() => setPostType(type.value as any)}
                       className={cn(
-                        "p-4 rounded-lg border-2 transition-all text-left",
+                        'p-4 rounded-lg border-2 transition-all text-left',
                         postType === type.value
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50',
                       )}
                     >
-                      <type.icon className={cn("w-5 h-5 mb-2", postType === type.value ? "text-primary" : "text-muted-foreground")} />
+                      <type.icon
+                        className={cn(
+                          'w-5 h-5 mb-2',
+                          postType === type.value ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                      />
                       <div className="font-medium">{type.label}</div>
                       <div className="text-xs text-muted-foreground">{type.description}</div>
                     </button>
@@ -699,7 +797,9 @@ export function GMBPostsSection() {
                 ) : locations.length === 0 ? (
                   <div className="text-center p-8 border-2 border-dashed border-primary/30 rounded-lg">
                     <p className="text-muted-foreground">No locations available</p>
-                    <p className="text-sm text-muted-foreground mt-2">Add locations in the Locations tab first</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Add locations in the Locations tab first
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -707,10 +807,10 @@ export function GMBPostsSection() {
                       <label
                         key={location.id}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
+                          'flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all',
                           selectedLocations.includes(location.id)
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50',
                         )}
                       >
                         <input
@@ -720,17 +820,21 @@ export function GMBPostsSection() {
                             if (e.target.checked) {
                               setSelectedLocations([...selectedLocations, location.id])
                             } else {
-                              setSelectedLocations(selectedLocations.filter(id => id !== location.id))
+                              setSelectedLocations(
+                                selectedLocations.filter((id) => id !== location.id),
+                              )
                             }
                           }}
                           className="sr-only"
                         />
-                        <div className={cn(
-                          "w-5 h-5 rounded border-2 flex items-center justify-center",
-                          selectedLocations.includes(location.id)
-                            ? "border-primary bg-primary"
-                            : "border-gray-300"
-                        )}>
+                        <div
+                          className={cn(
+                            'w-5 h-5 rounded border-2 flex items-center justify-center',
+                            selectedLocations.includes(location.id)
+                              ? 'border-primary bg-primary'
+                              : 'border-gray-300',
+                          )}
+                        >
                           {selectedLocations.includes(location.id) && (
                             <CheckCircle className="w-3 h-3 text-white" />
                           )}
@@ -856,11 +960,11 @@ export function GMBPostsSection() {
               {/* Media Upload */}
               <div>
                 <label className="text-sm font-medium text-primary">Media (optional)</label>
-                <div 
+                <div
                   className={cn(
-                    "mt-1 border-2 border-dashed rounded-lg p-8 text-center transition-all",
-                    isDragging ? "border-primary bg-primary/10" : "border-border",
-                    imagePreview && "p-4"
+                    'mt-1 border-2 border-dashed rounded-lg p-8 text-center transition-all',
+                    isDragging ? 'border-primary bg-primary/10' : 'border-border',
+                    imagePreview && 'p-4',
                   )}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -869,9 +973,9 @@ export function GMBPostsSection() {
                   {imagePreview ? (
                     <div className="space-y-4">
                       <div className="relative inline-block">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
                           className="max-w-full max-h-64 rounded-lg shadow-lg"
                         />
                         <Button
@@ -879,7 +983,7 @@ export function GMBPostsSection() {
                           size="icon"
                           onClick={() => {
                             setImageFile(null)
-                            setImagePreview("")
+                            setImagePreview('')
                           }}
                           className="absolute -top-2 -right-2 h-8 w-8"
                         >
@@ -981,7 +1085,12 @@ export function GMBPostsSection() {
 
                 <Button
                   onClick={handlePublish}
-                  disabled={saving || selectedLocations.length === 0 || !content.trim() || postType !== 'whats_new'}
+                  disabled={
+                    saving ||
+                    selectedLocations.length === 0 ||
+                    !content.trim() ||
+                    postType !== 'whats_new'
+                  }
                   className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   {saving ? (
@@ -1001,7 +1110,12 @@ export function GMBPostsSection() {
             <CardHeader className="border-b border-primary/20">
               <CardTitle>Posts Manager</CardTitle>
               <div className="flex gap-3 mt-4">
-                <Select value={postTypeFilter} onValueChange={(v: any) => setPostTypeFilter(v)}>
+                <Select
+                  value={postTypeFilter}
+                  onValueChange={(v) =>
+                    setPostTypeFilter(v as 'whats_new' | 'event' | 'offer' | 'all')
+                  }
+                >
                   <SelectTrigger className="w-[180px] glass-strong">
                     <SelectValue placeholder="Filter by type" />
                   </SelectTrigger>
@@ -1013,7 +1127,12 @@ export function GMBPostsSection() {
                   </SelectContent>
                 </Select>
 
-                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) =>
+                    setStatusFilter(v as 'all' | 'published' | 'scheduled' | 'draft')
+                  }
+                >
                   <SelectTrigger className="w-[180px] glass-strong">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -1047,14 +1166,22 @@ export function GMBPostsSection() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                {postType === 'event' && <CalendarClock className="h-4 w-4 text-info" />}
+                                {postType === 'event' && (
+                                  <CalendarClock className="h-4 w-4 text-info" />
+                                )}
                                 {postType === 'offer' && <Gift className="h-4 w-4 text-success" />}
-                                {postType === 'whats_new' && <Sparkles className="h-4 w-4 text-primary" />}
-                                <Badge variant={
-                                  post.status === 'published' ? 'default' :
-                                  post.status === 'scheduled' ? 'secondary' :
-                                  'outline'
-                                }>
+                                {postType === 'whats_new' && (
+                                  <Sparkles className="h-4 w-4 text-primary" />
+                                )}
+                                <Badge
+                                  variant={
+                                    post.status === 'published'
+                                      ? 'default'
+                                      : post.status === 'scheduled'
+                                        ? 'secondary'
+                                        : 'outline'
+                                  }
+                                >
                                   {post.status}
                                 </Badge>
                                 {post.ai_generated && (
@@ -1065,8 +1192,12 @@ export function GMBPostsSection() {
                                 )}
                               </div>
                               {/* ✅ SECURITY: Sanitize user-generated content to prevent XSS */}
-                              <h3 className="font-medium mb-1">{sanitizeText(post.title || 'Untitled Post')}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-2">{sanitizeText(post.content)}</p>
+                              <h3 className="font-medium mb-1">
+                                {sanitizeText(post.title || 'Untitled Post')}
+                              </h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {sanitizeText(post.content)}
+                              </p>
                               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
@@ -1115,7 +1246,8 @@ export function GMBPostsSection() {
                   </CardDescription>
                 </div>
                 <Badge variant="secondary" className="text-xs">
-                  {filteredTemplates.length} {filteredTemplates.length === 1 ? 'template' : 'templates'}
+                  {filteredTemplates.length}{' '}
+                  {filteredTemplates.length === 1 ? 'template' : 'templates'}
                 </Badge>
               </div>
             </CardHeader>
@@ -1138,14 +1270,14 @@ export function GMBPostsSection() {
                   return (
                     <Button
                       key={category.id}
-                      variant={selectedCategory === category.id ? "default" : "outline"}
+                      variant={selectedCategory === category.id ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedCategory(category.id)}
                       className={cn(
-                        "gap-2 transition-all",
+                        'gap-2 transition-all',
                         selectedCategory === category.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-primary/10"
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-primary/10',
                       )}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -1172,9 +1304,9 @@ export function GMBPostsSection() {
                       <div
                         key={template.id}
                         className={cn(
-                          "group relative p-5 rounded-xl border-2 transition-all duration-200",
-                          "border-border hover:border-primary/50 hover:shadow-lg",
-                          "bg-gradient-to-br from-background to-secondary/20"
+                          'group relative p-5 rounded-xl border-2 transition-all duration-200',
+                          'border-border hover:border-primary/50 hover:shadow-lg',
+                          'bg-gradient-to-br from-background to-secondary/20',
                         )}
                       >
                         {/* Template Icon Badge */}
@@ -1188,16 +1320,14 @@ export function GMBPostsSection() {
                                 {sanitizeText(template.label)}
                               </h3>
                               <Badge variant="secondary" className="text-xs mt-1">
-                                {categories.find(c => c.id === template.category)?.label}
+                                {categories.find((c) => c.id === template.category)?.label}
                               </Badge>
                             </div>
                           </div>
                         </div>
 
                         {/* Template Description */}
-                        <p className="text-xs text-muted-foreground mb-3">
-                          {template.description}
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">{template.description}</p>
 
                         {/* Template Preview */}
                         <div className="p-3 rounded-lg bg-secondary/50 border border-border/50 mb-4">
@@ -1213,13 +1343,13 @@ export function GMBPostsSection() {
                             size="sm"
                             onClick={() => {
                               setContent(template.content)
-                              setActiveTab("create")
+                              setActiveTab('create')
                               toast.success('Template applied! You can now customize it.', {
                                 description: 'Switch to Create Post tab to edit',
                                 action: {
                                   label: 'Go',
-                                  onClick: () => setActiveTab("create")
-                                }
+                                  onClick: () => setActiveTab('create'),
+                                },
                               })
                             }}
                             className="flex-1 bg-primary hover:bg-primary/90"
@@ -1234,7 +1364,7 @@ export function GMBPostsSection() {
                               // Preview in modal or expand view
                               toast.info('Template preview', {
                                 description: template.content,
-                                duration: 5000
+                                duration: 5000,
                               })
                             }}
                             className="border-primary/30 hover:bg-primary/10"
@@ -1258,8 +1388,8 @@ export function GMBPostsSection() {
                   <div className="text-sm space-y-1">
                     <p className="font-medium text-foreground">💡 Pro Tip</p>
                     <p className="text-muted-foreground">
-                      Templates are starting points. Customize them with your business details, 
-                      add images, and personalize the content to match your brand voice.
+                      Templates are starting points. Customize them with your business details, add
+                      images, and personalize the content to match your brand voice.
                     </p>
                   </div>
                 </div>

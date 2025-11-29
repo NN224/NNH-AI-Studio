@@ -1,95 +1,108 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
-import { addCoordinatesToLocations } from '@/lib/utils/location-coordinates';
-import { applySafeSearchFilter } from '@/lib/utils/secure-search';
-import { logAction } from '@/lib/monitoring/audit';
+import { logAction } from '@/lib/monitoring/audit'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { createClient } from '@/lib/supabase/server'
+import { addCoordinatesToLocations } from '@/lib/utils/location-coordinates'
+import { applySafeSearchFilter } from '@/lib/utils/secure-search'
+import { NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic';
+interface LocationData {
+  status?: string
+  category?: string
+}
+
+interface LocationUpdateData {
+  location_name?: string
+  address?: string
+  phone?: string | null
+  website?: string | null
+  category?: string
+  updated_at?: string
+}
+
+export const dynamic = 'force-dynamic'
 
 // GET - Fetch locations with filters
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // ✅ SECURITY: Rate limiting
-    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id);
+    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id)
     if (!success) {
       return NextResponse.json(
         {
           error: 'Too many requests',
           message: 'Rate limit exceeded. Please try again later.',
           code: 'RATE_LIMIT_EXCEEDED',
-          retry_after: rateLimitHeaders['X-RateLimit-Reset']
+          retry_after: rateLimitHeaders['X-RateLimit-Reset'],
         },
         {
           status: 429,
-          headers: rateLimitHeaders as HeadersInit
-        }
-      );
+          headers: rateLimitHeaders as HeadersInit,
+        },
+      )
     }
 
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const category = searchParams.get('category');
-    const status = searchParams.get('status');
-    const sortOrder = searchParams.get('sortOrder') || 'asc';
-    
-    // ✅ Input validation
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
+    const category = searchParams.get('category')
+    const sortOrder = searchParams.get('sortOrder') || 'asc'
+
+    // Input validation
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     // Support both 'pageSize' and 'limit' parameters for backward compatibility
-    const limitParam = searchParams.get('limit') || searchParams.get('pageSize') || '20';
-    const pageSize = Math.min(100, Math.max(1, parseInt(limitParam, 10)));
-    
+    const limitParam = searchParams.get('limit') || searchParams.get('pageSize') || '20'
+    const pageSize = Math.min(100, Math.max(1, parseInt(limitParam, 10)))
+
     // Validate sortBy
-    const validSortFields = ['location_name', 'rating', 'review_count', 'created_at', 'updated_at'];
-    const sortBy = validSortFields.includes(searchParams.get('sortBy') || 'location_name') 
-      ? (searchParams.get('sortBy') || 'location_name')
-      : 'location_name';
+    const validSortFields = ['location_name', 'rating', 'review_count', 'created_at', 'updated_at']
+    const sortBy = validSortFields.includes(searchParams.get('sortBy') || 'location_name')
+      ? searchParams.get('sortBy') || 'location_name'
+      : 'location_name'
 
     // Build query
     let query = supabase
       .from('gmb_locations')
       .select('*', { count: 'exact' })
       .eq('user_id', user.id)
-      .eq('is_active', true);
+      .eq('is_active', true)
 
-    // ✅ SECURITY: Apply filters with secure search utility
+    // SECURITY: Apply filters with secure search utility
     if (search) {
       try {
         // Use the secure search filter utility that validates and escapes input
-        query = applySafeSearchFilter(query, search, ['location_name', 'address']);
+        query = applySafeSearchFilter(query, search, ['location_name', 'address'])
       } catch (error) {
         // If search validation fails, log and continue without search filter
-        console.warn('Invalid search input detected:', error);
+        console.warn('Invalid search input detected:', error)
         // Continue without applying search to prevent breaking the query
       }
     }
 
     if (category && category !== 'all') {
-      query = query.eq('category', category);
+      query = query.eq('category', category)
     }
 
     // Apply sorting
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' })
 
     // Pagination
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+    query = query.range(from, to)
 
-    const { data, error, count } = await query;
+    const { data, error, count } = await query
 
     if (error) {
-      // ✅ Enhanced error logging
+      // Enhanced error logging
       console.error('[GET /api/locations] DB Error:', {
         error: error.message,
         code: error.code,
@@ -97,34 +110,34 @@ export async function GET(request: NextRequest) {
         hint: error.hint,
         userId: user.id,
         timestamp: new Date().toISOString(),
-      });
-      
+      })
+
       return NextResponse.json(
         {
           error: 'Database error',
           message: 'Failed to fetch locations. Please try again later.',
-          code: 'LOCATIONS_FETCH_ERROR'
+          code: 'LOCATIONS_FETCH_ERROR',
         },
-        { status: 500 }
-      );
+        { status: 500 },
+      )
     }
 
     // Convert headers object to Record<string, string>
-    const responseHeaders: Record<string, string> = {};
+    const responseHeaders: Record<string, string> = {}
     if (rateLimitHeaders) {
       Object.entries(rateLimitHeaders).forEach(([key, value]) => {
         if (typeof value === 'string') {
-          responseHeaders[key] = value;
+          responseHeaders[key] = value
         }
-      });
+      })
     }
 
     // Add coordinates field to each location (convert latitude/longitude to coordinates object)
-    const locationsWithCoordinates = addCoordinatesToLocations(data || []);
+    const locationsWithCoordinates = addCoordinatesToLocations(data || [])
 
     // Calculate aggregations for filter counts (optional - only if aggregations param is set)
-    const includeAggregations = searchParams.get('aggregations') === 'true';
-    let aggregations = undefined;
+    const includeAggregations = searchParams.get('aggregations') === 'true'
+    let aggregations = undefined
 
     if (includeAggregations) {
       // Fetch all locations for aggregation (not just the current page)
@@ -132,122 +145,128 @@ export async function GET(request: NextRequest) {
         .from('gmb_locations')
         .select('status, category')
         .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
 
       if (allLocations) {
         // Calculate status counts
-        const statusCounts: Record<string, number> = {};
-        const categoryCounts: Record<string, number> = {};
+        const statusCounts: Record<string, number> = {}
+        const categoryCounts: Record<string, number> = {}
 
-        allLocations.forEach((loc: any) => {
+        allLocations.forEach((loc: LocationData) => {
           // Count by status
-          const status = loc.status || 'unknown';
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
+          const status = loc.status || 'unknown'
+          statusCounts[status] = (statusCounts[status] || 0) + 1
 
           // Count by category
           if (loc.category) {
-            categoryCounts[loc.category] = (categoryCounts[loc.category] || 0) + 1;
+            categoryCounts[loc.category] = (categoryCounts[loc.category] || 0) + 1
           }
-        });
+        })
 
         aggregations = {
           statuses: statusCounts,
           categories: categoryCounts,
-        };
+        }
       }
     }
 
-    return NextResponse.json({
-      data: locationsWithCoordinates,
-      total: count || 0,
-      page,
-      pageSize,
-      hasMore: (count || 0) > page * pageSize,
-      ...(aggregations && { aggregations }),
-    }, {
-      headers: responseHeaders
-    });
-
-  } catch (error: any) {
-    // ✅ Structured error logging
+    return NextResponse.json(
+      {
+        data: locationsWithCoordinates,
+        total: count || 0,
+        page,
+        pageSize,
+        hasMore: (count || 0) > page * pageSize,
+        ...(aggregations && { aggregations }),
+      },
+      {
+        headers: responseHeaders,
+      },
+    )
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    // Structured error logging
     console.error('[GET /api/locations] Unexpected error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
       timestamp: new Date().toISOString(),
-    });
-    
+    })
+
     return NextResponse.json(
       {
         error: 'Internal server error',
         message: 'An unexpected error occurred. Please try again later.',
-        code: 'INTERNAL_ERROR'
+        code: 'INTERNAL_ERROR',
       },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }
 
 // POST - Create new location
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json(
         {
           error: 'Unauthorized',
           message: 'Authentication required. Please log in again.',
-          code: 'AUTH_REQUIRED'
+          code: 'AUTH_REQUIRED',
         },
-        { status: 401 }
-      );
+        { status: 401 },
+      )
     }
 
-    // ✅ SECURITY: Rate limiting
-    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id);
+    // SECURITY: Rate limiting
+    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id)
     if (!success) {
       return NextResponse.json(
         {
           error: 'Too many requests',
           message: 'Rate limit exceeded. Please try again later.',
           code: 'RATE_LIMIT_EXCEEDED',
-          retry_after: rateLimitHeaders['X-RateLimit-Reset']
+          retry_after: rateLimitHeaders['X-RateLimit-Reset'],
         },
         {
           status: 429,
-          headers: rateLimitHeaders as HeadersInit
-        }
-      );
+          headers: rateLimitHeaders as HeadersInit,
+        },
+      )
     }
 
-    let body;
+    let body
     try {
-      body = await request.json();
-    } catch (jsonError) {
+      body = await request.json()
+    } catch {
       return NextResponse.json(
         {
           error: 'Invalid request',
           message: 'Request body must be valid JSON',
-          code: 'INVALID_JSON'
+          code: 'INVALID_JSON',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
-    const { name, address, phone, website, category } = body;
+    const { name, address, phone, website, category } = body
 
-    // ✅ Input validation
+    // Input validation
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
         {
           error: 'Validation error',
           message: 'Location name is required and must be a non-empty string',
           code: 'VALIDATION_ERROR',
-          field: 'name'
+          field: 'name',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (name.length > 200) {
@@ -256,10 +275,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Location name must be 200 characters or less',
           code: 'VALIDATION_ERROR',
-          field: 'name'
+          field: 'name',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (!address || typeof address !== 'string' || address.trim().length === 0) {
@@ -268,10 +287,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Address is required and must be a non-empty string',
           code: 'VALIDATION_ERROR',
-          field: 'address'
+          field: 'address',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (address.length > 500) {
@@ -280,10 +299,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Address must be 500 characters or less',
           code: 'VALIDATION_ERROR',
-          field: 'address'
+          field: 'address',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     // Optional field validation
@@ -293,10 +312,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Phone must be a string with maximum 50 characters',
           code: 'VALIDATION_ERROR',
-          field: 'phone'
+          field: 'phone',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (website && (typeof website !== 'string' || !website.match(/^https?:\/\/.+/))) {
@@ -305,10 +324,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Website must be a valid URL starting with http:// or https://',
           code: 'VALIDATION_ERROR',
-          field: 'website'
+          field: 'website',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (category && (typeof category !== 'string' || category.length > 100)) {
@@ -317,10 +336,10 @@ export async function POST(request: NextRequest) {
           error: 'Validation error',
           message: 'Category must be a string with maximum 100 characters',
           code: 'VALIDATION_ERROR',
-          field: 'category'
+          field: 'category',
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     // Get active GMB account
@@ -330,13 +349,10 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .limit(1)
-      .single();
+      .single()
 
     if (!accounts) {
-      return NextResponse.json(
-        { error: 'No active GMB account found' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No active GMB account found' }, { status: 400 })
     }
 
     // Insert location
@@ -353,13 +369,13 @@ export async function POST(request: NextRequest) {
         is_active: true,
       })
       .select()
-      .single();
+      .single()
 
     if (insertError) {
       await logAction('location_create', 'gmb_location', null, {
         status: 'failed',
         reason: insertError.message,
-      });
+      })
       console.error('[POST /api/locations] DB Error:', {
         error: insertError.message,
         code: insertError.code,
@@ -367,32 +383,32 @@ export async function POST(request: NextRequest) {
         hint: insertError.hint,
         userId: user.id,
         timestamp: new Date().toISOString(),
-      });
-      
+      })
+
       return NextResponse.json(
         {
           error: 'Database error',
           message: 'Failed to create location. Please try again later.',
-          code: 'LOCATION_CREATE_ERROR'
+          code: 'LOCATION_CREATE_ERROR',
         },
-        { status: 500 }
-      );
+        { status: 500 },
+      )
     }
 
-      // Convert headers object to Record<string, string>
-      const responseHeaders: Record<string, string> = {};
-      if (rateLimitHeaders) {
-        Object.entries(rateLimitHeaders).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            responseHeaders[key] = value;
-          }
-        });
-      }
+    // Convert headers object to Record<string, string>
+    const responseHeaders: Record<string, string> = {}
+    if (rateLimitHeaders) {
+      Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          responseHeaders[key] = value
+        }
+      })
+    }
 
     await logAction('location_create', 'gmb_location', location.id, {
       status: 'success',
       user_id: user.id,
-    });
+    })
 
     return NextResponse.json(
       {
@@ -402,64 +418,62 @@ export async function POST(request: NextRequest) {
       {
         status: 201,
         headers: responseHeaders,
-      }
-    );
-  } catch (error: any) {
+      },
+    )
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
     await logAction('location_create', 'gmb_location', null, {
       status: 'failed',
-      reason: error.message,
-    });
+      reason: err.message,
+    })
     console.error('[POST /api/locations] Unexpected error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
+      error: err.message,
+      stack: err.stack,
+      name: err.name,
       timestamp: new Date().toISOString(),
-    });
-    
+    })
+
     return NextResponse.json(
       {
         error: 'Internal server error',
         message: 'An unexpected error occurred. Please try again later.',
-        code: 'INTERNAL_ERROR'
+        code: 'INTERNAL_ERROR',
       },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }
 
 // PUT - Update location
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url);
-    const locationId = searchParams.get('id');
-    
+    const { searchParams } = new URL(request.url)
+    const locationId = searchParams.get('id')
+
     if (!locationId) {
-      return NextResponse.json(
-        { error: 'Location ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Location ID is required' }, { status: 400 })
     }
 
-    const body = await request.json();
-    const { name, address, phone, website, category } = body;
+    const body = await request.json()
+    const { name, address, phone, website, category } = body
 
     // Update location
-    const updateData: any = {};
-    if (name) updateData.location_name = name;
-    if (address) updateData.address = address;
-    if (phone !== undefined) updateData.phone = phone;
-    if (website !== undefined) updateData.website = website;
-    if (category !== undefined) updateData.category = category;
+    const updateData: LocationUpdateData = {}
+    if (name) updateData.location_name = name
+    if (address) updateData.address = address
+    if (phone !== undefined) updateData.phone = phone
+    if (website !== undefined) updateData.website = website
+    if (category !== undefined) updateData.category = category
 
     const { data: location, error: updateError } = await supabase
       .from('gmb_locations')
@@ -467,55 +481,42 @@ export async function PUT(request: NextRequest) {
       .eq('id', locationId)
       .eq('user_id', user.id)
       .select()
-      .single();
+      .single()
 
     if (updateError) {
-      console.error('[PUT /api/locations] Error:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update location' },
-        { status: 500 }
-      );
+      console.error('[PUT /api/locations] Error:', updateError)
+      return NextResponse.json({ error: 'Failed to update location' }, { status: 500 })
     }
 
     if (!location) {
-      return NextResponse.json(
-        { error: 'Location not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ data: location });
-
-  } catch (error: any) {
-    console.error('[PUT /api/locations] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ data: location })
+  } catch (error: unknown) {
+    console.error('[PUT /api/locations] Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // DELETE - Delete location
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url);
-    const locationId = searchParams.get('id');
-    
+    const { searchParams } = new URL(request.url)
+    const locationId = searchParams.get('id')
+
     if (!locationId) {
-      return NextResponse.json(
-        { error: 'Location ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Location ID is required' }, { status: 400 })
     }
 
     // Soft delete (set is_active to false)
@@ -523,23 +524,16 @@ export async function DELETE(request: NextRequest) {
       .from('gmb_locations')
       .update({ is_active: false })
       .eq('id', locationId)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
 
     if (deleteError) {
-      console.error('[DELETE /api/locations] Error:', deleteError);
-      return NextResponse.json(
-        { error: 'Failed to delete location' },
-        { status: 500 }
-      );
+      console.error('[DELETE /api/locations] Error:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete location' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true });
-
-  } catch (error: any) {
-    console.error('[DELETE /api/locations] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true })
+  } catch (error: unknown) {
+    console.error('[DELETE /api/locations] Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

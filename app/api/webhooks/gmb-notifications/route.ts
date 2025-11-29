@@ -1,13 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { createNotification } from '@/lib/notifications/create-notification'
+import { checkKeyRateLimit } from '@/lib/rate-limit'
 import {
-  verifyGoogleWebhookSignature,
-  validateWebhookPayload,
   extractLocationInfo,
-  WebhookSecurityErrorCode,
+  validateWebhookPayload,
+  verifyGoogleWebhookSignature,
 } from '@/lib/security/webhook-verification'
 import { createClient } from '@/lib/supabase/server'
-import { checkKeyRateLimit } from '@/lib/rate-limit'
-import { createNotification } from '@/lib/notifications/create-notification'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+
+interface WebhookPayload {
+  name: string
+  notificationTypes: string[]
+  [key: string]: unknown
+}
+
+interface LocationInfo {
+  accountId: string
+  locationId: string
+}
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -108,10 +119,10 @@ export async function POST(request: NextRequest) {
     console.log('[GMB Webhook] Signature verified successfully')
 
     // Step 5: Parse and validate payload
-    let data: any
+    let data: WebhookPayload
 
     try {
-      data = JSON.parse(payload)
+      data = JSON.parse(payload) as WebhookPayload
     } catch (error) {
       console.error('[GMB Webhook] Invalid JSON payload:', error)
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 })
@@ -189,8 +200,11 @@ export async function POST(request: NextRequest) {
     console.error('[GMB Webhook] Unexpected error:', error)
 
     // Log error to monitoring system (e.g., Sentry)
-    if (typeof window === 'undefined' && (global as any).Sentry) {
-      ;(global as any).Sentry.captureException(error, {
+    const globalWithSentry = global as typeof globalThis & {
+      Sentry?: { captureException: (error: unknown, context?: unknown) => void }
+    }
+    if (typeof window === 'undefined' && globalWithSentry.Sentry) {
+      globalWithSentry.Sentry.captureException(error, {
         tags: {
           webhook: 'gmb-notifications',
           ip,
@@ -253,10 +267,10 @@ export async function GET(request: NextRequest) {
  * @param locationInfo - Extracted location information
  */
 async function processNotification(
-  supabase: any,
+  supabase: SupabaseClient,
   notificationType: string,
-  payload: any,
-  locationInfo: { accountId: string; locationId: string } | null,
+  payload: WebhookPayload,
+  locationInfo: LocationInfo | null,
 ): Promise<void> {
   switch (notificationType) {
     case 'NEW_REVIEW':
@@ -294,10 +308,10 @@ async function processNotification(
  * Process review notifications
  */
 async function processReviewNotification(
-  supabase: any,
+  supabase: SupabaseClient,
   notificationType: string,
-  payload: any,
-  locationInfo: { accountId: string; locationId: string } | null,
+  _payload: WebhookPayload,
+  locationInfo: LocationInfo | null,
 ): Promise<void> {
   if (!locationInfo) {
     throw new Error('Cannot process review notification without location info')
@@ -365,10 +379,10 @@ async function processReviewNotification(
  * Process question notifications
  */
 async function processQuestionNotification(
-  supabase: any,
+  supabase: SupabaseClient,
   notificationType: string,
-  payload: any,
-  locationInfo: { accountId: string; locationId: string } | null,
+  _payload: WebhookPayload,
+  locationInfo: LocationInfo | null,
 ): Promise<void> {
   if (!locationInfo) {
     throw new Error('Cannot process question notification without location info')
@@ -413,10 +427,10 @@ async function processQuestionNotification(
  * Process answer notifications
  */
 async function processAnswerNotification(
-  supabase: any,
+  supabase: SupabaseClient,
   notificationType: string,
-  payload: any,
-  locationInfo: { accountId: string; locationId: string } | null,
+  payload: WebhookPayload,
+  locationInfo: LocationInfo | null,
 ): Promise<void> {
   console.log(`[GMB Webhook] Processing ${notificationType} (delegating to question sync)`)
   // Answers are part of questions, so trigger question sync
@@ -427,9 +441,9 @@ async function processAnswerNotification(
  * Process verification notifications
  */
 async function processVerificationNotification(
-  supabase: any,
-  payload: any,
-  locationInfo: { accountId: string; locationId: string } | null,
+  supabase: SupabaseClient,
+  _payload: WebhookPayload,
+  locationInfo: LocationInfo | null,
 ): Promise<void> {
   if (!locationInfo) {
     throw new Error('Cannot process verification notification without location info')

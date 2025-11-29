@@ -1,21 +1,25 @@
-'use client';
+'use client'
 
-import { Component, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Link } from '@/lib/navigation';
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Link } from '@/lib/navigation'
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
+import { Component, ReactNode } from 'react'
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  section?: string; // Optional section name for better error context
+  children: ReactNode
+  fallback?: ReactNode
+  section?: string // Optional section name for better error context
+}
+
+interface ErrorInfo {
+  componentStack?: string
 }
 
 interface State {
-  hasError: boolean;
-  error?: Error;
-  errorInfo?: any;
+  hasError: boolean
+  error?: Error
+  errorInfo?: ErrorInfo
 }
 
 /**
@@ -24,15 +28,15 @@ interface State {
  */
 export class DashboardErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log to error reporting service
     console.error('Dashboard section error:', {
       error: error.message,
@@ -40,29 +44,32 @@ export class DashboardErrorBoundary extends Component<Props, State> {
       section: this.props.section || 'unknown',
       errorInfo,
       timestamp: new Date().toISOString(),
-    });
-    
+    })
+
     // Send to monitoring service (e.g., Sentry)
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, { 
+    const windowWithSentry = window as Window & {
+      Sentry?: { captureException: (error: Error, context?: object) => void }
+    }
+    if (typeof window !== 'undefined' && windowWithSentry.Sentry) {
+      windowWithSentry.Sentry.captureException(error, {
         extra: {
           ...errorInfo,
           section: this.props.section,
-        }
-      });
+        },
+      })
     }
 
-    this.setState({ errorInfo });
+    this.setState({ errorInfo })
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-  };
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
+  }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback;
+        return this.props.fallback
       }
 
       return (
@@ -70,20 +77,16 @@ export class DashboardErrorBoundary extends Component<Props, State> {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              {this.props.section 
-                ? `Error in ${this.props.section}`
-                : 'Something went wrong'
-              }
+              {this.props.section ? `Error in ${this.props.section}` : 'Something went wrong'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {this.props.section 
+              {this.props.section
                 ? `An error occurred in the ${this.props.section} section. The rest of the dashboard is still functional.`
-                : 'We encountered an unexpected error. Please try refreshing the section.'
-              }
+                : 'We encountered an unexpected error. Please try refreshing the section.'}
             </p>
-            
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="text-xs bg-muted p-3 rounded overflow-auto">
                 <summary className="cursor-pointer font-medium mb-2">
@@ -95,21 +98,13 @@ export class DashboardErrorBoundary extends Component<Props, State> {
                 </pre>
               </details>
             )}
-            
+
             <div className="flex gap-2">
-              <Button 
-                onClick={this.handleReset}
-                variant="outline"
-                size="sm"
-              >
+              <Button onClick={this.handleReset} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>
-              <Button 
-                asChild
-                variant="outline"
-                size="sm"
-              >
+              <Button asChild variant="outline" size="sm">
                 <Link href="/dashboard">
                   <Home className="w-4 h-4 mr-2" />
                   Go to Dashboard
@@ -118,10 +113,10 @@ export class DashboardErrorBoundary extends Component<Props, State> {
             </div>
           </CardContent>
         </Card>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }
 
@@ -130,9 +125,9 @@ export class DashboardErrorBoundary extends Component<Props, State> {
  * Automatically wraps content with DashboardErrorBoundary
  */
 interface DashboardSectionProps {
-  children: ReactNode;
-  section?: string;
-  fallback?: ReactNode;
+  children: ReactNode
+  section?: string
+  fallback?: ReactNode
 }
 
 export function DashboardSection({ children, section, fallback }: DashboardSectionProps) {
@@ -140,5 +135,5 @@ export function DashboardSection({ children, section, fallback }: DashboardSecti
     <DashboardErrorBoundary section={section} fallback={fallback}>
       {children}
     </DashboardErrorBoundary>
-  );
+  )
 }

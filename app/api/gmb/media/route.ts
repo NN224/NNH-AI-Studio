@@ -1,18 +1,58 @@
-import { NextRequest } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { errorResponse, successResponse } from "@/lib/utils/api-response"
-import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers"
+import { GMB_CONSTANTS, getValidAccessToken } from '@/lib/gmb/helpers'
+import { createClient } from '@/lib/supabase/server'
+import { errorResponse, successResponse } from '@/lib/utils/api-response'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { NextRequest } from 'next/server'
 
-export const dynamic = "force-dynamic"
+interface MediaItem {
+  id: string
+  name: string
+  sourceUrl?: string
+  googleUrl?: string
+  mediaFormat: string
+  thumbnailUrl?: string
+  createTime?: string
+  updateTime?: string
+  locationAssociation?: unknown
+  metadata?: unknown
+  fromGoogle?: boolean
+  fromDatabase?: boolean
+  postTitle?: string | null
+  postName?: string
+  location_id?: string
+  location_resource?: string
+}
+
+interface GoogleMediaItem {
+  name?: string
+  sourceUrl?: string
+  googleUrl?: string
+  mediaFormat?: string
+  mediaType?: string
+  thumbnailUrl?: string
+  createTime?: string
+  updateTime?: string
+  locationAssociation?: unknown
+}
+
+interface DatabasePost {
+  id: string
+  media_url: string | null
+  created_at: string | null
+  title: string | null
+  content: string | null
+}
+
+export const dynamic = 'force-dynamic'
 
 const GMB_MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE
 
 function normalizeAccountId(accountId: string): string {
-  return accountId.replace(/^accounts\//, "")
+  return accountId.replace(/^accounts\//, '')
 }
 
 function normalizeLocationId(locationId: string): string {
-  return locationId.replace(/^(accounts\/[^/]+\/)?locations\//, "")
+  return locationId.replace(/^(accounts\/[^/]+\/)?locations\//, '')
 }
 
 function buildMediaEndpoint(accountId: string, locationId: string): string {
@@ -24,14 +64,14 @@ function buildMediaEndpoint(accountId: string, locationId: string): string {
 async function fetchMediaFromGoogle(
   accessToken: string,
   accountId: string,
-  locationId: string
-): Promise<any[]> {
+  locationId: string,
+): Promise<MediaItem[]> {
   const endpoint = buildMediaEndpoint(accountId, locationId)
 
   const response = await fetch(endpoint, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
+      Accept: 'application/json',
     },
   })
 
@@ -40,8 +80,8 @@ async function fetchMediaFromGoogle(
   }
 
   if (!response.ok) {
-    const errorText = await response.text().catch(() => "")
-    let errorData: any = {}
+    const errorText = await response.text().catch(() => '')
+    let errorData: { error?: { message?: string }; message?: string } = {}
 
     try {
       errorData = errorText ? JSON.parse(errorText) : {}
@@ -50,8 +90,8 @@ async function fetchMediaFromGoogle(
     }
 
     const error = new Error(
-      errorData.error?.message || errorData.message || "Failed to fetch media from Google"
-    ) as Error & { status?: number; details?: any }
+      errorData.error?.message || errorData.message || 'Failed to fetch media from Google',
+    ) as Error & { status?: number; details?: unknown }
     error.status = response.status
     error.details = errorData
     throw error
@@ -60,12 +100,12 @@ async function fetchMediaFromGoogle(
   const data = await response.json()
   const mediaItems = Array.isArray(data.mediaItems) ? data.mediaItems : []
 
-  return mediaItems.map((item: any) => ({
-    id: item.name?.split("/").pop() || item.name,
+  return mediaItems.map((item: GoogleMediaItem) => ({
+    id: item.name?.split('/').pop() || item.name,
     name: item.name,
     sourceUrl: item.sourceUrl || item.googleUrl,
     googleUrl: item.googleUrl || item.sourceUrl,
-    mediaFormat: item.mediaFormat || item.mediaType || "PHOTO",
+    mediaFormat: item.mediaFormat || item.mediaType || 'PHOTO',
     thumbnailUrl: item.thumbnailUrl,
     createTime: item.createTime,
     updateTime: item.updateTime,
@@ -76,20 +116,20 @@ async function fetchMediaFromGoogle(
 }
 
 async function fetchMediaFromDatabasePosts(
-  supabase: any,
-  locationId: string
-): Promise<any[]> {
+  supabase: SupabaseClient,
+  locationId: string,
+): Promise<MediaItem[]> {
   try {
     const { data: posts, error } = await supabase
-      .from("gmb_posts")
-      .select("id, media_url, created_at, title, content")
-      .eq("location_id", locationId)
-      .not("media_url", "is", null)
-      .order("created_at", { ascending: false })
+      .from('gmb_posts')
+      .select('id, media_url, created_at, title, content')
+      .eq('location_id', locationId)
+      .not('media_url', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(100)
 
     if (error) {
-      console.error("[Media API] Error fetching posts from database:", error)
+      console.error('[Media API] Error fetching posts from database:', error)
       return []
     }
 
@@ -98,25 +138,27 @@ async function fetchMediaFromDatabasePosts(
     }
 
     return posts
-      .filter((post: any) => Boolean(post.media_url))
-      .map((post: any) => {
-        const isPhoto = /\.(jpg|jpeg|png|gif|webp)$/i.test(post.media_url)
+      .filter((post: DatabasePost) => Boolean(post.media_url))
+      .map((post: DatabasePost) => {
+        const mediaUrl = post.media_url || ''
+        const isPhoto = /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl)
 
         return {
           id: `db_post_${post.id}`,
           name: post.id,
-          sourceUrl: post.media_url,
-          googleUrl: post.media_url,
-          mediaFormat: isPhoto ? "PHOTO" : "VIDEO",
-          createTime: post.created_at || null,
-          updateTime: post.created_at || null,
+          sourceUrl: mediaUrl || undefined,
+          googleUrl: mediaUrl || undefined,
+          mediaFormat: isPhoto ? 'PHOTO' : 'VIDEO',
+          createTime: post.created_at || undefined,
+          updateTime: post.created_at || undefined,
           postTitle: post.title || post.content || null,
           postName: post.id,
           fromDatabase: true,
         }
       })
-  } catch (error: any) {
-    console.error("[Media API] Error processing database posts:", error?.message)
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    console.error('[Media API] Error processing database posts:', err.message)
     return []
   }
 }
@@ -131,33 +173,33 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      return errorResponse("UNAUTHORIZED", "Authentication required", 401)
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
     }
 
     const searchParams = request.nextUrl.searchParams
-    const locationId = searchParams.get("locationId") || undefined
+    const locationId = searchParams.get('locationId') || undefined
 
     let locationsQuery = supabase
-      .from("gmb_locations")
+      .from('gmb_locations')
       .select(
         `
         id,
         location_id,
         gmb_account_id,
         gmb_accounts!inner(id, account_id, is_active)
-      `
+      `,
       )
-      .eq("user_id", user.id)
+      .eq('user_id', user.id)
 
     if (locationId) {
-      locationsQuery = locationsQuery.eq("id", locationId)
+      locationsQuery = locationsQuery.eq('id', locationId)
     }
 
     const { data: locations, error: locationsError } = await locationsQuery
 
     if (locationsError) {
-      console.error("[Media API] Failed to load locations:", locationsError)
-      return errorResponse("DATABASE_ERROR", "Failed to load locations", 500, locationsError)
+      console.error('[Media API] Failed to load locations:', locationsError)
+      return errorResponse('DATABASE_ERROR', 'Failed to load locations', 500, locationsError)
     }
 
     if (!locations || locations.length === 0) {
@@ -165,11 +207,11 @@ export async function GET(request: NextRequest) {
         media: [],
         total: 0,
         warnings: [],
-        message: "No locations found for current user",
+        message: 'No locations found for current user',
       })
     }
 
-    const mediaResults: any[] = []
+    const mediaResults: MediaItem[] = []
     const warnings: Array<{ locationId: string; message: string; status?: number }> = []
 
     for (const location of locations) {
@@ -180,7 +222,7 @@ export async function GET(request: NextRequest) {
       if (!location.gmb_account_id || !account?.account_id) {
         warnings.push({
           locationId: location.id,
-          message: "Location is missing linked Google account. Skipping.",
+          message: 'Location is missing linked Google account. Skipping.',
         })
         continue
       }
@@ -188,27 +230,32 @@ export async function GET(request: NextRequest) {
       if (account.is_active === false) {
         warnings.push({
           locationId: location.id,
-          message: "Linked Google account is inactive. Skipping.",
+          message: 'Linked Google account is inactive. Skipping.',
         })
         continue
       }
 
-      let googleMedia: any[] = []
+      let googleMedia: MediaItem[] = []
 
       try {
         const accessToken = await getValidAccessToken(supabase, location.gmb_account_id)
-        googleMedia = await fetchMediaFromGoogle(accessToken, account.account_id, location.location_id)
-      } catch (error: any) {
-        console.error("[Media API] Google fetch error:", {
-          message: error?.message,
-          status: error?.status,
-          details: error?.details,
+        googleMedia = await fetchMediaFromGoogle(
+          accessToken,
+          account.account_id,
+          location.location_id,
+        )
+      } catch (error: unknown) {
+        const err = error as Error & { status?: number; details?: unknown }
+        console.error('[Media API] Google fetch error:', {
+          message: err?.message,
+          status: err?.status,
+          details: err?.details,
           locationId: location.id,
         })
         warnings.push({
           locationId: location.id,
-          message: error?.message || "Failed to fetch media from Google",
-          status: error?.status,
+          message: err?.message || 'Failed to fetch media from Google',
+          status: err?.status,
         })
       }
 
@@ -231,13 +278,13 @@ export async function GET(request: NextRequest) {
       total: mediaResults.length,
       warnings,
     })
-  } catch (error: any) {
-    console.error("[Media API] Error:", {
-      message: error?.message || "Unknown error",
-      stack: error?.stack,
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    console.error('[Media API] Error:', {
+      message: err.message || 'Unknown error',
+      stack: err.stack,
       error,
     })
-    return errorResponse("INTERNAL_ERROR", error?.message || "Failed to fetch media", 500)
+    return errorResponse('INTERNAL_ERROR', err.message || 'Failed to fetch media', 500)
   }
 }
-

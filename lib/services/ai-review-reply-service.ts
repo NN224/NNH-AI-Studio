@@ -3,33 +3,33 @@
  * Multi-AI routing with confidence scoring and fallback providers
  */
 
-import { getAIProvider } from '@/lib/ai/provider';
-import { createClient } from '@/lib/supabase/server';
-import type { AutoReplySettings } from '@/server/actions/auto-reply';
+import { getAIProvider } from '@/lib/ai/provider'
+import { createClient } from '@/lib/supabase/server'
+import type { AutoReplySettings } from '@/server/actions/auto-reply'
 
 export interface ReviewContext {
-  reviewText: string;
-  rating: number;
-  locationName?: string;
-  businessCategory?: string;
-  customerName?: string;
-  previousReplies?: string[];
+  reviewText: string
+  rating: number
+  locationName?: string
+  businessCategory?: string
+  customerName?: string
+  previousReplies?: string[]
 }
 
-export type ReplyResult = 
+export type ReplyResult =
   | {
-      success: true;
-      reply: string;
-      confidence: number; // 0-100
-      provider: string;
-      model: string;
-      latency: number;
+      success: true
+      reply: string
+      confidence: number // 0-100
+      provider: string
+      model: string
+      latency: number
     }
   | {
-      success: false;
-      error: string;
-      provider?: string;
-    };
+      success: false
+      error: string
+      provider?: string
+    }
 
 /**
  * Generate AI reply with multi-provider routing and confidence scoring
@@ -37,58 +37,49 @@ export type ReplyResult =
 export async function generateAIReviewReply(
   context: ReviewContext,
   settings: AutoReplySettings,
-  userId: string
+  userId: string,
 ): Promise<ReplyResult> {
-  const startTime = Date.now();
-  
+  const startTime = Date.now()
+
   // Determine which provider to use based on rating
   // Claude for negative reviews (better empathy), Gemini for positive (faster)
-  const preferredProvider = context.rating <= 2 ? 'anthropic' : 'google';
-  
+  const preferredProvider = context.rating <= 2 ? 'anthropic' : 'google'
+
   try {
     // Get AI provider
-    const provider = await getAIProvider(userId);
+    const provider = await getAIProvider(userId)
     if (!provider) {
-      console.error('[AI Review Reply] No AI provider configured for user:', userId);
+      console.error('[AI Review Reply] No AI provider configured for user:', userId)
       return {
         success: false,
-        error: 'No AI provider configured. Please set up an API key in Settings > AI Configuration.',
-      };
+        error:
+          'No AI provider configured. Please set up an API key in Settings > AI Configuration.',
+      }
     }
 
-    console.log('[AI Review Reply] Using provider for rating:', context.rating);
+    console.log('[AI Review Reply] Using provider for rating:', context.rating)
 
     // Build context-aware prompt
-    const prompt = buildReviewReplyPrompt(context, settings);
-    
+    const prompt = buildReviewReplyPrompt(context, settings)
+
     // Generate reply using AI provider
     const result = await provider.generateCompletion(
       prompt,
       'auto_reply',
-      undefined // locationId can be added later
-    );
+      undefined, // locationId can be added later
+    )
 
     // Calculate confidence score
-    const confidence = calculateConfidenceScore(
-      context,
-      result.content,
-      settings
-    );
+    const confidence = calculateConfidenceScore(context, result.content, settings)
 
     // Check confidence threshold (default: 70%)
-    const minConfidence = 70;
+    const minConfidence = 70
     if (confidence < minConfidence) {
       // Try fallback provider if confidence is low
-      return await tryFallbackProvider(
-        context,
-        settings,
-        userId,
-        startTime,
-        confidence
-      );
+      return await tryFallbackProvider(context, settings, userId, startTime, confidence)
     }
 
-    const latency = Date.now() - startTime;
+    const latency = Date.now() - startTime
 
     return {
       success: true,
@@ -97,22 +88,24 @@ export async function generateAIReviewReply(
       provider: preferredProvider,
       model: 'auto-detected',
       latency,
-    };
-  } catch (error: any) {
-    console.error('[AI Review Reply Service] Error:', error);
+    }
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error))
+    const errWithStatus = error as { status?: number }
+    console.error('[AI Review Reply Service] Error:', err)
     console.error('[AI Review Reply Service] Error details:', {
-      message: error.message,
-      status: error.status,
+      message: err.message,
+      status: errWithStatus.status,
       userId,
       rating: context.rating,
-    });
-    
+    })
+
     // Return specific error message instead of trying fallback again
     return {
       success: false,
-      error: error.message || 'Failed to generate AI reply. Please check your API key configuration.',
+      error: err.message || 'Failed to generate AI reply. Please check your API key configuration.',
       provider: preferredProvider,
-    };
+    }
   }
 }
 
@@ -121,58 +114,56 @@ export async function generateAIReviewReply(
  */
 function detectLanguage(text: string): 'ar' | 'en' {
   // Check for Arabic characters
-  const arabicPattern = /[\u0600-\u06FF]/;
-  const hasArabic = arabicPattern.test(text);
-  
+  const arabicPattern = /[\u0600-\u06FF]/
+  const hasArabic = arabicPattern.test(text)
+
   // Count Arabic vs Latin characters
-  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length;
-  const latinCount = (text.match(/[a-zA-Z]/g) || []).length;
-  
+  const arabicCount = (text.match(/[\u0600-\u06FF]/g) || []).length
+  const latinCount = (text.match(/[a-zA-Z]/g) || []).length
+
   // If more than 30% Arabic characters, consider it Arabic
   if (hasArabic && arabicCount > latinCount * 0.3) {
-    return 'ar';
+    return 'ar'
   }
-  
-  return 'en';
+
+  return 'en'
 }
 
 /**
  * Build context-aware prompt for review reply
  */
-function buildReviewReplyPrompt(
-  context: ReviewContext,
-  settings: AutoReplySettings
-): string {
+function buildReviewReplyPrompt(context: ReviewContext, settings: AutoReplySettings): string {
   // Detect review language
-  const reviewLang = detectLanguage(context.reviewText);
-  
+  const reviewLang = detectLanguage(context.reviewText)
+
   const toneInstructions: Record<string, string> = {
     friendly: 'Use a warm, friendly, and approachable tone. Be conversational and personable.',
-    professional: 'Use a formal, professional, and business-like tone. Maintain respect and courtesy.',
-    apologetic: 'Use a sincere, apologetic, and empathetic tone. Acknowledge the issue and show genuine concern.',
-    marketing: 'Use an enthusiastic, promotional tone. Highlight positive aspects and encourage return visits.',
-  };
+    professional:
+      'Use a formal, professional, and business-like tone. Maintain respect and courtesy.',
+    apologetic:
+      'Use a sincere, apologetic, and empathetic tone. Acknowledge the issue and show genuine concern.',
+    marketing:
+      'Use an enthusiastic, promotional tone. Highlight positive aspects and encourage return visits.',
+  }
 
-  const tone = toneInstructions[settings.tone] || toneInstructions.friendly;
+  const tone = toneInstructions[settings.tone] || toneInstructions.friendly
 
-  const ratingContext = context.rating <= 2
-    ? 'This is a negative review. Respond with empathy, acknowledge the issue, and offer a solution.'
-    : context.rating === 3
-    ? 'This is a neutral review. Respond professionally and encourage future positive experiences.'
-    : 'This is a positive review. Respond with gratitude and enthusiasm.';
+  const ratingContext =
+    context.rating <= 2
+      ? 'This is a negative review. Respond with empathy, acknowledge the issue, and offer a solution.'
+      : context.rating === 3
+        ? 'This is a neutral review. Respond professionally and encourage future positive experiences.'
+        : 'This is a positive review. Respond with gratitude and enthusiasm.'
 
-  const businessContext = context.locationName
-    ? `Business: ${context.locationName}`
-    : '';
-  
-  const categoryContext = context.businessCategory
-    ? `Category: ${context.businessCategory}`
-    : '';
+  const businessContext = context.locationName ? `Business: ${context.locationName}` : ''
+
+  const categoryContext = context.businessCategory ? `Category: ${context.businessCategory}` : ''
 
   // Language-specific instructions
-  const languageInstruction = reviewLang === 'ar' 
-    ? `CRITICAL: The review is in ARABIC. You MUST respond ONLY in ARABIC (العربية). Do NOT mix English words or use Latin characters.`
-    : `CRITICAL: The review is in ENGLISH. You MUST respond ONLY in ENGLISH. Do NOT mix Arabic words or use Arabic characters.`;
+  const languageInstruction =
+    reviewLang === 'ar'
+      ? `CRITICAL: The review is in ARABIC. You MUST respond ONLY in ARABIC (العربية). Do NOT mix English words or use Latin characters.`
+      : `CRITICAL: The review is in ENGLISH. You MUST respond ONLY in ENGLISH. Do NOT mix Arabic words or use Arabic characters.`
 
   return `You are a professional customer service representative responding to a Google Business Profile review.
 
@@ -201,7 +192,7 @@ INSTRUCTIONS:
 8. Do NOT include your name or title - just the response text
 9. IMPORTANT: Write ONLY in ${reviewLang === 'ar' ? 'Arabic (العربية)' : 'English'}
 
-Generate the response now:`;
+Generate the response now:`
 }
 
 /**
@@ -210,75 +201,78 @@ Generate the response now:`;
 function calculateConfidenceScore(
   context: ReviewContext,
   reply: string,
-  settings: AutoReplySettings
+  settings: AutoReplySettings,
 ): number {
-  let score = 50; // Base score
+  let score = 50 // Base score
 
   // Length check (too short or too long reduces confidence)
   if (reply.length >= 50 && reply.length <= 500) {
-    score += 10;
+    score += 10
   } else if (reply.length < 30 || reply.length > 800) {
-    score -= 20;
+    score -= 20
   }
 
   // Language match (check if reply matches review language)
-  const reviewLang = detectLanguage(context.reviewText);
-  const replyLang = detectLanguage(reply);
-  
+  const reviewLang = detectLanguage(context.reviewText)
+  const replyLang = detectLanguage(reply)
+
   if (reviewLang === replyLang) {
     // Correct language - bonus points
-    score += 20;
+    score += 20
   } else {
     // Wrong language - major penalty
-    score -= 30;
+    score -= 30
   }
-  
+
   // Check for language mixing (both Arabic and English in reply)
-  const hasArabic = /[\u0600-\u06FF]/.test(reply);
-  const hasEnglish = /[a-zA-Z]/.test(reply);
-  const arabicCount = (reply.match(/[\u0600-\u06FF]/g) || []).length;
-  const englishCount = (reply.match(/[a-zA-Z]/g) || []).length;
-  
+  const hasArabic = /[\u0600-\u06FF]/.test(reply)
+  const hasEnglish = /[a-zA-Z]/.test(reply)
+  const arabicCount = (reply.match(/[\u0600-\u06FF]/g) || []).length
+  const englishCount = (reply.match(/[a-zA-Z]/g) || []).length
+
   // If both languages exist with significant presence (more than just a few words)
   if (hasArabic && hasEnglish) {
-    const minCount = Math.min(arabicCount, englishCount);
-    const totalCount = arabicCount + englishCount;
-    
+    const minCount = Math.min(arabicCount, englishCount)
+    const totalCount = arabicCount + englishCount
+
     // If minority language is more than 20% of total, it's mixing
     if (minCount > totalCount * 0.2) {
-      score -= 25; // Heavy penalty for language mixing
+      score -= 25 // Heavy penalty for language mixing
     }
   }
 
   // Tone appropriateness for rating
   if (context.rating <= 2) {
     // Negative review - check for apologetic/empathetic words
-    const empatheticWords = ['sorry', 'apologize', 'regret', 'أسف', 'آسف', 'نعتذر'];
-    if (empatheticWords.some(word => reply.toLowerCase().includes(word))) {
-      score += 15;
+    const empatheticWords = ['sorry', 'apologize', 'regret', 'أسف', 'آسف', 'نعتذر']
+    if (empatheticWords.some((word) => reply.toLowerCase().includes(word))) {
+      score += 15
     }
   } else if (context.rating >= 4) {
     // Positive review - check for gratitude
-    const gratitudeWords = ['thank', 'appreciate', 'grateful', 'شكر', 'نشكر', 'ممتن'];
-    if (gratitudeWords.some(word => reply.toLowerCase().includes(word))) {
-      score += 15;
+    const gratitudeWords = ['thank', 'appreciate', 'grateful', 'شكر', 'نشكر', 'ممتن']
+    if (gratitudeWords.some((word) => reply.toLowerCase().includes(word))) {
+      score += 15
     }
   }
 
   // Personalization (mentions specific details from review)
-  const reviewWords = context.reviewText.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-  const mentionedWords = reviewWords.filter(word => reply.toLowerCase().includes(word));
+  const reviewWords = context.reviewText
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 4)
+  const mentionedWords = reviewWords.filter((word) => reply.toLowerCase().includes(word))
   if (mentionedWords.length > 0) {
-    score += Math.min(10, mentionedWords.length * 2);
+    score += Math.min(10, mentionedWords.length * 2)
   }
 
   // No markdown or formatting issues
   if (!reply.includes('```') && !reply.includes('**') && !reply.includes('##')) {
-    score += 5;
+    score += 5
   }
 
   // Ensure score is between 0-100
-  return Math.max(0, Math.min(100, score));
+  return Math.max(0, Math.min(100, score))
 }
 
 /**
@@ -289,16 +283,16 @@ async function tryFallbackProvider(
   settings: AutoReplySettings,
   userId: string,
   startTime: number,
-  previousConfidence: number
+  previousConfidence: number,
 ): Promise<ReplyResult> {
-  console.warn('[AI Review Reply] Confidence too low, trying fallback:', previousConfidence);
-  
+  console.warn('[AI Review Reply] Confidence too low, trying fallback:', previousConfidence)
+
   // Return error with helpful message
   return {
     success: false,
     error: `Confidence score too low (${previousConfidence}%). The AI couldn't generate a high-quality response. Please try manual reply or adjust the review text.`,
     provider: 'fallback',
-  };
+  }
 }
 
 /**
@@ -308,11 +302,11 @@ export async function logReplyGeneration(
   userId: string,
   reviewId: string,
   result: ReplyResult,
-  context: ReviewContext
+  context: ReviewContext,
 ): Promise<void> {
   try {
-    const supabase = await createClient();
-    
+    const supabase = await createClient()
+
     await supabase.from('autopilot_logs').insert({
       user_id: userId,
       action_type: 'auto_reply',
@@ -326,10 +320,9 @@ export async function logReplyGeneration(
         error: result.success ? null : result.error,
       },
       created_at: new Date().toISOString(),
-    });
+    })
   } catch (error) {
-    console.error('[AI Review Reply Service] Failed to log:', error);
+    console.error('[AI Review Reply Service] Failed to log:', error)
     // Don't throw - logging failure shouldn't break the flow
   }
 }
-
