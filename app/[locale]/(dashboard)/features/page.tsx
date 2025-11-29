@@ -252,13 +252,13 @@ export default function BusinessProfilePage() {
                     throw new Error("Location not found");
                   }
 
-                  const response = await fetch("/api/gmb/sync", {
+                  const response = await fetch("/api/gmb/sync-v2", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       accountId: locationData.accountId,
                       locationIds: [selectedLocationId],
-                      syncType: "locations", // Fixed: was 'location', should be 'locations'
+                      syncType: "locations",
                     }),
                   });
 

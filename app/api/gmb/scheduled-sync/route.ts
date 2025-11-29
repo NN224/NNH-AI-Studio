@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Scheduled Sync API Endpoint
@@ -296,19 +296,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
-    // Trigger sync by calling the sync API as the current user
-    const syncUrl = new URL("/api/gmb/sync", request.url);
-    const cookieHeader = request.headers.get("cookie") ?? "";
+    // Trigger sync by calling the sync-v2 API with internal auth
+    const syncUrl = new URL("/api/gmb/sync-v2", request.url);
 
     const syncResponse = await fetch(syncUrl.toString(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Forward authentication cookies so /api/gmb/sync sees the same user
-        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+        "X-Internal-Run": process.env.INTERNAL_API_SECRET || "scheduled-sync",
       },
       body: JSON.stringify({
         accountId,
+        userId: user.id,
         syncType: "full",
       }),
     });

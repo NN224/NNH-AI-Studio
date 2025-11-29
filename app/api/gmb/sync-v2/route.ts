@@ -9,14 +9,11 @@
  * the actual sync logic. It requires internal authentication via X-Internal-Run
  * or X-Trigger-Secret headers.
  *
- * PUBLIC USERS SHOULD USE: /api/gmb/sync (lightweight trigger)
- *
  * ARCHITECTURE:
- * 1. User calls /api/gmb/sync → Returns 202 + job_id immediately
- * 2. Job queued to sync_queue table
- * 3. gmb-sync-worker picks job, calls gmb-process Edge Function
- * 4. gmb-process calls THIS endpoint with internal auth
- * 5. This endpoint executes performTransactionalSync with database transactions
+ * 1. Job queued to sync_queue table (via scheduled-sync or webhooks)
+ * 2. gmb-sync-worker picks job, calls gmb-process Edge Function
+ * 3. gmb-process calls THIS endpoint with internal auth
+ * 4. This endpoint executes performTransactionalSync with database transactions
  *
  * ============================================================================
  */
@@ -59,8 +56,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         error: "unauthorized",
-        message:
-          "This endpoint is for internal use only. Use /api/gmb/sync for public access.",
+        message: "This endpoint is for internal use only.",
       },
       { status: 401 },
     );
@@ -133,8 +129,6 @@ export async function GET() {
     ok: true,
     endpoint: "/api/gmb/sync-v2",
     status: "internal_only",
-    description:
-      "Internal endpoint for Edge Functions. Use /api/gmb/sync for public access.",
-    public_endpoint: "/api/gmb/sync",
+    description: "Internal endpoint for Edge Functions and scheduled jobs.",
   });
 }
