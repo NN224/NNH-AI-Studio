@@ -4,6 +4,7 @@
  */
 
 import { errorLogger } from "./error-logger";
+import { getBaseUrl } from "@/lib/utils/get-base-url";
 
 export interface MetricEvent {
   name: string;
@@ -48,6 +49,7 @@ class MonitoringService {
   private metricsBuffer: MetricEvent[] = [];
   private alertsBuffer: Alert[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
+  private intervalEnabled: boolean;
 
   private constructor() {
     this.config = {
@@ -59,8 +61,12 @@ class MonitoringService {
       emailAlerts: process.env.ALERT_EMAILS?.split(","),
     };
 
-    // Start periodic flush
-    this.startPeriodicFlush();
+    this.intervalEnabled = this.shouldScheduleInterval();
+
+    // Start periodic flush when allowed (e.g., browser or explicitly enabled server env)
+    if (this.intervalEnabled) {
+      this.startPeriodicFlush();
+    }
   }
 
   static getInstance(): MonitoringService {
@@ -91,6 +97,10 @@ class MonitoringService {
     // Flush if buffer is getting large
     if (this.metricsBuffer.length > 100) {
       this.flushMetrics();
+    }
+
+    if (!this.intervalEnabled) {
+      void this.flushMetrics();
     }
   }
 
@@ -233,6 +243,10 @@ class MonitoringService {
 
     this.alertsBuffer.push(fullAlert);
 
+    if (!this.intervalEnabled) {
+      void this.flushAlerts();
+    }
+
     // Log the alert
     errorLogger.logError(
       new Error(alert.message),
@@ -261,7 +275,7 @@ class MonitoringService {
     const startTime = Date.now();
 
     try {
-      const response = await fetch("/api/health/database", {
+      const response = await fetch(this.resolveApiUrl("/api/health/database"), {
         method: "GET",
         signal: AbortSignal.timeout(5000),
       });
@@ -444,7 +458,7 @@ class MonitoringService {
     this.metricsBuffer = [];
 
     try {
-      await fetch("/api/monitoring/metrics", {
+      await fetch(this.resolveApiUrl("/api/monitoring/metrics"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ metrics }),
@@ -466,7 +480,7 @@ class MonitoringService {
     this.alertsBuffer = [];
 
     try {
-      await fetch("/api/monitoring/alerts", {
+      await fetch(this.resolveApiUrl("/api/monitoring/alerts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ alerts }),
@@ -482,10 +496,20 @@ class MonitoringService {
    * Start periodic flush of metrics and alerts
    */
   private startPeriodicFlush(): void {
+    if (this.flushInterval) {
+      return;
+    }
+
     this.flushInterval = setInterval(() => {
       this.flushMetrics();
       this.flushAlerts();
     }, 60000); // Flush every minute
+
+    if (
+      typeof (this.flushInterval as NodeJS.Timeout | null)?.unref === "function"
+    ) {
+      (this.flushInterval as NodeJS.Timeout).unref();
+    }
   }
 
   /**
@@ -494,11 +518,38 @@ class MonitoringService {
   stop(): void {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
+      this.flushInterval = null;
     }
 
     // Final flush
     this.flushMetrics();
     this.flushAlerts();
+  }
+
+  private shouldScheduleInterval(): boolean {
+    if (typeof window !== "undefined") {
+      return true;
+    }
+    return process.env.MONITORING_ENABLE_INTERVAL === "true";
+  }
+
+  private resolveApiUrl(path: string): string {
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
+    const base =
+      typeof window !== "undefined" && window.location
+        ? window.location.origin
+        : getBaseUrl();
+
+    try {
+      return new URL(path, base).toString();
+    } catch {
+      const normalizedBase = base.replace(/\/$/, "");
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      return `${normalizedBase}${normalizedPath}`;
+    }
   }
 }
 
