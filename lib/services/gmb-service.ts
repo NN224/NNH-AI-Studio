@@ -15,6 +15,19 @@ export interface GMBStatus {
   locationsCount?: number;
 }
 
+/**
+ * Unified Connection Status
+ * Supports partial connections (GMB + YouTube independently)
+ */
+export interface ConnectionStatus {
+  hasGmbConnection: boolean;
+  hasYoutubeConnection: boolean;
+  gmbAccount: GMBAccount | null;
+  youtubeChannelId: string | null;
+  lastGmbSync: string | null;
+  lastYoutubeSync: string | null;
+}
+
 export const GMBService = {
   // Get connection status
   getStatus: async (): Promise<GMBStatus> => {

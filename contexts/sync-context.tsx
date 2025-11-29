@@ -300,11 +300,10 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
     if (typeof window === "undefined") return;
 
     try {
-      broadcastChannelRef.current = new BroadcastChannel(
-        BROADCAST_CHANNEL_NAME,
-      );
+      const bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+      broadcastChannelRef.current = bc;
 
-      broadcastChannelRef.current.onmessage = (event) => {
+      bc.onmessage = (event) => {
         const { type, payload } = event.data;
 
         switch (type) {
@@ -356,6 +355,18 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
               error: payload.error,
               message: payload.error || STAGE_MESSAGES.error,
             }));
+            break;
+
+          case "AUTH_EXPIRED":
+            // Pause sync immediately on auth expiry
+            setState((prev) => ({
+              ...prev,
+              status: "error",
+              stage: "error",
+              error: "Authentication expired",
+              message: "Session expired. Please reconnect your account.",
+            }));
+            setIsBannerVisible(false);
             break;
         }
       };
