@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     "unknown";
 
   try {
-    console.log("[GMB Webhook] Received notification from IP:", ip);
+    // Webhook received - signature verification follows
 
     // Step 1: Rate Limiting (prevent spam attacks)
     const rateLimitKey = `webhook:gmb:${ip}`;
@@ -130,8 +130,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    console.log("[GMB Webhook] Signature verified successfully");
-
     // Step 5: Parse and validate payload
     let data: WebhookPayload;
 
@@ -168,14 +166,6 @@ export async function POST(request: NextRequest) {
       // Still process but log warning
     }
 
-    console.log("[GMB Webhook] Valid notification received:", {
-      resourceName: data.name,
-      accountId: locationInfo?.accountId,
-      locationId: locationInfo?.locationId,
-      notificationTypes: data.notificationTypes,
-      processingTime: Date.now() - startTime,
-    });
-
     // Step 7: Process notification types
     const supabase = await createClient();
     const processedTypes: string[] = [];
@@ -204,17 +194,8 @@ export async function POST(request: NextRequest) {
     // Step 8: Log webhook receipt (for debugging and audit)
     const totalTime = Date.now() - startTime;
 
-    if (errors.length === 0) {
-      console.log("[GMB Webhook] Successfully processed all notifications:", {
-        types: processedTypes,
-        totalTime,
-      });
-    } else {
-      console.warn("[GMB Webhook] Processed with errors:", {
-        processed: processedTypes,
-        errors,
-        totalTime,
-      });
+    if (errors.length > 0) {
+      console.error("[GMB Webhook] Processed with errors:", errors.join(", "));
     }
 
     // Always return 200 OK to acknowledge receipt
@@ -267,11 +248,6 @@ export async function GET(request: NextRequest) {
   const challenge = searchParams.get("hub.challenge");
   const verifyToken = searchParams.get("hub.verify_token");
 
-  console.log("[GMB Webhook] Verification request received:", {
-    hasChallenge: !!challenge,
-    hasToken: !!verifyToken,
-  });
-
   const expectedToken = process.env.GOOGLE_WEBHOOK_VERIFY_TOKEN;
 
   if (!expectedToken) {
@@ -283,7 +259,6 @@ export async function GET(request: NextRequest) {
   }
 
   if (verifyToken === expectedToken && challenge) {
-    console.log("[GMB Webhook] Verification successful");
     return new NextResponse(challenge, {
       status: 200,
       headers: { "Content-Type": "text/plain" },
@@ -346,10 +321,7 @@ async function processNotification(
     case "VOICE_OF_MERCHANT":
     case "GOOGLE_UPDATE":
     case "DUPLICATE":
-      // Log but don't process these types yet
-      console.log(
-        `[GMB Webhook] Received ${notificationType} notification (not yet implemented)`,
-      );
+      // These notification types are not yet implemented
       break;
 
     default:
@@ -373,11 +345,6 @@ async function processReviewNotification(
     throw new Error("Cannot process review notification without location info");
   }
 
-  console.log(
-    `[GMB Webhook] Processing ${notificationType} for location:`,
-    locationInfo.locationId,
-  );
-
   // Find the location in our database using the GMB location ID
   const { data: location, error: locationError } = await supabase
     .from("gmb_locations")
@@ -389,11 +356,7 @@ async function processReviewNotification(
     .maybeSingle();
 
   if (locationError || !location) {
-    console.warn(
-      "[GMB Webhook] Location not found in database:",
-      locationInfo.locationId,
-    );
-    // Don't throw - might be a new location not yet synced
+    // Location not found - might be a new location not yet synced
     return;
   }
 
@@ -417,16 +380,8 @@ async function processReviewNotification(
     });
   }
 
-  // Trigger incremental sync for reviews
-  // Use a background job or queue for this
+  // Trigger incremental sync for reviews (fire and forget)
   const syncEndpoint = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/gmb/sync-v2`;
-
-  console.log(
-    "[GMB Webhook] Triggering review sync for location:",
-    location.id,
-  );
-
-  // Fire and forget - don't wait for sync to complete
   fetch(syncEndpoint, {
     method: "POST",
     headers: {
@@ -459,11 +414,6 @@ async function processQuestionNotification(
     );
   }
 
-  console.log(
-    `[GMB Webhook] Processing ${notificationType} for location:`,
-    locationInfo.locationId,
-  );
-
   // Find the location in our database
   const { data: location, error: locationError } = await supabase
     .from("gmb_locations")
@@ -475,20 +425,12 @@ async function processQuestionNotification(
     .maybeSingle();
 
   if (locationError || !location) {
-    console.warn(
-      "[GMB Webhook] Location not found in database:",
-      locationInfo.locationId,
-    );
+    // Location not found - might be a new location not yet synced
     return;
   }
 
   // Trigger incremental sync for questions
   const syncEndpoint = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/gmb/sync-v2`;
-
-  console.log(
-    "[GMB Webhook] Triggering question sync for location:",
-    location.id,
-  );
 
   fetch(syncEndpoint, {
     method: "POST",
@@ -516,9 +458,6 @@ async function processAnswerNotification(
   payload: WebhookPayload,
   locationInfo: LocationInfo | null,
 ): Promise<void> {
-  console.log(
-    `[GMB Webhook] Processing ${notificationType} (delegating to question sync)`,
-  );
   // Answers are part of questions, so trigger question sync
   await processQuestionNotification(
     supabase,
@@ -541,11 +480,6 @@ async function processVerificationNotification(
       "Cannot process verification notification without location info",
     );
   }
-
-  console.log(
-    "[GMB Webhook] Processing LOCATION_VERIFICATION for:",
-    locationInfo.locationId,
-  );
 
   // Update verification status in database
   const { error } = await supabase

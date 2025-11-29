@@ -18,8 +18,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  console.log("[Scheduled Sync] Starting scheduled sync process...");
-
   try {
     const supabase = await createClient();
 
@@ -47,7 +45,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!accounts || accounts.length === 0) {
-      console.log("[Scheduled Sync] No active accounts found");
       return NextResponse.json({
         message: "No active accounts to sync",
         synced: 0,
@@ -100,10 +97,7 @@ export async function GET(request: NextRequest) {
           const minutesSinceLastSync =
             (now.getTime() - lastSyncTime.getTime()) / 1000 / 60;
           if (minutesSinceLastSync < 30) {
-            console.log(
-              `[Scheduled Sync] Skipping ${account.account_name} - synced ${minutesSinceLastSync.toFixed(0)} minutes ago`,
-            );
-            continue;
+            continue; // Skip - synced recently
           }
         }
 
@@ -112,7 +106,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (accountsToSync.length === 0) {
-      console.log("[Scheduled Sync] No accounts need syncing at this time");
       return NextResponse.json({
         message: "No accounts need syncing at this time",
         synced: 0,
@@ -127,10 +120,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(
-      `[Scheduled Sync] Found ${accountsToSync.length} account(s) to sync`,
-    );
-
     // ✅ MODERNIZED: Use queue-based sync instead of direct HTTP calls
     // This is more reliable and consistent with the rest of the application
     const syncResults = [];
@@ -139,10 +128,6 @@ export async function GET(request: NextRequest) {
       if (!account) continue;
 
       try {
-        console.log(
-          `[Scheduled Sync] Enqueueing sync for ${account.account_name} (${accountId})`,
-        );
-
         // Check if there's already a pending job for this account
         const { data: existingJob } = await supabase
           .from("sync_queue")
@@ -152,9 +137,6 @@ export async function GET(request: NextRequest) {
           .maybeSingle();
 
         if (existingJob) {
-          console.log(
-            `[Scheduled Sync] Job already queued for ${account.account_name}, skipping`,
-          );
           syncResults.push({
             accountId,
             accountName: account.account_name,
@@ -193,25 +175,20 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        console.log(
-          `[Scheduled Sync] ✅ Enqueued job ${job.id} for ${account.account_name}`,
-        );
         syncResults.push({
           accountId,
           accountName: account.account_name,
           status: "enqueued",
           jobId: job.id,
         });
-      } catch (error: any) {
-        console.error(
-          `[Scheduled Sync] Error enqueueing account ${accountId}:`,
-          error,
-        );
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error("[Scheduled Sync] Enqueue error:", err.message);
         syncResults.push({
           accountId,
           accountName: account.account_name || "Unknown",
           status: "error",
-          error: error.message,
+          error: err.message,
         });
       }
     }
@@ -225,15 +202,13 @@ export async function GET(request: NextRequest) {
         .lt("expires_at", oneHourAgo);
 
       if (cleanupError) {
-        console.warn(
-          "[Scheduled Sync] Failed to cleanup expired OAuth states:",
-          cleanupError,
+        console.error(
+          "[Scheduled Sync] OAuth cleanup failed:",
+          cleanupError.message,
         );
-      } else {
-        console.log("[Scheduled Sync] ✅ Cleaned up expired OAuth states");
       }
-    } catch (cleanupErr) {
-      console.warn("[Scheduled Sync] OAuth cleanup error:", cleanupErr);
+    } catch {
+      // OAuth cleanup is non-critical, ignore errors
     }
 
     return NextResponse.json({
@@ -251,10 +226,11 @@ export async function GET(request: NextRequest) {
         isMonday,
       },
     });
-  } catch (error: any) {
-    console.error("[Scheduled Sync] General error:", error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[Scheduled Sync] Error:", err.message);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: err.message || "Internal server error" },
       { status: 500 },
     );
   }
@@ -330,10 +306,11 @@ export async function POST(request: NextRequest) {
       accountId,
       result: payload,
     });
-  } catch (error: any) {
-    console.error("[Scheduled Sync POST] Error:", error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[Scheduled Sync] POST error:", err.message);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: err.message || "Internal server error" },
       { status: 500 },
     );
   }

@@ -1,9 +1,32 @@
-import { NextResponse } from "next/server";
+/**
+ * GMB Locations API Route
+ * Uses secure handler with optimized batched queries (no N+1)
+ */
+
+import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-function normalizeMetadata(rawMetadata: unknown) {
+// ============================================================================
+// Types
+// ============================================================================
+
+interface LocationRecord {
+  id: string;
+  metadata: unknown;
+  response_rate?: number | null;
+  last_synced_at?: string | null;
+  updated_at?: string | null;
+  gmb_accounts?: { is_active: boolean };
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function normalizeMetadata(rawMetadata: unknown): Record<string, unknown> {
   if (!rawMetadata) {
     return {};
   }
@@ -23,105 +46,122 @@ function normalizeMetadata(rawMetadata: unknown) {
   return {};
 }
 
-export async function GET() {
-  const supabase = await createClient();
+// ============================================================================
+// GET Handler - Fetch locations with pending counts (batched, no N+1)
+// ============================================================================
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+export const GET = withSecureApi(
+  async (_request, { user }) => {
+    const supabase = await createClient();
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!user) {
+      throw new ApiError(
+        ErrorCode.UNAUTHORIZED,
+        "Authentication required",
+        401,
+      );
+    }
 
-  const { data: locations, error: locationsError } = await supabase
-    .from("gmb_locations")
-    .select("*, gmb_accounts!inner(is_active)")
-    .eq("user_id", user.id)
-    .eq("gmb_accounts.is_active", true);
+    // -------------------------------------------------------------------------
+    // QUERY 1: Fetch all locations with active accounts (JOIN)
+    // -------------------------------------------------------------------------
+    const { data: locations, error: locationsError } = await supabase
+      .from("gmb_locations")
+      .select("*, gmb_accounts!inner(is_active)")
+      .eq("user_id", user.id)
+      .eq("gmb_accounts.is_active", true);
 
-  if (locationsError) {
-    console.error(
-      "[GET /api/gmb/locations] Failed to fetch locations",
-      locationsError,
-    );
-    return NextResponse.json(
-      { error: "Failed to load locations" },
-      { status: 500 },
-    );
-  }
+    if (locationsError) {
+      throw new ApiError(
+        ErrorCode.DATABASE_ERROR,
+        "Failed to load locations",
+        500,
+      );
+    }
 
-  if (!locations || locations.length === 0) {
-    return NextResponse.json({ locations: [] });
-  }
+    if (!locations || locations.length === 0) {
+      return NextResponse.json({ locations: [] });
+    }
 
-  const locationIds = locations.map((loc) => loc.id);
+    // -------------------------------------------------------------------------
+    // QUERY 2 & 3: Batch fetch pending reviews & questions (Promise.all)
+    // This avoids N+1 by fetching ALL pending items in 2 queries total
+    // -------------------------------------------------------------------------
+    const locationIds = locations.map((loc) => loc.id);
 
-  const [pendingReviewsResult, pendingQuestionsResult] = await Promise.all([
-    supabase
-      .from("gmb_reviews")
-      .select("location_id, has_reply")
-      .in("location_id", locationIds)
-      .or("has_reply.eq.false,has_reply.is.null"),
-    supabase
-      .from("gmb_questions")
-      .select("location_id, answer_status")
-      .in("location_id", locationIds)
-      .in("answer_status", ["pending", "unanswered"]),
-  ]);
+    const [pendingReviewsResult, pendingQuestionsResult] = await Promise.all([
+      supabase
+        .from("gmb_reviews")
+        .select("location_id, has_reply")
+        .in("location_id", locationIds)
+        .or("has_reply.eq.false,has_reply.is.null"),
+      supabase
+        .from("gmb_questions")
+        .select("location_id, answer_status")
+        .in("location_id", locationIds)
+        .in("answer_status", ["pending", "unanswered"]),
+    ]);
 
-  if (pendingReviewsResult.error) {
-    console.error(
-      "[GET /api/gmb/locations] Failed to load pending reviews",
-      pendingReviewsResult.error,
-    );
-  }
+    // Log errors but don't fail the request - partial data is acceptable
+    if (pendingReviewsResult.error) {
+      console.error(
+        "[GMB Locations] Reviews query failed:",
+        pendingReviewsResult.error.message,
+      );
+    }
 
-  if (pendingQuestionsResult.error) {
-    console.error(
-      "[GET /api/gmb/locations] Failed to load pending questions",
-      pendingQuestionsResult.error,
-    );
-  }
+    if (pendingQuestionsResult.error) {
+      console.error(
+        "[GMB Locations] Questions query failed:",
+        pendingQuestionsResult.error.message,
+      );
+    }
 
-  const pendingReviewsMap = new Map<string, number>();
-  const pendingQuestionsMap = new Map<string, number>();
+    // -------------------------------------------------------------------------
+    // AGGREGATE: Build lookup maps for O(1) access
+    // -------------------------------------------------------------------------
+    const pendingReviewsMap = new Map<string, number>();
+    const pendingQuestionsMap = new Map<string, number>();
 
-  for (const review of pendingReviewsResult.data ?? []) {
-    const locationId = review.location_id;
-    if (!locationId) continue;
-    pendingReviewsMap.set(
-      locationId,
-      (pendingReviewsMap.get(locationId) ?? 0) + 1,
-    );
-  }
+    for (const review of pendingReviewsResult.data ?? []) {
+      const locationId = review.location_id;
+      if (!locationId) continue;
+      pendingReviewsMap.set(
+        locationId,
+        (pendingReviewsMap.get(locationId) ?? 0) + 1,
+      );
+    }
 
-  for (const question of pendingQuestionsResult.data ?? []) {
-    const locationId = question.location_id;
-    if (!locationId) continue;
-    pendingQuestionsMap.set(
-      locationId,
-      (pendingQuestionsMap.get(locationId) ?? 0) + 1,
-    );
-  }
+    for (const question of pendingQuestionsResult.data ?? []) {
+      const locationId = question.location_id;
+      if (!locationId) continue;
+      pendingQuestionsMap.set(
+        locationId,
+        (pendingQuestionsMap.get(locationId) ?? 0) + 1,
+      );
+    }
 
-  const enriched = locations.map((location) => {
-    const metadata = normalizeMetadata(location.metadata);
+    // -------------------------------------------------------------------------
+    // TRANSFORM: Enrich locations with pending counts (no additional queries)
+    // -------------------------------------------------------------------------
+    const enriched = (locations as LocationRecord[]).map((location) => {
+      const metadata = normalizeMetadata(location.metadata);
 
-    metadata.pendingReviews = pendingReviewsMap.get(location.id) ?? 0;
-    metadata.pendingQuestions = pendingQuestionsMap.get(location.id) ?? 0;
-    metadata.responseRate ??= location.response_rate ?? null;
-    metadata.last_sync ??=
-      location.last_synced_at ?? location.updated_at ?? null;
+      metadata.pendingReviews = pendingReviewsMap.get(location.id) ?? 0;
+      metadata.pendingQuestions = pendingQuestionsMap.get(location.id) ?? 0;
+      metadata.responseRate ??= location.response_rate ?? null;
+      metadata.last_sync ??=
+        location.last_synced_at ?? location.updated_at ?? null;
 
-    return {
-      ...location,
-      metadata,
-    };
-  });
+      return {
+        ...location,
+        metadata,
+      };
+    });
 
-  return NextResponse.json({
-    locations: enriched,
-  });
-}
+    return NextResponse.json({ locations: enriched });
+  },
+  {
+    requireAuth: true,
+  },
+);

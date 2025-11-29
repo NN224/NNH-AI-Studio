@@ -1,121 +1,119 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getValidAccessToken } from '@/lib/gmb/helpers'
-import { ApiError, errorResponse, successResponse } from '@/utils/api-error'
+import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { createClient } from "@/lib/supabase/server";
+import { ApiError, errorResponse, successResponse } from "@/utils/api-error";
+import { NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-const NOTIFICATIONS_API_BASE = 'https://mybusinessnotifications.googleapis.com/v1'
+const NOTIFICATIONS_API_BASE =
+  "https://mybusinessnotifications.googleapis.com/v1";
 
 /**
  * GET - Fetch current notification settings
  * Returns the Pub/Sub notification settings for the GMB account
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return errorResponse(new ApiError('Authentication required', 401))
+      return errorResponse(new ApiError("Authentication required", 401));
     }
 
     // Get active GMB account
     const { data: account, error: accountError } = await supabase
-      .from('gmb_accounts')
-      .select('id, account_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .from("gmb_accounts")
+      .select("id, account_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
     if (accountError) {
-      console.error('[Notifications Setup API] Failed to load GMB account:', accountError)
-      return errorResponse(new ApiError('Failed to load GMB account', 500, accountError))
+      console.error(
+        "[Notifications Setup API] Failed to load GMB account:",
+        accountError,
+      );
+      return errorResponse(
+        new ApiError("Failed to load GMB account", 500, accountError),
+      );
     }
 
     if (!account) {
-      return errorResponse(new ApiError('No active GMB account found', 404))
+      return errorResponse(new ApiError("No active GMB account found", 404));
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, account.id);
 
     // Get current notification settings from Google
-    const url = `${NOTIFICATIONS_API_BASE}/accounts/${account.account_id}/notificationSetting`
-
-    console.log('[Notifications Setup API] Fetching settings from:', url)
+    const url = `${NOTIFICATIONS_API_BASE}/accounts/${account.account_id}/notificationSetting`;
 
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
+        Accept: "application/json",
       },
-    })
+    });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
-      let errorData: any = {}
+      const errorText = await response.text().catch(() => "");
+      let errorData: Record<string, unknown> = {};
       try {
-        errorData = errorText ? JSON.parse(errorText) : {}
+        errorData = errorText ? JSON.parse(errorText) : {};
       } catch {
-        errorData = { message: errorText }
+        errorData = { message: errorText };
       }
 
-      console.error('[Notifications Setup API] Error response:', {
+      console.error("[Notifications Setup API] Error response:", {
         status: response.status,
         errorData,
-      })
+      });
 
       if (response.status === 401) {
         return errorResponse(
           new ApiError(
-            'Authentication expired. Please reconnect your Google account.',
+            "Authentication expired. Please reconnect your Google account.",
             401,
-            errorData
-          )
-        )
+            errorData,
+          ),
+        );
       }
 
       if (response.status === 404) {
         // No settings configured yet - return empty settings
         return successResponse({
           name: `accounts/${account.account_id}/notificationSetting`,
-          pubsubTopic: '',
+          pubsubTopic: "",
           notificationTypes: [],
-        })
+        });
       }
 
       return errorResponse(
         new ApiError(
-          errorData.error?.message || errorData.message || 'Failed to fetch notification settings',
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to fetch notification settings",
           response.status,
-          errorData
-        )
-      )
+          errorData,
+        ),
+      );
     }
 
-    const settings = await response.json()
+    const settings = await response.json();
 
-    console.log('[Notifications Setup API] Successfully fetched settings')
-
-    return successResponse(settings)
-  } catch (error: any) {
-    console.error('[Notifications Setup API] Error:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack,
-      error,
-    })
+    return successResponse(settings);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[Notifications Setup] Error:", err.message);
 
     return errorResponse(
-      new ApiError(
-        error?.message || 'Failed to fetch notification settings',
-        500
-      )
-    )
+      new ApiError(err.message || "Failed to fetch notification settings", 500),
+    );
   }
 }
 
@@ -125,129 +123,125 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return errorResponse(new ApiError('Authentication required', 401))
+      return errorResponse(new ApiError("Authentication required", 401));
     }
 
-    const body = await request.json()
-    const { pubsubTopic, notificationTypes } = body
+    const body = await request.json();
+    const { pubsubTopic, notificationTypes } = body;
 
     // Validate input
     if (!Array.isArray(notificationTypes)) {
-      return errorResponse(new ApiError('notificationTypes must be an array', 400))
+      return errorResponse(
+        new ApiError("notificationTypes must be an array", 400),
+      );
     }
 
     // Get active GMB account
     const { data: account, error: accountError } = await supabase
-      .from('gmb_accounts')
-      .select('id, account_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .from("gmb_accounts")
+      .select("id, account_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
     if (accountError) {
-      console.error('[Notifications Setup API] Failed to load GMB account:', accountError)
-      return errorResponse(new ApiError('Failed to load GMB account', 500, accountError))
+      console.error(
+        "[Notifications Setup API] Failed to load GMB account:",
+        accountError,
+      );
+      return errorResponse(new ApiError("Failed to load GMB account", 500));
     }
 
     if (!account) {
-      return errorResponse(new ApiError('No active GMB account found', 404))
+      return errorResponse(new ApiError("No active GMB account found", 404));
     }
 
-    const accessToken = await getValidAccessToken(supabase, account.id)
+    const accessToken = await getValidAccessToken(supabase, account.id);
 
     // Update notification settings in Google
-    const url = `${NOTIFICATIONS_API_BASE}/accounts/${account.account_id}/notificationSetting?updateMask=pubsubTopic,notificationTypes`
+    const url = `${NOTIFICATIONS_API_BASE}/accounts/${account.account_id}/notificationSetting?updateMask=pubsubTopic,notificationTypes`;
 
     const requestBody = {
       name: `accounts/${account.account_id}/notificationSetting`,
-      pubsubTopic: pubsubTopic || '',
+      pubsubTopic: pubsubTopic || "",
       notificationTypes: notificationTypes || [],
-    }
-
-    console.log('[Notifications Setup API] Updating settings:', {
-      url,
-      body: requestBody,
-    })
+    };
 
     const response = await fetch(url, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(requestBody),
-    })
+    });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
-      let errorData: any = {}
+      const errorText = await response.text().catch(() => "");
+      let errorData: Record<string, unknown> = {};
       try {
-        errorData = errorText ? JSON.parse(errorText) : {}
+        errorData = errorText ? JSON.parse(errorText) : {};
       } catch {
-        errorData = { message: errorText }
+        errorData = { message: errorText };
       }
 
-      console.error('[Notifications Setup API] Error response:', {
+      console.error("[Notifications Setup API] Error response:", {
         status: response.status,
         errorData,
-      })
+      });
 
       if (response.status === 401) {
         return errorResponse(
           new ApiError(
-            'Authentication expired. Please reconnect your Google account.',
+            "Authentication expired. Please reconnect your Google account.",
             401,
-            errorData
-          )
-        )
+            errorData,
+          ),
+        );
       }
 
       return errorResponse(
         new ApiError(
-          errorData.error?.message || errorData.message || 'Failed to update notification settings',
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to update notification settings",
           response.status,
-          errorData
-        )
-      )
+          errorData,
+        ),
+      );
     }
 
-    const settings = await response.json()
-
-    console.log('[Notifications Setup API] Successfully updated settings')
+    const settings = await response.json();
 
     // Store settings in database for reference
     await supabase
-      .from('gmb_accounts')
+      .from("gmb_accounts")
       .update({
         notification_settings: settings,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', account.id)
+      .eq("id", account.id);
 
-    return successResponse(settings)
-  } catch (error: any) {
-    console.error('[Notifications Setup API] Error:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack,
-      error,
-    })
+    return successResponse(settings);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[Notifications Setup] Error:", err.message);
 
     return errorResponse(
       new ApiError(
-        error?.message || 'Failed to update notification settings',
-        500
-      )
-    )
+        err.message || "Failed to update notification settings",
+        500,
+      ),
+    );
   }
 }
-

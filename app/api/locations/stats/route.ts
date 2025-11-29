@@ -1,41 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // GET - Get location statistics
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    console.log('[GET /api/locations/stats] Request received');
     const supabase = await createClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('[GET /api/locations/stats] Auth error:', authError);
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
-    console.log('[GET /api/locations/stats] User authenticated:', user.id);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Get active account IDs
     const { data: accounts, error: accountsError } = await supabase
-      .from('gmb_accounts')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('is_active', true);
+      .from("gmb_accounts")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
 
     if (accountsError) {
-      console.error('[GET /api/locations/stats] Error fetching accounts:', accountsError);
+      console.error(
+        "[Location Stats] Accounts fetch error:",
+        accountsError.message,
+      );
     }
 
-    const accountIds = accounts?.map(acc => acc.id) || [];
-    console.log('[GET /api/locations/stats] Active account IDs:', accountIds);
+    const accountIds = accounts?.map((acc) => acc.id) || [];
 
     if (accountIds.length === 0) {
-      console.log('[GET /api/locations/stats] No active accounts found, returning zeros');
       return NextResponse.json({
         totalLocations: 0,
         avgRating: 0,
@@ -48,25 +45,27 @@ export async function GET(request: NextRequest) {
 
     // Get locations with all necessary fields for calculations
     const { data: locations, error: locationsError } = await supabase
-      .from('gmb_locations')
-      .select('id, rating, review_count, category, status, metadata, phone, website, address, business_hours')
-      .eq('user_id', user.id)
-      .in('gmb_account_id', accountIds)
-      .eq('is_active', true);
+      .from("gmb_locations")
+      .select(
+        "id, rating, review_count, category, status, metadata, phone, website, address, business_hours",
+      )
+      .eq("user_id", user.id)
+      .in("gmb_account_id", accountIds)
+      .eq("is_active", true);
 
     if (locationsError) {
-      console.error('[GET /api/locations/stats] Error fetching locations:', locationsError);
+      console.error(
+        "[Location Stats] Locations fetch error:",
+        locationsError.message,
+      );
       return NextResponse.json(
-        { error: 'Failed to fetch locations' },
-        { status: 500 }
+        { error: "Failed to fetch locations" },
+        { status: 500 },
       );
     }
 
-    console.log('[GET /api/locations/stats] Locations found:', locations?.length || 0);
-    console.log('[GET /api/locations/stats] Sample location data:', locations?.[0]);
-
     const totalLocations = locations?.length || 0;
-    const locationIds = locations?.map(loc => loc.id) || [];
+    const locationIds = locations?.map((loc) => loc.id) || [];
 
     if (locationIds.length === 0) {
       return NextResponse.json({
@@ -81,18 +80,28 @@ export async function GET(request: NextRequest) {
 
     // Get all reviews for all locations to calculate accurate ratings and response rates
     const { data: allReviews, error: reviewsError } = await supabase
-      .from('gmb_reviews')
-      .select('location_id, rating, review_reply, reply_text, has_reply')
-      .in('location_id', locationIds)
-      .eq('user_id', user.id);
+      .from("gmb_reviews")
+      .select("location_id, rating, review_reply, reply_text, has_reply")
+      .in("location_id", locationIds)
+      .eq("user_id", user.id);
 
     if (reviewsError) {
-      console.error('[GET /api/locations/stats] Error fetching reviews:', reviewsError);
+      console.error(
+        "[Location Stats] Reviews fetch error:",
+        reviewsError.message,
+      );
     }
 
     // Group reviews by location
-    const reviewsByLocation: Record<string, any[]> = {};
-    (allReviews || []).forEach(review => {
+    interface ReviewRecord {
+      location_id: string;
+      rating: number | null;
+      review_reply?: string | null;
+      reply_text?: string | null;
+      has_reply?: boolean | null;
+    }
+    const reviewsByLocation: Record<string, ReviewRecord[]> = {};
+    (allReviews || []).forEach((review) => {
       if (!reviewsByLocation[review.location_id]) {
         reviewsByLocation[review.location_id] = [];
       }
@@ -104,9 +113,9 @@ export async function GET(request: NextRequest) {
     let totalRating = 0;
     let locationsWithValidRating = 0;
 
-    locations?.forEach(loc => {
+    locations?.forEach((loc) => {
       let locationRating = 0;
-      
+
       // Check if location has a valid rating in database
       if (loc.rating && parseFloat(loc.rating.toString()) > 0) {
         locationRating = parseFloat(loc.rating.toString());
@@ -125,45 +134,57 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const avgRating = locationsWithValidRating > 0
-      ? totalRating / locationsWithValidRating
-      : 0;
+    const avgRating =
+      locationsWithValidRating > 0 ? totalRating / locationsWithValidRating : 0;
 
     // Calculate total reviews
-    const totalReviews = locations?.reduce((sum, loc) => {
-      const locationReviews = reviewsByLocation[loc.id] || [];
-      // Use review_count from location if available, otherwise use actual reviews count
-      return sum + (loc.review_count && loc.review_count > 0 ? loc.review_count : locationReviews.length);
-    }, 0) || 0;
+    const totalReviews =
+      locations?.reduce((sum, loc) => {
+        const locationReviews = reviewsByLocation[loc.id] || [];
+        // Use review_count from location if available, otherwise use actual reviews count
+        return (
+          sum +
+          (loc.review_count && loc.review_count > 0
+            ? loc.review_count
+            : locationReviews.length)
+        );
+      }, 0) || 0;
 
     // Get additional data for health score calculation
     const [postsResult, attributesResult] = await Promise.all([
       supabase
-        .from('gmb_posts')
-        .select('location_id, created_at')
-        .in('location_id', locationIds)
-        .eq('user_id', user.id),
+        .from("gmb_posts")
+        .select("location_id, created_at")
+        .in("location_id", locationIds)
+        .eq("user_id", user.id),
       supabase
-        .from('gmb_attributes')
-        .select('location_id')
-        .in('location_id', locationIds)
-        .eq('user_id', user.id)
+        .from("gmb_attributes")
+        .select("location_id")
+        .in("location_id", locationIds)
+        .eq("user_id", user.id),
     ]);
 
     const allPosts = postsResult.data || [];
     const allAttributes = attributesResult.data || [];
 
     // Group posts and attributes by location
-    const postsByLocation: Record<string, any[]> = {};
-    allPosts.forEach(post => {
+    interface PostRecord {
+      location_id: string;
+      created_at: string;
+    }
+    const postsByLocation: Record<string, PostRecord[]> = {};
+    allPosts.forEach((post) => {
       if (!postsByLocation[post.location_id]) {
         postsByLocation[post.location_id] = [];
       }
       postsByLocation[post.location_id].push(post);
     });
 
-    const attributesByLocation: Record<string, any[]> = {};
-    allAttributes.forEach(attr => {
+    interface AttributeRecord {
+      location_id: string;
+    }
+    const attributesByLocation: Record<string, AttributeRecord[]> = {};
+    allAttributes.forEach((attr) => {
       if (!attributesByLocation[attr.location_id]) {
         attributesByLocation[attr.location_id] = [];
       }
@@ -172,11 +193,11 @@ export async function GET(request: NextRequest) {
 
     // Calculate health score for each location (using same logic as single location API)
     let totalHealthScore = 0;
-    locations?.forEach(loc => {
+    locations?.forEach((loc) => {
       const locationReviews = reviewsByLocation[loc.id] || [];
       const locationPosts = postsByLocation[loc.id] || [];
       const locationAttributes = attributesByLocation[loc.id] || [];
-      
+
       // Calculate health score using same logic as single location API
       const metadata = loc.metadata || {};
       let completenessScore = 0;
@@ -186,7 +207,8 @@ export async function GET(request: NextRequest) {
       if (loc.website) completenessScore += 8;
       if (loc.address) completenessScore += 8;
       if (loc.category) completenessScore += 8;
-      if (loc.business_hours && Object.keys(loc.business_hours).length > 0) completenessScore += 8;
+      if (loc.business_hours && Object.keys(loc.business_hours).length > 0)
+        completenessScore += 8;
 
       // Profile details (30 points)
       if (metadata.profile?.description) completenessScore += 10;
@@ -208,19 +230,23 @@ export async function GET(request: NextRequest) {
 
       // Review Response Rate (40% weight)
       const totalLocationReviews = locationReviews.length;
-      const respondedReviews = locationReviews.filter(r => {
-        const hasReply = (r.review_reply && r.review_reply.trim() !== '') ||
-                         (r.reply_text && r.reply_text.trim() !== '') ||
-                         (r.has_reply === true);
+      const respondedReviews = locationReviews.filter((r) => {
+        const hasReply =
+          (r.review_reply && r.review_reply.trim() !== "") ||
+          (r.reply_text && r.reply_text.trim() !== "") ||
+          r.has_reply === true;
         return hasReply;
       }).length;
-      const responseRate = totalLocationReviews > 0 ? (respondedReviews / totalLocationReviews) * 100 : 0;
+      const responseRate =
+        totalLocationReviews > 0
+          ? (respondedReviews / totalLocationReviews) * 100
+          : 0;
 
       // Recent Activity (20% weight)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentPostsCount = locationPosts.filter(post => {
+
+      const recentPostsCount = locationPosts.filter((post) => {
         const postDate = new Date(post.created_at);
         return postDate >= thirtyDaysAgo;
       }).length;
@@ -233,35 +259,23 @@ export async function GET(request: NextRequest) {
 
       // Calculate weighted health score
       const healthScore = Math.round(
-        (normalizedCompleteness * 0.4) + 
-        (responseRate * 0.4) + 
-        (activityScore * 0.2)
+        normalizedCompleteness * 0.4 + responseRate * 0.4 + activityScore * 0.2,
       );
 
       totalHealthScore += Math.min(100, Math.max(0, healthScore));
     });
 
-    const avgHealthScore = totalLocations > 0
-      ? Math.round(totalHealthScore / totalLocations)
-      : 0;
-
-    console.log('[GET /api/locations/stats] Calculated stats:', {
-      totalLocations,
-      avgRating: Math.round(avgRating * 10) / 10,
-      totalReviews,
-      avgHealthScore,
-      locationsWithValidRating,
-      reviewsCount: allReviews?.length || 0,
-    });
+    const avgHealthScore =
+      totalLocations > 0 ? Math.round(totalHealthScore / totalLocations) : 0;
 
     // Group by category and status
     const locationsByCategory: Record<string, number> = {};
     const locationsByStatus: Record<string, number> = {};
-    locations?.forEach(loc => {
-      const category = loc.category || 'Uncategorized';
+    locations?.forEach((loc) => {
+      const category = loc.category || "Uncategorized";
       locationsByCategory[category] = (locationsByCategory[category] || 0) + 1;
 
-      const statusKey = (loc.status || 'unknown').toString();
+      const statusKey = (loc.status || "unknown").toString();
       locationsByStatus[statusKey] = (locationsByStatus[statusKey] || 0) + 1;
     });
 
@@ -274,15 +288,13 @@ export async function GET(request: NextRequest) {
       locationsByStatus,
     };
 
-    console.log('[GET /api/locations/stats] Returning response:', response);
-
     return NextResponse.json(response);
-
-  } catch (error: any) {
-    console.error('[GET /api/locations/stats] Unexpected error:', error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("[Location Stats] Error:", err.message);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
