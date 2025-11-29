@@ -2,15 +2,109 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { locales } from "./i18n";
+import {
+  applyEdgeRateLimit,
+  checkEdgeRateLimit,
+  createRateLimitResponse,
+  getClientIP,
+  getDynamicRateLimit,
+  isSuspiciousRequest,
+} from "./lib/security/edge-rate-limit";
+import {
+  HSTS_HEADER,
+  SECURITY_HEADERS,
+  generateCSP,
+} from "./lib/security/headers";
+
+// ============================================================================
+// Security Headers
+// ============================================================================
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  // Apply basic security headers
+  Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+    if (value) {
+      response.headers.set(key, value);
+    }
+  });
+
+  // Apply HSTS in production
+  if (process.env.NODE_ENV === "production") {
+    Object.entries(HSTS_HEADER).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+  }
+
+  // Apply CSP
+  response.headers.set("Content-Security-Policy", generateCSP());
+
+  return response;
+}
+
+// ============================================================================
+// Main Middleware
+// ============================================================================
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // -------------------------------------------------------------------------
+  // 1. SECURITY: Block suspicious requests immediately
+  // -------------------------------------------------------------------------
+  if (isSuspiciousRequest(request)) {
+    console.warn("[Middleware] Blocked suspicious request:", {
+      ip: getClientIP(request),
+      path: pathname,
+      userAgent: request.headers.get("user-agent"),
+      timestamp: new Date().toISOString(),
+    });
+
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // -------------------------------------------------------------------------
+  // 2. SECURITY: Edge-level rate limiting (DDoS protection)
+  // -------------------------------------------------------------------------
+  const rateLimitConfig = getDynamicRateLimit(request);
+  const rateLimitResponse = applyEdgeRateLimit(request, rateLimitConfig);
+
+  if (rateLimitResponse) {
+    console.warn("[Middleware] Rate limit exceeded:", {
+      ip: getClientIP(request),
+      path: pathname,
+      timestamp: new Date().toISOString(),
+    });
+    return rateLimitResponse;
+  }
+
+  // -------------------------------------------------------------------------
+  // 3. Additional rate limiting for API routes
+  // -------------------------------------------------------------------------
+  if (pathname.startsWith("/api/")) {
+    // Stricter rate limit for API endpoints
+    const ip = getClientIP(request);
+    const apiResult = checkEdgeRateLimit(`api:${ip}`, 200, 60); // 200 req/min for APIs
+
+    if (!apiResult.success) {
+      return createRateLimitResponse(apiResult);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 4. Initialize response with security headers
+  // -------------------------------------------------------------------------
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  // 1. Handle i18n first
+  // Apply security headers to all responses
+  response = applySecurityHeaders(response);
+
+  // -------------------------------------------------------------------------
+  // 5. Handle i18n routing
+  // -------------------------------------------------------------------------
   const handleI18nRouting = createIntlMiddleware({
     locales,
     defaultLocale: "en",
@@ -18,7 +112,12 @@ export async function middleware(request: NextRequest) {
 
   const i18nResponse = handleI18nRouting(request);
 
-  // 2. Create Supabase client
+  // Apply security headers to i18n response as well
+  if (i18nResponse) {
+    applySecurityHeaders(i18nResponse);
+  }
+
+  // Create Supabase client for auth checks
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -45,8 +144,9 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // 3. Check auth for protected routes
-  const pathname = request.nextUrl.pathname;
+  // -------------------------------------------------------------------------
+  // 6. Check auth for protected routes
+  // -------------------------------------------------------------------------
   const locale = pathname.split("/")[1] || "en";
 
   const protectedPaths = [
@@ -97,7 +197,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Redirect authenticated users away from auth pages
+  // -------------------------------------------------------------------------
+  // 7. Redirect authenticated users away from auth pages
+  // -------------------------------------------------------------------------
   const authPaths = ["/auth/login", "/auth/signup"];
   const isAuthRoute = authPaths.some((path) => pathname.includes(path));
 
@@ -118,7 +220,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|manifest\\.webmanifest|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Match all paths except static files
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Also match API routes for rate limiting
+    "/api/:path*",
   ],
   runtime: "nodejs",
 };

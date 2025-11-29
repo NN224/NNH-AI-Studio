@@ -126,14 +126,17 @@ export async function POST(request: NextRequest) {
     }
 
     // -------------------------------------------------------------------------
-    // VERIFY ACCOUNT & GET USER ID (for cron/internal requests)
+    // VERIFY ACCOUNT OWNERSHIP (TENANT ISOLATION)
     // -------------------------------------------------------------------------
+    // SECURITY: For user requests, ALWAYS verify account belongs to authenticated user
+    // For cron/internal requests, we trust the accountId but still validate it exists
     let accountQuery = supabase
       .from("gmb_accounts")
       .select("id, user_id, is_active, account_name")
       .eq("id", accountId);
 
-    // Only filter by user_id for non-cron requests
+    // CRITICAL: Always filter by user_id for user-initiated requests
+    // This prevents users from syncing accounts they don't own
     if (userId) {
       accountQuery = accountQuery.eq("user_id", userId);
     }
