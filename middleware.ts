@@ -149,6 +149,7 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   const locale = pathname.split("/")[1] || "en";
 
+  // Routes that require authentication
   const protectedPaths = [
     "/dashboard",
     "/reviews",
@@ -162,9 +163,47 @@ export async function middleware(request: NextRequest) {
     "/home",
     "/owner-diagnostics",
     "/sync-diagnostics",
+    "/sync-progress",
+    "/analytics",
+    "/automation",
+    "/products",
+    "/features",
+    "/gmb-posts",
+  ];
+
+  // Routes that REQUIRE GMB connection (subset of protected routes)
+  // Users without GMB connection will be redirected to /home
+  const gmbRequiredPaths = [
+    "/dashboard",
+    "/reviews",
+    "/questions",
+    "/posts",
+    "/media",
+    "/locations",
+    "/analytics",
+    "/automation",
+    "/products",
+    "/features",
+    "/gmb-posts",
+  ];
+
+  // Routes that are allowed WITHOUT GMB connection (for documentation)
+  // These are implicitly exempt since they're not in gmbRequiredPaths
+  const _gmbExemptPaths = [
+    "/home",
+    "/settings",
+    "/youtube-dashboard",
+    "/sync-progress",
+    "/sync-diagnostics",
+    "/owner-diagnostics",
+    "/metrics",
   ];
 
   const isProtectedRoute = protectedPaths.some((path) =>
+    pathname.includes(path),
+  );
+
+  const isGmbRequiredRoute = gmbRequiredPaths.some((path) =>
     pathname.includes(path),
   );
 
@@ -194,6 +233,75 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(
         new URL(`/${locale}/auth/login`, request.url),
       );
+    }
+
+    // -------------------------------------------------------------------------
+    // 6b. GMB Connection Check for GMB-required routes
+    // -------------------------------------------------------------------------
+    // Use cookie-based check first for performance (no DB query)
+    // Cookie is set by the OAuth callback and dashboard layout
+    if (isGmbRequiredRoute) {
+      const gmbConnectedCookie = request.cookies.get("gmb_connected")?.value;
+
+      // If cookie says connected, trust it (fast path)
+      if (gmbConnectedCookie === "true") {
+        // User has GMB connection, allow access
+      } else if (gmbConnectedCookie === "false") {
+        // Cookie explicitly says not connected, redirect to home
+        console.warn(
+          "[Middleware] GMB not connected (cookie), redirecting to home",
+        );
+        const homeUrl = new URL(`/${locale}/home`, request.url);
+        homeUrl.searchParams.set("gmb_required", "true");
+        return NextResponse.redirect(homeUrl);
+      } else {
+        // No cookie - need to check DB (slower path, but only happens once)
+        // This sets the cookie for future requests
+        try {
+          const { count, error: gmbError } = await supabase
+            .from("gmb_accounts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("is_active", true);
+
+          const hasGmbConnection = !gmbError && (count || 0) > 0;
+
+          // Set cookie for future requests (expires in 1 hour)
+          response.cookies.set(
+            "gmb_connected",
+            hasGmbConnection ? "true" : "false",
+            {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              maxAge: 3600, // 1 hour
+              path: "/",
+            },
+          );
+
+          if (!hasGmbConnection) {
+            console.warn(
+              "[Middleware] GMB not connected (DB check), redirecting to home",
+            );
+            const homeUrl = new URL(`/${locale}/home`, request.url);
+            homeUrl.searchParams.set("gmb_required", "true");
+
+            // Create redirect response with the cookie
+            const redirectResponse = NextResponse.redirect(homeUrl);
+            redirectResponse.cookies.set("gmb_connected", "false", {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              maxAge: 3600,
+              path: "/",
+            });
+            return redirectResponse;
+          }
+        } catch (dbError) {
+          // On DB error, allow access but log warning
+          console.error("[Middleware] GMB check failed:", dbError);
+        }
+      }
     }
   }
 

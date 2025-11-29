@@ -40,15 +40,36 @@ export function useGMBConnection(options?: {
   const disconnectMutation = useMutation({
     mutationFn: GMBService.disconnect,
     onSuccess: () => {
-      // Invalidate all GMB queries to refresh UI
+      // ✅ COMPREHENSIVE CACHE INVALIDATION - Fix zombie data
+      // Invalidate ALL GMB-related queries
       queryClient.invalidateQueries({ queryKey: GMB_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["questions"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["media"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+
       // Reset status immediately in cache to appear disconnected
       queryClient.setQueryData(GMB_KEYS.status(), {
         connected: false,
         activeAccount: null,
+        hasLocations: false,
       });
+
+      // Clear all query cache as failsafe
+      queryClient.clear();
+
       // Call custom success handler if provided
       options?.onDisconnectSuccess?.();
+
+      // ✅ HARD RELOAD - Failsafe to clear any in-memory state
+      // Small delay to allow toast to show
+      setTimeout(() => {
+        window.location.href = "/home";
+      }, 500);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to disconnect");

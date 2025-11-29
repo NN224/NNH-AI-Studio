@@ -6,6 +6,7 @@
  * Static analyzers may flag these as "open redirect" vulnerabilities, but they are
  * false positives - the URLs are validated before redirect.
  */
+import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
 import { logAction } from "@/lib/monitoring/audit";
 import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -14,7 +15,6 @@ import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
 } from "@/lib/utils/safe-redirect";
-import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -788,26 +788,27 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ IMPROVED: Smart redirect based on user state
-    // Get returnUrl from state record (stored in redirect_uri column)
-    const returnUrl = stateRecord.redirect_uri || "/dashboard";
-
-    // Build redirect parameters based on user state
+    // Build redirect parameters and destination based on user state
+    let redirectPath: string;
     let redirectParams: Record<string, string>;
 
     switch (userState) {
       case "FIRST_TIME":
-        // 🎉 First-time - show sync overlay
+        // 🎉 First-time - redirect to sync-progress page to wait for data
+        // This fixes the race condition where dashboard shows 404 before data is ready
+        redirectPath = `/${localeCookie}/sync-progress`;
         redirectParams = {
-          newUser: "true",
+          initial: "true",
           accountId: savedAccountId,
         };
         console.warn(
-          "[OAuth Callback] FIRST_TIME redirect - will show sync overlay",
+          "[OAuth Callback] FIRST_TIME redirect - sync-progress page",
         );
         break;
 
       case "ADDITIONAL_ACCOUNT":
-        // ⚡ Additional account - background sync notification
+        // ⚡ Additional account - background sync notification, go to dashboard
+        redirectPath = `/${localeCookie}/dashboard`;
         redirectParams = {
           accountAdded: "true",
           accountId: savedAccountId,
@@ -818,7 +819,8 @@ export async function GET(request: NextRequest) {
         break;
 
       case "RE_AUTH":
-        // 🔄 Re-auth - just success message
+        // 🔄 Re-auth - just success message, go to dashboard
+        redirectPath = `/${localeCookie}/dashboard`;
         redirectParams = {
           reauth: "true",
         };
@@ -826,16 +828,17 @@ export async function GET(request: NextRequest) {
         break;
 
       default:
-        // Fallback
+        // Fallback - go to sync-progress to be safe
+        redirectPath = `/${localeCookie}/sync-progress`;
         redirectParams = {
-          gmb_connected: "true",
+          initial: "true",
           accountId: savedAccountId,
         };
     }
 
     const successRedirectUrl = buildSafeRedirectUrl(
       baseUrl,
-      returnUrl.startsWith("/") ? returnUrl : `/${localeCookie}/${returnUrl}`,
+      redirectPath,
       redirectParams,
     );
     console.warn(
@@ -844,7 +847,18 @@ export async function GET(request: NextRequest) {
       "with params:",
       redirectParams,
     );
-    return NextResponse.redirect(successRedirectUrl);
+
+    // Create redirect response and set gmb_connected cookie for middleware optimization
+    const redirectResponse = NextResponse.redirect(successRedirectUrl);
+    redirectResponse.cookies.set("gmb_connected", "true", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 3600, // 1 hour - will be refreshed on subsequent requests
+      path: "/",
+    });
+
+    return redirectResponse;
   } catch (error: unknown) {
     console.error("[OAuth Callback] Unexpected error:", error);
     const baseUrl = getSafeBaseUrl(request);
