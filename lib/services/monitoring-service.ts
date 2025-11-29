@@ -3,19 +3,19 @@
  * Tracks application health, performance, and business metrics
  */
 
-import { errorLogger } from './error-logger';
+import { errorLogger } from "./error-logger";
 
 export interface MetricEvent {
   name: string;
   value: number;
-  unit?: 'count' | 'milliseconds' | 'bytes' | 'percentage';
+  unit?: "count" | "milliseconds" | "bytes" | "percentage";
   tags?: Record<string, string>;
   timestamp?: Date;
 }
 
 export interface HealthCheckResult {
   service: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   message?: string;
   duration: number;
   timestamp: Date;
@@ -23,8 +23,8 @@ export interface HealthCheckResult {
 
 export interface Alert {
   id: string;
-  type: 'error' | 'warning' | 'info';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: "error" | "warning" | "info";
+  severity: "critical" | "high" | "medium" | "low";
   title: string;
   message: string;
   service?: string;
@@ -51,12 +51,12 @@ class MonitoringService {
 
   private constructor() {
     this.config = {
-      enableRealTimeAlerts: process.env.NODE_ENV === 'production',
+      enableRealTimeAlerts: process.env.NODE_ENV === "production",
       enablePerformanceTracking: true,
       enableBusinessMetrics: true,
       alertWebhookUrl: process.env.MONITORING_WEBHOOK_URL,
       slackWebhookUrl: process.env.SLACK_WEBHOOK_URL,
-      emailAlerts: process.env.ALERT_EMAILS?.split(','),
+      emailAlerts: process.env.ALERT_EMAILS?.split(","),
     };
 
     // Start periodic flush
@@ -84,8 +84,8 @@ class MonitoringService {
     this.metricsBuffer.push(metric);
 
     // Log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Metric] ${event.name}: ${event.value} ${event.unit || ''}`);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[Metric] ${event.name}: ${event.value} ${event.unit || ""}`);
     }
 
     // Flush if buffer is getting large
@@ -100,24 +100,24 @@ class MonitoringService {
   async trackAPICall(
     endpoint: string,
     method: string,
-    execute: () => Promise<Response>
+    execute: () => Promise<Response>,
   ): Promise<Response> {
     const startTime = Date.now();
-    let status = 'success';
+    let status = "success";
 
     try {
       const response = await execute();
-      
+
       if (!response.ok) {
-        status = 'error';
+        status = "error";
       }
 
       const duration = Date.now() - startTime;
-      
+
       this.trackMetric({
-        name: 'api.request.duration',
+        name: "api.request.duration",
         value: duration,
-        unit: 'milliseconds',
+        unit: "milliseconds",
         tags: {
           endpoint,
           method,
@@ -129,11 +129,11 @@ class MonitoringService {
       // Alert on slow requests
       if (duration > 3000) {
         this.createAlert({
-          type: 'warning',
-          severity: duration > 10000 ? 'high' : 'medium',
-          title: 'Slow API Request',
+          type: "warning",
+          severity: duration > 10000 ? "high" : "medium",
+          title: "Slow API Request",
           message: `${method} ${endpoint} took ${duration}ms`,
-          service: 'api',
+          service: "api",
           metadata: { endpoint, method, duration },
         });
       }
@@ -141,20 +141,20 @@ class MonitoringService {
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       this.trackMetric({
-        name: 'api.request.error',
+        name: "api.request.error",
         value: 1,
-        unit: 'count',
+        unit: "count",
         tags: { endpoint, method },
       });
 
       this.createAlert({
-        type: 'error',
-        severity: 'high',
-        title: 'API Request Failed',
+        type: "error",
+        severity: "high",
+        title: "API Request Failed",
         message: `${method} ${endpoint} failed: ${error}`,
-        service: 'api',
+        service: "api",
         metadata: { endpoint, method, error: String(error) },
       });
 
@@ -176,7 +176,7 @@ class MonitoringService {
     this.trackMetric({
       name: `business.${metric.name}`,
       value: metric.value,
-      unit: 'count',
+      unit: "count",
       tags: {
         ...(metric.locationId && { locationId: metric.locationId }),
         ...(metric.userId && { userId: metric.userId }),
@@ -200,12 +200,14 @@ class MonitoringService {
     results.push(await this.checkMemoryUsage());
 
     // Check for degraded services
-    const unhealthyServices = results.filter(r => r.status !== 'healthy');
+    const unhealthyServices = results.filter((r) => r.status !== "healthy");
     if (unhealthyServices.length > 0) {
       this.createAlert({
-        type: 'error',
-        severity: unhealthyServices.some(s => s.status === 'unhealthy') ? 'critical' : 'high',
-        title: 'Service Health Degradation',
+        type: "error",
+        severity: unhealthyServices.some((s) => s.status === "unhealthy")
+          ? "critical"
+          : "high",
+        title: "Service Health Degradation",
         message: `${unhealthyServices.length} services are experiencing issues`,
         metadata: { services: unhealthyServices },
       });
@@ -217,8 +219,8 @@ class MonitoringService {
   /**
    * Create an alert
    */
-  createAlert(alert: Omit<Alert, 'id' | 'timestamp' | 'acknowledged'>): void {
-    if (!this.config.enableRealTimeAlerts && alert.severity !== 'critical') {
+  createAlert(alert: Omit<Alert, "id" | "timestamp" | "acknowledged">): void {
+    if (!this.config.enableRealTimeAlerts && alert.severity !== "critical") {
       return;
     }
 
@@ -235,15 +237,19 @@ class MonitoringService {
     errorLogger.logError(
       new Error(alert.message),
       {
-        component: 'monitoring',
-        action: 'alert',
-        metadata: { alert: fullAlert },
+        component: "monitoring",
+        action: "alert",
+        metadata: { alertId: fullAlert.id, alertType: fullAlert.type },
       },
-      alert.type === 'error' ? 'error' : alert.type === 'warning' ? 'warning' : 'info'
+      alert.type === "error"
+        ? "error"
+        : alert.type === "warning"
+          ? "warning"
+          : "info",
     );
 
     // Send immediate notification for critical alerts
-    if (alert.severity === 'critical') {
+    if (alert.severity === "critical") {
       this.sendImmediateNotification(fullAlert);
     }
   }
@@ -255,8 +261,8 @@ class MonitoringService {
     const startTime = Date.now();
 
     try {
-      const response = await fetch('/api/health/database', {
-        method: 'GET',
+      const response = await fetch("/api/health/database", {
+        method: "GET",
         signal: AbortSignal.timeout(5000),
       });
 
@@ -264,15 +270,15 @@ class MonitoringService {
 
       if (response.ok) {
         return {
-          service: 'database',
-          status: duration > 2000 ? 'degraded' : 'healthy',
+          service: "database",
+          status: duration > 2000 ? "degraded" : "healthy",
           duration,
           timestamp: new Date(),
         };
       } else {
         return {
-          service: 'database',
-          status: 'unhealthy',
+          service: "database",
+          status: "unhealthy",
           message: `Database check failed with status ${response.status}`,
           duration,
           timestamp: new Date(),
@@ -280,8 +286,8 @@ class MonitoringService {
       }
     } catch (error) {
       return {
-        service: 'database',
-        status: 'unhealthy',
+        service: "database",
+        status: "unhealthy",
         message: `Database check error: ${error}`,
         duration: Date.now() - startTime,
         timestamp: new Date(),
@@ -299,8 +305,8 @@ class MonitoringService {
     // Check Google API
     if (process.env.GOOGLE_API_KEY) {
       apiChecks.push({
-        name: 'google',
-        url: 'https://www.googleapis.com/oauth2/v1/tokeninfo',
+        name: "google",
+        url: "https://www.googleapis.com/oauth2/v1/tokeninfo",
       });
     }
 
@@ -310,10 +316,10 @@ class MonitoringService {
     for (const api of apiChecks) {
       try {
         const response = await fetch(api.url, {
-          method: 'GET',
+          method: "GET",
           signal: AbortSignal.timeout(3000),
         });
-        
+
         if (!response.ok) {
           failedChecks++;
         }
@@ -325,9 +331,15 @@ class MonitoringService {
     const duration = Date.now() - startTime;
 
     return {
-      service: 'external_apis',
-      status: failedChecks === 0 ? 'healthy' : failedChecks < apiChecks.length ? 'degraded' : 'unhealthy',
-      message: failedChecks > 0 ? `${failedChecks} API checks failed` : undefined,
+      service: "external_apis",
+      status:
+        failedChecks === 0
+          ? "healthy"
+          : failedChecks < apiChecks.length
+            ? "degraded"
+            : "unhealthy",
+      message:
+        failedChecks > 0 ? `${failedChecks} API checks failed` : undefined,
       duration,
       timestamp: new Date(),
     };
@@ -337,11 +349,11 @@ class MonitoringService {
    * Check memory usage
    */
   private async checkMemoryUsage(): Promise<HealthCheckResult> {
-    if (typeof window === 'undefined' || !('memory' in performance)) {
+    if (typeof window === "undefined" || !("memory" in performance)) {
       return {
-        service: 'memory',
-        status: 'healthy',
-        message: 'Memory monitoring not available',
+        service: "memory",
+        status: "healthy",
+        message: "Memory monitoring not available",
         duration: 0,
         timestamp: new Date(),
       };
@@ -353,15 +365,20 @@ class MonitoringService {
     const percentage = (usedMB / limitMB) * 100;
 
     this.trackMetric({
-      name: 'memory.usage',
+      name: "memory.usage",
       value: usedMB,
-      unit: 'bytes',
-      tags: { type: 'heap' },
+      unit: "bytes",
+      tags: { type: "heap" },
     });
 
     return {
-      service: 'memory',
-      status: percentage > 90 ? 'unhealthy' : percentage > 70 ? 'degraded' : 'healthy',
+      service: "memory",
+      status:
+        percentage > 90
+          ? "unhealthy"
+          : percentage > 70
+            ? "degraded"
+            : "healthy",
       message: `Memory usage: ${usedMB.toFixed(2)}MB / ${limitMB.toFixed(2)}MB (${percentage.toFixed(1)}%)`,
       duration: 0,
       timestamp: new Date(),
@@ -376,24 +393,30 @@ class MonitoringService {
     if (this.config.slackWebhookUrl) {
       try {
         await fetch(this.config.slackWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text: `:rotating_light: ${alert.title}`,
-            attachments: [{
-              color: 'danger',
-              fields: [
-                { title: 'Message', value: alert.message, short: false },
-                { title: 'Service', value: alert.service || 'Unknown', short: true },
-                { title: 'Severity', value: alert.severity, short: true },
-              ],
-              footer: 'GMB Dashboard Monitoring',
-              ts: Math.floor(alert.timestamp.getTime() / 1000),
-            }],
+            attachments: [
+              {
+                color: "danger",
+                fields: [
+                  { title: "Message", value: alert.message, short: false },
+                  {
+                    title: "Service",
+                    value: alert.service || "Unknown",
+                    short: true,
+                  },
+                  { title: "Severity", value: alert.severity, short: true },
+                ],
+                footer: "GMB Dashboard Monitoring",
+                ts: Math.floor(alert.timestamp.getTime() / 1000),
+              },
+            ],
           }),
         });
       } catch (error) {
-        console.error('Failed to send Slack notification:', error);
+        console.error("Failed to send Slack notification:", error);
       }
     }
 
@@ -401,12 +424,12 @@ class MonitoringService {
     if (this.config.alertWebhookUrl) {
       try {
         await fetch(this.config.alertWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(alert),
         });
       } catch (error) {
-        console.error('Failed to send webhook notification:', error);
+        console.error("Failed to send webhook notification:", error);
       }
     }
   }
@@ -421,13 +444,13 @@ class MonitoringService {
     this.metricsBuffer = [];
 
     try {
-      await fetch('/api/monitoring/metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/monitoring/metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ metrics }),
       });
     } catch (error) {
-      console.error('Failed to flush metrics:', error);
+      console.error("Failed to flush metrics:", error);
       // Put metrics back in buffer
       this.metricsBuffer.unshift(...metrics);
     }
@@ -443,13 +466,13 @@ class MonitoringService {
     this.alertsBuffer = [];
 
     try {
-      await fetch('/api/monitoring/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/monitoring/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ alerts }),
       });
     } catch (error) {
-      console.error('Failed to flush alerts:', error);
+      console.error("Failed to flush alerts:", error);
       // Put alerts back in buffer
       this.alertsBuffer.unshift(...alerts);
     }
@@ -472,7 +495,7 @@ class MonitoringService {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
     }
-    
+
     // Final flush
     this.flushMetrics();
     this.flushAlerts();
@@ -496,7 +519,9 @@ export function trackBusinessMetric(metric: {
   monitoringService.trackBusinessMetric(metric);
 }
 
-export function createAlert(alert: Omit<Alert, 'id' | 'timestamp' | 'acknowledged'>): void {
+export function createAlert(
+  alert: Omit<Alert, "id" | "timestamp" | "acknowledged">,
+): void {
   monitoringService.createAlert(alert);
 }
 
