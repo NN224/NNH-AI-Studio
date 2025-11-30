@@ -208,6 +208,33 @@ export const POST = withSecureApi<ImportLocationsBody>(
       `[Import Locations] Successfully imported ${importedLocationIds.length}/${locations.length} locations`,
     );
 
+    // Set the first imported location as the user's selected location
+    const firstLocationId = importedLocationIds[0];
+    if (firstLocationId) {
+      const { error: prefError } = await adminClient
+        .from("user_preferences")
+        .upsert(
+          {
+            user_id: user.id,
+            selected_location_id: firstLocationId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
+
+      if (prefError) {
+        console.warn(
+          "[Import Locations] Failed to set selected location preference:",
+          prefError,
+        );
+        // Don't fail the import - this is a nice-to-have
+      } else {
+        console.warn(
+          `[Import Locations] Set selected location to ${firstLocationId}`,
+        );
+      }
+    }
+
     // Return success response
     return NextResponse.json({
       success: true,

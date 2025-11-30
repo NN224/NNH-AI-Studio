@@ -84,8 +84,10 @@ export interface AICommandCenterData {
   managementStats: ManagementStats;
 }
 
-// Fetch business info from first location
-async function fetchBusinessInfo(): Promise<BusinessInfo> {
+// Fetch business info - uses selectedLocationId if provided, otherwise first location
+async function fetchBusinessInfo(
+  selectedLocationId?: string | null,
+): Promise<BusinessInfo> {
   try {
     const response = await fetch("/api/gmb/locations");
     if (!response.ok) {
@@ -102,15 +104,23 @@ async function fetchBusinessInfo(): Promise<BusinessInfo> {
       };
     }
 
-    const firstLocation = locations[0];
+    // Find selected location or fallback to first
+    const targetLocation = selectedLocationId
+      ? locations.find(
+          (loc: { id: string }) => loc.id === selectedLocationId,
+        ) || locations[0]
+      : locations[0];
+
     return {
       name:
-        firstLocation.location_name || firstLocation.title || "Your Business",
-      locationId: firstLocation.id,
+        targetLocation.location_name || targetLocation.title || "Your Business",
+      locationId: targetLocation.id,
       category:
-        firstLocation.primary_category || firstLocation.category || "Business",
-      logo: firstLocation.logo_url || firstLocation.profile_photo_url,
-      accountId: firstLocation.gmb_account_id,
+        targetLocation.primary_category ||
+        targetLocation.category ||
+        "Business",
+      logo: targetLocation.logo_url || targetLocation.profile_photo_url,
+      accountId: targetLocation.gmb_account_id,
     };
   } catch (error) {
     console.error("Error fetching business info:", error);
@@ -121,8 +131,10 @@ async function fetchBusinessInfo(): Promise<BusinessInfo> {
   }
 }
 
-// Fetch urgent items (reviews and questions)
-async function fetchUrgentItems(): Promise<UrgentItem[]> {
+// Fetch urgent items (reviews and questions) - uses selectedLocationId if provided
+async function fetchUrgentItems(
+  selectedLocationId?: string | null,
+): Promise<UrgentItem[]> {
   try {
     const urgentItems: UrgentItem[] = [];
 
@@ -135,13 +147,17 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
 
     if (locations.length === 0) return [];
 
-    // Get first location for reviews
-    const firstLocation = locations[0];
+    // Find selected location or fallback to first
+    const targetLocation = selectedLocationId
+      ? locations.find(
+          (loc: { id: string }) => loc.id === selectedLocationId,
+        ) || locations[0]
+      : locations[0];
 
     // Fetch pending reviews (negative ones with high priority)
     try {
       const reviewsResponse = await fetch(
-        `/api/gmb/location/${firstLocation.id}/reviews?has_reply=false&limit=5`,
+        `/api/gmb/location/${targetLocation.id}/reviews?has_reply=false&limit=5`,
       );
       if (reviewsResponse.ok) {
         const reviewsData = await reviewsResponse.json();
@@ -171,7 +187,7 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
                   review.reviewer_name ||
                   review.reviewer?.displayName ||
                   "Anonymous",
-                locationName: firstLocation.location_name,
+                locationName: targetLocation.location_name,
               },
               viewHref: `/reviews?id=${review.id}`,
             });
@@ -185,7 +201,7 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
     // Fetch unanswered questions
     try {
       const questionsResponse = await fetch(
-        `/api/gmb/questions?locationId=${firstLocation.id}&status=unanswered&limit=5`,
+        `/api/gmb/questions?locationId=${targetLocation.id}&status=unanswered&limit=5`,
       );
       if (questionsResponse.ok) {
         const questionsData = await questionsResponse.json();
@@ -221,7 +237,7 @@ async function fetchUrgentItems(): Promise<UrgentItem[]> {
               new Date().toISOString(),
             metadata: {
               author: question.author?.displayName || "Customer",
-              locationName: firstLocation.location_name,
+              locationName: targetLocation.location_name,
             },
             viewHref: `/questions?id=${question.id}`,
           });
@@ -378,11 +394,13 @@ async function fetchManagementStats(): Promise<ManagementStats> {
   }
 }
 
-// Fetch all command center data
-async function fetchCommandCenterData(): Promise<AICommandCenterData> {
+// Fetch all command center data - uses selectedLocationId if provided
+async function fetchCommandCenterData(
+  selectedLocationId?: string | null,
+): Promise<AICommandCenterData> {
   const [businessInfo, urgentItems, managementStats] = await Promise.all([
-    fetchBusinessInfo(),
-    fetchUrgentItems(),
+    fetchBusinessInfo(selectedLocationId),
+    fetchUrgentItems(selectedLocationId),
     fetchManagementStats(),
   ]);
 
@@ -395,11 +413,12 @@ async function fetchCommandCenterData(): Promise<AICommandCenterData> {
 
 /**
  * Hook to fetch AI Command Center data
+ * @param selectedLocationId - Optional location ID to fetch data for specific location
  */
-export function useAICommandCenterData() {
+export function useAICommandCenterData(selectedLocationId?: string | null) {
   return useQuery({
-    queryKey: ["ai-command-center-data"],
-    queryFn: fetchCommandCenterData,
+    queryKey: ["ai-command-center-data", selectedLocationId],
+    queryFn: () => fetchCommandCenterData(selectedLocationId),
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 20000, // Consider data stale after 20 seconds
   });

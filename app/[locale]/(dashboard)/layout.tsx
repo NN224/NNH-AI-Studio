@@ -61,7 +61,6 @@ const PROTECTED_ROUTES = [
   "locations",
   "products",
   "features",
-  "gmb-posts",
 ];
 
 // Error Fallback Component

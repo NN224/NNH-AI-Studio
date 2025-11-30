@@ -1,5 +1,6 @@
 "use client";
 
+import { AddLocationDialog } from "@/components/gmb/add-location-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,29 +112,36 @@ export function GMBConnectionCard() {
 
       <CardContent className="space-y-4">
         {isConnected ? (
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              onClick={() =>
-                activeAccount?.id && sync({ accountId: activeAccount.id })
-              }
-              disabled={isSyncing || !activeAccount?.id}
-              className="flex-1"
-            >
-              <RefreshCw
-                className={cn("w-4 h-4 mr-2", isSyncing && "animate-spin")}
-              />
-              {isSyncing ? "Syncing..." : "Sync Now"}
-            </Button>
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() =>
+                  activeAccount?.id && sync({ accountId: activeAccount.id })
+                }
+                disabled={isSyncing || !activeAccount?.id}
+                className="flex-1"
+              >
+                <RefreshCw
+                  className={cn("w-4 h-4 mr-2", isSyncing && "animate-spin")}
+                />
+                {isSyncing ? "Syncing..." : "Sync Now"}
+              </Button>
 
-            <Button
-              variant="outline"
-              onClick={() => setShowDisconnectDialog(true)}
-              disabled={isDisconnecting || !activeAccount?.id}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              <Unlink className="w-4 h-4 mr-2" />
-              {isDisconnecting ? "Disconnecting..." : "Disconnect"}
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowDisconnectDialog(true)}
+                disabled={isDisconnecting || !activeAccount?.id}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <Unlink className="w-4 h-4 mr-2" />
+                {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+              </Button>
+            </div>
+
+            {/* Add Location Button */}
+            {activeAccount?.id && (
+              <AddLocationDialog accountId={activeAccount.id} />
+            )}
           </div>
         ) : (
           <Button

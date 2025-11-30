@@ -152,29 +152,6 @@ export const LazyWeeklyTasksWidget = dynamic(
   { loading: CardSkeleton, ssr: false },
 );
 
-/** Lazy-loaded GMB posts section - 54KB (VERY HEAVY) */
-export const LazyGMBPostsSection = dynamic(
-  () =>
-    import("@/components/dashboard/gmb-posts-section").then((mod) => ({
-      default: mod.GMBPostsSection,
-    })),
-  {
-    loading: () => (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-[150px]" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </CardContent>
-      </Card>
-    ),
-    ssr: false,
-  },
-);
-
 /** Lazy-loaded advanced filters - 15KB */
 export const LazyAdvancedFilters = dynamic(
   () =>

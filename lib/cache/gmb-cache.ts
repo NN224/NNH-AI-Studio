@@ -31,7 +31,6 @@ export async function invalidateGMBCache(userId?: string): Promise<void> {
     "/reviews/ai-cockpit",
     "/questions",
     "/posts",
-    "/gmb-posts",
     "/locations",
     "/metrics",
     "/settings/ai",

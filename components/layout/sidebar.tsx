@@ -1,6 +1,7 @@
 "use client";
 
 import { UserButton } from "@/components/auth/user-button";
+import { LocationSelector } from "@/components/home/location-selector";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
@@ -48,14 +49,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   const navigation: NavigationItem[] = [
     {
-      name: "Dashboard",
+      name: "Home",
       href: "/home",
       icon: LayoutDashboard,
-    },
-    {
-      name: "AI Command Center",
-      href: "/dashboard",
-      icon: Sparkles,
     },
     {
       name: "Locations",
@@ -165,6 +161,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 AI-Powered Business Management
               </span>
             </div>
+          </div>
+
+          {/* Location Selector - Global for all pages */}
+          <div className="px-3 py-3 border-b">
+            <LocationSelector variant="compact" className="w-full" />
           </div>
 
           <ScrollArea className="flex-1 px-3 py-4">

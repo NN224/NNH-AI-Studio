@@ -271,7 +271,6 @@ export async function middleware(request: NextRequest) {
     "/automation",
     "/products",
     "/features",
-    "/gmb-posts",
   ];
 
   // Routes that REQUIRE GMB connection (subset of protected routes)
@@ -287,7 +286,6 @@ export async function middleware(request: NextRequest) {
     "/automation",
     "/products",
     "/features",
-    "/gmb-posts",
   ];
 
   // Routes that are allowed WITHOUT GMB connection (for documentation)

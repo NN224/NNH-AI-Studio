@@ -1,6 +1,9 @@
 "use client";
 
+import { AIActivityPulse } from "@/components/home/ai-activity-pulse";
 import { AIChatWidgetEnhanced } from "@/components/home/ai-chat-widget-enhanced";
+import { AIHeroSection } from "@/components/home/ai-hero-section";
+import { AISmartInsights } from "@/components/home/ai-smart-insights";
 import { AnimatedBackground } from "@/components/home/animated-background";
 import { BusinessProfileCard } from "@/components/home/business-profile-card";
 import { CompetitorsCard } from "@/components/home/competitors-card";
@@ -9,6 +12,7 @@ import { DashboardHero } from "@/components/home/dashboard-hero";
 import { EmptyState } from "@/components/home/empty-state";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { KeywordsCard } from "@/components/home/keywords-card";
+import { ManagementQuickStats } from "@/components/home/management-quick-stats";
 import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
 import { QuickActions } from "@/components/home/quick-actions";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
@@ -16,10 +20,27 @@ import { SmartHeader } from "@/components/home/smart-header";
 // Direct imports for better tree-shaking
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { WelcomeBack } from "@/components/onboarding/WelcomeBack";
+import { useHomeData } from "@/hooks/use-home-data";
 import { motion } from "framer-motion";
 import { Bot, Building2, MessageSquare, Settings } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Skeleton } from "../ui/skeleton";
+
+// Lazy load UrgentItemsFeed for better performance
+const UrgentItemsFeed = dynamic(
+  () =>
+    import("@/components/ai-command-center/urgent/urgent-items-feed").then(
+      (mod) => mod.UrgentItemsFeed,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-zinc-900/50 rounded-lg animate-pulse" />
+    ),
+  },
+);
 
 interface BusinessHours {
   [key: string]: {
@@ -111,6 +132,22 @@ export function HomePageContent({
     "morning" | "afternoon" | "evening" | "night"
   >("morning");
 
+  // 🔴 HYBRID DATA: Use live data from hook, fallback to SSR props
+  const { managementStats } = useHomeData();
+
+  // Use live data if available, otherwise fall back to SSR
+  const liveReviewCount = managementStats?.reviews?.total;
+  const livePendingReviews = managementStats?.reviews?.pending;
+  const liveResponseRate = managementStats?.reviews?.responseRate;
+
+  // Effective values: live data takes precedence over SSR props
+  const effectiveReviewCount = liveReviewCount ?? reviewsCount ?? 0;
+  const effectivePendingReviews =
+    livePendingReviews ?? pendingReviewsCount ?? 0;
+  const effectiveResponseRate = liveResponseRate
+    ? parseInt(liveResponseRate.replace("%", ""))
+    : responseRate;
+
   // Calculate time of day based on user's local timezone (client-side only)
   useEffect(() => {
     const hour = new Date().getHours();
@@ -145,7 +182,7 @@ export function HomePageContent({
   // Calculate stats for welcome back
   const welcomeBackStats = {
     newReviews: todayReviewsCount || 0,
-    pendingReplies: pendingReviewsCount,
+    pendingReplies: effectivePendingReviews,
     ratingChange: weeklyGrowth ? weeklyGrowth / 100 : undefined,
   };
   // Calculate completed tasks count
@@ -266,15 +303,17 @@ export function HomePageContent({
                       primaryLocation.rating || parseFloat(averageRating) || 0
                     }
                     reviewCount={
-                      reviewsCount || primaryLocation.review_count || 0
+                      effectiveReviewCount || primaryLocation.review_count || 0
                     }
                     responseRate={
-                      responseRate || primaryLocation.response_rate || 0
+                      effectiveResponseRate ||
+                      primaryLocation.response_rate ||
+                      0
                     }
                     healthScore={calculateHealthScore(
                       primaryLocation,
-                      reviewsCount,
-                      responseRate,
+                      effectiveReviewCount,
+                      effectiveResponseRate,
                     )}
                     profileCompleteness={
                       primaryLocation.profile_completeness ||
@@ -294,9 +333,9 @@ export function HomePageContent({
                     stats={{
                       todayReviews: todayReviewsCount || 0,
                       weeklyGrowth: weeklyGrowth,
-                      totalReviews: reviewsCount || 0,
+                      totalReviews: effectiveReviewCount || 0,
                       averageRating: parseFloat(averageRating) || 0,
-                      responseRate: responseRate,
+                      responseRate: effectiveResponseRate,
                     }}
                     profileCompletion={
                       (completedTasksCount / progressItems.length) * 100
@@ -363,22 +402,37 @@ export function HomePageContent({
               </div>
             </div>
 
+            {/* 🤖 AI HERO SECTION - Main AI Interface */}
+            <AIHeroSection businessName={primaryLocation?.location_name} />
+
             {/* Dashboard CTAs - Only show if not all accounts connected */}
             {(accountsCount || 0) < 2 && <DashboardCTAButtons />}
+
+            {/* AI Activity Pulse */}
+            <AIActivityPulse />
 
             {/* Quick Actions - Full Width */}
             <QuickActions />
 
+            {/* Urgent Items Feed - Live from useHomeData */}
+            <UrgentItemsSection userId={user.id} />
+
+            {/* 🧠 AI Smart Insights - Proactive Suggestions */}
+            <AISmartInsights />
+
             {/* Smart AI Suggestions - Based on real data */}
             <SmartAISuggestions
               userId={user.id}
-              pendingReviews={pendingReviewsCount}
-              responseRate={responseRate}
+              pendingReviews={effectivePendingReviews}
+              responseRate={effectiveResponseRate}
               avgRating={parseFloat(averageRating) || 0}
-              totalReviews={reviewsCount || 0}
+              totalReviews={effectiveReviewCount || 0}
               weeklyGrowth={weeklyGrowth}
               hasAutoReply={hasAutoReply}
             />
+
+            {/* Management Quick Stats */}
+            <ManagementQuickStats />
 
             {/* Keywords & Competitors Section */}
             <div className="grid gap-6 md:grid-cols-2">
@@ -400,5 +454,29 @@ export function HomePageContent({
       {/* AI Chat Widget - Floating Assistant */}
       <AIChatWidgetEnhanced userId={user.id} />
     </div>
+  );
+}
+
+// Separate component for Urgent Items to use hooks
+function UrgentItemsSection({ userId: _userId }: { userId: string }) {
+  const { urgentItems, isLoading } = useHomeData();
+
+  if (isLoading) {
+    return <Skeleton className="h-48 w-full rounded-lg" />;
+  }
+
+  if (!urgentItems || urgentItems.length === 0) {
+    return null; // Don't show section if no urgent items
+  }
+
+  return (
+    <UrgentItemsFeed
+      items={urgentItems}
+      isLoading={false}
+      onAIAction={(itemId: string) => {
+        console.warn("Urgent item action:", itemId);
+        // TODO: Implement AI action handling
+      }}
+    />
   );
 }
