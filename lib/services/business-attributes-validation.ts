@@ -9,9 +9,8 @@ const PHONE_PATTERNS = {
 };
 
 // URL validation pattern
-// eslint-disable-next-line no-useless-escape
 const URL_PATTERN =
-  /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+  /^(https?:\/\/)?([a-z\d.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
 
 // Business hours validation
 const BUSINESS_HOURS_SCHEMA = z.object({
@@ -72,7 +71,7 @@ export interface ValidationError {
   message: string;
   severity: "error" | "critical";
   autoFixable?: boolean;
-  suggestedFix?: any;
+  suggestedFix?: string;
 }
 
 export interface ValidationWarning {
@@ -272,7 +271,7 @@ export class BusinessAttributesValidator {
     if (attributes.businessHours) {
       try {
         BUSINESS_HOURS_SCHEMA.parse(attributes.businessHours);
-      } catch (error) {
+      } catch {
         errors.push({
           field: "businessHours",
           message: "Invalid business hours format",
