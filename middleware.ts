@@ -3,6 +3,11 @@ import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { locales } from "./i18n";
 import {
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
+  shouldProtectRequest,
+} from "./lib/security/csrf";
+import {
   applyEdgeRateLimit,
   checkEdgeRateLimit,
   createRateLimitResponse,
@@ -15,6 +20,36 @@ import {
   SECURITY_HEADERS,
   generateCSP,
 } from "./lib/security/headers";
+
+// ============================================================================
+// CSRF Validation Helper
+// ============================================================================
+
+/**
+ * Validates CSRF token from request headers against cookie.
+ * Uses constant-time comparison to prevent timing attacks.
+ */
+function validateCSRFMiddleware(request: NextRequest): boolean {
+  const csrfHeader = request.headers.get(CSRF_HEADER_NAME);
+  const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
+
+  // Both must be present
+  if (!csrfHeader || !csrfCookie) {
+    return false;
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  if (csrfHeader.length !== csrfCookie.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < csrfHeader.length; i++) {
+    result |= csrfHeader.charCodeAt(i) ^ csrfCookie.charCodeAt(i);
+  }
+
+  return result === 0;
+}
 
 // ============================================================================
 // Security Headers
@@ -91,7 +126,33 @@ export async function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 4. Initialize response with security headers
+  // 4. CSRF PROTECTION for state-changing requests
+  // -------------------------------------------------------------------------
+  // Validate CSRF token for POST, PUT, DELETE, PATCH requests
+  // Skip for OAuth callbacks, webhooks (they have their own auth)
+  if (shouldProtectRequest(request)) {
+    const isValidCSRF = validateCSRFMiddleware(request);
+
+    if (!isValidCSRF) {
+      console.warn("[SECURITY] CSRF validation failed:", {
+        ip: getClientIP(request),
+        path: pathname,
+        method: request.method,
+        timestamp: new Date().toISOString(),
+      });
+
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid or missing CSRF token" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 5. Initialize response with security headers
   // -------------------------------------------------------------------------
   let response = NextResponse.next({
     request: {
@@ -103,7 +164,7 @@ export async function middleware(request: NextRequest) {
   response = applySecurityHeaders(response);
 
   // -------------------------------------------------------------------------
-  // 5. Handle i18n routing (skip for API routes)
+  // 6. Handle i18n routing (skip for API routes)
   // -------------------------------------------------------------------------
   let i18nResponse: NextResponse | undefined;
 

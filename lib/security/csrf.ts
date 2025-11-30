@@ -50,17 +50,37 @@ const getRandomToken = (): string => {
 
 // CSRF token configuration
 const _CSRF_TOKEN_LENGTH = 32; // Reserved for future use
-const CSRF_COOKIE_NAME = "csrf-token";
-const CSRF_HEADER_NAME = "x-csrf-token";
+export const CSRF_COOKIE_NAME = "csrf-token";
+export const CSRF_HEADER_NAME = "x-csrf-token";
 const _CSRF_FORM_FIELD = "csrfToken"; // Reserved for form-based CSRF
 
 // Methods that should be protected
 const PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 
 // Paths that should be excluded from CSRF protection
+// These have their own authentication mechanisms
 const EXCLUDED_PATHS = [
-  "/api/auth/callback", // OAuth callbacks
-  "/api/webhook", // External webhooks
+  // OAuth callbacks (use state parameter for CSRF)
+  "/api/auth/callback",
+  "/api/gmb/oauth-callback",
+  "/api/youtube/oauth-callback",
+
+  // Webhooks (use signature verification)
+  "/api/webhook",
+  "/api/webhooks/",
+
+  // Cron jobs (use CRON_SECRET)
+  "/api/cron/",
+  "/api/gmb/scheduled-sync",
+
+  // CSRF token endpoint itself
+  "/api/csrf-token",
+
+  // Health checks
+  "/api/health",
+
+  // Sentry tunnel
+  "/api/sentry",
 ];
 
 /**

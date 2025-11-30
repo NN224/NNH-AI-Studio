@@ -1,3 +1,4 @@
+import { withCronAuth } from "@/lib/security/cron-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -5,19 +6,13 @@ import { NextRequest, NextResponse } from "next/server";
  * Scheduled Sync API Endpoint
  * This endpoint is called by cron jobs to automatically sync GMB data
  * for accounts that have auto-sync enabled in their settings.
+ *
+ * @security Uses withCronAuth wrapper - FAILS CLOSED if CRON_SECRET not set
  */
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest) {
-  // Verify cron secret to prevent unauthorized access
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+async function handleScheduledSync(_request: Request): Promise<Response> {
   try {
     const supabase = await createClient();
 
@@ -236,8 +231,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Export GET with cron authentication wrapper
+export const GET = withCronAuth(handleScheduledSync);
+
 /**
  * POST endpoint for manual trigger (for testing)
+ * Uses user authentication instead of cron secret
  */
 export async function POST(request: NextRequest) {
   try {

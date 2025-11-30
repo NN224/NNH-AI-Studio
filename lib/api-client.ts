@@ -1,7 +1,8 @@
 /**
- * Global API Client with Error Handling
+ * Global API Client with Error Handling and CSRF Protection
  *
  * Provides a centralized fetch wrapper with:
+ * - Automatic CSRF token handling for POST/PUT/DELETE/PATCH
  * - 401 Unauthorized handling
  * - Token expiry detection
  * - Automatic sync pause on auth failures
@@ -10,21 +11,58 @@
 
 import { toast } from "sonner";
 
+// CSRF header name (must match server-side csrf.ts)
+const CSRF_HEADER_NAME = "x-csrf-token";
+
 // Global state for auth failure handling
 let isHandlingAuthFailure = false;
+
+// Cached CSRF token
+let cachedCSRFToken: string | null = null;
+
+/**
+ * Fetches CSRF token from server and caches it
+ */
+async function getCSRFToken(): Promise<string> {
+  if (cachedCSRFToken) return cachedCSRFToken;
+
+  try {
+    const response = await fetch("/api/csrf-token", {
+      credentials: "include", // Include cookies
+    });
+    const data = await response.json();
+    cachedCSRFToken = data.token || data.csrfToken;
+    return cachedCSRFToken || "";
+  } catch (error) {
+    console.error("Failed to fetch CSRF token:", error);
+    return "";
+  }
+}
+
+/**
+ * Clears cached CSRF token (call on logout or token refresh)
+ */
+export function clearCSRFToken(): void {
+  cachedCSRFToken = null;
+}
+
+/**
+ * Methods that require CSRF protection
+ */
+const CSRF_PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 
 /**
  * Check if error is an authentication failure
  */
-function isAuthFailure(status: number, data: any): boolean {
-  return (
-    status === 401 ||
-    data?.error === "token_expired" ||
-    data?.error === "invalid_token" ||
-    data?.error === "unauthorized" ||
-    data?.message?.toLowerCase().includes("token") ||
-    data?.message?.toLowerCase().includes("unauthorized")
-  );
+function isAuthFailure(status: number, data: Record<string, unknown>): boolean {
+  if (status === 401) return true;
+  if (data?.error === "token_expired") return true;
+  if (data?.error === "invalid_token") return true;
+  if (data?.error === "unauthorized") return true;
+
+  const message =
+    typeof data?.message === "string" ? data.message.toLowerCase() : "";
+  return message.includes("token") || message.includes("unauthorized");
 }
 
 /**
@@ -75,19 +113,31 @@ async function handleAuthFailure() {
 }
 
 /**
- * Enhanced fetch with error handling
+ * Enhanced fetch with error handling and CSRF protection
  */
-export async function apiClient<T = any>(
+export async function apiClient<T = unknown>(
   url: string,
   options?: RequestInit,
 ): Promise<T> {
   try {
+    const method = options?.method?.toUpperCase() || "GET";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(options?.headers as Record<string, string>),
+    };
+
+    // Add CSRF token for state-changing requests
+    if (CSRF_PROTECTED_METHODS.includes(method)) {
+      const csrfToken = await getCSRFToken();
+      if (csrfToken) {
+        headers[CSRF_HEADER_NAME] = csrfToken;
+      }
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      credentials: "include", // Include cookies for CSRF
+      headers,
     });
 
     // Handle successful responses
@@ -122,7 +172,7 @@ export async function apiClient<T = any>(
 /**
  * GET request
  */
-export async function apiGet<T = any>(
+export async function apiGet<T = unknown>(
   url: string,
   options?: RequestInit,
 ): Promise<T> {
@@ -130,11 +180,11 @@ export async function apiGet<T = any>(
 }
 
 /**
- * POST request
+ * POST request (with automatic CSRF protection)
  */
-export async function apiPost<T = any>(
+export async function apiPost<T = unknown>(
   url: string,
-  data?: any,
+  data?: unknown,
   options?: RequestInit,
 ): Promise<T> {
   return apiClient<T>(url, {
@@ -145,11 +195,11 @@ export async function apiPost<T = any>(
 }
 
 /**
- * PUT request
+ * PUT request (with automatic CSRF protection)
  */
-export async function apiPut<T = any>(
+export async function apiPut<T = unknown>(
   url: string,
-  data?: any,
+  data?: unknown,
   options?: RequestInit,
 ): Promise<T> {
   return apiClient<T>(url, {
@@ -160,9 +210,9 @@ export async function apiPut<T = any>(
 }
 
 /**
- * DELETE request
+ * DELETE request (with automatic CSRF protection)
  */
-export async function apiDelete<T = any>(
+export async function apiDelete<T = unknown>(
   url: string,
   options?: RequestInit,
 ): Promise<T> {
