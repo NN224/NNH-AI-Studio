@@ -186,9 +186,22 @@ export default function DashboardPage() {
   const handleAIMessage = async (message: string): Promise<string> => {
     try {
       const response = await sendMessage(message);
-      return response;
+
+      // Handle structured response object from updated hook
+      if (typeof response === "object" && response !== null) {
+        if (response.type === "error") {
+          // Throw error for UI to handle
+          throw new Error(response.message || "An error occurred");
+        }
+        // Extract message from success response
+        return response.message || "I'm here to help!";
+      }
+
+      // Fallback for unexpected response format
+      return String(response);
     } catch (error) {
       console.error("AI chat error:", error);
+      // Re-throw to let the UI component handle the error display
       throw error;
     }
   };
