@@ -1,31 +1,28 @@
 /**
  * AI Chat Streaming API Route
  * Handles streaming responses for real-time chat experience
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
  */
 
-import { NextRequest } from "next/server";
+import {
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+/**
+ * Main handler - protected by withAIProtection
+ */
+async function handleStreamChat(
+  request: Request,
+  { userId }: AIProtectionContext,
+): Promise<Response> {
   try {
     const supabase = await createClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     const body = await request.json();
     const { message, conversationHistory } = body;
 
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch dashboard context
-    const context = await fetchDashboardContext(user.id, supabase);
+    const context = await fetchDashboardContext(userId, supabase);
 
     // Build prompt
     const prompt = buildStreamingPrompt(
@@ -104,6 +101,11 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export with AI protection (rate limiting + auth)
+export const POST = withAIProtection(handleStreamChat, {
+  endpointType: "stream",
+});
 
 /**
  * Stream from Anthropic API

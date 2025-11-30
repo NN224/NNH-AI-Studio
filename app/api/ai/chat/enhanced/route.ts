@@ -1,12 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
-import Groq from "groq-sdk";
+/**
+ * AI Enhanced Chat API Route
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
+ */
+
 import {
   buildSystemPrompt,
   generateScenarioPrompt,
 } from "@/lib/ai/system-prompt-builder";
+import {
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
+import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
 type AIProvider = "openai" | "anthropic" | "groq" | "deepseek";
 
@@ -34,19 +43,14 @@ const getAIClient = (provider: AIProvider) => {
   }
 };
 
-export async function POST(request: NextRequest) {
+/**
+ * Main handler - protected by withAIProtection
+ */
+async function handleEnhancedChat(
+  request: Request,
+  _context: AIProtectionContext,
+): Promise<Response> {
   try {
-    // Use Supabase Auth
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
     const {
       message,
@@ -173,6 +177,11 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export with AI protection (rate limiting + auth)
+export const POST = withAIProtection(handleEnhancedChat, {
+  endpointType: "chat",
+});
 
 export async function GET() {
   const providers = {

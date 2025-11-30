@@ -7,9 +7,19 @@
 >
 > - إنشاء `lib/security/ai-rate-limit.ts` مع tier-based limits
 > - إنشاء `lib/api/with-ai-protection.ts` HOF
-> - تحديث `/api/ai/chat` و `/api/ai/generate` routes
 > - Rate limiting لكل user ولكل endpoint type
 > - FAIL CLOSED إذا Redis غير متوفر (حماية التكلفة)
+>
+> **الـ Routes المحمية (8 routes):**
+>
+> - `/api/ai/chat` ✅
+> - `/api/ai/generate` ✅
+> - `/api/ai/generate-post` ✅
+> - `/api/ai/generate-response` ✅
+> - `/api/ai/generate-review-reply` ✅
+> - `/api/ai/insights` ✅
+> - `/api/ai/chat/enhanced` ✅
+> - `/api/ai/chat/stream` ✅
 
 > **الأولوية:** P0 - حرج
 > **الوقت المقدر:** 3 ساعات

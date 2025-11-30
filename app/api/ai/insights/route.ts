@@ -1,17 +1,19 @@
 /**
  * AI Insights API Route
  * Generates AI-powered business insights from dashboard data
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai/provider";
-import type {
-  AIInsightsResponse,
-  AIInsight,
-  AIPrediction,
-  AIAnomaly,
-} from "@/lib/types/ai";
+import {
+  withAIAuth,
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
+import { createClient } from "@/lib/supabase/server";
+import type { AIInsight, AIInsightsResponse } from "@/lib/types/ai";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,22 +29,18 @@ interface CachedInsights {
 // In-memory cache (consider using Redis in production)
 const insightsCache = new Map<string, CachedInsights>();
 
-export async function GET(request: NextRequest) {
+/**
+ * Main handler - protected by withAIProtection
+ */
+async function handleInsights(
+  _request: Request,
+  { userId }: AIProtectionContext,
+): Promise<Response> {
   try {
     const supabase = await createClient();
 
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Check cache
-    const cacheKey = `insights_${user.id}`;
+    const cacheKey = `insights_${userId}`;
     const cached = insightsCache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -50,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get AI provider
-    const aiProvider = await getAIProvider(user.id);
+    const aiProvider = await getAIProvider(userId);
     if (!aiProvider) {
       return NextResponse.json(
         {
@@ -63,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch dashboard data from materialized view using RPC
     const { data: stats, error: statsError } = await supabase
-      .rpc("get_user_dashboard_stats", { p_user_id: user.id })
+      .rpc("get_user_dashboard_stats", { p_user_id: userId })
       .single();
 
     if (statsError) {
@@ -77,7 +75,7 @@ export async function GET(request: NextRequest) {
     const { data: recentReviews } = await supabase
       .from("gmb_reviews")
       .select("rating, review_text, review_date, ai_sentiment")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("review_date", { ascending: false })
       .limit(50);
 
@@ -87,7 +85,7 @@ export async function GET(request: NextRequest) {
       .select(
         "location_name, rating, review_count, response_rate, health_score",
       )
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("is_active", true);
 
     // Build analysis prompt
@@ -128,6 +126,11 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// Export with AI protection (rate limiting + auth)
+export const GET = withAIProtection(handleInsights, {
+  endpointType: "insights",
+});
 
 /**
  * Build analysis prompt for AI
@@ -313,29 +316,15 @@ function parseAIResponse(
 }
 
 /**
- * Invalidate cache for user
+ * Invalidate cache for user - uses lightweight auth
  */
-export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const cacheKey = `insights_${user.id}`;
-    insightsCache.delete(cacheKey);
-
-    return NextResponse.json({ success: true, message: "Cache invalidated" });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to invalidate cache" },
-      { status: 500 },
-    );
-  }
+async function handleDeleteCache(
+  _request: Request,
+  userId: string,
+): Promise<Response> {
+  const cacheKey = `insights_${userId}`;
+  insightsCache.delete(cacheKey);
+  return NextResponse.json({ success: true, message: "Cache invalidated" });
 }
+
+export const DELETE = withAIAuth(handleDeleteCache);
