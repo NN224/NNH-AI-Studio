@@ -210,5 +210,15 @@ export default withSentryConfig(withNextIntl(withBundleAnalyzer(nextConfig)), {
   // Suppress source map upload errors for files without references
   sourcemaps: {
     ignore: ["node_modules/**/*"],
+    deleteSourcemapsAfterUpload: true,
+  },
+
+  // Suppress warnings for files that can't be mapped
+  errorHandler: (err, invokeErr, compilation) => {
+    // Ignore source map warnings
+    if (err.message?.includes("could not determine a source map reference")) {
+      return;
+    }
+    invokeErr();
   },
 });
