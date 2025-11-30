@@ -29,7 +29,10 @@ production-fix-prompts/
 │   ├── 14-fix-rls-bypass.md
 │   ├── 15-fix-input-validation.md
 │   ├── 16-fix-json-parse-safety.md
-│   └── 17-fix-empty-catch-blocks.md      # 🆕 NEW
+│   ├── 17-fix-empty-catch-blocks.md
+│   ├── 18-fix-api-routes-no-auth.md      # 🆕 NEW - Nov 30
+│   ├── 19-fix-lint-errors.md             # 🆕 NEW - Nov 30
+│   └── 20-fix-hydration-errors.md        # 🆕 NEW - Nov 30
 ├── high-priority/               # 🟠 مشاكل عالية (P1) - 13 ملف
 │   ├── 08-implement-i18n.md
 │   ├── 09-fix-beta-banner-compliance.md
@@ -348,6 +351,6 @@ If you encounter issues with any prompt:
 
 ---
 
-**آخر تحديث / Last Updated:** 27 نوفمبر 2025
-**الإصدار / Version:** 1.0
-**الحالة / Status:** 0% مكتمل / 0% Complete
+**آخر تحديث / Last Updated:** 30 نوفمبر 2025
+**الإصدار / Version:** 1.1
+**الحالة / Status:** 43% مكتمل (9/21 Critical) / 43% Complete (9/21 Critical)
