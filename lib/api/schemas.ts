@@ -187,9 +187,131 @@ export const connectAccountSchema = z.object({
 });
 
 // ============================================================================
+// AI Chat Schemas
+// ============================================================================
+
+/** AI Chat message schema */
+export const aiChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().max(10000, "Message content too long"),
+});
+
+/** AI Chat request schema */
+export const aiChatSchema = z.object({
+  message: z
+    .string()
+    .min(1, "Message is required")
+    .max(10000, "Message too long (max 10,000 characters)"),
+  conversationHistory: z
+    .array(aiChatMessageSchema)
+    .max(50, "Conversation history too long")
+    .optional()
+    .default([]),
+  model: z
+    .enum([
+      "gpt-4",
+      "gpt-4-turbo",
+      "gpt-4o-mini",
+      "gpt-3.5-turbo",
+      "claude-3-sonnet",
+      "claude-3-5-sonnet-latest",
+    ])
+    .optional(),
+  context: z.record(z.unknown()).optional(),
+});
+
+/** AI Generate schema */
+export const aiGenerateSchema = z.object({
+  prompt: z.string().min(1, "Prompt is required").max(5000, "Prompt too long"),
+  type: z.enum(["post", "response", "description", "summary", "review_reply"]),
+  tone: z.enum(["professional", "friendly", "formal", "casual"]).optional(),
+  maxLength: z.number().int().min(50).max(2000).optional().default(500),
+  context: z.record(z.unknown()).optional(),
+});
+
+/** AI Generate Post schema */
+export const aiGeneratePostSchema = z.object({
+  locationId: uuidSchema.optional(),
+  locationName: z.string().max(200).optional(),
+  businessCategory: z.string().max(100).optional(),
+  postType: z
+    .enum(["update", "offer", "event", "announcement"])
+    .optional()
+    .default("update"),
+  tone: z
+    .enum(["professional", "friendly", "promotional", "informative"])
+    .optional()
+    .default("professional"),
+  keywords: z.array(z.string().max(50)).max(10).optional(),
+  includeCallToAction: z.boolean().optional().default(true),
+});
+
+/** AI Generate Response schema (for reviews/questions) */
+export const aiGenerateResponseSchema = z.object({
+  reviewText: z.string().min(1).max(5000),
+  reviewerName: z.string().max(100).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+  businessName: z.string().max(200).optional(),
+  tone: z
+    .enum(["professional", "friendly", "apologetic", "grateful"])
+    .optional()
+    .default("professional"),
+  language: z.enum(["en", "ar"]).optional().default("en"),
+});
+
+/** AI Insights request schema */
+export const aiInsightsSchema = z.object({
+  locationId: uuidSchema.optional(),
+  dateRange: z.enum(["7d", "30d", "90d", "1y"]).optional().default("30d"),
+  metrics: z
+    .array(z.enum(["reviews", "rating", "response_rate", "engagement"]))
+    .optional(),
+});
+
+/** AI Stream chat schema */
+export const aiStreamChatSchema = z.object({
+  message: z.string().min(1, "Message is required").max(10000),
+  conversationHistory: z
+    .array(aiChatMessageSchema)
+    .max(50)
+    .optional()
+    .default([]),
+});
+
+/** AI Enhanced chat schema */
+export const aiEnhancedChatSchema = z.object({
+  message: z.string().min(1, "Message is required").max(10000),
+  conversationHistory: z
+    .array(aiChatMessageSchema)
+    .max(50)
+    .optional()
+    .default([]),
+  provider: z
+    .enum(["openai", "anthropic", "groq", "deepseek"])
+    .optional()
+    .default("openai"),
+  businessInfo: z.record(z.unknown()).optional(),
+  context: z.record(z.unknown()).optional(),
+  action: z.enum(["chat", "analysis", "generate"]).optional().default("chat"),
+  language: z.enum(["en", "ar"]).optional().default("en"),
+  tone: z
+    .enum(["professional", "friendly", "formal", "casual"])
+    .optional()
+    .default("professional"),
+  scenario: z.string().max(100).optional(),
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
+export type AIChatInput = z.infer<typeof aiChatSchema>;
+export type AIGenerateInput = z.infer<typeof aiGenerateSchema>;
+export type AIGeneratePostInput = z.infer<typeof aiGeneratePostSchema>;
+export type AIGenerateResponseInput = z.infer<typeof aiGenerateResponseSchema>;
+export type AIInsightsInput = z.infer<typeof aiInsightsSchema>;
+export type AIStreamChatInput = z.infer<typeof aiStreamChatSchema>;
+export type AIEnhancedChatInput = z.infer<typeof aiEnhancedChatSchema>;
 export type ReviewsQuery = z.infer<typeof reviewsQuerySchema>;
 export type ReplyToReview = z.infer<typeof replyToReviewSchema>;
 export type UpdateReviewStatus = z.infer<typeof updateReviewStatusSchema>;
