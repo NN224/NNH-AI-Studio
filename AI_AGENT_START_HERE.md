@@ -147,6 +147,37 @@ types/                  # TypeScript types فقط
 
 ## 🔧 عند إصلاح مشكلة
 
+### ⚠️ هام جداً: هذا موقع إنتاج (Production)!
+
+```
+🌐 الموقع: https://nnh.ae
+⚠️  كل تغيير يؤثر على المستخدمين الحقيقيين
+✅ اختبر جيداً قبل الـ deploy
+```
+
+---
+
+### 📌 عند الإشارة لملف إصلاح (production-fix-prompts/\*)
+
+**إذا أشار المستخدم لملف من `production-fix-prompts/`، يجب:**
+
+1. ✅ **قراءة الملف كاملاً** - لا تتخطى أي جزء
+2. ✅ **تنفيذ جميع الخطوات** - بالترتيب المذكور
+3. ✅ **اختبار كل تغيير** - `npm run lint` و `npm run build`
+4. ✅ **Deploy للإنتاج** - `npx vercel --prod`
+5. ✅ **تحديث الملف** - أضف في أول الملف:
+
+```markdown
+# ✅ [COMPLETED] العنوان الأصلي
+
+> **تم التطبيق بالكامل** ✅ - Applied on [التاريخ]
+> **Deployed to:** https://nnh.ae
+```
+
+6. ✅ **Commit & Push** - مع رسالة واضحة
+
+---
+
 ### الخطوة 1: تحقق من وجود prompt
 
 ```bash
@@ -161,7 +192,9 @@ ls production-fix-prompts/medium-priority/
 2. اتبع الخطوات **بالترتيب**
 3. تحقق من **كل** معيار قبول
 4. شغّل الأوامر المذكورة
-5. حدّث الحالة إلى ✅
+5. **Deploy للإنتاج:** `npx vercel --prod`
+6. **حدّث الملف:** أضف `✅ [COMPLETED]` في العنوان
+7. **Commit & Push**
 
 ### الخطوة 3: إذا لم تجد prompt
 
@@ -246,6 +279,44 @@ npm run build
 
 ---
 
-## 📋 للمستخدم: قوالب طلبات جاهزة
+## � معلومات الإنتاج (Production Info)
+
+```yaml
+Website: https://nnh.ae
+Hosting: Vercel
+Database: Supabase (PostgreSQL)
+Error Tracking: Sentry (https://nnh-ai-studio.sentry.io)
+Analytics: Vercel Analytics + Google Analytics
+
+Deploy Command: npx vercel --prod
+Build Command: npm run build
+Lint Command: npm run lint
+```
+
+### Environment Variables المهمة:
+
+- `SENTRY_DSN` - لـ Error Tracking
+- `SUPABASE_URL` - قاعدة البيانات
+- `GOOGLE_CLIENT_ID` - GMB OAuth
+- `CRON_SECRET` - للـ Scheduled Jobs
+
+---
+
+## 📊 حالة المشاكل الحالية
+
+**Critical Issues:** `production-fix-prompts/critical/` (21 ملف)
+
+- ✅ تم إصلاح: 9
+- 🔴 متبقي: 12
+
+**للتحقق من الحالة:**
+
+```bash
+grep -l "✅ \[COMPLETED\]" production-fix-prompts/critical/*.md | wc -l
+```
+
+---
+
+## �📋 للمستخدم: قوالب طلبات جاهزة
 
 **انظر `AI_PROMPTS_TEMPLATES.md`** لقوالب طلبات جاهزة يمكنك نسخها ولصقها.
