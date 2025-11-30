@@ -1,16 +1,17 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Star, Send, HelpCircle } from 'lucide-react';
-import ActivityFeedItem from './ActivityFeedItem';
+// eslint-disable-next-line storybook/no-renderer-packages
+import type { Meta, StoryObj } from "@storybook/react";
+import { HelpCircle, Send, Star } from "lucide-react";
+import ActivityFeedItem from "./ActivityFeedItem";
 
 const meta: Meta<typeof ActivityFeedItem> = {
-  title: 'Dashboard/ActivityFeedItem',
+  title: "Dashboard/ActivityFeedItem",
   component: ActivityFeedItem,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
-    message: { control: 'text' },
-    timestamp: { control: 'text' },
+    message: { control: "text" },
+    timestamp: { control: "text" },
     icon: { control: false },
-    isLoading: { control: 'boolean' },
+    isLoading: { control: "boolean" },
   },
 };
 
@@ -25,7 +26,7 @@ export const NewReview: Story = {
         You received a new <strong>5-star review</strong>.
       </>
     ),
-    timestamp: '5 minutes ago',
+    timestamp: "5 minutes ago",
     isLoading: false,
   },
 };
@@ -38,7 +39,7 @@ export const PostPublished: Story = {
         A new post titled "<strong>Summer Sale!</strong>" was published.
       </>
     ),
-    timestamp: '1 hour ago',
+    timestamp: "1 hour ago",
     isLoading: false,
   },
 };
@@ -51,7 +52,7 @@ export const NewQuestion: Story = {
         A customer asked a new question about "<strong>opening hours</strong>".
       </>
     ),
-    timestamp: '3 hours ago',
+    timestamp: "3 hours ago",
     isLoading: false,
   },
 };
@@ -59,8 +60,8 @@ export const NewQuestion: Story = {
 export const Loading: Story = {
   args: {
     icon: <></>,
-    message: '',
-    timestamp: '',
+    message: "",
+    timestamp: "",
     isLoading: true,
   },
 };

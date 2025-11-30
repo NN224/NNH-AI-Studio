@@ -1,15 +1,14 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
-const ALGORITHM = 'aes-256-gcm';
+const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // Recommended length for GCM
 const AUTH_TAG_LENGTH = 16;
 
 export class EncryptionError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message);
-    this.name = 'EncryptionError';
+    this.name = "EncryptionError";
     if (options?.cause) {
-      // @ts-ignore optional cause for older runtimes
       this.cause = options.cause;
     }
   }
@@ -17,9 +16,9 @@ export class EncryptionError extends Error {
 
 function decodeKey(rawKey: string): Buffer {
   const attempts: Array<() => Buffer> = [
-    () => Buffer.from(rawKey, 'base64'),
-    () => Buffer.from(rawKey, 'hex'),
-    () => Buffer.from(rawKey, 'utf8'),
+    () => Buffer.from(rawKey, "base64"),
+    () => Buffer.from(rawKey, "hex"),
+    () => Buffer.from(rawKey, "utf8"),
   ];
 
   for (const attempt of attempts) {
@@ -34,14 +33,14 @@ function decodeKey(rawKey: string): Buffer {
   }
 
   throw new EncryptionError(
-    'Invalid ENCRYPTION_KEY. Provide a 32-byte value (base64, hex, or UTF-8).'
+    "Invalid ENCRYPTION_KEY. Provide a 32-byte value (base64, hex, or UTF-8).",
   );
 }
 
 function getKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
-    throw new EncryptionError('ENCRYPTION_KEY is not configured');
+    throw new EncryptionError("ENCRYPTION_KEY is not configured");
   }
 
   return decodeKey(key);
@@ -49,17 +48,20 @@ function getKey(): Buffer {
 
 export function encryptToken(token: string): string {
   if (!token) {
-    throw new EncryptionError('Cannot encrypt empty token');
+    throw new EncryptionError("Cannot encrypt empty token");
   }
 
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, getKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(token, "utf8"),
+    cipher.final(),
+  ]);
   const authTag = cipher.getAuthTag();
 
   // Structure: [IV | AUTH_TAG | CIPHERTEXT]
   const payload = Buffer.concat([iv, authTag, encrypted]);
-  return payload.toString('base64');
+  return payload.toString("base64");
 }
 
 export function decryptToken(encryptedToken?: string | null): string | null {
@@ -68,9 +70,9 @@ export function decryptToken(encryptedToken?: string | null): string | null {
   }
 
   try {
-    const payload = Buffer.from(encryptedToken, 'base64');
+    const payload = Buffer.from(encryptedToken, "base64");
     if (payload.length <= IV_LENGTH + AUTH_TAG_LENGTH) {
-      throw new EncryptionError('Encrypted token payload is malformed');
+      throw new EncryptionError("Encrypted token payload is malformed");
     }
 
     const iv = payload.subarray(0, IV_LENGTH);
@@ -80,10 +82,13 @@ export function decryptToken(encryptedToken?: string | null): string | null {
     const decipher = crypto.createDecipheriv(ALGORITHM, getKey(), iv);
     decipher.setAuthTag(authTag);
 
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    return decrypted.toString('utf8');
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
+    return decrypted.toString("utf8");
   } catch (error) {
-    throw new EncryptionError('Failed to decrypt token', { cause: error });
+    throw new EncryptionError("Failed to decrypt token", { cause: error });
   }
 }
 
@@ -111,7 +116,7 @@ export function decryptToken(encryptedToken?: string | null): string | null {
  */
 export function resolveTokenValue(
   token?: string | null,
-  options?: { context?: string }
+  options?: { context?: string },
 ): string | null {
   if (!token) {
     return null;
@@ -120,16 +125,16 @@ export function resolveTokenValue(
   try {
     return decryptToken(token);
   } catch (error) {
-    const contextSuffix = options?.context ? ` (${options.context})` : '';
+    const contextSuffix = options?.context ? ` (${options.context})` : "";
     console.error(
       `[Encryption] Token decryption failed${contextSuffix}. Re-authentication required.`,
-      error instanceof Error ? error.message : 'Unknown error'
+      error instanceof Error ? error.message : "Unknown error",
     );
 
     throw new EncryptionError(
-      'Token decryption failed - re-authentication required. ' +
-      'فشل فك تشفير الرمز - يُرجى إعادة المصادقة.',
-      { cause: error }
+      "Token decryption failed - re-authentication required. " +
+        "فشل فك تشفير الرمز - يُرجى إعادة المصادقة.",
+      { cause: error },
     );
   }
 }
