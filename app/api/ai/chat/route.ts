@@ -1,13 +1,19 @@
 /**
  * AI Chat API Route
  * Handles natural language queries about dashboard data
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
  */
 
 import { getAIProvider } from "@/lib/ai/provider";
+import {
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatMessage, ChatResponse } from "@/lib/types/ai";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 interface LocationData {
   location_name: string;
@@ -37,78 +43,70 @@ interface DashboardStats {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+/**
+ * Main chat handler - protected by withAIProtection
+ */
+async function handleChat(
+  request: Request,
+  { userId }: AIProtectionContext,
+): Promise<Response> {
+  const supabase = await createClient();
+
+  const body = await request.json();
+  const { message, conversationHistory } = body;
+
+  if (!message || typeof message !== "string") {
+    return NextResponse.json({ error: "Message is required" }, { status: 400 });
+  }
+
+  // Get AI provider (use userId from protection context)
+  const aiProvider = await getAIProvider(userId);
+  if (!aiProvider) {
+    return NextResponse.json(
+      { error: "AI provider not configured" },
+      { status: 400 },
+    );
+  }
+
+  // Fetch user's dashboard context
+  const dashboardContext = await fetchDashboardContext(userId, supabase);
+
+  // Build chat prompt
+  const prompt = buildChatPrompt(
+    message,
+    dashboardContext,
+    conversationHistory || [],
+  );
+
+  // Generate response with rich error context
+  let content: string;
   try {
-    const supabase = await createClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { message, conversationHistory } = body;
-
-    if (!message || typeof message !== "string") {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 },
-      );
-    }
-
-    // Get AI provider
-    const aiProvider = await getAIProvider(user.id);
-    if (!aiProvider) {
-      return NextResponse.json(
-        { error: "AI provider not configured" },
-        { status: 400 },
-      );
-    }
-
-    // Fetch user's dashboard context
-    const context = await fetchDashboardContext(user.id, supabase);
-
-    // Build chat prompt
-    const prompt = buildChatPrompt(message, context, conversationHistory || []);
-
-    // Generate response with rich error context
-    let content: string;
-    try {
-      ({ content } = await aiProvider.generateCompletion(
-        prompt,
-        "chat_assistant",
-      ));
-    } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      const message = error.message || "AI provider call failed";
-      return NextResponse.json(
-        {
-          error: message,
-          hint: "Verify API key, model name, and provider availability. Ensure SYSTEM_* API keys are set on Vercel.",
-        },
-        { status: 500 },
-      );
-    }
-
-    // Parse response
-    const response = parseChatResponse(content);
-
-    return NextResponse.json(response);
-  } catch (error) {
-    console.error("AI Chat API Error:", error);
+    ({ content } = await aiProvider.generateCompletion(
+      prompt,
+      "chat_assistant",
+    ));
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    const errMessage = error.message || "AI provider call failed";
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: errMessage,
+        hint: "Verify API key, model name, and provider availability. Ensure SYSTEM_* API keys are set on Vercel.",
       },
       { status: 500 },
     );
   }
+
+  // Parse response
+  const response = parseChatResponse(content);
+
+  return NextResponse.json(response);
 }
+
+// Export with AI protection (rate limiting + auth)
+export const POST = withAIProtection(handleChat, {
+  endpointType: "chat",
+});
 
 /**
  * Fetch dashboard context for user

@@ -1,5 +1,7 @@
 # 🟡 Medium Priority: Improve Accessibility (ARIA)
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 Only 85 aria-label/role attributes found across 36 files. Many interactive elements lack proper accessibility attributes, making the app difficult for screen reader users.

@@ -1,55 +1,67 @@
-// app/api/ai/generate-review-reply/route.ts (محدث للتعامل مع الأسئلة)
+/**
+ * AI Generate Review Reply API Route
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
+ */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getAIProvider } from '@/lib/ai/provider';
+import { getAIProvider } from "@/lib/ai/provider";
+import {
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
+import { NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
- * مسار API لتوليد رد/إجابة باستخدام نموذج Gemini.
+ * Main handler - protected by withAIProtection
  */
-export async function POST(request: NextRequest) {
-    // 💡 تصحيح متطلبات Supabase
-    const supabase = await createClient(); 
-    const { data: { user } } = await supabase.auth.getUser();
+async function handleGenerateReviewReply(
+  request: Request,
+  { userId }: AIProtectionContext,
+): Promise<Response> {
+  try {
+    const { reviewText, rating, tone, locationName, isQuestion } =
+      await request.json();
 
-    if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!reviewText || !tone || !locationName) {
+      return NextResponse.json(
+        { error: "Missing required fields for AI generation." },
+        { status: 400 },
+      );
     }
 
-    try {
-        const { reviewText, rating, tone, locationName, isQuestion } = await request.json();
+    // Get AI provider
+    const aiProvider = await getAIProvider(userId);
+    if (!aiProvider) {
+      console.error(
+        "[AI Generate Reply] No AI provider configured for user:",
+        userId,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "No AI provider configured. Please set up an API key in Settings > AI Configuration.",
+        },
+        { status: 500 },
+      );
+    }
 
-        if (!reviewText || !tone || !locationName) {
-            return NextResponse.json({ error: 'Missing required fields for AI generation.' }, { status: 400 });
-        }
+    // ⭐️ منطق تحديد الهدف والموجه بناءً على ما إذا كان السؤال أم مراجعة ⭐️
+    let systemRole = "";
+    let promptHeader = "";
 
-        // Get AI provider
-        const aiProvider = await getAIProvider(user.id);
-        if (!aiProvider) {
-            console.error('[AI Generate Reply] No AI provider configured for user:', user.id);
-            return NextResponse.json(
-                { error: 'No AI provider configured. Please set up an API key in Settings > AI Configuration.' },
-                { status: 500 }
-            );
-        }
-
-        // ⭐️ منطق تحديد الهدف والموجه بناءً على ما إذا كان السؤال أم مراجعة ⭐️
-        let systemRole = '';
-        let promptHeader = '';
-
-        if (isQuestion) {
-            systemRole = `You are the official business representative. Provide a clear, concise, and helpful factual answer to the customer's question.`;
-            promptHeader = `CUSTOMER QUESTION: "${reviewText}"\nTONE: ${tone}\nProvide the official answer.`;
-        } else {
-            systemRole = `You are an expert social media manager specializing in Google Business Profile review responses. 
+    if (isQuestion) {
+      systemRole = `You are the official business representative. Provide a clear, concise, and helpful factual answer to the customer's question.`;
+      promptHeader = `CUSTOMER QUESTION: "${reviewText}"\nTONE: ${tone}\nProvide the official answer.`;
+    } else {
+      systemRole = `You are an expert social media manager specializing in Google Business Profile review responses.
                           Your goal is to generate a personalized response.`;
-            promptHeader = `RATING: ${rating} / 5 Stars\nTONE REQUESTED: ${tone}\nCUSTOMER REVIEW: "${reviewText}"\nGenerate the response.`;
-        }
+      promptHeader = `RATING: ${rating} / 5 Stars\nTONE REQUESTED: ${tone}\nCUSTOMER REVIEW: "${reviewText}"\nGenerate the response.`;
+    }
 
-        // بناء الموجه التفصيلي
-        const systemInstruction = `
+    // بناء الموجه التفصيلي
+    const systemInstruction = `
             ${systemRole}
             Instructions:
             1. Keep the response concise, typically under 500 characters.
@@ -58,33 +70,33 @@ export async function POST(request: NextRequest) {
             4. Do not include any introductory phrases like "Here is your response:".
         `;
 
-        const userPrompt = `${systemInstruction}
+    const userPrompt = `${systemInstruction}
 
 BUSINESS NAME: ${locationName}
 ${promptHeader}`;
 
-        const { content: aiReplyText, usage } = await aiProvider.generateCompletion(
-            userPrompt,
-            isQuestion ? 'question_auto_answer' : 'review_auto_reply'
-        );
+    const { content: aiReplyText } = await aiProvider.generateCompletion(
+      userPrompt,
+      isQuestion ? "question_auto_answer" : "review_auto_reply",
+    );
 
-        if (!aiReplyText) {
-            throw new Error('AI provider returned empty response');
-        }
-
-        console.log('[AI Generate Reply] Successfully generated, tokens used:', usage?.total_tokens);
-
-        // إرجاع الرد
-        return NextResponse.json({ success: true, reply: aiReplyText.trim() });
-
-    } catch (error: any) {
-        console.error('[AI Generate Reply] Error:', error);
-        console.error('[AI Generate Reply] Error details:', {
-            message: error.message,
-            userId: user?.id,
-        });
-        return NextResponse.json({ 
-            error: error.message || 'Failed to communicate with AI service.' 
-        }, { status: 500 });
+    if (!aiReplyText) {
+      throw new Error("AI provider returned empty response");
     }
+
+    // إرجاع الرد
+    return NextResponse.json({ success: true, reply: aiReplyText.trim() });
+  } catch (error: unknown) {
+    console.error("[AI Generate Reply] Error:", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to communicate with AI service.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
+
+// Export with AI protection (rate limiting + auth)
+export const POST = withAIProtection(handleGenerateReviewReply, {
+  endpointType: "generateResponse",
+});

@@ -1,5 +1,7 @@
 # 🟠 High Priority: Remove Console.log Statements
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 100+ console.log statements found in production code. These expose internal information, slow down the app, and clutter browser console.

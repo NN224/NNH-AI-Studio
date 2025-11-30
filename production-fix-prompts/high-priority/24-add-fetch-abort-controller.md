@@ -1,5 +1,7 @@
 # 🟠 High Priority: Add AbortController to Fetch Requests
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 111 fetch calls found in components without AbortController. When components unmount, pending requests continue and may cause memory leaks or state updates on unmounted components.

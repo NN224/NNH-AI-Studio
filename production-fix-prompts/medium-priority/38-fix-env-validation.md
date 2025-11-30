@@ -1,5 +1,7 @@
 # 🟡 Medium Priority: Environment Variable Validation
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 125 process.env usages found across 57 files. No validation at startup means missing env vars cause runtime errors instead of clear startup failures.

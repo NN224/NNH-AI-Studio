@@ -1,5 +1,7 @@
 # 🟠 HIGH PRIORITY: Implement i18n for Hardcoded Text (12 Files)
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## 📋 Problem Summary
 
 **Issue ID:** HIGH-008
@@ -20,12 +22,14 @@
 ## 📁 Files to Fix
 
 ### Critical Files (Arabic hardcoded):
+
 1. `components/reviews/ReviewAISettings.tsx` (Lines 62-81)
 2. `components/questions/QuestionAISettings.tsx` (Lines 53-72)
 3. `components/settings/ai-settings-form.tsx` (Multiple lines)
 4. `components/error-boundary/global-error-boundary.tsx` (Lines 109-161)
 
 ### Medium Files (English hardcoded):
+
 5. `components/media/MediaUploader.tsx` (Lines 79-84)
 6. `components/sidebar.tsx` (Lines 51-85)
 7. `components/dashboard/lazy-dashboard-components.tsx` (Lines 60, 71)
@@ -53,6 +57,7 @@
 ### Step 1: Add Translations to messages/
 
 #### messages/en.json
+
 ```json
 {
   "Reviews": {
@@ -72,6 +77,7 @@
 ```
 
 #### messages/ar.json
+
 ```json
 {
   "Reviews": {
@@ -125,24 +131,28 @@ export function ReviewAISettings() {
 ### 1. ReviewAISettings.tsx
 
 **Extract 8 strings to translations:**
+
 - title, description, tone label
 - 4 tone options (professional, friendly, apologetic, marketing)
 
 ### 2. QuestionAISettings.tsx
 
 **Extract 7 strings:**
+
 - title, description, auto-answer toggle
 - 3 category labels
 
 ### 3. ai-settings-form.tsx
 
 **Extract 15+ strings:**
+
 - Provider labels, status messages
 - Form field labels, help text
 
 ### 4. MediaUploader.tsx
 
 **Extract 4 strings:**
+
 ```json
 {
   "Media": {

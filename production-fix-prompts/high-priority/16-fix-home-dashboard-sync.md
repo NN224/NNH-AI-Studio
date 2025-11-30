@@ -1,8 +1,11 @@
 # 🔧 Fix Home vs Dashboard Data Synchronization
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## 📋 المشكلة / Problem
 
 **الملفات:**
+
 - `/app/[locale]/home/page.tsx` - Server Component
 - `/app/[locale]/(dashboard)/dashboard/page.tsx` - Client Component
 
@@ -11,6 +14,7 @@
 ### Architecture Mismatch:
 
 #### **Home Page (`/home`):**
+
 ```typescript
 // ✅ Server Component
 export default async function HomePage() {
@@ -32,6 +36,7 @@ export default async function HomePage() {
 ```
 
 **Características:**
+
 - Server-side rendering (SSR)
 - Uses materialized view `user_home_stats`
 - 4-7 database queries on page load
@@ -39,6 +44,7 @@ export default async function HomePage() {
 - No real-time updates
 
 #### **Dashboard Page (`/dashboard`):**
+
 ```typescript
 // ❌ Client Component
 "use client";
@@ -52,6 +58,7 @@ export default function DashboardPage() {
 ```
 
 **Características:**
+
 - Client-side rendering (CSR)
 - Uses React Query hooks
 - Real-time data fetching
@@ -63,6 +70,7 @@ export default function DashboardPage() {
 ## 🐛 **المشاكل الحالية / Current Issues**
 
 ### Issue 1: Stale Data on Home Page
+
 ```
 User Flow:
 1. User views /home → sees 10 reviews (cached from materialized view)
@@ -72,6 +80,7 @@ User Flow:
 ```
 
 **Root Cause:**
+
 - Home page uses materialized view `user_home_stats`
 - Materialized view is NOT auto-refreshed
 - Dashboard uses live queries
@@ -80,12 +89,14 @@ User Flow:
 ### Issue 2: Different Data Sources
 
 **Home:**
+
 ```sql
 -- Uses materialized view (refreshed manually)
 SELECT * FROM user_home_stats WHERE user_id = ?
 ```
 
 **Dashboard:**
+
 ```sql
 -- Uses live tables (always current)
 SELECT * FROM gmb_reviews WHERE user_id = ?
@@ -143,11 +154,13 @@ ON user_home_stats(user_id);
 ```
 
 **Benefits:**
+
 - ✅ Materialized view stays current
 - ✅ No stale data
 - ✅ Automatic updates on data changes
 
 **Drawbacks:**
+
 - ⚠️ Slower writes (trigger overhead)
 - ⚠️ Full table refresh on every change
 
@@ -158,16 +171,16 @@ ON user_home_stats(user_id);
 **File:** `server/actions/reviews-management.ts`
 
 ```typescript
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
 export async function replyToReview(reviewId: string, replyText: string) {
   // ... existing logic
 
   // ✅ Invalidate home page cache
-  revalidatePath('/[locale]/home', 'page');
+  revalidatePath("/[locale]/home", "page");
 
   // ✅ Also invalidate dashboard
-  revalidatePath('/[locale]/(dashboard)/dashboard', 'page');
+  revalidatePath("/[locale]/(dashboard)/dashboard", "page");
 
   return { success: true };
 }
@@ -176,20 +189,21 @@ export async function replyToReview(reviewId: string, replyText: string) {
 **File:** `server/actions/gmb-sync.ts`
 
 ```typescript
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
 export async function syncGMBData(accountId: string) {
   // ... sync logic
 
   // ✅ Invalidate both pages after sync
-  revalidatePath('/[locale]/home', 'page');
-  revalidatePath('/[locale]/(dashboard)', 'layout');
+  revalidatePath("/[locale]/home", "page");
+  revalidatePath("/[locale]/(dashboard)", "layout");
 
   return { success: true };
 }
 ```
 
 **Benefits:**
+
 - ✅ Simple implementation
 - ✅ Explicit cache control
 - ✅ Works with Next.js caching
@@ -233,7 +247,9 @@ export function useUserHomeStats() {
   return useQuery({
     queryKey: ["user-home-stats"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       // Use LIVE queries instead of materialized view
@@ -250,10 +266,7 @@ export function useUserHomeStats() {
           .from("gmb_posts")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id),
-        supabase
-          .from("gmb_locations")
-          .select("*")
-          .eq("user_id", user.id),
+        supabase.from("gmb_locations").select("*").eq("user_id", user.id),
       ]);
 
       return {
@@ -270,12 +283,14 @@ export function useUserHomeStats() {
 ```
 
 **Benefits:**
+
 - ✅ Same data source as dashboard
 - ✅ React Query cache shared between pages
 - ✅ Automatic invalidation
 - ✅ Real-time consistency
 
 **Drawbacks:**
+
 - ⚠️ Slower initial load (client-side fetching)
 - ⚠️ SEO impact (client-rendered content)
 
@@ -339,6 +354,7 @@ export function HomePageClientWrapper({ initialData }) {
 ```
 
 **Benefits:**
+
 - ✅ Fast initial load (SSR)
 - ✅ Real-time updates (Supabase Realtime)
 - ✅ Best of both worlds
@@ -402,5 +418,6 @@ describe('Home vs Dashboard Data Sync', () => {
 **الوقت المقدر:** 4-6 hours
 
 **User Impact:**
+
 - **Current:** Confusing - numbers don't match between pages
 - **After Fix:** Consistent data everywhere, real-time updates

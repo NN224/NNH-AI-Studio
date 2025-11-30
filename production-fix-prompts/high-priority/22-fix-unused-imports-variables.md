@@ -1,5 +1,7 @@
 # 🟠 High Priority: Unused Imports and Variables
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 1070+ lint warnings, many are unused imports and variables. This increases bundle size and makes code harder to maintain.

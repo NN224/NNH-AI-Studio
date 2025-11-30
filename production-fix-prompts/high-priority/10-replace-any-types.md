@@ -1,5 +1,7 @@
 # 🟠 HIGH PRIORITY: Replace 'any' Types (176 instances)
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## 📋 Problem Summary
 
 **Issue ID:** HIGH-010
@@ -64,11 +66,13 @@ export class AIProvider {
     locationId?: string,
   ): Promise<{ content: string; usage: any }> {
     // ❌ any type
-    let usage: any // ❌ any type
+    let usage: any; // ❌ any type
     // ...
   }
 
-  private async callOpenAI(prompt: string): Promise<{ content: string; usage: any }> {
+  private async callOpenAI(
+    prompt: string,
+  ): Promise<{ content: string; usage: any }> {
     // ❌ any type
   }
 }
@@ -88,7 +92,11 @@ export function withErrorLogging<T extends (...args: any[]) => Promise<any>>(
 }
 
 // ❌ WRONG - Service Methods
-export async function logAutoAnswer(questionId: string, result: any, userId: string) {
+export async function logAutoAnswer(
+  questionId: string,
+  result: any,
+  userId: string,
+) {
   // ❌ any type
 }
 ```
@@ -100,23 +108,27 @@ export async function logAutoAnswer(questionId: string, result: any, userId: str
 ```typescript
 // ✅ CORRECT - AI Provider Service with Proper Types
 interface AIUsage {
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-  cost?: number
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost?: number;
 }
 
 interface AIResponse {
-  content: string
-  usage: AIUsage
-  model: string
-  latency: number
+  content: string;
+  usage: AIUsage;
+  model: string;
+  latency: number;
 }
 
 export class AIProvider {
-  async generateContent(prompt: string, feature: string, locationId?: string): Promise<AIResponse> {
+  async generateContent(
+    prompt: string,
+    feature: string,
+    locationId?: string,
+  ): Promise<AIResponse> {
     // ✅ Proper interface
-    let usage: AIUsage // ✅ Typed
+    let usage: AIUsage; // ✅ Typed
     // ...
   }
 
@@ -128,19 +140,19 @@ export class AIProvider {
 // ✅ CORRECT - Pub/Sub with Proper Types
 interface PubSubMessage {
   message: {
-    data: string
-    messageId: string
-    publishTime: string
-    attributes: Record<string, string>
-  }
+    data: string;
+    messageId: string;
+    publishTime: string;
+    attributes: Record<string, string>;
+  };
 }
 
 interface NotificationData {
-  accountId: string
-  locationId: string
-  eventType: 'REVIEW_CREATED' | 'QUESTION_CREATED' | 'POST_UPDATED'
-  resourceName: string
-  timestamp: string
+  accountId: string;
+  locationId: string;
+  eventType: "REVIEW_CREATED" | "QUESTION_CREATED" | "POST_UPDATED";
+  resourceName: string;
+  timestamp: string;
 }
 
 export function parsePubSubMessage(message: PubSubMessage): NotificationData {
@@ -157,11 +169,11 @@ export function withErrorLogging<TArgs extends readonly unknown[], TReturn>(
 
 // ✅ CORRECT - Service with Interfaces
 interface AutoAnswerResult {
-  success: boolean
-  answer?: string
-  confidence: number
-  reasoning: string
-  tokensUsed: number
+  success: boolean;
+  answer?: string;
+  confidence: number;
+  reasoning: string;
+  tokensUsed: number;
 }
 
 export async function logAutoAnswer(
@@ -184,24 +196,24 @@ export async function logAutoAnswer(
    ```typescript
    // AI service types
    export interface AIUsage {
-     prompt_tokens: number
-     completion_tokens: number
-     total_tokens: number
-     cost?: number
+     prompt_tokens: number;
+     completion_tokens: number;
+     total_tokens: number;
+     cost?: number;
    }
 
    export interface AIResponse {
-     content: string
-     usage: AIUsage
-     model: string
-     latency: number
+     content: string;
+     usage: AIUsage;
+     model: string;
+     latency: number;
    }
 
    export interface AIProvider {
-     name: string
-     model: string
-     apiKey: string
-     maxTokens: number
+     name: string;
+     model: string;
+     apiKey: string;
+     maxTokens: number;
    }
    ```
 
@@ -211,26 +223,26 @@ export async function logAutoAnswer(
    // GMB and Pub/Sub types
    export interface PubSubMessage {
      message: {
-       data: string
-       messageId: string
-       publishTime: string
-       attributes: Record<string, string>
-     }
+       data: string;
+       messageId: string;
+       publishTime: string;
+       attributes: Record<string, string>;
+     };
    }
 
    export interface NotificationData {
-     accountId: string
-     locationId: string
-     eventType: GMBEventType
-     resourceName: string
-     timestamp: string
+     accountId: string;
+     locationId: string;
+     eventType: GMBEventType;
+     resourceName: string;
+     timestamp: string;
    }
 
    export type GMBEventType =
-     | 'REVIEW_CREATED'
-     | 'QUESTION_CREATED'
-     | 'POST_UPDATED'
-     | 'LOCATION_UPDATED'
+     | "REVIEW_CREATED"
+     | "QUESTION_CREATED"
+     | "POST_UPDATED"
+     | "LOCATION_UPDATED";
    ```
 
 3. **Create `lib/types/services.ts`**
@@ -238,24 +250,24 @@ export async function logAutoAnswer(
    ```typescript
    // Service response types
    export interface ServiceResponse<T = unknown> {
-     success: boolean
-     data?: T
-     error?: string
-     timestamp: string
+     success: boolean;
+     data?: T;
+     error?: string;
+     timestamp: string;
    }
 
    export interface AutoAnswerResult {
-     success: boolean
-     answer?: string
-     confidence: number
-     reasoning: string
-     tokensUsed: number
+     success: boolean;
+     answer?: string;
+     confidence: number;
+     reasoning: string;
+     tokensUsed: number;
    }
 
    export interface SentimentAnalysis {
-     score: number
-     magnitude: number
-     category: 'positive' | 'negative' | 'neutral'
+     score: number;
+     magnitude: number;
+     category: "positive" | "negative" | "neutral";
    }
    ```
 
@@ -336,11 +348,11 @@ export async function logAutoAnswer(
 
 ```typescript
 // Test AI services
-const aiResponse = await aiProvider.generateContent('test', 'review')
+const aiResponse = await aiProvider.generateContent("test", "review");
 // Should have full IntelliSense: aiResponse.usage.total_tokens
 
 // Test GMB services
-const notification = parsePubSubMessage(pubsubMessage)
+const notification = parsePubSubMessage(pubsubMessage);
 // Should have full IntelliSense: notification.eventType
 ```
 

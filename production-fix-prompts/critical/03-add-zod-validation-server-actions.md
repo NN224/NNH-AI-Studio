@@ -1,5 +1,7 @@
 # ✅ IMPLEMENTED: Add Zod Validation to Server Actions
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 > **Status:** ✅ COMPLETED
 > **Implemented:** 2025-11-27
 > **Build Status:** ✅ Production build successful

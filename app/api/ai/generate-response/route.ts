@@ -1,6 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
+/**
+ * AI Generate Response API Route
+ *
+ * @security Protected by withAIProtection HOF with rate limiting
+ */
+
+import {
+  withAIProtection,
+  type AIProtectionContext,
+} from "@/lib/api/with-ai-protection";
 import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,22 +17,14 @@ const anthropic = new Anthropic({
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+/**
+ * Main handler - protected by withAIProtection
+ */
+async function handleGenerateResponse(
+  request: Request,
+  _context: AIProtectionContext,
+): Promise<Response> {
   try {
-    // Authentication check
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
     const body = await request.json();
 
     // Extract with fallbacks
@@ -32,12 +33,8 @@ export async function POST(request: NextRequest) {
     const reviewer_name = body.reviewer_name || "Valued Customer";
     const location_name = body.location_name || "our location";
 
-    console.log("Received data:", {
-      review_text,
-      rating,
-      reviewer_name,
-      location_name,
-    }); // Debug
+    // Debug logging (using warn as per eslint config)
+    // console.warn('Received data:', { review_text, rating, reviewer_name, location_name })
 
     // Check if review has actual text or is rating-only
     const hasReviewText =
@@ -100,17 +97,12 @@ Generate a professional response that:
 
 Important: Write ONLY the response text, no additional commentary or explanations.`;
 
-    // Call Anthropic Claude API - Using Claude 3 Haiku (fastest, cheapest, works with all API keys)
+    // Call Anthropic Claude API - Using Claude 3 Haiku
     const message = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307", // Fastest and most accessible model
+      model: "claude-3-haiku-20240307",
       max_tokens: 250,
       temperature: 0.7,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages: [{ role: "user", content: prompt }],
     });
 
     // Extract response text
@@ -131,55 +123,33 @@ Important: Write ONLY the response text, no additional commentary or explanation
         output_tokens: message.usage.output_tokens,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI Generation Error:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
 
-    // Better error logging
-    if (error.status) {
-      console.error("API Error Status:", error.status);
-      console.error("API Error Details:", error.message);
-    }
+    const err = error as { status?: number; message?: string };
 
-    // Check for specific Anthropic errors
-    if (error.status === 401) {
+    if (err.status === 401) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Invalid API key. Please check your ANTHROPIC_API_KEY environment variable.",
-        },
+        { success: false, error: "Invalid API key" },
         { status: 401 },
       );
     }
 
-    if (error.status === 404) {
+    if (err.status === 429) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid model name: ${error.message || "Model not found"}. Please contact support.`,
-        },
-        { status: 404 },
-      );
-    }
-
-    if (error.status === 429) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Rate limit exceeded. Please try again in a moment.",
-        },
+        { success: false, error: "Rate limit exceeded. Please try again." },
         { status: 429 },
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to generate response. Please try again.",
-        details: error.message || String(error),
-      },
+      { success: false, error: "Failed to generate response." },
       { status: 500 },
     );
   }
 }
+
+// Export with AI protection (rate limiting + auth)
+export const POST = withAIProtection(handleGenerateResponse, {
+  endpointType: "generateResponse",
+});

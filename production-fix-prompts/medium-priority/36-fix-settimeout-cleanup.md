@@ -1,5 +1,7 @@
 # 🟡 Medium Priority: setTimeout/setInterval Cleanup
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 46 setTimeout/setInterval calls found in components. Many may not be properly cleaned up on component unmount, causing memory leaks.

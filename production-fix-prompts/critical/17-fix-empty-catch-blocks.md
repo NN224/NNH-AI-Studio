@@ -1,5 +1,7 @@
 # 🔴 Critical: Empty Catch Blocks Swallowing Errors
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 53 empty catch blocks found across 37 files. Errors are being silently swallowed, making debugging impossible and hiding potential security issues.

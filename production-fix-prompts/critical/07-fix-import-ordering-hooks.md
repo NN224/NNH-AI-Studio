@@ -1,5 +1,7 @@
 # ✅ FIXED: Import Ordering Runtime Errors (3 Files)
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 > **🎉 STATUS: COMPLETED**
 > **Fixed Date:** 2025-11-29
 > **Fixed By:** Senior TypeScript/React Expert

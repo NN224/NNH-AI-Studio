@@ -1,5 +1,7 @@
 # ✅ FIXED: useToast Memory Leak
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 > **🎉 STATUS: ALREADY FIXED**
 > **Verified Date:** 2025-11-29
 > **Verified By:** Senior TypeScript/React Expert

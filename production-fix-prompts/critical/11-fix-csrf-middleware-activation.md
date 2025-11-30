@@ -1,5 +1,7 @@
 # ✅ [COMPLETED] CRITICAL FIX: CSRF Protection غير مُفعَّل في Middleware
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 > **تم التطبيق بالكامل** ✅ - Applied on Nov 30, 2025
 > **التغييرات:**
 >

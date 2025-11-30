@@ -1,5 +1,7 @@
 # 🟠 High Priority: Add Retry Logic to API Calls
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 No retry logic found in API calls. Network failures, temporary server issues, or rate limits cause immediate failures without recovery attempts.

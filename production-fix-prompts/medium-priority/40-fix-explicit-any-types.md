@@ -1,5 +1,7 @@
 # 🟡 Medium Priority: Fix Remaining Explicit Any Types
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 Multiple `@typescript-eslint/no-explicit-any` warnings remain. These reduce type safety and make refactoring risky.

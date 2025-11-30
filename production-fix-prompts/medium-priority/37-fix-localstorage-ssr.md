@@ -1,5 +1,7 @@
 # 🟡 Medium Priority: localStorage SSR Safety
 
+> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+
 ## Problem Summary
 
 77 localStorage calls found. Direct localStorage access in Next.js can cause hydration errors because localStorage doesn't exist on the server.
