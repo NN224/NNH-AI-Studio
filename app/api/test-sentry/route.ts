@@ -22,12 +22,24 @@ export async function GET() {
     const clientDsn = client?.getOptions()?.dsn;
     const isConfigured = client !== undefined && clientDsn !== undefined;
 
-    // Debug info
+    // Debug info - show partial DSN for debugging
+    const maskDsn = (d: string | undefined) => {
+      if (!d) return "not set";
+      // Show first 20 and last 10 chars
+      if (d.length > 40) {
+        return `${d.substring(0, 20)}...${d.substring(d.length - 10)}`;
+      }
+      return "too short";
+    };
+
     const debugInfo = {
       hasDsn: !!dsn,
       hasPublicDsn: !!publicDsn,
+      dsnPreview: maskDsn(dsn),
+      publicDsnPreview: maskDsn(publicDsn),
       dsnValid: validateSentryDSN(dsn),
       publicDsnValid: validateSentryDSN(publicDsn),
+      dsnLength: dsn?.length || 0,
       hasClient: !!client,
       clientHasDsn: !!clientDsn,
       nodeEnv: process.env.NODE_ENV,
