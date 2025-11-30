@@ -147,7 +147,29 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   // 6. Check auth for protected routes
   // -------------------------------------------------------------------------
-  const locale = pathname.split("/")[1] || "en";
+  const pathSegments = pathname.split("/");
+  const potentialLocale = pathSegments[1];
+  const locale = (locales as readonly string[]).includes(potentialLocale)
+    ? potentialLocale
+    : "en";
+
+  // Check if this is the root page (/ or /[locale])
+  const isRootPage =
+    pathname === "/" ||
+    (pathSegments.length === 2 &&
+      (locales as readonly string[]).includes(potentialLocale));
+
+  // Redirect authenticated users from root to /home
+  if (isRootPage) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const homeUrl = new URL(`/${locale}/home`, request.url);
+      return NextResponse.redirect(homeUrl);
+    }
+  }
 
   // Routes that require authentication
   const protectedPaths = [
