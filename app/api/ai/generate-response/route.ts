@@ -1,43 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from "@/lib/supabase/server";
+import Anthropic from "@anthropic-ai/sdk";
+import { NextRequest, NextResponse } from "next/server";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    
-    // Extract with fallbacks
-    const review_text = body.review_text || body.comment || '';
-    const rating = body.rating || 3;
-    const reviewer_name = body.reviewer_name || 'Valued Customer';
-    const location_name = body.location_name || 'our location';
+    // Authentication check
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    console.log('Received data:', { review_text, rating, reviewer_name, location_name }); // Debug
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const body = await request.json();
+
+    // Extract with fallbacks
+    const review_text = body.review_text || body.comment || "";
+    const rating = body.rating || 3;
+    const reviewer_name = body.reviewer_name || "Valued Customer";
+    const location_name = body.location_name || "our location";
+
+    console.log("Received data:", {
+      review_text,
+      rating,
+      reviewer_name,
+      location_name,
+    }); // Debug
 
     // Check if review has actual text or is rating-only
-    const hasReviewText = review_text && 
-      review_text !== 'No review text provided' && 
-      review_text !== 'No review text' &&
-      !review_text.includes('star rating with no comment');
+    const hasReviewText =
+      review_text &&
+      review_text !== "No review text provided" &&
+      review_text !== "No review text" &&
+      !review_text.includes("star rating with no comment");
 
     // Build context-aware prompt based on rating
-    let tone = '';
-    let instructions = '';
-    
+    let tone = "";
+    let instructions = "";
+
     if (rating >= 4) {
-      tone = 'warm, grateful, and enthusiastic';
-      instructions = 'Thank them warmly for their positive feedback and invite them to visit again.';
+      tone = "warm, grateful, and enthusiastic";
+      instructions =
+        "Thank them warmly for their positive feedback and invite them to visit again.";
     } else if (rating === 3) {
-      tone = 'understanding and improvement-focused';
-      instructions = 'Thank them for feedback, acknowledge their experience, and express desire to improve.';
+      tone = "understanding and improvement-focused";
+      instructions =
+        "Thank them for feedback, acknowledge their experience, and express desire to improve.";
     } else {
-      tone = 'empathetic, apologetic, and solution-oriented';
-      instructions = 'Sincerely apologize, acknowledge their concerns, and offer to resolve the issue directly.';
+      tone = "empathetic, apologetic, and solution-oriented";
+      instructions =
+        "Sincerely apologize, acknowledge their concerns, and offer to resolve the issue directly.";
     }
 
     // Generate different prompts for reviews with text vs rating-only
@@ -78,77 +102,84 @@ Important: Write ONLY the response text, no additional commentary or explanation
 
     // Call Anthropic Claude API - Using Claude 3 Haiku (fastest, cheapest, works with all API keys)
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307', // Fastest and most accessible model
+      model: "claude-3-haiku-20240307", // Fastest and most accessible model
       max_tokens: 250,
       temperature: 0.7,
       messages: [
         {
-          role: 'user',
-          content: prompt
-        }
-      ]
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
     // Extract response text
-    const responseText = message.content[0].type === 'text' 
-      ? message.content[0].text 
-      : '';
+    const responseText =
+      message.content[0].type === "text" ? message.content[0].text : "";
 
     if (!responseText) {
-      throw new Error('No response generated');
+      throw new Error("No response generated");
     }
 
     return NextResponse.json({
       success: true,
       response: responseText.trim(),
       generated_at: new Date().toISOString(),
-      model: 'claude-3-haiku-20240307',
+      model: "claude-3-haiku-20240307",
       usage: {
         input_tokens: message.usage.input_tokens,
-        output_tokens: message.usage.output_tokens
-      }
+        output_tokens: message.usage.output_tokens,
+      },
     });
-
   } catch (error: any) {
-    console.error('AI Generation Error:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    
+    console.error("AI Generation Error:", error);
+    console.error("Error details:", JSON.stringify(error, null, 2));
+
     // Better error logging
     if (error.status) {
-      console.error('API Error Status:', error.status);
-      console.error('API Error Details:', error.message);
+      console.error("API Error Status:", error.status);
+      console.error("API Error Details:", error.message);
     }
-    
+
     // Check for specific Anthropic errors
     if (error.status === 401) {
       return NextResponse.json(
-        { success: false, error: 'Invalid API key. Please check your ANTHROPIC_API_KEY environment variable.' },
-        { status: 401 }
+        {
+          success: false,
+          error:
+            "Invalid API key. Please check your ANTHROPIC_API_KEY environment variable.",
+        },
+        { status: 401 },
       );
     }
-    
+
     if (error.status === 404) {
       return NextResponse.json(
-        { success: false, error: `Invalid model name: ${error.message || 'Model not found'}. Please contact support.` },
-        { status: 404 }
+        {
+          success: false,
+          error: `Invalid model name: ${error.message || "Model not found"}. Please contact support.`,
+        },
+        { status: 404 },
       );
     }
-    
+
     if (error.status === 429) {
       return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded. Please try again in a moment.' },
-        { status: 429 }
+        {
+          success: false,
+          error: "Rate limit exceeded. Please try again in a moment.",
+        },
+        { status: 429 },
       );
     }
 
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to generate response. Please try again.',
-        details: error.message || String(error)
+      {
+        success: false,
+        error: "Failed to generate response. Please try again.",
+        details: error.message || String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
