@@ -41,11 +41,26 @@
 - NEVER remove BETA indicators
 - Version: `0.9.0-beta` in `package.json`
 
-### 3. Database Schema
-- **Current State**: 24 tables, 462 columns (see `DATABASE_SCHEMA.md`)
+### 3. Database Schema (VERIFY BEFORE CODING)
+- **Current State**: 24 tables, 462 columns (see `DATABASE_TYPESCRIPT_INTERFACES.md`)
+- **ALWAYS verify** column names before writing queries
 - Any schema change = migration file + documentation update
 - Use template: `supabase/migrations/_TEMPLATE.sql`
 - Never modify tables directly without migration
+
+#### ⚠️ Common Column Name Mistakes:
+```
+❌ account_id        → ✅ gmb_account_id
+❌ location_id (raw) → ✅ normalized_location_id
+❌ user_id (no RLS)  → ✅ .eq('user_id', user.id)
+```
+
+#### Before ANY database query:
+```bash
+# Verify column exists
+grep -r "column_name" lib/types/database.ts
+grep "column_name" DATABASE_TYPESCRIPT_INTERFACES.md
+```
 
 ### 4. AI Provider System
 - **Always** use fallback providers (never single provider)

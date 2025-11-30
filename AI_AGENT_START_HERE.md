@@ -42,6 +42,79 @@
 
 ---
 
+## 🗄️ قواعد قاعدة البيانات (CRITICAL)
+
+### قبل أي عمل مع Database:
+
+```
+□ هل الجدول موجود؟ → تحقق من DATABASE_TYPESCRIPT_INTERFACES.md
+□ هل اسم العمود صحيح؟ → تحقق من الـ schema
+□ هل الـ type متطابق؟ → string/number/boolean/jsonb
+□ هل هناك RLS policy؟ → لا تتجاوزها
+```
+
+### أسماء الجداول الرئيسية:
+
+```
+gmb_accounts          # حسابات GMB
+gmb_locations         # المواقع
+gmb_reviews           # المراجعات
+gmb_posts             # المنشورات
+gmb_questions         # الأسئلة
+gmb_media             # الوسائط
+gmb_insights          # الإحصائيات
+gmb_services          # الخدمات
+sync_queue            # طابور المزامنة
+user_settings         # إعدادات المستخدم
+profiles              # ملفات المستخدمين
+activity_logs         # سجل النشاطات
+```
+
+### قبل كتابة query:
+
+```typescript
+// ❌ خطأ - اسم عمود غير صحيح
+.select('account_id')  // قد يكون gmb_account_id
+
+// ✅ صحيح - تحقق من الاسم أولاً
+// 1. اقرأ DATABASE_TYPESCRIPT_INTERFACES.md
+// 2. أو استخدم: grep -r "account_id" lib/types/
+.select('gmb_account_id')
+```
+
+### قبل إضافة عمود جديد:
+
+```
+□ هل العمود موجود مسبقاً باسم مختلف؟ → ابحث
+□ هل تحتاج migration؟ → أنشئها في supabase/migrations/
+□ هل حدّثت Types؟ → حدّث DATABASE_TYPESCRIPT_INTERFACES.md
+```
+
+### أوامر التحقق:
+
+```bash
+# البحث عن اسم عمود
+grep -r "column_name" lib/types/database.ts
+
+# التحقق من schema
+cat DATABASE_TYPESCRIPT_INTERFACES.md | grep "table_name"
+
+# فحص الجدول
+grep -A20 "interface TableName" lib/types/database.ts
+```
+
+### ⚠️ أخطاء شائعة في Database:
+
+| ❌ خطأ شائع         | ✅ الصحيح                        |
+| ------------------- | -------------------------------- |
+| `account_id`        | `gmb_account_id`                 |
+| `location_id` (raw) | `normalized_location_id`         |
+| `user_id` بدون RLS  | استخدم `.eq('user_id', user.id)` |
+| `created_at` string | `created_at` timestamp           |
+| `data` any          | `data` jsonb with type           |
+
+---
+
 ## 🔴 ممنوع منعاً باتاً
 
 | ❌ لا تفعل             | ✅ افعل بدلاً           |

@@ -17,6 +17,21 @@
 - ✅ ابحث عن الكود الموجود قبل إنشاء جديد
 - ✅ شغّل `npm run lint` بعد التعديلات
 - ✅ تحقق من `production-fix-prompts/` للإصلاحات
+- ✅ **تحقق من أسماء الأعمدة** قبل كتابة database query
+
+### 🗄️ Database Rules (CRITICAL):
+
+```bash
+# قبل أي query، تحقق:
+grep -r "column_name" lib/types/database.ts
+```
+
+**أخطاء شائعة:**
+| ❌ خطأ | ✅ صحيح |
+|--------|---------|
+| `account_id` | `gmb_account_id` |
+| `location_id` | `normalized_location_id` |
+| `user_id` بدون RLS | `.eq('user_id', user.id)` |
 
 ---
 

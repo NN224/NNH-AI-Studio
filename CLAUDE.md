@@ -17,6 +17,22 @@
 3. **لا تترك `console.log`** في الكود
 4. **لا تستخدم `any`** إلا للضرورة القصوى
 5. **شغّل `npm run lint`** بعد كل تعديل
+6. **تحقق من أسماء الأعمدة** قبل كتابة أي database query
+
+### 🗄️ قواعد Database (CRITICAL):
+
+```bash
+# قبل أي query، تحقق من اسم العمود:
+grep -r "column_name" lib/types/database.ts
+grep "column_name" DATABASE_TYPESCRIPT_INTERFACES.md
+```
+
+**أخطاء شائعة:**
+| ❌ خطأ | ✅ صحيح |
+|--------|---------|
+| `account_id` | `gmb_account_id` |
+| `location_id` | `normalized_location_id` |
+| `user_id` بدون filter | `.eq('user_id', user.id)` |
 
 ### عند إصلاح مشكلة:
 
