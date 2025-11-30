@@ -103,18 +103,38 @@ export async function middleware(request: NextRequest) {
   response = applySecurityHeaders(response);
 
   // -------------------------------------------------------------------------
-  // 5. Handle i18n routing
+  // 5. Handle i18n routing (skip for API routes)
   // -------------------------------------------------------------------------
-  const handleI18nRouting = createIntlMiddleware({
-    locales,
-    defaultLocale: "en",
-  });
+  let i18nResponse: NextResponse | undefined;
 
-  const i18nResponse = handleI18nRouting(request);
+  // Skip i18n for API routes, sentry pages, and other non-page routes
+  const skipI18nPaths = [
+    "/api/",
+    "/sentry-example-page",
+    "/monitoring",
+    "/_next/",
+    "/favicon",
+    "/manifest",
+    "/sitemap",
+    "/robots",
+  ];
 
-  // Apply security headers to i18n response as well
-  if (i18nResponse) {
-    applySecurityHeaders(i18nResponse);
+  const shouldSkipI18n = skipI18nPaths.some((path) =>
+    pathname.startsWith(path),
+  );
+
+  if (!shouldSkipI18n) {
+    const handleI18nRouting = createIntlMiddleware({
+      locales,
+      defaultLocale: "en",
+    });
+
+    i18nResponse = handleI18nRouting(request);
+
+    // Apply security headers to i18n response as well
+    if (i18nResponse) {
+      applySecurityHeaders(i18nResponse);
+    }
   }
 
   // Create Supabase client for auth checks
