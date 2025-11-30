@@ -1,4 +1,9 @@
 {
+  "Metadata": {
+    "siteName": "NNH AI Studio",
+    "siteDescription": "منصة إدارة Google My Business بالذكاء الاصطناعي",
+    "keywords": "جوجل ماي بزنس، مراجعات، ذكاء اصطناعي، SEO محلي"
+  },
   "metadata": {
     "title": "NNH AI Studio - منصة إدارة Google My Business و YouTube",
     "description": "أدر مواقع Google My Business وقناة YouTube الخاصة بك بأدوات مدعومة بالذكاء الاصطناعي. أتمت المراجعات، أنشئ المحتوى، ونمِّ عملك.",
@@ -51,6 +56,32 @@
         "posts": "المنشورات"
       }
     }
+  },
+  "Common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "حاول مرة أخرى",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "success": "تم بنجاح",
+    "failed": "فشل",
+    "yes": "نعم",
+    "no": "لا",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "import": "استيراد",
+    "refresh": "تحديث",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "required": "مطلوب",
+    "optional": "اختياري"
   },
   "common": {
     "loading": "جاري التحميل...",
@@ -111,6 +142,33 @@
         "other": "{count} دقيقة"
       }
     }
+  },
+  "Navigation": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "locations": "المواقع",
+    "reviews": "المراجعات",
+    "questions": "الأسئلة والأجوبة",
+    "posts": "المنشورات",
+    "media": "الوسائط",
+    "analytics": "التحليلات",
+    "settings": "الإعدادات",
+    "automation": "الأتمتة",
+    "products": "المنتجات"
+  },
+  "Auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "signup": "إنشاء حساب",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "rememberMe": "تذكرني",
+    "loginWithGoogle": "المتابعة مع Google",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟"
   },
   "auth": {
     "login": {
@@ -932,6 +990,141 @@
         "questions": "أجب على الأسئلة المعلقة",
         "questionsShort": "الأسئلة"
       }
+    }
+  },
+  "Reviews": {
+    "AISettings": {
+      "title": "إعدادات AI للمراجعات",
+      "description": "تخصيص كيفية رد النظام تلقائياً على مراجعات العملاء",
+      "enabled": "تفعيل الرد التلقائي",
+      "enabledBadge": "مفعّل",
+      "autoReplyDescription": "الرد على المراجعات تلقائياً خلال دقيقتين",
+      "confidenceThreshold": "حد الثقة",
+      "confidenceDescription": "المراجعات بدرجة ثقة أقل من هذا الحد ستحتاج لمراجعتك اليدوية",
+      "tone": "أسلوب الرد",
+      "tones": {
+        "professional": "احترافي",
+        "professionalDesc": "رسمي ومهني",
+        "friendly": "ودود",
+        "friendlyDesc": "دافئ ومرحب",
+        "thankful": "شاكر",
+        "thankfulDesc": "ممتن ومقدّر"
+      },
+      "responseLength": "طول الرد",
+      "lengths": {
+        "short": "قصير",
+        "shortDesc": "1-2 جمل",
+        "medium": "متوسط",
+        "mediumDesc": "2-3 جمل",
+        "detailed": "مفصّل",
+        "detailedDesc": "3-5 جمل"
+      },
+      "language": "لغة الرد",
+      "languages": {
+        "auto": "تلقائي",
+        "autoDesc": "نفس لغة المراجعة",
+        "ar": "العربية",
+        "arDesc": "دائماً بالعربية",
+        "en": "English",
+        "enDesc": "Always in English"
+      },
+      "tabs": {
+        "settings": "الإعدادات",
+        "stats": "الإحصائيات",
+        "test": "الاختبار"
+      },
+      "statsComingSoon": "الإحصائيات ستظهر هنا قريباً",
+      "testComingSoon": "أداة الاختبار ستكون متاحة قريباً",
+      "saveChanges": "حفظ التغييرات",
+      "cancel": "إلغاء"
+    }
+  },
+  "Questions": {
+    "AISettings": {
+      "title": "إعدادات AI للأسئلة",
+      "description": "تخصيص كيفية رد النظام تلقائياً على أسئلة العملاء",
+      "enabled": "تفعيل الرد التلقائي",
+      "enabledBadge": "مفعّل",
+      "autoReplyDescription": "الرد على الأسئلة تلقائياً خلال دقيقتين",
+      "confidenceThreshold": "حد الثقة",
+      "confidenceDescription": "الأسئلة بدرجة ثقة أقل من هذا الحد ستحتاج لمراجعتك اليدوية",
+      "questionTypes": "أنواع الأسئلة المسموح بها",
+      "types": {
+        "hours": "ساعات العمل",
+        "hoursDesc": "متى تفتح؟ متى تغلق؟",
+        "location": "الموقع والعنوان",
+        "locationDesc": "أين موقعكم؟",
+        "services": "الخدمات",
+        "servicesDesc": "ماذا تقدمون؟",
+        "pricing": "الأسعار",
+        "pricingDesc": "كم السعر؟",
+        "general": "أسئلة عامة",
+        "generalDesc": "أسئلة أخرى"
+      },
+      "tone": "أسلوب الرد",
+      "tones": {
+        "professional": "احترافي",
+        "professionalDesc": "رسمي ومهني",
+        "friendly": "ودود",
+        "friendlyDesc": "دافئ ومرحب",
+        "casual": "عادي",
+        "casualDesc": "بسيط ومباشر"
+      },
+      "tabs": {
+        "settings": "الإعدادات",
+        "stats": "الإحصائيات",
+        "test": "الاختبار"
+      },
+      "statsComingSoon": "الإحصائيات ستظهر هنا قريباً",
+      "testComingSoon": "أداة الاختبار ستكون متاحة قريباً",
+      "saveChanges": "حفظ التغييرات",
+      "cancel": "إلغاء"
+    }
+  },
+  "seo": {
+    "reviews": {
+      "title": "إدارة المراجعات - NNH AI Studio",
+      "description": "إدارة والرد على مراجعات العملاء بمساعدة الذكاء الاصطناعي. حسّن تقييماتك ورضا عملائك."
+    },
+    "questions": {
+      "title": "الأسئلة والأجوبة - NNH AI Studio",
+      "description": "أجب على أسئلة العملاء تلقائياً بالذكاء الاصطناعي. لا تفوت أي استفسار من العملاء."
+    },
+    "locations": {
+      "title": "إدارة المواقع - NNH AI Studio",
+      "description": "أدر جميع مواقع Google My Business في مكان واحد. دعم متعدد المواقع."
+    },
+    "dashboard": {
+      "title": "لوحة التحكم - NNH AI Studio",
+      "description": "لوحة تحكم إدارة GMB. راقب المراجعات والأسئلة والتحليلات في الوقت الفعلي."
+    },
+    "settings": {
+      "title": "الإعدادات - NNH AI Studio",
+      "description": "اضبط حسابك وإعدادات الذكاء الاصطناعي والتكاملات."
+    },
+    "analytics": {
+      "title": "التحليلات - NNH AI Studio",
+      "description": "تتبع أداء عملك بتحليلات ورؤى تفصيلية."
+    },
+    "posts": {
+      "title": "إدارة المنشورات - NNH AI Studio",
+      "description": "أنشئ وجدول منشورات Google My Business لتفاعل مع عملائك."
+    },
+    "media": {
+      "title": "مكتبة الوسائط - NNH AI Studio",
+      "description": "أدر صور وفيديوهات عملك لـ Google My Business."
+    },
+    "automation": {
+      "title": "الأتمتة - NNH AI Studio",
+      "description": "أتمت ردود المراجعات وتفاعلات العملاء بالذكاء الاصطناعي."
+    },
+    "about": {
+      "title": "عن الشركة - NNH AI Studio",
+      "description": "تعرف على NNH AI Studio وكيف نساعد الشركات على النمو."
+    },
+    "aiCockpit": {
+      "title": "مركز التحكم الذكي - NNH AI Studio",
+      "description": "مركز تحكم ذكي لإدارة المراجعات مع تحليل المشاعر والردود التلقائية."
     }
   }
 }

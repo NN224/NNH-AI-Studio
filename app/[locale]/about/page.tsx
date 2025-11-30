@@ -1,6 +1,28 @@
-import { Target, Users, Zap } from "lucide-react";
-import { PublicHeader } from "@/components/layout/public-header";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
+import { Target, Users, Zap } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo.about" });
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    alternates: {
+      canonical: `https://nnh.ae/${locale}/about`,
+      languages: {
+        en: "https://nnh.ae/en/about",
+        ar: "https://nnh.ae/ar/about",
+      },
+    },
+  };
+}
 
 export default function AboutPage() {
   return (

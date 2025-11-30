@@ -1,23 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bot, Settings, TrendingUp, TestTube, Save, X } from 'lucide-react';
-import { useAutoAnswerSettings } from '@/hooks/use-auto-answer-settings';
+} from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAutoAnswerSettings } from "@/hooks/use-auto-answer-settings";
+import { Bot, Save, Settings, TestTube, TrendingUp, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 interface QuestionAISettingsProps {
   open: boolean;
@@ -30,10 +31,15 @@ export function QuestionAISettings({
   onOpenChange,
   locationId,
 }: QuestionAISettingsProps) {
-  const { settings, updateSettings, isLoading } = useAutoAnswerSettings(locationId);
+  const t = useTranslations("Questions.AISettings");
+  const { settings, updateSettings, isLoading } =
+    useAutoAnswerSettings(locationId);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const handleSettingChange = (key: string, value: any) => {
+  const handleSettingChange = (
+    key: string,
+    value: string | number | boolean,
+  ) => {
     updateSettings({ [key]: value });
     setHasChanges(true);
   };
@@ -50,26 +56,24 @@ export function QuestionAISettings({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5" />
-            إعدادات AI للأسئلة
+            {t("title")}
           </SheetTitle>
-          <SheetDescription>
-            تخصيص كيفية رد النظام تلقائياً على أسئلة العملاء
-          </SheetDescription>
+          <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
 
         <Tabs defaultValue="settings" className="mt-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 ml-2" />
-              الإعدادات
+              {t("tabs.settings")}
             </TabsTrigger>
             <TabsTrigger value="stats">
               <TrendingUp className="w-4 h-4 ml-2" />
-              الإحصائيات
+              {t("tabs.stats")}
             </TabsTrigger>
             <TabsTrigger value="test">
               <TestTube className="w-4 h-4 ml-2" />
-              الاختبار
+              {t("tabs.test")}
             </TabsTrigger>
           </TabsList>
 
@@ -78,21 +82,23 @@ export function QuestionAISettings({
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold">تفعيل الرد التلقائي</h3>
+                  <h3 className="font-semibold">{t("enabled")}</h3>
                   {settings.enabled && (
                     <Badge variant="default" className="gap-1">
                       <Bot className="w-3 h-3" />
-                      مفعّل
+                      {t("enabledBadge")}
                     </Badge>
                   )}
                 </div>
                 <p className="text-sm text-gray-600">
-                  الرد على الأسئلة تلقائياً خلال دقيقتين
+                  {t("autoReplyDescription")}
                 </p>
               </div>
               <Switch
                 checked={settings.enabled || false}
-                onCheckedChange={(enabled) => handleSettingChange('enabled', enabled)}
+                onCheckedChange={(enabled) =>
+                  handleSettingChange("enabled", enabled)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -102,14 +108,18 @@ export function QuestionAISettings({
             {/* حد الثقة */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">حد الثقة</Label>
+                <Label className="text-base font-semibold">
+                  {t("confidenceThreshold")}
+                </Label>
                 <Badge variant="outline" className="text-lg font-bold">
                   {settings.confidence_threshold || 80}%
                 </Badge>
               </div>
               <Slider
                 value={[settings.confidence_threshold || 80]}
-                onValueChange={([value]) => handleSettingChange('confidence_threshold', value)}
+                onValueChange={([value]) =>
+                  handleSettingChange("confidence_threshold", value)
+                }
                 min={50}
                 max={100}
                 step={5}
@@ -117,7 +127,7 @@ export function QuestionAISettings({
                 className="py-4"
               />
               <p className="text-xs text-gray-500">
-                الأسئلة بدرجة ثقة أقل من هذا الحد ستحتاج لمراجعتك اليدوية
+                {t("confidenceDescription")}
               </p>
             </div>
 
@@ -125,65 +135,87 @@ export function QuestionAISettings({
 
             {/* أنواع الأسئلة */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">أنواع الأسئلة المسموح بها</Label>
-              
+              <Label className="text-base font-semibold">
+                {t("questionTypes")}
+              </Label>
+
               <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label className="font-medium">ساعات العمل</Label>
-                    <p className="text-xs text-gray-500">متى تفتح؟ متى تغلق؟</p>
+                    <Label className="font-medium">{t("types.hours")}</Label>
+                    <p className="text-xs text-gray-500">
+                      {t("types.hoursDesc")}
+                    </p>
                   </div>
                   <Switch
                     checked={settings.answer_hours_questions ?? true}
-                    onCheckedChange={(value) => handleSettingChange('answer_hours_questions', value)}
+                    onCheckedChange={(value) =>
+                      handleSettingChange("answer_hours_questions", value)
+                    }
                     disabled={isLoading || !settings.enabled}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label className="font-medium">الموقع والعنوان</Label>
-                    <p className="text-xs text-gray-500">أين موقعكم؟</p>
+                    <Label className="font-medium">{t("types.location")}</Label>
+                    <p className="text-xs text-gray-500">
+                      {t("types.locationDesc")}
+                    </p>
                   </div>
                   <Switch
                     checked={settings.answer_location_questions ?? true}
-                    onCheckedChange={(value) => handleSettingChange('answer_location_questions', value)}
+                    onCheckedChange={(value) =>
+                      handleSettingChange("answer_location_questions", value)
+                    }
                     disabled={isLoading || !settings.enabled}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label className="font-medium">الخدمات</Label>
-                    <p className="text-xs text-gray-500">ماذا تقدمون؟</p>
+                    <Label className="font-medium">{t("types.services")}</Label>
+                    <p className="text-xs text-gray-500">
+                      {t("types.servicesDesc")}
+                    </p>
                   </div>
                   <Switch
                     checked={settings.answer_services_questions ?? true}
-                    onCheckedChange={(value) => handleSettingChange('answer_services_questions', value)}
+                    onCheckedChange={(value) =>
+                      handleSettingChange("answer_services_questions", value)
+                    }
                     disabled={isLoading || !settings.enabled}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label className="font-medium">الأسعار</Label>
-                    <p className="text-xs text-gray-500">كم السعر؟</p>
+                    <Label className="font-medium">{t("types.pricing")}</Label>
+                    <p className="text-xs text-gray-500">
+                      {t("types.pricingDesc")}
+                    </p>
                   </div>
                   <Switch
                     checked={settings.answer_pricing_questions ?? false}
-                    onCheckedChange={(value) => handleSettingChange('answer_pricing_questions', value)}
+                    onCheckedChange={(value) =>
+                      handleSettingChange("answer_pricing_questions", value)
+                    }
                     disabled={isLoading || !settings.enabled}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <Label className="font-medium">أسئلة عامة</Label>
-                    <p className="text-xs text-gray-500">أسئلة أخرى</p>
+                    <Label className="font-medium">{t("types.general")}</Label>
+                    <p className="text-xs text-gray-500">
+                      {t("types.generalDesc")}
+                    </p>
                   </div>
                   <Switch
                     checked={settings.answer_general_questions ?? true}
-                    onCheckedChange={(value) => handleSettingChange('answer_general_questions', value)}
+                    onCheckedChange={(value) =>
+                      handleSettingChange("answer_general_questions", value)
+                    }
                     disabled={isLoading || !settings.enabled}
                   />
                 </div>
@@ -194,32 +226,43 @@ export function QuestionAISettings({
 
             {/* أسلوب الرد */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">أسلوب الرد</Label>
+              <Label className="text-base font-semibold">{t("tone")}</Label>
               <RadioGroup
-                value={settings.tone || 'professional'}
-                onValueChange={(value) => handleSettingChange('tone', value)}
+                value={settings.tone || "professional"}
+                onValueChange={(value) => handleSettingChange("tone", value)}
                 disabled={isLoading || !settings.enabled}
                 className="space-y-2"
               >
                 <div className="flex items-center space-x-2 space-x-reverse p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="professional" id="professional" />
-                  <Label htmlFor="professional" className="flex-1 cursor-pointer">
-                    <span className="font-medium">احترافي</span>
-                    <p className="text-xs text-gray-500">رسمي ومهني</p>
+                  <Label
+                    htmlFor="professional"
+                    className="flex-1 cursor-pointer"
+                  >
+                    <span className="font-medium">
+                      {t("tones.professional")}
+                    </span>
+                    <p className="text-xs text-gray-500">
+                      {t("tones.professionalDesc")}
+                    </p>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 space-x-reverse p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="friendly" id="friendly" />
                   <Label htmlFor="friendly" className="flex-1 cursor-pointer">
-                    <span className="font-medium">ودود</span>
-                    <p className="text-xs text-gray-500">دافئ ومرحب</p>
+                    <span className="font-medium">{t("tones.friendly")}</span>
+                    <p className="text-xs text-gray-500">
+                      {t("tones.friendlyDesc")}
+                    </p>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 space-x-reverse p-3 border rounded-lg hover:bg-gray-50">
                   <RadioGroupItem value="casual" id="casual" />
                   <Label htmlFor="casual" className="flex-1 cursor-pointer">
-                    <span className="font-medium">عادي</span>
-                    <p className="text-xs text-gray-500">بسيط ومباشر</p>
+                    <span className="font-medium">{t("tones.casual")}</span>
+                    <p className="text-xs text-gray-500">
+                      {t("tones.casualDesc")}
+                    </p>
                   </Label>
                 </div>
               </RadioGroup>
@@ -229,14 +272,14 @@ export function QuestionAISettings({
           <TabsContent value="stats" className="mt-4">
             <div className="text-center py-8 text-gray-500">
               <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p>الإحصائيات ستظهر هنا قريباً</p>
+              <p>{t("statsComingSoon")}</p>
             </div>
           </TabsContent>
 
           <TabsContent value="test" className="mt-4">
             <div className="text-center py-8 text-gray-500">
               <TestTube className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p>أداة الاختبار ستكون متاحة قريباً</p>
+              <p>{t("testComingSoon")}</p>
             </div>
           </TabsContent>
         </Tabs>
@@ -249,7 +292,7 @@ export function QuestionAISettings({
             className="flex-1 gap-2"
           >
             <Save className="w-4 h-4" />
-            حفظ التغييرات
+            {t("saveChanges")}
           </Button>
           <Button
             variant="outline"
@@ -257,7 +300,7 @@ export function QuestionAISettings({
             className="gap-2"
           >
             <X className="w-4 h-4" />
-            إلغاء
+            {t("cancel")}
           </Button>
         </div>
       </SheetContent>

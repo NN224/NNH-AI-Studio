@@ -1,11 +1,11 @@
-import type React from "react";
+import { BetaIndicator } from "@/components/common/beta-badge";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
+import { notFound } from "next/navigation";
+import type React from "react";
 import { Toaster } from "sonner";
 import { Providers } from "../providers";
-import { BetaIndicator } from "@/components/common/beta-badge";
 
 export async function generateMetadata({
   params,
@@ -22,13 +22,22 @@ export async function generateMetadata({
     openGraph: {
       title: t("og.title"),
       description: t("og.description"),
-      locale: locale,
+      locale: locale === "ar" ? "ar_AE" : "en_US",
+      alternateLocale: locale === "ar" ? "en_US" : "ar_AE",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: t("og.title"),
       description: t("og.description"),
+    },
+    alternates: {
+      canonical: `https://nnh.ae/${locale}`,
+      languages: {
+        en: "https://nnh.ae/en",
+        ar: "https://nnh.ae/ar",
+        "x-default": "https://nnh.ae/en",
+      },
     },
   };
 }
@@ -45,7 +54,6 @@ export default async function LocaleLayout({
     notFound();
   }
   const messages = await getMessages({ locale });
-  const direction = locale === "ar" ? "rtl" : "ltr";
 
   return (
     <div lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>

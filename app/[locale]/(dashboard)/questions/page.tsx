@@ -1,8 +1,30 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { QuestionsClientPage } from "@/components/questions/QuestionsClientPage";
-import { getQuestions } from "@/server/actions/questions-management";
+import { createClient } from "@/lib/supabase/server";
 import { getAuthUrl } from "@/lib/utils/navigation";
+import { getQuestions } from "@/server/actions/questions-management";
+import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo.questions" });
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    alternates: {
+      canonical: `https://nnh.ae/${locale}/questions`,
+      languages: {
+        en: "https://nnh.ae/en/questions",
+        ar: "https://nnh.ae/ar/questions",
+      },
+    },
+  };
+}
 
 export default async function QuestionsPage({
   params,

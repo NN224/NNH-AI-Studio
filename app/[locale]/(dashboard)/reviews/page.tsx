@@ -1,7 +1,29 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { ReviewsPageClient } from "@/components/reviews/ReviewsPageClient";
+import { createClient } from "@/lib/supabase/server";
 import { getAuthUrl } from "@/lib/utils/navigation";
+import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo.reviews" });
+
+  return {
+    title: t("title"),
+    description: t("description"),
+    alternates: {
+      canonical: `https://nnh.ae/${locale}/reviews`,
+      languages: {
+        en: "https://nnh.ae/en/reviews",
+        ar: "https://nnh.ae/ar/reviews",
+      },
+    },
+  };
+}
 
 export default async function ReviewsPage({
   params,

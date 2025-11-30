@@ -1,4 +1,9 @@
 {
+  "Metadata": {
+    "siteName": "NNH AI Studio",
+    "siteDescription": "AI-powered Google My Business management platform",
+    "keywords": "GMB, Google My Business, AI, Reviews, Local SEO"
+  },
   "metadata": {
     "title": "NNH AI Studio - Google My Business & YouTube Management Platform",
     "description": "Manage your Google My Business locations and YouTube channel with AI-powered tools. Automate reviews, create content, and grow your business.",
@@ -51,6 +56,32 @@
         "posts": "Posts"
       }
     }
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "success": "Success",
+    "failed": "Failed",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "required": "Required",
+    "optional": "Optional"
   },
   "common": {
     "loading": "Loading...",
@@ -111,6 +142,33 @@
         "other": "{count} minutes"
       }
     }
+  },
+  "Navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "locations": "Locations",
+    "reviews": "Reviews",
+    "questions": "Q&A",
+    "posts": "Posts",
+    "media": "Media",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "automation": "Automation",
+    "products": "Products"
+  },
+  "Auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signup": "Sign Up",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "rememberMe": "Remember me",
+    "loginWithGoogle": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
   },
   "auth": {
     "login": {
@@ -979,6 +1037,141 @@
         "questions": "Answer pending questions",
         "questionsShort": "Questions"
       }
+    }
+  },
+  "Reviews": {
+    "AISettings": {
+      "title": "AI Settings for Reviews",
+      "description": "Customize how the system automatically replies to customer reviews",
+      "enabled": "Enable Auto-Reply",
+      "enabledBadge": "Enabled",
+      "autoReplyDescription": "Reply to reviews automatically within 2 minutes",
+      "confidenceThreshold": "Confidence Threshold",
+      "confidenceDescription": "Reviews with confidence below this threshold will require your manual review",
+      "tone": "Response Tone",
+      "tones": {
+        "professional": "Professional",
+        "professionalDesc": "Formal and professional",
+        "friendly": "Friendly",
+        "friendlyDesc": "Warm and welcoming",
+        "thankful": "Thankful",
+        "thankfulDesc": "Grateful and appreciative"
+      },
+      "responseLength": "Response Length",
+      "lengths": {
+        "short": "Short",
+        "shortDesc": "1-2 sentences",
+        "medium": "Medium",
+        "mediumDesc": "2-3 sentences",
+        "detailed": "Detailed",
+        "detailedDesc": "3-5 sentences"
+      },
+      "language": "Response Language",
+      "languages": {
+        "auto": "Automatic",
+        "autoDesc": "Same as review language",
+        "ar": "Arabic",
+        "arDesc": "Always in Arabic",
+        "en": "English",
+        "enDesc": "Always in English"
+      },
+      "tabs": {
+        "settings": "Settings",
+        "stats": "Statistics",
+        "test": "Test"
+      },
+      "statsComingSoon": "Statistics will appear here soon",
+      "testComingSoon": "Test tool will be available soon",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel"
+    }
+  },
+  "Questions": {
+    "AISettings": {
+      "title": "AI Settings for Questions",
+      "description": "Customize how the system automatically replies to customer questions",
+      "enabled": "Enable Auto-Reply",
+      "enabledBadge": "Enabled",
+      "autoReplyDescription": "Reply to questions automatically within 2 minutes",
+      "confidenceThreshold": "Confidence Threshold",
+      "confidenceDescription": "Questions with confidence below this threshold will require your manual review",
+      "questionTypes": "Allowed Question Types",
+      "types": {
+        "hours": "Business Hours",
+        "hoursDesc": "When do you open? When do you close?",
+        "location": "Location & Address",
+        "locationDesc": "Where are you located?",
+        "services": "Services",
+        "servicesDesc": "What do you offer?",
+        "pricing": "Pricing",
+        "pricingDesc": "How much does it cost?",
+        "general": "General Questions",
+        "generalDesc": "Other questions"
+      },
+      "tone": "Response Tone",
+      "tones": {
+        "professional": "Professional",
+        "professionalDesc": "Formal and professional",
+        "friendly": "Friendly",
+        "friendlyDesc": "Warm and welcoming",
+        "casual": "Casual",
+        "casualDesc": "Simple and direct"
+      },
+      "tabs": {
+        "settings": "Settings",
+        "stats": "Statistics",
+        "test": "Test"
+      },
+      "statsComingSoon": "Statistics will appear here soon",
+      "testComingSoon": "Test tool will be available soon",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel"
+    }
+  },
+  "seo": {
+    "reviews": {
+      "title": "Reviews Management - NNH AI Studio",
+      "description": "Manage and respond to customer reviews with AI assistance. Improve your ratings and customer satisfaction."
+    },
+    "questions": {
+      "title": "Questions & Answers - NNH AI Studio",
+      "description": "Answer customer questions automatically with AI. Never miss a customer inquiry."
+    },
+    "locations": {
+      "title": "Locations Management - NNH AI Studio",
+      "description": "Manage all your Google My Business locations in one place. Multi-location support."
+    },
+    "dashboard": {
+      "title": "Dashboard - NNH AI Studio",
+      "description": "Your GMB management dashboard. Monitor reviews, questions, and analytics in real-time."
+    },
+    "settings": {
+      "title": "Settings - NNH AI Studio",
+      "description": "Configure your account, AI settings, and integrations."
+    },
+    "analytics": {
+      "title": "Analytics - NNH AI Studio",
+      "description": "Track your business performance with detailed analytics and insights."
+    },
+    "posts": {
+      "title": "Posts Management - NNH AI Studio",
+      "description": "Create and schedule Google My Business posts to engage your customers."
+    },
+    "media": {
+      "title": "Media Library - NNH AI Studio",
+      "description": "Manage your business photos and videos for Google My Business."
+    },
+    "automation": {
+      "title": "Automation - NNH AI Studio",
+      "description": "Automate your review responses and customer interactions with AI."
+    },
+    "about": {
+      "title": "About Us - NNH AI Studio",
+      "description": "Learn more about NNH AI Studio and how we help businesses grow."
+    },
+    "aiCockpit": {
+      "title": "AI Cockpit - NNH AI Studio",
+      "description": "AI-powered review management cockpit with sentiment analysis and automated responses."
     }
   }
 }
