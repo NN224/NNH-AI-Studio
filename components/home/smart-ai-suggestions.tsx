@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Sparkles,
-  MessageSquare,
-  Star,
-  Zap,
-  BarChart3,
-  Clock,
-  RefreshCw,
-  ChevronRight,
-  CheckCircle,
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BarChart3,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Zap,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface SmartSuggestion {
   id: string;
@@ -86,7 +86,11 @@ export function SmartAISuggestions({
         // Fallback to localStorage
         const stored = localStorage.getItem(`dismissed_suggestions_${userId}`);
         if (stored) {
-          setDismissedIds(JSON.parse(stored));
+          try {
+            setDismissedIds(JSON.parse(stored));
+          } catch {
+            // Invalid JSON in localStorage - ignore
+          }
         }
       } finally {
         setIsLoading(false);

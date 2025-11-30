@@ -1,8 +1,23 @@
-'use client'
+"use client";
 
-import { useState, useCallback, useMemo } from 'react'
-import { Filter, X, Save, Download, Calendar } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -10,149 +25,154 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar, Download, Filter, Save, X } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 export interface FilterPreset {
-  id: string
-  name: string
-  filters: DashboardFilters
+  id: string;
+  name: string;
+  filters: DashboardFilters;
 }
 
 export interface DashboardFilters {
   dateRange?: {
-    from: Date
-    to: Date
-  }
-  locations?: string[]
-  ratings?: number[]
-  reviewStatus?: ('pending' | 'replied' | 'flagged')[]
-  minRating?: number
-  maxRating?: number
-  searchQuery?: string
+    from: Date;
+    to: Date;
+  };
+  locations?: string[];
+  ratings?: number[];
+  reviewStatus?: ("pending" | "replied" | "flagged")[];
+  minRating?: number;
+  maxRating?: number;
+  searchQuery?: string;
 }
 
 interface AdvancedFiltersProps {
-  onApply: (filters: DashboardFilters) => void
-  onExport?: (filters: DashboardFilters) => void
-  locations?: Array<{ id: string; name: string }>
-  locale?: 'ar' | 'en'
+  onApply: (filters: DashboardFilters) => void;
+  onExport?: (filters: DashboardFilters) => void;
+  locations?: Array<{ id: string; name: string }>;
+  locale?: "ar" | "en";
 }
 
 export function AdvancedFilters({
   onApply,
   onExport,
   locations = [],
-  locale = 'en',
+  locale = "en",
 }: AdvancedFiltersProps) {
-  const [open, setOpen] = useState(false)
-  const [filters, setFilters] = useState<DashboardFilters>({})
+  const [open, setOpen] = useState(false);
+  const [filters, setFilters] = useState<DashboardFilters>({});
   const [presets, setPresets] = useState<FilterPreset[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dashboard-filter-presets')
-      return saved ? JSON.parse(saved) : []
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("dashboard-filter-presets");
+      if (saved) {
+        try {
+          return JSON.parse(saved) as FilterPreset[];
+        } catch {
+          // Invalid JSON - return empty array
+          return [];
+        }
+      }
     }
-    return []
-  })
-  const [presetName, setPresetName] = useState('')
+    return [];
+  });
+  const [presetName, setPresetName] = useState("");
 
-  const updateFilter = useCallback(<K extends keyof DashboardFilters>(
-    key: K,
-    value: DashboardFilters[K]
-  ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }, [])
+  const updateFilter = useCallback(
+    <K extends keyof DashboardFilters>(key: K, value: DashboardFilters[K]) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
 
   const clearFilters = useCallback(() => {
-    setFilters({})
-  }, [])
+    setFilters({});
+  }, []);
 
   const handleApply = useCallback(() => {
-    onApply(filters)
-    setOpen(false)
-  }, [filters, onApply])
+    onApply(filters);
+    setOpen(false);
+  }, [filters, onApply]);
 
   const handleExport = useCallback(() => {
-    onExport?.(filters)
-  }, [filters, onExport])
+    onExport?.(filters);
+  }, [filters, onExport]);
 
   const savePreset = useCallback(() => {
-    if (!presetName.trim()) return
+    if (!presetName.trim()) return;
 
     const newPreset: FilterPreset = {
       id: Date.now().toString(),
       name: presetName,
       filters: { ...filters },
-    }
+    };
 
-    const updatedPresets = [...presets, newPreset]
-    setPresets(updatedPresets)
-    localStorage.setItem('dashboard-filter-presets', JSON.stringify(updatedPresets))
-    setPresetName('')
-  }, [presetName, filters, presets])
+    const updatedPresets = [...presets, newPreset];
+    setPresets(updatedPresets);
+    localStorage.setItem(
+      "dashboard-filter-presets",
+      JSON.stringify(updatedPresets),
+    );
+    setPresetName("");
+  }, [presetName, filters, presets]);
 
   const loadPreset = useCallback((preset: FilterPreset) => {
-    setFilters(preset.filters)
-  }, [])
+    setFilters(preset.filters);
+  }, []);
 
-  const deletePreset = useCallback((presetId: string) => {
-    const updatedPresets = presets.filter((p) => p.id !== presetId)
-    setPresets(updatedPresets)
-    localStorage.setItem('dashboard-filter-presets', JSON.stringify(updatedPresets))
-  }, [presets])
+  const deletePreset = useCallback(
+    (presetId: string) => {
+      const updatedPresets = presets.filter((p) => p.id !== presetId);
+      setPresets(updatedPresets);
+      localStorage.setItem(
+        "dashboard-filter-presets",
+        JSON.stringify(updatedPresets),
+      );
+    },
+    [presets],
+  );
 
   const activeFiltersCount = useMemo(() => {
-    let count = 0
-    if (filters.dateRange) count++
-    if (filters.locations && filters.locations.length > 0) count++
-    if (filters.ratings && filters.ratings.length > 0) count++
-    if (filters.reviewStatus && filters.reviewStatus.length > 0) count++
-    if (filters.minRating !== undefined) count++
-    if (filters.searchQuery) count++
-    return count
-  }, [filters])
+    let count = 0;
+    if (filters.dateRange) count++;
+    if (filters.locations && filters.locations.length > 0) count++;
+    if (filters.ratings && filters.ratings.length > 0) count++;
+    if (filters.reviewStatus && filters.reviewStatus.length > 0) count++;
+    if (filters.minRating !== undefined) count++;
+    if (filters.searchQuery) count++;
+    return count;
+  }, [filters]);
 
   const t = {
-    title: locale === 'ar' ? 'الفلاتر المتقدمة' : 'Advanced Filters',
-    description: locale === 'ar' ? 'قم بتخصيص البيانات المعروضة' : 'Customize your data view',
-    dateRange: locale === 'ar' ? 'نطاق التاريخ' : 'Date Range',
-    from: locale === 'ar' ? 'من' : 'From',
-    to: locale === 'ar' ? 'إلى' : 'To',
-    locations: locale === 'ar' ? 'المواقع' : 'Locations',
-    selectLocations: locale === 'ar' ? 'اختر المواقع' : 'Select locations',
-    ratings: locale === 'ar' ? 'التقييمات' : 'Ratings',
-    reviewStatus: locale === 'ar' ? 'حالة المراجعة' : 'Review Status',
-    pending: locale === 'ar' ? 'قيد الانتظار' : 'Pending',
-    replied: locale === 'ar' ? 'تم الرد' : 'Replied',
-    flagged: locale === 'ar' ? 'مُعلّم' : 'Flagged',
-    minRating: locale === 'ar' ? 'الحد الأدنى للتقييم' : 'Minimum Rating',
-    search: locale === 'ar' ? 'بحث' : 'Search',
-    searchPlaceholder: locale === 'ar' ? 'ابحث في المراجعات...' : 'Search reviews...',
-    savePreset: locale === 'ar' ? 'حفظ الفلتر' : 'Save Preset',
-    presetName: locale === 'ar' ? 'اسم الفلتر' : 'Preset Name',
-    savedPresets: locale === 'ar' ? 'الفلاتر المحفوظة' : 'Saved Presets',
-    apply: locale === 'ar' ? 'تطبيق' : 'Apply',
-    clear: locale === 'ar' ? 'مسح' : 'Clear',
-    export: locale === 'ar' ? 'تصدير' : 'Export',
-  }
+    title: locale === "ar" ? "الفلاتر المتقدمة" : "Advanced Filters",
+    description:
+      locale === "ar"
+        ? "قم بتخصيص البيانات المعروضة"
+        : "Customize your data view",
+    dateRange: locale === "ar" ? "نطاق التاريخ" : "Date Range",
+    from: locale === "ar" ? "من" : "From",
+    to: locale === "ar" ? "إلى" : "To",
+    locations: locale === "ar" ? "المواقع" : "Locations",
+    selectLocations: locale === "ar" ? "اختر المواقع" : "Select locations",
+    ratings: locale === "ar" ? "التقييمات" : "Ratings",
+    reviewStatus: locale === "ar" ? "حالة المراجعة" : "Review Status",
+    pending: locale === "ar" ? "قيد الانتظار" : "Pending",
+    replied: locale === "ar" ? "تم الرد" : "Replied",
+    flagged: locale === "ar" ? "مُعلّم" : "Flagged",
+    minRating: locale === "ar" ? "الحد الأدنى للتقييم" : "Minimum Rating",
+    search: locale === "ar" ? "بحث" : "Search",
+    searchPlaceholder:
+      locale === "ar" ? "ابحث في المراجعات..." : "Search reviews...",
+    savePreset: locale === "ar" ? "حفظ الفلتر" : "Save Preset",
+    presetName: locale === "ar" ? "اسم الفلتر" : "Preset Name",
+    savedPresets: locale === "ar" ? "الفلاتر المحفوظة" : "Saved Presets",
+    apply: locale === "ar" ? "تطبيق" : "Apply",
+    clear: locale === "ar" ? "مسح" : "Clear",
+    export: locale === "ar" ? "تصدير" : "Export",
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -161,7 +181,10 @@ export function AdvancedFilters({
           <Filter className="h-4 w-4 mr-2" />
           {t.title}
           {activeFiltersCount > 0 && (
-            <Badge variant="destructive" className="ml-2 h-5 w-5 flex items-center justify-center p-0">
+            <Badge
+              variant="destructive"
+              className="ml-2 h-5 w-5 flex items-center justify-center p-0"
+            >
               {activeFiltersCount}
             </Badge>
           )}
@@ -183,13 +206,13 @@ export function AdvancedFilters({
                   <Button
                     variant="outline"
                     className={cn(
-                      'justify-start text-left font-normal',
-                      !filters.dateRange?.from && 'text-muted-foreground'
+                      "justify-start text-left font-normal",
+                      !filters.dateRange?.from && "text-muted-foreground",
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
                     {filters.dateRange?.from ? (
-                      format(filters.dateRange.from, 'PPP')
+                      format(filters.dateRange.from, "PPP")
                     ) : (
                       <span>{t.from}</span>
                     )}
@@ -201,7 +224,7 @@ export function AdvancedFilters({
                     selected={filters.dateRange?.from as Date | undefined}
                     onSelect={(date) => {
                       if (date && date instanceof Date) {
-                        updateFilter('dateRange', {
+                        updateFilter("dateRange", {
                           from: date,
                           to: filters.dateRange?.to || new Date(),
                         });
@@ -217,13 +240,13 @@ export function AdvancedFilters({
                   <Button
                     variant="outline"
                     className={cn(
-                      'justify-start text-left font-normal',
-                      !filters.dateRange?.to && 'text-muted-foreground'
+                      "justify-start text-left font-normal",
+                      !filters.dateRange?.to && "text-muted-foreground",
                     )}
                   >
                     <Calendar className="mr-2 h-4 w-4" />
                     {filters.dateRange?.to ? (
-                      format(filters.dateRange.to, 'PPP')
+                      format(filters.dateRange.to, "PPP")
                     ) : (
                       <span>{t.to}</span>
                     )}
@@ -235,7 +258,7 @@ export function AdvancedFilters({
                     selected={filters.dateRange?.to as Date | undefined}
                     onSelect={(date) => {
                       if (date && date instanceof Date) {
-                        updateFilter('dateRange', {
+                        updateFilter("dateRange", {
                           from: filters.dateRange?.from || new Date(),
                           to: date,
                         });
@@ -254,18 +277,21 @@ export function AdvancedFilters({
               <Label>{t.locations}</Label>
               <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
                 {locations.map((location) => (
-                  <div key={location.id} className="flex items-center space-x-2">
+                  <div
+                    key={location.id}
+                    className="flex items-center space-x-2"
+                  >
                     <Checkbox
                       id={`location-${location.id}`}
                       checked={filters.locations?.includes(location.id)}
                       onCheckedChange={(checked) => {
-                        const current = filters.locations || []
+                        const current = filters.locations || [];
                         updateFilter(
-                          'locations',
+                          "locations",
                           checked
                             ? [...current, location.id]
-                            : current.filter((id) => id !== location.id)
-                        )
+                            : current.filter((id) => id !== location.id),
+                        );
                       }}
                     />
                     <label
@@ -287,16 +313,18 @@ export function AdvancedFilters({
               {[1, 2, 3, 4, 5].map((rating) => (
                 <Button
                   key={rating}
-                  variant={filters.ratings?.includes(rating) ? 'default' : 'outline'}
+                  variant={
+                    filters.ratings?.includes(rating) ? "default" : "outline"
+                  }
                   size="sm"
                   onClick={() => {
-                    const current = filters.ratings || []
+                    const current = filters.ratings || [];
                     updateFilter(
-                      'ratings',
+                      "ratings",
                       current.includes(rating)
                         ? current.filter((r) => r !== rating)
-                        : [...current, rating]
-                    )
+                        : [...current, rating],
+                    );
                   }}
                 >
                   {rating}★
@@ -309,19 +337,19 @@ export function AdvancedFilters({
           <div className="space-y-2">
             <Label>{t.reviewStatus}</Label>
             <div className="space-y-2">
-              {(['pending', 'replied', 'flagged'] as const).map((status) => (
+              {(["pending", "replied", "flagged"] as const).map((status) => (
                 <div key={status} className="flex items-center space-x-2">
                   <Checkbox
                     id={`status-${status}`}
                     checked={filters.reviewStatus?.includes(status)}
                     onCheckedChange={(checked) => {
-                      const current = filters.reviewStatus || []
+                      const current = filters.reviewStatus || [];
                       updateFilter(
-                        'reviewStatus',
+                        "reviewStatus",
                         checked
                           ? [...current, status]
-                          : current.filter((s) => s !== status)
-                      )
+                          : current.filter((s) => s !== status),
+                      );
                     }}
                   />
                   <label
@@ -340,7 +368,9 @@ export function AdvancedFilters({
             <Label>{t.minRating}</Label>
             <Select
               value={filters.minRating?.toString()}
-              onValueChange={(value) => updateFilter('minRating', parseInt(value))}
+              onValueChange={(value) =>
+                updateFilter("minRating", parseInt(value))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder={t.minRating} />
@@ -360,8 +390,8 @@ export function AdvancedFilters({
             <Label>{t.search}</Label>
             <Input
               placeholder={t.searchPlaceholder}
-              value={filters.searchQuery || ''}
-              onChange={(e) => updateFilter('searchQuery', e.target.value)}
+              value={filters.searchQuery || ""}
+              onChange={(e) => updateFilter("searchQuery", e.target.value)}
             />
           </div>
 
@@ -430,5 +460,5 @@ export function AdvancedFilters({
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
