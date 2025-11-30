@@ -16,7 +16,7 @@
  * This route will be removed in a future release.
  */
 
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    // ✅ Use regular client - RLS handles user access
+    const { data, error } = await supabase
       .from("notifications")
       .insert({
         user_id: user.id,
@@ -60,10 +60,9 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ notification: data });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e.message || "Failed to create notification" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create notification";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

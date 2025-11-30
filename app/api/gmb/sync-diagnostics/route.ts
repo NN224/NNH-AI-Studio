@@ -1,5 +1,11 @@
+/**
+ * GMB Sync Diagnostics API
+ *
+ * @security Uses createClient with RLS - no admin bypass needed
+ */
+
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +24,8 @@ export async function GET() {
       );
     }
 
-    // Use admin client to bypass RLS and view all accounts
-    const adminClient = createAdminClient();
-
-    const { data: allAccounts, error: allAccountsError } = await adminClient
-      .from("gmb_accounts")
-      .select("id, user_id, account_name, is_active, last_sync, last_error");
-
-    if (allAccountsError) {
-      console.error(
-        "[GMB Diagnostics API] Error fetching all accounts:",
-        allAccountsError,
-      );
-    }
-
-    // Get GMB account info for this user using admin client
-    const { data: gmbAccount, error: gmbAccountError } = await adminClient
+    // ✅ Use regular client - RLS filters by user_id automatically
+    const { data: gmbAccount, error: gmbAccountError } = await supabase
       .from("gmb_accounts")
       .select("id, account_name, is_active, last_sync, last_error")
       .eq("user_id", user.id)
@@ -49,11 +41,8 @@ export async function GET() {
     if (!gmbAccount) {
       return NextResponse.json({
         success: false,
-        error: `No GMB account found for user ID: ${user.id}. Found ${allAccounts?.length || 0} total accounts in database.`,
-        debug: {
-          userId: user.id,
-          allAccounts: allAccounts || [],
-        },
+        error:
+          "No GMB account found. Please connect your Google Business Profile.",
       });
     }
 

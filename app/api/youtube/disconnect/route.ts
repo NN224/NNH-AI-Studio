@@ -1,4 +1,10 @@
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+/**
+ * YouTube Disconnect API
+ *
+ * @security Uses createClient with RLS (no admin bypass needed)
+ */
+
+import { createClient } from "@/lib/supabase/server";
 import { logServerActivity } from "@/server/services/activity";
 import { NextResponse } from "next/server";
 
@@ -13,8 +19,8 @@ export async function POST() {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const admin = createAdminClient();
-    await admin
+    // ✅ Use regular client - RLS will filter by user_id automatically
+    await supabase
       .from("oauth_tokens")
       .delete()
       .eq("user_id", user.id)
@@ -32,10 +38,9 @@ export async function POST() {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e.message || "Disconnect failed" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Disconnect failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
