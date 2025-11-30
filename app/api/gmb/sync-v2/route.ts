@@ -77,6 +77,7 @@ function validateHmacSignature(
 
     return timingSafeEqual(sigBuffer, expectedBuffer);
   } catch {
+    // Security: fail closed on any comparison error
     return false;
   }
 }
@@ -101,6 +102,7 @@ function validateServiceRoleKey(authHeader: string | null): boolean {
   try {
     return timingSafeEqual(Buffer.from(token), Buffer.from(serviceRoleKey));
   } catch {
+    // Security: fail closed on any comparison error
     return false;
   }
 }

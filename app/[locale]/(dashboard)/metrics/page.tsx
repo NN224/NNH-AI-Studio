@@ -1,22 +1,23 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "@/lib/navigation";
-import { getRecentActivity } from "@/lib/monitoring/audit";
-import { getMetricsSummary } from "@/lib/monitoring/metrics";
-import { getTranslations } from "next-intl/server";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
+import { getRecentActivity } from "@/lib/monitoring/audit";
+import { getMetricsSummary } from "@/lib/monitoring/metrics";
+import { redirect } from "@/lib/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getTranslations } from "next-intl/server";
 
 function formatTimestamp(value: string, locale: string) {
   try {
     return new Date(value).toLocaleString(locale);
   } catch {
+    // Invalid date format - return original value as fallback
     return value;
   }
 }
