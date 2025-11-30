@@ -36,11 +36,15 @@ jest.mock("@/lib/gmb/helpers", () => ({
 }));
 
 const publishSyncProgress = jest.fn();
-const refreshCache = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/cache/cache-manager", () => ({
   CacheBucket: { DASHBOARD_OVERVIEW: "dashboard:overview" },
   publishSyncProgress: (...args: unknown[]) => publishSyncProgress(...args),
-  refreshCache: (...args: unknown[]) => refreshCache(...args),
+  refreshCache: jest.fn().mockResolvedValue(undefined),
+}));
+
+const invalidateGMBCache = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/cache/gmb-cache", () => ({
+  invalidateGMBCache: (...args: unknown[]) => invalidateGMBCache(...args),
 }));
 
 const logAction = jest.fn().mockResolvedValue(undefined);
@@ -129,7 +133,7 @@ describe("performTransactionalSync - transaction failure and mapping edges", () 
     expect(idxRun).toBeGreaterThan(-1);
     expect(idxErr).toBeGreaterThan(idxRun);
 
-    expect(refreshCache).not.toHaveBeenCalled();
+    expect(invalidateGMBCache).not.toHaveBeenCalled();
     expect(logAction).toHaveBeenCalledWith(
       "sync",
       "gmb_account",
@@ -463,8 +467,8 @@ describe("performTransactionalSync - transaction failure and mapping edges", () 
       idx = found;
     }
 
-    expect(refreshCache).toHaveBeenCalledTimes(1);
-    expect(refreshCache).toHaveBeenCalledWith("dashboard:overview", "user-1");
+    expect(invalidateGMBCache).toHaveBeenCalledTimes(1);
+    expect(invalidateGMBCache).toHaveBeenCalledWith("user-1");
   });
 
   it("supports pagination (extra fetch calls) and empty dataset", async () => {
@@ -689,7 +693,7 @@ describe("performTransactionalSync - transaction failure and mapping edges", () 
     expect(r1.success).toBe(true);
     expect(r2.success).toBe(true);
     expect(runSyncTransactionWithRetry).toHaveBeenCalledTimes(2);
-    expect(refreshCache).toHaveBeenCalledTimes(2);
+    expect(invalidateGMBCache).toHaveBeenCalledTimes(2);
 
     const stages = publishSyncProgress.mock.calls.map((c) => c[0]?.stage);
     // At least some events include questions_fetch (first call) and some omit it (second call)

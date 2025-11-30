@@ -85,7 +85,8 @@ export async function uploadMedia(
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const timestamp = Date.now();
-    const fileName = `${user.id}/${locationId}/${timestamp}.${ext}`;
+    const safeLocationId = locationId.replace(/[^a-zA-Z0-9-_]/g, "");
+    const fileName = `${user.id}/${safeLocationId}/${timestamp}.${ext}`;
 
     // Upload to Supabase storage
     const { error: uploadError } = await supabase.storage
@@ -277,9 +278,7 @@ export async function deleteMedia(
 /**
  * Delete multiple media files (bulk delete)
  */
-export async function bulkDeleteMedia(
-  mediaIds: string[],
-): Promise<{
+export async function bulkDeleteMedia(mediaIds: string[]): Promise<{
   success: boolean;
   deleted: number;
   failed: number;
