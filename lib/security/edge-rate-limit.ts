@@ -1,16 +1,21 @@
 /**
  * ============================================================================
- * Edge-Compatible Rate Limiting
+ * DISTRIBUTED Edge-Compatible Rate Limiting
  * ============================================================================
  *
- * Lightweight rate limiting for Next.js middleware (Edge Runtime).
- * Uses in-memory sliding window algorithm optimized for edge functions.
+ * Rate limiting for Next.js middleware using Upstash Redis.
+ * Provides distributed rate limiting across all edge instances.
  *
- * For distributed rate limiting across multiple edge nodes, configure Upstash:
+ * REQUIRED environment variables:
  * - UPSTASH_REDIS_REST_URL
  * - UPSTASH_REDIS_REST_TOKEN
+ *
+ * SECURITY: This implementation FAILS CLOSED - if Redis is unavailable,
+ * requests are DENIED to prevent bypass attacks.
  */
 
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
 
 // ============================================================================
@@ -36,78 +41,117 @@ export interface RateLimitResult {
 }
 
 // ============================================================================
-// In-Memory Store (Edge-Compatible)
+// Distributed Rate Limiter (Upstash Redis)
 // ============================================================================
 
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
+let ratelimiters: Map<string, Ratelimit> | null = null;
+let redisConfigured = false;
+let configCheckDone = false;
 
-// Global store - persists across requests in the same edge instance
-// Note: This is NOT distributed - each edge node has its own store
-const rateLimitStore = new Map<string, RateLimitEntry>();
+/**
+ * Get or create rate limiter for specific configuration
+ */
+function getRateLimiter(
+  limit: number,
+  windowSeconds: number,
+): Ratelimit | null {
+  // Check configuration only once
+  if (!configCheckDone) {
+    configCheckDone = true;
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Cleanup old entries periodically (every 100 requests)
-let requestCount = 0;
-const CLEANUP_INTERVAL = 100;
-
-function cleanupExpiredEntries(): void {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetTime < now) {
-      rateLimitStore.delete(key);
+    if (!redisUrl || !redisToken) {
+      console.error(
+        "[CRITICAL] Upstash Redis not configured. Rate limiting will FAIL CLOSED. " +
+          "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.",
+      );
+      redisConfigured = false;
+    } else {
+      redisConfigured = true;
+      ratelimiters = new Map();
     }
   }
+
+  if (!redisConfigured || !ratelimiters) {
+    return null;
+  }
+
+  // Create unique key for this rate limit configuration
+  const configKey = `${limit}:${windowSeconds}`;
+
+  // Return cached limiter if exists
+  if (ratelimiters.has(configKey)) {
+    return ratelimiters.get(configKey)!;
+  }
+
+  // Create new limiter for this configuration
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
+
+  const limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
+    analytics: true,
+    prefix: "nnh:ratelimit",
+  });
+
+  ratelimiters.set(configKey, limiter);
+  return limiter;
 }
 
 // ============================================================================
-// Rate Limit Check
+// Rate Limit Check (Async - Distributed)
 // ============================================================================
 
 /**
- * Check rate limit for a given identifier
+ * Check rate limit for a given identifier (distributed via Upstash Redis)
+ * SECURITY: FAILS CLOSED - denies requests if Redis unavailable
  */
-export function checkEdgeRateLimit(
+export async function checkEdgeRateLimit(
   identifier: string,
   limit: number,
   windowSeconds: number,
-): RateLimitResult {
+): Promise<RateLimitResult> {
   const now = Date.now();
-  const windowMs = windowSeconds * 1000;
-  const resetTime = now + windowMs;
+  const resetTime = now + windowSeconds * 1000;
 
-  // Periodic cleanup
-  requestCount++;
-  if (requestCount >= CLEANUP_INTERVAL) {
-    requestCount = 0;
-    cleanupExpiredEntries();
-  }
+  const limiter = getRateLimiter(limit, windowSeconds);
 
-  const entry = rateLimitStore.get(identifier);
-
-  // New window or expired entry
-  if (!entry || entry.resetTime < now) {
-    rateLimitStore.set(identifier, { count: 1, resetTime });
+  // FAIL CLOSED: If Redis not available, DENY the request
+  if (!limiter) {
+    console.error(
+      "[SECURITY] Rate limiter unavailable - denying request for:",
+      identifier,
+    );
     return {
-      success: true,
-      limit,
-      remaining: limit - 1,
+      success: false,
+      limit: 0,
+      remaining: 0,
       reset: Math.floor(resetTime / 1000),
     };
   }
 
-  // Existing window - increment count
-  entry.count++;
-  const remaining = Math.max(0, limit - entry.count);
-  const success = entry.count <= limit;
-
-  return {
-    success,
-    limit,
-    remaining,
-    reset: Math.floor(entry.resetTime / 1000),
-  };
+  try {
+    const result = await limiter.limit(identifier);
+    return {
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: Math.floor(result.reset / 1000),
+    };
+  } catch (error) {
+    console.error("[SECURITY] Rate limit check failed:", error);
+    // FAIL CLOSED on error - deny the request
+    return {
+      success: false,
+      limit: 0,
+      remaining: 0,
+      reset: Math.floor(resetTime / 1000),
+    };
+  }
 }
 
 // ============================================================================
@@ -229,20 +273,20 @@ export function createRateLimitResponse(result: RateLimitResult): NextResponse {
 }
 
 /**
- * Apply rate limiting to a request
+ * Apply rate limiting to a request (async - uses distributed Redis)
  * Returns null if allowed, or a 429 response if rate limited
  */
-export function applyEdgeRateLimit(
+export async function applyEdgeRateLimit(
   req: NextRequest,
   config: RateLimitConfig,
-): NextResponse | null {
+): Promise<NextResponse | null> {
   // Check if we should skip rate limiting
   if (config.skip?.(req)) {
     return null;
   }
 
   const identifier = config.identifier(req);
-  const result = checkEdgeRateLimit(
+  const result = await checkEdgeRateLimit(
     identifier,
     config.limit,
     config.windowSeconds,

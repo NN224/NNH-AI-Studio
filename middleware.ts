@@ -63,10 +63,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 2. SECURITY: Edge-level rate limiting (DDoS protection)
+  // 2. SECURITY: Edge-level rate limiting (DDoS protection) - DISTRIBUTED
   // -------------------------------------------------------------------------
   const rateLimitConfig = getDynamicRateLimit(request);
-  const rateLimitResponse = applyEdgeRateLimit(request, rateLimitConfig);
+  const rateLimitResponse = await applyEdgeRateLimit(request, rateLimitConfig);
 
   if (rateLimitResponse) {
     console.warn("[Middleware] Rate limit exceeded:", {
@@ -78,12 +78,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 3. Additional rate limiting for API routes
+  // 3. Additional rate limiting for API routes - DISTRIBUTED
   // -------------------------------------------------------------------------
   if (pathname.startsWith("/api/")) {
     // Stricter rate limit for API endpoints
     const ip = getClientIP(request);
-    const apiResult = checkEdgeRateLimit(`api:${ip}`, 200, 60); // 200 req/min for APIs
+    const apiResult = await checkEdgeRateLimit(`api:${ip}`, 200, 60); // 200 req/min for APIs
 
     if (!apiResult.success) {
       return createRateLimitResponse(apiResult);
