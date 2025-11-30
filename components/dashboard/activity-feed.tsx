@@ -1,32 +1,30 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowRight,
-  MessageSquare,
-  MapPin,
-  Star,
-  Zap,
-  FileText,
-  HelpCircle,
-  Youtube,
-  Upload,
-  Trash2,
-  Edit,
-  Link as LinkIcon,
-  CheckCircle,
-  XCircle,
-  Save,
-  Eye,
-} from "lucide-react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import type { ActivityLog } from "@/lib/types/database";
-import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import { sanitizeText } from "@/lib/utils/sanitize";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  CheckCircle,
+  Edit,
+  Eye,
+  FileText,
+  Link as LinkIcon,
+  MapPin,
+  MessageSquare,
+  Save,
+  Star,
+  Trash2,
+  Upload,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // خريطة الأيقونات حسب نوع النشاط
 const activityIcons = {

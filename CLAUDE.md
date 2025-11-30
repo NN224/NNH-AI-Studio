@@ -1,8 +1,31 @@
 # CLAUDE.md - AI Assistant Guide for NNH AI Studio
 
-> **Last Updated:** November 23, 2025
+> **Last Updated:** November 30, 2025
 > **Version:** 0.9.0-beta
 > **Production:** https://nnh.ae
+
+---
+
+## ⚠️ MANDATORY - اقرأ أولاً
+
+**قبل أي عمل، اقرأ `AI_AGENT_START_HERE.md` للقواعد الصارمة.**
+
+### القواعد الذهبية:
+
+1. **لا تنشئ ملفات جديدة** إلا إذا ستُستخدم فعلاً
+2. **لا تحذف كود** قبل البحث عن استخداماته
+3. **لا تترك `console.log`** في الكود
+4. **لا تستخدم `any`** إلا للضرورة القصوى
+5. **شغّل `npm run lint`** بعد كل تعديل
+
+### عند إصلاح مشكلة:
+
+```bash
+# تحقق من وجود prompt جاهز
+ls production-fix-prompts/critical/
+ls production-fix-prompts/high-priority/
+ls production-fix-prompts/medium-priority/
+```
 
 ---
 
@@ -29,6 +52,7 @@
 **NNH AI Studio** is a production-ready, enterprise-grade Next.js application providing professional Google My Business (GMB) and YouTube management with AI-powered automation.
 
 ### Key Information
+
 - **Platform:** Next.js 14 + TypeScript + Supabase + Multi-AI Provider System
 - **Version:** 0.9.0-beta (PERMANENT BETA STATUS)
 - **Production URL:** https://nnh.ae (LIVE - worldwide access)
@@ -40,6 +64,7 @@
 - **Database:** 24 tables, 462 columns (PostgreSQL via Supabase)
 
 ### Core Features
+
 - **GMB Management:** Multi-location business profile management
 - **Reviews AI:** Automated review replies with multi-provider AI fallback
 - **Questions AI:** Automated Q&A responses
@@ -54,11 +79,13 @@
 ## 🛠️ Tech Stack
 
 ### Frontend Framework
+
 - **Next.js 14.2.33** - App Router architecture
 - **React 18.3.1** - UI framework
 - **TypeScript 5.9.3** - Strict mode enabled
 
 ### Styling & UI
+
 - **Tailwind CSS 4.1.9** - CSS-based configuration
 - **Radix UI** - 25+ primitive components
 - **Shadcn/ui** - Component system (style: "new-york")
@@ -67,6 +94,7 @@
 - **Styled Components 6.1.19** - CSS-in-JS (legacy components)
 
 ### State Management
+
 - **Zustand 5.0.8** - Global state stores
   - Dashboard store (`lib/stores/dashboard-store.ts`)
   - Reviews store (`lib/stores/reviews-store.ts`)
@@ -78,6 +106,7 @@
 - **React Context API** - BrandProfileContext
 
 ### Backend & Database
+
 - **Supabase 2.81.1** - PostgreSQL with Row Level Security (RLS)
   - Server client: `lib/supabase/server.ts`
   - Client: `lib/supabase/client.ts`
@@ -85,6 +114,7 @@
   - Transactions: `lib/supabase/transactions.ts`
 
 ### AI Providers (Multi-Provider Fallback System)
+
 **Priority Order:** Anthropic → OpenAI → Google → Groq → DeepSeek
 
 - **Anthropic Claude SDK 0.68.0** (Primary)
@@ -94,6 +124,7 @@
 - **Model Context Protocol SDK 1.21.1**
 
 **Key Files:**
+
 - `lib/ai/provider.ts` - Multi-provider orchestration
 - `lib/ai/fallback-provider.ts` - Fallback logic
 - `lib/services/ai-review-reply-service.ts` - Review automation
@@ -102,6 +133,7 @@
 - `lib/services/ml-sentiment-service.ts` - Sentiment analysis
 
 ### Caching & Performance
+
 - **Upstash Redis 1.35.6** - Distributed caching
   - `lib/redis/client.ts`
   - `lib/redis/lock-manager.ts`
@@ -111,6 +143,7 @@
 - **Cache Manager** - `lib/cache/cache-manager.ts`
 
 ### Monitoring & Analytics
+
 - **Sentry 10.26.0** - Error tracking & performance
   - Server config: `sentry.server.config.ts`
   - Edge config: `sentry.edge.config.ts`
@@ -121,6 +154,7 @@
 - **Audit Logging:** `lib/monitoring/audit.ts`
 
 ### Internationalization (i18n)
+
 - **next-intl 4.5.5** - Framework integration
 - **i18next ecosystem** - Browser detection, HTTP backend
 - **Locales:** English (`en`), Arabic (`ar`)
@@ -130,11 +164,13 @@
   - `messages/ar.json` (43KB, RTL support)
 
 ### Forms & Validation
+
 - **React Hook Form 7.60.0** - Form management
 - **Zod 3.25.76** - Schema validation
 - **@hookform/resolvers 3.10.0** - RHF + Zod integration
 
 ### Testing
+
 - **Jest 30.2.0** - Unit testing (95% coverage threshold)
 - **Playwright 1.56.1** - E2E testing
 - **Vitest 4.0.9** - Storybook integration tests
@@ -142,6 +178,7 @@
 - **Jest Axe** - Accessibility testing
 
 ### Developer Tools
+
 - **Storybook 10.0.7** - Component documentation
 - **ESLint 9.39.1** - TypeScript, React, React Hooks
 - **Prettier 3.6.2** - Code formatting
@@ -149,6 +186,7 @@
 - **lint-staged 16.2.7** - Pre-commit linting
 
 ### Data Visualization
+
 - **Recharts 3.4.1** - Primary charting library
 - **Chart.js 4.5.1** - Alternative charts
 - **react-chartjs-2 5.3.1** - React wrapper for Chart.js
@@ -205,6 +243,7 @@ app/
 ### 2. Data Fetching Patterns
 
 #### Server Components (Default)
+
 ```typescript
 // Direct Supabase queries for initial page loads
 import { createClient } from '@/lib/supabase/server';
@@ -217,23 +256,27 @@ export default async function Page() {
 ```
 
 #### Client Components + React Query
+
 ```typescript
-'use client';
-import { useQuery } from '@tanstack/react-query';
+"use client";
+import { useQuery } from "@tanstack/react-query";
 
 export function Component() {
   const { data, isLoading } = useQuery({
-    queryKey: ['key'],
-    queryFn: async () => { /* fetch */ },
+    queryKey: ["key"],
+    queryFn: async () => {
+      /* fetch */
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 ```
 
 #### Server Actions
+
 ```typescript
 // server/actions/example.ts
-'use server';
+"use server";
 
 export async function actionName() {
   const supabase = createClient();
@@ -242,16 +285,19 @@ export async function actionName() {
 ```
 
 #### API Routes
+
 ```typescript
 // app/api/resource/route.ts
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // ... logic
@@ -262,12 +308,14 @@ export async function GET(request: Request) {
 ### 3. Authentication Flow
 
 **Middleware:** `middleware.ts`
+
 1. i18n routing (next-intl)
 2. Supabase session management
 3. Protected route authentication
 4. Redirect authenticated users from auth pages
 
 **Protected Routes:**
+
 - `/dashboard`, `/reviews`, `/questions`, `/posts`
 - `/settings`, `/metrics`, `/media`, `/locations`
 - `/youtube-dashboard`, `/home`
@@ -277,14 +325,15 @@ export async function GET(request: Request) {
 ### 4. AI Multi-Provider System
 
 **Fallback Chain:**
+
 ```typescript
 // lib/ai/provider.ts
 const providers = [
-  'anthropic',  // Claude (Primary)
-  'openai',     // GPT (Secondary)
-  'google',     // Gemini
-  'groq',       // Groq
-  'deepseek'    // DeepSeek
+  "anthropic", // Claude (Primary)
+  "openai", // GPT (Secondary)
+  "google", // Gemini
+  "groq", // Groq
+  "deepseek", // DeepSeek
 ];
 
 // Automatically falls back if primary fails
@@ -292,13 +341,14 @@ const providers = [
 ```
 
 **Usage Pattern:**
+
 ```typescript
-import { getAIProvider } from '@/lib/ai/provider';
+import { getAIProvider } from "@/lib/ai/provider";
 
 const provider = await getAIProvider();
 const response = await provider.generateText({
-  prompt: '...',
-  context: { businessName, category, location }
+  prompt: "...",
+  context: { businessName, category, location },
 });
 ```
 
@@ -307,6 +357,7 @@ const response = await provider.generateText({
 ## 📁 Directory Structure
 
 ### Root Organization
+
 ```
 /home/user/NNH-AI-Studio/
 ├── app/                      # Next.js App Router
@@ -331,6 +382,7 @@ const response = await provider.generateText({
 ### Key Directories Explained
 
 #### `/components` - UI Components
+
 ```
 components/
 ├── ui/                       # Shadcn/ui primitives (35+ components)
@@ -348,6 +400,7 @@ components/
 ```
 
 #### `/lib` - Core Business Logic
+
 ```
 lib/
 ├── ai/                       # AI orchestration
@@ -382,6 +435,7 @@ lib/
 ```
 
 #### `/server` - Server Actions
+
 ```
 server/
 └── actions/
@@ -394,6 +448,7 @@ server/
 ```
 
 #### `/hooks` - Custom React Hooks
+
 ```
 hooks/
 ├── use-dashboard.ts         # Dashboard data
@@ -406,6 +461,7 @@ hooks/
 ```
 
 #### `/supabase` - Database
+
 ```
 supabase/
 ├── migrations/              # Database migrations (30+ files)
@@ -419,6 +475,7 @@ supabase/
 ## 🚨 Critical Rules – NEVER VIOLATE
 
 ### 1. Documentation First (HIGHEST PRIORITY)
+
 - **BEFORE** any GMB feature changes → Check `google-api-docs/` for official API schemas
 - **AFTER** any database migration → **AUTOMATICALLY** update `DATABASE_SCHEMA.md`
 - **Workflow:**
@@ -429,6 +486,7 @@ supabase/
 - **REMINDER:** Check `.beta-reminder` file before layout changes
 
 ### 2. BETA Status (PERMANENT)
+
 - **BETA banner MUST be visible on ALL pages**
   - Component: `components/common/beta-badge.tsx`
 - **All layouts use:**
@@ -439,6 +497,7 @@ supabase/
 - **Version:** Must remain `0.9.0-beta` in `package.json`
 
 ### 3. Database Schema
+
 - **Current State:** 24 tables, 462 columns (see `DATABASE_SCHEMA.md`)
 - **Any schema change requires:**
   1. Migration file using template: `supabase/migrations/_TEMPLATE.sql`
@@ -447,6 +506,7 @@ supabase/
 - **Migration naming:** `[timestamp]_descriptive_name.sql`
 
 ### 4. AI Provider System
+
 - **ALWAYS use fallback providers** (never single provider)
 - **Priority Order:**
   1. Anthropic (Claude) - Primary
@@ -459,6 +519,7 @@ supabase/
 - **Never fail silently** - always show error state
 
 ### 5. Git Workflow
+
 - **NEVER commit directly to `main`**
 - **ALWAYS create feature branch:** `feature/[feature-name]`
 - **Test on `localhost:5050`** before creating PR
@@ -471,6 +532,7 @@ supabase/
   6. Verify: Check https://nnh.ae
 
 ### 6. Security Rules
+
 - **NEVER bypass Row Level Security (RLS)**
 - **NEVER commit secrets** (API keys, passwords, `.env` files)
 - **ALWAYS validate user input** with Zod schemas
@@ -483,6 +545,7 @@ supabase/
 ## 🔄 Development Workflows
 
 ### Starting Development
+
 ```bash
 # Install dependencies
 npm install
@@ -497,6 +560,7 @@ http://localhost:5050
 ### Making Changes
 
 #### 1. Code Changes
+
 ```bash
 # Create feature branch
 git checkout -b feature/your-feature-name
@@ -512,6 +576,7 @@ npm run test:e2e
 ```
 
 #### 2. Database Changes
+
 ```bash
 # Create migration from template
 cp supabase/migrations/_TEMPLATE.sql supabase/migrations/$(date +%s)_description.sql
@@ -527,6 +592,7 @@ npm run db:update-docs
 ```
 
 #### 3. Commit & Push
+
 ```bash
 # Stage changes
 git add .
@@ -541,6 +607,7 @@ git push -u origin feature/your-feature-name
 ```
 
 ### Tab-by-Tab Development Strategy
+
 **Current Strategy:** Focus on ONE tab at a time until 100% complete
 
 1. ✅ Verify data loading works
@@ -551,6 +618,7 @@ git push -u origin feature/your-feature-name
 6. ➡️ Move to next tab
 
 **Priority Order:**
+
 1. Reviews Tab (Phase 1: Enhanced Auto-Reply)
 2. Questions Tab (Phase 2: Auto-Answer)
 3. Profile/Features Tab (Phase 3: AI Suggestions)
@@ -597,6 +665,7 @@ pm2 restart nnh-ai-studio
 ## 📐 Code Standards
 
 ### TypeScript
+
 ```typescript
 // ✅ DO: Strict typing
 interface User {
@@ -606,7 +675,7 @@ interface User {
 }
 
 // ✅ DO: Handle nulls explicitly
-const userName = user.name ?? 'Unknown';
+const userName = user.name ?? "Unknown";
 
 // ❌ DON'T: Use any (unless absolutely necessary)
 const data: any = fetchData(); // Avoid
@@ -618,10 +687,11 @@ interface Props {
 }
 
 // ✅ DO: Use type for unions/intersections
-type Status = 'pending' | 'approved' | 'rejected';
+type Status = "pending" | "approved" | "rejected";
 ```
 
 ### React/Next.js
+
 ```typescript
 // ✅ DO: Server Components by default
 export default async function Page() {
@@ -660,30 +730,33 @@ export default function Page() {
 ```
 
 ### API Routes
+
 ```typescript
 // ✅ DO: Check authentication first
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // ... rest of logic
 }
 
 // ✅ DO: Use proper HTTP status codes
-return Response.json(data, { status: 200 });  // Success
-return Response.json({ error }, { status: 400 });  // Bad request
-return Response.json({ error }, { status: 401 });  // Unauthorized
-return Response.json({ error }, { status: 404 });  // Not found
-return Response.json({ error }, { status: 500 });  // Server error
+return Response.json(data, { status: 200 }); // Success
+return Response.json({ error }, { status: 400 }); // Bad request
+return Response.json({ error }, { status: 401 }); // Unauthorized
+return Response.json({ error }, { status: 404 }); // Not found
+return Response.json({ error }, { status: 500 }); // Server error
 
 // ✅ DO: Validate input with Zod
-import { z } from 'zod';
+import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -698,28 +771,29 @@ export async function POST(request: Request) {
 ```
 
 ### Supabase Queries
+
 ```typescript
 // ✅ DO: Use server client for server-side
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 const supabase = createClient();
 const { data, error } = await supabase
-  .from('reviews')
-  .select('*')
-  .eq('user_id', userId);
+  .from("reviews")
+  .select("*")
+  .eq("user_id", userId);
 
 // ✅ DO: Handle errors
 if (error) {
-  console.error('Database error:', error);
-  throw new Error('Failed to fetch reviews');
+  console.error("Database error:", error);
+  throw new Error("Failed to fetch reviews");
 }
 
 // ✅ DO: Use transactions for multi-table updates
-import { executeTransaction } from '@/lib/supabase/transactions';
+import { executeTransaction } from "@/lib/supabase/transactions";
 
 await executeTransaction(async (client) => {
-  await client.from('table1').insert(data1);
-  await client.from('table2').insert(data2);
+  await client.from("table1").insert(data1);
+  await client.from("table2").insert(data2);
 });
 
 // ❌ DON'T: Bypass RLS
@@ -728,6 +802,7 @@ await executeTransaction(async (client) => {
 ```
 
 ### Performance Standards
+
 - **API Response Times:**
   - Target: < 200ms for data fetching
   - Maximum: < 1000ms acceptable
@@ -786,6 +861,7 @@ toast.success('Review reply sent successfully');
 ```
 
 ### Accessibility
+
 ```typescript
 // ✅ DO: Add ARIA labels
 <button aria-label="Close dialog" onClick={onClose}>
@@ -816,6 +892,7 @@ toast.success('Review reply sent successfully');
 ### Supabase Configuration
 
 **Environment Variables:**
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -824,40 +901,45 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 **Client Types:**
 
 1. **Server Client** (RLS enforced):
+
 ```typescript
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 const supabase = createClient();
 // Use in Server Components, Server Actions, API Routes
 ```
 
 2. **Client-side Client**:
+
 ```typescript
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 // Use in Client Components only
 ```
 
 3. **Transaction Support**:
+
 ```typescript
-import { executeTransaction } from '@/lib/supabase/transactions';
+import { executeTransaction } from "@/lib/supabase/transactions";
 
 await executeTransaction(async (client) => {
   // Multiple operations in single transaction
-  await client.from('table1').insert(data1);
-  await client.from('table2').update(data2);
+  await client.from("table1").insert(data1);
+  await client.from("table2").update(data2);
 });
 ```
 
 ### Database Schema
 
 **Documentation:** `google-api-docs/DATABASE_SCHEMA.md`
+
 - **Tables:** 24
 - **Columns:** 462
 - **Migrations:** `supabase/migrations/`
 
 **Key Tables:**
+
 - `profiles` - User profiles
 - `client_profiles` - Client business profiles
 - `gmb_locations` - GMB location data
@@ -898,49 +980,51 @@ git commit -m "feat(db): add sentiment_score to reviews"
 ```typescript
 // Select with relations
 const { data } = await supabase
-  .from('gmb_reviews')
-  .select(`
+  .from("gmb_reviews")
+  .select(
+    `
     *,
     gmb_locations (
       name,
       address
     )
-  `)
-  .eq('user_id', userId);
+  `,
+  )
+  .eq("user_id", userId);
 
 // Pagination
 const { data } = await supabase
-  .from('gmb_reviews')
-  .select('*')
-  .range(0, 9)  // First 10 items
-  .order('created_at', { ascending: false });
+  .from("gmb_reviews")
+  .select("*")
+  .range(0, 9) // First 10 items
+  .order("created_at", { ascending: false });
 
 // Filtering
 const { data } = await supabase
-  .from('gmb_reviews')
-  .select('*')
-  .eq('status', 'pending')
-  .gte('rating', 4)
-  .is('replied_at', null);
+  .from("gmb_reviews")
+  .select("*")
+  .eq("status", "pending")
+  .gte("rating", 4)
+  .is("replied_at", null);
 
 // Insert with return
 const { data, error } = await supabase
-  .from('gmb_reviews')
+  .from("gmb_reviews")
   .insert({ ...reviewData })
   .select()
   .single();
 
 // Update
 const { error } = await supabase
-  .from('gmb_reviews')
-  .update({ status: 'approved' })
-  .eq('id', reviewId);
+  .from("gmb_reviews")
+  .update({ status: "approved" })
+  .eq("id", reviewId);
 
 // Delete
 const { error } = await supabase
-  .from('gmb_reviews')
+  .from("gmb_reviews")
   .delete()
-  .eq('id', reviewId);
+  .eq("id", reviewId);
 ```
 
 ---
@@ -950,11 +1034,13 @@ const { error } = await supabase
 ### Unit Testing (Jest)
 
 **Configuration:** `jest.config.mjs`
+
 - Environment: jsdom
 - Coverage threshold: 95%
 - Setup: `jest.setup.mjs`
 
 **Running Tests:**
+
 ```bash
 npm run test              # Run all tests
 npm run test:watch        # Watch mode
@@ -962,17 +1048,18 @@ npm run test:coverage     # With coverage report
 ```
 
 **Example Test:**
+
 ```typescript
 // tests/lib/ai/provider.test.ts
-import { getAIProvider } from '@/lib/ai/provider';
+import { getAIProvider } from "@/lib/ai/provider";
 
-describe('AI Provider', () => {
-  it('should return Anthropic as primary provider', async () => {
+describe("AI Provider", () => {
+  it("should return Anthropic as primary provider", async () => {
     const provider = await getAIProvider();
-    expect(provider.name).toBe('anthropic');
+    expect(provider.name).toBe("anthropic");
   });
 
-  it('should fallback to OpenAI when Anthropic fails', async () => {
+  it("should fallback to OpenAI when Anthropic fails", async () => {
     // Mock Anthropic failure
     // Test fallback logic
   });
@@ -982,11 +1069,13 @@ describe('AI Provider', () => {
 ### E2E Testing (Playwright)
 
 **Configuration:** `playwright.config.ts`
+
 - Test directory: `tests/e2e/`
 - Browsers: Chromium, Firefox, WebKit, Mobile
 - Auto-starts dev server on port 5050
 
 **Running Tests:**
+
 ```bash
 npm run test:e2e           # Run E2E tests
 npm run test:e2e:headed    # With browser UI
@@ -994,34 +1083,37 @@ npm run test:e2e:install   # Install browsers
 ```
 
 **Example Test:**
+
 ```typescript
 // tests/e2e/reviews.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('should display reviews list', async ({ page }) => {
-  await page.goto('/en/reviews');
-  await expect(page.getByRole('heading', { name: 'Reviews' })).toBeVisible();
-  await expect(page.getByTestId('reviews-list')).toBeVisible();
+test("should display reviews list", async ({ page }) => {
+  await page.goto("/en/reviews");
+  await expect(page.getByRole("heading", { name: "Reviews" })).toBeVisible();
+  await expect(page.getByTestId("reviews-list")).toBeVisible();
 });
 ```
 
 ### Storybook Testing
 
 **Running Storybook:**
+
 ```bash
 npm run storybook           # Start Storybook (port 6006)
 npm run build-storybook     # Build static Storybook
 ```
 
 **Example Story:**
+
 ```typescript
 // components/ui/button.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from './button';
+import type { Meta, StoryObj } from "@storybook/react";
+import { Button } from "./button";
 
 const meta: Meta<typeof Button> = {
   component: Button,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 };
 
 export default meta;
@@ -1029,8 +1121,8 @@ type Story = StoryObj<typeof Button>;
 
 export const Primary: Story = {
   args: {
-    children: 'Button',
-    variant: 'default',
+    children: "Button",
+    variant: "default",
   },
 };
 ```
@@ -1054,30 +1146,35 @@ test('should have no accessibility violations', async () => {
 ## 🔐 Security Patterns
 
 ### Authentication Check
+
 ```typescript
 // API Route
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // ... authenticated logic
 }
 
 // Server Action
-'use server';
+("use server");
 
 export async function serverAction() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   // ... authenticated logic
@@ -1085,13 +1182,14 @@ export async function serverAction() {
 ```
 
 ### Input Validation
+
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 const reviewReplySchema = z.object({
   review_id: z.string().uuid(),
   reply_text: z.string().min(1).max(1000),
-  tone: z.enum(['professional', 'friendly', 'apologetic']),
+  tone: z.enum(["professional", "friendly", "apologetic"]),
 });
 
 export async function POST(request: Request) {
@@ -1105,9 +1203,10 @@ export async function POST(request: Request) {
 ```
 
 ### Input Sanitization
+
 ```typescript
-import { sanitizeInput } from '@/lib/security/input-sanitizer';
-import { sanitizeHtml } from '@/lib/security/sanitize-html';
+import { sanitizeInput } from "@/lib/security/input-sanitizer";
+import { sanitizeHtml } from "@/lib/security/sanitize-html";
 
 // Sanitize text input
 const cleanInput = sanitizeInput(userInput);
@@ -1117,14 +1216,15 @@ const cleanHtml = sanitizeHtml(htmlContent);
 ```
 
 ### CSRF Protection
+
 ```typescript
-import { verifyCsrfToken } from '@/lib/security/csrf';
+import { verifyCsrfToken } from "@/lib/security/csrf";
 
 export async function POST(request: Request) {
-  const token = request.headers.get('x-csrf-token');
+  const token = request.headers.get("x-csrf-token");
 
   if (!verifyCsrfToken(token)) {
-    return Response.json({ error: 'Invalid CSRF token' }, { status: 403 });
+    return Response.json({ error: "Invalid CSRF token" }, { status: 403 });
   }
 
   // ... process request
@@ -1132,19 +1232,17 @@ export async function POST(request: Request) {
 ```
 
 ### Rate Limiting
+
 ```typescript
-import { rateLimit } from '@/lib/security/rate-limiter';
+import { rateLimit } from "@/lib/security/rate-limiter";
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') ?? 'anonymous';
+  const identifier = request.headers.get("x-forwarded-for") ?? "anonymous";
 
   const { success } = await rateLimit.limit(identifier);
 
   if (!success) {
-    return Response.json(
-      { error: 'Too many requests' },
-      { status: 429 }
-    );
+    return Response.json({ error: "Too many requests" }, { status: 429 });
   }
 
   // ... process request
@@ -1152,8 +1250,9 @@ export async function POST(request: Request) {
 ```
 
 ### Encryption
+
 ```typescript
-import { encrypt, decrypt } from '@/lib/security/encryption';
+import { encrypt, decrypt } from "@/lib/security/encryption";
 
 // Encrypt sensitive data before storing
 const encryptedToken = await encrypt(oauthToken);
@@ -1163,7 +1262,9 @@ const decryptedToken = await decrypt(encryptedToken);
 ```
 
 ### Content Security Policy
+
 Configured in `next.config.mjs` (lines 104-121):
+
 - Restricts script sources
 - Prevents inline scripts (except allowed domains)
 - Enforces HTTPS
@@ -1205,10 +1306,10 @@ export default async function NewFeaturePage() {
 
 ```typescript
 // server/actions/new-action.ts
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
+import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -1216,20 +1317,22 @@ const schema = z.object({
 
 export async function newAction(formData: FormData) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: 'Unauthorized' };
+    return { error: "Unauthorized" };
   }
 
   // Validate input
   const validated = schema.parse({
-    name: formData.get('name'),
+    name: formData.get("name"),
   });
 
   // Perform action
   const { data, error } = await supabase
-    .from('table')
+    .from("table")
     .insert({ ...validated, user_id: user.id })
     .select()
     .single();
@@ -1246,8 +1349,8 @@ export async function newAction(formData: FormData) {
 
 ```typescript
 // app/api/new-endpoint/route.ts
-import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
+import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -1255,33 +1358,37 @@ const schema = z.object({
 
 export async function GET(request: Request) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data } = await supabase
-    .from('table')
-    .select('*')
-    .eq('user_id', user.id);
+    .from("table")
+    .select("*")
+    .eq("user_id", user.id);
 
   return Response.json(data);
 }
 
 export async function POST(request: Request) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();
   const validated = schema.parse(body);
 
   const { data, error } = await supabase
-    .from('table')
+    .from("table")
     .insert({ ...validated, user_id: user.id })
     .select()
     .single();
@@ -1297,11 +1404,11 @@ export async function POST(request: Request) {
 ### 4. Adding AI Feature
 
 ```typescript
-import { getAIProvider } from '@/lib/ai/provider';
+import { getAIProvider } from "@/lib/ai/provider";
 
 export async function generateReviewReply(
   review: Review,
-  businessContext: BusinessContext
+  businessContext: BusinessContext,
 ) {
   try {
     const provider = await getAIProvider();
@@ -1311,7 +1418,7 @@ export async function generateReviewReply(
       context: {
         businessName: businessContext.name,
         category: businessContext.category,
-        tone: businessContext.tone || 'professional',
+        tone: businessContext.tone || "professional",
       },
       maxTokens: 200,
     });
@@ -1319,14 +1426,14 @@ export async function generateReviewReply(
     // Log AI request
     await logAIRequest({
       provider: provider.name,
-      feature: 'review_reply',
+      feature: "review_reply",
       tokens: response.usage.totalTokens,
     });
 
     return response.text;
   } catch (error) {
-    console.error('AI generation failed:', error);
-    throw new Error('Failed to generate reply');
+    console.error("AI generation failed:", error);
+    throw new Error("Failed to generate reply");
   }
 }
 ```
@@ -1335,27 +1442,27 @@ export async function generateReviewReply(
 
 ```typescript
 // hooks/use-custom-data.ts
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 export function useCustomData(userId: string) {
   const supabase = createClient();
 
   return useQuery({
-    queryKey: ['custom-data', userId],
+    queryKey: ["custom-data", userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('table')
-        .select('*')
-        .eq('user_id', userId);
+        .from("table")
+        .select("*")
+        .eq("user_id", userId);
 
       if (error) throw error;
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 ```
@@ -1441,6 +1548,7 @@ git commit -m "feat(db): add new_column to table_name"
 ## 📚 Key Files Reference
 
 ### Configuration Files
+
 - `next.config.mjs` - Next.js configuration with security headers
 - `tsconfig.json` - TypeScript configuration (strict mode)
 - `package.json` - Dependencies and scripts
@@ -1450,18 +1558,21 @@ git commit -m "feat(db): add new_column to table_name"
 - `i18n.ts` - Internationalization configuration
 
 ### Core Libraries
+
 - `lib/supabase/server.ts` - Server-side Supabase client
 - `lib/supabase/client.ts` - Client-side Supabase client
 - `lib/ai/provider.ts` - Multi-provider AI orchestration
 - `lib/ai/fallback-provider.ts` - AI fallback logic
 
 ### Key Services
+
 - `lib/services/auth-service.ts` - Authentication
 - `lib/services/ai-review-reply-service.ts` - Review AI
 - `lib/services/ai-question-answer-service.ts` - Q&A AI
 - `lib/services/ai-content-generation-service.ts` - Content AI
 
 ### Security
+
 - `lib/security/csrf.ts` - CSRF protection
 - `lib/security/input-sanitizer.ts` - Input sanitization
 - `lib/security/sanitize-html.ts` - HTML sanitization
@@ -1469,34 +1580,40 @@ git commit -m "feat(db): add new_column to table_name"
 - `lib/security/rate-limiter.ts` - Rate limiting
 
 ### Stores (Zustand)
+
 - `lib/stores/dashboard-store.ts` - Dashboard state
 - `lib/stores/reviews-store.ts` - Reviews state
 - `lib/stores/questions-store.ts` - Questions state
 
 ### Server Actions
+
 - `server/actions/auto-reply.ts` - Review auto-reply
 - `server/actions/reviews-management.ts` - Review CRUD
 - `server/actions/questions-management.ts` - Q&A CRUD
 - `server/actions/gmb-sync.ts` - GMB synchronization
 
 ### Important Components
+
 - `components/common/beta-badge.tsx` - BETA banner (CRITICAL)
 - `components/error-boundary/` - Error boundaries
 - `app/[locale]/(dashboard)/layout.tsx` - Dashboard layout
 - `app/providers.tsx` - Global providers
 
 ### Documentation
+
 - `google-api-docs/DATABASE_SCHEMA.md` - Complete database schema
 - `google-api-docs/README.md` - API documentation guide
 - `.cursorrules` - AI assistant development rules
 - `README.md` - Project README (if exists)
 
 ### Testing
+
 - `jest.config.mjs` - Jest configuration
 - `playwright.config.ts` - Playwright configuration
 - `tests/` - Test files
 
 ### Scripts
+
 - `scripts/next-build-with-css.js` - Custom build script
 - `scripts/update-schema-docs.sh` - Schema doc updater
 
@@ -1509,6 +1626,7 @@ git commit -m "feat(db): add new_column to table_name"
 #### 1. Build Errors
 
 **CSS-related build errors:**
+
 ```bash
 # Clean and rebuild
 npm run clean
@@ -1516,6 +1634,7 @@ npm run build
 ```
 
 **TypeScript errors:**
+
 ```bash
 # Check TypeScript
 npx tsc --noEmit
@@ -1527,16 +1646,20 @@ npm run lint
 #### 2. Database Connection Issues
 
 **RLS Policy errors:**
+
 ```typescript
 // Check if user is authenticated
-const { data: { user } } = await supabase.auth.getUser();
-console.log('User:', user);
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+console.log("User:", user);
 
 // Use admin client only if necessary
 // (never bypass RLS without good reason)
 ```
 
 **Migration issues:**
+
 ```bash
 # Check migration status
 # Run migrations manually if needed
@@ -1546,23 +1669,28 @@ npm run db:push
 #### 3. AI Provider Failures
 
 **All providers failing:**
+
 ```typescript
 // Check environment variables
-console.log('Anthropic key:', process.env.ANTHROPIC_API_KEY ? 'Set' : 'Missing');
-console.log('OpenAI key:', process.env.OPENAI_API_KEY ? 'Set' : 'Missing');
+console.log(
+  "Anthropic key:",
+  process.env.ANTHROPIC_API_KEY ? "Set" : "Missing",
+);
+console.log("OpenAI key:", process.env.OPENAI_API_KEY ? "Set" : "Missing");
 
 // Check ai_requests table for error logs
 const { data } = await supabase
-  .from('ai_requests')
-  .select('*')
-  .eq('status', 'error')
-  .order('created_at', { ascending: false })
+  .from("ai_requests")
+  .select("*")
+  .eq("status", "error")
+  .order("created_at", { ascending: false })
   .limit(10);
 ```
 
 #### 4. Authentication Issues
 
 **Session not persisting:**
+
 ```typescript
 // Check cookie settings
 // Ensure middleware is running
@@ -1570,6 +1698,7 @@ const { data } = await supabase
 ```
 
 **Redirect loops:**
+
 ```typescript
 // Check middleware.ts
 // Verify protected routes configuration
@@ -1579,6 +1708,7 @@ const { data } = await supabase
 #### 5. Performance Issues
 
 **Slow queries:**
+
 ```typescript
 // Add indexes to frequently queried columns
 // Use pagination
@@ -1587,6 +1717,7 @@ const { data } = await supabase
 ```
 
 **Large bundle size:**
+
 ```bash
 # Analyze bundle
 npm run build:analyze
@@ -1631,6 +1762,7 @@ NEXT_PUBLIC_SUPABASE_DEBUG=true
 ```
 
 **Types:**
+
 - `feat` - New feature
 - `fix` - Bug fix
 - `docs` - Documentation changes
@@ -1640,6 +1772,7 @@ NEXT_PUBLIC_SUPABASE_DEBUG=true
 - `chore` - Maintenance
 
 **Examples:**
+
 ```
 feat(reviews): add instant auto-reply without approval
 
@@ -1666,6 +1799,7 @@ Fixes #456
 ## 🎯 Best Practices Summary
 
 ### DO ✅
+
 - Use Server Components by default
 - Check authentication in API routes and server actions
 - Validate input with Zod schemas
@@ -1686,6 +1820,7 @@ Fixes #456
 - Provide helpful empty states
 
 ### DON'T ❌
+
 - Bypass Row Level Security (RLS)
 - Commit secrets or `.env` files
 - Use `any` type unless absolutely necessary
@@ -1746,6 +1881,64 @@ npm run build-storybook  # Build static Storybook
 
 ---
 
+## 🔧 Production Fix Prompts (CRITICAL - READ FIRST)
+
+**When asked to fix ANY production issue, START HERE:**
+
+### Location: `production-fix-prompts/`
+
+```
+production-fix-prompts/
+├── README.md              # Overview & progress tracking
+├── critical/              # 🔴 17 files - Security & Stability (P0)
+├── high-priority/         # 🟠 9 files - Functionality & UX (P1)
+└── medium-priority/       # 🟡 14 files - Code Quality (P2)
+```
+
+### Workflow for AI Agents:
+
+1. **FIRST**: Check if issue has a prompt file
+
+   ```bash
+   ls production-fix-prompts/critical/
+   ls production-fix-prompts/high-priority/
+   ls production-fix-prompts/medium-priority/
+   ```
+
+2. **READ**: Open and read the entire prompt file
+
+3. **FOLLOW**: Execute step-by-step guide exactly
+
+4. **VERIFY**: Check ALL acceptance criteria
+
+5. **TEST**: Run verification commands from prompt
+
+6. **UPDATE**: Mark status as ✅ Completed in prompt file
+
+### Issue Categories:
+
+| Category     | Folder             | Examples                                   |
+| ------------ | ------------------ | ------------------------------------------ |
+| Security     | `critical/`        | CSRF, RLS, Rate Limiting, Input Validation |
+| Stability    | `critical/`        | JSON.parse safety, Error handling          |
+| Performance  | `high-priority/`   | Timeouts, Caching, Debouncing              |
+| UX           | `high-priority/`   | Loading states, Error messages             |
+| Code Quality | `medium-priority/` | Types, Memoization, Accessibility          |
+
+### Key Files:
+
+- `production-fix-prompts/README.md` - Full overview with tables
+- `PRODUCTION_ISSUES_10.txt` - Detailed issue descriptions (Arabic)
+- `eslint.config.mjs` - Linting rules (updated)
+
+### Total Issues: 40 prompts
+
+- 🔴 Critical: 17 (61.5h estimated)
+- 🟠 High: 9 (52h estimated)
+- 🟡 Medium: 14 (40h estimated)
+
+---
+
 **Remember:** Quality > Speed. Tab by Tab. 100% or Nothing. 🎯
 
-**Last Updated:** November 23, 2025
+**Last Updated:** November 30, 2025

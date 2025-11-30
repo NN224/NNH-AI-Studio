@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  TrendingUp,
-  MessageSquare,
-  BarChart3
-} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  BarChart,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import {
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { clearInterval } from "timers";
 
 type AutoReplyStats = {
   today: {
@@ -61,29 +61,30 @@ export default function AutoReplyMonitoring() {
 
   useEffect(() => {
     let mounted = true;
-    let intervalId: NodeJS.Timeout;
 
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/auto-pilot/monitoring', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch');
+        const res = await fetch("/api/auto-pilot/monitoring", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         if (mounted && data.success) {
           setStats(data.data);
         }
       } catch (error) {
-        console.error('[AutoReplyMonitoring] Error:', error);
+        console.error("[AutoReplyMonitoring] Error:", error);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     fetchStats();
-    intervalId = setInterval(fetchStats, 30000); // Refresh every 30 seconds
+    const intervalId = setInterval(fetchStats, 30000); // Refresh every 30 seconds
 
     return () => {
       mounted = false;
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -115,16 +116,19 @@ export default function AutoReplyMonitoring() {
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <p>No data available</p>
-            <p className="text-xs mt-1">Auto-reply statistics will appear here</p>
+            <p className="text-xs mt-1">
+              Auto-reply statistics will appear here
+            </p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const successRateToday = stats.today.total > 0 
-    ? ((stats.today.success / stats.today.total) * 100).toFixed(1)
-    : '0';
+  const successRateToday =
+    stats.today.total > 0
+      ? ((stats.today.success / stats.today.total) * 100).toFixed(1)
+      : "0";
 
   const avgResponseTimeMinutes = Math.floor(stats.today.avgResponseTime / 60);
   const avgResponseTimeSeconds = Math.floor(stats.today.avgResponseTime % 60);
@@ -157,10 +161,9 @@ export default function AutoReplyMonitoring() {
               Avg Response Time
             </div>
             <div className="text-2xl font-bold">
-              {avgResponseTimeMinutes > 0 
+              {avgResponseTimeMinutes > 0
                 ? `${avgResponseTimeMinutes}m ${avgResponseTimeSeconds}s`
-                : `${avgResponseTimeSeconds}s`
-              }
+                : `${avgResponseTimeSeconds}s`}
             </div>
             <div className="text-xs text-muted-foreground">Average today</div>
           </div>
@@ -180,24 +183,23 @@ export default function AutoReplyMonitoring() {
         {/* Daily Stats Chart */}
         {stats.dailyStats && stats.dailyStats.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium mb-3">Daily Performance (Last 7 Days)</h4>
+            <h4 className="text-sm font-medium mb-3">
+              Daily Performance (Last 7 Days)
+            </h4>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={stats.dailyStats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   stroke="#6b7280"
-                  style={{ fontSize: '11px' }}
+                  style={{ fontSize: "11px" }}
                 />
-                <YAxis 
-                  stroke="#6b7280"
-                  style={{ fontSize: '11px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px',
+                <YAxis stroke="#6b7280" style={{ fontSize: "11px" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "6px",
                   }}
                 />
                 <Legend />
@@ -225,16 +227,14 @@ export default function AutoReplyMonitoring() {
                       <XCircle className="h-4 w-4 text-red-500" />
                     )}
                     <div>
-                      <div className="text-sm">
-                        {reply.rating}-star review
-                      </div>
+                      <div className="text-sm">{reply.rating}-star review</div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(reply.createdAt).toLocaleString()}
                       </div>
                     </div>
                   </div>
-                  <Badge variant={reply.success ? 'default' : 'destructive'}>
-                    {reply.success ? 'Success' : 'Failed'}
+                  <Badge variant={reply.success ? "default" : "destructive"}>
+                    {reply.success ? "Success" : "Failed"}
                   </Badge>
                 </div>
               ))}
@@ -245,4 +245,3 @@ export default function AutoReplyMonitoring() {
     </Card>
   );
 }
-

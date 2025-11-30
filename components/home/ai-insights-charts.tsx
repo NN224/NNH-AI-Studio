@@ -1,37 +1,36 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
+  ArrowDown,
+  ArrowUp,
+  Minus,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import {
   Area,
-  RadarChart,
-  PolarGrid,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   PolarAngleAxis,
+  PolarGrid,
   PolarRadiusAxis,
   Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
 
 // Chart colors
 const COLORS = {

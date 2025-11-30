@@ -1,21 +1,36 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, AlertTriangle, CheckCircle, Info, RefreshCw, Bell, Activity, Cpu, HardDrive, Wifi } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { monitoringService } from '@/lib/services/monitoring-service';
-import { useSafeState, useAsyncEffect } from '@/hooks/use-safe-fetch';
-import { useSafeInterval } from '@/hooks/use-safe-timer';
-import { cn } from '@/lib/utils';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAsyncEffect, useSafeState } from "@/hooks/use-safe-fetch";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  Cpu,
+  HardDrive,
+  Info,
+  RefreshCw,
+  Wifi,
+} from "lucide-react";
+import { useEffect } from "react";
 
 interface HealthStatus {
   service: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   message?: string;
   lastChecked: string;
   duration?: number;
@@ -23,8 +38,8 @@ interface HealthStatus {
 
 interface Alert {
   id: string;
-  type: 'error' | 'warning' | 'info';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: "error" | "warning" | "info";
+  severity: "critical" | "high" | "medium" | "low";
   title: string;
   message: string;
   service?: string;
@@ -36,9 +51,9 @@ interface Alert {
 interface Metric {
   name: string;
   value: number;
-  unit: 'count' | 'milliseconds' | 'bytes' | 'percentage' | 'custom';
+  unit: "count" | "milliseconds" | "bytes" | "percentage" | "custom";
   timestamp: string;
-  trend?: 'up' | 'down' | 'stable';
+  trend?: "up" | "down" | "stable";
   changePercent?: number;
 }
 
@@ -52,65 +67,63 @@ export function MonitoringDashboard() {
   // Fetch health status
   const fetchHealthStatus = async () => {
     try {
-      const response = await fetch('/api/health');
+      const response = await fetch("/api/health");
       if (response.ok) {
         const data = await response.json();
         const statuses: HealthStatus[] = [
           {
-            service: 'Application',
+            service: "Application",
             status: data.status,
             message: data.message,
-            lastChecked: new Date().toISOString()
-          },
-          ...Object.entries(data.services || {}).map(([service, info]: [string, any]) => ({
-            service,
-            status: info.status,
-            message: info.message,
             lastChecked: new Date().toISOString(),
-            duration: info.duration
-          }))
+          },
+          ...Object.entries(data.services || {}).map(
+            ([service, info]: [string, any]) => ({
+              service,
+              status: info.status,
+              message: info.message,
+              lastChecked: new Date().toISOString(),
+              duration: info.duration,
+            }),
+          ),
         ];
         setHealthStatus(statuses);
       }
     } catch (error) {
-      console.error('Failed to fetch health status:', error);
+      console.error("Failed to fetch health status:", error);
     }
   };
 
   // Fetch alerts
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('/api/monitoring/alerts');
+      const response = await fetch("/api/monitoring/alerts");
       if (response.ok) {
         const data = await response.json();
         setAlerts(data.alerts || []);
       }
     } catch (error) {
-      console.error('Failed to fetch alerts:', error);
+      console.error("Failed to fetch alerts:", error);
     }
   };
 
   // Fetch metrics
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('/api/monitoring/metrics?period=24h');
+      const response = await fetch("/api/monitoring/metrics?period=24h");
       if (response.ok) {
         const data = await response.json();
         setMetrics(data.metrics || []);
       }
     } catch (error) {
-      console.error('Failed to fetch metrics:', error);
+      console.error("Failed to fetch metrics:", error);
     }
   };
 
   // Initial load
   useAsyncEffect(async (signal) => {
     setIsLoading(true);
-    await Promise.all([
-      fetchHealthStatus(),
-      fetchAlerts(),
-      fetchMetrics()
-    ]);
+    await Promise.all([fetchHealthStatus(), fetchAlerts(), fetchMetrics()]);
     setIsLoading(false);
     setLastRefresh(new Date());
   }, []);
@@ -118,83 +131,82 @@ export function MonitoringDashboard() {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      Promise.all([
-        fetchHealthStatus(),
-        fetchAlerts(),
-        fetchMetrics()
-      ]);
+      Promise.all([fetchHealthStatus(), fetchAlerts(), fetchMetrics()]);
       setLastRefresh(new Date());
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
   const handleRefresh = async () => {
     setIsLoading(true);
-    await Promise.all([
-      fetchHealthStatus(),
-      fetchAlerts(),
-      fetchMetrics()
-    ]);
+    await Promise.all([fetchHealthStatus(), fetchAlerts(), fetchMetrics()]);
     setIsLoading(false);
     setLastRefresh(new Date());
   };
 
   const handleAcknowledgeAlert = async (alertId: string) => {
     try {
-      const response = await fetch(`/api/monitoring/alerts/${alertId}/acknowledge`, {
-        method: 'POST'
-      });
+      const response = await fetch(
+        `/api/monitoring/alerts/${alertId}/acknowledge`,
+        {
+          method: "POST",
+        },
+      );
       if (response.ok) {
         await fetchAlerts();
       }
     } catch (error) {
-      console.error('Failed to acknowledge alert:', error);
+      console.error("Failed to acknowledge alert:", error);
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy':
+      case "healthy":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'degraded':
+      case "degraded":
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case 'unhealthy':
+      case "unhealthy":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Info className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getSeverityColor = (severity: string): 'default' | 'destructive' | 'secondary' | 'outline' => {
+  const getSeverityColor = (
+    severity: string,
+  ): "default" | "destructive" | "secondary" | "outline" => {
     switch (severity) {
-      case 'critical':
-        return 'destructive';
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'secondary'; // Changed from 'warning'
-      case 'low':
-        return 'secondary';
+      case "critical":
+        return "destructive";
+      case "high":
+        return "destructive";
+      case "medium":
+        return "secondary"; // Changed from 'warning'
+      case "low":
+        return "secondary";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getMetricIcon = (name: string) => {
-    if (name.includes('cpu')) return <Cpu className="h-4 w-4" />;
-    if (name.includes('memory') || name.includes('storage')) return <HardDrive className="h-4 w-4" />;
-    if (name.includes('network') || name.includes('api')) return <Wifi className="h-4 w-4" />;
+    if (name.includes("cpu")) return <Cpu className="h-4 w-4" />;
+    if (name.includes("memory") || name.includes("storage"))
+      return <HardDrive className="h-4 w-4" />;
+    if (name.includes("network") || name.includes("api"))
+      return <Wifi className="h-4 w-4" />;
     return <Activity className="h-4 w-4" />;
   };
 
   const formatMetricValue = (value: number, unit: string) => {
     switch (unit) {
-      case 'percentage':
+      case "percentage":
         return `${value.toFixed(1)}%`;
-      case 'milliseconds':
+      case "milliseconds":
         return `${value.toFixed(0)}ms`;
-      case 'bytes':
+      case "bytes":
         if (value > 1e9) return `${(value / 1e9).toFixed(2)}GB`;
         if (value > 1e6) return `${(value / 1e6).toFixed(2)}MB`;
         if (value > 1e3) return `${(value / 1e3).toFixed(2)}KB`;
@@ -204,29 +216,36 @@ export function MonitoringDashboard() {
     }
   };
 
-  const unacknowledgedAlerts = alerts.filter(a => !a.acknowledged && !a.resolved);
+  const unacknowledgedAlerts = alerts.filter(
+    (a) => !a.acknowledged && !a.resolved,
+  );
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">System Monitoring</h2>
+          <h2 className="text-3xl font-bold tracking-tight">
+            System Monitoring
+          </h2>
           <p className="text-muted-foreground">
             Real-time monitoring and alerting dashboard
           </p>
         </div>
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            Last updated: {formatDistanceToNow(lastRefresh, { addSuffix: true })}
+            Last updated:{" "}
+            {formatDistanceToNow(lastRefresh, { addSuffix: true })}
           </p>
-          <Button 
-            onClick={handleRefresh} 
+          <Button
+            onClick={handleRefresh}
             disabled={isLoading}
             size="sm"
             variant="outline"
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")}
+            />
             Refresh
           </Button>
         </div>
@@ -238,19 +257,25 @@ export function MonitoringDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Bell className="h-5 w-5 text-destructive" />
-              {unacknowledgedAlerts.length} Unacknowledged Alert{unacknowledgedAlerts.length !== 1 ? 's' : ''}
+              {unacknowledgedAlerts.length} Unacknowledged Alert
+              {unacknowledgedAlerts.length !== 1 ? "s" : ""}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {unacknowledgedAlerts.slice(0, 3).map(alert => (
-                <div key={alert.id} className="flex items-center justify-between">
+              {unacknowledgedAlerts.slice(0, 3).map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2">
-                    <Badge variant={getSeverityColor(alert.severity)}>{alert.severity}</Badge>
+                    <Badge variant={getSeverityColor(alert.severity)}>
+                      {alert.severity}
+                    </Badge>
                     <span className="text-sm">{alert.title}</span>
                   </div>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => handleAcknowledgeAlert(alert.id)}
                   >
@@ -265,7 +290,7 @@ export function MonitoringDashboard() {
 
       {/* Health Status Overview */}
       <div className="grid gap-4 md:grid-cols-4">
-        {healthStatus.map(status => (
+        {healthStatus.map((status) => (
           <Card key={status.service}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -297,22 +322,37 @@ export function MonitoringDashboard() {
 
         <TabsContent value="metrics" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
-            {metrics.map(metric => (
+            {metrics.map((metric) => (
               <Card key={metric.name}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     {getMetricIcon(metric.name)}
-                    {metric.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    {metric.name
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </CardTitle>
                   <CardDescription>
                     {metric.trend && (
-                      <span className={cn(
-                        "text-xs font-medium",
-                        metric.trend === 'up' && metric.changePercent && metric.changePercent > 0 && "text-red-500",
-                        metric.trend === 'down' && metric.changePercent && metric.changePercent < 0 && "text-green-500"
-                      )}>
-                        {metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '→'}
-                        {metric.changePercent && ` ${Math.abs(metric.changePercent).toFixed(1)}%`}
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          metric.trend === "up" &&
+                            metric.changePercent &&
+                            metric.changePercent > 0 &&
+                            "text-red-500",
+                          metric.trend === "down" &&
+                            metric.changePercent &&
+                            metric.changePercent < 0 &&
+                            "text-green-500",
+                        )}
+                      >
+                        {metric.trend === "up"
+                          ? "↑"
+                          : metric.trend === "down"
+                            ? "↓"
+                            : "→"}
+                        {metric.changePercent &&
+                          ` ${Math.abs(metric.changePercent).toFixed(1)}%`}
                       </span>
                     )}
                   </CardDescription>
@@ -335,20 +375,29 @@ export function MonitoringDashboard() {
                   No alerts to display
                 </p>
               ) : (
-                alerts.map(alert => (
-                  <Card key={alert.id} className={cn(
-                    "border-l-4",
-                    alert.severity === 'critical' && "border-l-red-500",
-                    alert.severity === 'high' && "border-l-orange-500",
-                    alert.severity === 'medium' && "border-l-yellow-500",
-                    alert.severity === 'low' && "border-l-blue-500"
-                  )}>
+                alerts.map((alert) => (
+                  <Card
+                    key={alert.id}
+                    className={cn(
+                      "border-l-4",
+                      alert.severity === "critical" && "border-l-red-500",
+                      alert.severity === "high" && "border-l-orange-500",
+                      alert.severity === "medium" && "border-l-yellow-500",
+                      alert.severity === "low" && "border-l-blue-500",
+                    )}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base flex items-center gap-2">
-                          {alert.type === 'error' && <AlertCircle className="h-4 w-4" />}
-                          {alert.type === 'warning' && <AlertTriangle className="h-4 w-4" />}
-                          {alert.type === 'info' && <Info className="h-4 w-4" />}
+                          {alert.type === "error" && (
+                            <AlertCircle className="h-4 w-4" />
+                          )}
+                          {alert.type === "warning" && (
+                            <AlertTriangle className="h-4 w-4" />
+                          )}
+                          {alert.type === "info" && (
+                            <Info className="h-4 w-4" />
+                          )}
                           {alert.title}
                         </CardTitle>
                         <div className="flex items-center gap-2">
@@ -362,10 +411,14 @@ export function MonitoringDashboard() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground">{alert.message}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {alert.message}
+                      </p>
                       <div className="flex items-center justify-between mt-4">
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(alert.timestamp), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(alert.timestamp), {
+                            addSuffix: true,
+                          })}
                         </p>
                         {!alert.acknowledged && !alert.resolved && (
                           <Button

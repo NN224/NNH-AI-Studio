@@ -10,27 +10,59 @@ This folder contains **specialized prompts** for fixing all issues discovered in
 
 ```
 production-fix-prompts/
-├── README.md                    # هذا الملف / This file
-├── critical/                    # مشاكل حرجة (P0) / Critical issues (P0)
+├── README.md                    # هذا الملف
+├── critical/                    # 🔴 مشاكل حرجة (P0) - 18 ملف
+│   ├── 00-fix-database-schema-gaps.md
 │   ├── 01-fix-csrf-token-generation.md
 │   ├── 02-fix-rate-limiting-fail-open.md
 │   ├── 03-add-zod-validation-server-actions.md
 │   ├── 04-fix-sql-injection-search.md
 │   ├── 05-fix-usetoast-memory-leak.md
 │   ├── 06-fix-cache-unbounded-growth.md
-│   └── 07-fix-import-ordering-hooks.md
-├── high-priority/               # مشاكل عالية الأولوية (P1) / High priority (P1)
+│   ├── 07-fix-import-ordering-hooks.md
+│   ├── 08-fix-sync-hooks-issues.md
+│   ├── 09-fix-rate-limiting-distributed.md
+│   ├── 10-fix-cron-secret-required.md
+│   ├── 11-fix-csrf-middleware-activation.md
+│   ├── 12-fix-error-message-leakage.md
+│   ├── 13-fix-ai-rate-limiting.md
+│   ├── 14-fix-rls-bypass.md
+│   ├── 15-fix-input-validation.md
+│   ├── 16-fix-json-parse-safety.md
+│   └── 17-fix-empty-catch-blocks.md      # 🆕 NEW
+├── high-priority/               # 🟠 مشاكل عالية (P1) - 13 ملف
 │   ├── 08-implement-i18n.md
 │   ├── 09-fix-beta-banner-compliance.md
 │   ├── 10-replace-any-types.md
-│   ├── 11-fix-n1-queries.md
-│   ├── 12-complete-ai-fallback.md
-│   ├── 13-add-api-timeouts.md
-│   └── ... (more files)
-└── medium-priority/             # مشاكل متوسطة (P2) / Medium priority (P2)
-    ├── 18-add-aria-labels.md
-    ├── 19-remove-console-logs.md
-    └── ... (more files)
+│   ├── 16-fix-home-dashboard-sync.md
+│   ├── 17-fix-request-timeout.md
+│   ├── 18-fix-console-error-sentry.md
+│   ├── 19-fix-cache-invalidation.md
+│   ├── 20-fix-promise-all-error-handling.md
+│   ├── 21-fix-onclick-debounce.md
+│   ├── 22-fix-unused-imports-variables.md  # 🆕 NEW
+│   ├── 23-fix-console-log-removal.md       # 🆕 NEW
+│   ├── 24-add-fetch-abort-controller.md    # 🆕 NEW
+│   └── 25-add-retry-logic-api-calls.md     # 🆕 NEW
+└── medium-priority/             # 🟡 مشاكل متوسطة (P2) - 18 ملف
+    ├── 22-fix-usestate-types.md
+    ├── 23-fix-return-null-loading.md
+    ├── 24-fix-event-listener-cleanup.md
+    ├── 25-fix-memory-leaks-settimeout.md
+    ├── 26-fix-ssr-window-document.md
+    ├── 27-fix-code-splitting.md
+    ├── 28-fix-memoization.md
+    ├── 29-fix-hardcoded-values.md
+    ├── 30-fix-types-organization.md
+    ├── 31-fix-accessibility.md
+    ├── 32-fix-error-boundaries.md
+    ├── 33-fix-health-check.md
+    ├── 34-fix-throw-error-classes.md
+    ├── 36-fix-settimeout-cleanup.md        # 🆕 NEW
+    ├── 37-fix-localstorage-ssr.md          # 🆕 NEW
+    ├── 38-fix-env-validation.md            # 🆕 NEW
+    ├── 39-improve-accessibility-aria.md    # 🆕 NEW
+    └── 40-fix-explicit-any-types.md        # 🆕 NEW
 ```
 
 ---
@@ -41,6 +73,7 @@ production-fix-prompts/
 
 1. **اختر ملف حسب الأولوية**
    Pick a file based on priority
+
    ```bash
    # ابدأ بالحرجة / Start with critical
    cat production-fix-prompts/critical/01-fix-csrf-token-generation.md
@@ -87,45 +120,62 @@ claude code --prompt="$(cat production-fix-prompts/critical/01-fix-csrf-token-ge
 
 ## 📊 ملخص المشاكل / Issues Summary
 
-### 🔴 Critical (P0) - **7 مشاكل / 7 issues**
+### 🔴 Critical (P0) - **16 مشكلة / 16 issues**
 
-| # | المشكلة / Issue | الوقت / Time | الحالة / Status |
-|---|-----------------|--------------|-----------------|
-| 01 | CSRF Token Generation | 4h | 🔴 Not Started |
-| 02 | Rate Limiting Fails Open | 4h | 🔴 Not Started |
-| 03 | Zod Validation Missing | 8h | 🔴 Not Started |
-| 04 | SQL Injection in Search | 3h | 🔴 Not Started |
-| 05 | useToast Memory Leak | 2h | 🔴 Not Started |
-| 06 | Cache Unbounded Growth | 4h | 🔴 Not Started |
-| 07 | Import Ordering (3 files) | 0.5h | 🔴 Not Started |
-| **المجموع / Total** | | **25.5h** | **0%** |
+| #                   | المشكلة / Issue                | الوقت / Time | الحالة / Status |
+| ------------------- | ------------------------------ | ------------ | --------------- |
+| 00                  | Database Schema Gaps           | 4h           | ✅ Completed    |
+| 01                  | CSRF Token Generation          | 4h           | ✅ Completed    |
+| 02                  | Rate Limiting Fails Open       | 4h           | 🔴 Not Started  |
+| 03                  | Zod Validation Missing         | 8h           | 🔴 Not Started  |
+| 04                  | SQL Injection in Search        | 3h           | 🔴 Not Started  |
+| 05                  | useToast Memory Leak           | 2h           | 🔴 Not Started  |
+| 06                  | Cache Unbounded Growth         | 4h           | 🔴 Not Started  |
+| 07                  | Import Ordering (3 files)      | 0.5h         | 🔴 Not Started  |
+| 08                  | Sync Hooks Issues              | 3h           | 🔴 Not Started  |
+| 09                  | **Rate Limiting Distributed**  | 6h           | 🔴 Not Started  |
+| 10                  | **CRON_SECRET Required**       | 2h           | 🔴 Not Started  |
+| 11                  | **CSRF Middleware Activation** | 3h           | 🔴 Not Started  |
+| 12                  | **Error Message Leakage**      | 2h           | 🔴 Not Started  |
+| 13                  | **AI Rate Limiting**           | 3h           | 🔴 Not Started  |
+| 14                  | **RLS Bypass**                 | 4h           | 🔴 Not Started  |
+| 15                  | **Input Validation**           | 6h           | 🔴 Not Started  |
+| 16                  | **JSON.parse Safety**          | 3h           | 🔴 Not Started  |
+| **المجموع / Total** |                                | **61.5h**    | **12%**         |
 
-### 🟠 High Priority (P1) - **15 مشكلة / 15 issues** (الأهم)
+### 🟠 High Priority (P1) - **9 ملفات**
 
-| # | المشكلة / Issue | الوقت / Time | الحالة / Status |
-|---|-----------------|--------------|-----------------|
-| 08 | i18n Hardcoded Text (12 files) | 12h | 🟠 Planned |
-| 09 | BETA Banner Compliance (314 files) | 8h | 🟠 Planned |
-| 10 | Replace `any` Types | 10h | 🟠 Planned |
-| 11 | Fix N+1 Queries | 7h | 🟠 Planned |
-| 12 | Complete AI Provider Fallback | 3h | 🟠 Planned |
-| 13 | Add API Timeouts | 3h | 🟠 Planned |
-| 14 | Hide Error Details | 2h | 🟠 Planned |
-| 15 | Standardize Error Responses | 4h | 🟠 Planned |
-| 16 | Fix Race Conditions | 6h | 🟠 Planned |
-| 17 | Fix Memory Leaks (hooks) | 8h | 🟠 Planned |
-| **المجموع / Total** | | **63h** | **0%** |
+| #                   | المشكلة / Issue            | الوقت / Time | الحالة / Status |
+| ------------------- | -------------------------- | ------------ | --------------- |
+| 08                  | i18n Hardcoded Text        | 12h          | 🟠 Planned      |
+| 09                  | BETA Banner Compliance     | 8h           | 🟠 Planned      |
+| 10                  | Replace `any` Types        | 10h          | ✅ Completed    |
+| 16                  | Fix Home Dashboard Sync    | 4h           | 🟠 Planned      |
+| 17                  | Request Timeout            | 3h           | 🔴 Not Started  |
+| 18                  | console.error → Sentry     | 4h           | 🔴 Not Started  |
+| 19                  | Cache Invalidation         | 4h           | 🔴 Not Started  |
+| 20                  | Promise.all Error Handling | 3h           | 🔴 Not Started  |
+| 21                  | onClick Debounce           | 4h           | 🔴 Not Started  |
+| **المجموع / Total** |                            | **52h**      | **11%**         |
 
-### 🟡 Medium Priority (P2) - **10 مشاكل / 10 issues** (مخطط)
+### 🟡 Medium Priority (P2) - **13 ملف**
 
-| # | المشكلة / Issue | الوقت / Time |
-|---|-----------------|--------------|
-| 18 | Add ARIA Labels | 8h |
-| 19 | Remove console.logs | 4h |
-| 20 | Extract Magic Numbers | 3h |
-| 21 | Fix Cache Pub/Sub | 6h |
-| 22 | Cache Stampede Prevention | 4h |
-| **المجموع / Total** | **25h** |
+| #                   | المشكلة / Issue         | الوقت / Time | الحالة / Status |
+| ------------------- | ----------------------- | ------------ | --------------- |
+| 22                  | useState Types          | 2h           | 🔴 Not Started  |
+| 23                  | return null → Loading   | 3h           | 🔴 Not Started  |
+| 24                  | Event Listener Cleanup  | 3h           | 🔴 Not Started  |
+| 25                  | Memory Leaks setTimeout | 3h           | 🔴 Not Started  |
+| 26                  | SSR window/document     | 2h           | 🔴 Not Started  |
+| 27                  | Code Splitting          | 4h           | 🔴 Not Started  |
+| 28                  | Memoization             | 3h           | 🔴 Not Started  |
+| 29                  | Hardcoded Values        | 2h           | 🔴 Not Started  |
+| 30                  | Types Organization      | 4h           | 🔴 Not Started  |
+| 31                  | Accessibility (a11y)    | 6h           | 🔴 Not Started  |
+| 32                  | Error Boundaries        | 3h           | 🔴 Not Started  |
+| 33                  | Health Check            | 2h           | 🔴 Not Started  |
+| 34                  | Custom Error Classes    | 3h           | 🔴 Not Started  |
+| **المجموع / Total** |                         | **40h**      | **0%**          |
 
 ---
 
@@ -264,11 +314,13 @@ Each prompt contains an **Acceptance Criteria** section.
 ## 🎯 الهدف النهائي / End Goal
 
 **قبل / Before:**
+
 - ❌ 25 مشاكل حرجة
 - ❌ 67 مشاكل عالية
 - ❌ غير جاهز للإنتاج
 
 **بعد / After:**
+
 - ✅ 0 مشاكل حرجة
 - ✅ < 5 مشاكل عالية
 - ✅ جاهز للإنتاج

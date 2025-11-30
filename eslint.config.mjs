@@ -52,10 +52,13 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       ".next/**",
+      ".vercel/**",
       "out/**",
       "build/**",
       "dist/**",
       "public/**",
+      "scripts/**",
+      "storybook-static/**",
       "*.config.js",
       "*.config.mjs",
     ],

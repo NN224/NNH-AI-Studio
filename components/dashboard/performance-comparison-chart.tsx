@@ -1,21 +1,26 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, TrendingDown, Star, MessageSquare, HelpCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import {
-  AreaChart,
+  HelpCircle,
+  MessageSquare,
+  Star,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
-import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+} from "recharts";
 
 interface PerformanceData {
   month: string;
@@ -41,7 +46,7 @@ interface PerformanceComparisonChartProps {
 export function PerformanceComparisonChart({
   currentMonthData,
   previousMonthData,
-  loading = false
+  loading = false,
 }: PerformanceComparisonChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [visibleLines, setVisibleLines] = useState({
@@ -49,7 +54,7 @@ export function PerformanceComparisonChart({
     rating: true,
     questions: true,
   });
-  
+
   // ✅ FIX: Cleanup on unmount to prevent memory leaks
   // Note: Recharts handles cleanup automatically, and React refs are read-only
   // so we don't need to manually set ref.current to null
@@ -63,13 +68,13 @@ export function PerformanceComparisonChart({
   // Prepare chart data
   const chartData: PerformanceData[] = [
     {
-      month: 'Previous Period',
+      month: "Previous Period",
       reviews: previousMonthData.reviews,
       rating: previousMonthData.rating * 20, // normalize 5-star rating to 100-scale for consistency
       questions: previousMonthData.questions,
     },
     {
-      month: 'This Period',
+      month: "This Period",
       reviews: currentMonthData.reviews,
       rating: currentMonthData.rating * 20,
       questions: currentMonthData.questions,
@@ -82,37 +87,46 @@ export function PerformanceComparisonChart({
     return ((current - previous) / previous) * 100;
   };
 
-  const reviewsChange = calculateChange(currentMonthData.reviews, previousMonthData.reviews);
-  const ratingChange = calculateChange(currentMonthData.rating, previousMonthData.rating);
-  const questionsChange = calculateChange(currentMonthData.questions, previousMonthData.questions);
+  const reviewsChange = calculateChange(
+    currentMonthData.reviews,
+    previousMonthData.reviews,
+  );
+  const ratingChange = calculateChange(
+    currentMonthData.rating,
+    previousMonthData.rating,
+  );
+  const questionsChange = calculateChange(
+    currentMonthData.questions,
+    previousMonthData.questions,
+  );
 
   const metrics = [
     {
-      label: 'Reviews',
+      label: "Reviews",
       icon: MessageSquare,
       current: currentMonthData.reviews,
       change: reviewsChange,
-      color: 'text-info',
-      bgColor: 'bg-info/10',
-      dataKey: 'reviews' as keyof typeof visibleLines,
+      color: "text-info",
+      bgColor: "bg-info/10",
+      dataKey: "reviews" as keyof typeof visibleLines,
     },
     {
-      label: 'Rating',
+      label: "Rating",
       icon: Star,
       current: currentMonthData.rating.toFixed(1),
       change: ratingChange,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
-      dataKey: 'rating' as keyof typeof visibleLines,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+      dataKey: "rating" as keyof typeof visibleLines,
     },
     {
-      label: 'Questions',
+      label: "Questions",
       icon: HelpCircle,
       current: currentMonthData.questions,
       change: questionsChange,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-      dataKey: 'questions' as keyof typeof visibleLines,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+      dataKey: "questions" as keyof typeof visibleLines,
     },
   ];
 
@@ -137,8 +151,8 @@ export function PerformanceComparisonChart({
               />
               <span className="text-muted-foreground">{entry.name}:</span>
               <span className="font-medium">
-                {entry.name === 'Rating (out of 100)' 
-                  ? `${(entry.value / 20).toFixed(1)} ⭐` 
+                {entry.name === "Rating (out of 100)"
+                  ? `${(entry.value / 20).toFixed(1)} ⭐`
                   : entry.value}
               </span>
             </div>
@@ -159,16 +173,16 @@ export function PerformanceComparisonChart({
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all cursor-pointer",
             "border hover:border-primary/50",
-            visibleLines[metric.dataKey] 
-              ? "border-border bg-background" 
-              : "border-border/50 bg-muted/50 opacity-50"
+            visibleLines[metric.dataKey]
+              ? "border-border bg-background"
+              : "border-border/50 bg-muted/50 opacity-50",
           )}
         >
           <div
             className={cn("w-3 h-3 rounded-full", {
-              "bg-blue-500": metric.dataKey === 'reviews',
-              "bg-yellow-500": metric.dataKey === 'rating',
-              "bg-purple-500": metric.dataKey === 'questions',
+              "bg-blue-500": metric.dataKey === "reviews",
+              "bg-yellow-500": metric.dataKey === "rating",
+              "bg-purple-500": metric.dataKey === "questions",
             })}
           />
           <span className="text-xs font-medium">{metric.label}</span>
@@ -216,7 +230,7 @@ export function PerformanceComparisonChart({
           {metrics.map((metric, index) => {
             const Icon = metric.icon;
             const isPositive = metric.change >= 0;
-            
+
             return (
               <motion.div
                 key={metric.label}
@@ -235,12 +249,17 @@ export function PerformanceComparisonChart({
                 </div>
                 <div className="text-2xl font-bold">{metric.current}</div>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-xs text-muted-foreground">{metric.label}</span>
-                  <span className={cn(
-                    "text-xs font-medium",
-                    isPositive ? "text-success" : "text-destructive"
-                  )}>
-                    {isPositive ? '+' : ''}{metric.change.toFixed(1)}%
+                  <span className="text-xs text-muted-foreground">
+                    {metric.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      isPositive ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {isPositive ? "+" : ""}
+                    {metric.change.toFixed(1)}%
                   </span>
                 </div>
               </motion.div>
@@ -249,8 +268,8 @@ export function PerformanceComparisonChart({
         </div>
 
         {/* Chart visual with animation */}
-        <motion.div 
-          ref={chartContainerRef} 
+        <motion.div
+          ref={chartContainerRef}
           className="h-[250px]"
           role="img"
           aria-label="Performance comparison chart between periods"
@@ -265,26 +284,30 @@ export function PerformanceComparisonChart({
             >
               <defs>
                 <linearGradient id="colorReviews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorRating" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorQuestions" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#374151"
+                opacity={0.1}
+              />
+              <XAxis
+                dataKey="month"
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
                 stroke="#4b5563"
               />
-              <YAxis 
-                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              <YAxis
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
                 stroke="#4b5563"
               />
               <Tooltip content={<CustomTooltip />} />

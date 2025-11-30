@@ -1,10 +1,29 @@
 # NNH AI Studio - Cursor AI Rules
 
+> ⚠️ **اقرأ `AI_AGENT_START_HERE.md` أولاً للقواعد الصارمة**
+
 ## 🎯 Project Context
 - **Platform**: Next.js 14 + TypeScript + Supabase + Multi-AI Provider System
 - **Version**: v0.9.0-beta (BETA Status)
 - **Production**: https://nnh.ae (LIVE - accessible worldwide)
 - **Development**: http://localhost:5050 (LOCAL ONLY)
+
+---
+
+## 🚫 STOP - قبل أي عمل
+
+### قبل إنشاء ملف جديد:
+1. ابحث: `find . -name "*.ts" | xargs grep "similar_function"`
+2. تحقق: هل يمكن إضافته لملف موجود؟
+3. إذا أنشأت ملف: تأكد من استخدامه وربطه
+
+### قبل حذف كود:
+1. ابحث: `grep -r "function_name" --include="*.ts" --include="*.tsx" .`
+2. إذا وجدت استخدام: لا تحذف
+
+### بعد أي تعديل:
+1. `npm run lint` - يجب 0 errors جديدة
+2. `npm run build` - يجب أن ينجح
 
 ---
 
@@ -46,7 +65,7 @@
 
 ### Current Strategy: Focus on ONE tab at a time
 1. **Verify** data loading works correctly
-2. **Verify** data displays correctly  
+2. **Verify** data displays correctly
 3. **Verify** all AI features work correctly
 4. **Test** with real/beta user data
 5. **Achieve** 100% production-ready state
@@ -302,6 +321,41 @@ npm run lint             # Lint code
 3. Check existing similar code
 4. Ask before making breaking changes
 5. Test thoroughly before PR
+
+---
+
+## 🔧 Production Fix Prompts (START HERE FOR FIXES)
+
+**Location:** `production-fix-prompts/`
+
+When asked to fix any issue, **ALWAYS check if there's a prompt file first**:
+
+```bash
+# Check available prompts
+ls production-fix-prompts/critical/      # 🔴 17 files - Security & Stability
+ls production-fix-prompts/high-priority/ # 🟠 9 files - Functionality & UX
+ls production-fix-prompts/medium-priority/ # 🟡 14 files - Code Quality
+```
+
+### Workflow:
+1. **Find the relevant prompt** in `production-fix-prompts/`
+2. **Read the entire prompt** before starting
+3. **Follow step-by-step guide** exactly
+4. **Check ALL acceptance criteria**
+5. **Run verification commands** from the prompt
+6. **Update status** in the prompt file when done
+
+### Quick Reference:
+| Issue Type | Folder | Priority |
+|------------|--------|----------|
+| Security (CSRF, RLS, Rate Limit) | `critical/` | P0 |
+| Validation, Error Handling | `critical/` | P0 |
+| Performance, UX | `high-priority/` | P1 |
+| Code Quality, Types | `medium-priority/` | P2 |
+
+### Key Files:
+- `production-fix-prompts/README.md` - Full overview
+- `PRODUCTION_ISSUES_10.txt` - Detailed issue list
 
 ---
 

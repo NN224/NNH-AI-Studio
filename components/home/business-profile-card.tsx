@@ -1,27 +1,26 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Building2,
-  MapPin,
-  Phone,
-  Globe,
-  Clock,
-  Star,
-  MessageSquare,
-  TrendingUp,
-  ExternalLink,
-  Calendar,
-  Utensils,
-  CalendarCheck,
-  ShoppingBag,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  Calendar,
+  CalendarCheck,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Globe,
+  MapPin,
+  MessageSquare,
+  Phone,
+  ShoppingBag,
+  Star,
+  TrendingUp,
+  Utensils,
+} from "lucide-react";
 
 interface BusinessHours {
   [key: string]: {

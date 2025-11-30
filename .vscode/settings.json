@@ -120,4 +120,21 @@
   },
   "nxConsole.nxWorkspacePath": "",
   "aikido.showIgnoredProblems": true
+
+  // ═══════════════════════════════════════════════════════════
+  // 🤖 AI Agent Instructions
+  // ═══════════════════════════════════════════════════════════
+  // When fixing issues, AI agents should:
+  // 1. Check production-fix-prompts/ folder FIRST
+  // 2. Read CLAUDE.md for project guidelines
+  // 3. Follow .cursorrules for code standards
+  // 4. Run npm run lint after changes
+  // 5. Update prompt status when done
+
+  // Key documentation files for AI agents:
+  // - CLAUDE.md - Main AI guide
+  // - .cursorrules - Cursor AI rules
+  // - .github/copilot-instructions.md - GitHub Copilot rules
+  // - production-fix-prompts/README.md - Fix prompts overview
+  // - PRODUCTION_ISSUES_10.txt - Detailed issue list
 }

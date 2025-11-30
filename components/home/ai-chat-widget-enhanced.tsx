@@ -1,30 +1,27 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  MessageCircle,
-  X,
-  Bot,
-  User,
-  Send,
-  Mic,
-  MicOff,
-  Sparkles,
-  RefreshCw,
-  Trash2,
-  ChevronDown,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useAIChatEnhanced } from "@/hooks/features/use-ai-chat-enhanced";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  useAIChatEnhanced,
-  QUICK_COMMANDS,
-} from "@/hooks/features/use-ai-chat-enhanced";
+  Bot,
+  ChevronDown,
+  MessageCircle,
+  Mic,
+  MicOff,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface AIChatWidgetEnhancedProps {
   userId?: string;
