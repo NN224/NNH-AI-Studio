@@ -1,5 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import {
+  useAIChat as useAIChatBase,
+  type AIChatResponse,
+} from "@/hooks/use-ai-command-center";
 import { Message } from "@/lib/types/chat-types";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 
 // SpeechRecognition type for browser API
 type SpeechRecognitionType = typeof window.SpeechRecognition extends undefined
@@ -14,6 +19,7 @@ export function useAIChat() {
   const recognitionRef = useRef<InstanceType<SpeechRecognitionType> | null>(
     null,
   );
+  const { sendMessage: sendAIMessage } = useAIChatBase();
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -32,34 +38,52 @@ export function useAIChat() {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/ai/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: content,
-            conversationHistory: messages.slice(-5), // Last 5 messages for context
-          }),
+        // Use the improved AI chat hook with structured error handling
+        const response: AIChatResponse = await sendAIMessage(content);
+
+        if (response.type === "error") {
+          // Display error toast notification
+          toast.error("AI Chat Error", {
+            description: response.message,
+            action: response.canRetry
+              ? {
+                  label: "Retry",
+                  onClick: () => sendMessage(content),
+                }
+              : undefined,
+          });
+
+          // Add error message to chat
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: `❌ ${response.message}`,
+            timestamp: new Date(),
+            status: "error",
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        } else {
+          // Success - add assistant message
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: response.message,
+            timestamp: new Date(),
+            status: "delivered",
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        }
+      } catch (error) {
+        // Fallback error handling for unexpected errors
+        console.error("Unexpected chat error:", error);
+        toast.error("Unexpected Error", {
+          description: "An unexpected error occurred. Please try again.",
         });
 
-        if (!response.ok) throw new Error("Failed to get response");
-
-        const data = await response.json();
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: data.message || "I apologize, but I encountered an error.",
-          timestamp: new Date(),
-          status: "delivered",
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
-      } catch (error) {
-        console.error("Chat error:", error);
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+          content: "❌ An unexpected error occurred. Please try again.",
           timestamp: new Date(),
           status: "error",
         };
@@ -68,7 +92,7 @@ export function useAIChat() {
         setIsLoading(false);
       }
     },
-    [messages],
+    [sendAIMessage],
   );
 
   const startVoiceInput = useCallback(() => {

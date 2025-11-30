@@ -77,7 +77,6 @@ interface HomePageContentProps {
   }>;
   responseRate: number;
   streak: number;
-  timeOfDay?: "morning" | "afternoon" | "evening" | "night";
   lastLogin?: string;
   businessName?: string;
   businessLogo?: string;
@@ -98,7 +97,6 @@ export function HomePageContent({
   progressItems,
   responseRate,
   streak,
-  timeOfDay: serverTimeOfDay,
   lastLogin,
   businessName,
   businessLogo,
@@ -109,6 +107,23 @@ export function HomePageContent({
   const router = useRouter();
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [hasShownWelcomeBack, setHasShownWelcomeBack] = useState(false);
+  const [timeOfDay, setTimeOfDay] = useState<
+    "morning" | "afternoon" | "evening" | "night"
+  >("morning");
+
+  // Calculate time of day based on user's local timezone (client-side only)
+  useEffect(() => {
+    const hour = new Date().getHours();
+    const calculatedTimeOfDay: "morning" | "afternoon" | "evening" | "night" =
+      hour < 12
+        ? "morning"
+        : hour < 18
+          ? "afternoon"
+          : hour < 22
+            ? "evening"
+            : "night";
+    setTimeOfDay(calculatedTimeOfDay);
+  }, []);
 
   // Check if user is returning after a while
   useEffect(() => {
@@ -137,9 +152,6 @@ export function HomePageContent({
   const completedTasksCount = progressItems.filter(
     (item) => item.completed,
   ).length;
-
-  // Use server-provided timeOfDay (always provided now to avoid hydration mismatch)
-  const timeOfDay = serverTimeOfDay || "morning";
 
   // Calculate health score based on various factors
   const calculateHealthScore = (

@@ -260,8 +260,6 @@ export default async function HomePage({
     });
   }
 
-  // Calculate time of day for greeting
-
   // Build progress tracker items
   const progressItems = [
     {
@@ -397,17 +395,6 @@ export default async function HomePage({
     });
   }
 
-  // Calculate time of day on server to avoid hydration mismatch
-  const hour = new Date().getHours();
-  const timeOfDay: "morning" | "afternoon" | "evening" | "night" =
-    hour < 12
-      ? "morning"
-      : hour < 18
-        ? "afternoon"
-        : hour < 22
-          ? "evening"
-          : "night";
-
   // Calculate pending reviews (reviews without replies)
   const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
 
@@ -426,7 +413,6 @@ export default async function HomePage({
         progressItems,
         responseRate,
         streak,
-        timeOfDay,
         lastLogin: lastLogin ?? undefined,
         businessName: primaryLocation?.location_name,
         businessLogo: businessLogoUrl,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 // Types
@@ -405,6 +405,21 @@ export function useAICommandCenterData() {
   });
 }
 
+// AI Chat Response Types
+export interface AIChatSuccessResponse {
+  type: "success";
+  message: string;
+}
+
+export interface AIChatErrorResponse {
+  type: "error";
+  message: string;
+  errorCode?: string;
+  canRetry?: boolean;
+}
+
+export type AIChatResponse = AIChatSuccessResponse | AIChatErrorResponse;
+
 /**
  * Hook for AI Chat functionality
  */
@@ -414,7 +429,7 @@ export function useAIChat() {
   const sendMessage = async (
     message: string,
     provider: string = "openai",
-  ): Promise<string> => {
+  ): Promise<AIChatResponse> => {
     setIsProcessing(true);
     try {
       const response = await fetch("/api/ai/chat", {
@@ -431,15 +446,38 @@ export function useAIChat() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send message");
+        const errorMessage = errorData.error || "Failed to send message";
+
+        // Return structured error response
+        return {
+          type: "error",
+          message: errorMessage,
+          errorCode: response.status.toString(),
+          canRetry: response.status >= 500 || response.status === 429,
+        };
       }
 
       const data = await response.json();
-      return data.message?.content || data.message || "I'm here to help!";
+      const messageContent =
+        data.message?.content || data.message || "I'm here to help!";
+
+      // Return structured success response
+      return {
+        type: "success",
+        message: messageContent,
+      };
     } catch (error) {
       console.error("Chat error:", error);
-      // Return error message instead of throwing
-      return `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again or switch to a different AI provider.`;
+
+      // Return structured error response for network/unexpected errors
+      return {
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
+        canRetry: true,
+      };
     } finally {
       setIsProcessing(false);
     }
