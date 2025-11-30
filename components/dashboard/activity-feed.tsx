@@ -58,7 +58,7 @@ const activityIcons = {
 
 // دالة لتوليد الروابط بناءً على نوع النشاط والـ metadata
 const getActivityLink = (activity: ActivityLog): string | null => {
-  const meta = (activity.metadata as Record<string, any>) || {};
+  const meta = (activity.metadata as Record<string, unknown>) || {};
 
   // GMB Posts
   if (activity.activity_type.includes("post")) {
@@ -98,7 +98,7 @@ export function ActivityFeed() {
   if (!supabase) {
     throw new Error("Failed to initialize Supabase client");
   }
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isMountedRef = useRef(true);
 
   // ✅ FIX: Stabilize state update function to prevent race conditions
@@ -339,7 +339,7 @@ export function ActivityFeed() {
                   <div className="relative group">
                     <div className="absolute inset-0 rounded-full bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div
-                      className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-lg`}
+                      className={`relative w-10 h-10 rounded-full bg-linear-to-br ${colorClass} flex items-center justify-center shadow-lg`}
                     >
                       <Icon className="w-5 h-5 text-white" />
                     </div>

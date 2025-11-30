@@ -1124,7 +1124,39 @@
     },
     "aiCockpit": {
       "title": "مركز التحكم الذكي - NNH AI Studio",
-      "description": "مركز تحكم ذكي لإدارة المراجعات مع تحليل المشاعر والردود التلقائية."
+      "description": "مركز تحكم ذكي لإدارة المراجعات وتحليل الأداء والردود التلقائية."
+    }
+  },
+  "aiHero": {
+    "title": "المساعد الذكي",
+    "subtitle": "رفيقك الذكي في إدارة العمل",
+    "placeholder": "اسألني أي شيء...",
+    "conversationHistory": "سجل المحادثة",
+    "messages": "رسائل",
+    "thinking": "جاري التفكير...",
+    "connected": "متصل",
+    "quickCommands": {
+      "replyReviews": "رد على المراجعات",
+      "createPost": "إنشاء منشور",
+      "weeklyReport": "تقرير أسبوعي",
+      "todaysTasks": "مهام اليوم"
+    },
+    "badges": {
+      "reviews": "مراجعات",
+      "questions": "أسئلة",
+      "urgent": "عاجل"
+    },
+    "actions": {
+      "saveAsDraft": "حفظ كمسودة",
+      "publishAll": "نشر الكل",
+      "saving": "جاري الحفظ...",
+      "publishing": "جاري النشر..."
+    },
+    "notifications": {
+      "repliesSaved": "تم حفظ {count} رد كمسودة",
+      "repliesPublished": "تم نشر {count} رد بنجاح",
+      "errorSaving": "فشل في حفظ الردود",
+      "errorPublishing": "فشل في نشر الردود"
     }
   }
 }

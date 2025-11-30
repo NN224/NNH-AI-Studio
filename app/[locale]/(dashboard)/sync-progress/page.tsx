@@ -210,7 +210,7 @@ export default function SyncProgressPage() {
             <div className="space-y-3">
               <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+                  className="h-full bg-linear-to-r from-orange-500 to-orange-400 transition-all duration-500"
                   style={{
                     width: `${syncState.progress || 10}%`,
                   }}

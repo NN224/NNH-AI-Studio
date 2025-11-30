@@ -31,11 +31,11 @@ export default function AboutPage() {
 
       <main className="flex-1">
         <div className="relative py-20 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-b from-primary/10 via-transparent to-transparent" />
 
           <div className="container mx-auto px-4 max-w-4xl relative">
             <div className="text-center mb-12">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold mb-4 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
                 About NNH - AI Studio
               </h1>
               <p className="text-muted-foreground text-lg">

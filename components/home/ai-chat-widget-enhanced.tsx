@@ -94,7 +94,7 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
             "h-14 w-14 rounded-full shadow-lg transition-all duration-300",
             isOpen
               ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600",
+              : "bg-linear-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600",
           )}
         >
           {isOpen ? (
@@ -122,10 +122,10 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
           >
             <Card className="h-full flex flex-col shadow-2xl border-purple-500/20 overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+              <div className="flex items-center justify-between p-4 border-b bg-linear-to-r from-purple-500/10 to-blue-500/10">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-blue-500 flex items-center justify-center">
                       <Bot className="w-5 h-5 text-white" />
                     </div>
                     {isStreaming && (
@@ -189,7 +189,7 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
                       animate={{ opacity: 1, y: 0 }}
                       className="text-center py-8"
                     >
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-linear-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
                         <Bot className="w-8 h-8 text-purple-500" />
                       </div>
                       <h4 className="font-semibold mb-2">
@@ -237,7 +237,7 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
                       )}
                     >
                       {message.role === "assistant" && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
                           <Bot className="w-4 h-4 text-white" />
                         </div>
                       )}
@@ -276,7 +276,7 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
                       animate={{ opacity: 1 }}
                       className="flex gap-3 justify-start"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
                         <Bot className="w-4 h-4 text-white" />
                       </div>
                       <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-muted">
@@ -295,7 +295,7 @@ export function AIChatWidgetEnhanced({ userId }: AIChatWidgetEnhancedProps) {
                       animate={{ opacity: 1 }}
                       className="flex gap-3 justify-start"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-blue-500 flex items-center justify-center shrink-0">
                         <Bot className="w-4 h-4 text-white" />
                       </div>
                       <div className="bg-muted rounded-2xl px-4 py-3">

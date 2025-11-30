@@ -1173,5 +1173,37 @@
       "title": "AI Cockpit - NNH AI Studio",
       "description": "AI-powered review management cockpit with sentiment analysis and automated responses."
     }
+  },
+  "aiHero": {
+    "title": "AI Assistant",
+    "subtitle": "Your intelligent business companion",
+    "placeholder": "Ask me anything about your business...",
+    "conversationHistory": "Conversation History",
+    "messages": "messages",
+    "thinking": "Thinking...",
+    "connected": "Connected",
+    "quickCommands": {
+      "replyReviews": "Reply to Reviews",
+      "createPost": "Create Post",
+      "weeklyReport": "Weekly Report",
+      "todaysTasks": "Today's Tasks"
+    },
+    "badges": {
+      "reviews": "Reviews",
+      "questions": "Questions",
+      "urgent": "Urgent"
+    },
+    "actions": {
+      "saveAsDraft": "Save as Draft",
+      "publishAll": "Publish All",
+      "saving": "Saving...",
+      "publishing": "Publishing..."
+    },
+    "notifications": {
+      "repliesSaved": "{count} replies saved as drafts",
+      "repliesPublished": "{count} replies published successfully",
+      "errorSaving": "Failed to save replies",
+      "errorPublishing": "Failed to publish replies"
+    }
   }
 }

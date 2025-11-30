@@ -23,6 +23,7 @@ import {
   TrendingUp,
   User,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -45,28 +46,33 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-const quickCommands: QuickCommand[] = [
+const getQuickCommands = (
+  t: ReturnType<typeof useTranslations<"aiHero">>,
+): QuickCommand[] => [
   {
     id: "reply-reviews",
-    label: "رد على المراجعات",
+    label: t("quickCommands.replyReviews"),
     icon: MessageSquare,
     action: "batch_reply",
   },
   {
     id: "create-post",
-    label: "انشر بوست",
+    label: t("quickCommands.createPost"),
     icon: TrendingUp,
     action: "create_post",
   },
   {
     id: "weekly-report",
-    label: "تقرير الأسبوع",
+    label: t("quickCommands.weeklyReport"),
     icon: Star,
     action: "weekly_report",
   },
 ];
 
 export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
+  const t = useTranslations("aiHero");
+  const quickCommands = getQuickCommands(t);
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -300,8 +306,8 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                 </h2>
                 <p className="text-sm text-zinc-400">
                   {businessName
-                    ? `مساعدك الذكي لـ ${businessName}`
-                    : "مساعدك الذكي"}
+                    ? `${t("subtitle")} - ${businessName}`
+                    : t("subtitle")}
                 </p>
               </div>
             </div>
@@ -313,7 +319,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                   variant="outline"
                   className="border-zinc-600 text-zinc-400"
                 >
-                  {messages.length} رسائل
+                  {messages.length} {t("messages")}
                 </Badge>
               )}
               {/* Live Status */}
@@ -322,7 +328,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                 className="border-green-500/50 text-green-400 bg-green-500/10"
               >
                 <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
-                متصل
+                {t("connected")}
               </Badge>
             </div>
           </div>
@@ -336,7 +342,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-4 w-4 text-orange-400" />
                   <span className="text-sm font-medium text-zinc-200">
-                    مهام اليوم
+                    {t("quickCommands.todaysTasks")}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -346,7 +352,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                         variant="outline"
                         className="cursor-pointer hover:bg-orange-500/20 border-orange-500/30 text-orange-300"
                       >
-                        🔴 {pendingReviews} مراجعات
+                        🔴 {pendingReviews} {t("badges.reviews")}
                       </Badge>
                     </Link>
                   )}
@@ -356,7 +362,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                         variant="outline"
                         className="cursor-pointer hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
                       >
-                        🟡 {unansweredQuestions} أسئلة
+                        🟡 {unansweredQuestions} {t("badges.questions")}
                       </Badge>
                     </Link>
                   )}
@@ -365,7 +371,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                       variant="outline"
                       className="border-red-500/30 text-red-300"
                     >
-                      ⚠️ {urgentCount} عاجل
+                      ⚠️ {urgentCount} {t("badges.urgent")}
                     </Badge>
                   )}
                 </div>
@@ -390,12 +396,12 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                   {showHistory ? (
                     <>
                       <ChevronUp className="h-4 w-4 mr-2" />
-                      إخفاء المحادثة
+                      {t("conversationHistory")}
                     </>
                   ) : (
                     <>
                       <ChevronDown className="h-4 w-4 mr-2" />
-                      عرض المحادثة ({messages.length})
+                      {t("conversationHistory")} ({messages.length})
                     </>
                   )}
                 </Button>
@@ -462,7 +468,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="اسألني أي شيء... (مثال: كيف كان أداء الأسبوع؟)"
+              placeholder={t("placeholder")}
               className="pr-24 h-12 text-base bg-zinc-800/50 border-zinc-700 focus:border-orange-500/50 placeholder:text-zinc-500"
               disabled={isLoading}
             />
@@ -494,7 +500,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
           {pendingReplies.length > 0 && (
             <div className="flex gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
               <span className="text-sm text-green-300 flex-1">
-                {pendingReplies.length} ردود جاهزة للحفظ
+                {pendingReplies.length} {t("messages")}
               </span>
               <Button
                 size="sm"
@@ -506,7 +512,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "💾 حفظ كمسودة"
+                  `💾 ${t("actions.saveAsDraft")}`
                 )}
               </Button>
               <Button
@@ -518,7 +524,7 @@ export function AIHeroSection({ businessName, className }: AIHeroSectionProps) {
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "🚀 نشر الكل"
+                  `🚀 ${t("actions.publishAll")}`
                 )}
               </Button>
             </div>
