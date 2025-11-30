@@ -203,4 +203,12 @@ export default withSentryConfig(withNextIntl(withBundleAnalyzer(nextConfig)), {
   // https://docs.sentry.io/product/crons/
   // https://vercel.com/docs/cron-jobs
   automaticVercelMonitors: true,
+
+  // Hide source map warnings for third-party libraries
+  hideSourceMaps: true,
+
+  // Suppress source map upload errors for files without references
+  sourcemaps: {
+    ignore: ["node_modules/**/*"],
+  },
 });
