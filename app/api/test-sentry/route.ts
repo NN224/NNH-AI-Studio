@@ -1,3 +1,4 @@
+import { validateSentryDSN } from "@/lib/services/sentry-config";
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
@@ -12,21 +13,33 @@ class TestSentryError extends Error {
 
 export async function GET() {
   const testId = `test-${Date.now()}`;
+  const dsn = process.env.SENTRY_DSN;
+  const publicDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
   try {
     // Check if Sentry is configured
     const client = Sentry.getClient();
-    const isConfigured =
-      client !== undefined && client.getOptions().dsn !== undefined;
+    const clientDsn = client?.getOptions()?.dsn;
+    const isConfigured = client !== undefined && clientDsn !== undefined;
+
+    // Debug info
+    const debugInfo = {
+      hasDsn: !!dsn,
+      hasPublicDsn: !!publicDsn,
+      dsnValid: validateSentryDSN(dsn),
+      publicDsnValid: validateSentryDSN(publicDsn),
+      hasClient: !!client,
+      clientHasDsn: !!clientDsn,
+      nodeEnv: process.env.NODE_ENV,
+      nextRuntime: process.env.NEXT_RUNTIME,
+    };
 
     if (!isConfigured) {
       return NextResponse.json({
         success: false,
         error: "Sentry is not configured",
-        dsn: process.env.SENTRY_DSN ? "Set (hidden)" : "Not set",
-        publicDsn: process.env.NEXT_PUBLIC_SENTRY_DSN
-          ? "Set (hidden)"
-          : "Not set",
+        debug: debugInfo,
+        hint: "Check if sentry.server.config.ts is being loaded correctly",
       });
     }
 
