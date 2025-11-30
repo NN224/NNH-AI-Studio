@@ -1,6 +1,9 @@
 /**
  * GMB OAuth Callback Handler
  *
+ * This handler exchanges the OAuth code for tokens and saves the GMB account.
+ * It does NOT fetch or save locations - that happens in the "Select-Then-Import" flow.
+ *
  * Security Note: All redirects in this file use buildSafeRedirectUrl() which validates
  * URLs against an allowlist of trusted domains (see lib/utils/safe-redirect.ts).
  * Static analyzers may flag these as "open redirect" vulnerabilities, but they are
@@ -9,7 +12,7 @@
 import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
 import { logAction } from "@/lib/monitoring/audit";
 import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
 import {
   buildSafeRedirectUrl,
@@ -23,8 +26,6 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
-const GMB_LOCATIONS_URL =
-  "https://mybusinessbusinessinformation.googleapis.com/v1";
 
 export async function GET(request: NextRequest) {
   console.warn("[OAuth Callback] Processing OAuth callback...");
@@ -74,7 +75,6 @@ export async function GET(request: NextRequest) {
     // OAuth callback can arrive without a valid Supabase session cookie due to
     // cross-site redirects or SameSite policies, so we must bypass RLS safely
     // using the server role. We still derive user_id from the validated state.
-    const _supabase = await createClient();
     const adminClient = createAdminClient();
 
     // Verify state and get user ID
@@ -590,76 +590,9 @@ export async function GET(request: NextRequest) {
         `[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`,
       );
 
-      // Fetch initial locations for this account
-      console.warn(
-        `[OAuth Callback] Fetching initial locations for account ${accountId}`,
-      );
-      const locationsUrl = new URL(
-        `${GMB_LOCATIONS_URL}/${accountId}/locations`,
-      );
-      locationsUrl.searchParams.set(
-        "readMask",
-        "name,title,storefrontAddress,phoneNumbers,websiteUri,categories",
-      );
-      locationsUrl.searchParams.set("alt", "json");
-
-      const locationsResponse = await fetch(locationsUrl.toString(), {
-        headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
-          Accept: "application/json",
-        },
-      });
-
-      if (locationsResponse.ok) {
-        const locationsData = await locationsResponse.json();
-        const locations = locationsData.locations || [];
-
-        console.warn(`[OAuth Callback] Found ${locations.length} locations`);
-
-        for (const location of locations) {
-          const locationData = {
-            gmb_account_id: savedAccountId,
-            user_id: userId,
-            location_name: location.title || "Unnamed Location",
-            location_id: location.name,
-            address: location.storefrontAddress
-              ? `${location.storefrontAddress.addressLines?.join(", ") || ""}, ${
-                  location.storefrontAddress.locality || ""
-                }, ${location.storefrontAddress.administrativeArea || ""} ${
-                  location.storefrontAddress.postalCode || ""
-                }`
-              : null,
-            phone: location.phoneNumbers?.primaryPhone || null,
-            category: location.categories?.primaryCategory?.displayName || null,
-            website: location.websiteUri || null,
-            is_active: true,
-            metadata: location,
-            updated_at: new Date().toISOString(),
-          };
-
-          // Use UPSERT to insert or update the location in a single query
-          // The unique constraint on location_id will handle the conflict
-          const { error: upsertLocationError } = await adminClient
-            .from("gmb_locations")
-            .upsert(locationData, {
-              onConflict: "location_id",
-              ignoreDuplicates: false,
-            });
-
-          if (upsertLocationError) {
-            console.error(
-              `[OAuth Callback] Error upserting location ${location.name}:`,
-              upsertLocationError,
-            );
-          }
-        }
-      } else {
-        const text = await locationsResponse.text();
-        console.error(`[OAuth Callback] Failed to fetch locations:`, {
-          status: locationsResponse.status,
-          body_snippet: text.substring(0, 500),
-        });
-      }
+      // NOTE: Locations are NOT fetched here anymore.
+      // The user will select locations in the /select-account flow,
+      // which calls /api/gmb/locations/fetch-google and /api/gmb/locations/import
     }
 
     // Redirect to GMB dashboard with success or error
@@ -682,174 +615,31 @@ export async function GET(request: NextRequest) {
       state_token: state,
     });
 
-    // ✅ NEW: Smart sync strategy based on user state
-    try {
-      // Dynamically import to avoid circular dependencies
-      const { addToSyncQueue } = await import("@/server/actions/sync-queue");
+    // NOTE: Sync queue is NOT triggered here anymore.
+    // Syncing will start after the user selects and imports locations
+    // via /api/gmb/locations/import
 
-      let syncPriority: number;
-      let shouldTriggerImmediate: boolean;
-
-      switch (userState) {
-        case "FIRST_TIME":
-          // 🎉 First-time user - highest priority, immediate sync
-          syncPriority = 10;
-          shouldTriggerImmediate = true;
-          console.warn(
-            "[OAuth Callback] FIRST_TIME user - full sync with overlay",
-          );
-          break;
-
-        case "ADDITIONAL_ACCOUNT":
-          // ⚡ Additional account - high priority, background sync
-          syncPriority = 7;
-          shouldTriggerImmediate = true;
-          console.warn(
-            "[OAuth Callback] ADDITIONAL_ACCOUNT - background sync for new account",
-          );
-          break;
-
-        case "RE_AUTH":
-          // 🔄 Re-auth - no sync needed (just token refresh)
-          syncPriority = 0;
-          shouldTriggerImmediate = false;
-          console.warn(
-            "[OAuth Callback] RE_AUTH - skipping sync (token refresh only)",
-          );
-          break;
-
-        default:
-          syncPriority = 5;
-          shouldTriggerImmediate = false;
-      }
-
-      // Only add to sync queue if needed (not for re-auth)
-      if (userState !== "RE_AUTH") {
-        const result = await addToSyncQueue(
-          savedAccountId,
-          "full",
-          syncPriority,
-          userId,
-        );
-
-        if (result.success) {
-          console.warn("[OAuth Callback] Added to sync queue:", result.queueId);
-
-          // Trigger immediate processing if needed
-          if (shouldTriggerImmediate) {
-            const cronSecret = process.env.CRON_SECRET;
-            if (cronSecret) {
-              console.warn(
-                "[OAuth Callback] Triggering immediate queue processing...",
-              );
-              const processUrl = `${baseUrl}/api/gmb/queue/process`;
-              fetch(processUrl, {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${cronSecret}`,
-                },
-              }).catch((err) => {
-                console.error(
-                  "[OAuth Callback] Failed to trigger queue processing:",
-                  err,
-                );
-              });
-            } else {
-              console.warn(
-                "[OAuth Callback] CRON_SECRET not set, cannot trigger immediate processing",
-              );
-            }
-          }
-        } else {
-          console.error(
-            "[OAuth Callback] Failed to add to queue:",
-            result.error,
-          );
-        }
-      }
-    } catch (syncError) {
-      console.error("[OAuth Callback] Error adding to queue:", syncError);
-    }
-
-    // ✅ CRITICAL: Invalidate Next.js cache so Settings page shows fresh data
+    // Invalidate Next.js cache so Settings page shows fresh data
     await invalidateGMBCache(userId);
 
-    // If multiple accounts were saved, redirect to account selection page
-    if (savedAccountIds.length > 1) {
-      const multiAccountRedirectUrl = buildSafeRedirectUrl(
-        baseUrl,
-        `/${localeCookie}/select-account`,
-      );
-      console.warn(
-        "[OAuth Callback] Multiple accounts found, redirecting to selection:",
-        multiAccountRedirectUrl,
-      );
-      return NextResponse.redirect(multiAccountRedirectUrl);
-    }
-
-    // ✅ IMPROVED: Smart redirect based on user state
-    // Build redirect parameters and destination based on user state
-    let redirectPath: string;
-    let redirectParams: Record<string, string>;
-
-    switch (userState) {
-      case "FIRST_TIME":
-        // 🎉 First-time - redirect to sync-progress page to wait for data
-        // This fixes the race condition where dashboard shows 404 before data is ready
-        redirectPath = `/${localeCookie}/sync-progress`;
-        redirectParams = {
-          initial: "true",
-          accountId: savedAccountId,
-        };
-        console.warn(
-          "[OAuth Callback] FIRST_TIME redirect - sync-progress page",
-        );
-        break;
-
-      case "ADDITIONAL_ACCOUNT":
-        // ⚡ Additional account - background sync notification, go to dashboard
-        redirectPath = `/${localeCookie}/dashboard`;
-        redirectParams = {
-          accountAdded: "true",
-          accountId: savedAccountId,
-        };
-        console.warn(
-          "[OAuth Callback] ADDITIONAL_ACCOUNT redirect - background sync",
-        );
-        break;
-
-      case "RE_AUTH":
-        // 🔄 Re-auth - just success message, go to dashboard
-        redirectPath = `/${localeCookie}/dashboard`;
-        redirectParams = {
-          reauth: "true",
-        };
-        console.warn("[OAuth Callback] RE_AUTH redirect - quick refresh");
-        break;
-
-      default:
-        // Fallback - go to sync-progress to be safe
-        redirectPath = `/${localeCookie}/sync-progress`;
-        redirectParams = {
-          initial: "true",
-          accountId: savedAccountId,
-        };
-    }
-
-    const successRedirectUrl = buildSafeRedirectUrl(
+    // Always redirect to select-account page for location selection
+    // This applies to all user states (FIRST_TIME, ADDITIONAL_ACCOUNT, RE_AUTH)
+    const selectAccountUrl = buildSafeRedirectUrl(
       baseUrl,
-      redirectPath,
-      redirectParams,
+      `/${localeCookie}/select-account`,
+      {
+        accountId: savedAccountId,
+        userState: userState,
+        accountCount: String(savedAccountIds.length),
+      },
     );
     console.warn(
-      "[OAuth Callback] Redirecting to:",
-      successRedirectUrl,
-      "with params:",
-      redirectParams,
+      "[OAuth Callback] Redirecting to select-account:",
+      selectAccountUrl,
     );
 
     // Create redirect response and set gmb_connected cookie for middleware optimization
-    const redirectResponse = NextResponse.redirect(successRedirectUrl);
+    const redirectResponse = NextResponse.redirect(selectAccountUrl);
     redirectResponse.cookies.set("gmb_connected", "true", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
