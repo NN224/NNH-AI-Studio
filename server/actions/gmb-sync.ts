@@ -1,9 +1,7 @@
 "use server";
 
 import {
-  CacheBucket,
   publishSyncProgress,
-  refreshCache,
   type SyncProgressEvent,
 } from "@/lib/cache/cache-manager";
 import { invalidateGMBCache } from "@/lib/cache/gmb-cache";
@@ -22,7 +20,6 @@ import { trackSyncResult } from "@/lib/monitoring/metrics";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
@@ -694,8 +691,11 @@ export async function fetchPostsDataForSync(
           content: post.languageCode || null,
           media_urls:
             post.media
-              ?.map((m: any) => m.googleUrl || m.sourceUrl)
-              .filter(Boolean) || [],
+              ?.map(
+                (m: { googleUrl?: string; sourceUrl?: string }) =>
+                  m.googleUrl || m.sourceUrl,
+              )
+              .filter((url): url is string => Boolean(url)) || [],
           event_title: post.event?.title || null,
           event_start_date: post.event?.schedule?.startDate || null,
           event_end_date: post.event?.schedule?.endDate || null,

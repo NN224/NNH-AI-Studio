@@ -1,11 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 import {
-  UpdateSyncScheduleInputSchema,
   GetSyncSettingsInputSchema,
+  UpdateSyncScheduleInputSchema,
 } from "@/lib/validations/gmb-settings";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 export async function updateAccountSyncSettings(
@@ -63,7 +63,7 @@ export async function updateAccountSyncSettings(
     revalidatePath("/locations");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       console.error("[GMB Settings] Validation error:", error.errors);
@@ -74,7 +74,10 @@ export async function updateAccountSyncSettings(
     }
 
     console.error("Error updating sync settings:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 
@@ -110,7 +113,7 @@ export async function getAccountSyncSettings(accountId: unknown) {
       enabled: settings.syncSchedule && settings.syncSchedule !== "manual",
       schedule: settings.syncSchedule || "manual",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       console.error("[GMB Settings] Validation error:", error.errors);
@@ -120,6 +123,9 @@ export async function getAccountSyncSettings(accountId: unknown) {
       };
     }
 
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }

@@ -1,3 +1,21 @@
+/**
+ * @deprecated MIGRATION NOTICE
+ *
+ * This API route is deprecated. Use Server Actions instead:
+ *
+ * ```ts
+ * import { getSettings, updateSettings } from '@/server/actions/settings';
+ *
+ * // Get settings
+ * const { success, settings, error } = await getSettings();
+ *
+ * // Update settings
+ * const { success, error } = await updateSettings({ autoReply: true });
+ * ```
+ *
+ * This route will be removed in a future release.
+ */
+
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";

@@ -243,7 +243,7 @@ export async function completeOnboarding(
     }
 
     // Update profile with onboarding completion
-    const updateData: any = {
+    const updateData: Record<string, string | boolean> = {
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     };

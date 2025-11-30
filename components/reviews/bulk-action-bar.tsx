@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { X, CheckCircle, XCircle, Tag, MessageSquare } from 'lucide-react';
-import { toast } from 'sonner';
-import type { GMBReview } from '@/lib/types/database';
+import { Button } from "@/components/ui/button";
+import type { GMBReview } from "@/lib/types/database";
+import { replyToReview } from "@/server/actions/reviews-management";
+import { CheckCircle, MessageSquare, Tag, X, XCircle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface BulkActionBarProps {
   readonly selectedReviews: ReadonlyArray<GMBReview>;
@@ -30,8 +31,8 @@ export function BulkActionBar({
       await action();
       onActionComplete();
     } catch (error) {
-      console.error('Bulk action error:', error);
-      toast.error('Something went wrong. Please try again.');
+      console.error("Bulk action error:", error);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -39,41 +40,50 @@ export function BulkActionBar({
 
   const handleMarkAsRead = () =>
     runBulkAction(async () => {
-      await bulkUpdateReviewStatus(selectedReviews, 'read');
-      toast.success(`Marked ${selectedCount} review${selectedCount > 1 ? 's' : ''} as read`);
+      await bulkUpdateReviewStatus(selectedReviews, "read");
+      toast.success(
+        `Marked ${selectedCount} review${selectedCount > 1 ? "s" : ""} as read`,
+      );
     });
 
   const handleMarkAsUnread = () =>
     runBulkAction(async () => {
-      await bulkUpdateReviewStatus(selectedReviews, 'unread');
-      toast.success(`Marked ${selectedCount} review${selectedCount > 1 ? 's' : ''} as unread`);
+      await bulkUpdateReviewStatus(selectedReviews, "unread");
+      toast.success(
+        `Marked ${selectedCount} review${selectedCount > 1 ? "s" : ""} as unread`,
+      );
     });
 
   const handleApproveReplies = () =>
     runBulkAction(async () => {
       const reviewsWithReplies = selectedReviews.filter(
-        (r) => r.ai_generated_response || r.ai_suggested_reply
+        (r) => r.ai_generated_response || r.ai_suggested_reply,
       );
 
       if (reviewsWithReplies.length === 0) {
-        toast.error('No AI-generated replies to approve');
+        toast.error("No AI-generated replies to approve");
         return;
       }
 
-      const { successCount, failCount } = await bulkPostReplies(reviewsWithReplies);
+      const { successCount, failCount } =
+        await bulkPostReplies(reviewsWithReplies);
 
       if (successCount > 0) {
-        toast.success(`Successfully posted ${successCount} repl${successCount > 1 ? 'ies' : 'y'}`);
+        toast.success(
+          `Successfully posted ${successCount} repl${successCount > 1 ? "ies" : "y"}`,
+        );
       }
       if (failCount > 0) {
-        toast.error(`Failed to post ${failCount} repl${failCount > 1 ? 'ies' : 'y'}`);
+        toast.error(
+          `Failed to post ${failCount} repl${failCount > 1 ? "ies" : "y"}`,
+        );
       }
     });
 
   const handleAddLabel = () =>
     runBulkAction(async () => {
-      await notePendingFeature('bulk-labels');
-      toast.info('Label support is coming soon.');
+      await notePendingFeature("bulk-labels");
+      toast.info("Label support is coming soon.");
     });
 
   return (
@@ -88,7 +98,7 @@ export function BulkActionBar({
             {selectedCount}
           </div>
           <span className="text-zinc-300 font-medium">
-            {selectedCount} review{selectedCount > 1 ? 's' : ''} selected
+            {selectedCount} review{selectedCount > 1 ? "s" : ""} selected
           </span>
         </div>
 
@@ -163,11 +173,11 @@ export function BulkActionBar({
 }
 
 async function bulkUpdateReviewStatus(
-  reviews: ReadonlyArray<GMBReview>,
-  status: 'read' | 'unread'
+  _reviews: ReadonlyArray<GMBReview>,
+  _status: "read" | "unread",
 ) {
   // Placeholder for future API integration
-  console.debug('bulkUpdateReviewStatus', { status, count: reviews.length });
+  // TODO: Implement bulk status update when API is ready
 }
 
 async function bulkPostReplies(reviews: ReadonlyArray<GMBReview>) {
@@ -177,29 +187,31 @@ async function bulkPostReplies(reviews: ReadonlyArray<GMBReview>) {
   await Promise.all(
     reviews.map(async (review) => {
       try {
-        const response = await fetch(`/api/reviews/${review.id}/reply`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reply_text: review.ai_generated_response || review.ai_suggested_reply,
-          }),
-        });
+        const replyText =
+          review.ai_generated_response || review.ai_suggested_reply;
+        if (!replyText) {
+          failCount += 1;
+          return;
+        }
 
-        if (response.ok) {
+        // Use Server Action instead of fetch
+        const result = await replyToReview(review.id, replyText);
+
+        if (result.success) {
           successCount += 1;
         } else {
           failCount += 1;
         }
       } catch (error) {
-        console.error('bulkPostReplies error:', error);
+        console.error("bulkPostReplies error:", error);
         failCount += 1;
       }
-    })
+    }),
   );
 
   return { successCount, failCount };
 }
 
-async function notePendingFeature(featureKey: string) {
-  console.info(`Feature "${featureKey}" is not yet enabled.`);
+async function notePendingFeature(_featureKey: string) {
+  // Feature not yet enabled - placeholder for future implementation
 }

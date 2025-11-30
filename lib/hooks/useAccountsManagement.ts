@@ -1,8 +1,8 @@
 // lib/hooks/useAccountsManagement.ts
-import { useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
 import type { GmbAccount } from "@/lib/types/database"; // تأكد من صحة المسار
+import { useCallback, useState } from "react";
 
 export function useAccountsManagement() {
   const [accounts, setAccounts] = useState<GmbAccount[]>([]);
@@ -92,11 +92,12 @@ export function useAccountsManagement() {
       console.log("[useAccountsManagement] Accounts processed:", validAccounts);
       setAccounts(validAccounts);
       return validAccounts; // Return the valid accounts
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[useAccountsManagement] Error fetching accounts:", error);
       toast({
         title: "Error Loading Accounts",
-        description: error.message || "Failed to fetch accounts",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch accounts",
         variant: "destructive",
       });
       setAccounts([]);
@@ -135,7 +136,7 @@ export function useAccountsManagement() {
           });
 
           // Try to parse as JSON
-          let errorData: any = {};
+          let errorData: { error?: string; message?: string } = {};
           try {
             errorData = JSON.parse(text);
           } catch {
@@ -174,11 +175,12 @@ export function useAccountsManagement() {
             data.message || "Your GMB data will sync in the background.",
         });
         await fetchAccounts(); // Refresh list after sync
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("[useAccountsManagement] Sync error:", error);
         toast({
           title: "Sync Failed",
-          description: error.message || "Failed to sync account",
+          description:
+            error instanceof Error ? error.message : "Failed to sync account",
           variant: "destructive",
         });
       } finally {
@@ -220,11 +222,14 @@ export function useAccountsManagement() {
           description: "Syncing has been stopped for this account.",
         });
         await fetchAccounts(); // Refresh the list
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("[useAccountsManagement] Disconnect error:", error);
         toast({
           title: "Error Disconnecting",
-          description: error.message || "Failed to disconnect account",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to disconnect account",
           variant: "destructive",
         });
       } finally {

@@ -39,22 +39,22 @@ const publishSyncProgress = jest.fn();
 const refreshCache = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/cache/cache-manager", () => ({
   CacheBucket: { DASHBOARD_OVERVIEW: "dashboard:overview" },
-  publishSyncProgress: (...args: any[]) => publishSyncProgress(...args),
-  refreshCache: (...args: any[]) => refreshCache(...args),
+  publishSyncProgress: (...args: unknown[]) => publishSyncProgress(...args),
+  refreshCache: (...args: unknown[]) => refreshCache(...args),
 }));
 
 const logAction = jest.fn().mockResolvedValue(undefined);
 const trackSyncResult = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/monitoring/audit", () => ({
-  logAction: (...args: any[]) => logAction(...args),
+  logAction: (...args: unknown[]) => logAction(...args),
 }));
 jest.mock("@/lib/monitoring/metrics", () => ({
-  trackSyncResult: (...args: any[]) => trackSyncResult(...args),
+  trackSyncResult: (...args: unknown[]) => trackSyncResult(...args),
 }));
 
 const runSyncTransactionWithRetry = jest.fn();
 jest.mock("@/lib/supabase/transactions", () => ({
-  runSyncTransactionWithRetry: (...args: any[]) =>
+  runSyncTransactionWithRetry: (...args: unknown[]) =>
     runSyncTransactionWithRetry(...args),
 }));
 

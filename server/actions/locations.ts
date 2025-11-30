@@ -1,5 +1,11 @@
 "use server";
 
+import {
+  CATEGORY_TYPE_MAP,
+  TYPE_KEYWORDS,
+  type GooglePlacesType,
+} from "@/lib/config/google-categories";
+import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
 import {
   LocationSchema,
@@ -18,10 +24,33 @@ interface LocationStatsData {
 }
 
 /**
+ * Google Places API result structure (partial)
+ */
+interface GooglePlaceResult {
+  place_id: string;
+  name: string;
+  rating?: number;
+  user_ratings_total?: number;
+  vicinity?: string;
+  formatted_address?: string;
+  geometry?: {
+    location?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  business_status?: string;
+  opening_hours?: {
+    open_now?: boolean;
+  };
+  types?: string[];
+}
+
+/**
  * Helper function to validate GMB connection for location operations
  */
 async function validateGMBConnection(
-  supabase: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   locationId?: string,
 ) {
@@ -113,9 +142,12 @@ export async function addLocation(locationData: unknown) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      await logAction("location_add", "gmb_location", null, {
+        status: "failed",
+        reason: "authentication_error",
+        error_message: authError?.message,
+      });
     }
     return { success: false, error: "Not authenticated" };
   }
@@ -124,26 +156,53 @@ export async function addLocation(locationData: unknown) {
   try {
     const validatedData = LocationSchema.parse(locationData);
 
-    const { error } = await supabase.from("gmb_locations").insert({
-      ...validatedData,
-      user_id: user.id,
-      is_active: true,
-      rating: 0,
-    });
+    const { data: newLocation, error } = await supabase
+      .from("gmb_locations")
+      .insert({
+        ...validatedData,
+        user_id: user.id,
+        is_active: true,
+        rating: 0,
+      })
+      .select("id")
+      .single();
 
     if (error) {
-      console.error("Failed to add location:", error);
+      await logAction("location_add", "gmb_location", null, {
+        status: "failed",
+        reason: "database_error",
+        error_message: error.message,
+        user_id: user.id,
+      });
       return { success: false, error: error.message };
     }
+
+    await logAction("location_add", "gmb_location", newLocation?.id, {
+      status: "success",
+      user_id: user.id,
+    });
 
     revalidatePath("/locations");
     return { success: true, error: null };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessage = error.errors.map((e) => e.message).join(", ");
+      await logAction("location_add", "gmb_location", null, {
+        status: "failed",
+        reason: "validation_error",
+        error_message: errorMessage,
+        user_id: user.id,
+      });
       return { success: false, error: `Validation error: ${errorMessage}` };
     }
-    console.error("Unexpected error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    await logAction("location_add", "gmb_location", null, {
+      status: "failed",
+      reason: "unexpected_error",
+      error_message: errorMessage,
+      user_id: user.id,
+    });
     return { success: false, error: "Failed to add location" };
   }
 }
@@ -156,15 +215,23 @@ export async function updateLocation(locationId: string, updates: unknown) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      await logAction("location_update", "gmb_location", locationId, {
+        status: "failed",
+        reason: "authentication_error",
+        error_message: authError?.message,
+      });
     }
     return { success: false, error: "Not authenticated" };
   }
 
   // Validate locationId
   if (!locationId || typeof locationId !== "string") {
+    await logAction("location_update", "gmb_location", null, {
+      status: "failed",
+      reason: "invalid_location_id",
+      user_id: user.id,
+    });
     return { success: false, error: "Invalid location ID" };
   }
 
@@ -175,6 +242,12 @@ export async function updateLocation(locationId: string, updates: unknown) {
     locationId,
   );
   if (!connectionValidation.isValid) {
+    await logAction("location_update", "gmb_location", locationId, {
+      status: "failed",
+      reason: "gmb_connection_invalid",
+      error_message: connectionValidation.error,
+      user_id: user.id,
+    });
     return { success: false, error: connectionValidation.error };
   }
 
@@ -192,9 +265,20 @@ export async function updateLocation(locationId: string, updates: unknown) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("Failed to update location:", error);
+      await logAction("location_update", "gmb_location", locationId, {
+        status: "failed",
+        reason: "database_error",
+        error_message: error.message,
+        user_id: user.id,
+      });
       return { success: false, error: error.message };
     }
+
+    await logAction("location_update", "gmb_location", locationId, {
+      status: "success",
+      changed_fields: Object.keys(validatedUpdates),
+      user_id: user.id,
+    });
 
     revalidatePath("/locations");
     revalidatePath("/dashboard");
@@ -202,9 +286,21 @@ export async function updateLocation(locationId: string, updates: unknown) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessage = error.errors.map((e) => e.message).join(", ");
+      await logAction("location_update", "gmb_location", locationId, {
+        status: "failed",
+        reason: "validation_error",
+        error_message: errorMessage,
+        user_id: user.id,
+      });
       return { success: false, error: `Validation error: ${errorMessage}` };
     }
-    console.error("Unexpected error:", error);
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    await logAction("location_update", "gmb_location", locationId, {
+      status: "failed",
+      reason: "unexpected_error",
+      error_message: errorMsg,
+      user_id: user.id,
+    });
     return { success: false, error: "Failed to update location" };
   }
 }
@@ -217,15 +313,23 @@ export async function deleteLocation(locationId: string) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      await logAction("location_delete", "gmb_location", locationId, {
+        status: "failed",
+        reason: "authentication_error",
+        error_message: authError?.message,
+      });
     }
     return { success: false, error: "Not authenticated" };
   }
 
   // Validate locationId
   if (!locationId || typeof locationId !== "string") {
+    await logAction("location_delete", "gmb_location", null, {
+      status: "failed",
+      reason: "invalid_location_id",
+      user_id: user.id,
+    });
     return { success: false, error: "Invalid location ID" };
   }
 
@@ -236,6 +340,12 @@ export async function deleteLocation(locationId: string) {
     locationId,
   );
   if (!connectionValidation.isValid) {
+    await logAction("location_delete", "gmb_location", locationId, {
+      status: "failed",
+      reason: "gmb_connection_invalid",
+      error_message: connectionValidation.error,
+      user_id: user.id,
+    });
     return { success: false, error: connectionValidation.error };
   }
 
@@ -250,9 +360,19 @@ export async function deleteLocation(locationId: string) {
     .eq("user_id", user.id);
 
   if (error) {
-    console.error("Failed to delete location:", error);
+    await logAction("location_delete", "gmb_location", locationId, {
+      status: "failed",
+      reason: "database_error",
+      error_message: error.message,
+      user_id: user.id,
+    });
     return { success: false, error: error.message };
   }
+
+  await logAction("location_delete", "gmb_location", locationId, {
+    status: "success",
+    user_id: user.id,
+  });
 
   revalidatePath("/locations");
   revalidatePath("/dashboard");
@@ -602,16 +722,18 @@ export async function getCompetitors({
     keywordList: normalizedKeywords,
   });
 
-  const competitors = filteredResults.slice(0, 10).map((result: any) => ({
-    placeId: result.place_id,
-    name: result.name,
-    rating: result.rating ?? null,
-    userRatingsTotal: result.user_ratings_total ?? 0,
-    address: result.vicinity ?? result.formatted_address ?? null,
-    location: result.geometry?.location ?? null,
-    businessStatus: result.business_status ?? null,
-    openNow: result.opening_hours?.open_now ?? null,
-  }));
+  const competitors = filteredResults
+    .slice(0, 10)
+    .map((result: GooglePlaceResult) => ({
+      placeId: result.place_id,
+      name: result.name,
+      rating: result.rating ?? null,
+      userRatingsTotal: result.user_ratings_total ?? 0,
+      address: result.vicinity ?? result.formatted_address ?? null,
+      location: result.geometry?.location ?? null,
+      businessStatus: result.business_status ?? null,
+      openNow: result.opening_hours?.open_now ?? null,
+    }));
 
   return { competitors };
 }
@@ -624,91 +746,7 @@ function calculateTrend(current: number, previous: number) {
   return Math.round(((current - previous) / Math.abs(previous)) * 100);
 }
 
-const CATEGORY_TYPE_MAP: Record<string, string> = {
-  night_club: "night_club",
-  nightclub: "night_club",
-  bar: "bar",
-  cocktail_bar: "bar",
-  lounge: "bar",
-  pub: "bar",
-  restaurant: "restaurant",
-  steak_house: "restaurant",
-  dining: "restaurant",
-  cafe: "cafe",
-  coffee_shop: "cafe",
-  coffee: "cafe",
-  hotel: "lodging",
-  lodging: "lodging",
-  resort: "lodging",
-  spa: "spa",
-  beauty_salon: "beauty_salon",
-  hair_salon: "beauty_salon",
-  nail_salon: "beauty_salon",
-  gym: "gym",
-  fitness_center: "gym",
-  shopping_mall: "shopping_mall",
-  mall: "shopping_mall",
-  store: "store",
-  retail: "store",
-  clothing_store: "clothing_store",
-  electronics_store: "electronics_store",
-  supermarket: "supermarket",
-  grocery: "supermarket",
-  pet_store: "pet_store",
-  veterinary_care: "veterinary_care",
-  dentist: "dentist",
-  doctor: "doctor",
-  clinic: "doctor",
-  hospital: "hospital",
-  pharmacy: "pharmacy",
-  lawyer: "lawyer",
-  law_firm: "lawyer",
-  real_estate_agency: "real_estate_agency",
-  real_estate: "real_estate_agency",
-  accounting: "accounting",
-  travel_agency: "travel_agency",
-  art_gallery: "art_gallery",
-  gallery: "art_gallery",
-  museum: "museum",
-  school: "school",
-  university: "university",
-};
-
-const TYPE_KEYWORDS: Array<{ type: string; keywords: string[] }> = [
-  { type: "night_club", keywords: ["night club", "club", "discotheque"] },
-  { type: "bar", keywords: ["bar", "pub", "lounge", "cocktail"] },
-  {
-    type: "restaurant",
-    keywords: ["restaurant", "dining", "eatery", "bistro", "steakhouse"],
-  },
-  { type: "cafe", keywords: ["cafe", "coffee shop", "coffee"] },
-  { type: "lodging", keywords: ["hotel", "lodging", "resort", "inn"] },
-  { type: "spa", keywords: ["spa"] },
-  {
-    type: "beauty_salon",
-    keywords: ["beauty salon", "salon", "hair salon", "nail salon"],
-  },
-  { type: "gym", keywords: ["gym", "fitness", "fitness center"] },
-  {
-    type: "shopping_mall",
-    keywords: ["shopping mall", "mall", "shopping center"],
-  },
-  { type: "store", keywords: ["store", "shop", "retail"] },
-  { type: "pet_store", keywords: ["pet store", "pet shop"] },
-  { type: "veterinary_care", keywords: ["vet", "veterinary"] },
-  { type: "dentist", keywords: ["dentist", "dental"] },
-  { type: "doctor", keywords: ["doctor", "clinic", "medical"] },
-  { type: "hospital", keywords: ["hospital"] },
-  { type: "pharmacy", keywords: ["pharmacy", "drugstore"] },
-  { type: "lawyer", keywords: ["lawyer", "law firm"] },
-  { type: "real_estate_agency", keywords: ["real estate", "property agent"] },
-  { type: "accounting", keywords: ["accounting", "accountant"] },
-  { type: "travel_agency", keywords: ["travel agency", "travel agent"] },
-  { type: "art_gallery", keywords: ["art gallery", "gallery"] },
-  { type: "museum", keywords: ["museum"] },
-  { type: "school", keywords: ["school", "academy"] },
-  { type: "university", keywords: ["university", "college"] },
-];
+// CATEGORY_TYPE_MAP and TYPE_KEYWORDS are now imported from @/lib/config/google-categories
 
 function derivePlacesType({
   categoryId,
@@ -718,7 +756,7 @@ function derivePlacesType({
   categoryId?: string | null;
   categoryName?: string | null;
   keywords?: string[];
-}): string | null {
+}): GooglePlacesType | null {
   const candidates: string[] = [];
 
   const normalizedCategoryId = normalizeToken(categoryId);
@@ -765,7 +803,7 @@ function normalizeToken(value?: string | null) {
 }
 
 function filterPlacesByRelevance(
-  results: any[],
+  results: GooglePlaceResult[],
   {
     type,
     keywordList,
@@ -773,7 +811,7 @@ function filterPlacesByRelevance(
     type?: string | null;
     keywordList: string[];
   },
-) {
+): GooglePlaceResult[] {
   const normalizedType = type?.toLowerCase() ?? null;
   const normalizedKeywords = keywordList.map((keyword) =>
     keyword.toLowerCase(),

@@ -462,11 +462,14 @@ export async function permanentlyDeleteArchivedData() {
       success: true,
       message: "All archived data has been permanently deleted",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting archived data:", error);
     return {
       success: false,
-      error: error.message || "Failed to delete archived data",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete archived data",
     };
   }
 }

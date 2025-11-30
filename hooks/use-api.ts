@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
 import { apiClient } from "@/lib/utils/api-client";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface UseApiOptions<T> {
@@ -104,10 +104,10 @@ export function useApiGet<T>(
 /**
  * Hook for POST requests
  */
-export function useApiPost<T, TData = Record<string, unknown>>(
-  url: string,
-  options: UseApiOptions<T> = {},
-) {
+export function useApiPost<
+  T,
+  TData extends Record<string, unknown> = Record<string, unknown>,
+>(url: string, options: UseApiOptions<T> = {}) {
   return useApi<T, [TData?]>(
     (data?: TData) => apiClient.post(url, data),
     options,
@@ -117,10 +117,10 @@ export function useApiPost<T, TData = Record<string, unknown>>(
 /**
  * Hook for PUT requests
  */
-export function useApiPut<T, TData = Record<string, unknown>>(
-  url: string,
-  options: UseApiOptions<T> = {},
-) {
+export function useApiPut<
+  T,
+  TData extends Record<string, unknown> = Record<string, unknown>,
+>(url: string, options: UseApiOptions<T> = {}) {
   return useApi<T, [TData?]>(
     (data?: TData) => apiClient.put(url, data),
     options,
@@ -130,10 +130,10 @@ export function useApiPut<T, TData = Record<string, unknown>>(
 /**
  * Hook for PATCH requests
  */
-export function useApiPatch<T, TData = Record<string, unknown>>(
-  url: string,
-  options: UseApiOptions<T> = {},
-) {
+export function useApiPatch<
+  T,
+  TData extends Record<string, unknown> = Record<string, unknown>,
+>(url: string, options: UseApiOptions<T> = {}) {
   return useApi<T, [TData?]>(
     (data?: TData) => apiClient.patch(url, data),
     options,

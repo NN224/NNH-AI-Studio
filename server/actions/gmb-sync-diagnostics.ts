@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export interface SyncDiagnostics {
   syncQueue: {
@@ -22,7 +22,7 @@ export interface SyncDiagnostics {
       phase: string;
       status: string;
       created_at: string;
-      counts?: any;
+      counts?: Record<string, number>;
       error?: string;
     }[];
   };
@@ -43,13 +43,22 @@ export interface SyncDiagnostics {
   };
 }
 
+interface GmbAccountDebug {
+  id: string;
+  user_id: string;
+  account_name: string;
+  is_active: boolean;
+  last_sync: string | null;
+  last_error: string | null;
+}
+
 export async function getGmbSyncDiagnostics(): Promise<{
   success: boolean;
   data?: SyncDiagnostics;
   error?: string;
   debug?: {
     userId: string;
-    allAccounts: any[];
+    allAccounts: GmbAccountDebug[];
   };
 }> {
   try {

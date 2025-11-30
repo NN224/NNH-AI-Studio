@@ -213,11 +213,30 @@ export async function getMonthlyStats(context?: MonthlyStatsContext) {
 // 2. Cached Dashboard Data (Main Home Logic)
 // ==========================================
 
+interface CachedDashboardData {
+  locationsCount: number;
+  reviewsCount: number;
+  accountsCount: number;
+  repliedReviewsCount: number;
+  responseRate: number;
+  averageRating: string;
+  weeklyGrowth: number;
+  recentReviews: Array<{
+    review_id: string;
+    comment: string | null;
+    star_rating: number;
+    create_time: string | null;
+    reviewer_name: string | null;
+    location_name: string | null;
+  }>;
+  hasAccounts: boolean;
+}
+
 export async function getCachedDashboardData(userId: string) {
   const cacheKey = `${userId}:home-dashboard`;
 
   // Try cache first
-  const cached = await getCacheValue<any>(
+  const cached = await getCacheValue<CachedDashboardData>(
     CacheBucket.DASHBOARD_OVERVIEW,
     cacheKey,
   );
@@ -274,20 +293,32 @@ export async function getCachedDashboardData(userId: string) {
       .limit(5);
 
     // Transform for UI
-    const formattedRecentReviews = (recentReviews || []).map((r: any) => {
-      // Supabase join can return an object or an array depending on relation typing
-      const loc = Array.isArray(r.gmb_locations)
-        ? r.gmb_locations[0]
-        : r.gmb_locations;
-      return {
-        review_id: r.review_id,
-        comment: r.review_text, // Map to UI expectation
-        star_rating: r.rating,
-        create_time: r.review_date,
-        reviewer_name: r.reviewer_name,
-        location_name: loc?.location_name ?? null,
-      };
-    });
+    interface RecentReviewRow {
+      review_id: string;
+      reviewer_name: string | null;
+      rating: number;
+      review_text: string | null;
+      review_date: string | null;
+      gmb_locations:
+        | { location_name: string }
+        | Array<{ location_name: string }>;
+    }
+    const formattedRecentReviews = (recentReviews || []).map(
+      (r: RecentReviewRow) => {
+        // Supabase join can return an object or an array depending on relation typing
+        const loc = Array.isArray(r.gmb_locations)
+          ? r.gmb_locations[0]
+          : r.gmb_locations;
+        return {
+          review_id: r.review_id,
+          comment: r.review_text, // Map to UI expectation
+          star_rating: r.rating,
+          create_time: r.review_date,
+          reviewer_name: r.reviewer_name,
+          location_name: loc?.location_name ?? null,
+        };
+      },
+    );
 
     // 3. Calculate Response Rate & Rating
     const responseRate =
@@ -308,8 +339,7 @@ export async function getCachedDashboardData(userId: string) {
     }
 
     // 4. Calculate Trends (Simple Weekly Growth)
-    const today = new Date();
-    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const { count: thisWeekReviews } = await supabase
       .from("gmb_reviews")

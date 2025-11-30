@@ -293,6 +293,7 @@ interface ReviewRecord {
   has_reply: boolean;
   reply_text: string | null;
   status: string | null;
+  reviewer_name: string | null;
 }
 
 // Get base URL - use utility function that handles production/development
@@ -421,7 +422,7 @@ async function generateReviewReply(
           reviewText: review.review_text || "",
           rating: review.rating,
           locationName,
-          customerName: (review as any).reviewer_name || undefined,
+          customerName: review.reviewer_name || undefined,
         };
 
         const result = await generateAIReviewReply(context, settings, userId);
