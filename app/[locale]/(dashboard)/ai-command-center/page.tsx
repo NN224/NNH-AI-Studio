@@ -1,25 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
 import { AIHeroChat } from "@/components/ai-command-center/ai/ai-hero-chat";
-import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
 import { ManagementSectionsGrid } from "@/components/ai-command-center/management/management-sections-grid";
-import { useTranslations } from "next-intl";
-import {
-  Sparkles,
-  RefreshCw,
-  AlertCircle,
-  ArrowLeft,
-  Activity,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import {
-  useAICommandCenterData,
-  useAIChat,
-  useAIActions,
-} from "@/hooks/use-ai-command-center";
+import { UrgentItemsFeed } from "@/components/ai-command-center/urgent/urgent-items-feed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  useAIActions,
+  useAIChat,
+  useAICommandCenterData,
+} from "@/hooks/use-ai-command-center";
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AICommandCenterPage() {
   const t = useTranslations("aiCommandCenter");
@@ -47,9 +47,22 @@ export default function AICommandCenterPage() {
   const handleAIMessage = async (message: string): Promise<string> => {
     try {
       const response = await sendMessage(message);
-      return response;
+
+      // Handle structured response object from updated hook
+      if (typeof response === "object" && response !== null) {
+        if (response.type === "error") {
+          // Return error message as string for UI display
+          throw new Error(response.message || "An error occurred");
+        }
+        // Extract message from success response
+        return response.message || "I'm here to help!";
+      }
+
+      // Fallback for unexpected response format
+      return String(response);
     } catch (error) {
       console.error("AI chat error:", error);
+      // Re-throw to let the UI component handle the error display
       throw error;
     }
   };
