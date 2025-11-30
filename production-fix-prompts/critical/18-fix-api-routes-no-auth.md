@@ -57,12 +57,12 @@ export async function GET(request: Request) {
 
 ## خطوات التنفيذ
 
-1. [ ] إضافة auth check لـ `ai/generate-response/route.ts`
-2. [ ] إضافة auth check لـ `locations/[id]/stats/route.ts`
-3. [ ] إضافة auth check لـ `locations/competitors/route.ts`
-4. [ ] إضافة auth check لـ `email/sendgrid/route.ts`
-5. [ ] إضافة auth check لـ `monitoring/audit/log/route.ts`
-6. [ ] اختبار كل route بعد الإصلاح
+1. [x] إضافة auth check لـ `ai/generate-response/route.ts` ✅ (withAIProtection)
+2. [x] إضافة auth check لـ `locations/[id]/stats/route.ts` ✅
+3. [x] إضافة auth check لـ `locations/competitors/route.ts` ✅
+4. [x] إضافة auth check لـ `email/sendgrid/route.ts` ✅
+5. [x] إضافة auth check لـ `monitoring/audit/log/route.ts` ✅
+6. [x] اختبار كل route بعد الإصلاح ✅
 
 ## الاختبار
 

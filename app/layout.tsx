@@ -1,8 +1,8 @@
-import type React from "react";
-import type { Metadata } from "next";
-import "./globals.css";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata } from "next";
+import type React from "react";
+import "./globals.css";
 
 const getBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
@@ -36,8 +36,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className="dark" lang="en">
-      <body className="min-h-screen bg-background font-sans antialiased">
+    <html className="dark" lang="en" suppressHydrationWarning>
+      <body
+        className="min-h-screen bg-background font-sans antialiased"
+        suppressHydrationWarning
+      >
         {children}
         <SpeedInsights />
         <Analytics />
