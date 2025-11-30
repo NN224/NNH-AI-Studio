@@ -19,8 +19,10 @@ export interface SentryInitOptions {
 export function validateSentryDSN(dsn: string | undefined): boolean {
   if (!dsn) return false;
 
-  // Basic DSN format validation: https://[key]@[host]/[project]
-  const dsnPattern = /^https?:\/\/[a-zA-Z0-9]+@[a-zA-Z0-9.-]+\/\d+$/;
+  // DSN format: https://[key]@[org].ingest.[region].sentry.io/[project]
+  // Example: https://9a3cb2fa0f51f9ba85148dc674bea2a6@o4510397720690688.ingest.de.sentry.io/4510397724033104
+  const dsnPattern =
+    /^https?:\/\/[a-f0-9]+@[a-z0-9]+\.ingest(\.[a-z]+)?\.sentry\.io\/\d+$/;
   return dsnPattern.test(dsn);
 }
 
