@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { logServerActivity } from "@/server/services/activity";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +19,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent(error)}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent(error)}`,
       );
     }
     if (!code || !state) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Missing code/state")}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Missing code/state")}`,
       );
     }
 
@@ -39,18 +39,21 @@ export async function GET(req: NextRequest) {
 
     if (stateErr || !stateRecord) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Invalid or expired state")}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Invalid or expired state")}`,
       );
     }
 
     const exp = new Date(stateRecord.expires_at);
     if (exp < new Date()) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("State expired")}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("State expired")}`,
       );
     }
 
-    await supabase.from("oauth_states").update({ used: true }).eq("state", state);
+    await supabase
+      .from("oauth_states")
+      .update({ used: true })
+      .eq("state", state);
 
     const clientId = process.env.YT_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
     const clientSecret =
@@ -61,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId || !clientSecret || !redirectUri) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Server config error")}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Server config error")}`,
       );
     }
 
@@ -81,8 +84,10 @@ export async function GET(req: NextRequest) {
     if (!tokenRes.ok) {
       return NextResponse.redirect(
         `${baseUrl}/youtube-dashboard#error=${encodeURIComponent(
-          tokenData.error_description || tokenData.error || "Token exchange failed"
-        )}`
+          tokenData.error_description ||
+            tokenData.error ||
+            "Token exchange failed",
+        )}`,
       );
     }
 
@@ -101,40 +106,40 @@ export async function GET(req: NextRequest) {
           Authorization: `Bearer ${tokenData.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
     const channelJson = await channelRes.json().catch(() => ({}));
-    const channel = Array.isArray(channelJson?.items) ? channelJson.items[0] : null;
+    const channel = Array.isArray(channelJson?.items)
+      ? channelJson.items[0]
+      : null;
 
     const admin = createAdminClient();
     const now = new Date();
     const expiresAt = new Date(
-      now.getTime() + (tokenData.expires_in || 3600) * 1000
+      now.getTime() + (tokenData.expires_in || 3600) * 1000,
     ).toISOString();
 
-    const { error: upErr } = await admin
-      .from("oauth_tokens")
-      .upsert(
-        {
-          user_id: stateRecord.user_id,
-          provider: "youtube",
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token || null,
-          token_expires_at: expiresAt,
-          account_id: channel?.id || null,
-          metadata: {
-            email: userinfo?.email || null,
-            channel_title: channel?.snippet?.title || null,
-            statistics: channel?.statistics || null,
-          },
-          updated_at: new Date().toISOString(),
+    const { error: upErr } = await admin.from("oauth_tokens").upsert(
+      {
+        user_id: stateRecord.user_id,
+        provider: "youtube",
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token || null,
+        token_expires_at: expiresAt,
+        account_id: channel?.id || null,
+        metadata: {
+          email: userinfo?.email || null,
+          channel_title: channel?.snippet?.title || null,
+          statistics: channel?.statistics || null,
         },
-        { onConflict: "user_id,provider" }
-      );
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,provider" },
+    );
 
     if (upErr) {
       return NextResponse.redirect(
-        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Failed to save tokens")}`
+        `${baseUrl}/youtube-dashboard#error=${encodeURIComponent("Failed to save tokens")}`,
       );
     }
 
@@ -150,15 +155,15 @@ export async function GET(req: NextRequest) {
           email: userinfo?.email || null,
         },
       });
-    } catch {}
+    } catch {
+      // Logging failure should not break the main flow
+    }
 
     return NextResponse.redirect(`${baseUrl}/youtube-dashboard#success=true`);
   } catch (e: any) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://nnh.ae";
     return NextResponse.redirect(
-      `${baseUrl}/youtube-dashboard#error=${encodeURIComponent(
-        e.message || "Unexpected error"
-      )}`
+      `${baseUrl}/youtube-dashboard#error=${encodeURIComponent(e.message || "Unexpected error")}`,
     );
   }
 }

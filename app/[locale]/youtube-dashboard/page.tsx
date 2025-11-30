@@ -356,7 +356,9 @@ function YoutubeDashboardContent() {
     let j: any = {};
     try {
       j = JSON.parse(t);
-    } catch {}
+    } catch {
+      // Intentionally empty - response may not be JSON
+    }
     if (!r.ok)
       throw new Error(j.error || t.slice(0, 300) || `GET ${url} failed`);
     return j;
@@ -375,7 +377,9 @@ function YoutubeDashboardContent() {
     let j: any = {};
     try {
       j = JSON.parse(t);
-    } catch {}
+    } catch {
+      // Intentionally empty - response may not be JSON
+    }
     if (!r.ok)
       throw new Error(j.error || t.slice(0, 300) || `POST ${url} failed`);
     return j;
@@ -390,7 +394,9 @@ function YoutubeDashboardContent() {
     let j: any = {};
     try {
       j = JSON.parse(t);
-    } catch {}
+    } catch {
+      // Intentionally empty - response may not be JSON
+    }
     if (!r.ok)
       throw new Error(j.error || t.slice(0, 300) || `DELETE ${url} failed`);
     return j;
