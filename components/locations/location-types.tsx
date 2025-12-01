@@ -44,6 +44,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { gmbLogger } from "@/lib/utils/logger";
 
 // Types for location data
 export interface Location {
@@ -557,7 +558,7 @@ export function formatSafeDate(dateValue: Date | string | null): string {
 
     return date.toLocaleTimeString();
   } catch (error) {
-    console.warn("Date formatting error:", error);
+    gmbLogger.warn("Date formatting error", { dateValue });
     return "Invalid date";
   }
 }
@@ -575,7 +576,7 @@ export function formatSafeDatetime(dateValue: Date | string | null): string {
 
     return date.toLocaleString();
   } catch (error) {
-    console.warn("Datetime formatting error:", error);
+    gmbLogger.warn("Datetime formatting error", { dateValue });
     return "Invalid date";
   }
 }

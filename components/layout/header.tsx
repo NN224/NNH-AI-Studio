@@ -41,6 +41,7 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { authLogger } from "@/lib/utils/logger";
 
 interface UserProfileData {
   name: string | null;
@@ -106,7 +107,7 @@ export function Header({
   // Sign out handler
   const handleSignOut = async () => {
     if (!supabase) {
-      console.warn("Supabase client not initialized");
+      authLogger.warn("Supabase client not initialized", { userId });
       return;
     }
     await supabase.auth.signOut();

@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Bot, Zap, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { aiLogger } from "@/lib/utils/logger";
 
 export type AIProvider = "openai" | "anthropic" | "groq" | "deepseek";
 
@@ -211,7 +212,12 @@ export function useAIProvider() {
           setProvider(available[0]);
         }
       })
-      .catch(console.error);
+      .catch((error) =>
+        aiLogger.error(
+          "Failed to fetch available providers",
+          error instanceof Error ? error : new Error(String(error)),
+        ),
+      );
   }, []);
 
   return { provider, setProvider, availableProviders };

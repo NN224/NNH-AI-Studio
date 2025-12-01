@@ -1,100 +1,116 @@
-"use client"
+"use client";
 
-import { useState, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Upload, Loader2, Camera, Image as ImageIcon } from 'lucide-react'
-import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Upload, Loader2, Camera, Image as ImageIcon } from "lucide-react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationMediaUploadProps {
-  locationId: string
-  currentLogo?: string | null
-  currentCover?: string | null
-  onUploadSuccess?: () => void
+  locationId: string;
+  currentLogo?: string | null;
+  currentCover?: string | null;
+  onUploadSuccess?: () => void;
 }
 
-export function LocationMediaUpload({ 
-  locationId, 
-  currentLogo, 
+export function LocationMediaUpload({
+  locationId,
+  currentLogo,
   currentCover,
-  onUploadSuccess 
+  onUploadSuccess,
 }: LocationMediaUploadProps) {
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const coverInputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
-  const handleUpload = async (file: File, type: 'logo' | 'cover') => {
-    if (!file) return
+  const handleUpload = async (file: File, type: "logo" | "cover") => {
+    if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file')
-      return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB')
-      return
+      toast.error("Image size must be less than 5MB");
+      return;
     }
 
-    const setUploading = type === 'logo' ? setUploadingLogo : setUploadingCover
-    setUploading(true)
+    const setUploading = type === "logo" ? setUploadingLogo : setUploadingCover;
+    setUploading(true);
 
     try {
       // Get user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
-        throw new Error('Not authenticated')
+        throw new Error("Not authenticated");
       }
 
       // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/${locationId}/${type}_${Date.now()}.${fileExt}`
-      
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${locationId}/${type}_${Date.now()}.${fileExt}`;
+
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('location-media')
-        .upload(fileName, file)
+        .from("location-media")
+        .upload(fileName, file);
 
       if (uploadError) {
-        throw uploadError
+        throw uploadError;
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('location-media')
-        .getPublicUrl(fileName)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("location-media").getPublicUrl(fileName);
 
       // Update location with new URL
-      const updateData = type === 'logo' 
-        ? { logo_url: publicUrl }
-        : { cover_photo_url: publicUrl }
+      const updateData =
+        type === "logo"
+          ? { logo_url: publicUrl }
+          : { cover_photo_url: publicUrl };
 
       const { error: updateError } = await supabase
-        .from('gmb_locations')
+        .from("gmb_locations")
         .update(updateData)
-        .eq('id', locationId)
+        .eq("id", locationId);
 
       if (updateError) {
-        throw updateError
+        throw updateError;
       }
 
-      toast.success(`${type === 'logo' ? 'Logo' : 'Cover photo'} uploaded successfully`)
-      onUploadSuccess?.()
-
+      toast.success(
+        `${type === "logo" ? "Logo" : "Cover photo"} uploaded successfully`,
+      );
+      onUploadSuccess?.();
     } catch (error: any) {
-      console.error('Upload error:', error)
-      toast.error(error.message || 'Failed to upload image')
+      gmbLogger.error(
+        "Upload error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId, type },
+      );
+      toast.error(error.message || "Failed to upload image");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   return (
     <Card className="border-primary/20">
@@ -117,9 +133,9 @@ export function LocationMediaUpload({
             <div className="flex items-center gap-4">
               {currentLogo && (
                 <div className="w-16 h-16 rounded-lg overflow-hidden border">
-                  <img 
-                    src={currentLogo} 
-                    alt="Current logo" 
+                  <img
+                    src={currentLogo}
+                    alt="Current logo"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -130,8 +146,8 @@ export function LocationMediaUpload({
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleUpload(file, 'logo')
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file, "logo");
                 }}
               />
               <Button
@@ -145,7 +161,7 @@ export function LocationMediaUpload({
                 ) : (
                   <Camera className="h-4 w-4 mr-2" />
                 )}
-                {currentLogo ? 'Change Logo' : 'Upload Logo'}
+                {currentLogo ? "Change Logo" : "Upload Logo"}
               </Button>
             </div>
           </div>
@@ -163,9 +179,9 @@ export function LocationMediaUpload({
             <div className="flex items-center gap-4">
               {currentCover && (
                 <div className="w-24 h-14 rounded-lg overflow-hidden border">
-                  <img 
-                    src={currentCover} 
-                    alt="Current cover" 
+                  <img
+                    src={currentCover}
+                    alt="Current cover"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -176,8 +192,8 @@ export function LocationMediaUpload({
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleUpload(file, 'cover')
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file, "cover");
                 }}
               />
               <Button
@@ -191,7 +207,7 @@ export function LocationMediaUpload({
                 ) : (
                   <ImageIcon className="h-4 w-4 mr-2" />
                 )}
-                {currentCover ? 'Change Cover' : 'Upload Cover'}
+                {currentCover ? "Change Cover" : "Upload Cover"}
               </Button>
             </div>
           </div>
@@ -200,10 +216,11 @@ export function LocationMediaUpload({
         {/* Info */}
         <div className="rounded-lg bg-muted/50 p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> Uploaded images are stored locally and can be synced with Google My Business later.
+            <strong>Note:</strong> Uploaded images are stored locally and can be
+            synced with Google My Business later.
           </p>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

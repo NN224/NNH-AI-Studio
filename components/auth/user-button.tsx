@@ -15,6 +15,7 @@ import { LogOut, Settings, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { authLogger } from "@/lib/utils/logger";
 
 export function UserButton() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -51,7 +52,11 @@ export function UserButton() {
       router.push("/auth/login");
       router.refresh();
     } catch (error) {
-      console.error("Sign out error:", error);
+      authLogger.error(
+        "Sign out error",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId: user.id },
+      );
       toast.error("Failed to sign out");
     }
   };

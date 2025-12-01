@@ -1,40 +1,52 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Tags, Loader2, Settings, MapPin } from "lucide-react"
-import { toast } from "sonner"
-import { LocationAttributesDialog } from "@/components/locations/location-attributes-dialog"
-import type { GMBLocation } from "@/lib/types/database"
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Tags, Loader2, Settings, MapPin } from "lucide-react";
+import { toast } from "sonner";
+import { LocationAttributesDialog } from "@/components/locations/location-attributes-dialog";
+import type { GMBLocation } from "@/lib/types/database";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export function AttributesManager() {
-  const [locations, setLocations] = useState<GMBLocation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(null)
-  const [attributesDialogOpen, setAttributesDialogOpen] = useState(false)
-  const supabase = createClient()
+  const [locations, setLocations] = useState<GMBLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<GMBLocation | null>(
+    null,
+  );
+  const [attributesDialogOpen, setAttributesDialogOpen] = useState(false);
+  const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
   useEffect(() => {
-    fetchLocations()
-  }, [])
+    fetchLocations();
+  }, []);
 
   const fetchLocations = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
-        setError("Unauthorized")
-        setLoading(false)
-        return
+        setError("Unauthorized");
+        setLoading(false);
+        return;
       }
 
       // First get active GMB account IDs
@@ -42,19 +54,24 @@ export function AttributesManager() {
         .from("gmb_accounts")
         .select("id")
         .eq("user_id", user.id)
-        .eq("is_active", true)
+        .eq("is_active", true);
 
       if (accountsError) {
-        console.error("Error fetching active accounts:", accountsError)
-        throw accountsError
+        gmbLogger.error(
+          "Error fetching active accounts",
+          accountsError instanceof Error
+            ? accountsError
+            : new Error(String(accountsError)),
+        );
+        throw accountsError;
       }
 
-      const activeAccountIds = activeAccounts?.map(acc => acc.id) || []
+      const activeAccountIds = activeAccounts?.map((acc) => acc.id) || [];
 
       if (activeAccountIds.length === 0) {
-        setLocations([])
-        setLoading(false)
-        return
+        setLocations([]);
+        setLoading(false);
+        return;
       }
 
       // Only fetch locations from active accounts
@@ -63,32 +80,35 @@ export function AttributesManager() {
         .select("*")
         .eq("user_id", user.id)
         .in("gmb_account_id", activeAccountIds)
-        .order("location_name", { ascending: true })
+        .order("location_name", { ascending: true });
 
-      if (locationsError) throw locationsError
-      setLocations(data || [])
+      if (locationsError) throw locationsError;
+      setLocations(data || []);
     } catch (err: any) {
-      console.error("Error fetching locations:", err)
-      const errorMessage = err.message || "Failed to fetch locations"
-      setError(errorMessage)
-      setLocations([]) // Set empty array on error
-      toast.error(errorMessage)
+      gmbLogger.error(
+        "Error fetching locations",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      const errorMessage = err.message || "Failed to fetch locations";
+      setError(errorMessage);
+      setLocations([]); // Set empty array on error
+      toast.error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleManageAttributes = (location: GMBLocation) => {
-    setSelectedLocation(location)
-    setAttributesDialogOpen(true)
-  }
+    setSelectedLocation(location);
+    setAttributesDialogOpen(true);
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -102,14 +122,16 @@ export function AttributesManager() {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Location Attributes</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Location Attributes
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Manage attributes for all your business locations
           </p>
@@ -124,14 +146,18 @@ export function AttributesManager() {
               No Locations Found
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Connect your Google My Business account to start managing location attributes.
+              Connect your Google My Business account to start managing location
+              attributes.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {locations.map((location) => (
-            <Card key={location.id} className="bg-card border-primary/30 hover:border-primary/50 transition-colors">
+            <Card
+              key={location.id}
+              className="bg-card border-primary/30 hover:border-primary/50 transition-colors"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -179,18 +205,17 @@ export function AttributesManager() {
           location={selectedLocation}
           open={attributesDialogOpen}
           onOpenChange={(open) => {
-            setAttributesDialogOpen(open)
+            setAttributesDialogOpen(open);
             if (!open) {
-              setSelectedLocation(null)
+              setSelectedLocation(null);
             }
           }}
           onSuccess={() => {
-            fetchLocations()
-            toast.success("Attributes updated successfully")
+            fetchLocations();
+            toast.success("Attributes updated successfully");
           }}
         />
       )}
     </div>
-  )
+  );
 }
-

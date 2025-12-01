@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
+import { aiLogger } from "@/lib/utils/logger";
 
 export function LiveDemoSection() {
   const t = useTranslations("landing.liveDemo");
@@ -45,7 +46,10 @@ export function LiveDemoSection() {
         );
       }
     } catch (error) {
-      console.error("Error generating response:", error);
+      aiLogger.error(
+        "Error generating response",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       setAiResponse(
         "Thank you for your feedback. We appreciate you taking the time to share your experience with us.",
       );

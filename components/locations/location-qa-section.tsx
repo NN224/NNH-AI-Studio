@@ -1,38 +1,48 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Loader2, HelpCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, Send, Loader2, HelpCircle } from "lucide-react";
+import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationQASectionProps {
   locationId: string;
   locationName: string;
 }
 
-export function LocationQASection({ locationId, locationName }: LocationQASectionProps) {
+export function LocationQASection({
+  locationId,
+  locationName,
+}: LocationQASectionProps) {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
-  const [answerText, setAnswerText] = useState('');
+  const [answerText, setAnswerText] = useState("");
   const [answering, setAnswering] = useState(false);
 
   React.useEffect(() => {
     const fetchQuestions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/gmb/questions?locationId=${locationId}`);
+        const response = await fetch(
+          `/api/gmb/questions?locationId=${locationId}`,
+        );
         const data = await response.json();
-        
+
         if (response.ok && data.questions) {
           setQuestions(data.questions);
         }
       } catch (error) {
-        console.error('Error fetching questions:', error);
-        toast.error('Failed to load questions');
+        gmbLogger.error(
+          "Error fetching questions",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId },
+        );
+        toast.error("Failed to load questions");
       } finally {
         setLoading(false);
       }
@@ -43,35 +53,41 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
 
   const handleAnswer = async (questionId: string) => {
     if (!answerText.trim()) {
-      toast.error('Please enter an answer');
+      toast.error("Please enter an answer");
       return;
     }
 
     try {
       setAnswering(true);
       const response = await fetch(`/api/gmb/questions/${questionId}/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answer: answerText }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send answer');
+        throw new Error("Failed to send answer");
       }
 
-      toast.success('Answer posted successfully!');
+      toast.success("Answer posted successfully!");
       setSelectedQuestion(null);
-      setAnswerText('');
-      
+      setAnswerText("");
+
       // Refresh questions
-      const refreshResponse = await fetch(`/api/gmb/questions?locationId=${locationId}`);
+      const refreshResponse = await fetch(
+        `/api/gmb/questions?locationId=${locationId}`,
+      );
       const refreshData = await refreshResponse.json();
       if (refreshResponse.ok && refreshData.questions) {
         setQuestions(refreshData.questions);
       }
     } catch (error) {
-      console.error('Answer error:', error);
-      toast.error('Failed to post answer');
+      gmbLogger.error(
+        "Answer error",
+        error instanceof Error ? error : new Error(String(error)),
+        { questionId, locationId },
+      );
+      toast.error("Failed to post answer");
     } finally {
       setAnswering(false);
     }
@@ -79,10 +95,10 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -108,7 +124,9 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Questions</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Questions
+            </CardTitle>
             <MessageCircle className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -122,7 +140,9 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
             <HelpCircle className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{unansweredQuestions.length}</div>
+            <div className="text-2xl font-bold">
+              {unansweredQuestions.length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -132,7 +152,9 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Unanswered Questions ({unansweredQuestions.length})</CardTitle>
+              <CardTitle>
+                Unanswered Questions ({unansweredQuestions.length})
+              </CardTitle>
               <Badge variant="destructive">Action Required</Badge>
             </div>
           </CardHeader>
@@ -147,10 +169,12 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-medium">
-                          {question.author?.displayName || 'Anonymous'}
+                          {question.author?.displayName || "Anonymous"}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(question.createTime || question.created_at)}
+                          {formatDate(
+                            question.createTime || question.created_at,
+                          )}
                         </span>
                       </div>
                       <p className="text-sm text-foreground">{question.text}</p>
@@ -189,7 +213,7 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
                           size="sm"
                           onClick={() => {
                             setSelectedQuestion(null);
-                            setAnswerText('');
+                            setAnswerText("");
                           }}
                         >
                           Cancel
@@ -218,7 +242,9 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
       {answeredQuestions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Answered Questions ({answeredQuestions.length})</CardTitle>
+            <CardTitle>
+              Answered Questions ({answeredQuestions.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -230,7 +256,7 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
                   <div className="mb-3">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm font-medium">
-                        {question.author?.displayName || 'Anonymous'}
+                        {question.author?.displayName || "Anonymous"}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {formatDate(question.createTime || question.created_at)}
@@ -243,7 +269,9 @@ export function LocationQASection({ locationId, locationName }: LocationQASectio
                   {question.topAnswer && (
                     <div className="mt-3 p-3 rounded-lg bg-muted">
                       <p className="text-xs font-medium mb-1">Your Answer:</p>
-                      <p className="text-sm text-muted-foreground">{question.topAnswer.text}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {question.topAnswer.text}
+                      </p>
                       {question.topAnswer.updateTime && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Answered {formatDate(question.topAnswer.updateTime)}

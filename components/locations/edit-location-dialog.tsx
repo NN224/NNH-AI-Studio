@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { GMBLocation } from "@/lib/types/database";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface EditLocationDialogProps {
   location: GMBLocation | null;
@@ -217,7 +218,11 @@ export function EditLocationDialog({
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error updating location:", error);
+      gmbLogger.error(
+        "Error updating location",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.id, activeTab },
+      );
       toast.error(error.message || "Failed to update location");
     } finally {
       setLoading(false);

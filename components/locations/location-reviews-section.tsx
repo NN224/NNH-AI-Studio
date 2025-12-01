@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { formatLargeNumber } from "@/components/locations/location-types";
 import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationReviewsSectionProps {
   locationId: string;
@@ -81,7 +82,11 @@ export function LocationReviewsSection({
       setReplyText("");
       refetch();
     } catch (error) {
-      console.error("Reply error:", error);
+      gmbLogger.error(
+        "Reply error",
+        error instanceof Error ? error : new Error(String(error)),
+        { reviewId, locationId },
+      );
       toast.error("Failed to send reply");
     } finally {
       setReplying(false);

@@ -27,6 +27,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { useEffect } from "react";
+import { logger } from "@/lib/utils/logger";
 
 interface HealthStatus {
   service: string;
@@ -90,7 +91,10 @@ export function MonitoringDashboard() {
         setHealthStatus(statuses);
       }
     } catch (error) {
-      console.error("Failed to fetch health status:", error);
+      logger.error(
+        "Failed to fetch health status",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
@@ -103,7 +107,10 @@ export function MonitoringDashboard() {
         setAlerts(data.alerts || []);
       }
     } catch (error) {
-      console.error("Failed to fetch alerts:", error);
+      logger.error(
+        "Failed to fetch alerts",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
@@ -116,7 +123,10 @@ export function MonitoringDashboard() {
         setMetrics(data.metrics || []);
       }
     } catch (error) {
-      console.error("Failed to fetch metrics:", error);
+      logger.error(
+        "Failed to fetch metrics",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
@@ -157,7 +167,11 @@ export function MonitoringDashboard() {
         await fetchAlerts();
       }
     } catch (error) {
-      console.error("Failed to acknowledge alert:", error);
+      logger.error(
+        "Failed to acknowledge alert",
+        error instanceof Error ? error : new Error(String(error)),
+        { alertId },
+      );
     }
   };
 

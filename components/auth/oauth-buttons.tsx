@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { authService } from '@/lib/services/auth-service';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import type { Provider } from '@supabase/supabase-js';
+import { Button } from "@/components/ui/button";
+import { authService } from "@/lib/services/auth-service";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { Provider } from "@supabase/supabase-js";
+import { authLogger } from "@/lib/utils/logger";
 
 interface OAuthButtonsProps {
-  mode?: 'signin' | 'signup';
+  mode?: "signin" | "signup";
 }
 
-export function OAuthButtons({ mode = 'signin' }: OAuthButtonsProps) {
+export function OAuthButtons({ mode = "signin" }: OAuthButtonsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
 
@@ -20,9 +21,13 @@ export function OAuthButtons({ mode = 'signin' }: OAuthButtonsProps) {
       setLoadingProvider(provider);
       await authService.signInWithOAuth(provider);
     } catch (error) {
-      console.error('OAuth error:', error);
+      authLogger.error(
+        "OAuth error",
+        error instanceof Error ? error : new Error(String(error)),
+        { provider },
+      );
       toast.error(
-        error instanceof Error ? error.message : 'Failed to sign in with OAuth'
+        error instanceof Error ? error.message : "Failed to sign in with OAuth",
       );
     } finally {
       setIsLoading(false);
@@ -30,7 +35,7 @@ export function OAuthButtons({ mode = 'signin' }: OAuthButtonsProps) {
     }
   };
 
-  const actionText = mode === 'signin' ? 'Sign in' : 'Sign up';
+  const actionText = mode === "signin" ? "Sign in" : "Sign up";
 
   return (
     <div className="space-y-3">
@@ -38,10 +43,10 @@ export function OAuthButtons({ mode = 'signin' }: OAuthButtonsProps) {
         type="button"
         variant="outline"
         className="w-full"
-        onClick={() => handleOAuthSignIn('google')}
+        onClick={() => handleOAuthSignIn("google")}
         disabled={isLoading}
       >
-        {loadingProvider === 'google' ? (
+        {loadingProvider === "google" ? (
           <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         ) : (
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -68,4 +73,3 @@ export function OAuthButtons({ mode = 'signin' }: OAuthButtonsProps) {
     </div>
   );
 }
-

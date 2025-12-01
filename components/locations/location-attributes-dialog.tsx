@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface AttributeValueMeta {
   value: string | boolean | number;
@@ -262,7 +263,11 @@ export function LocationAttributesDialog({
       // Check if profile is locked (can be stored in metadata or settings)
       setIsLocked(metadata.profileLocked === true);
     } catch (error) {
-      console.error("Error fetching lock status:", error);
+      gmbLogger.error(
+        "Error fetching lock status",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.id },
+      );
     }
   };
 
@@ -324,7 +329,10 @@ export function LocationAttributesDialog({
       throw new Error("Failed to fetch attributes");
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error("Error fetching available attributes:", err);
+      gmbLogger.error("Error fetching available attributes", err, {
+        locationId: location.id,
+        category: location.category,
+      });
       toast.error(err.message || "Failed to load available attributes");
     } finally {
       setLoadingAttributes(false);
@@ -357,7 +365,11 @@ export function LocationAttributesDialog({
       });
       setAttributeValues(values);
     } catch (error: unknown) {
-      console.error("Error fetching current attributes:", error);
+      gmbLogger.error(
+        "Error fetching current attributes",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.id },
+      );
     }
   };
 
@@ -410,7 +422,11 @@ export function LocationAttributesDialog({
         `Profile ${!isLocked ? "locked" : "unlocked"} successfully`,
       );
     } catch (error: unknown) {
-      console.error("Error toggling lock:", error);
+      gmbLogger.error(
+        "Error toggling lock",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.id },
+      );
       toast.error("Failed to update lock status");
     }
   };
@@ -468,7 +484,9 @@ export function LocationAttributesDialog({
       onOpenChange(false);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error("Error updating attributes:", err);
+      gmbLogger.error("Error updating attributes", err, {
+        locationId: location.id,
+      });
       toast.error(err.message || "Failed to update attributes");
     } finally {
       setLoading(false);

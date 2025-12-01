@@ -1,39 +1,45 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Search, TrendingUp } from "lucide-react"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Search, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface SearchKeyword {
-  search_keyword: string
-  impressions_count: number
-  month_year: string
+  search_keyword: string;
+  impressions_count: number;
+  month_year: string;
 }
 
 interface SearchKeywordsProps {
-  dateRange?: { preset?: string; from: Date; to: Date }
-  locationIds?: string[]
+  dateRange?: { preset?: string; from: Date; to: Date };
+  locationIds?: string[];
 }
 
-export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps = {}) {
-  const [keywords, setKeywords] = useState<SearchKeyword[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+export function SearchKeywords({
+  dateRange,
+  locationIds,
+}: SearchKeywordsProps = {}) {
+  const [keywords, setKeywords] = useState<SearchKeyword[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
   useEffect(() => {
     async function fetchKeywords() {
       try {
         // Get current user first
-        const { data: { user } } = await supabase!.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase!.auth.getUser();
         if (!user) {
-          setIsLoading(false)
-          return
+          setIsLoading(false);
+          return;
         }
 
         // Get active account IDs
@@ -41,18 +47,24 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
           .from("gmb_accounts")
           .select("id")
           .eq("user_id", user.id)
-          .eq("is_active", true)
+          .eq("is_active", true);
 
         if (accountsError) {
-          console.error("Error fetching active accounts:", accountsError)
-          setIsLoading(false)
-          return
+          gmbLogger.error(
+            "Error fetching active accounts",
+            accountsError instanceof Error
+              ? accountsError
+              : new Error(String(accountsError)),
+            { userId: user.id },
+          );
+          setIsLoading(false);
+          return;
         }
 
-        const accountIds = accounts?.map(acc => acc.id) || []
+        const accountIds = accounts?.map((acc) => acc.id) || [];
         if (accountIds.length === 0) {
-          setIsLoading(false)
-          return
+          setIsLoading(false);
+          return;
         }
 
         // Get locations
@@ -60,45 +72,58 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
           .from("gmb_locations")
           .select("id")
           .eq("user_id", user.id)
-          .in("gmb_account_id", accountIds)
+          .in("gmb_account_id", accountIds);
 
         if (locationsError) {
-          console.error("Error fetching locations:", locationsError)
-          setIsLoading(false)
-          return
+          gmbLogger.error(
+            "Error fetching locations",
+            locationsError instanceof Error
+              ? locationsError
+              : new Error(String(locationsError)),
+            { userId: user.id },
+          );
+          setIsLoading(false);
+          return;
         }
 
-        const locationIds = locations?.map(loc => loc.id) || []
+        const locationIds = locations?.map((loc) => loc.id) || [];
 
         // Get search keywords (last 3 months, top 10 by impressions)
-        const threeMonthsAgo = new Date()
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-        const { data: searchKeywords, error: keywordsError } = locationIds.length > 0
-          ? await supabase!
-              .from("gmb_search_keywords")
-              .select("search_keyword, impressions_count, month_year")
-              .eq("user_id", user.id)
-              .in("location_id", locationIds)
-              .gte("month_year", threeMonthsAgo.toISOString().split('T')[0])
-              .order("impressions_count", { ascending: false })
-              .limit(20)
-          : { data: [], error: null }
+        const { data: searchKeywords, error: keywordsError } =
+          locationIds.length > 0
+            ? await supabase!
+                .from("gmb_search_keywords")
+                .select("search_keyword, impressions_count, month_year")
+                .eq("user_id", user.id)
+                .in("location_id", locationIds)
+                .gte("month_year", threeMonthsAgo.toISOString().split("T")[0])
+                .order("impressions_count", { ascending: false })
+                .limit(20)
+            : { data: [], error: null };
 
         if (keywordsError) {
-          console.error("Error fetching search keywords:", keywordsError)
+          gmbLogger.error(
+            "Error fetching search keywords",
+            keywordsError instanceof Error
+              ? keywordsError
+              : new Error(String(keywordsError)),
+            { userId: user.id },
+          );
         }
 
         // Aggregate keywords by summing impressions across months
-        const keywordMap = new Map<string, number>()
+        const keywordMap = new Map<string, number>();
         if (searchKeywords && Array.isArray(searchKeywords)) {
           searchKeywords.forEach((kw) => {
-            if (!kw || !kw.search_keyword) return
-            const keyword = kw.search_keyword
-            const current = keywordMap.get(keyword) || 0
-            const impressions = Number(kw.impressions_count) || 0
-            keywordMap.set(keyword, current + impressions)
-          })
+            if (!kw || !kw.search_keyword) return;
+            const keyword = kw.search_keyword;
+            const current = keywordMap.get(keyword) || 0;
+            const impressions = Number(kw.impressions_count) || 0;
+            keywordMap.set(keyword, current + impressions);
+          });
         }
 
         // Convert to array and sort
@@ -106,30 +131,37 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
           .map(([search_keyword, impressions_count]) => ({
             search_keyword,
             impressions_count,
-            month_year: new Date().toISOString().split('T')[0],
+            month_year: new Date().toISOString().split("T")[0],
           }))
           .sort((a, b) => b.impressions_count - a.impressions_count)
-          .slice(0, 10) // Top 10
+          .slice(0, 10); // Top 10
 
-        setKeywords(aggregated)
+        setKeywords(aggregated);
       } catch (error) {
-        console.error("Error fetching search keywords:", error)
+        gmbLogger.error(
+          "Error fetching search keywords",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchKeywords()
+    fetchKeywords();
 
     const channel = supabase!
       .channel("search-keywords")
-      .on("postgres_changes", { event: "*", schema: "public", table: "gmb_search_keywords" }, fetchKeywords)
-      .subscribe()
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gmb_search_keywords" },
+        fetchKeywords,
+      )
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [supabase])
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   if (isLoading) {
     return (
@@ -148,7 +180,7 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (keywords.length === 0) {
@@ -163,11 +195,13 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <p>No search keywords data available yet</p>
-            <p className="text-sm mt-2">Data will appear after syncing with Google</p>
+            <p className="text-sm mt-2">
+              Data will appear after syncing with Google
+            </p>
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -190,7 +224,9 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{keyword.search_keyword}</p>
+                  <p className="font-medium text-foreground truncate">
+                    {keyword.search_keyword}
+                  </p>
                 </div>
               </div>
               <Badge className="bg-success/20 text-success border-success/30 flex items-center gap-1 ml-2">
@@ -202,6 +238,5 @@ export function SearchKeywords({ dateRange, locationIds }: SearchKeywordsProps =
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

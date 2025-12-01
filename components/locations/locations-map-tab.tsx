@@ -44,6 +44,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { gmbLogger } from "@/lib/utils/logger";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
@@ -220,7 +221,7 @@ export function LocationsMapTab() {
   useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY) {
       if (__DEV__) {
-        console.warn(
+        gmbLogger.warn(
           "[LocationsMapTab] Google Maps API key missing for geocoding fallback",
         );
       }
@@ -284,15 +285,17 @@ export function LocationsMapTab() {
               return { id: loc.id, coordinates: { lat, lng } };
             }
           } else if (__DEV__) {
-            console.warn(
-              `[LocationsMapTab] Geocoding failed for "${loc.address}": ${geocodeResult?.status || "Unknown error"}`,
-            );
+            gmbLogger.warn("[LocationsMapTab] Geocoding failed", {
+              address: loc.address,
+              status: geocodeResult?.status || "Unknown error",
+            });
           }
         } catch (error) {
           if (__DEV__ && !cancelled) {
-            console.error(
-              `[LocationsMapTab] Geocoding error for location ${loc.id}:`,
-              error,
+            gmbLogger.error(
+              "[LocationsMapTab] Geocoding error",
+              error instanceof Error ? error : new Error(String(error)),
+              { locationId: loc.id },
             );
           }
         }
@@ -903,8 +906,9 @@ export function LocationsMapTab() {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true);
         if (__DEV__) {
-          console.error(
+          gmbLogger.error(
             "❌ [MapView] Locations loading timeout - taking longer than expected",
+            undefined,
             {
               loading,
               locationsCount: locations.length,
@@ -929,19 +933,25 @@ export function LocationsMapTab() {
       // Loading state
     } else if (locationsError) {
       if (__DEV__) {
-        console.error("❌ [MapView] Locations error:", {
-          message: locationsError.message,
-          name: locationsError.name,
-          stack: locationsError.stack,
-          timestamp: new Date().toISOString(),
-        });
+        gmbLogger.error(
+          "❌ [MapView] Locations error",
+          locationsError instanceof Error
+            ? locationsError
+            : new Error(String(locationsError)),
+          {
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
     } else if (loadError) {
       if (__DEV__) {
-        console.error("❌ [MapView] Google Maps error:", {
-          message: loadError.message,
-          timestamp: new Date().toISOString(),
-        });
+        gmbLogger.error(
+          "❌ [MapView] Google Maps error",
+          loadError instanceof Error ? loadError : new Error(String(loadError)),
+          {
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
     } else if (locations.length > 0) {
       // Locations loaded successfully
@@ -1611,7 +1621,7 @@ export function LocationsMapTab() {
                   {!previewCompetitorsError &&
                     previewCompetitors.length > 0 && (
                       <div className="space-y-2">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {}
                         {previewCompetitors
                           .slice(0, 3)
                           .map((competitor: any) => (

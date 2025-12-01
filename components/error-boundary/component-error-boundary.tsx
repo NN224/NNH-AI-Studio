@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import React, { ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { ErrorInfo, ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { logger } from "@/lib/utils/logger";
 
 interface Props {
   children: ReactNode;
@@ -43,8 +44,8 @@ export class ComponentErrorBoundary extends React.Component<Props, State> {
     }
 
     // Log error in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Component Error:', error, errorInfo);
+    if (process.env.NODE_ENV === "development") {
+      logger.error("Component Error", error, { errorInfo });
     }
 
     // If not isolated, let error propagate to parent boundaries
@@ -59,23 +60,23 @@ export class ComponentErrorBoundary extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const { resetKeys, resetOnPropsChange } = this.props;
     const { hasError } = this.state;
-    
+
     // Reset error state if resetKeys changed
     if (hasError && resetKeys) {
       const hasResetKeyChanged = resetKeys.some(
-        (key, idx) => key !== this.previousResetKeys?.[idx]
+        (key, idx) => key !== this.previousResetKeys?.[idx],
       );
-      
+
       if (hasResetKeyChanged) {
         this.resetErrorBoundary();
       }
     }
-    
+
     // Reset on any props change if enabled
     if (hasError && resetOnPropsChange && prevProps !== this.props) {
       this.resetErrorBoundary();
     }
-    
+
     this.previousResetKeys = resetKeys;
   }
 
@@ -100,14 +101,14 @@ export class ComponentErrorBoundary extends React.Component<Props, State> {
           <AlertTitle>Component Error</AlertTitle>
           <AlertDescription className="mt-2 space-y-2">
             <p>This component encountered an error and cannot be displayed.</p>
-            
+
             {/* Show error details in development */}
-            {showDetails && process.env.NODE_ENV === 'development' && error && (
+            {showDetails && process.env.NODE_ENV === "development" && error && (
               <div className="mt-2 p-2 bg-zinc-900 rounded text-xs font-mono">
                 {error.message}
               </div>
             )}
-            
+
             <Button
               size="sm"
               variant="outline"

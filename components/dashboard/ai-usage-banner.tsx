@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
 /**
  * AI Usage Banner
  * Shows AI usage limits and encourages upgrade
  */
 
-import React, { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Sparkles, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  ArrowRight,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { aiLogger } from "@/lib/utils/logger";
 
 interface AIUsage {
   plan: string;
@@ -44,7 +50,11 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
         setHasOwnKey(data.hasOwnKey);
       }
     } catch (error) {
-      console.error('Error fetching AI usage:', error);
+      aiLogger.error(
+        "Error fetching AI usage",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId },
+      );
     } finally {
       setLoading(false);
     }
@@ -61,26 +71,27 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
 
   // Show different alerts based on usage
   const getAlertVariant = () => {
-    if (usage.isLimitReached) return 'destructive';
-    if (usage.percentage >= 80) return 'default';
-    return 'default';
+    if (usage.isLimitReached) return "destructive";
+    if (usage.percentage >= 80) return "default";
+    return "default";
   };
 
   const getIcon = () => {
     if (usage.isLimitReached) return <AlertTriangle className="h-5 w-5" />;
-    if (usage.percentage >= 80) return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    if (usage.percentage >= 80)
+      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
     return <Sparkles className="h-5 w-5 text-purple-500" />;
   };
 
   const getTitle = () => {
-    if (usage.isLimitReached) return 'وصلت للحد الأقصى من AI';
-    if (usage.percentage >= 80) return 'قاربت على الوصول للحد الأقصى';
+    if (usage.isLimitReached) return "وصلت للحد الأقصى من AI";
+    if (usage.percentage >= 80) return "قاربت على الوصول للحد الأقصى";
     return `استخدام AI - خطة ${getPlanName(usage.plan)}`;
   };
 
   const getDescription = () => {
     if (usage.isLimitReached) {
-      return 'لقد استخدمت كل طلبات AI المجانية هذا الشهر. قم بالترقية أو أضف API Key خاص.';
+      return "لقد استخدمت كل طلبات AI المجانية هذا الشهر. قم بالترقية أو أضف API Key خاص.";
     }
     if (usage.percentage >= 80) {
       return `استخدمت ${usage.used} من ${usage.limit} طلب. تبقى ${usage.remaining} فقط.`;
@@ -90,10 +101,10 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
 
   const getPlanName = (plan: string) => {
     const names: Record<string, string> = {
-      free: 'المجانية',
-      basic: 'الأساسية',
-      pro: 'الاحترافية',
-      enterprise: 'المؤسسات',
+      free: "المجانية",
+      basic: "الأساسية",
+      pro: "الاحترافية",
+      enterprise: "المؤسسات",
     };
     return names[plan] || plan;
   };
@@ -111,7 +122,8 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
             <div className="space-y-1">
               <Progress value={usage.percentage} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                {usage.remaining} طلب متبقي ({(100 - usage.percentage).toFixed(0)}%)
+                {usage.remaining} طلب متبقي (
+                {(100 - usage.percentage).toFixed(0)}%)
               </p>
             </div>
           )}
@@ -121,7 +133,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
             {usage.isLimitReached ? (
               <>
                 <Button
-                  onClick={() => router.push('/settings/ai')}
+                  onClick={() => router.push("/settings/ai")}
                   size="sm"
                   variant="default"
                 >
@@ -129,7 +141,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
                   أضف API Key خاص
                 </Button>
                 <Button
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push("/pricing")}
                   size="sm"
                   variant="outline"
                 >
@@ -140,7 +152,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
             ) : usage.percentage >= 80 ? (
               <>
                 <Button
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push("/pricing")}
                   size="sm"
                   variant="default"
                 >
@@ -148,7 +160,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
                   ترقية للحصول على المزيد
                 </Button>
                 <Button
-                  onClick={() => router.push('/settings/ai')}
+                  onClick={() => router.push("/settings/ai")}
                   size="sm"
                   variant="outline"
                 >
@@ -158,7 +170,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
               </>
             ) : (
               <Button
-                onClick={() => router.push('/settings/ai')}
+                onClick={() => router.push("/settings/ai")}
                 size="sm"
                 variant="outline"
               >
@@ -169,7 +181,7 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
           </div>
 
           {/* Benefits List */}
-          {usage.plan === 'free' && (
+          {usage.plan === "free" && (
             <div className="mt-3 p-3 bg-muted/50 rounded-lg">
               <p className="text-sm font-semibold mb-2">مع API Key خاص:</p>
               <ul className="text-xs space-y-1">
@@ -193,4 +205,3 @@ export function AIUsageBanner({ userId }: AIUsageBannerProps) {
     </Alert>
   );
 }
-

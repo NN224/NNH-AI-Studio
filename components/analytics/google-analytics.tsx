@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getNonce } from "@/lib/security/csp-nonce";
+import { logger } from "@/lib/utils/logger";
 
 interface GoogleAnalyticsProps {
   measurementId?: string;
@@ -13,7 +14,7 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) {
-      console.warn("[GoogleAnalytics] No measurement ID provided");
+      logger.warn("[GoogleAnalytics] No measurement ID provided");
       return;
     }
 

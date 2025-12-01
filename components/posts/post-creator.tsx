@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useLocations } from "@/hooks/use-locations";
 
 import { usePosts } from "@/hooks/use-posts";
+import { postsLogger } from "@/lib/utils/logger";
 
 interface GeneratedPost {
   content: string;
@@ -59,7 +60,11 @@ export function PostCreator() {
       setGeneratedPost(data);
       toast.success("Post generated successfully!");
     } catch (error) {
-      console.error(error);
+      postsLogger.error(
+        "Error generating post",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to generate post. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -82,7 +87,11 @@ export function PostCreator() {
       setGeneratedPost(null);
       setIntent("");
     } catch (error) {
-      console.error("Failed to publish post:", error);
+      postsLogger.error(
+        "Failed to publish post",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
     }
   };
 

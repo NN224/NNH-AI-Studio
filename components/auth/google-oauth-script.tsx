@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Script from "next/script";
+import { authLogger } from "@/lib/utils/logger";
 
 interface GoogleOAuthScriptProps {
   clientId?: string;
@@ -48,7 +49,7 @@ export function GoogleOAuthScript({
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) {
-      console.warn("[GoogleOAuthScript] No client ID provided");
+      authLogger.warn("[GoogleOAuthScript] No client ID provided");
       return;
     }
 
@@ -67,7 +68,10 @@ export function GoogleOAuthScript({
             onLoad();
           }
         } catch (error) {
-          console.error("[GoogleOAuth] Initialization failed:", error);
+          authLogger.error(
+            "[GoogleOAuth] Initialization failed",
+            error instanceof Error ? error : new Error(String(error)),
+          );
         }
       }
     };
@@ -99,7 +103,10 @@ export function GoogleOAuthScript({
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onError={(error) => {
-          console.error("[GoogleOAuth] Script failed to load:", error);
+          authLogger.error(
+            "[GoogleOAuth] Script failed to load",
+            error instanceof Error ? error : new Error(String(error)),
+          );
         }}
       />
     </>
@@ -122,9 +129,12 @@ export function triggerGoogleSignIn(options?: {
 
       window.google.accounts.id.prompt();
     } catch (error) {
-      console.error("[GoogleOAuth] Sign-in failed:", error);
+      authLogger.error(
+        "[GoogleOAuth] Sign-in failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   } else {
-    console.warn("[GoogleOAuth] Google script not loaded");
+    authLogger.warn("[GoogleOAuth] Google script not loaded");
   }
 }

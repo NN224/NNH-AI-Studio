@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useCallback, useRef, useEffect } from 'react';
-import { GoogleMap, Marker, MarkerClustererF } from '@react-google-maps/api';
-import { Location } from '@/components/locations/location-types';
-import { getMarkerIcon, MAP_CONTAINER_STYLE, DEFAULT_MAP_OPTIONS } from '@/utils/map-styles';
-import { useGoogleMaps } from '@/hooks/use-google-maps';
+import React, { useCallback, useRef, useEffect } from "react";
+import { GoogleMap, Marker, MarkerClustererF } from "@react-google-maps/api";
+import { Location } from "@/components/locations/location-types";
+import {
+  getMarkerIcon,
+  MAP_CONTAINER_STYLE,
+  DEFAULT_MAP_OPTIONS,
+} from "@/utils/map-styles";
+import { useGoogleMaps } from "@/hooks/use-google-maps";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface MapViewProps {
   locations: Location[];
@@ -32,24 +37,25 @@ export function MapView({
   onMarkerClick,
   center,
   zoom = 10,
-  className = '',
+  className = "",
 }: MapViewProps) {
   const { isLoaded: mapsLoaded, loadError } = useGoogleMaps();
-  
+
   const mapRef = useRef<google.maps.Map | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
-  
+
   // Track location count to detect changes
   const locationCount = locations.length;
   const prevLocationCount = usePrevious(locationCount);
 
   // Filter locations with coordinates - calculate directly, no useMemo
-  const locationsWithCoords = locations.filter(loc => 
-    loc.coordinates?.lat &&
-    loc.coordinates?.lng &&
-    !isNaN(loc.coordinates.lat) &&
-    !isNaN(loc.coordinates.lng)
+  const locationsWithCoords = locations.filter(
+    (loc) =>
+      loc.coordinates?.lat &&
+      loc.coordinates?.lng &&
+      !isNaN(loc.coordinates.lat) &&
+      !isNaN(loc.coordinates.lng),
   );
 
   // Calculate center - simple calculation, no useMemo
@@ -64,10 +70,12 @@ export function MapView({
         lng: locationsWithCoords[0].coordinates!.lng,
       };
     }
-    const avgLat = locationsWithCoords.reduce((sum, loc) => 
-      sum + loc.coordinates!.lat, 0) / locationsWithCoords.length;
-    const avgLng = locationsWithCoords.reduce((sum, loc) => 
-      sum + loc.coordinates!.lng, 0) / locationsWithCoords.length;
+    const avgLat =
+      locationsWithCoords.reduce((sum, loc) => sum + loc.coordinates!.lat, 0) /
+      locationsWithCoords.length;
+    const avgLng =
+      locationsWithCoords.reduce((sum, loc) => sum + loc.coordinates!.lng, 0) /
+      locationsWithCoords.length;
     return { lat: avgLat, lng: avgLng };
   })();
 
@@ -76,19 +84,19 @@ export function MapView({
     // Strong guards: check all conditions before accessing google.maps
     if (!mapsLoaded) return;
     if (!mapRef.current) return;
-    if (typeof window === 'undefined') return;
-    if (typeof google === 'undefined') return;
+    if (typeof window === "undefined") return;
+    if (typeof google === "undefined") return;
     if (!google.maps) return;
     if (!google.maps.LatLngBounds) return;
-    
+
     // Only fit bounds if location count changed (not on every render)
     if (locationCount === 0) return;
     if (locationCount === prevLocationCount) return; // Skip if same count
     if (locationsWithCoords.length <= 1) return; // Only fit if multiple locations
-    
+
     try {
       const bounds = new google.maps.LatLngBounds();
-      locationsWithCoords.forEach(loc => {
+      locationsWithCoords.forEach((loc) => {
         if (loc.coordinates) {
           bounds.extend({
             lat: loc.coordinates.lat,
@@ -96,11 +104,14 @@ export function MapView({
           });
         }
       });
-      if (mapRef.current && typeof mapRef.current.fitBounds === 'function') {
+      if (mapRef.current && typeof mapRef.current.fitBounds === "function") {
         mapRef.current.fitBounds(bounds, 50);
       }
     } catch (err) {
-      console.warn('FitBounds failed:', err);
+      gmbLogger.error(
+        "FitBounds failed",
+        err instanceof Error ? err : new Error(String(err)),
+      );
     }
   }, [mapsLoaded, locationCount, prevLocationCount]); // Only depend on count, not array
 
@@ -110,48 +121,60 @@ export function MapView({
     if (!mapsLoaded) return;
     if (!mapRef.current) return;
     if (!selectedLocationId) return;
-    if (typeof window === 'undefined') return;
-    if (typeof google === 'undefined') return;
+    if (typeof window === "undefined") return;
+    if (typeof google === "undefined") return;
     if (!google.maps) return;
-    
-    const selectedLocation = locationsWithCoords.find(loc => loc.id === selectedLocationId);
+
+    const selectedLocation = locationsWithCoords.find(
+      (loc) => loc.id === selectedLocationId,
+    );
     if (selectedLocation?.coordinates) {
       try {
-        if (mapRef.current && typeof mapRef.current.panTo === 'function') {
+        if (mapRef.current && typeof mapRef.current.panTo === "function") {
           mapRef.current.panTo({
             lat: selectedLocation.coordinates.lat,
             lng: selectedLocation.coordinates.lng,
           });
         }
-        if (mapRef.current && typeof mapRef.current.setZoom === 'function') {
+        if (mapRef.current && typeof mapRef.current.setZoom === "function") {
           mapRef.current.setZoom(15);
         }
       } catch (err) {
-        console.warn('PanTo failed:', err);
+        gmbLogger.error(
+          "PanTo failed",
+          err instanceof Error ? err : new Error(String(err)),
+        );
       }
     }
   }, [mapsLoaded, selectedLocationId]); // Only depend on selection ID
 
   const onMapLoad = useCallback((map: google.maps.Map | null) => {
-    if (map && typeof map === 'object') {
+    if (map && typeof map === "object") {
       mapRef.current = map;
     }
   }, []);
 
   const onMapUnmount = useCallback(() => {
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
     if (infoWindowRef.current) infoWindowRef.current.close();
     mapRef.current = null;
   }, []);
 
-  const handleMarkerClick = useCallback((location: Location) => {
-    onMarkerClick?.(location);
-    if (infoWindowRef.current) infoWindowRef.current.close();
-  }, [onMarkerClick]);
+  const handleMarkerClick = useCallback(
+    (location: Location) => {
+      onMarkerClick?.(location);
+      if (infoWindowRef.current) infoWindowRef.current.close();
+    },
+    [onMarkerClick],
+  );
 
   const handleMarkerLoad = useCallback((marker: google.maps.Marker | null) => {
-    if (marker && typeof marker === 'object' && !markersRef.current.includes(marker)) {
+    if (
+      marker &&
+      typeof marker === "object" &&
+      !markersRef.current.includes(marker)
+    ) {
       markersRef.current.push(marker);
     }
   }, []);
@@ -165,7 +188,10 @@ export function MapView({
 
   if (!mapsLoaded) {
     return (
-      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={MAP_CONTAINER_STYLE}
+      >
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading map...</p>
@@ -176,11 +202,16 @@ export function MapView({
 
   if (loadError) {
     return (
-      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={MAP_CONTAINER_STYLE}
+      >
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold mb-2">Failed to load map</h2>
-          <p className="text-muted-foreground">Please check your Google Maps configuration</p>
+          <p className="text-muted-foreground">
+            Please check your Google Maps configuration
+          </p>
         </div>
       </div>
     );
@@ -188,20 +219,34 @@ export function MapView({
 
   if (locationsWithCoords.length === 0) {
     return (
-      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={MAP_CONTAINER_STYLE}
+      >
         <div className="text-center">
           <div className="text-6xl mb-4">🗺️</div>
-          <h2 className="text-xl font-semibold mb-2">No Locations with Coordinates</h2>
-          <p className="text-muted-foreground">Add locations with valid coordinates to display them on the map</p>
+          <h2 className="text-xl font-semibold mb-2">
+            No Locations with Coordinates
+          </h2>
+          <p className="text-muted-foreground">
+            Add locations with valid coordinates to display them on the map
+          </p>
         </div>
       </div>
     );
   }
 
   // Final guard: only render GoogleMap if maps are fully loaded and google.maps is available
-  if (typeof window === 'undefined' || typeof google === 'undefined' || !google.maps) {
+  if (
+    typeof window === "undefined" ||
+    typeof google === "undefined" ||
+    !google.maps
+  ) {
     return (
-      <div className={`flex items-center justify-center ${className}`} style={MAP_CONTAINER_STYLE}>
+      <div
+        className={`flex items-center justify-center ${className}`}
+        style={MAP_CONTAINER_STYLE}
+      >
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading map...</p>
@@ -235,7 +280,7 @@ export function MapView({
                     onClick={() => handleMarkerClick(location)}
                     onLoad={handleMarkerLoad}
                     clusterer={clusterer}
-                    aria-label={`${location.name}, ${location.address || 'No address'}`}
+                    aria-label={`${location.name}, ${location.address || "No address"}`}
                   />
                 );
               })}

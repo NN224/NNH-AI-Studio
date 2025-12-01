@@ -1,17 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { updatePost } from '@/server/actions/posts-management';
-import { Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
-import type { GMBPost } from '@/lib/types/database';
-import { validatePostForm, CTA_OPTIONS, type PostFormData } from './post-form-validation';
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { updatePost } from "@/server/actions/posts-management";
+import { Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import type { GMBPost } from "@/lib/types/database";
+import {
+  validatePostForm,
+  CTA_OPTIONS,
+  type PostFormData,
+} from "./post-form-validation";
+import { postsLogger } from "@/lib/utils/logger";
 
 interface EditPostDialogProps {
   post: GMBPost;
@@ -20,13 +38,18 @@ interface EditPostDialogProps {
   onSuccess?: () => void;
 }
 
-export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDialogProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [cta, setCta] = useState<string>('');
-  const [ctaUrl, setCtaUrl] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
+export function EditPostDialog({
+  post,
+  isOpen,
+  onClose,
+  onSuccess,
+}: EditPostDialogProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [cta, setCta] = useState<string>("");
+  const [ctaUrl, setCtaUrl] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -35,75 +58,93 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
   // Initialize form with post data
   useEffect(() => {
     if (post) {
-      setTitle(post.title || '');
-      setDescription(post.content || '');
-      setMediaUrl(post.media_url || '');
-      setCta(post.call_to_action || '');
-      setCtaUrl(post.call_to_action_url || '');
-      setScheduledAt(post.scheduled_at ? new Date(post.scheduled_at).toISOString().slice(0, 16) : '');
+      setTitle(post.title || "");
+      setDescription(post.content || "");
+      setMediaUrl(post.media_url || "");
+      setCta(post.call_to_action || "");
+      setCtaUrl(post.call_to_action_url || "");
+      setScheduledAt(
+        post.scheduled_at
+          ? new Date(post.scheduled_at).toISOString().slice(0, 16)
+          : "",
+      );
       setUploadedFile(null);
     }
   }, [post]);
 
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileSelect = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type', {
-        description: 'Please upload a JPG, PNG, GIF, or WebP image',
-      });
-      return;
-    }
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File too large', {
-        description: 'Maximum file size is 10MB',
-      });
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('locationId', post.location_id);
-
-      const response = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Upload failed');
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Invalid file type", {
+          description: "Please upload a JPG, PNG, GIF, or WebP image",
+        });
+        return;
       }
 
-      const data = await response.json();
-      if (data.url) {
-        setMediaUrl(data.url);
-        setUploadedFile(file);
-        toast.success('Image uploaded successfully!');
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File too large", {
+          description: "Maximum file size is 10MB",
+        });
+        return;
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload image', {
-        description: error instanceof Error ? error.message : 'Please try again',
-      });
-    } finally {
-      setUploading(false);
-    }
-  }, [post.location_id]);
+
+      setUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("locationId", post.location_id);
+
+        const response = await fetch("/api/upload/image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Upload failed");
+        }
+
+        const data = await response.json();
+        if (data.url) {
+          setMediaUrl(data.url);
+          setUploadedFile(file);
+          toast.success("Image uploaded successfully!");
+        }
+      } catch (error) {
+        postsLogger.error(
+          "Upload error",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId: post.location_id, postId: post.id },
+        );
+        toast.error("Failed to upload image", {
+          description:
+            error instanceof Error ? error.message : "Please try again",
+        });
+      } finally {
+        setUploading(false);
+      }
+    },
+    [post.location_id],
+  );
 
   const handleRemoveMedia = useCallback(() => {
-    setMediaUrl('');
+    setMediaUrl("");
     setUploadedFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   }, []);
 
@@ -138,41 +179,57 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
       });
 
       if (result.success) {
-        toast.success(result.message || 'Post updated successfully!');
+        toast.success(result.message || "Post updated successfully!");
         handleClose();
         onSuccess?.();
       } else {
-        toast.error('Failed to update post', {
-          description: result.error || 'Please try again',
+        toast.error("Failed to update post", {
+          description: result.error || "Please try again",
         });
       }
     } catch (error) {
-      console.error('Error updating post:', error);
-      toast.error('An unexpected error occurred', {
-        description: 'Please try again later',
+      postsLogger.error(
+        "Error updating post",
+        error instanceof Error ? error : new Error(String(error)),
+        { postId: post.id, locationId: post.location_id },
+      );
+      toast.error("An unexpected error occurred", {
+        description: "Please try again later",
       });
     } finally {
       setIsUpdating(false);
     }
-  }, [post.id, title, description, mediaUrl, cta, ctaUrl, scheduledAt, onSuccess]);
+  }, [
+    post.id,
+    title,
+    description,
+    mediaUrl,
+    cta,
+    ctaUrl,
+    scheduledAt,
+    onSuccess,
+  ]);
 
   const handleClose = useCallback(() => {
     setUploadedFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
     onClose();
   }, [onClose]);
 
-  const canEdit = post.status === 'draft' || post.status === 'queued';
+  const canEdit = post.status === "draft" || post.status === "queued";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (!open ? handleClose() : null)}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => (!open ? handleClose() : null)}
+    >
       <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">Edit Post</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            {post.status === 'published' && (
+            {post.status === "published" && (
               <span className="text-yellow-400">
                 Note: Editing a published post will update it on Google as well.
               </span>
@@ -188,7 +245,9 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
         <div className="space-y-5">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-zinc-300">Title (optional)</Label>
+            <Label htmlFor="title" className="text-zinc-300">
+              Title (optional)
+            </Label>
             <Input
               id="title"
               value={title}
@@ -203,8 +262,12 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
           {/* Description */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="desc" className="text-zinc-300">Description *</Label>
-              <span className={`text-xs ${description.length > 1500 ? 'text-red-400' : 'text-zinc-500'}`}>
+              <Label htmlFor="desc" className="text-zinc-300">
+                Description *
+              </Label>
+              <span
+                className={`text-xs ${description.length > 1500 ? "text-red-400" : "text-zinc-500"}`}
+              >
                 {description.length} / 1500
               </span>
             </div>
@@ -218,14 +281,16 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
               disabled={!canEdit}
             />
             {description.length > 1500 && (
-              <p className="text-xs text-red-400">Description exceeds the 1500 character limit</p>
+              <p className="text-xs text-red-400">
+                Description exceeds the 1500 character limit
+              </p>
             )}
           </div>
 
           {/* Media Upload */}
           <div className="space-y-2">
             <Label className="text-zinc-300">Media (optional)</Label>
-            
+
             {!mediaUrl ? (
               <div className="space-y-2">
                 <input
@@ -281,7 +346,7 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-zinc-300 truncate">
-                      {uploadedFile?.name || 'Media URL'}
+                      {uploadedFile?.name || "Media URL"}
                     </p>
                     <p className="text-xs text-zinc-500 truncate">{mediaUrl}</p>
                   </div>
@@ -297,29 +362,34 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
                     </Button>
                   )}
                 </div>
-                {mediaUrl && (() => {
-                  // Sanitize URL to prevent XSS
-                  try {
-                    const url = new URL(mediaUrl);
-                    // Only allow http/https protocols
-                    if (url.protocol === 'http:' || url.protocol === 'https:') {
-                      return (
-                        <img
-                          src={url.href}
-                          alt="Preview"
-                          className="mt-2 max-h-40 rounded-md object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      );
+                {mediaUrl &&
+                  (() => {
+                    // Sanitize URL to prevent XSS
+                    try {
+                      const url = new URL(mediaUrl);
+                      // Only allow http/https protocols
+                      if (
+                        url.protocol === "http:" ||
+                        url.protocol === "https:"
+                      ) {
+                        return (
+                          <img
+                            src={url.href}
+                            alt="Preview"
+                            className="mt-2 max-h-40 rounded-md object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                        );
+                      }
+                    } catch {
+                      // Invalid URL, don't render
+                      return null;
                     }
-                  } catch {
-                    // Invalid URL, don't render
                     return null;
-                  }
-                  return null;
-                })()}
+                  })()}
               </div>
             )}
           </div>
@@ -343,21 +413,25 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-zinc-300">CTA URL</Label>
+              <Label htmlFor="url" className="text-zinc-300">
+                CTA URL
+              </Label>
               <Input
                 id="url"
                 value={ctaUrl}
                 onChange={(e) => setCtaUrl(e.target.value)}
                 placeholder="https://example.com"
                 className="bg-zinc-800 border-zinc-700 text-zinc-100"
-                disabled={!cta || cta === 'CALL' || !canEdit}
+                disabled={!cta || cta === "CALL" || !canEdit}
               />
             </div>
           </div>
 
           {/* Schedule */}
           <div className="space-y-2">
-            <Label htmlFor="schedule" className="text-zinc-300">Schedule (optional)</Label>
+            <Label htmlFor="schedule" className="text-zinc-300">
+              Schedule (optional)
+            </Label>
             <Input
               id="schedule"
               type="datetime-local"
@@ -369,7 +443,8 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
             />
             {scheduledAt && (
               <p className="text-xs text-zinc-500">
-                Post will be saved as scheduled and published at the specified time
+                Post will be saved as scheduled and published at the specified
+                time
               </p>
             )}
           </div>
@@ -390,7 +465,7 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
                 Updating...
               </>
             ) : (
-              'Update Post'
+              "Update Post"
             )}
           </Button>
         </DialogFooter>
@@ -398,4 +473,3 @@ export function EditPostDialog({ post, isOpen, onClose, onSuccess }: EditPostDia
     </Dialog>
   );
 }
-

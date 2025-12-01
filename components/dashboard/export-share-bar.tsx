@@ -1,17 +1,21 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Share2, FileDown, Check } from 'lucide-react';
-import { useState, useRef } from 'react';
-import { toast } from 'sonner';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Share2, FileDown, Check } from "lucide-react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 interface ExportShareBarProps {
   getShareParams: () => Record<string, string | number | undefined>;
   printRootSelector?: string; // CSS selector for print root, default: '[data-print-root]'
 }
 
-export function ExportShareBar({ getShareParams, printRootSelector = '[data-print-root]' }: ExportShareBarProps) {
+export function ExportShareBar({
+  getShareParams,
+  printRootSelector = "[data-print-root]",
+}: ExportShareBarProps) {
   const [copied, setCopied] = useState(false);
   const printing = useRef(false);
 
@@ -20,10 +24,15 @@ export function ExportShareBar({ getShareParams, printRootSelector = '[data-prin
       // Native print flow: users can Save as PDF
       printing.current = true;
       window.print();
-      setTimeout(() => { printing.current = false; }, 1000);
+      setTimeout(() => {
+        printing.current = false;
+      }, 1000);
     } catch (e) {
-      console.error('Print error:', e);
-      toast.error('Export failed');
+      logger.error(
+        "Print error",
+        e instanceof Error ? e : new Error(String(e)),
+      );
+      toast.error("Export failed");
     }
   };
 
@@ -37,11 +46,14 @@ export function ExportShareBar({ getShareParams, printRootSelector = '[data-prin
       const shareUrl = url.toString();
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('Share link copied');
+      toast.success("Share link copied");
       setTimeout(() => setCopied(false), 1500);
     } catch (e) {
-      console.error('Share link error:', e);
-      toast.error('Failed to copy link');
+      logger.error(
+        "Share link error",
+        e instanceof Error ? e : new Error(String(e)),
+      );
+      toast.error("Failed to copy link");
     }
   };
 
@@ -52,8 +64,12 @@ export function ExportShareBar({ getShareParams, printRootSelector = '[data-prin
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={handleShare}>
-          {copied ? <Check className="w-4 h-4 mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
-          {copied ? 'Copied' : 'Copy Link'}
+          {copied ? (
+            <Check className="w-4 h-4 mr-2" />
+          ) : (
+            <Share2 className="w-4 h-4 mr-2" />
+          )}
+          {copied ? "Copied" : "Copy Link"}
         </Button>
         <Button size="sm" onClick={handleExportPDF}>
           <FileDown className="w-4 h-4 mr-2" />

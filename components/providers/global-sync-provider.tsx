@@ -5,6 +5,7 @@ import { SyncProgressOverlay } from "@/components/sync/sync-progress-overlay";
 import { SyncProvider } from "@/contexts/sync-context";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { syncLogger } from "@/lib/utils/logger";
 
 interface GlobalSyncProviderProps {
   children: ReactNode;
@@ -34,7 +35,10 @@ export function GlobalSyncProvider({ children }: GlobalSyncProviderProps) {
         } = await supabase.auth.getUser();
         setUserId(user?.id);
       } catch (error) {
-        console.error("[GlobalSyncProvider] Failed to fetch user:", error);
+        syncLogger.error(
+          "[GlobalSyncProvider] Failed to fetch user",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     };
 

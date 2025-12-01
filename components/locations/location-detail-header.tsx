@@ -29,6 +29,7 @@ import {
   getStatusColor,
 } from "@/components/locations/location-types";
 import { formatLargeNumber } from "@/components/locations/location-types";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationDetailHeaderProps {
   location: any;
@@ -78,7 +79,11 @@ export function LocationDetailHeader({
           }
         }
       } catch (error) {
-        console.error("Failed to fetch accountId:", error);
+        gmbLogger.error(
+          "Failed to fetch accountId",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId },
+        );
       }
     };
 
@@ -126,7 +131,11 @@ export function LocationDetailHeader({
       toast.success("Location deleted successfully");
       router.push("/locations");
     } catch (error) {
-      console.error("Delete error:", error);
+      gmbLogger.error(
+        "Delete error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to delete location");
     } finally {
       setDeleting(false);

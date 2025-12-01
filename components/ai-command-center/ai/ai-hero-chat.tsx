@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { aiLogger } from "@/lib/utils/logger";
 
 export interface ChatMessage {
   id: string;
@@ -127,7 +128,10 @@ export function AIHeroChat({
 
       setMessages((prev) => [...prev, aiResponse]);
     } catch (error) {
-      console.error("Chat error:", error);
+      aiLogger.error(
+        "Chat error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",

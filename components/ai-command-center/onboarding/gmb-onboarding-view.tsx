@@ -12,6 +12,7 @@ import {
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export function GMBOnboardingView() {
   const params = useParams();
@@ -45,7 +46,10 @@ export function GMBOnboardingView() {
         setIsConnecting(false);
       }
     } catch (error) {
-      console.error("Error connecting GMB:", error);
+      gmbLogger.error(
+        "Error connecting GMB",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to connect Google My Business");
       setIsConnecting(false);
     }

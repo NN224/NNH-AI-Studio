@@ -1,18 +1,22 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Image as ImageIcon, Video, Upload, Loader2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Image as ImageIcon, Video, Upload, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationMediaSectionProps {
   locationId: string;
   locationName: string;
 }
 
-export function LocationMediaSection({ locationId, locationName }: LocationMediaSectionProps) {
+export function LocationMediaSection({
+  locationId,
+  locationName,
+}: LocationMediaSectionProps) {
   const [media, setMedia] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,13 +26,17 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
         setLoading(true);
         const response = await fetch(`/api/gmb/media?locationId=${locationId}`);
         const data = await response.json();
-        
+
         if (response.ok && data.data?.media) {
           setMedia(data.data.media);
         }
       } catch (error) {
-        console.error('Error fetching media:', error);
-        toast.error('Failed to load media');
+        gmbLogger.error(
+          "Error fetching media",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId },
+        );
+        toast.error("Failed to load media");
       } finally {
         setLoading(false);
       }
@@ -38,7 +46,7 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
   }, [locationId]);
 
   const handleUpload = () => {
-    toast.info('Upload functionality coming soon');
+    toast.info("Upload functionality coming soon");
   };
 
   if (loading) {
@@ -54,11 +62,11 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
     );
   }
 
-  const photos = media.filter((item: any) => 
-    item.mediaFormat !== 'VIDEO' && item.type !== 'VIDEO'
+  const photos = media.filter(
+    (item: any) => item.mediaFormat !== "VIDEO" && item.type !== "VIDEO",
   );
-  const videos = media.filter((item: any) => 
-    item.mediaFormat === 'VIDEO' || item.type === 'VIDEO'
+  const videos = media.filter(
+    (item: any) => item.mediaFormat === "VIDEO" || item.type === "VIDEO",
   );
 
   return (
@@ -103,9 +111,14 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {photos.map((photo: any, index: number) => {
-                const url = photo.sourceUrl || photo.googleUrl || photo.url || photo.thumbnailUrl;
-                const category = photo.locationAssociation?.category || photo.category;
-                
+                const url =
+                  photo.sourceUrl ||
+                  photo.googleUrl ||
+                  photo.url ||
+                  photo.thumbnailUrl;
+                const category =
+                  photo.locationAssociation?.category || photo.category;
+
                 return (
                   <div
                     key={photo.mediaItemId || index}
@@ -123,8 +136,8 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
                       </div>
                     )}
                     {category && (
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="absolute top-2 right-2 text-xs"
                       >
                         {category}
@@ -147,9 +160,14 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {videos.map((video: any, index: number) => {
-                const url = video.sourceUrl || video.googleUrl || video.url || video.thumbnailUrl;
-                const category = video.locationAssociation?.category || video.category;
-                
+                const url =
+                  video.sourceUrl ||
+                  video.googleUrl ||
+                  video.url ||
+                  video.thumbnailUrl;
+                const category =
+                  video.locationAssociation?.category || video.category;
+
                 return (
                   <div
                     key={video.mediaItemId || index}
@@ -167,8 +185,8 @@ export function LocationMediaSection({ locationId, locationName }: LocationMedia
                       </div>
                     )}
                     {category && (
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="absolute top-2 right-2 text-xs"
                       >
                         {category}

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { aiLogger } from "@/lib/utils/logger";
 
 interface AITip {
   id: string;
@@ -88,7 +89,12 @@ export function AIAssistant() {
           .in("gmb_account_id", accountIds);
 
         if (locationsError) {
-          console.error("Error fetching locations:", locationsError);
+          aiLogger.error(
+            "Error fetching locations",
+            locationsError instanceof Error
+              ? locationsError
+              : new Error(String(locationsError)),
+          );
           setAiTips([
             {
               id: "error",
@@ -131,7 +137,13 @@ export function AIAssistant() {
             : { data: null, error: null };
 
         if (reviewsError) {
-          console.error("Error fetching reviews:", reviewsError);
+          aiLogger.error(
+            "Error fetching reviews",
+            reviewsError instanceof Error
+              ? reviewsError
+              : new Error(String(reviewsError)),
+            { userId: user.id },
+          );
         }
 
         // Get performance metrics (last 30 days)
@@ -149,7 +161,13 @@ export function AIAssistant() {
             : { data: null, error: null };
 
         if (metricsError) {
-          console.error("Error fetching performance metrics:", metricsError);
+          aiLogger.error(
+            "Error fetching performance metrics",
+            metricsError instanceof Error
+              ? metricsError
+              : new Error(String(metricsError)),
+            { userId: user.id },
+          );
         }
 
         // Get search keywords
@@ -165,7 +183,13 @@ export function AIAssistant() {
             : { data: null, error: null };
 
         if (keywordsError) {
-          console.error("Error fetching search keywords:", keywordsError);
+          aiLogger.error(
+            "Error fetching search keywords",
+            keywordsError instanceof Error
+              ? keywordsError
+              : new Error(String(keywordsError)),
+            { userId: user.id },
+          );
         }
 
         // Analyze and generate tips
@@ -449,7 +473,10 @@ export function AIAssistant() {
 
         setAiTips(tips.slice(0, 8)); // Limit to 8 tips (increased from 5)
       } catch (error) {
-        console.error("Error analyzing business:", error);
+        aiLogger.error(
+          "Error analyzing business",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         toast.error("Failed to analyze business data");
       } finally {
         setAnalyzing(false);
@@ -504,7 +531,7 @@ export function AIAssistant() {
       ]);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error("Error generating response:", err);
+      aiLogger.error("Error generating response", err);
       const errorMessage = err.message || "Failed to get AI response";
       toast.error(errorMessage);
       setChatMessages((prev) => [

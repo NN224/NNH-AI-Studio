@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
   Clock,
   RotateCcw,
   User,
@@ -16,11 +22,11 @@ import {
   ChevronRight,
   Copy,
   Shield,
-  Loader2
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
+  Loader2,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +36,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface ChangeHistoryPanelProps {
   locationId: string;
@@ -49,21 +56,23 @@ interface HistoryRecord {
   metadata?: Record<string, any>;
 }
 
-export function ChangeHistoryPanel({ 
-  locationId, 
+export function ChangeHistoryPanel({
+  locationId,
   locationName,
-  onRollback
+  onRollback,
 }: ChangeHistoryPanelProps) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [rollbackDialogOpen, setRollbackDialogOpen] = useState(false);
-  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(
+    null,
+  );
   const [rollbackLoading, setRollbackLoading] = useState(false);
-  
+
   const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
   useEffect(() => {
@@ -73,18 +82,24 @@ export function ChangeHistoryPanel({
   const loadHistory = async () => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
-        .rpc('get_profile_history_with_diff', { 
-          p_location_id: locationId 
-        });
+
+      const { data, error } = await supabase.rpc(
+        "get_profile_history_with_diff",
+        {
+          p_location_id: locationId,
+        },
+      );
 
       if (error) throw error;
 
       setHistory(data || []);
     } catch (error) {
-      console.error('Failed to load history:', error);
-      toast.error('Failed to load change history');
+      gmbLogger.error(
+        "Failed to load history",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
+      toast.error("Failed to load change history");
     } finally {
       setLoading(false);
     }
@@ -105,29 +120,37 @@ export function ChangeHistoryPanel({
 
     try {
       setRollbackLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .rpc('rollback_profile_to_history', {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.rpc(
+        "rollback_profile_to_history",
+        {
           p_history_id: selectedHistoryId,
-          p_user_id: user.id
-        });
+          p_user_id: user.id,
+        },
+      );
 
       if (error) throw error;
 
       if (data?.success) {
-        toast.success('Profile rolled back successfully');
+        toast.success("Profile rolled back successfully");
         loadHistory();
         onRollback?.();
       } else {
-        throw new Error(data?.error || 'Rollback failed');
+        throw new Error(data?.error || "Rollback failed");
       }
     } catch (error: any) {
-      console.error('Rollback error:', error);
-      toast.error('Failed to rollback', {
-        description: error.message
+      gmbLogger.error(
+        "Rollback error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId, historyId: selectedHistoryId ?? undefined },
+      );
+      toast.error("Failed to rollback", {
+        description: error.message,
       });
     } finally {
       setRollbackLoading(false);
@@ -138,13 +161,13 @@ export function ChangeHistoryPanel({
 
   const getOperationIcon = (type: string) => {
     switch (type) {
-      case 'create':
+      case "create":
         return <FileText className="h-4 w-4" />;
-      case 'update':
+      case "update":
         return <Check className="h-4 w-4" />;
-      case 'bulk_update':
+      case "bulk_update":
         return <Copy className="h-4 w-4" />;
-      case 'rollback':
+      case "rollback":
         return <RotateCcw className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
@@ -153,31 +176,31 @@ export function ChangeHistoryPanel({
 
   const getOperationColor = (type: string) => {
     switch (type) {
-      case 'create':
-        return 'text-green-500';
-      case 'update':
-        return 'text-blue-500';
-      case 'bulk_update':
-        return 'text-purple-500';
-      case 'rollback':
-        return 'text-orange-500';
+      case "create":
+        return "text-green-500";
+      case "update":
+        return "text-blue-500";
+      case "bulk_update":
+        return "text-purple-500";
+      case "rollback":
+        return "text-orange-500";
       default:
-        return 'text-gray-500';
+        return "text-gray-500";
     }
   };
 
   const formatFieldName = (field: string): string => {
     return field
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/_/g, " ")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase())
       .trim();
   };
 
   const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return 'Not set';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    if (value === null || value === undefined) return "Not set";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "object") return JSON.stringify(value, null, 2);
     return String(value);
   };
 
@@ -208,15 +231,18 @@ export function ChangeHistoryPanel({
             <div className="text-center py-8 text-muted-foreground">
               <Shield className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p>No change history available</p>
-              <p className="text-sm mt-1">Changes will appear here once you start editing</p>
+              <p className="text-sm mt-1">
+                Changes will appear here once you start editing
+              </p>
             </div>
           ) : (
             <ScrollArea className="h-[500px] pr-4">
               <div className="space-y-4">
                 {history.map((record) => {
                   const isExpanded = expandedItems.has(record.id);
-                  const hasChanges = Object.keys(record.changes || {}).length > 0;
-                  
+                  const hasChanges =
+                    Object.keys(record.changes || {}).length > 0;
+
                   return (
                     <div
                       key={record.id}
@@ -225,13 +251,15 @@ export function ChangeHistoryPanel({
                       {/* Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className={cn(
-                            "p-2 rounded-full bg-secondary",
-                            getOperationColor(record.operation_type)
-                          )}>
+                          <div
+                            className={cn(
+                              "p-2 rounded-full bg-secondary",
+                              getOperationColor(record.operation_type),
+                            )}
+                          >
                             {getOperationIcon(record.operation_type)}
                           </div>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
@@ -243,13 +271,16 @@ export function ChangeHistoryPanel({
                                 </Badge>
                               )}
                             </div>
-                            
+
                             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {formatDistanceToNow(new Date(record.created_at), { 
-                                  addSuffix: true 
-                                })}
+                                {formatDistanceToNow(
+                                  new Date(record.created_at),
+                                  {
+                                    addSuffix: true,
+                                  },
+                                )}
                               </span>
                               <span className="flex items-center gap-1">
                                 <User className="h-3 w-3" />
@@ -258,9 +289,9 @@ export function ChangeHistoryPanel({
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
-                          {record.operation_type !== 'create' && (
+                          {record.operation_type !== "create" && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -274,7 +305,7 @@ export function ChangeHistoryPanel({
                               Rollback
                             </Button>
                           )}
-                          
+
                           {hasChanges && (
                             <Button
                               size="sm"
@@ -290,31 +321,37 @@ export function ChangeHistoryPanel({
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Changes Detail */}
                       {isExpanded && hasChanges && (
                         <div className="mt-4 space-y-2 pl-11">
-                          {Object.entries(record.changes).map(([field, change]: [string, any]) => (
-                            <div key={field} className="space-y-1">
-                              <Label className="text-sm font-medium">
-                                {formatFieldName(field)}
-                              </Label>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="space-y-1">
-                                  <span className="text-muted-foreground">Before:</span>
-                                  <pre className="bg-secondary/50 p-2 rounded text-xs overflow-auto">
-                                    {formatValue(change.old)}
-                                  </pre>
-                                </div>
-                                <div className="space-y-1">
-                                  <span className="text-muted-foreground">After:</span>
-                                  <pre className="bg-secondary/50 p-2 rounded text-xs overflow-auto">
-                                    {formatValue(change.new)}
-                                  </pre>
+                          {Object.entries(record.changes).map(
+                            ([field, change]: [string, any]) => (
+                              <div key={field} className="space-y-1">
+                                <Label className="text-sm font-medium">
+                                  {formatFieldName(field)}
+                                </Label>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div className="space-y-1">
+                                    <span className="text-muted-foreground">
+                                      Before:
+                                    </span>
+                                    <pre className="bg-secondary/50 p-2 rounded text-xs overflow-auto">
+                                      {formatValue(change.old)}
+                                    </pre>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-muted-foreground">
+                                      After:
+                                    </span>
+                                    <pre className="bg-secondary/50 p-2 rounded text-xs overflow-auto">
+                                      {formatValue(change.new)}
+                                    </pre>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ),
+                          )}
                         </div>
                       )}
                     </div>
@@ -325,8 +362,11 @@ export function ChangeHistoryPanel({
           )}
         </CardContent>
       </Card>
-      
-      <AlertDialog open={rollbackDialogOpen} onOpenChange={setRollbackDialogOpen}>
+
+      <AlertDialog
+        open={rollbackDialogOpen}
+        onOpenChange={setRollbackDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -334,8 +374,9 @@ export function ChangeHistoryPanel({
               Confirm Rollback
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will restore the profile to its state at the selected point in history.
-              The current state will be backed up before rolling back.
+              This will restore the profile to its state at the selected point
+              in history. The current state will be backed up before rolling
+              back.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -347,7 +388,9 @@ export function ChangeHistoryPanel({
               disabled={rollbackLoading}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              {rollbackLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {rollbackLoading && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               Rollback to This Version
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -358,5 +401,5 @@ export function ChangeHistoryPanel({
 }
 
 // Fix missing imports
-import { cn } from '@/lib/utils';
-import { Label } from '@/components/ui/label';
+import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";

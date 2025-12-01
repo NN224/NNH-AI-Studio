@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export function LocationsOverviewTab() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -60,7 +61,10 @@ export function LocationsOverviewTab() {
           setGmbAccountId(null);
         }
       } catch (error) {
-        console.error("Failed to check GMB account:", error);
+        gmbLogger.error(
+          "Failed to check GMB account",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         setHasGmbAccount(false);
         setGmbAccountId(null);
       }
@@ -104,7 +108,11 @@ export function LocationsOverviewTab() {
       setSelectedLocations([]);
       await refetch();
     } catch (error) {
-      console.error("Bulk sync error:", error);
+      gmbLogger.error(
+        "Bulk sync error",
+        error instanceof Error ? error : new Error(String(error)),
+        { selectedCount: selectedLocations.length },
+      );
       toast.error(
         error instanceof Error
           ? error.message
@@ -182,7 +190,11 @@ export function LocationsOverviewTab() {
         `Exported ${total} ${total === 1 ? "location" : "locations"} successfully!`,
       );
     } catch (error) {
-      console.error("Export error:", error);
+      gmbLogger.error(
+        "Export error",
+        error instanceof Error ? error : new Error(String(error)),
+        { total },
+      );
       toast.error(
         error instanceof Error ? error.message : "Failed to export locations",
       );
@@ -382,7 +394,13 @@ export function LocationsOverviewTab() {
                         `Exported ${selectedLocations.length} ${selectedLocations.length === 1 ? "location" : "locations"} successfully!`,
                       );
                     } catch (error) {
-                      console.error("Export selected error:", error);
+                      gmbLogger.error(
+                        "Export selected error",
+                        error instanceof Error
+                          ? error
+                          : new Error(String(error)),
+                        { selectedCount: selectedLocations.length },
+                      );
                       toast.error("Failed to export selected locations");
                     } finally {
                       setExporting(false);

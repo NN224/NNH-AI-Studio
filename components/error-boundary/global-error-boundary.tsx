@@ -1,14 +1,21 @@
-'use client';
+"use client";
 
 /**
  * Global Error Boundary
  * Catches and handles errors across the entire application
  */
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { logger } from "@/lib/utils/logger";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -21,7 +28,10 @@ interface ErrorBoundaryProps {
   fallback?: React.ReactNode;
 }
 
-export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class GlobalErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -40,7 +50,7 @@ export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, Err
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error to console
-    console.error('Global Error Boundary caught an error:', error, errorInfo);
+    logger.error("Global Error Boundary caught an error", error, { errorInfo });
 
     // Update state with error info
     this.setState({
@@ -53,23 +63,29 @@ export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, Err
 
   async logErrorToDatabase(error: Error, errorInfo: React.ErrorInfo) {
     try {
-      await fetch('/api/error-logs', {
-        method: 'POST',
+      await fetch("/api/error-logs", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           message: error.message,
           stack: error.stack,
           componentStack: errorInfo.componentStack,
           timestamp: new Date().toISOString(),
-          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
-          url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+          userAgent:
+            typeof window !== "undefined"
+              ? window.navigator.userAgent
+              : "unknown",
+          url: typeof window !== "undefined" ? window.location.href : "unknown",
         }),
       });
     } catch (logError) {
       // Fail silently - don't break the error boundary
-      console.error('Failed to log error to database:', logError);
+      logger.error(
+        "Failed to log error to database",
+        logError instanceof Error ? logError : new Error(String(logError)),
+      );
     }
   }
 
@@ -86,7 +102,7 @@ export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, Err
   };
 
   handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   render() {
@@ -127,30 +143,43 @@ export class GlobalErrorBoundary extends React.Component<ErrorBoundaryProps, Err
               )}
 
               {/* Stack Trace (Development Only) */}
-              {process.env.NODE_ENV === 'development' && this.state.error?.stack && (
-                <details className="space-y-2">
-                  <summary className="cursor-pointer font-semibold text-sm hover:text-primary">
-                    Stack Trace (للمطورين)
-                  </summary>
-                  <div className="p-4 bg-muted rounded-lg overflow-auto max-h-64">
-                    <pre className="text-xs">
-                      <code>{this.state.error.stack}</code>
-                    </pre>
-                  </div>
-                </details>
-              )}
+              {process.env.NODE_ENV === "development" &&
+                this.state.error?.stack && (
+                  <details className="space-y-2">
+                    <summary className="cursor-pointer font-semibold text-sm hover:text-primary">
+                      Stack Trace (للمطورين)
+                    </summary>
+                    <div className="p-4 bg-muted rounded-lg overflow-auto max-h-64">
+                      <pre className="text-xs">
+                        <code>{this.state.error.stack}</code>
+                      </pre>
+                    </div>
+                  </details>
+                )}
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button onClick={this.handleReset} variant="default" className="flex-1">
+                <Button
+                  onClick={this.handleReset}
+                  variant="default"
+                  className="flex-1"
+                >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   حاول مرة أخرى
                 </Button>
-                <Button onClick={this.handleReload} variant="outline" className="flex-1">
+                <Button
+                  onClick={this.handleReload}
+                  variant="outline"
+                  className="flex-1"
+                >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   إعادة تحميل الصفحة
                 </Button>
-                <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
+                <Button
+                  onClick={this.handleGoHome}
+                  variant="outline"
+                  className="flex-1"
+                >
                   <Home className="h-4 w-4 mr-2" />
                   العودة للرئيسية
                 </Button>

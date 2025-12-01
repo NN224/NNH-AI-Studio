@@ -1,27 +1,28 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Clock, Copy, Trash2, Loader2 } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { createClient } from "@/lib/supabase/client"
-import { ContentGeneration } from "@/lib/types/database"
-import { formatDistanceToNow } from "date-fns"
-import { toast } from "sonner"
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Copy, Trash2, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
+import { ContentGeneration } from "@/lib/types/database";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { aiLogger } from "@/lib/utils/logger";
 
 export function ContentHistory() {
-  const [history, setHistory] = useState<ContentGeneration[]>([])
-  const [loading, setLoading] = useState(true)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const supabase = createClient()
+  const [history, setHistory] = useState<ContentGeneration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
   useEffect(() => {
-    fetchHistory()
+    fetchHistory();
 
     const channel = supabase
       .channel("content_generations_changes")
@@ -35,74 +36,94 @@ export function ContentHistory() {
         (payload) => {
           try {
             if (payload.eventType === "INSERT") {
-              setHistory((prev) => [payload.new as ContentGeneration, ...prev])
+              setHistory((prev) => [payload.new as ContentGeneration, ...prev]);
             } else if (payload.eventType === "DELETE") {
-              setHistory((prev) => prev.filter((item) => item.id !== payload.old.id))
+              setHistory((prev) =>
+                prev.filter((item) => item.id !== payload.old.id),
+              );
             } else if (payload.eventType === "UPDATE") {
               setHistory((prev) =>
-                prev.map((item) => (item.id === payload.new.id ? (payload.new as ContentGeneration) : item))
-              )
+                prev.map((item) =>
+                  item.id === payload.new.id
+                    ? (payload.new as ContentGeneration)
+                    : item,
+                ),
+              );
             }
           } catch (error) {
-            console.error("Error handling realtime update:", error)
+            aiLogger.error(
+              "Error handling realtime update",
+              error instanceof Error ? error : new Error(String(error)),
+              { eventType: payload.eventType },
+            );
           }
-        }
+        },
       )
-      .subscribe()
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchHistory = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const { data, error } = await supabase
         .from("content_generations")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(10)
+        .limit(10);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setHistory(data || [])
+      setHistory(data || []);
     } catch (error) {
-      console.error("Error fetching history:", error)
-      toast.error("Failed to load content history")
+      aiLogger.error(
+        "Error fetching history",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error("Failed to load content history");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content)
-    toast.success("Content copied to clipboard!")
-  }
+    navigator.clipboard.writeText(content);
+    toast.success("Content copied to clipboard!");
+  };
 
   const handleDelete = async (id: string) => {
     try {
-      setDeletingId(id)
-      const { error } = await supabase.from("content_generations").delete().eq("id", id)
+      setDeletingId(id);
+      const { error } = await supabase
+        .from("content_generations")
+        .delete()
+        .eq("id", id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      toast.success("Content deleted successfully!")
+      toast.success("Content deleted successfully!");
     } catch (error) {
-      console.error("Error deleting content:", error)
-      toast.error("Failed to delete content")
+      aiLogger.error(
+        "Error deleting content",
+        error instanceof Error ? error : new Error(String(error)),
+        { contentId: id },
+      );
+      toast.error("Failed to delete content");
     } finally {
-      setDeletingId(null)
+      setDeletingId(null);
     }
-  }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
     } catch {
-      return "Unknown time"
+      return "Unknown time";
     }
-  }
+  };
 
   return (
     <Card className="bg-card border-primary/30">
@@ -120,7 +141,9 @@ export function ContentHistory() {
         ) : history.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>No content generated yet</p>
-            <p className="text-sm mt-1">Start generating content to see your history here</p>
+            <p className="text-sm mt-1">
+              Start generating content to see your history here
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -138,10 +161,16 @@ export function ContentHistory() {
                     <Badge className="bg-primary/20 text-primary border-primary/30 capitalize">
                       {item.content_type}
                     </Badge>
-                    <Badge variant="outline" className="border-primary/30 text-muted-foreground capitalize">
+                    <Badge
+                      variant="outline"
+                      className="border-primary/30 text-muted-foreground capitalize"
+                    >
                       {item.tone}
                     </Badge>
-                    <Badge variant="outline" className="border-accent/30 text-accent capitalize text-xs">
+                    <Badge
+                      variant="outline"
+                      className="border-accent/30 text-accent capitalize text-xs"
+                    >
                       {item.provider}
                     </Badge>
                   </div>
@@ -149,7 +178,9 @@ export function ContentHistory() {
                     {formatTimestamp(item.created_at)}
                   </span>
                 </div>
-                <p className="text-sm text-foreground line-clamp-2 mb-3">{item.generated_content}</p>
+                <p className="text-sm text-foreground line-clamp-2 mb-3">
+                  {item.generated_content}
+                </p>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -181,5 +212,5 @@ export function ContentHistory() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

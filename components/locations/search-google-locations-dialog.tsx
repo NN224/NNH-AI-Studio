@@ -1,17 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { Loader2, Search, MapPin, ExternalLink } from "lucide-react"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Loader2, Search, MapPin, ExternalLink } from "lucide-react";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface SearchGoogleLocationsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onLocationSelect?: (location: any) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onLocationSelect?: (location: any) => void;
 }
 
 export function SearchGoogleLocationsDialog({
@@ -19,62 +26,68 @@ export function SearchGoogleLocationsDialog({
   onOpenChange,
   onLocationSelect,
 }: SearchGoogleLocationsDialogProps) {
-  const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [results, setResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      toast.error("Please enter a search query")
-      return
+      toast.error("Please enter a search query");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await fetch('/api/gmb/google-locations/search', {
-        method: 'POST',
+      const response = await fetch("/api/gmb/google-locations/search", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           query: searchQuery,
           pageSize: 10,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to search locations')
+        const error = await response.json();
+        throw new Error(error.error || "Failed to search locations");
       }
 
-      const data = await response.json()
-      setResults(data.googleLocations || [])
-      
+      const data = await response.json();
+      setResults(data.googleLocations || []);
+
       if (data.googleLocations?.length === 0) {
-        toast.info("No locations found")
+        toast.info("No locations found");
       }
     } catch (error: any) {
-      console.error('Error searching locations:', error)
-      toast.error(error.message || 'Failed to search locations')
+      gmbLogger.error(
+        "Error searching locations",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error(error.message || "Failed to search locations");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSelectLocation = (location: any) => {
-    onLocationSelect?.(location)
-    onOpenChange(false)
-    setSearchQuery("")
-    setResults([])
-  }
+    onLocationSelect?.(location);
+    onOpenChange(false);
+    setSearchQuery("");
+    setResults([]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-primary/30">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Search Google Locations</DialogTitle>
+          <DialogTitle className="text-foreground">
+            Search Google Locations
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Search for existing Google Business Profile locations to claim or view
+            Search for existing Google Business Profile locations to claim or
+            view
           </DialogDescription>
         </DialogHeader>
 
@@ -85,7 +98,7 @@ export function SearchGoogleLocationsDialog({
                 placeholder="Search by business name or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="bg-secondary border-primary/30 text-foreground"
               />
             </div>
@@ -107,15 +120,15 @@ export function SearchGoogleLocationsDialog({
               <Label className="text-foreground">Search Results</Label>
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {results.map((googleLocation, idx) => {
-                  const location = googleLocation.location
-                  const address = location?.storefrontAddress
+                  const location = googleLocation.location;
+                  const address = location?.storefrontAddress;
                   const addressStr = address
-                    ? `${(address.addressLines || []).join(', ')}${
-                        address.locality ? `, ${address.locality}` : ''
-                      }${address.administrativeArea ? `, ${address.administrativeArea}` : ''}${
-                        address.postalCode ? ` ${address.postalCode}` : ''
+                    ? `${(address.addressLines || []).join(", ")}${
+                        address.locality ? `, ${address.locality}` : ""
+                      }${address.administrativeArea ? `, ${address.administrativeArea}` : ""}${
+                        address.postalCode ? ` ${address.postalCode}` : ""
                       }`
-                    : 'No address'
+                    : "No address";
 
                   return (
                     <div
@@ -125,15 +138,17 @@ export function SearchGoogleLocationsDialog({
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium text-foreground mb-1">
-                            {location?.title || 'Unnamed Location'}
+                            {location?.title || "Unnamed Location"}
                           </h4>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                             <MapPin className="w-4 h-4" />
                             <span>{addressStr}</span>
                           </div>
-                          {location?.categories?.primaryCategory?.displayName && (
+                          {location?.categories?.primaryCategory
+                            ?.displayName && (
                             <p className="text-xs text-muted-foreground">
-                              Category: {location.categories.primaryCategory.displayName}
+                              Category:{" "}
+                              {location.categories.primaryCategory.displayName}
                             </p>
                           )}
                           {googleLocation.requestAdminRightsUri && (
@@ -171,7 +186,7 @@ export function SearchGoogleLocationsDialog({
                         </div>
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -182,9 +197,9 @@ export function SearchGoogleLocationsDialog({
           <Button
             variant="outline"
             onClick={() => {
-              onOpenChange(false)
-              setSearchQuery("")
-              setResults([])
+              onOpenChange(false);
+              setSearchQuery("");
+              setResults([]);
             }}
             className="border-primary/30"
           >
@@ -193,6 +208,5 @@ export function SearchGoogleLocationsDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,14 +8,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, X, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface Label {
   id: string;
@@ -37,11 +38,13 @@ export function BulkLabelDialog({
   onSuccess,
 }: BulkLabelDialogProps) {
   const [labels, setLabels] = useState<Label[]>([]);
-  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [newLabelName, setNewLabelName] = useState('');
-  const [newLabelColor, setNewLabelColor] = useState('#3b82f6'); // Default blue
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState("#3b82f6"); // Default blue
   const [creatingLabel, setCreatingLabel] = useState(false);
 
   useEffect(() => {
@@ -49,21 +52,24 @@ export function BulkLabelDialog({
       void fetchLabels();
     } else {
       setSelectedLabelIds(new Set());
-      setNewLabelName('');
-      setNewLabelColor('#3b82f6');
+      setNewLabelName("");
+      setNewLabelColor("#3b82f6");
     }
   }, [open]);
 
   const fetchLabels = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/locations/labels');
-      if (!response.ok) throw new Error('Failed to fetch labels');
+      const response = await fetch("/api/locations/labels");
+      if (!response.ok) throw new Error("Failed to fetch labels");
       const data = await response.json();
       setLabels(data.labels || []);
     } catch (error) {
-      console.error('Error fetching labels:', error);
-      toast.error('Failed to load labels');
+      gmbLogger.error(
+        "Error fetching labels",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error("Failed to load labels");
     } finally {
       setLoading(false);
     }
@@ -72,15 +78,15 @@ export function BulkLabelDialog({
   const handleCreateLabel = async () => {
     const trimmedName = newLabelName.trim();
     if (!trimmedName) {
-      toast.error('Please enter a label name');
+      toast.error("Please enter a label name");
       return;
     }
 
     try {
       setCreatingLabel(true);
-      const response = await fetch('/api/locations/labels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/locations/labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmedName,
           color: newLabelColor,
@@ -89,7 +95,7 @@ export function BulkLabelDialog({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create label');
+        throw new Error(error.message || "Failed to create label");
       }
 
       const data = await response.json();
@@ -97,12 +103,17 @@ export function BulkLabelDialog({
 
       setLabels((prev) => [...prev, newLabel]);
       setSelectedLabelIds((prev) => new Set([...prev, newLabel.id]));
-      setNewLabelName('');
-      setNewLabelColor('#3b82f6');
-      toast.success('Label created successfully');
+      setNewLabelName("");
+      setNewLabelColor("#3b82f6");
+      toast.success("Label created successfully");
     } catch (error) {
-      console.error('Error creating label:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create label');
+      gmbLogger.error(
+        "Error creating label",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create label",
+      );
     } finally {
       setCreatingLabel(false);
     }
@@ -122,15 +133,15 @@ export function BulkLabelDialog({
 
   const handleApplyLabels = async () => {
     if (selectedLabelIds.size === 0) {
-      toast.error('Please select at least one label');
+      toast.error("Please select at least one label");
       return;
     }
 
     try {
       setSaving(true);
-      const response = await fetch('/api/locations/bulk-label', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/locations/bulk-label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           locationIds,
           labelIds: Array.from(selectedLabelIds),
@@ -139,15 +150,23 @@ export function BulkLabelDialog({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to apply labels');
+        throw new Error(error.message || "Failed to apply labels");
       }
 
-      toast.success(`Labels applied to ${locationIds.length} location${locationIds.length > 1 ? 's' : ''}`);
+      toast.success(
+        `Labels applied to ${locationIds.length} location${locationIds.length > 1 ? "s" : ""}`,
+      );
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error applying labels:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to apply labels');
+      gmbLogger.error(
+        "Error applying labels",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationCount: locationIds.length },
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Failed to apply labels",
+      );
     } finally {
       setSaving(false);
     }
@@ -159,8 +178,9 @@ export function BulkLabelDialog({
         <DialogHeader>
           <DialogTitle>Apply Labels</DialogTitle>
           <DialogDescription>
-            Select or create labels to apply to {locationIds.length} selected location
-            {locationIds.length > 1 ? 's' : ''}
+            Select or create labels to apply to {locationIds.length} selected
+            location
+            {locationIds.length > 1 ? "s" : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -177,7 +197,11 @@ export function BulkLabelDialog({
                 No labels yet. Create one below.
               </p>
             ) : (
-              <ul className="space-y-2 max-h-[200px] overflow-y-auto" role="listbox" aria-label="Available labels">
+              <ul
+                className="space-y-2 max-h-[200px] overflow-y-auto"
+                role="listbox"
+                aria-label="Available labels"
+              >
                 {labels.map((label) => (
                   <li
                     key={label.id}
@@ -189,19 +213,19 @@ export function BulkLabelDialog({
                       className="flex items-center gap-3 w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500 rounded-md py-1 px-1"
                       aria-pressed={selectedLabelIds.has(label.id)}
                     >
-                    <Checkbox
-                      checked={selectedLabelIds.has(label.id)}
+                      <Checkbox
+                        checked={selectedLabelIds.has(label.id)}
                         onCheckedChange={() => handleToggleLabel(label.id)}
                         aria-label={`Toggle label ${label.name}`}
-                    />
-                    <Badge
-                      style={{
-                        backgroundColor: label.color || '#3b82f6',
-                        color: 'white',
-                      }}
-                    >
-                      {label.name}
-                    </Badge>
+                      />
+                      <Badge
+                        style={{
+                          backgroundColor: label.color || "#3b82f6",
+                          color: "white",
+                        }}
+                      >
+                        {label.name}
+                      </Badge>
                     </button>
                   </li>
                 ))}
@@ -218,7 +242,7 @@ export function BulkLabelDialog({
                 value={newLabelName}
                 onChange={(e) => setNewLabelName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     handleCreateLabel();
                   }
                 }}
@@ -254,17 +278,24 @@ export function BulkLabelDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
-          <Button onClick={handleApplyLabels} disabled={saving || selectedLabelIds.size === 0}>
+          <Button
+            onClick={handleApplyLabels}
+            disabled={saving || selectedLabelIds.size === 0}
+          >
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Applying...
               </>
             ) : (
-              'Apply Labels'
+              "Apply Labels"
             )}
           </Button>
         </DialogFooter>

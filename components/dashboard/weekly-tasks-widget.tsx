@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Link } from '@/lib/navigation';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/lib/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   CheckCircle2,
   Circle,
@@ -16,20 +22,21 @@ import {
   AlertCircle,
   RefreshCw,
   ChevronRight,
-} from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface Task {
   id: string;
   title: string;
   description: string;
   category: string;
-  priority: 'high' | 'medium' | 'low';
-  effort_level: 'quick' | 'moderate' | 'extensive';
+  priority: "high" | "medium" | "low";
+  effort_level: "quick" | "moderate" | "extensive";
   estimated_minutes: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'dismissed';
+  status: "pending" | "in_progress" | "completed" | "dismissed";
   reasoning: string;
   expected_impact: string;
 }
@@ -41,7 +48,7 @@ export function WeeklyTasksWidget() {
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const supabase = createClient();
   if (!supabase) {
-    throw new Error('Failed to initialize Supabase client')
+    throw new Error("Failed to initialize Supabase client");
   }
 
   useEffect(() => {
@@ -66,21 +73,24 @@ export function WeeklyTasksWidget() {
 
       // Try to fetch tasks, but don't fail if table doesn't exist
       const { data, error } = await supabase
-        .from('weekly_task_recommendations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('week_start_date', weekStartDate.toISOString().split('T')[0])
-        .order('priority', { ascending: false })
-        .order('estimated_minutes', { ascending: true });
+        .from("weekly_task_recommendations")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("week_start_date", weekStartDate.toISOString().split("T")[0])
+        .order("priority", { ascending: false })
+        .order("estimated_minutes", { ascending: true });
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== "PGRST116") {
         // PGRST116 = table doesn't exist, which is okay
         throw error;
       }
-      
+
       setTasks(data || []);
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      gmbLogger.error(
+        "Error loading tasks",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       // Don't show error if table doesn't exist - just show empty state
       setTasks([]);
     } finally {
@@ -91,25 +101,30 @@ export function WeeklyTasksWidget() {
   const generateTasks = async () => {
     setGenerating(true);
     try {
-      const response = await fetch('/api/tasks/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/tasks/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
 
       const data = await response.json();
 
       if (data.tasks_exist) {
-        toast.info('Tasks already generated for this week');
+        toast.info("Tasks already generated for this week");
       } else if (data.success) {
-        toast.success('Weekly tasks generated successfully!');
+        toast.success("Weekly tasks generated successfully!");
         await loadTasks();
       } else {
-        toast.error('Failed to generate tasks');
+        toast.error("Failed to generate tasks");
       }
     } catch (error) {
-      console.error('Failed to generate tasks:', error);
-      toast.error('Failed to generate tasks. API endpoint may not be available.');
+      gmbLogger.error(
+        "Failed to generate tasks",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error(
+        "Failed to generate tasks. API endpoint may not be available.",
+      );
     } finally {
       setGenerating(false);
     }
@@ -117,26 +132,27 @@ export function WeeklyTasksWidget() {
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     // ✅ SECURITY: Validate inputs (client-side validation for UX)
-    const validStatuses = ['pending', 'in_progress', 'completed', 'dismissed'];
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+    const validStatuses = ["pending", "in_progress", "completed", "dismissed"];
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     if (!uuidRegex.test(taskId)) {
-      toast.error('Invalid task ID');
+      toast.error("Invalid task ID");
       return;
     }
-    
+
     if (!validStatuses.includes(newStatus)) {
-      toast.error('Invalid task status');
+      toast.error("Invalid task status");
       return;
     }
-    
+
     // Set loading state for this specific task
     setUpdatingTaskId(taskId);
-    
+
     try {
-      const response = await fetch('/api/tasks/update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/tasks/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           task_id: taskId,
           status: newStatus,
@@ -145,62 +161,75 @@ export function WeeklyTasksWidget() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || 'Failed to update task');
+        throw new Error(
+          errorData.message || errorData.error || "Failed to update task",
+        );
       }
 
       // Optimistic update
       setTasks((prev) =>
         prev.map((task) =>
-          task.id === taskId
-            ? { ...task, status: newStatus as any }
-            : task
-        )
+          task.id === taskId ? { ...task, status: newStatus as any } : task,
+        ),
       );
 
-      if (newStatus === 'completed') {
-        toast.success('Task completed!');
+      if (newStatus === "completed") {
+        toast.success("Task completed!");
       } else {
-        toast.success('Task updated');
+        toast.success("Task updated");
       }
     } catch (error) {
-      console.error('Failed to update task:', error);
-      
+      gmbLogger.error(
+        "Failed to update task",
+        error instanceof Error ? error : new Error(String(error)),
+        { taskId },
+      );
+
       // Revert optimistic update on error
       await loadTasks();
-      
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update task";
       toast.error(errorMessage);
     } finally {
       setUpdatingTaskId(null);
     }
   };
 
-  const completedTasks = tasks.filter((t) => t.status === 'completed').length;
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
   const totalTasks = tasks.length;
-  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const completionRate =
+    totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  const quickWins = tasks.filter(
-    (t) => t.effort_level === 'quick' && t.status === 'pending'
-  ).slice(0, 3);
+  const quickWins = tasks
+    .filter((t) => t.effort_level === "quick" && t.status === "pending")
+    .slice(0, 3);
 
   const highPriorityTasks = tasks.filter(
-    (t) => t.priority === 'high' && t.status !== 'completed' && t.status !== 'dismissed'
+    (t) =>
+      t.priority === "high" &&
+      t.status !== "completed" &&
+      t.status !== "dismissed",
   );
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      content: 'bg-info/10 text-info border-info/20',
-      reviews: 'bg-success/10 text-success border-success/20',
-      optimization: 'bg-primary/10 text-primary border-primary/20',
-      performance: 'bg-warning/10 text-warning border-warning/20',
-      team: 'bg-accent/10 text-accent border-accent/20',
+      content: "bg-info/10 text-info border-info/20",
+      reviews: "bg-success/10 text-success border-success/20",
+      optimization: "bg-primary/10 text-primary border-primary/20",
+      performance: "bg-warning/10 text-warning border-warning/20",
+      team: "bg-accent/10 text-accent border-accent/20",
     };
-    return colors[category] || 'bg-muted/10 text-muted-foreground border-muted/20';
+    return (
+      colors[category] || "bg-muted/10 text-muted-foreground border-muted/20"
+    );
   };
 
   const getPriorityIcon = (priority: string) => {
-    if (priority === 'high') return <AlertCircle className="h-4 w-4 text-destructive" />;
-    if (priority === 'medium') return <TrendingUp className="h-4 w-4 text-warning" />;
+    if (priority === "high")
+      return <AlertCircle className="h-4 w-4 text-destructive" />;
+    if (priority === "medium")
+      return <TrendingUp className="h-4 w-4 text-warning" />;
     return <Circle className="h-4 w-4 text-muted-foreground" />;
   };
 
@@ -221,40 +250,42 @@ export function WeeklyTasksWidget() {
 
   const defaultTasks: Task[] = [
     {
-      id: 'default-1',
-      title: 'Complete GMB Profile',
-      description: 'Ensure all fields (hours, services, description) are filled out.',
-      category: 'optimization',
-      priority: 'high',
-      effort_level: 'quick',
+      id: "default-1",
+      title: "Complete GMB Profile",
+      description:
+        "Ensure all fields (hours, services, description) are filled out.",
+      category: "optimization",
+      priority: "high",
+      effort_level: "quick",
       estimated_minutes: 10,
-      status: 'pending',
-      reasoning: 'Incomplete profiles rank lower.',
-      expected_impact: 'Immediate visibility boost.',
+      status: "pending",
+      reasoning: "Incomplete profiles rank lower.",
+      expected_impact: "Immediate visibility boost.",
     },
     {
-      id: 'default-2',
-      title: 'Upload 5 New Photos',
-      description: 'Add high-quality photos of your business interior and exterior.',
-      category: 'content',
-      priority: 'medium',
-      effort_level: 'moderate',
+      id: "default-2",
+      title: "Upload 5 New Photos",
+      description:
+        "Add high-quality photos of your business interior and exterior.",
+      category: "content",
+      priority: "medium",
+      effort_level: "moderate",
       estimated_minutes: 20,
-      status: 'pending',
-      reasoning: 'Profiles with photos get more clicks.',
-      expected_impact: 'Increased engagement.',
+      status: "pending",
+      reasoning: "Profiles with photos get more clicks.",
+      expected_impact: "Increased engagement.",
     },
     {
-      id: 'default-3',
-      title: 'Create a GMB Post',
-      description: 'Post about a new offer or event.',
-      category: 'content',
-      priority: 'medium',
-      effort_level: 'quick',
+      id: "default-3",
+      title: "Create a GMB Post",
+      description: "Post about a new offer or event.",
+      category: "content",
+      priority: "medium",
+      effort_level: "quick",
       estimated_minutes: 15,
-      status: 'pending',
-      reasoning: 'Posts keep your profile fresh and visible.',
-      expected_impact: 'Temporary ranking boost.',
+      status: "pending",
+      reasoning: "Posts keep your profile fresh and visible.",
+      expected_impact: "Temporary ranking boost.",
     },
   ];
 
@@ -283,7 +314,9 @@ export function WeeklyTasksWidget() {
             <Zap className="h-5 w-5 text-warning" />
             Weekly Tasks
           </CardTitle>
-          <CardDescription>AI-powered recommendations to improve your business</CardDescription>
+          <CardDescription>
+            AI-powered recommendations to improve your business
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -291,7 +324,9 @@ export function WeeklyTasksWidget() {
               <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
                 <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No personalized tasks yet</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No personalized tasks yet
+              </h3>
               <p className="text-muted-foreground mb-6">
                 Generate personalized tasks based on your business performance
               </p>
@@ -309,15 +344,21 @@ export function WeeklyTasksWidget() {
                 )}
               </Button>
             </div>
-            
+
             <div className="border-t pt-6">
-              <h4 className="text-sm font-semibold mb-3">Recommended Quick Wins</h4>
+              <h4 className="text-sm font-semibold mb-3">
+                Recommended Quick Wins
+              </h4>
               <div className="space-y-2">
                 {defaultTasks.map((task) => (
                   <TaskItem
                     key={task.id}
                     task={task}
-                    onStatusChange={() => toast.info('Please generate personalized tasks to track completion.')}
+                    onStatusChange={() =>
+                      toast.info(
+                        "Please generate personalized tasks to track completion.",
+                      )
+                    }
                     getCategoryColor={getCategoryColor}
                     getPriorityIcon={getPriorityIcon}
                     isDefault={true}
@@ -340,10 +381,19 @@ export function WeeklyTasksWidget() {
               <Zap className="h-5 w-5 text-warning" />
               Weekly Tasks
             </CardTitle>
-            <CardDescription>Your personalized action plan for this week</CardDescription>
+            <CardDescription>
+              Your personalized action plan for this week
+            </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={generateTasks} disabled={generating}>
-            <RefreshCw className={cn('h-4 w-4', generating && 'animate-spin')} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateTasks}
+            disabled={generating}
+          >
+            <RefreshCw
+              className={cn("h-4 w-4", generating && "animate-spin")}
+            />
           </Button>
         </div>
 
@@ -429,22 +479,22 @@ function TaskItem({
   isDefault?: boolean;
   isUpdating?: boolean;
 }) {
-  const isCompleted = task.status === 'completed';
+  const isCompleted = task.status === "completed";
 
   return (
     <div
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors',
-        isCompleted && 'opacity-60'
+        "flex items-start gap-3 p-3 rounded-lg border bg-card transition-colors",
+        isCompleted && "opacity-60",
       )}
     >
       <Checkbox
         checked={isCompleted}
         onCheckedChange={(checked) => {
           if (!isDefault) {
-            onStatusChange(task.id, checked ? 'completed' : 'pending');
+            onStatusChange(task.id, checked ? "completed" : "pending");
           } else {
-            onStatusChange(task.id, 'default');
+            onStatusChange(task.id, "default");
           }
         }}
         className="mt-1"
@@ -453,7 +503,9 @@ function TaskItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2 mb-1">
           {getPriorityIcon(task.priority)}
-          <h5 className={cn('font-medium text-sm', isCompleted && 'line-through')}>
+          <h5
+            className={cn("font-medium text-sm", isCompleted && "line-through")}
+          >
             {task.title}
           </h5>
           {isUpdating && (
@@ -464,7 +516,10 @@ function TaskItem({
         </div>
         <p className="text-xs text-muted-foreground mb-2">{task.description}</p>
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className={cn('text-xs', getCategoryColor(task.category))}>
+          <Badge
+            variant="outline"
+            className={cn("text-xs", getCategoryColor(task.category))}
+          >
             {task.category}
           </Badge>
           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -476,4 +531,3 @@ function TaskItem({
     </div>
   );
 }
-

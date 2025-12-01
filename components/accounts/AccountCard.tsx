@@ -1,11 +1,18 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Building2, MapPin, Clock, RefreshCw, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { GmbAccount } from '@/lib/types/database';
+import type { GmbAccount } from "@/lib/types/database";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface AccountCardProps {
   account: GmbAccount;
@@ -27,14 +34,18 @@ export function AccountCard({
   index = 0,
 }: AccountCardProps) {
   if (!account || !account.id) {
-    console.error("AccountCard received invalid account data", account);
+    gmbLogger.error(
+      "AccountCard received invalid account data",
+      new Error("Invalid account data"),
+      { account },
+    );
     return null;
   }
 
   const isSyncing = syncingAccountId === account.id;
   const isDeleting = deletingAccountId === account.id;
   const isActive = account.is_active ?? false;
-  const currentStatus = isActive ? 'active' : 'disconnected';
+  const currentStatus = isActive ? "active" : "disconnected";
 
   return (
     <motion.div
@@ -44,14 +55,14 @@ export function AccountCard({
       whileHover={{ y: -4, scale: 1.02 }}
       className="h-full"
     >
-      <Card 
-        data-testid={`account-card-${account.id}`} 
+      <Card
+        data-testid={`account-card-${account.id}`}
         className="bg-card border border-primary/30 shadow-sm transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:border-primary/50 flex flex-col h-full"
       >
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <motion.div 
+              <motion.div
                 className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0"
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.6 }}
@@ -59,16 +70,20 @@ export function AccountCard({
                 <Building2 className="w-5 h-5 text-primary" />
               </motion.div>
               <div className="min-w-0">
-                <CardTitle className="text-base font-semibold text-foreground truncate">{account.account_name || 'Unnamed Account'}</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground truncate">{account.email || 'No email'}</CardDescription>
+                <CardTitle className="text-base font-semibold text-foreground truncate">
+                  {account.account_name || "Unnamed Account"}
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground truncate">
+                  {account.email || "No email"}
+                </CardDescription>
               </div>
             </div>
             <Badge
-              variant={isActive ? 'default' : 'secondary'}
+              variant={isActive ? "default" : "secondary"}
               className={`capitalize text-xs px-2 py-0.5 rounded-full transition-colors duration-200 ${
                 isActive
-                  ? 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-700/50'
-                  : 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50'
+                  ? "bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-700/50"
+                  : "bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50"
               }`}
             >
               {currentStatus}
@@ -77,7 +92,7 @@ export function AccountCard({
         </CardHeader>
         <CardContent className="space-y-3 pt-0 flex-grow flex flex-col justify-between">
           <div className="grid grid-cols-2 gap-3">
-            <motion.div 
+            <motion.div
               className="bg-secondary/40 rounded-md p-2 border border-primary/10 text-center"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
@@ -86,9 +101,11 @@ export function AccountCard({
                 <MapPin className="w-3 h-3" />
                 <p className="text-xs font-medium">Locations</p>
               </div>
-              <p className="text-lg font-bold text-foreground">{account.total_locations ?? 0}</p>
+              <p className="text-lg font-bold text-foreground">
+                {account.total_locations ?? 0}
+              </p>
             </motion.div>
-            <motion.div 
+            <motion.div
               className="bg-secondary/40 rounded-md p-2 border border-primary/10 text-center"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
@@ -117,8 +134,10 @@ export function AccountCard({
                 variant="outline"
                 size="sm"
               >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Syncing...' : 'Sync Now'}
+                <RefreshCw
+                  className={`w-3.5 h-3.5 mr-1.5 ${isSyncing ? "animate-spin" : ""}`}
+                />
+                {isSyncing ? "Syncing..." : "Sync Now"}
               </Button>
               <Button
                 onClick={() => onDisconnect(account.id)}
@@ -128,7 +147,7 @@ export function AccountCard({
                 className="flex-shrink-0 transition-all duration-200 hover:scale-105"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                {isDeleting ? '...' : 'Disconnect'}
+                {isDeleting ? "..." : "Disconnect"}
               </Button>
             </div>
           </div>

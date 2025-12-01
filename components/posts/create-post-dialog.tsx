@@ -23,6 +23,7 @@ import { createPost } from "@/server/actions/posts-management";
 import { Image as ImageIcon, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { postsLogger } from "@/lib/utils/logger";
 import {
   CTA_OPTIONS,
   POST_TYPES,
@@ -116,7 +117,11 @@ export function CreatePostDialog({
           toast.success("Image uploaded successfully!");
         }
       } catch (error) {
-        console.error("Upload error:", error);
+        postsLogger.error(
+          "Upload error",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId },
+        );
         toast.error("Failed to upload image", {
           description:
             error instanceof Error ? error.message : "Please try again",
@@ -166,7 +171,11 @@ export function CreatePostDialog({
 
       toast.success("Content generated successfully!");
     } catch (error) {
-      console.error("Generate error:", error);
+      postsLogger.error(
+        "Generate error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to generate content", {
         description:
           error instanceof Error ? error.message : "Please try again",
@@ -228,7 +237,11 @@ export function CreatePostDialog({
         }
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      postsLogger.error(
+        "Error creating post",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId, postType },
+      );
       toast.error("An unexpected error occurred", {
         description: "Please try again later",
       });

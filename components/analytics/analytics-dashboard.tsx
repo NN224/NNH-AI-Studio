@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface MetricData {
   date: string;
@@ -105,7 +106,11 @@ export function AnalyticsDashboard() {
         setMetricsData(data.chartData || []);
         setTotalStats(data.totals || {});
       } catch (error) {
-        console.error("Failed to fetch analytics:", error);
+        gmbLogger.error(
+          "Failed to fetch analytics",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId: selectedLocation },
+        );
       } finally {
         setLoading(false);
       }

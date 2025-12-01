@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, MapPin, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RefreshCw, MapPin, Settings } from "lucide-react";
+import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface LocationsErrorBoundaryState {
   hasError: boolean;
@@ -14,13 +21,13 @@ interface LocationsErrorBoundaryState {
 
 interface LocationsErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<{error?: Error; retryAction?: () => void}>;
+  fallback?: React.ComponentType<{ error?: Error; retryAction?: () => void }>;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   section?: string;
 }
 
 class LocationsErrorBoundary extends React.Component<
-  LocationsErrorBoundaryProps, 
+  LocationsErrorBoundaryProps,
   LocationsErrorBoundaryState
 > {
   constructor(props: LocationsErrorBoundaryProps) {
@@ -33,14 +40,20 @@ class LocationsErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(`Locations Error (${this.props.section || 'Unknown'}):`, error, errorInfo);
-    
+    gmbLogger.error(
+      `Locations Error (${this.props.section || "Unknown"})`,
+      error,
+      { errorInfo },
+    );
+
     // Log error to external service if needed
     this.props.onError?.(error, errorInfo);
-    
+
     // Show toast notification
-    toast.error(`Error in ${this.props.section || 'locations'}: ${error.message}`);
-    
+    toast.error(
+      `Error in ${this.props.section || "locations"}: ${error.message}`,
+    );
+
     this.setState({ error, errorInfo });
   }
 
@@ -52,7 +65,12 @@ class LocationsErrorBoundary extends React.Component<
     if (this.state.hasError) {
       if (this.props.fallback) {
         const FallbackComponent = this.props.fallback;
-        return <FallbackComponent error={this.state.error} retryAction={this.handleRetry} />;
+        return (
+          <FallbackComponent
+            error={this.state.error}
+            retryAction={this.handleRetry}
+          />
+        );
       }
 
       // Custom location-specific error UI
@@ -62,12 +80,10 @@ class LocationsErrorBoundary extends React.Component<
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
               <CardTitle className="text-destructive">
-                Error in {this.props.section || 'Locations Section'}
+                Error in {this.props.section || "Locations Section"}
               </CardTitle>
             </div>
-            <CardDescription>
-              {this.getErrorMessage()}
-            </CardDescription>
+            <CardDescription>{this.getErrorMessage()}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {this.state.error && (
@@ -77,29 +93,29 @@ class LocationsErrorBoundary extends React.Component<
                 </code>
               </div>
             )}
-            
+
             <div className="flex gap-2">
-              <Button 
-                onClick={this.handleRetry} 
-                size="sm" 
+              <Button
+                onClick={this.handleRetry}
+                size="sm"
                 variant="outline"
                 className="gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
                 Try Again
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="ghost"
                 onClick={() => window.location.reload()}
               >
                 Refresh Page
               </Button>
-              {this.props.section === 'GMB Connection' && (
-                <Button 
-                  size="sm" 
+              {this.props.section === "GMB Connection" && (
+                <Button
+                  size="sm"
                   variant="secondary"
-                  onClick={() => window.location.href = '/settings'}
+                  onClick={() => (window.location.href = "/settings")}
                   className="gap-2"
                 >
                   <Settings className="h-4 w-4" />
@@ -116,53 +132,52 @@ class LocationsErrorBoundary extends React.Component<
   }
 
   private getErrorMessage(): string {
-    const section = this.props.section?.toLowerCase() || 'section';
-    
-    if (section.includes('gmb') || section.includes('connection')) {
-      return 'There was an issue connecting to Google My Business. Please check your account connection and try again.';
+    const section = this.props.section?.toLowerCase() || "section";
+
+    if (section.includes("gmb") || section.includes("connection")) {
+      return "There was an issue connecting to Google My Business. Please check your account connection and try again.";
     }
-    
-    if (section.includes('location') || section.includes('card')) {
-      return 'Unable to load location data. This might be a temporary issue with the location service.';
+
+    if (section.includes("location") || section.includes("card")) {
+      return "Unable to load location data. This might be a temporary issue with the location service.";
     }
-    
-    if (section.includes('stats') || section.includes('analytics')) {
-      return 'Failed to load location statistics. The analytics service might be temporarily unavailable.';
+
+    if (section.includes("stats") || section.includes("analytics")) {
+      return "Failed to load location statistics. The analytics service might be temporarily unavailable.";
     }
-    
-    if (section.includes('filter') || section.includes('search')) {
-      return 'Search and filtering functionality encountered an error. You can still browse locations manually.';
+
+    if (section.includes("filter") || section.includes("search")) {
+      return "Search and filtering functionality encountered an error. You can still browse locations manually.";
     }
-    
-    return 'Something went wrong in this section. You can continue using other parts of the locations page.';
+
+    return "Something went wrong in this section. You can continue using other parts of the locations page.";
   }
 }
 
 // Wrapper component for easier usage
-export function LocationsSection({ 
-  children, 
-  section, 
+export function LocationsSection({
+  children,
+  section,
   fallback,
-  className = '' 
+  className = "",
 }: {
   children: React.ReactNode;
   section: string;
-  fallback?: React.ComponentType<{error?: Error; retryAction?: () => void}>;
+  fallback?: React.ComponentType<{ error?: Error; retryAction?: () => void }>;
   className?: string;
 }) {
   return (
     <div className={className}>
-      <LocationsErrorBoundary 
-        section={section} 
+      <LocationsErrorBoundary
+        section={section}
         fallback={fallback}
         onError={(error, errorInfo) => {
           // Enhanced logging for locations
-          console.error(`Locations section "${section}" error:`, { 
-            error, 
+          gmbLogger.error(`Locations section "${section}" error`, error, {
             errorInfo,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
-            url: window.location.href
+            url: window.location.href,
           });
         }}
       >
@@ -173,7 +188,13 @@ export function LocationsSection({
 }
 
 // Specific fallback components for different sections
-export const GMBConnectionErrorFallback = ({ error, retryAction }: { error?: Error; retryAction?: () => void }) => (
+export const GMBConnectionErrorFallback = ({
+  error,
+  retryAction,
+}: {
+  error?: Error;
+  retryAction?: () => void;
+}) => (
   <Card className="border-destructive/50 bg-destructive/5">
     <CardContent className="p-8 text-center">
       <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -183,14 +204,15 @@ export const GMBConnectionErrorFallback = ({ error, retryAction }: { error?: Err
         Google My Business Connection Error
       </h3>
       <p className="text-muted-foreground mb-4">
-        Unable to connect to Google My Business. Please check your account connection.
+        Unable to connect to Google My Business. Please check your account
+        connection.
       </p>
       <div className="flex gap-2 justify-center">
         <Button onClick={retryAction} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" />
           Retry Connection
         </Button>
-        <Button onClick={() => window.location.href = '/settings'} size="sm">
+        <Button onClick={() => (window.location.href = "/settings")} size="sm">
           <Settings className="w-4 h-4 mr-2" />
           Check Settings
         </Button>
@@ -199,11 +221,19 @@ export const GMBConnectionErrorFallback = ({ error, retryAction }: { error?: Err
   </Card>
 );
 
-export const LocationCardErrorFallback = ({ error, retryAction }: { error?: Error; retryAction?: () => void }) => (
+export const LocationCardErrorFallback = ({
+  error,
+  retryAction,
+}: {
+  error?: Error;
+  retryAction?: () => void;
+}) => (
   <Card className="border-destructive/30">
     <CardContent className="p-6 text-center">
       <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
-      <h4 className="font-medium text-destructive mb-2">Failed to Load Location</h4>
+      <h4 className="font-medium text-destructive mb-2">
+        Failed to Load Location
+      </h4>
       <p className="text-sm text-muted-foreground mb-3">
         This location couldn't be loaded. This might be a temporary issue.
       </p>

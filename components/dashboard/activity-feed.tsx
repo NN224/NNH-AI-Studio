@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logger } from "@/lib/utils/logger";
 
 // خريطة الأيقونات حسب نوع النشاط
 const activityIcons = {
@@ -142,7 +143,11 @@ export function ActivityFeed() {
         if (!isMountedRef.current) return;
 
         if (error) {
-          console.error("Failed to fetch activities:", error);
+          logger.error(
+            "Failed to fetch activities",
+            error instanceof Error ? error : new Error(String(error)),
+            { userId: user.id },
+          );
         }
 
         // If no activity logs, fetch recent reviews as fallback
@@ -197,14 +202,19 @@ export function ActivityFeed() {
             )
             .subscribe((status) => {
               if (status === "CHANNEL_ERROR") {
-                console.error("❌ Activity feed subscription error");
+                logger.error("Activity feed subscription error", undefined, {
+                  userId,
+                });
               }
             });
 
           channelRef.current = channel;
         }
       } catch (err) {
-        console.error("Activity feed error:", err);
+        logger.error(
+          "Activity feed error",
+          err instanceof Error ? err : new Error(String(err)),
+        );
         if (isMountedRef.current) {
           setActivities([]);
         }
