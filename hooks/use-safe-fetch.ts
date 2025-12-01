@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { apiLogger } from "@/lib/utils/logger";
 
 /**
  * Hook for making fetch requests with automatic cancellation on unmount
@@ -66,7 +67,10 @@ export function useAsyncEffect(
     effect(controller.signal).catch((error) => {
       // Only log non-abort errors
       if (error.name !== "AbortError") {
-        console.error("Async effect error:", error);
+        apiLogger.error(
+          "Async effect error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     });
 

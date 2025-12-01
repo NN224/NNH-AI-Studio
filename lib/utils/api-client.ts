@@ -1,3 +1,5 @@
+import { apiLogger } from "@/lib/utils/logger";
+
 /**
  * Secure API client with CSRF protection
  *
@@ -50,8 +52,9 @@ async function ensureCSRFToken(): Promise<string> {
         credentials: "same-origin",
       });
       if (!response.ok) {
-        console.error(
-          `[api-client] CSRF token fetch failed: ${response.status}`,
+        apiLogger.error(
+          "Request failed",
+          new Error(`${response.status} ${response.statusText}`),
         );
         return "";
       }
@@ -59,7 +62,10 @@ async function ensureCSRFToken(): Promise<string> {
       csrfToken = data.token || null;
       return csrfToken || "";
     } catch (error) {
-      console.error("[api-client] Failed to fetch CSRF token:", error);
+      apiLogger.error(
+        "Failed to fetch CSRF token",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return "";
     } finally {
       tokenFetchPromise = null;

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import sgMail from "@sendgrid/mail";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,7 +42,10 @@ export async function POST(request: NextRequest) {
     // Check for SendGrid API key
     const apiKey = process.env.SENDGRID_API_KEY;
     if (!apiKey) {
-      console.error("SENDGRID_API_KEY environment variable is not set");
+      apiLogger.error(
+        "SENDGRID_API_KEY environment variable is not set",
+        new Error("SENDGRID_API_KEY missing"),
+      );
       return NextResponse.json(
         {
           error:
@@ -85,7 +89,10 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Failed to send email via SendGrid:", error);
+    apiLogger.error(
+      "Failed to send email via SendGrid",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     // Handle SendGrid specific errors
     if (error && typeof error === "object" && "response" in error) {

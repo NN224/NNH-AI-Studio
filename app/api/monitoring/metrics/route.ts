@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (error) {
-      console.error("Failed to store metrics:", error);
+      apiLogger.error(
+        "Failed to store metrics",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to store metrics" },
         { status: 500 },
@@ -51,7 +56,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Metrics API error:", error);
+    apiLogger.error(
+      "Metrics API error (POST)",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -117,7 +125,11 @@ export async function GET(request: NextRequest) {
     const { data: metrics, error } = await query;
 
     if (error) {
-      console.error("Failed to fetch metrics:", error);
+      apiLogger.error(
+        "Failed to fetch metrics",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to fetch metrics" },
         { status: 500 },
@@ -133,7 +145,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ metrics: metrics || [] });
   } catch (error) {
-    console.error("Metrics API error:", error);
+    apiLogger.error(
+      "Metrics API error (GET)",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

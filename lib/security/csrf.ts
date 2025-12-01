@@ -1,3 +1,4 @@
+import { apiLogger } from "@/lib/utils/logger";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -115,7 +116,10 @@ export async function getCSRFTokenFromCookie(): Promise<string | null> {
     const token = cookieStore.get(CSRF_COOKIE_NAME);
     return token?.value || null;
   } catch (error) {
-    console.error("Error reading CSRF cookie:", error);
+    apiLogger.error(
+      "Error reading CSRF cookie",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return null;
   }
 }
@@ -134,7 +138,10 @@ export async function setCSRFTokenCookie(token: string): Promise<void> {
       maxAge: 60 * 60 * 24, // 24 hours
     });
   } catch (error) {
-    console.error("Error setting CSRF cookie:", error);
+    apiLogger.error(
+      "Error setting CSRF cookie",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // Silently fail - cookie setting may not be available in all contexts
   }
 }
@@ -219,7 +226,10 @@ export async function getCSRFToken(): Promise<string> {
     const data = await response.json();
     return data.token || "";
   } catch (error) {
-    console.error("Failed to get CSRF token:", error);
+    apiLogger.error(
+      "Failed to get CSRF token",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return "";
   }
 }

@@ -8,6 +8,8 @@
  * @security CRITICAL - Admin client misuse can cause data breaches
  */
 
+import { logger } from "@/lib/utils/logger";
+
 /**
  * List of API routes that are ALLOWED to use createAdminClient.
  * Any other usage should be reviewed and justified.
@@ -54,11 +56,10 @@ export function logAdminClientUsage(
   const allowed = isAdminClientAllowed(pathname);
 
   if (!allowed) {
-    console.warn("[RLS AUDIT] ⚠️ Unauthorized admin client usage:", {
+    logger.warn("Unauthorized admin client usage", {
       pathname,
       operation,
       userId,
-      timestamp: new Date().toISOString(),
       warning: "This route is NOT in the allowed list",
     });
   }

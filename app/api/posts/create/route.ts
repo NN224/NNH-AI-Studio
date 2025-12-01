@@ -12,6 +12,7 @@ import {
   withSecureApi,
 } from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
+import { postsLogger } from "@/lib/utils/logger";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -81,11 +82,18 @@ export const POST = withSecureApi<CreatePost>(
 
     if (insertError) {
       // Log full error internally
-      console.error("[Create Post] Database error:", {
-        code: insertError.code,
-        message: insertError.message,
-        details: insertError.details,
-      });
+      postsLogger.error(
+        "[Create Post] Database error",
+        insertError instanceof Error
+          ? insertError
+          : new Error(String(insertError)),
+        {
+          code: insertError.code,
+          details: insertError.details,
+          locationId,
+          userId: user.id,
+        },
+      );
 
       // Check for specific error types
       if (insertError.code === "23505") {

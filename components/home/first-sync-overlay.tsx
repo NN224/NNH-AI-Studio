@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { Progress } from "@/components/ui/progress";
-import { Card } from "@/components/ui/card";
-import { CheckCircle2, Loader2, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { createClient } from "@/lib/supabase/client";
+import { syncLogger } from "@/lib/utils/logger";
+import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 interface SyncProgress {
   syncId: string;
@@ -76,7 +77,7 @@ export function FirstSyncOverlay({
       try {
         // Check if we've exceeded max poll time
         if (Date.now() - startTime > maxPollTime) {
-          console.warn("[FirstSyncOverlay] Max poll time exceeded");
+          syncLogger.warn("Max poll time exceeded");
           setHasError(true);
           setProgress((prev) => ({
             ...prev,
@@ -89,7 +90,10 @@ export function FirstSyncOverlay({
 
         // Check sync_worker_runs table for latest progress
         if (!supabase) {
-          console.error("[FirstSyncOverlay] Supabase client not initialized");
+          syncLogger.error(
+            "Supabase client not initialized",
+            new Error("Supabase client is null"),
+          );
           return;
         }
 
@@ -102,9 +106,11 @@ export function FirstSyncOverlay({
           .maybeSingle();
 
         if (syncError) {
-          console.error(
-            "[FirstSyncOverlay] Error checking sync status:",
-            syncError,
+          syncLogger.error(
+            "Error checking sync status",
+            syncError instanceof Error
+              ? syncError
+              : new Error(String(syncError)),
           );
         }
 
@@ -173,7 +179,10 @@ export function FirstSyncOverlay({
         // Continue polling every 3 seconds
         pollTimeout = setTimeout(pollForProgress, 3000);
       } catch (error) {
-        console.error("[FirstSyncOverlay] Error in poll:", error);
+        syncLogger.error(
+          "Error in poll",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         pollTimeout = setTimeout(pollForProgress, 3000);
       }
     };
@@ -205,7 +214,10 @@ export function FirstSyncOverlay({
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ""}`,
       },
     }).catch((err) => {
-      console.error("[FirstSyncOverlay] Failed to trigger retry:", err);
+      syncLogger.error(
+        "Failed to trigger retry",
+        err instanceof Error ? err : new Error(String(err)),
+      );
     });
   };
 

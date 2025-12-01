@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { gmbLogger } from "@/lib/utils/logger";
 import {
   Building2,
   Globe,
@@ -114,7 +115,10 @@ export function AddLocationDialog({
       const data = await response.json();
       setAvailableLocations(data.locations || []);
     } catch (err) {
-      console.error("Error fetching available locations:", err);
+      gmbLogger.error(
+        "Error fetching available locations",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       setError(
         err instanceof Error ? err.message : "Failed to fetch locations",
       );
@@ -179,7 +183,10 @@ export function AddLocationDialog({
       setOpen(false);
       onSuccess?.();
     } catch (err) {
-      console.error("Error importing locations:", err);
+      gmbLogger.error(
+        "Error importing locations",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       toast.error(
         err instanceof Error ? err.message : "Failed to add locations",
       );

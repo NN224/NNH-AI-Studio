@@ -1,10 +1,11 @@
 "use client";
 
-import { Component, type ReactNode } from "react";
-import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { logger } from "@/lib/utils/logger";
 import * as Sentry from "@sentry/nextjs";
+import { AlertCircle, Home, RefreshCw } from "lucide-react";
+import { Component, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -40,7 +41,11 @@ export class HomeErrorBoundary extends Component<Props, State> {
       },
     });
 
-    console.error("[HomeErrorBoundary] Error caught:", error, errorInfo);
+    logger.error(
+      "HomeErrorBoundary Error caught",
+      error instanceof Error ? error : new Error(String(error)),
+      { componentStack: errorInfo?.componentStack },
+    );
   }
 
   handleReset = () => {

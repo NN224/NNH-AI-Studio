@@ -2,6 +2,7 @@
 
 import { useSyncContextSafe } from "@/contexts/sync-context";
 import { useGMBStatus } from "@/hooks/features/use-gmb";
+import { syncLogger } from "@/lib/utils/logger";
 import * as Sentry from "@sentry/nextjs";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -145,7 +146,10 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         });
       }
     } catch (error) {
-      console.error("[Background Sync] Failed:", error);
+      syncLogger.error(
+        "[Background Sync] Failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
 
       // Track retry attempts
       retryCount.current = retryCount.current + 1;
@@ -188,7 +192,10 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
       await performSync();
     } catch (error) {
       // Errors already handled in performSync, but catch any unexpected ones
-      console.error("[Periodic Sync] Unexpected error:", error);
+      syncLogger.error(
+        "[Periodic Sync] Unexpected error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   }, [performSync]);
 
@@ -223,7 +230,10 @@ export function useBackgroundSync(options: BackgroundSyncOptions = {}) {
         await performSync();
       }
     } catch (error) {
-      console.error("[Visibility Sync] Error:", error);
+      syncLogger.error(
+        "[Visibility Sync] Error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shouldSync intentionally reads latest values at execution time
   }, [performSync]);

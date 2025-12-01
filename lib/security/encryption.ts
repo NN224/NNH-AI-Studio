@@ -116,7 +116,7 @@ export function decryptToken(encryptedToken?: string | null): string | null {
  */
 export function resolveTokenValue(
   token?: string | null,
-  options?: { context?: string },
+  _options?: { context?: string },
 ): string | null {
   if (!token) {
     return null;
@@ -125,11 +125,7 @@ export function resolveTokenValue(
   try {
     return decryptToken(token);
   } catch (error) {
-    const contextSuffix = options?.context ? ` (${options.context})` : "";
-    console.error(
-      `[Encryption] Token decryption failed${contextSuffix}. Re-authentication required.`,
-      error instanceof Error ? error.message : "Unknown error",
-    );
+    // Token decryption failed - will throw EncryptionError
 
     throw new EncryptionError(
       "Token decryption failed - re-authentication required. " +

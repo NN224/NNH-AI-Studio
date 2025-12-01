@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,10 @@ export async function GET() {
       lastYoutubeSync: youtubeTokens?.[0]?.updated_at || null,
     });
   } catch (error) {
-    console.error("[Connection Status] Error:", error);
+    apiLogger.error(
+      "[Connection Status] Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       {
         hasGmbConnection: false,

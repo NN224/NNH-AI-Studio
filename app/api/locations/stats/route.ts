@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +25,12 @@ export async function GET(_request: NextRequest) {
       .eq("is_active", true);
 
     if (accountsError) {
-      console.error(
-        "[Location Stats] Accounts fetch error:",
-        accountsError.message,
+      apiLogger.error(
+        "[Location Stats] Accounts fetch error",
+        accountsError instanceof Error
+          ? accountsError
+          : new Error(String(accountsError)),
+        { userId: user.id },
       );
     }
 
@@ -54,9 +58,12 @@ export async function GET(_request: NextRequest) {
       .eq("is_active", true);
 
     if (locationsError) {
-      console.error(
-        "[Location Stats] Locations fetch error:",
-        locationsError.message,
+      apiLogger.error(
+        "[Location Stats] Locations fetch error",
+        locationsError instanceof Error
+          ? locationsError
+          : new Error(String(locationsError)),
+        { userId: user.id },
       );
       return NextResponse.json(
         { error: "Failed to fetch locations" },
@@ -86,9 +93,12 @@ export async function GET(_request: NextRequest) {
       .eq("user_id", user.id);
 
     if (reviewsError) {
-      console.error(
-        "[Location Stats] Reviews fetch error:",
-        reviewsError.message,
+      apiLogger.error(
+        "[Location Stats] Reviews fetch error",
+        reviewsError instanceof Error
+          ? reviewsError
+          : new Error(String(reviewsError)),
+        { userId: user.id },
       );
     }
 
@@ -291,7 +301,7 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json(response);
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Location Stats] Error:", err.message);
+    apiLogger.error("[Location Stats] Error", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

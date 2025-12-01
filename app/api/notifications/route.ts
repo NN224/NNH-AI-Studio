@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -185,7 +186,11 @@ export async function GET(request: NextRequest) {
       headers,
     });
   } catch (error) {
-    console.error("Notifications API error:", error);
+    apiLogger.error(
+      "Notifications API error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
     return NextResponse.json(
       {
         error: "Internal server error",

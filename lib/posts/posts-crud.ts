@@ -1,6 +1,8 @@
 // lib/posts/posts-crud.ts
 // CRUD operations for GMB posts
 
+import { postsLogger } from "@/lib/utils/logger";
+
 interface PostContent {
   id: string;
   user_id: string;
@@ -25,19 +27,23 @@ interface PostContent {
  */
 export async function fetchPostContent(
   supabase: any,
-  postId: string
+  postId: string,
 ): Promise<PostContent | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   const { data: post, error } = await supabase
-    .from('gmb_posts')
-    .select('id, user_id, location_id, title, content, media_url, call_to_action, call_to_action_url, post_type, status, scheduled_at, published_at, created_at')
-    .eq('id', postId)
-    .eq('user_id', user.id)
+    .from("gmb_posts")
+    .select(
+      "id, user_id, location_id, title, content, media_url, call_to_action, call_to_action_url, post_type, status, scheduled_at, published_at, created_at",
+    )
+    .eq("id", postId)
+    .eq("user_id", user.id)
     .single();
 
   if (error || !post) {
@@ -80,26 +86,31 @@ export async function createPost(
     post_type?: string;
     status?: string;
     scheduled_at?: string;
-  }
+  },
 ): Promise<PostContent | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   const { data: post, error } = await supabase
-    .from('gmb_posts')
+    .from("gmb_posts")
     .insert({
       user_id: user.id,
       ...postData,
-      status: postData.status || 'draft',
+      status: postData.status || "draft",
     })
     .select()
     .single();
 
   if (error || !post) {
-    console.error('[Posts CRUD] Error creating post:', error);
+    postsLogger.error(
+      "Error creating post",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return null;
   }
 
@@ -132,12 +143,14 @@ export async function updatePostStatus(
   supabase: any,
   postId: string,
   status: string,
-  publishedAt?: string
+  publishedAt?: string,
 ): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
 
   const updateData: any = { status };
@@ -146,10 +159,10 @@ export async function updatePostStatus(
   }
 
   const { error } = await supabase
-    .from('gmb_posts')
+    .from("gmb_posts")
     .update(updateData)
-    .eq('id', postId)
-    .eq('user_id', user.id);
+    .eq("id", postId)
+    .eq("user_id", user.id);
 
   return !error;
 }

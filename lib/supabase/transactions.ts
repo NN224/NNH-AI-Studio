@@ -3,6 +3,7 @@ import type {
   QuestionData,
   ReviewData,
 } from "@/lib/gmb/sync-types";
+import { syncLogger } from "@/lib/utils/logger";
 import type { InsightsData } from "@/server/actions/gmb-sync";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
@@ -45,7 +46,7 @@ const BATCH_SIZE = {
 };
 
 function logTransactionStep(step: string, details?: Record<string, unknown>) {
-  console.warn(`[GMB Sync][${step}]`, details ?? {});
+  syncLogger.debug(`GMB Sync: ${step}`, details ?? {});
 }
 
 /**
@@ -159,7 +160,10 @@ async function executeRpc(
     });
 
     if (error) {
-      console.error("[GMB Sync] Review batch failed:", error);
+      syncLogger.error(
+        "Review batch failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     } else if (data) {
       totalResult.reviews_synced += (
         data as SyncTransactionResult
@@ -186,7 +190,10 @@ async function executeRpc(
     });
 
     if (error) {
-      console.error("[GMB Sync] Question batch failed:", error);
+      syncLogger.error(
+        "Question batch failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     } else if (data) {
       totalResult.questions_synced += (
         data as SyncTransactionResult
@@ -236,15 +243,22 @@ async function executeRpc(
           );
 
         if (insightsError) {
-          console.error(
-            "[GMB Sync] Failed to save insights batch:",
-            insightsError,
+          syncLogger.error(
+            "Failed to save insights batch",
+            insightsError instanceof Error
+              ? insightsError
+              : new Error(String(insightsError)),
           );
         } else {
           insightsSynced += batch.length;
         }
       } catch (insightsErr) {
-        console.error("[GMB Sync] Error saving insights batch:", insightsErr);
+        syncLogger.error(
+          "Error saving insights batch",
+          insightsErr instanceof Error
+            ? insightsErr
+            : new Error(String(insightsErr)),
+        );
       }
     }
   }

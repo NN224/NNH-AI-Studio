@@ -1,14 +1,16 @@
 /**
  * Pub/Sub message structure from Google
  */
+import { gmbLogger } from "@/lib/utils/logger";
+
 export interface PubSubMessage {
   message: {
-    data: string
-    messageId: string
-    publishTime: string
-    attributes?: Record<string, string>
-  }
-  subscription?: string
+    data: string;
+    messageId: string;
+    publishTime: string;
+    attributes?: Record<string, string>;
+  };
+  subscription?: string;
 }
 
 /**
@@ -21,26 +23,38 @@ export interface PubSubMessage {
  * @param body - The raw request body as a string
  * @returns true if the signature is valid, false otherwise
  */
-export function verifyPubSubSignature(signature: string | null, _body: string): boolean {
+export function verifyPubSubSignature(
+  signature: string | null,
+  _body: string,
+): boolean {
   // In development, skip signature verification
-  if (process.env.NODE_ENV === 'development' && process.env.SKIP_PUBSUB_VERIFICATION === 'true') {
-    console.warn('[Pub/Sub] Skipping signature verification in development mode')
-    return true
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.SKIP_PUBSUB_VERIFICATION === "true"
+  ) {
+    gmbLogger.warn("Skipping signature verification in development mode");
+    return true;
   }
 
   if (!signature) {
-    console.error('[Pub/Sub] No signature provided')
-    return false
+    gmbLogger.error(
+      "No signature provided",
+      new Error("Missing Pub/Sub signature"),
+    );
+    return false;
   }
 
   // Get the public key URL from environment or use default
-  const publicKeyUrl = process.env.PUBSUB_PUBLIC_KEY_URL
+  const publicKeyUrl = process.env.PUBSUB_PUBLIC_KEY_URL;
 
   if (!publicKeyUrl) {
-    console.error('[Pub/Sub] No public key URL configured')
+    gmbLogger.error(
+      "No public key URL configured",
+      new Error("Missing PUBSUB_PUBLIC_KEY_URL"),
+    );
     // In production, this should fail
     // In development, we can be more lenient
-    return process.env.NODE_ENV === 'development'
+    return process.env.NODE_ENV === "development";
   }
 
   try {
@@ -52,10 +66,13 @@ export function verifyPubSubSignature(signature: string | null, _body: string): 
     // See: https://cloud.google.com/pubsub/docs/push#verify_push_requests
 
     // Signature verification passed (basic check)
-    return true
+    return true;
   } catch (error) {
-    console.error('[Pub/Sub] Signature verification failed:', error)
-    return false
+    gmbLogger.error(
+      "Signature verification failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    return false;
   }
 }
 
@@ -70,22 +87,25 @@ export function verifyPubSubSignature(signature: string | null, _body: string): 
  */
 export function verifyPubSubToken(token: string | null): boolean {
   if (!token) {
-    return false
+    return false;
   }
 
   try {
     // Remove "Bearer " prefix if present
-    const _jwtToken = token.replace(/^Bearer\s+/i, '')
+    const _jwtToken = token.replace(/^Bearer\s+/i, "");
 
     // TODO: Implement JWT verification
     // You can use a library like 'jsonwebtoken' or 'jose'
     // to verify the token against Google's public keys
 
     // Token verification passed (basic check)
-    return true
+    return true;
   } catch (error) {
-    console.error('[Pub/Sub] Token verification failed:', error)
-    return false
+    gmbLogger.error(
+      "Token verification failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    return false;
   }
 }
 
@@ -98,22 +118,29 @@ export function verifyPubSubToken(token: string | null): boolean {
  * @param message - The Pub/Sub message object
  * @returns The parsed notification data
  */
-export function parsePubSubMessage(message: PubSubMessage): GmbNotificationData {
+export function parsePubSubMessage(
+  message: PubSubMessage,
+): GmbNotificationData {
   try {
     if (!message?.message?.data) {
-      throw new Error('Invalid message format: missing message.data')
+      throw new Error("Invalid message format: missing message.data");
     }
 
     // Decode base64 data
-    const decodedData = Buffer.from(message.message.data, 'base64').toString('utf-8')
+    const decodedData = Buffer.from(message.message.data, "base64").toString(
+      "utf-8",
+    );
 
     // Parse JSON
-    const notificationData = JSON.parse(decodedData)
+    const notificationData = JSON.parse(decodedData);
 
-    return notificationData
+    return notificationData;
   } catch (error) {
-    console.error('[Pub/Sub] Failed to parse message:', error)
-    throw error
+    gmbLogger.error(
+      "Failed to parse message",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    throw error;
   }
 }
 
@@ -126,15 +153,15 @@ export function parsePubSubMessage(message: PubSubMessage): GmbNotificationData 
  * @returns Metadata object
  */
 export function extractMessageMetadata(message: PubSubMessage): {
-  messageId: string
-  publishTime: string
-  attributes: Record<string, string>
+  messageId: string;
+  publishTime: string;
+  attributes: Record<string, string>;
 } {
   return {
-    messageId: message.message?.messageId || 'unknown',
+    messageId: message.message?.messageId || "unknown",
     publishTime: message.message?.publishTime || new Date().toISOString(),
     attributes: message.message?.attributes || {},
-  }
+  };
 }
 
 /**
@@ -149,52 +176,62 @@ export function validateNotificationData(
   data: GmbNotificationData | null | undefined,
 ): data is GmbNotificationData {
   if (!data) {
-    console.error('[Pub/Sub] Notification data is null or undefined')
-    return false
+    gmbLogger.error(
+      "Notification data is null or undefined",
+      new Error("Invalid notification data"),
+    );
+    return false;
   }
 
   if (!data.notificationType) {
-    console.error('[Pub/Sub] Missing notificationType')
-    return false
+    gmbLogger.error(
+      "Missing notificationType",
+      new Error("Invalid notification data"),
+    );
+    return false;
   }
 
   if (!data.locationName) {
-    console.error('[Pub/Sub] Missing locationName')
-    return false
+    gmbLogger.error(
+      "Missing locationName",
+      new Error("Invalid notification data"),
+    );
+    return false;
   }
 
-  return true
+  return true;
 }
 
 /**
  * Notification types enum
  */
 export const NotificationType = {
-  NEW_REVIEW: 'NEW_REVIEW',
-  UPDATED_REVIEW: 'UPDATED_REVIEW',
-  NEW_QUESTION: 'NEW_QUESTION',
-  UPDATED_QUESTION: 'UPDATED_QUESTION',
-  NEW_ANSWER: 'NEW_ANSWER',
-  UPDATED_ANSWER: 'UPDATED_ANSWER',
-  NEW_CUSTOMER_MEDIA: 'NEW_CUSTOMER_MEDIA',
-  GOOGLE_UPDATE: 'GOOGLE_UPDATE',
-  DUPLICATE_LOCATION: 'DUPLICATE_LOCATION',
-  VOICE_OF_MERCHANT_UPDATED: 'VOICE_OF_MERCHANT_UPDATED',
-} as const
+  NEW_REVIEW: "NEW_REVIEW",
+  UPDATED_REVIEW: "UPDATED_REVIEW",
+  NEW_QUESTION: "NEW_QUESTION",
+  UPDATED_QUESTION: "UPDATED_QUESTION",
+  NEW_ANSWER: "NEW_ANSWER",
+  UPDATED_ANSWER: "UPDATED_ANSWER",
+  NEW_CUSTOMER_MEDIA: "NEW_CUSTOMER_MEDIA",
+  GOOGLE_UPDATE: "GOOGLE_UPDATE",
+  DUPLICATE_LOCATION: "DUPLICATE_LOCATION",
+  VOICE_OF_MERCHANT_UPDATED: "VOICE_OF_MERCHANT_UPDATED",
+} as const;
 
-export type NotificationTypeValue = (typeof NotificationType)[keyof typeof NotificationType]
+export type NotificationTypeValue =
+  (typeof NotificationType)[keyof typeof NotificationType];
 
 /**
  * Notification data interface
  */
 export interface GmbNotificationData {
-  notificationType: NotificationTypeValue
-  locationName: string
-  reviewName?: string
-  questionName?: string
-  answerName?: string
-  mediaName?: string
-  createTime?: string
-  updateTime?: string
-  [key: string]: string | undefined
+  notificationType: NotificationTypeValue;
+  locationName: string;
+  reviewName?: string;
+  questionName?: string;
+  answerName?: string;
+  mediaName?: string;
+  createTime?: string;
+  updateTime?: string;
+  [key: string]: string | undefined;
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export interface RateLimitConfig {
@@ -44,7 +45,10 @@ export async function checkRateLimit(
       .gte("created_at", windowStart.toISOString());
 
     if (error) {
-      console.error("Rate limit check error:", error);
+      apiLogger.error(
+        "Rate limit check error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       // Fail open - allow request if check fails
       return {
         success: true,
@@ -83,7 +87,10 @@ export async function checkRateLimit(
       reset: new Date(now.getTime() + config.windowMs),
     };
   } catch (error) {
-    console.error("Rate limiter error:", error);
+    apiLogger.error(
+      "Rate limiter error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // Fail open
     return {
       success: true,
@@ -111,10 +118,16 @@ export async function cleanupRateLimitRecords(
       .lt("created_at", cutoffDate.toISOString());
 
     if (error) {
-      console.error("Rate limit cleanup error:", error);
+      apiLogger.error(
+        "Rate limit cleanup error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   } catch (error) {
-    console.error("Rate limit cleanup error:", error);
+    apiLogger.error(
+      "Rate limit cleanup error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 }
 
@@ -140,7 +153,10 @@ export async function getRateLimitStatus(
       .gte("created_at", windowStart.toISOString());
 
     if (error) {
-      console.error("Rate limit status error:", error);
+      apiLogger.error(
+        "Rate limit status error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { count: 0, resetAt: new Date(now.getTime() + windowMs) };
     }
 
@@ -149,7 +165,10 @@ export async function getRateLimitStatus(
       resetAt: new Date(now.getTime() + windowMs),
     };
   } catch (error) {
-    console.error("Rate limit status error:", error);
+    apiLogger.error(
+      "Rate limit status error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { count: 0, resetAt: new Date(Date.now() + windowMs) };
   }
 }

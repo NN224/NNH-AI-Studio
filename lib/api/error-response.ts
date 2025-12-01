@@ -14,6 +14,7 @@ import {
   sanitizeError,
   type SanitizedError,
 } from "@/lib/security/error-sanitizer";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 /**
@@ -107,7 +108,7 @@ export function createValidationErrorResponse(
       : message;
 
   if (context) {
-    console.warn("[Validation Error]", { message, context });
+    apiLogger.warn("Validation Error", { message, context });
   }
 
   return NextResponse.json(

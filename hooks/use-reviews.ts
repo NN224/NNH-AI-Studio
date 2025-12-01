@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { reviewsLogger } from "@/lib/utils/logger";
 import type { GMBReview } from "@/lib/types/database";
 
 interface ReviewFilters {
@@ -119,7 +120,11 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
         setPagination(data.pagination);
         setCurrentPage(page);
       } catch (err) {
-        console.error("Error fetching reviews:", err);
+        reviewsLogger.error(
+          "Error fetching reviews",
+          err instanceof Error ? err : new Error(String(err)),
+          { filters },
+        );
         setError(
           err instanceof Error ? err.message : "Failed to fetch reviews",
         );

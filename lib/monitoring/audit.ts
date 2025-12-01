@@ -1,67 +1,79 @@
-"use server"
+"use server";
 
-import { headers } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
-import { trackDailyActiveUser } from '@/lib/monitoring/metrics'
+import { trackDailyActiveUser } from "@/lib/monitoring/metrics";
+import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { headers } from "next/headers";
 
-type AuditMetadata = Record<string, unknown> | null | undefined
+type AuditMetadata = Record<string, unknown> | null | undefined;
 
 function getClientIp() {
-  const forwardHeader = headers().get('x-forwarded-for')
+  const forwardHeader = headers().get("x-forwarded-for");
   if (forwardHeader) {
-    return forwardHeader.split(',')[0]?.trim() || null
+    return forwardHeader.split(",")[0]?.trim() || null;
   }
-  return headers().get('x-real-ip') || null
+  return headers().get("x-real-ip") || null;
 }
 
 export async function logAction(
   action: string,
   resourceType?: string | null,
   resourceId?: string | number | null,
-  metadata?: AuditMetadata
+  metadata?: AuditMetadata,
 ) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
-    await supabase.from('audit_logs').insert({
+    await supabase.from("audit_logs").insert({
       action,
       resource_type: resourceType ?? null,
       resource_id: resourceId ? String(resourceId) : null,
       metadata: metadata ?? null,
       ip_address: getClientIp(),
       user_id: user?.id ?? null,
-    })
+    });
 
     if (user?.id) {
-      await trackDailyActiveUser(user.id)
+      await trackDailyActiveUser(user.id);
     }
   } catch (error) {
-    console.error('[Audit] Failed to log action', error)
+    apiLogger.error(
+      "Failed to log audit action",
+      error instanceof Error ? error : new Error(String(error)),
+      { action },
+    );
   }
 }
 
 export async function getRecentActivity(userId: string, limit = 10) {
   try {
-    const supabase = await createClient()
+    const supabase = await createClient();
     const { data, error } = await supabase
-      .from('audit_logs')
-      .select('id, action, resource_type, resource_id, metadata, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+      .from("audit_logs")
+      .select("id, action, resource_type, resource_id, metadata, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
     if (error) {
-      console.error('[Audit] Failed to fetch activity', error)
-      return []
+      apiLogger.error(
+        "Failed to fetch audit activity",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId },
+      );
+      return [];
     }
 
-    return data ?? []
+    return data ?? [];
   } catch (error) {
-    console.error('[Audit] Unexpected error fetching activity', error)
-    return []
+    apiLogger.error(
+      "Unexpected error fetching audit activity",
+      error instanceof Error ? error : new Error(String(error)),
+      { userId },
+    );
+    return [];
   }
 }
-

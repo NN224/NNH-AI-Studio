@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { aiLogger } from "@/lib/utils/logger";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
@@ -82,7 +83,10 @@ export function SmartAISuggestions({
           setDismissedIds(data.map((d) => d.suggestion_id));
         }
       } catch (err) {
-        console.error("Failed to load dismissed suggestions:", err);
+        aiLogger.error(
+          "Failed to load dismissed suggestions",
+          err instanceof Error ? err : new Error(String(err)),
+        );
         // Fallback to localStorage
         const stored = localStorage.getItem(`dismissed_suggestions_${userId}`);
         if (stored) {
@@ -220,7 +224,10 @@ export function SmartAISuggestions({
 
       toast({ description: "Suggestion dismissed" });
     } catch (err) {
-      console.error("Failed to dismiss suggestion:", err);
+      aiLogger.error(
+        "Failed to dismiss suggestion",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       // Fallback to localStorage
       localStorage.setItem(
         `dismissed_suggestions_${userId}`,
@@ -244,7 +251,10 @@ export function SmartAISuggestions({
         action_type: "clicked",
       });
     } catch (err) {
-      console.error("Failed to track click:", err);
+      aiLogger.error(
+        "Failed to track click",
+        err instanceof Error ? err : new Error(String(err)),
+      );
     }
 
     router.push(suggestion.actionUrl);

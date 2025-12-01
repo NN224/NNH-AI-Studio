@@ -9,6 +9,7 @@ import {
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
 import { createClient } from "@/lib/supabase/server";
+import { aiLogger } from "@/lib/utils/logger";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
@@ -102,7 +103,11 @@ async function handleGeneratePost(
   try {
     result = JSON.parse(jsonString);
   } catch {
-    console.error("Failed to parse JSON from Claude:", textContent);
+    aiLogger.error(
+      "Failed to parse JSON from Claude",
+      new Error("Invalid AI response payload"),
+      { rawText: textContent.slice(0, 300), locationId },
+    );
     // Fallback if JSON parsing fails
     result = {
       content: textContent,

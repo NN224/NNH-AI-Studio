@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { questionsLogger } from "@/lib/utils/logger";
 
 interface BulkActionsBarProps {
   selectedCount: number;
@@ -90,7 +91,10 @@ export function BulkActionsBar({
       onComplete();
       onClearSelection();
     } catch (error: unknown) {
-      console.error("Bulk action error:", error);
+      questionsLogger.error(
+        "Bulk action error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error(`Failed to ${action} questions`, {
         description:
           error instanceof Error ? error.message : "Please try again",

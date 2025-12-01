@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { GMBLocation } from "@/lib/types/gmb-types";
+import { apiLogger } from "@/lib/utils/logger";
 
 export interface LocationMetrics {
   status: string;
@@ -54,7 +55,10 @@ export function useLocationMetrics(location: GMBLocation) {
         }
       }
     } catch (e) {
-      console.warn("Failed to parse AI insights", e);
+      apiLogger.warn("Failed to parse AI insights", {
+        error: e instanceof Error ? e.message : String(e),
+        locationId: location.id,
+      });
     }
 
     // 3. Calculate Metrics

@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { apiLogger } from "@/lib/utils/logger";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * Server-side proxy for Google Maps Geocoding API
@@ -11,28 +12,30 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Rate limiting
-    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id);
+    const { success, headers: rateLimitHeaders } = await checkRateLimit(
+      user.id,
+    );
     if (!success) {
       return NextResponse.json(
         {
-          error: 'Too many requests',
-          message: 'Rate limit exceeded. Please try again later.',
+          error: "Too many requests",
+          message: "Rate limit exceeded. Please try again later.",
         },
         {
           status: 429,
-          headers: rateLimitHeaders as HeadersInit
-        }
+          headers: rateLimitHeaders as HeadersInit,
+        },
       );
     }
 
@@ -40,10 +43,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { address } = body;
 
-    if (!address || typeof address !== 'string') {
+    if (!address || typeof address !== "string") {
       return NextResponse.json(
-        { error: 'Invalid address parameter' },
-        { status: 400 }
+        { error: "Invalid address parameter" },
+        { status: 400 },
       );
     }
 
@@ -51,44 +54,53 @@ export async function POST(request: NextRequest) {
     const sanitizedAddress = address.trim().slice(0, 500);
     if (!sanitizedAddress) {
       return NextResponse.json(
-        { error: 'Address cannot be empty' },
-        { status: 400 }
+        { error: "Address cannot be empty" },
+        { status: 400 },
       );
     }
 
     // Get API key from server environment
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.error('Google Maps API key not configured');
+      apiLogger.error(
+        "Google Maps API key not configured",
+        new Error("GOOGLE_MAPS_API_KEY missing"),
+      );
       return NextResponse.json(
-        { error: 'Geocoding service not configured' },
-        { status: 500 }
+        { error: "Geocoding service not configured" },
+        { status: 500 },
       );
     }
 
     // Make request to Google Maps API
     const encodedAddress = encodeURIComponent(sanitizedAddress);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
-    
+
     const response = await fetch(url);
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Google Maps API error:', data);
+      apiLogger.error(
+        "Google Maps API error",
+        new Error(`HTTP ${response.status}`),
+        { status: response.status, data },
+      );
       return NextResponse.json(
-        { error: 'Geocoding service error' },
-        { status: response.status }
+        { error: "Geocoding service error" },
+        { status: response.status },
       );
     }
 
     // Return the geocoding results
     return NextResponse.json(data);
-
   } catch (error) {
-    console.error('Geocoding proxy error:', error);
+    apiLogger.error(
+      "Geocoding proxy error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

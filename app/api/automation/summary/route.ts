@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface LocationRecord {
   id: string;
@@ -47,28 +48,34 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const locationId = request.nextUrl.searchParams.get('locationId');
+    const locationId = request.nextUrl.searchParams.get("locationId");
 
     const locationsQuery = supabase
-      .from('gmb_locations')
-      .select('id, location_name')
-      .eq('user_id', user.id)
-      .order('location_name', { ascending: true });
+      .from("gmb_locations")
+      .select("id, location_name")
+      .eq("user_id", user.id)
+      .order("location_name", { ascending: true });
 
     if (locationId) {
-      locationsQuery.eq('id', locationId);
+      locationsQuery.eq("id", locationId);
     }
 
     const { data: locationsData, error: locationsError } = await locationsQuery;
 
     if (locationsError) {
-      console.error('[Automation Summary API] Failed to load locations', locationsError);
+      apiLogger.error(
+        "Failed to load automation locations",
+        locationsError instanceof Error
+          ? locationsError
+          : new Error(String(locationsError)),
+        { userId: user.id, locationId },
+      );
       return NextResponse.json(
-        { error: 'Failed to load automation locations' },
-        { status: 500 }
+        { error: "Failed to load automation locations" },
+        { status: 500 },
       );
     }
 
@@ -84,7 +91,7 @@ export async function GET(request: NextRequest) {
     }
 
     const settingsQuery = supabase
-      .from('autopilot_settings')
+      .from("autopilot_settings")
       .select(
         `
         id,
@@ -104,34 +111,40 @@ export async function GET(request: NextRequest) {
         report_frequency,
         created_at,
         updated_at
-      `
+      `,
       )
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
 
     if (locationIds.length > 0) {
-      settingsQuery.in('location_id', locationIds);
+      settingsQuery.in("location_id", locationIds);
     }
 
     const { data: settingsData, error: settingsError } = await settingsQuery;
 
     if (settingsError) {
       // If table doesn't exist yet in some environments, degrade gracefully
-      if ((settingsError as any).code === 'PGRST205') {
+      if ((settingsError as any).code === "PGRST205") {
         // Return empty settings instead of failing
         return NextResponse.json({ settings: [], logs: [] });
       }
-      console.error('[Automation Summary API] Failed to load settings', settingsError);
+      apiLogger.error(
+        "Failed to load automation settings",
+        settingsError instanceof Error
+          ? settingsError
+          : new Error(String(settingsError)),
+        { userId: user.id, locationIds },
+      );
       return NextResponse.json(
-        { error: 'Failed to load automation settings' },
-        { status: 500 }
+        { error: "Failed to load automation settings" },
+        { status: 500 },
       );
     }
 
     let logsData: ApiAutomationLog[] | null = [];
     if (locationIds.length > 0) {
       const logsQuery = supabase
-        .from('autopilot_logs')
+        .from("autopilot_logs")
         .select(
           `
           id,
@@ -141,19 +154,23 @@ export async function GET(request: NextRequest) {
           details,
           error_message,
           created_at
-        `
+        `,
         )
-        .in('location_id', locationIds)
-        .order('created_at', { ascending: false })
+        .in("location_id", locationIds)
+        .order("created_at", { ascending: false })
         .limit(100);
 
       const { data, error: logsError } = await logsQuery;
 
       if (logsError) {
-        console.error('[Automation Summary API] Failed to load logs', logsError);
+        apiLogger.error(
+          "Failed to load automation logs",
+          logsError instanceof Error ? logsError : new Error(String(logsError)),
+          { userId: user.id, locationIds },
+        );
         return NextResponse.json(
-          { error: 'Failed to load automation logs' },
-          { status: 500 }
+          { error: "Failed to load automation logs" },
+          { status: 500 },
         );
       }
 
@@ -176,18 +193,22 @@ export async function GET(request: NextRequest) {
         postDays: typed.post_days,
         postTimes: typed.post_times,
         contentPreferences: typed.content_preferences,
-        competitorMonitoringEnabled: Boolean(typed.competitor_monitoring_enabled),
+        competitorMonitoringEnabled: Boolean(
+          typed.competitor_monitoring_enabled,
+        ),
         insightsReportsEnabled: Boolean(typed.insights_reports_enabled),
         reportFrequency: typed.report_frequency,
         createdAt: typed.created_at,
         updatedAt: typed.updated_at,
-        locationName: locationDetails?.location_name ?? 'Unassigned location',
+        locationName: locationDetails?.location_name ?? "Unassigned location",
       };
     });
 
     const logs = (logsData || []).map((item) => {
       const typed = item as ApiAutomationLog;
-      const locationDetails = typed.location_id ? locationMap.get(typed.location_id) : undefined;
+      const locationDetails = typed.location_id
+        ? locationMap.get(typed.location_id)
+        : undefined;
 
       return {
         id: typed.id,
@@ -197,7 +218,7 @@ export async function GET(request: NextRequest) {
         details: typed.details,
         errorMessage: typed.error_message,
         createdAt: typed.created_at,
-        locationName: locationDetails?.location_name ?? 'Unknown location',
+        locationName: locationDetails?.location_name ?? "Unknown location",
       };
     });
 
@@ -206,8 +227,11 @@ export async function GET(request: NextRequest) {
       logs,
     });
   } catch (error) {
-    console.error('[Automation Summary API] Unexpected error', error);
-    return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
+    apiLogger.error(
+      "[Automation Summary API] Unexpected error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
+    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
 }
-

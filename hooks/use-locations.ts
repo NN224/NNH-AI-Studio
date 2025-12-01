@@ -8,6 +8,7 @@ import {
   coerceString,
   transformLocations,
 } from "@/lib/utils/location-transformers";
+import { apiLogger } from "@/lib/utils/logger";
 
 export interface LocationFilters {
   search?: string;
@@ -92,7 +93,7 @@ export function useLocations(
         const currentFilters = filtersRef.current;
 
         if (__DEV__) {
-          console.log("🔄 [useLocations] Starting fetch...", {
+          apiLogger.debug("🔄 [useLocations] Starting fetch...", {
             pageNum,
             reset,
             timestamp: new Date().toISOString(),
@@ -105,13 +106,17 @@ export function useLocations(
         } = await supabase.auth.getUser();
         if (authError || !user) {
           if (__DEV__) {
-            console.error("❌ [useLocations] Auth error:", authError);
+            apiLogger.error(
+              "❌ [useLocations] Auth error",
+              authError instanceof Error ? authError : undefined,
+              { authError },
+            );
           }
           throw new Error("Authentication required. Please sign in again.");
         }
 
         if (__DEV__) {
-          console.log("✅ [useLocations] User authenticated:", {
+          apiLogger.debug("✅ [useLocations] User authenticated", {
             userId: user.id,
           });
         }
@@ -123,7 +128,10 @@ export function useLocations(
           .maybeSingle();
 
         if (profileError && profileError.code !== "PGRST116" && __DEV__) {
-          console.warn("[useLocations] profiles lookup error:", profileError);
+          apiLogger.warn("[useLocations] profiles lookup error", {
+            error: profileError.message,
+            code: profileError.code,
+          });
         }
 
         const fallbackLogoUrl = coerceString(profileData?.avatar_url);
@@ -218,7 +226,7 @@ export function useLocations(
         query = query.range(from, to);
 
         if (__DEV__) {
-          console.log("📊 [useLocations] Executing query...", {
+          apiLogger.debug("📊 [useLocations] Executing query...", {
             filters: Object.keys(currentFilters).length,
             pageNum,
             pageSize,
@@ -229,25 +237,28 @@ export function useLocations(
 
         if (controller.signal.aborted) {
           if (__DEV__) {
-            console.log("⏹️ [useLocations] Request aborted");
+            apiLogger.debug("⏹️ [useLocations] Request aborted");
           }
           return;
         }
 
         if (queryError) {
           if (__DEV__) {
-            console.error("❌ [useLocations] Query error:", {
-              message: queryError.message,
-              code: queryError.code,
-              details: queryError.details,
-              hint: queryError.hint,
-            });
+            apiLogger.error(
+              "❌ [useLocations] Query error",
+              queryError instanceof Error ? queryError : undefined,
+              {
+                code: queryError.code,
+                details: queryError.details,
+                hint: queryError.hint,
+              },
+            );
           }
           throw queryError;
         }
 
         if (__DEV__) {
-          console.log("✅ [useLocations] Query successful:", {
+          apiLogger.debug("✅ [useLocations] Query successful", {
             count: data?.length || 0,
             total: count || 0,
           });
@@ -282,10 +293,10 @@ export function useLocations(
 
           if (pendingReviewsResult.error) {
             if (__DEV__) {
-              console.warn(
-                "[useLocations] pending reviews lookup failed:",
-                pendingReviewsResult.error,
-              );
+              apiLogger.warn("[useLocations] pending reviews lookup failed", {
+                error: pendingReviewsResult.error.message,
+                code: pendingReviewsResult.error.code,
+              });
             }
           } else {
             for (const review of pendingReviewsResult.data ?? []) {
@@ -300,10 +311,10 @@ export function useLocations(
 
           if (pendingQuestionsResult.error) {
             if (__DEV__) {
-              console.warn(
-                "[useLocations] pending questions lookup failed:",
-                pendingQuestionsResult.error,
-              );
+              apiLogger.warn("[useLocations] pending questions lookup failed", {
+                error: pendingQuestionsResult.error.message,
+                code: pendingQuestionsResult.error.code,
+              });
             }
           } else {
             for (const question of pendingQuestionsResult.data ?? []) {
@@ -344,7 +355,7 @@ export function useLocations(
         setError(null);
 
         if (__DEV__) {
-          console.log("✅ [useLocations] Locations set:", {
+          apiLogger.debug("✅ [useLocations] Locations set", {
             locationsCount: transformedLocations.length,
             total,
             hasMore,
@@ -356,10 +367,9 @@ export function useLocations(
           const errorName = err.name || "Error";
 
           if (__DEV__) {
-            console.error("❌ [useLocations] Fetch error:", {
+            apiLogger.error("❌ [useLocations] Fetch error", err, {
               name: errorName,
               message: errorMessage,
-              stack: err.stack,
               timestamp: new Date().toISOString(),
             });
           }
@@ -367,14 +377,14 @@ export function useLocations(
           setError(err);
         } else if (err instanceof Error && err.name === "AbortError") {
           if (__DEV__) {
-            console.log("⏹️ [useLocations] Request aborted (expected)");
+            apiLogger.debug("⏹️ [useLocations] Request aborted (expected)");
           }
         }
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
           if (__DEV__) {
-            console.log("🏁 [useLocations] Loading complete");
+            apiLogger.debug("🏁 [useLocations] Loading complete");
           }
         }
       }
@@ -461,14 +471,19 @@ export function useLocations(
             },
             (payload) => {
               if (__DEV__) {
-                console.log("📡 Location changed:", payload.eventType, payload);
+                apiLogger.info("📡 Location changed", {
+                  eventType: payload.eventType,
+                });
               }
               if (!isMountedRef.current) return;
 
               // Refetch locations when changes occur - use ref to avoid dependency
               fetchLocationsRef.current(1, true).catch((err) => {
                 if (err.name !== "AbortError") {
-                  console.error("Error refetching after realtime update:", err);
+                  apiLogger.error(
+                    "Error refetching after realtime update",
+                    err instanceof Error ? err : new Error(String(err)),
+                  );
                 }
               });
             },
@@ -495,21 +510,27 @@ export function useLocations(
               errorMessage.includes("Unable to subscribe") ||
               errorString.includes("Realtime is enabled")
             ) {
-              console.warn(
-                "⚠️ Realtime may not be enabled for gmb_locations table. Continuing without real-time updates.",
+              apiLogger.warn(
+                "Realtime may not be enabled for gmb_locations table. Continuing without real-time updates.",
               );
               return; // Don't log as error
             }
 
             // Only log actual errors that are not configuration issues
-            console.error("Realtime subscription error:", error);
+            apiLogger.error(
+              "Realtime subscription error",
+              error instanceof Error ? error : new Error(String(error)),
+            );
           })
           .subscribe((status, err) => {
             if (status === "SUBSCRIBED") {
-              console.log("✅ Locations realtime subscribed");
+              apiLogger.info("✅ Locations realtime subscribed");
             } else if (status === "CHANNEL_ERROR") {
               if (__DEV__) {
-                console.error("❌ Locations realtime subscription error:", err);
+                apiLogger.error(
+                  "❌ Locations realtime subscription error",
+                  err instanceof Error ? err : new Error(String(err)),
+                );
               }
               // Log detailed error for debugging
               if (err) {
@@ -519,19 +540,19 @@ export function useLocations(
                   errorMessage.includes("Unable to subscribe")
                 ) {
                   if (__DEV__) {
-                    console.warn(
-                      "⚠️ Realtime subscription failed - Realtime may not be enabled for gmb_locations table in Supabase. The app will continue to work, but without real-time updates.",
+                    apiLogger.warn(
+                      "Realtime subscription failed - Realtime may not be enabled for gmb_locations table in Supabase. The app will continue to work, but without real-time updates.",
                     );
                   }
                 }
               }
             } else if (status === "TIMED_OUT") {
               if (__DEV__) {
-                console.warn("⏱️ Locations realtime subscription timed out");
+                apiLogger.warn("⏱️ Locations realtime subscription timed out");
               }
             } else if (status === "CLOSED") {
               if (__DEV__) {
-                console.log("🔌 Locations realtime subscription closed");
+                apiLogger.debug("🔌 Locations realtime subscription closed");
               }
             }
           });
@@ -539,7 +560,10 @@ export function useLocations(
         channelRef.current = channel;
       } catch (err) {
         if (__DEV__) {
-          console.error("Error setting up realtime:", err);
+          apiLogger.error(
+            "Error setting up realtime",
+            err instanceof Error ? err : new Error(String(err)),
+          );
         }
       }
     };

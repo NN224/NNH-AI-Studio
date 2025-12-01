@@ -3,6 +3,7 @@
  * Provides DSN validation and common settings
  */
 
+import { logger } from "@/lib/utils/logger";
 import * as Sentry from "@sentry/nextjs";
 
 export type SentryRuntime = "client" | "server" | "edge";
@@ -74,8 +75,8 @@ export function initSentryWithValidation(options: SentryInitOptions): boolean {
       ? `Invalid Sentry DSN format for ${runtime} runtime: ${dsn}`
       : `Missing Sentry DSN for ${runtime} runtime`;
 
-    console.warn(`⚠️ ${dsnWarning}`);
-    console.warn(`Sentry monitoring is disabled for ${runtime} runtime`);
+    logger.warn(dsnWarning);
+    logger.warn(`Sentry monitoring is disabled for ${runtime} runtime`);
     return false;
   }
 
@@ -147,7 +148,10 @@ export function safeCaptureException(
   context?: Record<string, any>,
 ): void {
   if (!isSentryConfigured()) {
-    console.error("Cannot capture exception: Sentry not configured", error);
+    logger.error(
+      "Cannot capture exception: Sentry not configured",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return;
   }
 
@@ -163,7 +167,7 @@ export function safeCaptureMessage(
   context?: Record<string, any>,
 ): void {
   if (!isSentryConfigured()) {
-    console.warn("Cannot capture message: Sentry not configured", message);
+    logger.warn(`Cannot capture message: Sentry not configured - ${message}`);
     return;
   }
 

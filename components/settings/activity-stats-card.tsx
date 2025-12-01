@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Clock } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/utils/logger";
+import { Clock, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type ActivityStats = {
   repliesToday: number;
@@ -21,14 +22,15 @@ export function ActivityStatsCard() {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/auto-pilot/monitoring', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to fetch');
+        const res = await fetch("/api/auto-pilot/monitoring", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         if (mounted && data.success && data.data) {
           const today = data.data.today || {};
-          const successRate = today.total > 0 
-            ? ((today.success / today.total) * 100) 
-            : 0;
+          const successRate =
+            today.total > 0 ? (today.success / today.total) * 100 : 0;
           setStats({
             repliesToday: today.total || 0,
             avgResponseTime: today.avgResponseTime || 0,
@@ -36,7 +38,10 @@ export function ActivityStatsCard() {
           });
         }
       } catch (error) {
-        console.error('[ActivityStatsCard] Error:', error);
+        logger.error(
+          "ActivityStatsCard Error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -79,7 +84,9 @@ export function ActivityStatsCard() {
         ) : stats ? (
           <div className="grid grid-cols-3 gap-4 text-center">
             <div className="p-4 bg-zinc-950/50 rounded-lg">
-              <div className="text-2xl font-bold text-white">{stats.repliesToday}</div>
+              <div className="text-2xl font-bold text-white">
+                {stats.repliesToday}
+              </div>
               <div className="text-sm text-zinc-400 mt-1">ردود تلقائية</div>
             </div>
             <div className="p-4 bg-zinc-950/50 rounded-lg">
@@ -89,7 +96,9 @@ export function ActivityStatsCard() {
               <div className="text-sm text-zinc-400 mt-1">متوسط الوقت</div>
             </div>
             <div className="p-4 bg-zinc-950/50 rounded-lg">
-              <div className="text-2xl font-bold text-white">{stats.successRate.toFixed(0)}%</div>
+              <div className="text-2xl font-bold text-white">
+                {stats.successRate.toFixed(0)}%
+              </div>
               <div className="text-sm text-zinc-400 mt-1">نسبة النجاح</div>
             </div>
           </div>
@@ -106,4 +115,3 @@ export function ActivityStatsCard() {
     </Card>
   );
 }
-

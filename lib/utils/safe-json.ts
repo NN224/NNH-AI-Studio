@@ -9,6 +9,8 @@
  * @security CRITICAL - Unhandled JSON.parse errors can crash the server
  */
 
+import { logger } from "@/lib/utils/logger";
+
 import type { ZodSchema } from "zod";
 
 /**
@@ -55,7 +57,7 @@ export function safeJsonParseWithLog<T>(
   try {
     return JSON.parse(json) as T;
   } catch (error) {
-    console.warn(`[safeJsonParse] Failed to parse JSON in ${context}:`, {
+    logger.warn(`Failed to parse JSON in ${context}`, {
       preview: json.substring(0, 100),
       error: error instanceof Error ? error.message : "Unknown error",
     });

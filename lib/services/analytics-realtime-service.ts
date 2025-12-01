@@ -1,8 +1,16 @@
-import { createClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { createClient } from "@/lib/supabase/client";
+import { logger } from "@/lib/utils/logger";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface RealtimeMetric {
-  type: 'impression' | 'click' | 'call' | 'direction_request' | 'website_visit' | 'review' | 'question';
+  type:
+    | "impression"
+    | "click"
+    | "call"
+    | "direction_request"
+    | "website_visit"
+    | "review"
+    | "question";
   locationId: string;
   locationName: string;
   timestamp: Date;
@@ -42,59 +50,73 @@ export class AnalyticsRealtimeService {
    */
   subscribeToLocations(
     locationIds: string[],
-    callback: (metric: RealtimeMetric) => void
+    callback: (metric: RealtimeMetric) => void,
   ): () => void {
-    const key = locationIds.sort().join(',');
-    
+    const key = locationIds.sort().join(",");
+
     // Check if subscription already exists
     let subscription = this.subscriptions.get(key);
-    
+
     if (!subscription) {
       // Create new subscription
-      const channel = this.supabase!
-        .channel(`analytics-${key}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'gmb_performance_metrics',
-          filter: locationIds.length > 0
-            ? `location_id=in.(${locationIds.join(',')})`
-            : undefined!
-        }, (payload) => {
-          this.handleMetricChange(payload, 'performance');
-        })
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'gmb_reviews',
-          filter: locationIds.length > 0
-            ? `location_id=in.(${locationIds.join(',')})`
-            : undefined!
-        }, (payload) => {
-          this.handleMetricChange(payload, 'review');
-        })
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'gmb_questions',
-          filter: locationIds.length > 0
-            ? `location_id=in.(${locationIds.join(',')})`
-            : undefined!
-        }, (payload) => {
-          this.handleMetricChange(payload, 'question');
-        })
+      const channel = this.supabase!.channel(`analytics-${key}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "gmb_performance_metrics",
+            filter:
+              locationIds.length > 0
+                ? `location_id=in.(${locationIds.join(",")})`
+                : undefined!,
+          },
+          (payload) => {
+            this.handleMetricChange(payload, "performance");
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "gmb_reviews",
+            filter:
+              locationIds.length > 0
+                ? `location_id=in.(${locationIds.join(",")})`
+                : undefined!,
+          },
+          (payload) => {
+            this.handleMetricChange(payload, "review");
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "gmb_questions",
+            filter:
+              locationIds.length > 0
+                ? `location_id=in.(${locationIds.join(",")})`
+                : undefined!,
+          },
+          (payload) => {
+            this.handleMetricChange(payload, "question");
+          },
+        )
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
+          if (status === "SUBSCRIBED") {
             this.isConnected = true;
-            console.log('Analytics realtime connected');
+            console.log("Analytics realtime connected");
           }
         });
 
       subscription = {
         channel,
-        listeners: new Set()
+        listeners: new Set(),
       };
-      
+
       this.subscriptions.set(key, subscription);
     }
 
@@ -105,7 +127,7 @@ export class AnalyticsRealtimeService {
     return () => {
       if (subscription) {
         subscription.listeners.delete(callback);
-        
+
         // If no more listeners, remove subscription
         if (subscription.listeners.size === 0) {
           subscription.channel.unsubscribe();
@@ -119,44 +141,47 @@ export class AnalyticsRealtimeService {
    * Subscribe to aggregated metrics updates
    */
   subscribeToMetricsUpdates(
-    callback: (updates: { 
-      impressions?: number; 
-      clicks?: number; 
+    callback: (updates: {
+      impressions?: number;
+      clicks?: number;
       calls?: number;
       reviews?: number;
       questions?: number;
     }) => void,
-    interval: number = 10000 // 10 seconds default
+    interval: number = 10000, // 10 seconds default
   ): () => void {
     const timer = setInterval(async () => {
       try {
-        const { data: { user } } = await this.supabase!.auth.getUser();
+        const {
+          data: { user },
+        } = await this.supabase!.auth.getUser();
         if (!user) return;
 
         // Fetch latest metrics
         const now = new Date();
         const since = new Date(now.getTime() - interval);
 
-        const { data: metrics } = await this.supabase!
-          .from('gmb_performance_metrics')
-          .select('impressions_total, clicks_total, calls_total')
-          .eq('user_id', user.id)
-          .gte('created_at', since.toISOString())
-          .order('created_at', { ascending: false })
+        const { data: metrics } = await this.supabase!.from(
+          "gmb_performance_metrics",
+        )
+          .select("impressions_total, clicks_total, calls_total")
+          .eq("user_id", user.id)
+          .gte("created_at", since.toISOString())
+          .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
-        const { data: reviewCount } = await this.supabase!
-          .from('gmb_reviews')
-          .select('id', { count: 'exact' })
-          .eq('user_id', user.id)
-          .gte('created_at', since.toISOString());
+        const { data: reviewCount } = await this.supabase!.from("gmb_reviews")
+          .select("id", { count: "exact" })
+          .eq("user_id", user.id)
+          .gte("created_at", since.toISOString());
 
-        const { data: questionCount } = await this.supabase!
-          .from('gmb_questions')
-          .select('id', { count: 'exact' })
-          .eq('user_id', user.id)
-          .gte('created_at', since.toISOString());
+        const { data: questionCount } = await this.supabase!.from(
+          "gmb_questions",
+        )
+          .select("id", { count: "exact" })
+          .eq("user_id", user.id)
+          .gte("created_at", since.toISOString());
 
         if (metrics || reviewCount || questionCount) {
           callback({
@@ -164,11 +189,14 @@ export class AnalyticsRealtimeService {
             clicks: metrics?.clicks_total,
             calls: metrics?.calls_total,
             reviews: reviewCount?.length || 0,
-            questions: questionCount?.length || 0
+            questions: questionCount?.length || 0,
           });
         }
       } catch (error) {
-        console.error('Failed to fetch metrics update:', error);
+        logger.error(
+          "Failed to fetch metrics update",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     }, interval);
 
@@ -181,33 +209,36 @@ export class AnalyticsRealtimeService {
   simulateRealtimeEvents(locationIds: string[]): () => void {
     const events: Array<() => RealtimeMetric> = [
       () => ({
-        type: 'impression',
+        type: "impression",
         locationId: locationIds[Math.floor(Math.random() * locationIds.length)],
-        locationName: 'Demo Location',
+        locationName: "Demo Location",
         timestamp: new Date(),
-        value: Math.floor(Math.random() * 10) + 1
+        value: Math.floor(Math.random() * 10) + 1,
       }),
       () => ({
-        type: 'click',
+        type: "click",
         locationId: locationIds[Math.floor(Math.random() * locationIds.length)],
-        locationName: 'Demo Location',
-        timestamp: new Date(),
-        value: 1
-      }),
-      () => ({
-        type: 'call',
-        locationId: locationIds[Math.floor(Math.random() * locationIds.length)],
-        locationName: 'Demo Location',
+        locationName: "Demo Location",
         timestamp: new Date(),
         value: 1,
-        metadata: { duration: Math.floor(Math.random() * 300) + 30 }
-      })
+      }),
+      () => ({
+        type: "call",
+        locationId: locationIds[Math.floor(Math.random() * locationIds.length)],
+        locationName: "Demo Location",
+        timestamp: new Date(),
+        value: 1,
+        metadata: { duration: Math.floor(Math.random() * 300) + 30 },
+      }),
     ];
 
-    const interval = setInterval(() => {
-      const event = events[Math.floor(Math.random() * events.length)]();
-      this.broadcastMetric(event);
-    }, Math.random() * 5000 + 2000); // Random interval between 2-7 seconds
+    const interval = setInterval(
+      () => {
+        const event = events[Math.floor(Math.random() * events.length)]();
+        this.broadcastMetric(event);
+      },
+      Math.random() * 5000 + 2000,
+    ); // Random interval between 2-7 seconds
 
     return () => clearInterval(interval);
   }
@@ -219,51 +250,51 @@ export class AnalyticsRealtimeService {
     let metric: RealtimeMetric;
 
     switch (type) {
-      case 'performance':
+      case "performance":
         // Map performance metric changes to realtime events
         if (data.impressions_total > 0) {
           metric = {
-            type: 'impression',
+            type: "impression",
             locationId: data.location_id,
-            locationName: data.location_name || '',
+            locationName: data.location_name || "",
             timestamp: new Date(data.created_at),
-            value: data.impressions_total
+            value: data.impressions_total,
           };
         } else if (data.clicks_total > 0) {
           metric = {
-            type: 'click',
+            type: "click",
             locationId: data.location_id,
-            locationName: data.location_name || '',
+            locationName: data.location_name || "",
             timestamp: new Date(data.created_at),
-            value: data.clicks_total
+            value: data.clicks_total,
           };
         } else {
           return;
         }
         break;
 
-      case 'review':
+      case "review":
         metric = {
-          type: 'review',
+          type: "review",
           locationId: data.location_id,
-          locationName: '',
+          locationName: "",
           timestamp: new Date(data.created_at),
           metadata: {
             rating: data.rating,
-            hasReply: data.has_reply
-          }
+            hasReply: data.has_reply,
+          },
         };
         break;
 
-      case 'question':
+      case "question":
         metric = {
-          type: 'question',
+          type: "question",
           locationId: data.location_id,
-          locationName: '',
+          locationName: "",
           timestamp: new Date(data.created_at),
           metadata: {
-            answered: data.answer_status === 'answered'
-          }
+            answered: data.answer_status === "answered",
+          },
         };
         break;
 
@@ -279,12 +310,15 @@ export class AnalyticsRealtimeService {
     this.metricsBuffer.push(metric);
 
     // Broadcast to all relevant subscriptions
-    this.subscriptions.forEach(subscription => {
-      subscription.listeners.forEach(listener => {
+    this.subscriptions.forEach((subscription) => {
+      subscription.listeners.forEach((listener) => {
         try {
           listener(metric);
         } catch (error) {
-          console.error('Listener error:', error);
+          logger.error(
+            "Listener error",
+            error instanceof Error ? error : new Error(String(error)),
+          );
         }
       });
     });
@@ -304,7 +338,7 @@ export class AnalyticsRealtimeService {
    */
   destroy() {
     // Clear all subscriptions
-    this.subscriptions.forEach(subscription => {
+    this.subscriptions.forEach((subscription) => {
       subscription.channel.unsubscribe();
     });
     this.subscriptions.clear();

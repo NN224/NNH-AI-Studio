@@ -3,6 +3,7 @@ import {
   type AIChatResponse,
 } from "@/hooks/use-ai-command-center";
 import { Message } from "@/lib/types/chat-types";
+import { aiLogger } from "@/lib/utils/logger";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -75,7 +76,10 @@ export function useAIChat() {
         }
       } catch (error) {
         // Fallback error handling for unexpected errors
-        console.error("Unexpected chat error:", error);
+        aiLogger.error(
+          "Unexpected chat error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         toast.error("Unexpected Error", {
           description: "An unexpected error occurred. Please try again.",
         });
@@ -101,7 +105,7 @@ export function useAIChat() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn("Speech recognition not supported");
+      aiLogger.warn("Speech recognition not supported");
       return;
     }
 

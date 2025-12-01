@@ -1,5 +1,6 @@
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,10 @@ export async function POST(request: NextRequest) {
     await logAction(action, resourceType, resourceId, metadata);
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
-    console.error("[Audit API] Failed to record audit event", error);
+    apiLogger.error(
+      "[Audit API] Failed to record audit event",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to log action",

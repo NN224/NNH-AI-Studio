@@ -3,6 +3,8 @@
  * This prevents exposing API keys on the client side
  */
 
+import { logger } from "@/lib/utils/logger";
+
 export interface GeocodeResult {
   results: google.maps.GeocoderResult[];
   status: google.maps.GeocoderStatus;
@@ -27,12 +29,15 @@ export class GoogleMapsService {
    */
   async checkConfiguration(): Promise<boolean> {
     try {
-      const response = await fetch('/api/google-maps/config');
+      const response = await fetch("/api/google-maps/config");
       const data = await response.json();
       this.isConfigured = data.configured || false;
       return this.isConfigured;
     } catch (error) {
-      console.error('Failed to check Google Maps configuration:', error);
+      logger.error(
+        "Failed to check Google Maps configuration",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return false;
     }
   }
@@ -44,28 +49,34 @@ export class GoogleMapsService {
     try {
       const csrfToken = await this.getCsrfToken();
       if (!csrfToken) {
-        console.error('Geocoding failed: unable to obtain CSRF token');
+        logger.error(
+          "Geocoding failed: unable to obtain CSRF token",
+          new Error("CSRF token not available"),
+        );
         return null;
       }
 
-      const response = await fetch('/api/google-maps/geocode', {
-        method: 'POST',
+      const response = await fetch("/api/google-maps/geocode", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ address }),
       });
 
       if (!response.ok) {
-        console.error('Geocoding failed:', response.statusText);
+        logger.error("Geocoding failed", new Error(response.statusText));
         return null;
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Geocoding error:', error);
+      logger.error(
+        "Geocoding error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return null;
     }
   }
@@ -89,34 +100,40 @@ export class GoogleMapsService {
    * Get a secure Google Maps embed URL from the server
    */
   async getEmbedUrl(params: {
-    mode: 'place' | 'directions' | 'search' | 'view' | 'streetview';
+    mode: "place" | "directions" | "search" | "view" | "streetview";
     params: Record<string, any>;
   }): Promise<string | null> {
     try {
       const csrfToken = await this.getCsrfToken();
       if (!csrfToken) {
-        console.error('Failed to get embed URL: unable to obtain CSRF token');
+        logger.error(
+          "Failed to get embed URL: unable to obtain CSRF token",
+          new Error("CSRF token not available"),
+        );
         return null;
       }
 
-      const response = await fetch('/api/google-maps/embed-url', {
-        method: 'POST',
+      const response = await fetch("/api/google-maps/embed-url", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify(params),
       });
 
       if (!response.ok) {
-        console.error('Failed to get embed URL:', response.statusText);
+        logger.error("Failed to get embed URL", new Error(response.statusText));
         return null;
       }
 
       const data = await response.json();
       return data.embedUrl || null;
     } catch (error) {
-      console.error('Embed URL error:', error);
+      logger.error(
+        "Embed URL error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return null;
     }
   }
@@ -129,7 +146,10 @@ export class GoogleMapsService {
     if (!this.isConfigured) {
       const configured = await this.checkConfiguration();
       if (!configured) {
-        console.error('Google Maps is not configured on the server');
+        logger.error(
+          "Google Maps is not configured on the server",
+          new Error("Missing Google Maps configuration"),
+        );
         return false;
       }
     }
@@ -137,7 +157,9 @@ export class GoogleMapsService {
     // For now, we'll need to handle this differently
     // The Maps JavaScript API needs to be loaded with a key
     // Consider using alternative mapping solutions or server-side rendering
-    console.warn('Direct Maps JavaScript API loading needs to be replaced with a secure alternative');
+    logger.warn(
+      "Direct Maps JavaScript API loading needs to be replaced with a secure alternative",
+    );
     return false;
   }
 
@@ -150,7 +172,7 @@ export class GoogleMapsService {
     }
 
     try {
-      const response = await fetch('/api/csrf-token');
+      const response = await fetch("/api/csrf-token");
       if (!response.ok) {
         return null;
       }
@@ -158,7 +180,10 @@ export class GoogleMapsService {
       this.csrfToken = data.token || null;
       return this.csrfToken;
     } catch (error) {
-      console.error('Failed to fetch CSRF token:', error);
+      logger.error(
+        "Failed to fetch CSRF token",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return null;
     }
   }

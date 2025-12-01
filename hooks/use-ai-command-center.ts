@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { aiLogger } from "@/lib/utils/logger";
 
 // Types
 export interface BusinessInfo {
@@ -123,7 +124,11 @@ async function fetchBusinessInfo(
       accountId: targetLocation.gmb_account_id,
     };
   } catch (error) {
-    console.error("Error fetching business info:", error);
+    aiLogger.error(
+      "Error fetching business info",
+      error instanceof Error ? error : new Error(String(error)),
+      { selectedLocationId },
+    );
     return {
       name: "Your Business",
       category: "Business",
@@ -195,7 +200,11 @@ async function fetchUrgentItems(
         });
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
+      aiLogger.error(
+        "Error fetching reviews",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: targetLocation.id },
+      );
     }
 
     // Fetch unanswered questions
@@ -244,7 +253,11 @@ async function fetchUrgentItems(
         });
       }
     } catch (error) {
-      console.error("Error fetching questions:", error);
+      aiLogger.error(
+        "Error fetching questions",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: targetLocation.id },
+      );
     }
 
     // Sort by priority and timestamp
@@ -258,7 +271,11 @@ async function fetchUrgentItems(
 
     return urgentItems.slice(0, 10); // Return top 10 urgent items
   } catch (error) {
-    console.error("Error fetching urgent items:", error);
+    aiLogger.error(
+      "Error fetching urgent items",
+      error instanceof Error ? error : new Error(String(error)),
+      { selectedLocationId },
+    );
     return [];
   }
 }
@@ -348,7 +365,11 @@ async function fetchManagementStats(): Promise<ManagementStats> {
           postsData.scheduled = scheduled;
         }
       } catch (error) {
-        console.error("Error fetching posts:", error);
+        aiLogger.error(
+          "Error fetching posts",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId: locations[0]?.id },
+        );
       }
     }
 
@@ -375,7 +396,10 @@ async function fetchManagementStats(): Promise<ManagementStats> {
       },
     };
   } catch (error) {
-    console.error("Error fetching management stats:", error);
+    aiLogger.error(
+      "Error fetching management stats",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       reviews: {
         total: 0,
@@ -486,7 +510,10 @@ export function useAIChat() {
         message: messageContent,
       };
     } catch (error) {
-      console.error("Chat error:", error);
+      aiLogger.error(
+        "Chat error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
 
       // Return structured error response for network/unexpected errors
       return {

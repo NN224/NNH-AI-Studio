@@ -1,5 +1,6 @@
-import { resolveTokenValue, encryptToken } from "@/lib/security/encryption";
+import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -36,7 +37,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 }
 
 export async function getValidAccessToken(
-  supabase: any, // Client is kept for compatibility but not used for secrets
+  _supabase: unknown, // Client is kept for compatibility but not used for secrets
   accountId: string,
 ): Promise<string> {
   // Always use Admin Client to access the secure gmb_secrets table
@@ -57,7 +58,13 @@ export async function getValidAccessToken(
     .single();
 
   if (secretError || !secrets || accountError || !account) {
-    console.error("[GMB Helpers] Credentials not found for:", accountId);
+    gmbLogger.error(
+      "Credentials not found",
+      new Error("Account credentials not found"),
+      {
+        accountId,
+      },
+    );
     throw new Error("Account credentials not found");
   }
 
@@ -77,7 +84,7 @@ export async function getValidAccessToken(
 
   // Buffer: Refresh 5 minutes early
   if (now >= expiresAt - 300000) {
-    console.log("Token expired, refreshing...");
+    gmbLogger.debug("Token expired, refreshing...");
     const tokens = await refreshAccessToken(refreshToken);
 
     // Update DB with new encrypted tokens

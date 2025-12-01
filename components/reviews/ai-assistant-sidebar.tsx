@@ -1,15 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Settings, Lightbulb, Sparkles, Bot, ChevronRight, Zap, Shield, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { getAutoReplySettings, saveAutoReplySettings, type AutoReplySettings } from '@/server/actions/auto-reply';
-import type { GMBReview } from '@/lib/types/database';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Settings,
+  Lightbulb,
+  Sparkles,
+  Bot,
+  ChevronRight,
+  Zap,
+  Shield,
+  TrendingUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  getAutoReplySettings,
+  saveAutoReplySettings,
+  type AutoReplySettings,
+} from "@/server/actions/auto-reply";
+import type { GMBReview } from "@/lib/types/database";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 interface AIAssistantSidebarProps {
   selectedReview: GMBReview | null;
@@ -20,39 +34,43 @@ interface AIAssistantSidebarProps {
 const QUICK_TIPS = [
   {
     id: 1,
-    icon: '💡',
-    title: 'Quick Tip',
-    message: 'Select a pending review to get AI-powered reply suggestions',
-    color: 'from-yellow-500/20 to-orange-500/10',
-    borderColor: 'border-yellow-500/30',
+    icon: "💡",
+    title: "Quick Tip",
+    message: "Select a pending review to get AI-powered reply suggestions",
+    color: "from-yellow-500/20 to-orange-500/10",
+    borderColor: "border-yellow-500/30",
   },
   {
     id: 2,
-    icon: '⚡',
-    title: 'Pro Tip',
-    message: 'Enable auto-reply to respond instantly to positive reviews',
-    color: 'from-blue-500/20 to-cyan-500/10',
-    borderColor: 'border-blue-500/30',
+    icon: "⚡",
+    title: "Pro Tip",
+    message: "Enable auto-reply to respond instantly to positive reviews",
+    color: "from-blue-500/20 to-cyan-500/10",
+    borderColor: "border-blue-500/30",
   },
   {
     id: 3,
-    icon: '🎯',
-    title: 'Smart Tip',
-    message: 'Use sentiment analysis to prioritize negative reviews first',
-    color: 'from-purple-500/20 to-pink-500/10',
-    borderColor: 'border-purple-500/30',
+    icon: "🎯",
+    title: "Smart Tip",
+    message: "Use sentiment analysis to prioritize negative reviews first",
+    color: "from-purple-500/20 to-pink-500/10",
+    borderColor: "border-purple-500/30",
   },
   {
     id: 4,
-    icon: '🚀',
-    title: 'Growth Tip',
-    message: 'Respond within 24 hours to boost your response rate score',
-    color: 'from-green-500/20 to-emerald-500/10',
-    borderColor: 'border-green-500/30',
+    icon: "🚀",
+    title: "Growth Tip",
+    message: "Respond within 24 hours to boost your response rate score",
+    color: "from-green-500/20 to-emerald-500/10",
+    borderColor: "border-green-500/30",
   },
 ];
 
-export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locationId }: AIAssistantSidebarProps) {
+export function AIAssistantSidebar({
+  selectedReview,
+  pendingReviewsCount,
+  locationId,
+}: AIAssistantSidebarProps) {
   const router = useRouter();
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,7 +86,11 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
         setAutoReplyEnabled(result.data.enabled);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      reviewsLogger.error(
+        "Error loading settings",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
     } finally {
       setLoading(false);
     }
@@ -80,15 +102,15 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
   }, [loadSettings]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
     const handler = () => {
       loadSettings();
     };
-    window.addEventListener('ai:auto-reply:refresh', handler);
+    window.addEventListener("ai:auto-reply:refresh", handler);
     return () => {
-      window.removeEventListener('ai:auto-reply:refresh', handler);
+      window.removeEventListener("ai:auto-reply:refresh", handler);
     };
   }, [loadSettings]);
 
@@ -102,7 +124,7 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
 
   const handleToggleAutoReply = async (enabled: boolean) => {
     if (!settings) {
-      toast.error('Please wait for settings to load');
+      toast.error("Please wait for settings to load");
       return;
     }
 
@@ -114,26 +136,30 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
       if (result.success) {
         setAutoReplyEnabled(enabled);
         setSettings(newSettings);
-        toast.success(enabled ? 'Auto-reply enabled!' : 'Auto-reply disabled', {
-          description: enabled 
-            ? 'AI will automatically respond to new reviews' 
-            : 'Auto-reply is now off',
+        toast.success(enabled ? "Auto-reply enabled!" : "Auto-reply disabled", {
+          description: enabled
+            ? "AI will automatically respond to new reviews"
+            : "Auto-reply is now off",
         });
       } else {
-        toast.error('Failed to update settings', {
+        toast.error("Failed to update settings", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('Error toggling auto-reply:', error);
-      toast.error('An unexpected error occurred');
+      reviewsLogger.error(
+        "Error toggling auto-reply",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   const handleAISettings = () => {
-    router.push('/settings?tab=ai');
+    router.push("/settings?tab=ai");
   };
 
   const tip = QUICK_TIPS[currentTip];
@@ -158,13 +184,18 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
       </div>
 
       {/* Quick Tip Card */}
-      <Card className={`bg-gradient-to-br ${tip.color} border ${tip.borderColor} backdrop-blur-sm transition-all duration-500 hover:scale-[1.02]`}>
+      <Card
+        className={`bg-gradient-to-br ${tip.color} border ${tip.borderColor} backdrop-blur-sm transition-all duration-500 hover:scale-[1.02]`}
+      >
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="text-2xl animate-bounce">{tip.icon}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline" className="text-xs border-orange-500/30 text-orange-400 bg-orange-500/10">
+                <Badge
+                  variant="outline"
+                  className="text-xs border-orange-500/30 text-orange-400 bg-orange-500/10"
+                >
                   {tip.title}
                 </Badge>
               </div>
@@ -186,7 +217,9 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
               </div>
               <div>
                 <p className="text-xs text-zinc-400">Pending</p>
-                <p className="text-lg font-bold text-white">{pendingReviewsCount}</p>
+                <p className="text-lg font-bold text-white">
+                  {pendingReviewsCount}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -200,7 +233,9 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
               </div>
               <div>
                 <p className="text-xs text-zinc-400">Auto-Reply</p>
-                <p className="text-lg font-bold text-white">{autoReplyEnabled ? 'ON' : 'OFF'}</p>
+                <p className="text-lg font-bold text-white">
+                  {autoReplyEnabled ? "ON" : "OFF"}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -218,7 +253,9 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
               <div>
                 <p className="text-sm font-semibold text-white">Auto-Reply</p>
                 <p className="text-xs text-zinc-400">
-                  {autoReplyEnabled ? 'AI will respond automatically' : 'Manual replies only'}
+                  {autoReplyEnabled
+                    ? "AI will respond automatically"
+                    : "Manual replies only"}
                 </p>
               </div>
             </div>
@@ -238,11 +275,11 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
-                {selectedReview.reviewer_name?.[0]?.toUpperCase() || '?'}
+                {selectedReview.reviewer_name?.[0]?.toUpperCase() || "?"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">
-                  {selectedReview.reviewer_name || 'Anonymous'}
+                  {selectedReview.reviewer_name || "Anonymous"}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -250,8 +287,8 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
                       key={star}
                       className={`text-xs ${
                         star <= selectedReview.rating
-                          ? 'text-yellow-400'
-                          : 'text-zinc-600'
+                          ? "text-yellow-400"
+                          : "text-zinc-600"
                       }`}
                     >
                       ★
@@ -259,7 +296,7 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
                   ))}
                 </div>
                 <p className="text-xs text-zinc-400 mt-2 line-clamp-2">
-                  {selectedReview.review_text || 'No review text'}
+                  {selectedReview.review_text || "No review text"}
                 </p>
               </div>
             </div>
@@ -288,4 +325,3 @@ export function AIAssistantSidebar({ selectedReview, pendingReviewsCount, locati
     </div>
   );
 }
-

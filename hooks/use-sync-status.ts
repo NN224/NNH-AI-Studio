@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { syncLogger } from "@/lib/utils/logger";
 
 export interface SyncJob {
   id: string;
@@ -77,7 +78,11 @@ export function useSyncStatus(userId?: string): UseSyncStatusResult {
         }
       } catch (err) {
         if (mountedRef.current) {
-          console.error("[useSyncStatus] Error checking sync status:", err);
+          syncLogger.error(
+            "[useSyncStatus] Error checking sync status",
+            err instanceof Error ? err : new Error(String(err)),
+            { userId },
+          );
           setError(err instanceof Error ? err.message : "Unknown error");
 
           // Report to Sentry if available

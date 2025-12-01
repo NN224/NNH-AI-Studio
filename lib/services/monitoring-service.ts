@@ -3,8 +3,9 @@
  * Tracks application health, performance, and business metrics
  */
 
-import { errorLogger } from "./error-logger";
 import { getBaseUrl } from "@/lib/utils/get-base-url";
+import { apiLogger } from "@/lib/utils/logger";
+import { errorLogger } from "./error-logger";
 
 export interface MetricEvent {
   name: string;
@@ -29,7 +30,7 @@ export interface Alert {
   title: string;
   message: string;
   service?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
   acknowledged?: boolean;
 }
@@ -91,7 +92,9 @@ class MonitoringService {
 
     // Log in development
     if (process.env.NODE_ENV === "development") {
-      console.log(`[Metric] ${event.name}: ${event.value} ${event.unit || ""}`);
+      apiLogger.debug(
+        `Metric: ${event.name}: ${event.value} ${event.unit || ""}`,
+      );
     }
 
     // Flush if buffer is getting large
@@ -150,7 +153,7 @@ class MonitoringService {
 
       return response;
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const _duration = Date.now() - startTime;
 
       this.trackMetric({
         name: "api.request.error",
@@ -373,7 +376,11 @@ class MonitoringService {
       };
     }
 
-    const memInfo = (performance as any).memory;
+    const memInfo = (
+      performance as Performance & {
+        memory: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+      }
+    ).memory;
     const usedMB = memInfo.usedJSHeapSize / 1024 / 1024;
     const limitMB = memInfo.jsHeapSizeLimit / 1024 / 1024;
     const percentage = (usedMB / limitMB) * 100;
@@ -430,7 +437,10 @@ class MonitoringService {
           }),
         });
       } catch (error) {
-        console.error("Failed to send Slack notification:", error);
+        apiLogger.error(
+          "Failed to send Slack notification",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     }
 
@@ -443,7 +453,10 @@ class MonitoringService {
           body: JSON.stringify(alert),
         });
       } catch (error) {
-        console.error("Failed to send webhook notification:", error);
+        apiLogger.error(
+          "Failed to send webhook notification",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     }
   }
@@ -464,7 +477,10 @@ class MonitoringService {
         body: JSON.stringify({ metrics }),
       });
     } catch (error) {
-      console.error("Failed to flush metrics:", error);
+      apiLogger.error(
+        "Failed to flush metrics",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       // Put metrics back in buffer
       this.metricsBuffer.unshift(...metrics);
     }
@@ -486,7 +502,10 @@ class MonitoringService {
         body: JSON.stringify({ alerts }),
       });
     } catch (error) {
-      console.error("Failed to flush alerts:", error);
+      apiLogger.error(
+        "Failed to flush alerts",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       // Put alerts back in buffer
       this.alertsBuffer.unshift(...alerts);
     }

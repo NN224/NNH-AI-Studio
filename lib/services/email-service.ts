@@ -7,6 +7,7 @@
  * This file should only be imported in Node.js runtime contexts (API routes with runtime: 'nodejs')
  */
 
+import { apiLogger } from "@/lib/utils/logger";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -29,9 +30,13 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully");
+    apiLogger.info("Email sent successfully", { to, subject });
   } catch (error) {
-    console.error("Failed to send email:", error);
+    apiLogger.error(
+      "Failed to send email",
+      error instanceof Error ? error : new Error(String(error)),
+      { to, subject },
+    );
     throw new Error("Failed to send email");
   }
 }

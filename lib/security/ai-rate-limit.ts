@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -88,9 +89,7 @@ function getRedis(): Redis | null {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    console.warn(
-      "[AI Rate Limit] Redis not configured - FAIL CLOSED for AI endpoints",
-    );
+    apiLogger.warn("Redis not configured - FAIL CLOSED for AI endpoints");
     return null;
   }
 
@@ -164,7 +163,10 @@ async function getUserTier(userId: string): Promise<UserTier> {
     }
     return "free";
   } catch (error) {
-    console.error("[AI Rate Limit] Failed to get user tier:", error);
+    apiLogger.error(
+      "Failed to get user tier",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return "free"; // Default to most restrictive
   }
 }
@@ -186,8 +188,9 @@ export async function checkAIRateLimit(
 
   // FAIL CLOSED: If no Redis, block AI requests (cost protection)
   if (!limiter) {
-    console.error(
-      "[AI Rate Limit] No Redis configured - blocking AI request for cost protection",
+    apiLogger.error(
+      "No Redis configured - blocking AI request for cost protection",
+      new Error("Redis unavailable"),
     );
     return {
       success: false,
@@ -215,7 +218,10 @@ export async function checkAIRateLimit(
       userTier,
     };
   } catch (error) {
-    console.error("[AI Rate Limit] Check failed:", error);
+    apiLogger.error(
+      "Rate limit check failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // FAIL CLOSED for AI endpoints (cost protection)
     return {
       success: false,
@@ -250,7 +256,10 @@ export async function trackAIUsage(
     });
   } catch (error) {
     // Non-critical - log but don't fail the request
-    console.error("[AI Rate Limit] Failed to track usage:", error);
+    apiLogger.error(
+      "Failed to track usage",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 }
 
@@ -332,7 +341,10 @@ export async function getAIUsageStats(userId: string): Promise<{
       byEndpoint,
     };
   } catch (error) {
-    console.error("[AI Rate Limit] Failed to get usage stats:", error);
+    apiLogger.error(
+      "Failed to get usage stats",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       totalRequests: 0,
       totalTokens: 0,

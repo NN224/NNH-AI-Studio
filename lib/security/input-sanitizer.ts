@@ -1,3 +1,5 @@
+import { logger } from "@/lib/utils/logger";
+
 /**
  * Sanitize HTML input to prevent XSS attacks
  * Allows basic formatting tags only
@@ -162,7 +164,10 @@ export function sanitizeJson<T = any>(input: string): T | null {
 
     return sanitizeObject(parsed);
   } catch (error) {
-    console.error("JSON sanitization error:", error);
+    logger.error(
+      "JSON sanitization error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return null;
   }
 }

@@ -1,4 +1,5 @@
 import { CSRF_COOKIE_NAME, generateCSRFToken } from "@/lib/security/csrf";
+import { authLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +36,10 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("CSRF token generation error:", message);
+    authLogger.error(
+      "CSRF token generation error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Failed to generate CSRF token" },
       { status: 500 },

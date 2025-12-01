@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useEffect, useId, useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,21 +11,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Sparkles } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { replyToReview, updateReply } from "@/server/actions/reviews-management"
-import type { GMBReview } from "@/lib/types/database"
-import { useAutoSave } from "@/hooks/use-auto-save"
-import { formatDistanceToNow } from "date-fns"
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  replyToReview,
+  updateReply,
+} from "@/server/actions/reviews-management";
+import type { GMBReview } from "@/lib/types/database";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { formatDistanceToNow } from "date-fns";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 interface ReplyDialogProps {
-  readonly review: GMBReview | null
-  readonly isOpen: boolean
-  readonly onClose: () => void
-  readonly onSuccess?: () => void
+  readonly review: GMBReview | null;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onSuccess?: () => void;
 }
 
 export function ReplyDialog({
@@ -34,12 +38,13 @@ export function ReplyDialog({
   onClose,
   onSuccess,
 }: Readonly<ReplyDialogProps>) {
-  const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const router = useRouter()
-  const textareaId = useId()
-  const initialReplyValue = review?.reply_text || review?.response_text || review?.review_reply || ""
-  const draftKey = review ? `review:${review.id}` : null
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const router = useRouter();
+  const textareaId = useId();
+  const initialReplyValue =
+    review?.reply_text || review?.response_text || review?.review_reply || "";
+  const draftKey = review ? `review:${review.id}` : null;
 
   const {
     value: reply,
@@ -55,18 +60,18 @@ export function ReplyDialog({
     key: draftKey,
     type: "review_reply",
     initialValue: initialReplyValue,
-  })
+  });
 
   useEffect(() => {
     if (!isOpen) {
-      setGenerating(false)
-      setLoading(false)
+      setGenerating(false);
+      setLoading(false);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const handleGenerateAI = async () => {
-    if (!review) return
-    setGenerating(true)
+    if (!review) return;
+    setGenerating(true);
 
     try {
       // Call AI API to generate response
@@ -82,71 +87,75 @@ export function ReplyDialog({
             sentiment: review.ai_sentiment,
           },
         }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to generate AI response')
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate AI response");
       }
 
-      const { content } = await response.json()
+      const { content } = await response.json();
 
       if (!content || typeof content !== "string") {
-        throw new Error("Invalid response from AI service")
+        throw new Error("Invalid response from AI service");
       }
 
-      setReply(content)
+      setReply(content);
 
       toast.success("AI response generated!", {
         description: "Review and edit before sending",
-      })
+      });
     } catch (error) {
-      console.error("Error generating AI response:", error)
+      reviewsLogger.error(
+        "Error generating AI response",
+        error instanceof Error ? error : new Error(String(error)),
+        { reviewId: review.id },
+      );
       // Fallback to simple template if AI fails
       const fallbackResponse = `Thank you for your ${review.rating}-star review, ${review.reviewer_name ?? "customer"}! ${
         review.rating >= 4
           ? "We're thrilled to hear you had a great experience with us. Your feedback means a lot to our team!"
           : "We appreciate your feedback and apologize for any inconvenience. We'd love to make things right - please reach out to us directly so we can address your concerns."
-      }`
-      setReply(fallbackResponse)
+      }`;
+      setReply(fallbackResponse);
     } finally {
-      setGenerating(false)
+      setGenerating(false);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!review || !reply.trim()) {
-      toast.error("Please enter a reply")
-      return
+      toast.error("Please enter a reply");
+      return;
     }
 
     if (reply.length > 4096) {
-      toast.error("Reply is too long. Maximum 4096 characters.")
-      return
+      toast.error("Reply is too long. Maximum 4096 characters.");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      let result
+      let result;
 
       // Check if review already has a reply (update) or is new (create)
       if (review.has_reply) {
-        result = await updateReply(review.id, reply.trim())
+        result = await updateReply(review.id, reply.trim());
       } else {
-        result = await replyToReview(review.id, reply.trim())
+        result = await replyToReview(review.id, reply.trim());
       }
 
       if (result.success) {
         toast.success(result.message || "Reply posted successfully!", {
           description: "Your reply is now visible on Google",
-        })
-        clearDraft()
-        setReply("")
-        onClose()
-        onSuccess?.()
-        router.refresh()
+        });
+        clearDraft();
+        setReply("");
+        onClose();
+        onSuccess?.();
+        router.refresh();
       } else {
         toast.error("Failed to post reply", {
           description: result.error,
@@ -156,25 +165,30 @@ export function ReplyDialog({
                 onClick: () => router.push("/settings"),
               }
             : undefined,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error submitting reply:", error)
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      reviewsLogger.error(
+        "Error submitting reply",
+        error instanceof Error ? error : new Error(String(error)),
+        { reviewId: review.id },
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       toast.error("An unexpected error occurred", {
         description: errorMessage,
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          onClose()
+          onClose();
         }
       }}
     >
@@ -184,7 +198,9 @@ export function ReplyDialog({
             {review?.has_reply ? "Edit Reply" : "Reply to Review"}
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
-            {review ? `Responding to ${review.reviewer_name}'s ${review.rating}-star review` : null}
+            {review
+              ? `Responding to ${review.reviewer_name}'s ${review.rating}-star review`
+              : null}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -194,7 +210,13 @@ export function ReplyDialog({
                 <div className="text-sm text-yellow-100">
                   Found a saved draft
                   {pendingDraftTimestamp && (
-                    <> saved {formatDistanceToNow(pendingDraftTimestamp, { addSuffix: true })}</>
+                    <>
+                      {" "}
+                      saved{" "}
+                      {formatDistanceToNow(pendingDraftTimestamp, {
+                        addSuffix: true,
+                      })}
+                    </>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -202,14 +224,14 @@ export function ReplyDialog({
                     size="sm"
                     className="bg-yellow-500/80 text-black hover:bg-yellow-400"
                     onClick={() => {
-                      const previousValue = reply
-                      restoreDraft()
+                      const previousValue = reply;
+                      restoreDraft();
                       toast.success("Draft restored", {
                         action: {
                           label: "Undo",
                           onClick: () => setReply(previousValue),
                         },
-                      })
+                      });
                     }}
                   >
                     Restore draft
@@ -228,18 +250,27 @@ export function ReplyDialog({
             {review?.review_text && (
               <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-yellow-500">{"⭐".repeat(review.rating)}</span>
-                  <span className="text-zinc-400 text-sm">{review.reviewer_name}</span>
+                  <span className="text-yellow-500">
+                    {"⭐".repeat(review.rating)}
+                  </span>
+                  <span className="text-zinc-400 text-sm">
+                    {review.reviewer_name}
+                  </span>
                 </div>
                 <p className="text-sm text-zinc-300">{review.review_text}</p>
               </div>
             )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor={textareaId} className="text-sm font-medium text-zinc-300">
+                <label
+                  htmlFor={textareaId}
+                  className="text-sm font-medium text-zinc-300"
+                >
                   Your Reply
                 </label>
-                <span className={`text-xs ${reply.length > 4096 ? "text-red-400" : "text-zinc-500"}`}>
+                <span
+                  className={`text-xs ${reply.length > 4096 ? "text-red-400" : "text-zinc-500"}`}
+                >
                   {reply.length} / 4096
                 </span>
               </div>
@@ -253,17 +284,28 @@ export function ReplyDialog({
                 required
               />
               {reply.length > 4096 && (
-                <p className="text-xs text-red-400">Reply exceeds the 4096 character limit</p>
+                <p className="text-xs text-red-400">
+                  Reply exceeds the 4096 character limit
+                </p>
               )}
               <div className="flex items-center justify-between text-xs mt-1">
-                <span className={isDirty ? "text-orange-400 flex items-center gap-1" : "text-zinc-500"}>
+                <span
+                  className={
+                    isDirty
+                      ? "text-orange-400 flex items-center gap-1"
+                      : "text-zinc-500"
+                  }
+                >
                   {isDirty ? (
                     <>
                       <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
                       Unsaved changes
                     </>
                   ) : lastSavedAt ? (
-                    <>Draft saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}</>
+                    <>
+                      Draft saved{" "}
+                      {formatDistanceToNow(lastSavedAt, { addSuffix: true })}
+                    </>
                   ) : (
                     "Drafts auto-save every second"
                   )}
@@ -310,13 +352,15 @@ export function ReplyDialog({
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {review?.has_reply ? "Updating..." : "Posting..."}
                 </>
+              ) : review?.has_reply ? (
+                "Update Reply"
               ) : (
-                review?.has_reply ? "Update Reply" : "Post Reply"
+                "Post Reply"
               )}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

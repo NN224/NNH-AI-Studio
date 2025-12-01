@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reviewsLogger } from "@/lib/utils/logger";
 import type { GMBReview } from "@/lib/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -88,7 +89,7 @@ export function usePendingReviews(): UsePendingReviewsResult {
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
-      console.error("Error fetching pending reviews:", error);
+      reviewsLogger.error("Error fetching pending reviews", error);
     } finally {
       setLoading(false);
     }
@@ -130,13 +131,16 @@ export function usePendingReviews(): UsePendingReviewsResult {
           )
           .subscribe((status) => {
             if (status === "SUBSCRIBED") {
-              console.log("✅ Pending reviews realtime subscribed");
+              reviewsLogger.info("Pending reviews realtime subscribed");
             }
           });
 
         channelRef.current = channel;
       } catch (err) {
-        console.error("Error setting up realtime:", err);
+        reviewsLogger.error(
+          "Error setting up realtime",
+          err instanceof Error ? err : new Error(String(err)),
+        );
       }
     };
 

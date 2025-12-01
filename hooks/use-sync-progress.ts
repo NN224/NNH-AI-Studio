@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { syncLogger } from "@/lib/utils/logger";
 
 export type SyncProgressStage =
   | "init"
@@ -113,7 +114,9 @@ export function useSyncProgress() {
         handleProgressPayload(data.event ?? null);
         setIsConnected(true);
       } catch (error) {
-        console.warn("[useSyncProgress] Poll error", error);
+        syncLogger.warn("[useSyncProgress] Poll error", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         setIsConnected(false);
       }
     },
@@ -162,9 +165,9 @@ export function useSyncProgress() {
               handleProgressPayload(parsed.payload);
             }
           } catch (error) {
-            console.warn(
+            syncLogger.warn(
               "[useSyncProgress] Failed to parse progress event",
-              error,
+              { error: error instanceof Error ? error.message : String(error) },
             );
           }
         };
@@ -180,9 +183,9 @@ export function useSyncProgress() {
         };
         setUsingPolling(false);
       } catch (error) {
-        console.warn(
+        syncLogger.warn(
           "[useSyncProgress] SSE not available, falling back to polling",
-          error,
+          { error: error instanceof Error ? error.message : String(error) },
         );
         setUsingPolling(true);
         pollLatestProgress(params);

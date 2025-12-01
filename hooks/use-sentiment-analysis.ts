@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 export interface SentimentData {
   positive: number;
@@ -26,10 +27,10 @@ export function useSentimentAnalysis(): UseSentimentAnalysisResult {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/reviews/sentiment');
-      
+      const response = await fetch("/api/reviews/sentiment");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch sentiment data');
+        throw new Error("Failed to fetch sentiment data");
       }
 
       const result = await response.json();
@@ -38,12 +39,12 @@ export function useSentimentAnalysis(): UseSentimentAnalysisResult {
         positive: result.sentimentData?.positive || 0,
         neutral: result.sentimentData?.neutral || 0,
         negative: result.sentimentData?.negative || 0,
-        topics: result.hotTopics || []
+        topics: result.hotTopics || [],
       });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
+      const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
-      console.error('Error fetching sentiment:', error);
+      reviewsLogger.error("Error fetching sentiment", error);
     } finally {
       setLoading(false);
     }
@@ -57,8 +58,8 @@ export function useSentimentAnalysis(): UseSentimentAnalysisResult {
       fetchSentiment();
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [fetchSentiment]);
 
   return {
@@ -68,4 +69,3 @@ export function useSentimentAnalysis(): UseSentimentAnalysisResult {
     refetch: fetchSentiment,
   };
 }
-

@@ -40,6 +40,7 @@ import { AutoReplySettingsPanel } from "./auto-reply-settings-panel";
 import { useReviews } from "@/hooks/use-reviews";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
 import type { GMBReview } from "@/lib/types/database";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 interface ReviewStats {
   total: number;
@@ -268,7 +269,10 @@ export function ReviewsPageClient({
         toast.success(body?.message || "Auto-reply settings updated");
         success = true;
       } catch (error) {
-        console.error("[Reviews] Auto-reply control error:", error);
+        reviewsLogger.error(
+          "[Reviews] Auto-reply control error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         toast.error("Unable to update auto-reply settings right now");
       } finally {
         setAutoReplyLoading(false);
@@ -319,7 +323,10 @@ export function ReviewsPageClient({
             completed: prev.completed + 1,
           }));
         } catch (error) {
-          console.error("[Reviews] AI draft error:", error);
+          reviewsLogger.error(
+            "[Reviews] AI draft error",
+            error instanceof Error ? error : new Error(String(error)),
+          );
           toast.error(
             "Some replies failed to generate. Check console for details.",
           );
@@ -332,7 +339,10 @@ export function ReviewsPageClient({
         window.dispatchEvent(new CustomEvent("dashboard:refresh"));
       }
     } catch (error) {
-      console.error("[Reviews] Bulk AI draft failure:", error);
+      reviewsLogger.error(
+        "[Reviews] Bulk AI draft failure",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to generate AI drafts");
     } finally {
       setBulkDrafting(false);
@@ -367,7 +377,10 @@ export function ReviewsPageClient({
       const url = `/api/reviews?${params.toString()}`;
       window.open(url, "_blank", "noopener");
     } catch (error) {
-      console.error("[Reviews] Export error:", error);
+      reviewsLogger.error(
+        "[Reviews] Export error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Unable to export reviews right now");
     }
   }, [filters]);
@@ -1029,7 +1042,10 @@ function AutoReplySidebar({
         setAutoReplyEnabled(Boolean(data?.settings?.enabled));
       }
     } catch (error) {
-      console.error("[Reviews] Failed to load auto-reply state", error);
+      reviewsLogger.error(
+        "[Reviews] Failed to load auto-reply state",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     } finally {
       setAutoReplyFetching(false);
     }

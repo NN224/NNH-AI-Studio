@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +48,11 @@ export async function POST(request: NextRequest) {
           .eq("email", email);
 
         if (error) {
-          console.error("Resubscribe error:", error);
+          apiLogger.error(
+            "Newsletter resubscribe error",
+            error instanceof Error ? error : new Error(String(error)),
+            { email },
+          );
           return NextResponse.json(
             { error: "Failed to resubscribe" },
             { status: 500 },
@@ -70,7 +75,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error("Subscribe error:", error);
+      apiLogger.error(
+        "Newsletter subscribe error",
+        error instanceof Error ? error : new Error(String(error)),
+        { email },
+      );
       return NextResponse.json(
         { error: "Failed to subscribe" },
         { status: 500 },
@@ -88,7 +97,11 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Newsletter subscription error:", error);
+    apiLogger.error(
+      "Newsletter subscription error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -117,7 +130,11 @@ export async function DELETE(request: NextRequest) {
       .eq("email", email);
 
     if (error) {
-      console.error("Unsubscribe error:", error);
+      apiLogger.error(
+        "Newsletter unsubscribe error",
+        error instanceof Error ? error : new Error(String(error)),
+        { email },
+      );
       return NextResponse.json(
         { error: "Failed to unsubscribe" },
         { status: 500 },
@@ -132,7 +149,11 @@ export async function DELETE(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Newsletter unsubscribe error:", error);
+    apiLogger.error(
+      "Newsletter unsubscribe error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

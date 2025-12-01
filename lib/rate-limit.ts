@@ -64,11 +64,8 @@ function validateUpstashConfig(): UpstashConfig | null {
     if (!parsedUrl.protocol.startsWith("http")) {
       throw new Error("Only HTTP(S) URLs are supported");
     }
-  } catch (error) {
-    console.warn(
-      `[RateLimit] Invalid UPSTASH_REDIS_REST_URL "${url}". Expected an absolute HTTP(S) URL. Falling back to in-memory rate limiting.`,
-      error,
-    );
+  } catch {
+    // Invalid URL - this is expected in some environments, use in-memory fallback
     return null;
   }
 
@@ -108,14 +105,12 @@ async function tryApplyUpstashRateLimit(
     }
     // Time to retry Upstash
 
-    console.warn("[RateLimit] Retrying Upstash connection after cooldown...");
+    // Retry Upstash connection after cooldown
   }
 
   if (isEdgeRuntime) {
     if (!edgeRuntimeWarningLogged) {
-      console.warn(
-        "[RateLimit] Upstash Redis is not supported in the Edge runtime (middleware). Using in-memory rate limit fallback.",
-      );
+      // Edge runtime doesn't support Upstash Redis - use in-memory fallback
       edgeRuntimeWarningLogged = true;
     }
     return null;
@@ -145,9 +140,8 @@ async function tryApplyUpstashRateLimit(
 
     const result = await limiter.limit(identifier);
 
-    // If we were in fallback mode and Upstash is now working, log recovery
+    // If we were in fallback mode and Upstash is now working, reset flag
     if (upstashDisabledAfterFailure) {
-      console.warn("[RateLimit] Upstash connection restored successfully");
       upstashDisabledAfterFailure = false;
     }
 
@@ -165,10 +159,7 @@ async function tryApplyUpstashRateLimit(
   } catch (error: unknown) {
     upstashDisabledAfterFailure = true;
     lastUpstashFailure = Date.now();
-    console.warn(
-      "[RateLimit] Upstash rate limiting failed, falling back to in-memory. Will retry in 60s.",
-      error instanceof Error ? error.message : error,
-    );
+    // Upstash rate limiting failed - falling back to in-memory
 
     // Report to Sentry for monitoring
     if (typeof window === "undefined") {

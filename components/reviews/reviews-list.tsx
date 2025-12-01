@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
 import type { GMBReview } from "@/lib/types/database";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 export function ReviewsList() {
   const [reviews, setReviews] = useState<GMBReview[]>([]);
@@ -64,7 +65,12 @@ export function ReviewsList() {
         .eq("is_active", true);
 
       if (accountsError) {
-        console.error("Error fetching active accounts:", accountsError);
+        reviewsLogger.error(
+          "Error fetching active accounts",
+          accountsError instanceof Error
+            ? accountsError
+            : new Error(String(accountsError)),
+        );
         throw accountsError;
       }
 
@@ -79,7 +85,12 @@ export function ReviewsList() {
           .in("gmb_account_id", activeAccountIds);
 
         if (locationsError) {
-          console.error("Error fetching active locations:", locationsError);
+          reviewsLogger.error(
+            "Error fetching active locations",
+            locationsError instanceof Error
+              ? locationsError
+              : new Error(String(locationsError)),
+          );
           throw locationsError;
         }
 
@@ -91,8 +102,11 @@ export function ReviewsList() {
       let fetchError = null;
 
       if (activeLocationIds.length > 0) {
-        console.log(
-          `[ReviewsList] Fetching reviews for ${activeLocationIds.length} active locations`,
+        reviewsLogger.info(
+          "[ReviewsList] Fetching reviews for active locations",
+          {
+            count: activeLocationIds.length,
+          },
         );
 
         const result = await supabase!
@@ -106,24 +120,20 @@ export function ReviewsList() {
         fetchError = result.error;
 
         if (fetchError) {
-          console.error("[ReviewsList] Error fetching reviews:", fetchError);
-        } else {
-          console.log(
-            `[ReviewsList] Successfully fetched ${data?.length || 0} reviews`,
+          reviewsLogger.error(
+            "[ReviewsList] Error fetching reviews",
+            fetchError instanceof Error
+              ? fetchError
+              : new Error(String(fetchError)),
           );
-          if (data && data.length > 0) {
-            console.log("[ReviewsList] Sample review:", {
-              id: data[0].id,
-              rating: data[0].rating,
-              reviewer_name: data[0].reviewer_name,
-              location_id: data[0].location_id,
-              review_text: data[0].review_text?.substring(0, 50) + "...",
-            });
-          }
+        } else {
+          reviewsLogger.info("[ReviewsList] Reviews fetched", {
+            count: data?.length || 0,
+          });
         }
       } else {
         // No active locations, return empty array
-        console.log("[ReviewsList] No active locations found");
+        reviewsLogger.warn("[ReviewsList] No active locations found");
         data = [];
       }
 
@@ -133,7 +143,10 @@ export function ReviewsList() {
 
       setReviews(data || []);
     } catch (err) {
-      console.error("Error fetching reviews:", err);
+      reviewsLogger.error(
+        "Error fetching reviews",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       setError(err instanceof Error ? err.message : "Failed to load reviews");
       setReviews([]); // Set empty array on error
     } finally {
@@ -182,7 +195,13 @@ export function ReviewsList() {
         .eq("id", reviewId);
 
       if (updateError) {
-        console.error("Error saving AI response:", updateError);
+        reviewsLogger.error(
+          "Error saving AI response",
+          updateError instanceof Error
+            ? updateError
+            : new Error(String(updateError)),
+          { reviewId },
+        );
         // Continue anyway - response was generated
       }
 
@@ -190,7 +209,11 @@ export function ReviewsList() {
       await fetchReviews();
       toast.success("AI response generated successfully");
     } catch (err) {
-      console.error("Error generating response:", err);
+      reviewsLogger.error(
+        "Error generating response",
+        err instanceof Error ? err : new Error(String(err)),
+        { reviewId },
+      );
       toast.error("Failed to generate AI response");
     }
   };

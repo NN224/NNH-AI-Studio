@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { logger } from "@/lib/utils/logger";
 import { motion } from "framer-motion";
+import { Minus, Search, TrendingDown, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 interface Keyword {
   id: string;
@@ -94,7 +95,12 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        console.error("Error fetching keywords:", fetchError);
+        logger.error(
+          "Error fetching keywords",
+          fetchError instanceof Error
+            ? fetchError
+            : new Error(String(fetchError)),
+        );
         // Use sample data on error
         setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
         setUsingSampleData(true);
@@ -107,7 +113,10 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
         setUsingSampleData(false);
       }
     } catch (err) {
-      console.error("Keywords fetch error:", err);
+      logger.error(
+        "Keywords fetch error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
       setUsingSampleData(true);
     } finally {

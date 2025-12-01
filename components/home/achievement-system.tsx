@@ -1,39 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  getUserProgress,
-  getUserAchievements,
-  updateUserAchievements,
-  initializeUserProgress,
-  type UserProgress,
-  type UserAchievement,
-} from "@/server/actions/achievements";
-import {
-  Trophy,
-  Medal,
-  Award,
-  Star,
-  Zap,
-  Target,
-  TrendingUp,
-  Crown,
-  Sparkles,
-  Gift,
-  Lock,
-  CheckCircle,
-  Heart,
-  MessageSquare,
-  Clock,
-  Users,
-  Flame,
-  Shield,
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -41,8 +10,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/utils/logger";
+import {
+  getUserAchievements,
+  getUserProgress,
+  initializeUserProgress,
+  updateUserAchievements,
+  type UserAchievement,
+  type UserProgress,
+} from "@/server/actions/achievements";
 import confetti from "canvas-confetti";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Crown,
+  Flame,
+  Gift,
+  Lock,
+  Medal,
+  MessageSquare,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Trophy,
+  Users,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface AchievementSystemProps {
   userId: string;
@@ -311,7 +306,10 @@ export function AchievementSystem({
           if (progressData) setProgress(progressData);
           if (achievementsData) setAchievements(achievementsData);
         } catch (error) {
-          console.error("Error loading achievements:", error);
+          logger.error(
+            "Error loading achievements",
+            error instanceof Error ? error : new Error(String(error)),
+          );
         } finally {
           setLoading(false);
         }
@@ -341,7 +339,10 @@ export function AchievementSystem({
         if (progressData) setProgress(progressData);
         if (achievementsData) setAchievements(achievementsData);
       } catch (error) {
-        console.error("Error updating achievements:", error);
+        logger.error(
+          "Error updating achievements",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     }, 30000); // Update every 30 seconds
 

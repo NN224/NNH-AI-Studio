@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import type { GMBReview } from "@/lib/types/database";
 import { replyToReview } from "@/server/actions/reviews-management";
+import { reviewsLogger } from "@/lib/utils/logger";
 import { CheckCircle, MessageSquare, Tag, X, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,7 +32,10 @@ export function BulkActionBar({
       await action();
       onActionComplete();
     } catch (error) {
-      console.error("Bulk action error:", error);
+      reviewsLogger.error(
+        "Bulk action error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsProcessing(false);
@@ -203,7 +207,11 @@ async function bulkPostReplies(reviews: ReadonlyArray<GMBReview>) {
           failCount += 1;
         }
       } catch (error) {
-        console.error("bulkPostReplies error:", error);
+        reviewsLogger.error(
+          "bulkPostReplies error",
+          error instanceof Error ? error : new Error(String(error)),
+          { reviewId: review.id },
+        );
         failCount += 1;
       }
     }),

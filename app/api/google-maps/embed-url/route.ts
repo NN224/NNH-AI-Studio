@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * Server-side endpoint to generate secure Google Maps embed URLs
@@ -11,28 +12,30 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Rate limiting
-    const { success, headers: rateLimitHeaders } = await checkRateLimit(user.id);
+    const { success, headers: rateLimitHeaders } = await checkRateLimit(
+      user.id,
+    );
     if (!success) {
       return NextResponse.json(
         {
-          error: 'Too many requests',
-          message: 'Rate limit exceeded. Please try again later.',
+          error: "Too many requests",
+          message: "Rate limit exceeded. Please try again later.",
         },
         {
           status: 429,
-          headers: rateLimitHeaders as HeadersInit
-        }
+          headers: rateLimitHeaders as HeadersInit,
+        },
       );
     }
 
@@ -41,29 +44,29 @@ export async function POST(request: NextRequest) {
     const { mode, params } = body;
 
     // Validate mode
-    const validModes = ['place', 'directions', 'search', 'view', 'streetview'];
+    const validModes = ["place", "directions", "search", "view", "streetview"];
     if (!mode || !validModes.includes(mode)) {
-      return NextResponse.json(
-        { error: 'Invalid map mode' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid map mode" }, { status: 400 });
     }
 
     // Validate params based on mode
-    if (!params || typeof params !== 'object') {
+    if (!params || typeof params !== "object") {
       return NextResponse.json(
-        { error: 'Invalid parameters' },
-        { status: 400 }
+        { error: "Invalid parameters" },
+        { status: 400 },
       );
     }
 
     // Get API key from server environment
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.error('Google Maps API key not configured');
+      apiLogger.error(
+        "Google Maps API key not configured",
+        new Error("GOOGLE_MAPS_API_KEY missing"),
+      );
       return NextResponse.json(
-        { error: 'Maps service not configured' },
-        { status: 500 }
+        { error: "Maps service not configured" },
+        { status: 500 },
       );
     }
 
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Add parameters based on mode
     switch (mode) {
-      case 'place':
+      case "place":
         if (params.q) {
           embedUrl += `&q=${encodeURIComponent(params.q)}`;
         }
@@ -83,8 +86,8 @@ export async function POST(request: NextRequest) {
           embedUrl += `&zoom=${params.zoom}`;
         }
         break;
-      
-      case 'view':
+
+      case "view":
         if (params.center) {
           embedUrl += `&center=${encodeURIComponent(params.center)}`;
         }
@@ -95,8 +98,8 @@ export async function POST(request: NextRequest) {
           embedUrl += `&maptype=${params.maptype}`;
         }
         break;
-      
-      case 'directions':
+
+      case "directions":
         if (params.origin) {
           embedUrl += `&origin=${encodeURIComponent(params.origin)}`;
         }
@@ -104,18 +107,20 @@ export async function POST(request: NextRequest) {
           embedUrl += `&destination=${encodeURIComponent(params.destination)}`;
         }
         break;
-      
+
       // Add other modes as needed
     }
 
     // Return the embed URL
     return NextResponse.json({ embedUrl });
-
   } catch (error) {
-    console.error('Maps embed URL error:', error);
+    apiLogger.error(
+      "Maps embed URL error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

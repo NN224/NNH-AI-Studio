@@ -1,10 +1,6 @@
 "use client";
 
-import { t } from "@/lib/i18n/stub";
-import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -12,10 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Upload, Save, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { t } from "@/lib/i18n/stub";
 import { createClient } from "@/lib/supabase/client";
+import { logger } from "@/lib/utils/logger";
+import { Loader2, Save, Upload } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface BrandingTabProps {
   readonly onSave?: () => void;
@@ -105,7 +106,10 @@ export function BrandingTab({
 
         if (error) {
           if (error.code !== "PGRST116") {
-            console.error("Error fetching branding:", error);
+            logger.error(
+              "Error fetching branding",
+              error instanceof Error ? error : new Error(String(error)),
+            );
           }
         } else if (data) {
           setLocalBrandName(data.brand_name || "");
@@ -115,7 +119,10 @@ export function BrandingTab({
           setLocalSecondaryColor(data.secondary_color || "#1A1A1A");
         }
       } catch (error) {
-        console.error("Error in fetchBranding:", error);
+        logger.error(
+          "Error in fetchBranding",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       } finally {
         setLoading(false);
       }
@@ -162,7 +169,10 @@ export function BrandingTab({
 
       return publicUrl;
     } catch (error) {
-      console.error("Error uploading file:", error);
+      logger.error(
+        "Error uploading file",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       throw error;
     }
   };
@@ -289,7 +299,10 @@ export function BrandingTab({
         window.dispatchEvent(new Event("brand-profile-updated"));
       }
     } catch (error) {
-      console.error("Error saving branding:", error);
+      logger.error(
+        "Error saving branding",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       const err = error as Error;
       toast.error(t("toast.saveFailed"), {
         description: err.message,

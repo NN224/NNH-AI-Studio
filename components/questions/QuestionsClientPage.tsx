@@ -13,6 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
 import type { GMBQuestion } from "@/lib/types/database";
+import { questionsLogger } from "@/lib/utils/logger";
 import {
   ArrowUpRight,
   BookOpen,
@@ -379,7 +380,10 @@ export function QuestionsClientPage({
       setAutoAnswerEnabled(enabled);
       toast.success(enabled ? "Auto-answer enabled" : "Auto-answer paused");
     } catch (error) {
-      console.error("[Questions] Auto-answer toggle error:", error);
+      questionsLogger.error(
+        "[Questions] Auto-answer toggle error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Unable to update auto-answer right now");
     } finally {
       setAutoAnswerLoading(false);

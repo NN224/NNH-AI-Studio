@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { authLogger } from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 export interface AuthError {
@@ -37,7 +38,10 @@ export async function handleAuthError(
   error: unknown,
   redirectToLogin = true,
 ): Promise<void> {
-  console.error("Auth error:", error);
+  authLogger.error(
+    "Auth error",
+    error instanceof Error ? error : new Error(String(error)),
+  );
 
   if (isSessionExpiredError(error)) {
     // Clear any stale auth data

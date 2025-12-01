@@ -1,12 +1,13 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { switchLocaleInPathname } from "@/lib/i18n/utils";
+import { usePathname } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/utils/logger";
 import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
-import { usePathname } from "@/lib/navigation";
-import { Button } from "@/components/ui/button";
 import { useTransition } from "react";
-import { cn } from "@/lib/utils";
-import { switchLocaleInPathname } from "@/lib/i18n/utils";
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
@@ -52,7 +53,10 @@ export default function LanguageSwitcher() {
         }
       });
     } catch (error) {
-      console.error("[LanguageSwitcher] Error switching locale:", error);
+      logger.error(
+        "Error switching locale",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 

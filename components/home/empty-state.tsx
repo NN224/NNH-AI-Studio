@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { gmbLogger } from "@/lib/utils/logger";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -72,7 +73,10 @@ export function EmptyState() {
         setIsConnectingGMB(false);
       }
     } catch (error) {
-      console.error("Error connecting GMB:", error);
+      gmbLogger.error(
+        "Error connecting GMB",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to connect Google My Business");
       setIsConnectingGMB(false);
     }
@@ -102,7 +106,10 @@ export function EmptyState() {
         setIsConnectingYouTube(false);
       }
     } catch (error) {
-      console.error("Error connecting YouTube:", error);
+      gmbLogger.error(
+        "Error connecting YouTube",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to connect YouTube");
       setIsConnectingYouTube(false);
     }

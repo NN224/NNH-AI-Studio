@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
   request: NextRequest,
@@ -109,7 +110,13 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error("[Update Location] DB Error:", updateError);
+      apiLogger.error(
+        "[Update Location] DB Error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { locationId, userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to update location" },
         { status: 500 },
@@ -121,7 +128,11 @@ export async function PATCH(
 
     return NextResponse.json(updatedLocation);
   } catch (error) {
-    console.error("[Update Location] Error:", error);
+    apiLogger.error(
+      "[Update Location] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.id },
+    );
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

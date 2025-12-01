@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { Message } from "@/lib/types/chat-types";
 import { createClient } from "@/lib/supabase/client";
+import { aiLogger } from "@/lib/utils/logger";
 
 // Define SpeechRecognition interface
 interface SpeechRecognition {
@@ -100,7 +101,10 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
         );
       }
     } catch (error) {
-      console.error("Failed to load conversation:", error);
+      aiLogger.error(
+        "Failed to load conversation",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
@@ -134,7 +138,10 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
         user_id: userId,
       });
     } catch (error) {
-      console.error("Failed to save message:", error);
+      aiLogger.error(
+        "Failed to save message",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
@@ -250,7 +257,10 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
 
-        console.error("Chat error:", error);
+        aiLogger.error(
+          "Chat error",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         onError?.(error as Error);
 
         const errorMessage: Message = {
@@ -288,7 +298,7 @@ export function useAIChatEnhanced(options: UseAIChatEnhancedOptions = {}) {
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn("Speech recognition not supported");
+      aiLogger.warn("Speech recognition not supported");
       return;
     }
 

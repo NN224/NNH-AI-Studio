@@ -17,6 +17,7 @@ import {
   type AIRateLimitResult,
 } from "@/lib/security/ai-rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 // ============================================================================
@@ -148,7 +149,7 @@ export function withAIProtection(
     const rateLimit = await checkAIRateLimit(userId, endpointType);
 
     if (!rateLimit.success) {
-      console.warn("[AI Protection] Rate limit exceeded:", {
+      apiLogger.warn("AI Protection - Rate limit exceeded", {
         userId,
         endpointType,
         limit: rateLimit.limit,
@@ -170,7 +171,10 @@ export function withAIProtection(
       // 4. Add rate limit headers to response
       return addRateLimitHeaders(response, rateLimit);
     } catch (error) {
-      console.error("[AI Protection] Handler error:", error);
+      apiLogger.error(
+        "AI Protection - Handler error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
 
       // Return error with rate limit headers
       const errorResponse = NextResponse.json(

@@ -5,6 +5,7 @@
  * This ensures consistent cache invalidation after sync, connect, or disconnect operations.
  */
 
+import { gmbLogger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 import { CacheBucket, refreshCache } from "./cache-manager";
 
@@ -20,7 +21,7 @@ import { CacheBucket, refreshCache } from "./cache-manager";
  * @param userId - User ID for targeted cache invalidation (optional)
  */
 export async function invalidateGMBCache(userId?: string): Promise<void> {
-  console.log("[GMB Cache] Starting cache invalidation", { userId });
+  gmbLogger.debug("Starting cache invalidation", { userId });
 
   // ✅ Invalidate Next.js ISR/SSR paths for both locales
   const locales = ["en", "ar"];
@@ -44,10 +45,7 @@ export async function invalidateGMBCache(userId?: string): Promise<void> {
         // Revalidate as layout to ensure child pages are also invalidated
         revalidatePath(`/${locale}${path}`, "layout");
       } catch (error) {
-        console.warn(
-          `[GMB Cache] Failed to revalidate ${locale}${path}:`,
-          error,
-        );
+        gmbLogger.warn(`Failed to revalidate ${locale}${path}`, { error });
       }
     }
   }
@@ -66,14 +64,11 @@ export async function invalidateGMBCache(userId?: string): Promise<void> {
         await refreshCache(bucket, userId);
       }
     } catch (error) {
-      console.warn(
-        `[GMB Cache] Failed to refresh cache bucket ${bucket}:`,
-        error,
-      );
+      gmbLogger.warn(`Failed to refresh cache bucket ${bucket}`, { error });
     }
   }
 
-  console.log("[GMB Cache] ✅ Cache invalidation completed");
+  gmbLogger.debug("Cache invalidation completed");
 }
 
 /**
@@ -81,7 +76,7 @@ export async function invalidateGMBCache(userId?: string): Promise<void> {
  * Use this for more targeted invalidation after review operations
  */
 export async function invalidateReviewsCache(userId?: string): Promise<void> {
-  console.log("[GMB Cache] Invalidating reviews cache", { userId });
+  gmbLogger.debug("Invalidating reviews cache", { userId });
 
   const locales = ["en", "ar"];
   const paths = ["/reviews", "/reviews/ai-cockpit", "/dashboard"];
@@ -91,10 +86,7 @@ export async function invalidateReviewsCache(userId?: string): Promise<void> {
       try {
         revalidatePath(`/${locale}${path}`, "layout");
       } catch (error) {
-        console.warn(
-          `[GMB Cache] Failed to revalidate ${locale}${path}:`,
-          error,
-        );
+        gmbLogger.warn(`Failed to revalidate ${locale}${path}`, { error });
       }
     }
   }
@@ -103,11 +95,11 @@ export async function invalidateReviewsCache(userId?: string): Promise<void> {
     try {
       await refreshCache(CacheBucket.REVIEWS, userId);
     } catch (error) {
-      console.warn("[GMB Cache] Failed to refresh reviews cache:", error);
+      gmbLogger.warn("Failed to refresh reviews cache", { error });
     }
   }
 
-  console.log("[GMB Cache] ✅ Reviews cache invalidation completed");
+  gmbLogger.debug("Reviews cache invalidation completed");
 }
 
 /**
@@ -115,7 +107,7 @@ export async function invalidateReviewsCache(userId?: string): Promise<void> {
  * Use this for more targeted invalidation after Q&A operations
  */
 export async function invalidateQuestionsCache(userId?: string): Promise<void> {
-  console.log("[GMB Cache] Invalidating questions cache", { userId });
+  gmbLogger.debug("Invalidating questions cache", { userId });
 
   const locales = ["en", "ar"];
   const paths = ["/questions", "/dashboard"];
@@ -125,10 +117,7 @@ export async function invalidateQuestionsCache(userId?: string): Promise<void> {
       try {
         revalidatePath(`/${locale}${path}`, "layout");
       } catch (error) {
-        console.warn(
-          `[GMB Cache] Failed to revalidate ${locale}${path}:`,
-          error,
-        );
+        gmbLogger.warn(`Failed to revalidate ${locale}${path}`, { error });
       }
     }
   }
@@ -137,11 +126,11 @@ export async function invalidateQuestionsCache(userId?: string): Promise<void> {
     try {
       await refreshCache(CacheBucket.QUESTIONS, userId);
     } catch (error) {
-      console.warn("[GMB Cache] Failed to refresh questions cache:", error);
+      gmbLogger.warn("Failed to refresh questions cache", { error });
     }
   }
 
-  console.log("[GMB Cache] ✅ Questions cache invalidation completed");
+  gmbLogger.debug("Questions cache invalidation completed");
 }
 
 /**
@@ -149,7 +138,7 @@ export async function invalidateQuestionsCache(userId?: string): Promise<void> {
  * Use this after location updates or new location sync
  */
 export async function invalidateLocationsCache(userId?: string): Promise<void> {
-  console.log("[GMB Cache] Invalidating locations cache", { userId });
+  gmbLogger.debug("Invalidating locations cache", { userId });
 
   const locales = ["en", "ar"];
   const paths = ["/locations", "/dashboard"];
@@ -159,10 +148,7 @@ export async function invalidateLocationsCache(userId?: string): Promise<void> {
       try {
         revalidatePath(`/${locale}${path}`, "layout");
       } catch (error) {
-        console.warn(
-          `[GMB Cache] Failed to revalidate ${locale}${path}:`,
-          error,
-        );
+        gmbLogger.warn(`Failed to revalidate ${locale}${path}`, { error });
       }
     }
   }
@@ -172,11 +158,11 @@ export async function invalidateLocationsCache(userId?: string): Promise<void> {
       await refreshCache(CacheBucket.LOCATIONS, userId);
       await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
     } catch (error) {
-      console.warn("[GMB Cache] Failed to refresh locations cache:", error);
+      gmbLogger.warn("Failed to refresh locations cache", { error });
     }
   }
 
-  console.log("[GMB Cache] ✅ Locations cache invalidation completed");
+  gmbLogger.debug("Locations cache invalidation completed");
 }
 
 /**
@@ -184,7 +170,7 @@ export async function invalidateLocationsCache(userId?: string): Promise<void> {
  * Use this after account connection/disconnection
  */
 export async function invalidateHomeCache(userId?: string): Promise<void> {
-  console.log("[GMB Cache] Invalidating home cache", { userId });
+  gmbLogger.debug("Invalidating home cache", { userId });
 
   const locales = ["en", "ar"];
 
@@ -192,7 +178,7 @@ export async function invalidateHomeCache(userId?: string): Promise<void> {
     try {
       revalidatePath(`/${locale}/home`, "page");
     } catch (error) {
-      console.warn(`[GMB Cache] Failed to revalidate ${locale}/home:`, error);
+      gmbLogger.warn(`Failed to revalidate ${locale}/home`, { error });
     }
   }
 
@@ -200,9 +186,9 @@ export async function invalidateHomeCache(userId?: string): Promise<void> {
     try {
       await refreshCache(CacheBucket.DASHBOARD_OVERVIEW, userId);
     } catch (error) {
-      console.warn("[GMB Cache] Failed to refresh dashboard cache:", error);
+      gmbLogger.warn("Failed to refresh dashboard cache", { error });
     }
   }
 
-  console.log("[GMB Cache] ✅ Home cache invalidation completed");
+  gmbLogger.debug("Home cache invalidation completed");
 }

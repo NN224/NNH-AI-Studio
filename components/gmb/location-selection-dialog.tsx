@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { gmbLogger } from "@/lib/utils/logger";
 import {
   Building2,
   Check,
@@ -104,7 +105,10 @@ export function LocationSelectionDialog({
       await onImport(Array.from(selectedIds));
       onOpenChange(false);
     } catch (error) {
-      console.error("Import error:", error);
+      gmbLogger.error(
+        "Import error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to import locations");
     }
   };
@@ -305,7 +309,10 @@ export function AddLocationDialog({
       onOpenChange(false);
       setSelectedId(null);
     } catch (error) {
-      console.error("Import error:", error);
+      gmbLogger.error(
+        "Import error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to import location");
     }
   };

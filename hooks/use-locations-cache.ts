@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiLogger } from "@/lib/utils/logger";
 
 // Cache configuration
 const CACHE_CONFIG = {
@@ -407,7 +408,12 @@ export const locationsCacheUtils = {
           locationsCache.set(key, data, CACHE_CONFIG.LOCATIONS_TTL);
         }
       } catch (error) {
-        console.warn("Failed to preload location:", error);
+        apiLogger.warn(
+          "Failed to preload location",
+          error instanceof Error
+            ? { error: error.message }
+            : { error: String(error) },
+        );
       }
     }
   },

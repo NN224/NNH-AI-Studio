@@ -161,3 +161,4 @@ export const syncLogger = logger.withContext({ module: "sync" });
 export const reviewsLogger = logger.withContext({ module: "reviews" });
 export const postsLogger = logger.withContext({ module: "posts" });
 export const questionsLogger = logger.withContext({ module: "questions" });
+export const aiLogger = logger.withContext({ module: "ai" });

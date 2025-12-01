@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiLogger } from "@/lib/utils/logger";
 
 interface UpdateBusinessInfoParams {
   name?: string;
@@ -45,7 +46,7 @@ export function useBusinessInfo(locationId: string) {
       queryClient.invalidateQueries({ queryKey: ["dashboard-snapshot"] });
     },
     onError: (error: Error) => {
-      console.error("Business info update error:", error);
+      apiLogger.error("Business info update error", error, { locationId });
     },
   });
 

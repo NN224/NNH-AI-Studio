@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/lib/i18n/stub";
 import { createClient } from "@/lib/supabase/client";
+import { gmbLogger } from "@/lib/utils/logger";
 import { Bot, Database, Globe, Save, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -96,7 +97,12 @@ export function GMBSettings() {
         .eq("user_id", user.id);
 
       if (accountsError) {
-        console.error("Error fetching GMB accounts:", accountsError);
+        gmbLogger.error(
+          "Error fetching GMB accounts",
+          accountsError instanceof Error
+            ? accountsError
+            : new Error(String(accountsError)),
+        );
         setGmbAccounts([]);
       } else {
         setGmbAccounts(accounts || []);
@@ -105,7 +111,10 @@ export function GMBSettings() {
       // Load all settings from unified API
       const response = await fetch("/api/settings");
       if (!response.ok) {
-        console.error("Failed to load settings");
+        gmbLogger.error(
+          "Failed to load settings",
+          new Error("Settings load failed"),
+        );
         setLoading(false);
         return;
       }
@@ -124,7 +133,10 @@ export function GMBSettings() {
         setDeleteOnDisconnect(settings.deleteOnDisconnect || false);
       }
     } catch (error) {
-      console.error("Error loading settings:", error);
+      gmbLogger.error(
+        "Error loading settings",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     } finally {
       setLoading(false);
     }
@@ -225,7 +237,10 @@ export function GMBSettings() {
       // Reload settings to ensure consistency
       await loadSettings();
     } catch (error) {
-      console.error("Error saving settings:", error);
+      gmbLogger.error(
+        "Error saving settings",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       const err = error as Error;
       toast.error(t("saveError"), {
         description: err.message || "Please try again",

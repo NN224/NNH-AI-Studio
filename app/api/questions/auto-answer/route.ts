@@ -11,6 +11,7 @@ import {
 import { AIQuestionAnswerService } from "@/lib/services/ai-question-answer-service";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { questionsLogger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -156,7 +157,11 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error("Auto-answer error:", error);
+    questionsLogger.error(
+      "Auto-answer error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
 
     return NextResponse.json(
       {

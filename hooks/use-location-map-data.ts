@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Location } from '@/components/locations/location-types';
+import { useState, useEffect } from "react";
+import { Location } from "@/components/locations/location-types";
+import { apiLogger } from "@/lib/utils/logger";
 
 interface LocationStats {
   totalLocations: number;
@@ -18,7 +19,9 @@ interface LocationMapData {
 /**
  * Hook to fetch location stats for map view
  */
-export function useLocationMapData(locationId: string | undefined): LocationMapData {
+export function useLocationMapData(
+  locationId: string | undefined,
+): LocationMapData {
   const [stats, setStats] = useState<LocationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,16 +38,20 @@ export function useLocationMapData(locationId: string | undefined): LocationMapD
         setLoading(true);
         setError(null);
         const response = await fetch(`/api/locations/${locationId}/stats`);
-        
+
         if (!response.ok) {
-          throw new Error('Failed to fetch location stats');
+          throw new Error("Failed to fetch location stats");
         }
 
         const data = await response.json();
         setStats(data);
       } catch (err) {
-        console.error('Error fetching location stats:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load stats');
+        apiLogger.error(
+          "Error fetching location stats",
+          err instanceof Error ? err : new Error(String(err)),
+          { locationId },
+        );
+        setError(err instanceof Error ? err.message : "Failed to load stats");
         setStats(null);
       } finally {
         setLoading(false);
@@ -56,4 +63,3 @@ export function useLocationMapData(locationId: string | undefined): LocationMapD
 
   return { stats, loading, error };
 }
-

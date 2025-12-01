@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
       .insert(sanitizedErrors);
 
     if (dbError) {
-      console.error("Failed to store error logs:", dbError);
+      apiLogger.error(
+        "Failed to store error logs",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+      );
       // Don't return error to client - we don't want logging to fail the request
     }
 
@@ -65,7 +69,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, logged: sanitizedErrors.length });
   } catch (error) {
-    console.error("Error logging endpoint failed:", error);
+    apiLogger.error(
+      "Error logging endpoint failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // Don't return 500 - we don't want error logging to cause more errors
     return NextResponse.json({ success: false });
   }

@@ -1,42 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { validateBody } from '@/middleware/validate-request';
-import { locationUpdateSchema } from '@/lib/validations/schemas';
-import { getValidAccessToken } from '@/lib/gmb/helpers';
-import { logAction } from '@/lib/monitoring/audit';
+import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { logAction } from "@/lib/monitoring/audit";
+import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { locationUpdateSchema } from "@/lib/validations/schemas";
+import { validateBody } from "@/middleware/validate-request";
+import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const GBP_LOC_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { locationId: string } },
 ) {
   try {
     const supabase = await createClient();
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { locationId } = params;
     if (!locationId) {
-      return NextResponse.json({ error: 'Location ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Location ID required" },
+        { status: 400 },
+      );
     }
 
     // Get location from database
     const { data: location, error: locationError } = await supabase
-      .from('gmb_locations')
-      .select('*, gmb_accounts(id, account_id)')
-      .eq('id', locationId)
-      .eq('user_id', user.id)
+      .from("gmb_locations")
+      .select("*, gmb_accounts(id, account_id)")
+      .eq("id", locationId)
+      .eq("user_id", user.id)
       .single();
 
     if (locationError || !location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 },
+      );
     }
 
     const accountId = location.gmb_account_id;
@@ -48,21 +58,22 @@ export async function GET(
 
     // Fetch full location details with expanded readMask (includes attributes)
     const url = new URL(`${GBP_LOC_BASE}/${locationResource}`);
-    const readMask = 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData,attributes';
-    url.searchParams.set('readMask', readMask);
+    const readMask =
+      "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData,attributes";
+    url.searchParams.set("readMask", readMask);
 
     const response = await fetch(url.toString(), {
-      headers: { 
+      headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
+        Accept: "application/json",
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Failed to fetch location details', details: errorData },
-        { status: response.status }
+        { error: "Failed to fetch location details", details: errorData },
+        { status: response.status },
       );
     }
 
@@ -75,21 +86,29 @@ export async function GET(
     // Get Google-updated information if available
     let googleUpdated: any = null;
     try {
-      const googleUpdatedUrl = new URL(`${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`);
-      googleUpdatedUrl.searchParams.set('readMask', readMask);
+      const googleUpdatedUrl = new URL(
+        `${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`,
+      );
+      googleUpdatedUrl.searchParams.set("readMask", readMask);
       const googleUpdatedResponse = await fetch(googleUpdatedUrl.toString(), {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
-      
+
       if (googleUpdatedResponse.ok) {
         const googleUpdatedData = await googleUpdatedResponse.json();
         googleUpdated = googleUpdatedData;
       }
     } catch (error) {
-      console.warn('[Location Details API] Failed to get Google-updated info:', error);
+      apiLogger.warn(
+        "[Location Details API] Failed to get Google-updated info",
+        {
+          locationId,
+          error: String(error),
+        },
+      );
     }
 
     return NextResponse.json({
@@ -99,17 +118,21 @@ export async function GET(
       gmb_account_id: location.gmb_account_id, // Include accountId for sync operations
     });
   } catch (error: any) {
-    console.error('[Location Details API] Error:', error);
+    apiLogger.error(
+      "[Location Details API] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { error: "Internal server error", message: error.message },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { locationId: string } },
 ) {
   try {
     const supabase = await createClient();
@@ -120,14 +143,14 @@ export async function PUT(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { locationId } = params;
     if (!locationId) {
       return NextResponse.json(
-        { error: 'Location ID required' },
-        { status: 400 }
+        { error: "Location ID required" },
+        { status: 400 },
       );
     }
 
@@ -159,66 +182,79 @@ export async function PUT(
       return NextResponse.json(
         {
           error:
-            'No valid fields provided. Expected one of: name, address, phone, website, category.',
+            "No valid fields provided. Expected one of: name, address, phone, website, category.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
-      .from('gmb_locations')
+      .from("gmb_locations")
       .update(updateData)
-      .eq('id', locationId)
-      .eq('user_id', user.id)
+      .eq("id", locationId)
+      .eq("user_id", user.id)
       .select()
       .single();
 
     if (error) {
-      console.error('[PUT /api/locations/:id] Update error:', error);
-      await logAction('location_update', 'gmb_location', locationId, {
-        status: 'failed',
+      apiLogger.error(
+        "[PUT /api/locations/:id] Update error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId, userId: user.id },
+      );
+      await logAction("location_update", "gmb_location", locationId, {
+        status: "failed",
         reason: error.message,
       });
       return NextResponse.json(
-        { error: 'Failed to update location' },
-        { status: 500 }
+        { error: "Failed to update location" },
+        { status: 500 },
       );
     }
 
     if (!data) {
       return NextResponse.json(
-        { error: 'Location not found' },
-        { status: 404 }
+        { error: "Location not found" },
+        { status: 404 },
       );
     }
 
-    await logAction('location_update', 'gmb_location', locationId, {
-      status: 'success',
+    await logAction("location_update", "gmb_location", locationId, {
+      status: "success",
       changed_fields: Object.keys(updateData),
     });
 
     return NextResponse.json({
       data,
-      message: 'Location updated successfully',
+      message: "Location updated successfully",
     });
   } catch (error: any) {
-    console.error('[PUT /api/locations/:id] Unexpected error:', error);
-    await logAction('location_update', 'gmb_location', params.locationId || null, {
-      status: 'failed',
-      reason: error.message,
-    });
+    apiLogger.error(
+      "[PUT /api/locations/:id] Unexpected error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
+    await logAction(
+      "location_update",
+      "gmb_location",
+      params.locationId || null,
+      {
+        status: "failed",
+        reason: error.message,
+      },
+    );
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { locationId: string } },
 ) {
   try {
     const supabase = await createClient();
@@ -229,56 +265,68 @@ export async function DELETE(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { locationId } = params;
     if (!locationId) {
       return NextResponse.json(
-        { error: 'Location ID required' },
-        { status: 400 }
+        { error: "Location ID required" },
+        { status: 400 },
       );
     }
 
     const { error } = await supabase
-      .from('gmb_locations')
+      .from("gmb_locations")
       .update({
         is_active: false,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', locationId)
-      .eq('user_id', user.id);
+      .eq("id", locationId)
+      .eq("user_id", user.id);
 
     if (error) {
-      console.error('[DELETE /api/locations/:id] Delete error:', error);
-      await logAction('location_delete', 'gmb_location', locationId, {
-        status: 'failed',
+      apiLogger.error(
+        "[DELETE /api/locations/:id] Delete error",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId, userId: user.id },
+      );
+      await logAction("location_delete", "gmb_location", locationId, {
+        status: "failed",
         reason: error.message,
       });
       return NextResponse.json(
-        { error: 'Failed to delete location' },
-        { status: 500 }
+        { error: "Failed to delete location" },
+        { status: 500 },
       );
     }
 
-    await logAction('location_delete', 'gmb_location', locationId, {
-      status: 'success',
+    await logAction("location_delete", "gmb_location", locationId, {
+      status: "success",
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Location deleted successfully',
+      message: "Location deleted successfully",
     });
   } catch (error: any) {
-    console.error('[DELETE /api/locations/:id] Unexpected error:', error);
-    await logAction('location_delete', 'gmb_location', params.locationId || null, {
-      status: 'failed',
-      reason: error.message,
-    });
+    apiLogger.error(
+      "[DELETE /api/locations/:id] Unexpected error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
+    await logAction(
+      "location_delete",
+      "gmb_location",
+      params.locationId || null,
+      {
+        status: "failed",
+        reason: error.message,
+      },
+    );
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
-

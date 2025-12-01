@@ -37,6 +37,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError, ZodSchema } from "zod";
+import { apiLogger } from "../utils/logger";
 
 // ============================================================================
 // Types
@@ -396,8 +397,11 @@ function logErrorInternal(
     ...(!IS_PRODUCTION && body ? { requestBody: body } : {}),
   };
 
-  // Use console.error for errors (allowed by lint rules)
-  console.error("[API Error]", JSON.stringify(errorDetails, null, 2));
+  apiLogger.error(
+    "API Error",
+    new Error(errorDetails.error.message),
+    errorDetails,
+  );
 }
 
 // ============================================================================
@@ -435,7 +439,7 @@ export function withSecureApi<
         await supabase.auth.getUser();
 
       if (authError) {
-        console.error("[Auth Error]", authError.message);
+        apiLogger.error("Auth Error", authError);
       }
 
       user = authData?.user ?? null;

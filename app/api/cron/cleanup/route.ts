@@ -1,6 +1,7 @@
 import { withCronAuth } from "@/lib/security/cron-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 /**
  * Cron job to cleanup archived data based on retention policy
@@ -19,7 +20,12 @@ async function handleCleanup(_request: Request): Promise<Response> {
       .not("disconnected_at", "is", null);
 
     if (accountsError) {
-      console.error("Error fetching accounts:", accountsError);
+      apiLogger.error(
+        "Error fetching accounts for cleanup",
+        accountsError instanceof Error
+          ? accountsError
+          : new Error(String(accountsError)),
+      );
       return NextResponse.json(
         { error: "Failed to fetch accounts" },
         { status: 500 },
@@ -40,9 +46,7 @@ async function handleCleanup(_request: Request): Promise<Response> {
       // Only delete if past retention period
       if (new Date() < deletionDate) continue;
 
-      console.warn(
-        `[Cleanup] Cleaning up data for account ${account.id} (retention period expired)`,
-      );
+      apiLogger.warn("Cleaning up data for account", { accountId: account.id });
 
       // Get location IDs first
       const { data: locationData } = await supabase
@@ -100,9 +104,10 @@ async function handleCleanup(_request: Request): Promise<Response> {
         (locationsDeleted || 0);
       totalDeleted += accountTotal;
 
-      console.warn(
-        `[Cleanup] Deleted ${accountTotal} items for account ${account.id}`,
-      );
+      apiLogger.warn("Cleanup deleted items for account", {
+        accountId: account.id,
+        deleted: accountTotal,
+      });
     }
 
     return NextResponse.json({
@@ -113,7 +118,10 @@ async function handleCleanup(_request: Request): Promise<Response> {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Cleanup failed";
-    console.error("Error in cleanup cron job:", error);
+    apiLogger.error(
+      "Error in cleanup cron job",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

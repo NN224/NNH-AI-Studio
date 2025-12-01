@@ -6,6 +6,7 @@ import {
 } from "@/lib/cache/cache-manager";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { getDashboardOverview } from "@/server/services/dashboard.service";
 import type { DashboardSnapshot } from "@/types/dashboard";
 import { NextResponse } from "next/server";
@@ -111,7 +112,11 @@ export async function GET(request: Request) {
       headers: cacheHeaders(isWarmRequest ? "BYPASS" : "MISS"),
     });
   } catch (error) {
-    console.error("[Dashboard Overview] Unexpected error", error);
+    apiLogger.error(
+      "[Dashboard Overview] Unexpected error",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId: request.headers.get("x-request-id") || undefined },
+    );
     return NextResponse.json(
       { error: "Unexpected error while building dashboard overview" },
       { status: 500 },
@@ -141,7 +146,10 @@ if (process.env.CACHE_WARMER_TOKEN && warmBaseUrl) {
       return await response.json();
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
-        console.warn("[Cache] Dashboard warm request failed", error);
+        apiLogger.warn("[Cache] Dashboard warm request failed", {
+          warmBaseUrl: normalizedBase,
+          error: String(error),
+        });
       }
       return null;
     }

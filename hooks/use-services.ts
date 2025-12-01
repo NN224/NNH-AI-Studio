@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { apiLogger } from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 const SERVICES_QUERY_KEY = "services";
@@ -99,7 +100,11 @@ export function useServices(locationId: string) {
       toast.success("Service created successfully");
     },
     onError: (error) => {
-      console.error("Error creating service:", error);
+      apiLogger.error(
+        "Error creating service",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to create service");
     },
   });
@@ -143,7 +148,11 @@ export function useServices(locationId: string) {
       toast.success("Service updated successfully");
     },
     onError: (error) => {
-      console.error("Error updating service:", error);
+      apiLogger.error(
+        "Error updating service",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to update service");
     },
   });
@@ -167,7 +176,11 @@ export function useServices(locationId: string) {
       toast.success("Service deleted successfully");
     },
     onError: (error) => {
-      console.error("Error deleting service:", error);
+      apiLogger.error(
+        "Error deleting service",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("Failed to delete service");
     },
   });

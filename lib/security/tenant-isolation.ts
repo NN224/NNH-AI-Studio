@@ -28,6 +28,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 // ============================================================================
@@ -121,12 +122,11 @@ export async function assertTenantAccess(
   ];
   if (resourceUserId !== tenant.userId) {
     // Log potential unauthorized access attempt
-    console.warn("[Tenant Isolation] Access denied:", {
+    logger.warn("Tenant isolation access denied", {
       attemptedResourceId: resourceId,
       resourceTable,
       authenticatedUserId: tenant.userId,
       resourceOwnerId: resourceUserId,
-      timestamp: new Date().toISOString(),
     });
 
     return {
@@ -244,15 +244,11 @@ export function sanitizeRequestBody<T extends Record<string, unknown>>(
     "account_id" in body ||
     "accountId" in body
   ) {
-    console.warn(
-      "[Tenant Isolation] Client attempted to provide user/account ID:",
-      {
-        providedFields: Object.keys(body).filter((k) =>
-          ["user_id", "userId", "account_id", "accountId"].includes(k),
-        ),
-        timestamp: new Date().toISOString(),
-      },
-    );
+    logger.warn("Client attempted to provide user/account ID", {
+      providedFields: Object.keys(body).filter((k) =>
+        ["user_id", "userId", "account_id", "accountId"].includes(k),
+      ),
+    });
   }
 
   return sanitized as Omit<
@@ -280,10 +276,9 @@ export async function validateQueryUserId(
 
   // Only allow if the query user ID matches the authenticated user
   if (queryUserId !== tenant.userId) {
-    console.warn("[Tenant Isolation] Query user ID mismatch:", {
+    logger.warn("Query user ID mismatch", {
       queryUserId,
       authenticatedUserId: tenant.userId,
-      timestamp: new Date().toISOString(),
     });
     return false;
   }

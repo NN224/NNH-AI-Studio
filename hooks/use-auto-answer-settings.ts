@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { questionsLogger } from "@/lib/utils/logger";
 
 interface AutoAnswerSettings {
   enabled: boolean;
@@ -65,7 +66,11 @@ export function useAutoAnswerSettings(locationId?: string) {
           setSettings(data);
         }
       } catch (error) {
-        console.error("Failed to fetch settings:", error);
+        questionsLogger.error(
+          "Failed to fetch settings",
+          error instanceof Error ? error : new Error(String(error)),
+          { userId, locationId },
+        );
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +100,11 @@ export function useAutoAnswerSettings(locationId?: string) {
 
       setSettings((prevSettings) => ({ ...prevSettings, ...updates }));
     } catch (error) {
-      console.error("Failed to update settings:", error);
+      questionsLogger.error(
+        "Failed to update settings",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId, locationId },
+      );
     } finally {
       setIsLoading(false);
     }

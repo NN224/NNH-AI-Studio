@@ -5,6 +5,8 @@
  * @see https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
  */
 
+import { logger } from "@/lib/utils/logger";
+
 interface SanitizeOptions {
   maxLength?: number;
   allowWildcards?: boolean;
@@ -117,7 +119,7 @@ export function sanitizeSearchQuery(
     // Check for wildcard-only queries (suspicious)
     if (/^[%_]+$/.test(s)) {
       if (logSuspicious) {
-        console.warn("[Search] Suspicious wildcard-only query blocked");
+        logger.warn("Suspicious wildcard-only query blocked");
       }
       return "";
     }
@@ -165,7 +167,7 @@ export function processSearchQuery(
   // Validate first
   const validation = validateSearchQuery(input);
   if (!validation.valid) {
-    console.warn("[Search] Invalid query rejected:", validation.reason);
+    logger.warn("Invalid query rejected", { reason: validation.reason });
     return {
       success: false,
       error: validation.reason || "Invalid search query",

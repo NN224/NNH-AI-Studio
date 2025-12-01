@@ -1,6 +1,7 @@
 import { getCronSecret, withCronAuth } from "@/lib/security/cron-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { questionsLogger } from "@/lib/utils/logger";
 
 /**
  * Cron job to process unanswered questions
@@ -27,7 +28,11 @@ async function handleProcessQuestions(_request: Request): Promise<Response> {
       .limit(50); // Process max 50 questions per run
 
     if (error) {
-      console.error("Error fetching unanswered questions:", error);
+      questionsLogger.error(
+        "Error fetching unanswered questions",
+        error instanceof Error ? error : new Error(String(error)),
+        { since: yesterday.toISOString() },
+      );
       return NextResponse.json(
         { error: "Failed to fetch questions" },
         { status: 500 },
@@ -83,14 +88,22 @@ async function handleProcessQuestions(_request: Request): Promise<Response> {
           results.processed++;
         } else {
           results.failed++;
-          console.error(`Failed to process question ${question.id}`);
+          questionsLogger.error(
+            "Failed to process question",
+            new Error(`HTTP ${response.status}`),
+            { questionId: question.id },
+          );
         }
 
         // Add small delay to avoid rate limits
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
         results.failed++;
-        console.error(`Error processing question ${question.id}:`, error);
+        questionsLogger.error(
+          "Error processing question",
+          error instanceof Error ? error : new Error(String(error)),
+          { questionId: question.id },
+        );
       }
     }
 
@@ -108,7 +121,10 @@ async function handleProcessQuestions(_request: Request): Promise<Response> {
       message: `Processed ${results.processed} questions, ${results.failed} failed, ${results.skipped} skipped`,
     });
   } catch (error) {
-    console.error("Cron job error:", error);
+    questionsLogger.error(
+      "Cron job error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     // Try to log the error
     try {
@@ -120,7 +136,10 @@ async function handleProcessQuestions(_request: Request): Promise<Response> {
         executed_at: new Date().toISOString(),
       });
     } catch (logError) {
-      console.error("Failed to log cron error:", logError);
+      questionsLogger.error(
+        "Failed to log cron error",
+        logError instanceof Error ? logError : new Error(String(logError)),
+      );
     }
 
     return NextResponse.json(

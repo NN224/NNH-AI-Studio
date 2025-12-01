@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { syncLogger } from "@/lib/utils/logger";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FirstSyncOverlay } from "./first-sync-overlay";
 import { HomeWithSync } from "./home-with-sync";
@@ -71,7 +72,7 @@ function HomePageContent({ userId, homePageProps }: HomePageWrapperProps) {
   const handleSyncError = () => {
     setShowOverlay(false);
     // Optionally show an error message
-    console.error("Sync failed, but continuing...");
+    syncLogger.warn("Sync failed, but continuing...");
   };
 
   return (

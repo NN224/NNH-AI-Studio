@@ -12,6 +12,8 @@
  * - CRON_SECRET (minimum 32 characters recommended)
  */
 
+import { logger } from "@/lib/utils/logger";
+
 /**
  * Result of cron authentication validation
  */
@@ -36,9 +38,9 @@ export function validateCronAuth(request: Request): CronAuthResult {
 
   // FAIL CLOSED: Secret MUST be configured
   if (!cronSecret) {
-    console.error(
-      "[SECURITY CRITICAL] CRON_SECRET is not configured! " +
-        "All cron endpoints are BLOCKED until this is fixed.",
+    logger.error(
+      "CRON_SECRET is not configured - All cron endpoints are BLOCKED",
+      new Error("Missing CRON_SECRET"),
     );
     return {
       isValid: false,
@@ -48,9 +50,8 @@ export function validateCronAuth(request: Request): CronAuthResult {
 
   // Validate minimum secret length
   if (cronSecret.length < 32) {
-    console.error(
-      "[SECURITY WARNING] CRON_SECRET is too short. " +
-        "Use at least 32 characters for security.",
+    logger.warn(
+      "CRON_SECRET is too short - Use at least 32 characters for security",
     );
   }
 
@@ -113,12 +114,11 @@ function logUnauthorizedAttempt(request: Request, error: string): void {
 
   const path = new URL(request.url).pathname;
 
-  console.warn("[SECURITY] Unauthorized cron access attempt:", {
+  logger.warn("Unauthorized cron access attempt", {
     ip,
     path,
     error,
     userAgent: request.headers.get("user-agent"),
-    timestamp: new Date().toISOString(),
   });
 }
 

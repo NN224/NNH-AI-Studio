@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { GMBLocationWithRating } from "@/lib/types/database";
+import { apiLogger } from "@/lib/utils/logger";
 
 interface LocationPerformanceProps {
   locationIds?: string[];
@@ -65,7 +66,10 @@ export function LocationPerformance({
           .limit(4);
 
         if (error) {
-          console.error("Error fetching locations:", error);
+          apiLogger.error(
+            "Error fetching locations",
+            error instanceof Error ? error : new Error(String(error)),
+          );
           // Fallback: try without join
           const { data: fallbackData } = await supabase!
             .from("gmb_locations")
@@ -94,7 +98,10 @@ export function LocationPerformance({
           setLocations(mappedData as any);
         }
       } catch (error) {
-        console.error("Error fetching locations:", error);
+        apiLogger.error(
+          "Error fetching locations",
+          error instanceof Error ? error : new Error(String(error)),
+        );
       } finally {
         setIsLoading(false);
       }

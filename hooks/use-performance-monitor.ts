@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { apiLogger } from "@/lib/utils/logger";
 
 /**
  * Performance metrics type
@@ -34,9 +35,9 @@ export function usePerformanceMonitor(componentName?: string) {
     metricsRef.current.componentRenderTime = renderTime;
 
     if (process.env.NODE_ENV === "development" && componentName) {
-      console.log(
-        `[Performance] ${componentName} rendered in ${renderTime.toFixed(2)}ms`,
-      );
+      apiLogger.debug(`[Performance] ${componentName} rendered`, {
+        renderTime: renderTime.toFixed(2),
+      });
     }
   });
 
@@ -89,7 +90,9 @@ export function usePerformanceMonitor(componentName?: string) {
           clsObserver.disconnect();
         };
       } catch (error) {
-        console.warn("Performance monitoring not supported:", error);
+        apiLogger.warn("Performance monitoring not supported", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }, []);
@@ -121,23 +124,27 @@ export function usePerformanceMonitor(componentName?: string) {
         metricsRef.current.apiCallDuration = duration;
 
         if (process.env.NODE_ENV === "development") {
-          console.log(
-            `[Performance] API call "${apiName}" took ${duration.toFixed(2)}ms`,
-          );
+          apiLogger.debug(`[Performance] API call timing`, {
+            apiName,
+            duration: duration.toFixed(2),
+          });
         }
 
         // Report slow API calls
         if (duration > 2000) {
-          console.warn(
-            `[Performance] Slow API call detected: ${apiName} (${duration.toFixed(2)}ms)`,
-          );
+          apiLogger.warn(`[Performance] Slow API call detected`, {
+            apiName,
+            duration: duration.toFixed(2),
+          });
         }
 
         return result;
       } catch (error) {
         const duration = performance.now() - startTime;
-        console.error(
-          `[Performance] API call "${apiName}" failed after ${duration.toFixed(2)}ms`,
+        apiLogger.error(
+          `[Performance] API call failed`,
+          error instanceof Error ? error : new Error(String(error)),
+          { apiName, duration: duration.toFixed(2) },
         );
         throw error;
       }
@@ -167,7 +174,7 @@ export function usePerformanceMonitor(componentName?: string) {
 
     // Log in development
     if (process.env.NODE_ENV === "development") {
-      console.table(metrics);
+      apiLogger.info("[Performance] metrics snapshot", { metrics });
     }
   }, [componentName, getMetrics]);
 
@@ -202,9 +209,10 @@ export function useLazyImageLoad() {
                     process.env.NODE_ENV === "development" &&
                     loadTime > 500
                   ) {
-                    console.warn(
-                      `[Performance] Slow image load: ${src} (${loadTime.toFixed(2)}ms)`,
-                    );
+                    apiLogger.warn(`[Performance] Slow image load`, {
+                      src,
+                      loadTime: loadTime.toFixed(2),
+                    });
                   }
                 };
 
@@ -245,9 +253,9 @@ export function usePerformanceAlerts() {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.duration > 50) {
-            console.warn(
-              `[Performance] Long task detected: ${entry.duration.toFixed(2)}ms`,
-            );
+            apiLogger.warn("[Performance] Long task detected", {
+              duration: entry.duration.toFixed(2),
+            });
           }
         }
       });
@@ -267,7 +275,9 @@ export function usePerformanceAlerts() {
       const slowRenderThreshold = 16; // 60fps = 16ms per frame
 
       // This would integrate with React DevTools Profiler API
-      console.log("[Performance] React render monitoring active");
+      apiLogger.debug("[Performance] React render monitoring active", {
+        threshold: slowRenderThreshold,
+      });
     }
   }, []);
 }

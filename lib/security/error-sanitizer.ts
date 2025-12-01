@@ -9,6 +9,7 @@
  * @security CRITICAL - Prevents information disclosure attacks
  */
 
+import { logger } from "@/lib/utils/logger";
 import * as Sentry from "@sentry/nextjs";
 
 /**
@@ -214,11 +215,11 @@ export function logErrorInternal(
   context?: Record<string, unknown>,
 ): void {
   // Always log full error internally
-  console.error("[Internal Error]", {
-    error,
+  logger.error(
+    "Internal Error",
+    error instanceof Error ? error : new Error(String(error)),
     context,
-    timestamp: new Date().toISOString(),
-  });
+  );
 
   // Send to Sentry in production
   if (process.env.NODE_ENV === "production") {

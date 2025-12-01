@@ -14,6 +14,7 @@
  * requests are DENIED to prevent bypass attacks.
  */
 
+import { apiLogger } from "@/lib/utils/logger";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
@@ -62,9 +63,9 @@ function getRateLimiter(
     const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!redisUrl || !redisToken) {
-      console.error(
-        "[CRITICAL] Upstash Redis not configured. Rate limiting will FAIL CLOSED. " +
-          "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.",
+      apiLogger.error(
+        "Upstash Redis not configured - Rate limiting will FAIL CLOSED",
+        new Error("Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN"),
       );
       redisConfigured = false;
     } else {
@@ -122,9 +123,12 @@ export async function checkEdgeRateLimit(
 
   // FAIL CLOSED: If Redis not available, DENY the request
   if (!limiter) {
-    console.error(
-      "[SECURITY] Rate limiter unavailable - denying request for:",
-      identifier,
+    apiLogger.error(
+      "Rate limiter unavailable - denying request",
+      new Error("Redis unavailable"),
+      {
+        identifier,
+      },
     );
     return {
       success: false,
@@ -143,7 +147,10 @@ export async function checkEdgeRateLimit(
       reset: Math.floor(result.reset / 1000),
     };
   } catch (error) {
-    console.error("[SECURITY] Rate limit check failed:", error);
+    apiLogger.error(
+      "Rate limit check failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // FAIL CLOSED on error - deny the request
     return {
       success: false,

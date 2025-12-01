@@ -2,6 +2,7 @@
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import type { GmbAccount } from "@/lib/types/database"; // تأكد من صحة المسار
+import { gmbLogger } from "@/lib/utils/logger";
 import { useCallback, useState } from "react";
 
 export function useAccountsManagement() {
@@ -52,7 +53,7 @@ export function useAccountsManagement() {
         accountsData.map(async (account) => {
           // Add a check for account.id existence
           if (!account.id) {
-            console.warn(
+            gmbLogger.warn(
               "[useAccountsManagement] Account found without ID:",
               account,
             );
@@ -69,7 +70,7 @@ export function useAccountsManagement() {
             .eq("gmb_account_id", account.id);
 
           if (countError) {
-            console.error(
+            gmbLogger.error(
               `[useAccountsManagement] Error fetching location count for account ${account.id}:`,
               countError,
             );
@@ -93,7 +94,10 @@ export function useAccountsManagement() {
       setAccounts(validAccounts);
       return validAccounts; // Return the valid accounts
     } catch (error: unknown) {
-      console.error("[useAccountsManagement] Error fetching accounts:", error);
+      gmbLogger.error(
+        "[useAccountsManagement] Error fetching accounts:",
+        error,
+      );
       toast({
         title: "Error Loading Accounts",
         description:
@@ -129,7 +133,7 @@ export function useAccountsManagement() {
         if (!response.ok) {
           // Get response as text first to handle HTML error pages
           const text = await response.text();
-          console.error("[useAccountsManagement] Sync API error:", {
+          gmbLogger.error("[useAccountsManagement] Sync API error:", {
             status: response.status,
             url: response.url,
             text: text.substring(0, 500), // Log first 500 chars
@@ -176,7 +180,7 @@ export function useAccountsManagement() {
         });
         await fetchAccounts(); // Refresh list after sync
       } catch (error: unknown) {
-        console.error("[useAccountsManagement] Sync error:", error);
+        gmbLogger.error("[useAccountsManagement] Sync error:", error);
         toast({
           title: "Sync Failed",
           description:
@@ -223,7 +227,7 @@ export function useAccountsManagement() {
         });
         await fetchAccounts(); // Refresh the list
       } catch (error: unknown) {
-        console.error("[useAccountsManagement] Disconnect error:", error);
+        gmbLogger.error("[useAccountsManagement] Disconnect error:", error);
         toast({
           title: "Error Disconnecting",
           description:

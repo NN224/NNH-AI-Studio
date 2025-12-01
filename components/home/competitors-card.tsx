@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Building2,
-  Star,
-  MapPin,
-  ExternalLink,
-  RefreshCw,
-  AlertCircle,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/utils/logger";
 import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  Building2,
+  ExternalLink,
+  MapPin,
+  RefreshCw,
+  Star,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Competitor {
   place_id: string;
@@ -70,7 +71,10 @@ export function CompetitorsCard({
         setCompetitors((data.competitors || []).slice(0, limit));
       }
     } catch (err) {
-      console.error("Competitors fetch error:", err);
+      logger.error(
+        "Competitors fetch error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       setError("Failed to load competitors");
     } finally {
       setIsLoading(false);

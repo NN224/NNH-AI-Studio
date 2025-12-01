@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,16 +8,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Sparkles, Send } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { answerQuestion, updateAnswer, deleteAnswer } from '@/server/actions/questions-management';
-import type { GMBQuestion } from '@/lib/types/database';
-import { useAutoSave } from '@/hooks/use-auto-save';
-import { formatDistanceToNow } from 'date-fns';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Sparkles, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  answerQuestion,
+  updateAnswer,
+  deleteAnswer,
+} from "@/server/actions/questions-management";
+import type { GMBQuestion } from "@/lib/types/database";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { formatDistanceToNow } from "date-fns";
+import { questionsLogger } from "@/lib/utils/logger";
 
 interface AnswerDialogProps {
   question: GMBQuestion | null;
@@ -26,11 +31,17 @@ interface AnswerDialogProps {
   onSuccess?: () => void;
 }
 
-export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDialogProps) {
+export function AnswerDialog({
+  question,
+  isOpen,
+  onClose,
+  onSuccess,
+}: AnswerDialogProps) {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const router = useRouter();
-  const initialAnswerValue = question?.answer_text || question?.ai_suggested_answer || '';
+  const initialAnswerValue =
+    question?.answer_text || question?.ai_suggested_answer || "";
   const draftKey = question ? `question:${question.id}` : null;
 
   const {
@@ -45,7 +56,7 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
     isDirty,
   } = useAutoSave({
     key: draftKey,
-    type: 'question_answer',
+    type: "question_answer",
     initialValue: initialAnswerValue,
   });
 
@@ -62,41 +73,48 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
 
     try {
       // Use new ML analysis endpoint
-      const response = await fetch('/api/questions/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/questions/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionId: question.id,
-          questionText: question.question_text || '',
+          questionText: question.question_text || "",
           locationId: question.location_id,
           businessContext: {
-            businessName: question.location_name || 'Business',
-          }
+            businessName: question.location_name || "Business",
+          },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate AI answer');
+        throw new Error(errorData.error || "Failed to generate AI answer");
       }
 
       const { analysis } = await response.json();
 
       if (!analysis?.suggestedAnswer) {
-        throw new Error('Invalid response from AI service');
+        throw new Error("Invalid response from AI service");
       }
 
       setAnswer(analysis.suggestedAnswer);
 
       // Show confidence level
       const confidencePercent = Math.round((analysis.confidence || 0) * 100);
-      toast.success(`AI answer generated with ${confidencePercent}% confidence!`, {
-        description: `Category: ${analysis.category} | Intent: ${analysis.intent}`,
-      });
+      toast.success(
+        `AI answer generated with ${confidencePercent}% confidence!`,
+        {
+          description: `Category: ${analysis.category} | Intent: ${analysis.intent}`,
+        },
+      );
     } catch (error) {
-      console.error('Error generating AI answer:', error);
-      toast.error('Failed to generate AI answer', {
-        description: 'Please try again or write your own answer',
+      questionsLogger.error(
+        "Error generating AI answer",
+        error instanceof Error ? error : new Error(String(error)),
+        { questionId: question.id },
+      );
+      toast.error("Failed to generate AI answer", {
+        description: "Please try again or write your own answer",
       });
     } finally {
       setGenerating(false);
@@ -106,12 +124,12 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question || !answer.trim()) {
-      toast.error('Please enter an answer');
+      toast.error("Please enter an answer");
       return;
     }
 
     if (answer.length > 2000) {
-      toast.error('Answer is too long. Maximum 2000 characters.');
+      toast.error("Answer is too long. Maximum 2000 characters.");
       return;
     }
 
@@ -121,36 +139,43 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
       let result;
 
       // Check if question already has an answer (update) or is new (create)
-      if (question.answer_status === 'answered' && question.answer_text) {
+      if (question.answer_status === "answered" && question.answer_text) {
         result = await updateAnswer(question.id, answer.trim());
       } else {
         result = await answerQuestion(question.id, answer.trim());
       }
 
       if (result.success) {
-        toast.success(result.message || 'Answer posted successfully!', {
-          description: 'Your answer is now visible on Google',
+        toast.success(result.message || "Answer posted successfully!", {
+          description: "Your answer is now visible on Google",
         });
-        setAnswer('');
+        setAnswer("");
         clearDraft();
         onClose();
         onSuccess?.();
         router.refresh();
       } else {
-        toast.error('Failed to post answer', {
+        toast.error("Failed to post answer", {
           description: result.error,
-          action: result.error?.includes('reconnect') || result.error?.includes('Authentication')
-            ? {
-                label: 'Settings',
-                onClick: () => router.push('/settings'),
-              }
-            : undefined,
+          action:
+            result.error?.includes("reconnect") ||
+            result.error?.includes("Authentication")
+              ? {
+                  label: "Settings",
+                  onClick: () => router.push("/settings"),
+                }
+              : undefined,
         });
       }
     } catch (error) {
-      console.error('Error submitting answer:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toast.error('An unexpected error occurred', {
+      questionsLogger.error(
+        "Error submitting answer",
+        error instanceof Error ? error : new Error(String(error)),
+        { questionId: question.id },
+      );
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      toast.error("An unexpected error occurred", {
         description: errorMessage,
       });
     } finally {
@@ -161,7 +186,7 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
   const handleDelete = async () => {
     if (!question || !question.answer_text) return;
 
-    if (!confirm('Are you sure you want to delete this answer?')) {
+    if (!confirm("Are you sure you want to delete this answer?")) {
       return;
     }
 
@@ -171,20 +196,24 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
       const result = await deleteAnswer(question.id);
 
       if (result.success) {
-        toast.success('Answer deleted!');
-        setAnswer('');
+        toast.success("Answer deleted!");
+        setAnswer("");
         clearDraft();
         onClose();
         onSuccess?.();
         router.refresh();
       } else {
-        toast.error('Failed to delete answer', {
+        toast.error("Failed to delete answer", {
           description: result.error,
         });
       }
     } catch (error) {
-      console.error('Error deleting answer:', error);
-      toast.error('An unexpected error occurred');
+      questionsLogger.error(
+        "Error deleting answer",
+        error instanceof Error ? error : new Error(String(error)),
+        { questionId: question.id },
+      );
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -192,7 +221,8 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
 
   if (!question) return null;
 
-  const isAnswered = question.answer_status === 'answered' && question.answer_text;
+  const isAnswered =
+    question.answer_status === "answered" && question.answer_text;
   const characterCount = answer.length;
   const maxCharacters = 2000;
 
@@ -201,12 +231,12 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
       <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">
-            {isAnswered ? 'Edit Answer' : 'Answer Question'}
+            {isAnswered ? "Edit Answer" : "Answer Question"}
           </DialogTitle>
           <DialogDescription className="text-zinc-400">
             {isAnswered
-              ? 'Update your answer to this customer question'
-              : 'Provide a helpful answer to this customer question'}
+              ? "Update your answer to this customer question"
+              : "Provide a helpful answer to this customer question"}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,7 +246,13 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
             <div className="text-sm text-yellow-100">
               Found a saved draft
               {pendingDraftTimestamp && (
-                <> saved {formatDistanceToNow(pendingDraftTimestamp, { addSuffix: true })}</>
+                <>
+                  {" "}
+                  saved{" "}
+                  {formatDistanceToNow(pendingDraftTimestamp, {
+                    addSuffix: true,
+                  })}
+                </>
               )}
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -226,9 +262,9 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
                 onClick={() => {
                   const previousValue = answer;
                   restoreDraft();
-                  toast.success('Draft restored', {
+                  toast.success("Draft restored", {
                     action: {
-                      label: 'Undo',
+                      label: "Undo",
                       onClick: () => setAnswer(previousValue),
                     },
                   });
@@ -254,7 +290,12 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
             <div className="text-xs text-zinc-400 mb-2">Question:</div>
             <p className="text-sm text-zinc-200">{question.question_text}</p>
             <div className="flex items-center gap-4 mt-3 text-xs text-zinc-500">
-              <span>👤 {question.author_name || question.author_display_name || 'Anonymous'}</span>
+              <span>
+                👤{" "}
+                {question.author_name ||
+                  question.author_display_name ||
+                  "Anonymous"}
+              </span>
               {question.upvote_count && question.upvote_count > 0 && (
                 <span>👍 {question.upvote_count} upvotes</span>
               )}
@@ -276,9 +317,11 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
                   </span>
                 )}
               </div>
-              <p className="text-sm text-zinc-300 mb-3">{question.ai_suggested_answer}</p>
+              <p className="text-sm text-zinc-300 mb-3">
+                {question.ai_suggested_answer}
+              </p>
               <Button
-                onClick={() => setAnswer(question.ai_suggested_answer || '')}
+                onClick={() => setAnswer(question.ai_suggested_answer || "")}
                 size="sm"
                 variant="outline"
                 className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
@@ -291,7 +334,7 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
           {/* Answer Textarea */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300">
-              Your Answer {isAnswered && '(Editing)'}
+              Your Answer {isAnswered && "(Editing)"}
             </label>
             <Textarea
               value={answer}
@@ -302,7 +345,9 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
               className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:border-orange-500 resize-none"
             />
             <div className="flex items-center justify-between text-xs">
-              <span className={`${characterCount > maxCharacters ? 'text-red-400' : 'text-zinc-500'}`}>
+              <span
+                className={`${characterCount > maxCharacters ? "text-red-400" : "text-zinc-500"}`}
+              >
                 {characterCount} / {maxCharacters} characters
               </span>
               {!isAnswered && (
@@ -326,16 +371,25 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
                   )}
                 </Button>
               )}
-              <span className={isDirty ? 'text-orange-400 flex items-center gap-1' : 'text-zinc-500'}>
+              <span
+                className={
+                  isDirty
+                    ? "text-orange-400 flex items-center gap-1"
+                    : "text-zinc-500"
+                }
+              >
                 {isDirty ? (
                   <>
                     <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />
                     Unsaved changes
                   </>
                 ) : lastSavedAt ? (
-                  <>Draft saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}</>
+                  <>
+                    Draft saved{" "}
+                    {formatDistanceToNow(lastSavedAt, { addSuffix: true })}
+                  </>
                 ) : (
-                  'Drafts auto-save every second'
+                  "Drafts auto-save every second"
                 )}
               </span>
             </div>
@@ -367,18 +421,20 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={loading || !answer.trim() || answer.length > maxCharacters}
+              disabled={
+                loading || !answer.trim() || answer.length > maxCharacters
+              }
               className="bg-orange-600 hover:bg-orange-700 text-white"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isAnswered ? 'Updating...' : 'Posting...'}
+                  {isAnswered ? "Updating..." : "Posting..."}
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  {isAnswered ? 'Update Answer' : 'Post Answer'}
+                  {isAnswered ? "Update Answer" : "Post Answer"}
                 </>
               )}
             </Button>
@@ -388,4 +444,3 @@ export function AnswerDialog({ question, isOpen, onClose, onSuccess }: AnswerDia
     </Dialog>
   );
 }
-

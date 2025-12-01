@@ -9,6 +9,7 @@
  * - Toast notifications for user feedback
  */
 
+import { apiLogger } from "@/lib/utils/logger";
 import { toast } from "sonner";
 
 // CSRF header name (must match server-side csrf.ts)
@@ -34,7 +35,10 @@ async function getCSRFToken(): Promise<string> {
     cachedCSRFToken = data.token || data.csrfToken;
     return cachedCSRFToken || "";
   } catch (error) {
-    console.error("Failed to fetch CSRF token:", error);
+    apiLogger.error(
+      "Failed to fetch CSRF token",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return "";
   }
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useHomeData } from "@/hooks/use-home-data";
 import { Link } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { authLogger } from "@/lib/utils/logger";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { Loader2, LogOut, Settings, Wifi } from "lucide-react";
@@ -48,7 +49,10 @@ export function SmartHeader({ user, lastLogin }: SmartHeaderProps) {
       // Force redirect to login page
       window.location.href = "/auth/login";
     } catch (error) {
-      console.error("Sign out error:", error);
+      authLogger.error(
+        "Sign out error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       setIsSigningOut(false);
     }
   };

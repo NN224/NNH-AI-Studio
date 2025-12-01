@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import type { AutoReplySettings } from "@/server/actions/auto-reply";
 import { ActivityStatsCard } from "@/components/settings/activity-stats-card";
 import { TestAutoReplySection } from "@/components/settings/test-auto-reply-section";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 interface AutoReplySettingsPanelProps {
   locationId?: string;
@@ -61,7 +62,11 @@ export function AutoReplySettingsPanel({
         setSettings(data.settings);
       }
     } catch (error) {
-      console.error("Failed to load settings:", error);
+      reviewsLogger.error(
+        "Failed to load settings",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error(t("loadFailed"));
     } finally {
       setLoading(false);
@@ -85,7 +90,11 @@ export function AutoReplySettingsPanel({
 
       toast.success(t("saved"));
     } catch (error) {
-      console.error("Failed to save settings:", error);
+      reviewsLogger.error(
+        "Failed to save settings",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error(t("saveFailed"));
     } finally {
       setSaving(false);

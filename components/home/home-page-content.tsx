@@ -17,6 +17,7 @@ import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple
 import { QuickActions } from "@/components/home/quick-actions";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
 import { SmartHeader } from "@/components/home/smart-header";
+import { logger } from "@/lib/utils/logger";
 // Direct imports for better tree-shaking
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { WelcomeBack } from "@/components/onboarding/WelcomeBack";
@@ -474,7 +475,7 @@ function UrgentItemsSection({ userId: _userId }: { userId: string }) {
       items={urgentItems}
       isLoading={false}
       onAIAction={(itemId: string) => {
-        console.warn("Urgent item action:", itemId);
+        logger.warn("Urgent item action", { itemId });
         // TODO: Implement AI action handling
       }}
     />

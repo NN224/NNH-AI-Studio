@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +43,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Database error:", error);
+      apiLogger.error(
+        "Database error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return NextResponse.json(
         { error: "Failed to save contact submission" },
         { status: 500 },
@@ -63,7 +67,12 @@ export async function POST(request: NextRequest) {
         message,
       });
     } catch (emailError) {
-      console.error("Failed to send notification email:", emailError);
+      apiLogger.error(
+        "Failed to send notification email",
+        emailError instanceof Error
+          ? emailError
+          : new Error(String(emailError)),
+      );
       // Continue even if email fails
     }
 
@@ -76,7 +85,10 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Contact form error:", error);
+    apiLogger.error(
+      "Contact form error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

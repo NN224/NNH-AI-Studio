@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 export async function GET() {
   try {
@@ -76,7 +77,10 @@ export async function GET() {
       },
     );
   } catch (error) {
-    console.error("Status API error:", error);
+    apiLogger.error(
+      "Status API error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     // Return mock data on error
     return NextResponse.json(

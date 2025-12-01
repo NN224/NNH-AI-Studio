@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { apiLogger } from "@/lib/utils/logger";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 
@@ -82,7 +83,11 @@ export function useSelectedLocation() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("Error fetching locations:", error);
+        apiLogger.error(
+          "Error fetching locations",
+          error instanceof Error ? error : new Error(String(error)),
+          { userId },
+        );
         throw error;
       }
 
@@ -107,7 +112,11 @@ export function useSelectedLocation() {
 
       if (error && error.code !== "PGRST116") {
         // PGRST116 = no rows returned
-        console.error("Error fetching preference:", error);
+        apiLogger.error(
+          "Error fetching preference",
+          error instanceof Error ? error : new Error(String(error)),
+          { userId },
+        );
       }
 
       // If found in database, return it
@@ -156,14 +165,19 @@ export function useSelectedLocation() {
         );
 
         if (error) {
-          console.warn("Could not save preference to database:", error);
+          apiLogger.warn("Could not save preference to database", {
+            userId,
+            locationId,
+            error: String(error),
+          });
           // Don't throw - localStorage is our fallback
         }
       } catch (err) {
-        console.warn(
-          "Database preference save failed, using localStorage:",
-          err,
-        );
+        apiLogger.warn("Database preference save failed, using localStorage", {
+          userId,
+          locationId,
+          error: String(err),
+        });
       }
 
       return locationId;
