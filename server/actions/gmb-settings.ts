@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import {
   GetSyncSettingsInputSchema,
   UpdateSyncScheduleInputSchema,
@@ -66,14 +67,19 @@ export async function updateAccountSyncSettings(
   } catch (error: unknown) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("[GMB Settings] Validation error:", error.errors);
+      gmbLogger.error("GMB settings validation error", error, {
+        errors: error.errors,
+      });
       return {
         success: false,
         error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
       };
     }
 
-    console.error("Error updating sync settings:", error);
+    gmbLogger.error(
+      "Error updating sync settings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -116,7 +122,13 @@ export async function getAccountSyncSettings(accountId: unknown) {
   } catch (error: unknown) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("[GMB Settings] Validation error:", error.errors);
+      gmbLogger.error(
+        "GMB settings validation error in getAccountSyncSettings",
+        error,
+        {
+          errors: error.errors,
+        },
+      );
       return {
         success: false,
         error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,

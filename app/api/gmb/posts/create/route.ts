@@ -1,85 +1,98 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createPostSchema } from '@/lib/validations/gmb-post'
-import { errorResponse, getErrorCode } from '@/lib/utils/api-response'
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createPostSchema } from "@/lib/validations/gmb-post";
+import { errorResponse, getErrorCode } from "@/lib/utils/api-response";
+import { gmbLogger } from "@/lib/utils/logger";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 type CreatePostBody = {
-  locationId: string
-  title?: string
-  content: string
-  mediaUrl?: string
-  callToAction?: string
-  callToActionUrl?: string
-  scheduledAt?: string | null
-  postType?: 'whats_new' | 'event' | 'offer'
-  aiGenerated?: boolean
+  locationId: string;
+  title?: string;
+  content: string;
+  mediaUrl?: string;
+  callToAction?: string;
+  callToActionUrl?: string;
+  scheduledAt?: string | null;
+  postType?: "whats_new" | "event" | "offer";
+  aiGenerated?: boolean;
   // Event fields
-  eventTitle?: string
-  eventStartDate?: string
-  eventEndDate?: string
+  eventTitle?: string;
+  eventStartDate?: string;
+  eventEndDate?: string;
   // Offer fields
-  offerTitle?: string
-  couponCode?: string
-  redeemUrl?: string
-  terms?: string
-}
+  offerTitle?: string;
+  couponCode?: string;
+  redeemUrl?: string;
+  terms?: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
+      return errorResponse("UNAUTHORIZED", "Authentication required", 401);
     }
 
-    const body = (await request.json()) as CreatePostBody
-    
+    const body = (await request.json()) as CreatePostBody;
+
     // Validate input with Zod
-    const validationResult = createPostSchema.safeParse(body)
+    const validationResult = createPostSchema.safeParse(body);
     if (!validationResult.success) {
-      return errorResponse('VALIDATION_ERROR', 'Invalid input data', 400, validationResult.error.errors)
+      return errorResponse(
+        "VALIDATION_ERROR",
+        "Invalid input data",
+        400,
+        validationResult.error.errors,
+      );
     }
-    
-    const validated = validationResult.data
+
+    const validated = validationResult.data;
 
     // Ensure location belongs to user and is from an active account
     const { data: loc } = await supabase
-      .from('gmb_locations')
-      .select('id, gmb_account_id, gmb_accounts!inner(id, is_active)')
-      .eq('id', validated.locationId)
-      .eq('user_id', user.id)
-      .maybeSingle()
+      .from("gmb_locations")
+      .select("id, gmb_account_id, gmb_accounts!inner(id, is_active)")
+      .eq("id", validated.locationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (!loc) {
-      return errorResponse('LOCATION_NOT_FOUND', 'Location not found', 404)
+      return errorResponse("LOCATION_NOT_FOUND", "Location not found", 404);
     }
 
     // Check if the location belongs to an active account
-    const account = (loc as any).gmb_accounts
+    const account = (loc as any).gmb_accounts;
     if (!account?.is_active) {
-      return errorResponse('FORBIDDEN', 'Cannot create posts for inactive accounts', 403)
+      return errorResponse(
+        "FORBIDDEN",
+        "Cannot create posts for inactive accounts",
+        403,
+      );
     }
 
     // Build metadata for Event/Offer posts
-    const metadata: any = {}
-    if (validated.postType === 'event') {
-      metadata.eventTitle = validated.eventTitle
-      metadata.eventStartDate = validated.eventStartDate
-      metadata.eventEndDate = validated.eventEndDate
-    } else if (validated.postType === 'offer') {
-      metadata.offerTitle = validated.offerTitle
-      metadata.couponCode = validated.couponCode
-      metadata.redeemUrl = validated.redeemUrl
-      metadata.terms = validated.terms
+    const metadata: any = {};
+    if (validated.postType === "event") {
+      metadata.eventTitle = validated.eventTitle;
+      metadata.eventStartDate = validated.eventStartDate;
+      metadata.eventEndDate = validated.eventEndDate;
+    } else if (validated.postType === "offer") {
+      metadata.offerTitle = validated.offerTitle;
+      metadata.couponCode = validated.couponCode;
+      metadata.redeemUrl = validated.redeemUrl;
+      metadata.terms = validated.terms;
     }
     if (validated.aiGenerated) {
-      metadata.aiGenerated = true
+      metadata.aiGenerated = true;
     }
 
     const { data, error } = await supabase
-      .from('gmb_posts')
+      .from("gmb_posts")
       .insert({
         user_id: user.id,
         location_id: validated.locationId,
@@ -88,27 +101,32 @@ export async function POST(request: NextRequest) {
         media_url: validated.mediaUrl ?? null,
         call_to_action: validated.callToAction ?? null,
         call_to_action_url: validated.callToActionUrl ?? null,
-        status: validated.scheduledAt ? 'queued' : 'draft',
+        status: validated.scheduledAt ? "queued" : "draft",
         scheduled_at: validated.scheduledAt ?? null,
-        post_type: validated.postType || 'whats_new',
+        post_type: validated.postType || "whats_new",
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
         updated_at: new Date().toISOString(),
       })
-      .select('*')
-      .single()
+      .select("*")
+      .single();
 
     if (error) {
-      const errorCode = getErrorCode(error)
-      console.error('[GMB Posts API] Database error:', error)
-      return errorResponse(errorCode, 'Failed to create post', 500)
+      const errorCode = getErrorCode(error);
+      gmbLogger.error(
+        "[GMB Posts API] Database error",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId: user.id, locationId: validated.locationId },
+      );
+      return errorResponse(errorCode, "Failed to create post", 500);
     }
 
-    return NextResponse.json({ post: data, success: true }, { status: 201 })
+    return NextResponse.json({ post: data, success: true }, { status: 201 });
   } catch (e: any) {
-    const errorCode = getErrorCode(e)
-    console.error('[GMB Posts API] Error:', e)
-    return errorResponse(errorCode, 'Failed to create post', 500)
+    const errorCode = getErrorCode(e);
+    gmbLogger.error(
+      "[GMB Posts API] Error creating post",
+      e instanceof Error ? e : new Error(String(e)),
+    );
+    return errorResponse(errorCode, "Failed to create post", 500);
   }
 }
-
-

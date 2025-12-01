@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -282,7 +283,11 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Health API error:", error);
+    gmbLogger.error(
+      "Health API error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -7,6 +7,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -48,10 +49,9 @@ export async function GET() {
 
     if (error) {
       // Table might not exist - return defaults
-      console.warn(
-        "[AI Activity Stats] Error querying ai_actions:",
-        error.message,
-      );
+      apiLogger.warn("[AI Activity Stats] Error querying ai_actions", {
+        message: error.message,
+      });
       return NextResponse.json({
         actionsToday: 0,
         lastActionAt: null,
@@ -80,7 +80,10 @@ export async function GET() {
       postsGenerated,
     });
   } catch (error) {
-    console.error("[AI Activity Stats] Error:", error);
+    apiLogger.error(
+      "[AI Activity Stats] Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json({
       actionsToday: 0,
       lastActionAt: null,

@@ -2,6 +2,8 @@
 
 import { resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { gmbLogger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -15,7 +17,7 @@ const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
  */
 async function revokeGoogleToken(token: string): Promise<boolean> {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${GOOGLE_REVOKE_URL}?token=${encodeURIComponent(token)}`,
       {
         method: "POST",
@@ -23,22 +25,29 @@ async function revokeGoogleToken(token: string): Promise<boolean> {
           "Content-Type": "application/x-www-form-urlencoded",
         },
       },
+      API_TIMEOUTS.GOOGLE_API,
     );
 
     if (response.ok) {
-      console.warn("[GMB Account] Token revoked successfully");
+      gmbLogger.info("Token revoked successfully");
       return true;
     }
 
     if (response.status === 400) {
-      console.warn("[GMB Account] Token already invalid or expired");
+      gmbLogger.info("Token already invalid or expired");
       return true;
     }
 
-    console.error("[GMB Account] Failed to revoke token:", response.status);
+    gmbLogger.error(
+      "Failed to revoke token",
+      new Error(`HTTP ${response.status}`),
+    );
     return false;
   } catch (error) {
-    console.error("[GMB Account] Error revoking token:", error);
+    gmbLogger.error(
+      "Error revoking token",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return false;
   }
 }
@@ -265,7 +274,11 @@ export async function disconnectGMBAccount(
       exportData,
     };
   } catch (error) {
-    console.error("Error disconnecting GMB account:", error);
+    gmbLogger.error(
+      "Error disconnecting GMB account",
+      error instanceof Error ? error : new Error(String(error)),
+      { accountId },
+    );
     const err = error as Error;
     return {
       success: false,
@@ -329,7 +342,11 @@ async function exportAccountData(
       posts: posts.data || [],
     } as Record<string, unknown>;
   } catch (error) {
-    console.error("Error exporting account data:", error);
+    gmbLogger.error(
+      "Error exporting account data",
+      error instanceof Error ? error : new Error(String(error)),
+      { accountId },
+    );
     return null;
   }
 }
@@ -394,7 +411,10 @@ export async function getGMBConnectionStatus() {
       archivedReviewsCount: archivedReviews || 0,
     };
   } catch (error) {
-    console.error("Error getting GMB connection status:", error);
+    gmbLogger.error(
+      "Error getting GMB connection status",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { isConnected: false };
   }
 }
@@ -463,7 +483,10 @@ export async function permanentlyDeleteArchivedData() {
       message: "All archived data has been permanently deleted",
     };
   } catch (error: unknown) {
-    console.error("Error deleting archived data:", error);
+    gmbLogger.error(
+      "Error deleting archived data",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -526,7 +549,10 @@ export async function updateDataRetentionSettings(
       message: "Data retention settings updated successfully",
     };
   } catch (error) {
-    console.error("Error updating data retention settings:", error);
+    gmbLogger.error(
+      "Error updating data retention settings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     const err = error as Error;
     return {
       success: false,

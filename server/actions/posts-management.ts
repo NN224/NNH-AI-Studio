@@ -3,6 +3,8 @@
 import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
 import type { GMBPost } from "@/lib/types/database";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { postsLogger } from "@/lib/utils/logger";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
@@ -225,10 +227,10 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
       // Validate for SQL injection attempts
       const validation = validateSearchQuery(validatedParams.searchQuery);
       if (!validation.valid) {
-        console.warn(
-          "[Posts] Suspicious search query blocked:",
-          validation.reason,
-        );
+        postsLogger.warn("Suspicious search query blocked", {
+          reason: validation.reason,
+          query: validatedParams.searchQuery,
+        });
         return {
           success: false,
           error: "Invalid search query",
@@ -278,7 +280,10 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[Posts] Get posts error:", error);
+      postsLogger.error(
+        "Get posts error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -300,7 +305,10 @@ export async function getPosts(params: z.infer<typeof FilterSchema>) {
       count: count || 0,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Get posts error:", error);
+    postsLogger.error(
+      "Get posts error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     if (error instanceof z.ZodError) {
       return {
         success: false,
@@ -573,7 +581,10 @@ export async function createPost(data: z.infer<typeof CreatePostSchema>) {
       locationId: validatedData.locationId,
     });
   } catch (error: unknown) {
-    console.error("[Posts] Create post error:", error);
+    postsLogger.error(
+      "Create post error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     if (error instanceof z.ZodError) {
       return createErrorResponse(
@@ -621,7 +632,13 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
       .eq("id", validatedData.postId);
 
     if (updateError) {
-      console.error("[Posts] Update error:", updateError);
+      postsLogger.error(
+        "Update error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { postId: validatedData.postId },
+      );
       return createErrorResponse("Failed to update post");
     }
 
@@ -633,7 +650,10 @@ export async function updatePost(data: z.infer<typeof UpdatePostSchema>) {
 
     return createSuccessResponse("Post updated successfully");
   } catch (error: unknown) {
-    console.error("[Posts] Update post error:", error);
+    postsLogger.error(
+      "Update post error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     if (error instanceof z.ZodError) {
       return createErrorResponse(
@@ -672,7 +692,10 @@ async function schedulePostDraft(
   });
 
   if (error) {
-    console.error("[Posts] Database insert error:", error);
+    postsLogger.error(
+      "Database insert error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return createErrorResponse("Failed to save scheduled post");
   }
 
@@ -737,8 +760,11 @@ async function publishPostToGoogle(
       googleResult.state &&
       GOOGLE_PROCESSING_STATES.includes(googleResult.state)
     ) {
-      console.warn(
-        "[Posts] Post is in PROCESSING state, polling for completion...",
+      postsLogger.warn(
+        "Post is in PROCESSING state, polling for completion...",
+        {
+          state: googleResult.state,
+        },
       );
 
       const postName = googleResult.name;
@@ -758,15 +784,14 @@ async function publishPostToGoogle(
                 !GOOGLE_PROCESSING_STATES.includes(updatedResult.state || "")
               ) {
                 googleResult = updatedResult;
-                console.warn(
-                  "[Posts] Post processing completed:",
-                  updatedResult.state,
-                );
+                postsLogger.warn("Post processing completed", {
+                  state: updatedResult.state,
+                });
                 break;
               }
             }
           } catch (pollError) {
-            console.warn("[Posts] Polling attempt failed:", pollError);
+            postsLogger.warn("Polling attempt failed", { error: pollError });
           }
         }
       }
@@ -789,7 +814,10 @@ async function publishPostToGoogle(
       googleResult,
     };
   } catch (error) {
-    console.error("[Posts] Token or publish error:", error);
+    postsLogger.error(
+      "Token or publish error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       errorResponse: createErrorResponse(
@@ -835,7 +863,10 @@ async function persistPublishedPost(params: {
   });
 
   if (error) {
-    console.error("[Posts] Database insert error:", error);
+    postsLogger.error(
+      "Database insert error after publish",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     if (googleResult) {
       return createSuccessResponse(
         "Post published on Google but failed to save to database",
@@ -874,7 +905,11 @@ function mapGoogleApiError(
     );
   }
 
-  console.error("[Posts] API error:", errorData);
+  postsLogger.error(
+    "API error",
+    new Error(errorData?.error?.message || "Failed to create post on Google"),
+    { errorData },
+  );
   return createErrorResponse(
     errorData?.error?.message || "Failed to create post on Google",
   );
@@ -993,20 +1028,30 @@ async function syncPostUpdateWithGoogle(
       postResourceUrl.searchParams.set("updateMask", updateMask.join(","));
     }
 
-    const response = await fetch(postResourceUrl.toString(), {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      postResourceUrl.toString(),
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postBody),
       },
-      body: JSON.stringify(postBody),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
-      console.error("[Posts] Failed to update post on Google");
+      postsLogger.error(
+        "Failed to update post on Google",
+        new Error(`HTTP ${response.status}`),
+      );
     }
   } catch (error) {
-    console.error("[Posts] Error updating post on Google:", error);
+    postsLogger.error(
+      "Error updating post on Google",
+      error instanceof Error ? error : new Error(String(error)),
+    );
   }
 }
 
@@ -1105,12 +1150,16 @@ export async function deletePost(postId: string) {
         );
         const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts/${post.provider_post_id}`;
 
-        const response = await fetch(gmbApiUrl, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const response = await fetchWithTimeout(
+          gmbApiUrl,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
+          API_TIMEOUTS.GOOGLE_API,
+        );
 
         if (!response.ok && response.status !== 404) {
           if (response.status === 401) {
@@ -1121,11 +1170,18 @@ export async function deletePost(postId: string) {
               errorCode: "AUTH_EXPIRED",
             };
           }
-          console.error("[Posts] Delete API error");
+          postsLogger.error(
+            "Delete API error",
+            new Error(`HTTP ${response.status}`),
+          );
           // Continue to delete from database
         }
       } catch (error) {
-        console.error("[Posts] Error deleting from Google:", error);
+        postsLogger.error(
+          "Error deleting from Google",
+          error instanceof Error ? error : new Error(String(error)),
+          { postId },
+        );
         // Continue to delete from database
       }
     }
@@ -1151,7 +1207,13 @@ export async function deletePost(postId: string) {
       message: "Post deleted successfully",
     };
   } catch (error: unknown) {
-    console.error("[Posts] Delete error:", error);
+    postsLogger.error(
+      "Delete error",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        postId,
+      },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete post",
@@ -1241,14 +1303,18 @@ export async function publishPost(postId: string) {
     );
     const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`;
 
-    const response = await fetch(gmbApiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      gmbApiUrl,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postData),
       },
-      body: JSON.stringify(postData),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -1279,7 +1345,13 @@ export async function publishPost(postId: string) {
         };
       }
 
-      console.error("[Posts] Publish API error:", errorData);
+      postsLogger.error(
+        "Publish API error",
+        new Error(
+          errorData.error?.message || "Failed to publish post on Google",
+        ),
+        { errorData, postId },
+      );
       return {
         success: false,
         error: errorData.error?.message || "Failed to publish post on Google",
@@ -1301,7 +1373,13 @@ export async function publishPost(postId: string) {
       .eq("id", postId);
 
     if (updateError) {
-      console.error("[Posts] Database update error:", updateError);
+      postsLogger.error(
+        "Database update error after publish",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { postId },
+      );
       // Post was published on Google, so return success
     }
 
@@ -1313,7 +1391,11 @@ export async function publishPost(postId: string) {
       message: "Post published successfully",
     };
   } catch (error: unknown) {
-    console.error("[Posts] Publish post error:", error);
+    postsLogger.error(
+      "Publish post error",
+      error instanceof Error ? error : new Error(String(error)),
+      { postId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to publish post",
@@ -1390,11 +1472,15 @@ export async function syncPostsFromGoogle(locationId?: string) {
         );
         const gmbApiUrl = `${GMB_V4_BASE}/${locationResourceV4}/localPosts`;
 
-        const response = await fetch(gmbApiUrl, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const response = await fetchWithTimeout(
+          gmbApiUrl,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
+          API_TIMEOUTS.GOOGLE_API,
+        );
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -1406,8 +1492,12 @@ export async function syncPostsFromGoogle(locationId?: string) {
               synced: totalSynced,
             };
           }
-          console.error(
-            `[Posts] Failed to sync posts for location ${location.id}`,
+          postsLogger.error(
+            "Failed to sync posts for location",
+            new Error("Sync failed"),
+            {
+              locationId: location.id,
+            },
           );
           continue;
         }
@@ -1447,7 +1537,11 @@ export async function syncPostsFromGoogle(locationId?: string) {
           }
         }
       } catch (error) {
-        console.error(`[Posts] Error syncing location ${location.id}:`, error);
+        postsLogger.error(
+          "Error syncing location",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId: location.id },
+        );
         continue;
       }
     }
@@ -1461,7 +1555,10 @@ export async function syncPostsFromGoogle(locationId?: string) {
       synced: totalSynced,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Sync posts error:", error);
+    postsLogger.error(
+      "Sync posts error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to sync posts",
@@ -1516,7 +1613,10 @@ export async function getPostStats(
     const { data: posts, error } = await query;
 
     if (error) {
-      console.error("[Posts] Get stats error:", error);
+      postsLogger.error(
+        "Get stats error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -1547,7 +1647,10 @@ export async function getPostStats(
       stats,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Get stats error:", error);
+    postsLogger.error(
+      "Get stats error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -1606,7 +1709,11 @@ export async function bulkDeletePosts(postIds: string[]) {
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Bulk delete error:", error);
+    postsLogger.error(
+      "Bulk delete error",
+      error instanceof Error ? error : new Error(String(error)),
+      { count: postIds.length },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete posts",
@@ -1658,7 +1765,13 @@ export async function archivePost(postId: string) {
       .eq("id", postId);
 
     if (updateError) {
-      console.error("[Posts] Archive error:", updateError);
+      postsLogger.error(
+        "Archive error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { postId },
+      );
       return createErrorResponse("Failed to archive post");
     }
 
@@ -1667,7 +1780,13 @@ export async function archivePost(postId: string) {
 
     return createSuccessResponse("Post archived successfully");
   } catch (error: unknown) {
-    console.error("[Posts] Archive error:", error);
+    postsLogger.error(
+      "Archive error",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        postId,
+      },
+    );
     return createErrorResponse(
       error instanceof Error ? error.message : "Failed to archive post",
     );
@@ -1721,7 +1840,11 @@ export async function bulkArchivePosts(postIds: string[]) {
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Bulk archive error:", error);
+    postsLogger.error(
+      "Bulk archive error",
+      error instanceof Error ? error : new Error(String(error)),
+      { count: postIds.length },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to archive posts",
@@ -1773,7 +1896,11 @@ export async function bulkPublishPosts(postIds: string[]) {
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error: unknown) {
-    console.error("[Posts] Bulk publish error:", error);
+    postsLogger.error(
+      "Bulk publish error",
+      error instanceof Error ? error : new Error(String(error)),
+      { count: postIds.length },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to publish posts",

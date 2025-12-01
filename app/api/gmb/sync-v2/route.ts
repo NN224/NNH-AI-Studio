@@ -25,6 +25,7 @@
  * ============================================================================
  */
 
+import { gmbLogger } from "@/lib/utils/logger";
 import { performTransactionalSync } from "@/server/actions/gmb-sync";
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
@@ -141,7 +142,9 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    console.error(`[sync-v2:${requestId}] Invalid JSON body`);
+    gmbLogger.error("Invalid JSON body", new Error("Invalid JSON body"), {
+      requestId,
+    });
     return NextResponse.json(
       { ok: false, error: "invalid_body", message: "Invalid JSON body" },
       { status: 400 },
@@ -192,8 +195,9 @@ export async function POST(request: Request) {
         isAuthenticated = true;
       } else if (!timestamp) {
         // Log warning but allow for backward compatibility (temporary)
-        console.warn(
-          `[sync-v2:${requestId}] Legacy auth without timestamp - consider upgrading to HMAC`,
+        gmbLogger.warn(
+          "Legacy auth without timestamp - consider upgrading to HMAC",
+          { requestId, accountId },
         );
         authMethod = "legacy_secret_no_timestamp";
         isAuthenticated = true;
@@ -202,9 +206,11 @@ export async function POST(request: Request) {
   }
 
   if (!isAuthenticated) {
-    console.error(
-      `[sync-v2:${requestId}] Unauthorized: No valid authentication method`,
+    gmbLogger.error(
+      "Unauthorized: No valid authentication method",
+      new Error("Unauthorized"),
       {
+        requestId,
         hasAuthHeader: !!authHeader,
         hasHmacSignature: !!hmacSignature,
         hasLegacySecret: !!legacySecret,
@@ -222,8 +228,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // Use console.warn for audit trail (allowed by eslint config)
-  console.warn(`[sync-v2:${requestId}] Authenticated via ${authMethod}`);
+  // Use warning level for audit trail
+  gmbLogger.warn("Internal sync authenticated", { requestId, authMethod });
 
   try {
     // Body already parsed above for auth validation
@@ -252,7 +258,10 @@ export async function POST(request: Request) {
 
     const tookMs = Date.now() - startTime;
 
-    console.warn(`[sync-v2] Sync completed for ${accountId} in ${tookMs}ms:`, {
+    gmbLogger.info("Sync completed", {
+      requestId,
+      accountId,
+      tookMs,
       locations: result.locations_synced,
       reviews: result.reviews_synced,
       questions: result.questions_synced,
@@ -267,7 +276,11 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Internal sync error";
-    console.error("[sync-v2] Sync failed:", error);
+    gmbLogger.error(
+      "Sync failed",
+      error instanceof Error ? error : new Error(String(error)),
+      { requestId, accountId },
+    );
 
     return NextResponse.json(
       {

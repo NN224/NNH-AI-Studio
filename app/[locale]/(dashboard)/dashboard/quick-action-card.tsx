@@ -1,9 +1,8 @@
+"use client";
 
-
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { apiLogger } from "@/lib/utils/logger";
 
 interface QuickActionCardProps {
   title: string;
@@ -17,7 +16,7 @@ interface QuickActionCardProps {
 export default function QuickActionCard({
   title,
   description,
-  icon = '⚡',
+  icon = "⚡",
   actionLabel,
   onAction,
   route,
@@ -33,9 +32,13 @@ export default function QuickActionCard({
       } else if (route) {
         router.push(route);
       }
-      window.dispatchEvent(new Event('dashboard:refresh'));
+      window.dispatchEvent(new Event("dashboard:refresh"));
     } catch (error) {
-      console.error(`[QuickActionCard] Error during ${title} action:`, error);
+      apiLogger.error(
+        `[QuickActionCard] Error during ${title} action`,
+        error instanceof Error ? error : new Error(String(error)),
+        { title, route },
+      );
     } finally {
       setLoading(false);
     }
@@ -53,11 +56,11 @@ export default function QuickActionCard({
         disabled={loading}
         className={`mt-4 px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
           loading
-            ? 'bg-zinc-700 cursor-wait text-zinc-300'
-            : 'bg-orange-600 hover:bg-orange-700 text-white'
+            ? "bg-zinc-700 cursor-wait text-zinc-300"
+            : "bg-orange-600 hover:bg-orange-700 text-white"
         }`}
       >
-        {loading ? 'Processing...' : actionLabel}
+        {loading ? "Processing..." : actionLabel}
       </button>
     </div>
   );

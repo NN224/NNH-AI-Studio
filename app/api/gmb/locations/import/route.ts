@@ -11,6 +11,7 @@
 
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createAdminClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { addToSyncQueue } from "@/server/actions/sync-queue";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -108,14 +109,22 @@ export const POST = withSecureApi<ImportLocationsBody>(
       .single();
 
     if (accountError || !gmbAccount) {
-      console.error("[Import Locations] Account not found:", accountError);
+      gmbLogger.error(
+        "Account not found during location import",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
+        { accountId, userId: user.id },
+      );
       throw new ApiError(ErrorCode.NOT_FOUND, "GMB account not found", 404);
     }
 
     // Security check: Ensure the account belongs to the authenticated user
     if (gmbAccount.user_id !== user.id) {
-      console.error(
-        "[Import Locations] User mismatch - account belongs to different user",
+      gmbLogger.error(
+        "User mismatch - account belongs to different user",
+        new Error("Account belongs to different user"),
+        { accountId, userId: user.id, accountUserId: gmbAccount.user_id },
       );
       throw new ApiError(
         ErrorCode.FORBIDDEN,
@@ -124,9 +133,11 @@ export const POST = withSecureApi<ImportLocationsBody>(
       );
     }
 
-    console.warn(
-      `[Import Locations] Importing ${locations.length} locations for account ${accountId}`,
-    );
+    gmbLogger.info("Importing locations for account", {
+      accountId,
+      userId: user.id,
+      locationsCount: locations.length,
+    });
 
     const importedLocationIds: string[] = [];
     const syncQueueIds: string[] = [];
@@ -159,9 +170,12 @@ export const POST = withSecureApi<ImportLocationsBody>(
         .single();
 
       if (upsertError) {
-        console.error(
-          `[Import Locations] Error upserting location ${location.name}:`,
-          upsertError,
+        gmbLogger.error(
+          "Error upserting location",
+          upsertError instanceof Error
+            ? upsertError
+            : new Error(String(upsertError)),
+          { locationName: location.name, accountId, userId: user.id },
         );
         errors.push(`Failed to import ${location.title || location.name}`);
         continue;
@@ -169,9 +183,11 @@ export const POST = withSecureApi<ImportLocationsBody>(
 
       if (upsertedLocation) {
         importedLocationIds.push(upsertedLocation.id);
-        console.warn(
-          `[Import Locations] Imported location ${upsertedLocation.id}`,
-        );
+        gmbLogger.info("Imported location", {
+          locationId: upsertedLocation.id,
+          accountId,
+          userId: user.id,
+        });
 
         // Add to sync queue with high priority for initial sync
         const syncResult = await addToSyncQueue(
@@ -183,13 +199,19 @@ export const POST = withSecureApi<ImportLocationsBody>(
 
         if (syncResult.success && syncResult.queueId) {
           syncQueueIds.push(syncResult.queueId);
-          console.warn(
-            `[Import Locations] Added to sync queue: ${syncResult.queueId}`,
-          );
+          gmbLogger.info("Added to sync queue", {
+            queueId: syncResult.queueId,
+            accountId,
+            userId: user.id,
+          });
         } else {
-          console.error(
-            `[Import Locations] Failed to add to sync queue:`,
-            syncResult.error,
+          gmbLogger.error(
+            "Failed to add to sync queue",
+            new Error(String(syncResult.error)),
+            {
+              accountId,
+              userId: user.id,
+            },
           );
         }
       }
@@ -204,9 +226,12 @@ export const POST = withSecureApi<ImportLocationsBody>(
       );
     }
 
-    console.warn(
-      `[Import Locations] Successfully imported ${importedLocationIds.length}/${locations.length} locations`,
-    );
+    gmbLogger.info("Imported locations summary", {
+      importedCount: importedLocationIds.length,
+      totalRequested: locations.length,
+      accountId,
+      userId: user.id,
+    });
 
     // Set the first imported location as the user's selected location
     const firstLocationId = importedLocationIds[0];
@@ -223,15 +248,17 @@ export const POST = withSecureApi<ImportLocationsBody>(
         );
 
       if (prefError) {
-        console.warn(
-          "[Import Locations] Failed to set selected location preference:",
-          prefError,
-        );
+        gmbLogger.warn("Failed to set selected location preference", {
+          error: prefError,
+          userId: user.id,
+          locationId: firstLocationId,
+        });
         // Don't fail the import - this is a nice-to-have
       } else {
-        console.warn(
-          `[Import Locations] Set selected location to ${firstLocationId}`,
-        );
+        gmbLogger.info("Set selected location", {
+          userId: user.id,
+          locationId: firstLocationId,
+        });
       }
     }
 

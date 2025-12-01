@@ -10,6 +10,7 @@
 
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -188,7 +189,12 @@ export async function getSettings(): Promise<SettingsResult> {
         profileError.code !== "PGRST116" &&
         profileError.code !== "PGRST205"
       ) {
-        console.error("[Settings] Failed to fetch profile:", profileError);
+        logger.error(
+          "Failed to fetch profile",
+          profileError instanceof Error
+            ? profileError
+            : new Error(String(profileError)),
+        );
       } else {
         profile = data;
       }
@@ -395,7 +401,12 @@ export async function updateSettings(
           .eq("id", user.id);
 
         if (profileError && profileError.code !== "PGRST116") {
-          console.error("[Settings] Failed to update profile:", profileError);
+          logger.error(
+            "Failed to update profile",
+            profileError instanceof Error
+              ? profileError
+              : new Error(String(profileError)),
+          );
           // Don't fail the whole request if profile update fails
         }
       }

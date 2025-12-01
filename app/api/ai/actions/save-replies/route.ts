@@ -7,6 +7,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -75,7 +76,13 @@ async function handleSaveReplies(
           );
 
         if (upsertError) {
-          console.error("[Save Replies] Error saving draft:", upsertError);
+          apiLogger.error(
+            "[Save Replies] Error saving draft",
+            upsertError instanceof Error
+              ? upsertError
+              : new Error(String(upsertError)),
+            { userId, reviewId: reply.reviewId },
+          );
           errors.push(`Failed to save draft for ${reply.reviewId}`);
         } else {
           savedReplies.push(reply.reviewId);
@@ -111,7 +118,11 @@ async function handleSaveReplies(
         }
       }
     } catch (err) {
-      console.error("[Save Replies] Error processing reply:", err);
+      apiLogger.error(
+        "[Save Replies] Error processing reply",
+        err instanceof Error ? err : new Error(String(err)),
+        { userId, reviewId: reply.reviewId },
+      );
       errors.push(`Error processing ${reply.reviewId}`);
     }
   }

@@ -5,6 +5,7 @@
 
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -104,16 +105,22 @@ export const GET = withSecureApi(
 
     // Log errors but don't fail the request - partial data is acceptable
     if (pendingReviewsResult.error) {
-      console.error(
-        "[GMB Locations] Reviews query failed:",
-        pendingReviewsResult.error.message,
+      gmbLogger.error(
+        "[GMB Locations] Reviews query failed",
+        pendingReviewsResult.error instanceof Error
+          ? pendingReviewsResult.error
+          : new Error(String(pendingReviewsResult.error)),
+        { userId: user.id },
       );
     }
 
     if (pendingQuestionsResult.error) {
-      console.error(
-        "[GMB Locations] Questions query failed:",
-        pendingQuestionsResult.error.message,
+      gmbLogger.error(
+        "[GMB Locations] Questions query failed",
+        pendingQuestionsResult.error instanceof Error
+          ? pendingQuestionsResult.error
+          : new Error(String(pendingQuestionsResult.error)),
+        { userId: user.id },
       );
     }
 

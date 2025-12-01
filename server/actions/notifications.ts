@@ -13,6 +13,7 @@
 
 import { logAction } from "@/lib/monitoring/audit";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -107,7 +108,10 @@ export async function getNotifications(options?: {
     const { data, error } = await query;
 
     if (error) {
-      console.error("[Notifications] Failed to fetch:", error);
+      logger.error(
+        "Failed to fetch notifications",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: "Failed to fetch notifications" };
     }
 
@@ -124,8 +128,10 @@ export async function getNotifications(options?: {
       unreadCount: count || 0,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -176,7 +182,10 @@ export async function createNotification(
       .single();
 
     if (error) {
-      console.error("[Notifications] Failed to create:", error);
+      logger.error(
+        "Failed to create notification",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       await logAction("notification_create", "notification", null, {
         status: "failed",
         error: error.message,
@@ -194,8 +203,10 @@ export async function createNotification(
 
     return { success: true, notification: data };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -228,7 +239,11 @@ export async function markNotificationRead(
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Notifications] Failed to mark as read:", error);
+      logger.error(
+        "Failed to mark notification as read",
+        error instanceof Error ? error : new Error(String(error)),
+        { notificationId },
+      );
       return { success: false, error: "Failed to mark notification as read" };
     }
 
@@ -236,8 +251,10 @@ export async function markNotificationRead(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -269,7 +286,10 @@ export async function markAllNotificationsRead(): Promise<{
       .select("id");
 
     if (error) {
-      console.error("[Notifications] Failed to mark all as read:", error);
+      logger.error(
+        "Failed to mark all notifications as read",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: "Failed to mark notifications as read" };
     }
 
@@ -282,8 +302,10 @@ export async function markAllNotificationsRead(): Promise<{
 
     return { success: true, count: data?.length || 0 };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -316,7 +338,11 @@ export async function deleteNotification(
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Notifications] Failed to delete:", error);
+      logger.error(
+        "Failed to delete notification",
+        error instanceof Error ? error : new Error(String(error)),
+        { notificationId },
+      );
       await logAction("notification_delete", "notification", notificationId, {
         status: "failed",
         error: error.message,
@@ -332,8 +358,10 @@ export async function deleteNotification(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -369,7 +397,10 @@ export async function clearAllNotifications(): Promise<{
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Notifications] Failed to clear all:", error);
+      logger.error(
+        "Failed to clear all notifications",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       await logAction("notifications_clear_all", "notification", null, {
         status: "failed",
         error: error.message,
@@ -386,8 +417,10 @@ export async function clearAllNotifications(): Promise<{
 
     return { success: true, count: count || 0 };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }
@@ -418,14 +451,19 @@ export async function getUnreadNotificationCount(): Promise<{
       .eq("read", false);
 
     if (error) {
-      console.error("[Notifications] Failed to get count:", error);
+      logger.error(
+        "Failed to get notification count",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: "Failed to get notification count" };
     }
 
     return { success: true, count: count || 0 };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Notifications] Unexpected error:", errorMessage);
+    logger.error(
+      "Unexpected error in getNotifications",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "Unexpected error" };
   }
 }

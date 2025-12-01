@@ -1,39 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getValidAccessToken } from '@/lib/gmb/helpers';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { gmbLogger } from "@/lib/utils/logger";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const GBP_LOC_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { locationId: string } },
 ) {
   try {
     const supabase = await createClient();
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { locationId } = params;
     if (!locationId) {
-      return NextResponse.json({ error: 'Location ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Location ID required" },
+        { status: 400 },
+      );
     }
 
     // Get location from database
     const { data: location, error: locationError } = await supabase
-      .from('gmb_locations')
-      .select('*, gmb_accounts(id, account_id)')
-      .eq('id', locationId)
-      .eq('user_id', user.id)
+      .from("gmb_locations")
+      .select("*, gmb_accounts(id, account_id)")
+      .eq("id", locationId)
+      .eq("user_id", user.id)
       .single();
 
     if (locationError || !location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 },
+      );
     }
 
     const accountId = location.gmb_account_id;
@@ -45,21 +55,22 @@ export async function GET(
 
     // Fetch full location details with expanded readMask (includes attributes)
     const url = new URL(`${GBP_LOC_BASE}/${locationResource}`);
-    const readMask = 'name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData,attributes';
-    url.searchParams.set('readMask', readMask);
+    const readMask =
+      "name,title,storefrontAddress,phoneNumbers,websiteUri,categories,profile,regularHours,specialHours,moreHours,serviceItems,openInfo,metadata,latlng,labels,relationshipData,attributes";
+    url.searchParams.set("readMask", readMask);
 
     const response = await fetch(url.toString(), {
-      headers: { 
+      headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
+        Accept: "application/json",
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Failed to fetch location details', details: errorData },
-        { status: response.status }
+        { error: "Failed to fetch location details", details: errorData },
+        { status: response.status },
       );
     }
 
@@ -72,21 +83,29 @@ export async function GET(
     // Get Google-updated information if available
     let googleUpdated: any = null;
     try {
-      const googleUpdatedUrl = new URL(`${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`);
-      googleUpdatedUrl.searchParams.set('readMask', readMask);
+      const googleUpdatedUrl = new URL(
+        `${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`,
+      );
+      googleUpdatedUrl.searchParams.set("readMask", readMask);
       const googleUpdatedResponse = await fetch(googleUpdatedUrl.toString(), {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       });
-      
+
       if (googleUpdatedResponse.ok) {
         const googleUpdatedData = await googleUpdatedResponse.json();
         googleUpdated = googleUpdatedData;
       }
     } catch (error) {
-      console.warn('[Location Details API] Failed to get Google-updated info:', error);
+      gmbLogger.warn(
+        "[Location Details API] Failed to get Google-updated info",
+        {
+          error,
+          locationId,
+        },
+      );
     }
 
     return NextResponse.json({
@@ -96,11 +115,14 @@ export async function GET(
       gmb_account_id: location.gmb_account_id, // Include accountId for sync operations
     });
   } catch (error: any) {
-    console.error('[Location Details API] Error:', error);
+    gmbLogger.error(
+      "[Location Details API] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { error: "Internal server error", message: error.message },
+      { status: 500 },
     );
   }
 }
-

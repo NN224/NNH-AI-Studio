@@ -7,6 +7,7 @@ import { reviewsQuerySchema } from "@/lib/api/schemas";
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createClient } from "@/lib/supabase/server";
 import { applySafeSearchFilter } from "@/lib/utils/secure-search";
+import { reviewsLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -124,7 +125,7 @@ export const GET = withSecureApi<unknown, ReviewsQuery>(
           "reviewer_name",
         ]);
       } catch (searchError) {
-        console.warn("Invalid search input detected:", searchError);
+        reviewsLogger.warn("Invalid search input detected", { searchError });
       }
     }
 
@@ -137,12 +138,17 @@ export const GET = withSecureApi<unknown, ReviewsQuery>(
     const { data: reviews, error, count } = await dbQuery;
 
     if (error) {
-      console.error("[Reviews API] Database error:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
+      reviewsLogger.error(
+        "[Reviews API] Database error",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          userId: user.id,
+        },
+      );
 
       throw new ApiError(
         ErrorCode.DATABASE_ERROR,

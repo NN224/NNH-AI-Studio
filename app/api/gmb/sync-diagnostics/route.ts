@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +33,12 @@ export async function GET() {
       .maybeSingle();
 
     if (gmbAccountError) {
-      console.error(
-        "[GMB Diagnostics API] Error fetching user account:",
-        gmbAccountError,
+      gmbLogger.error(
+        "Error fetching user account for diagnostics",
+        gmbAccountError instanceof Error
+          ? gmbAccountError
+          : new Error(String(gmbAccountError)),
+        { userId: user.id },
       );
     }
 
@@ -141,7 +145,10 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[GMB Diagnostics API] Error:", error);
+    gmbLogger.error(
+      "GMB Diagnostics API error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       {
         success: false,

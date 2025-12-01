@@ -1,5 +1,5 @@
-import { errorLogger } from '@/lib/services/error-logger';
-import { toast } from 'sonner';
+import { errorLogger } from "@/lib/services/error-logger";
+import { toast } from "sonner";
 
 /**
  * Options for error handling
@@ -22,7 +22,7 @@ export interface ErrorHandlerOptions {
  */
 export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  options: ErrorHandlerOptions = {}
+  options: ErrorHandlerOptions = {},
 ): T {
   const {
     showToast = true,
@@ -35,37 +35,39 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
 
   return (async (...args: Parameters<T>) => {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         return await fn(...args);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         // Log the error
         await errorLogger.logError(lastError, context);
-        
+
         // Call custom error handler if provided
         if (onError) {
           onError(lastError);
         }
-        
+
         // If this is not the last attempt, wait and retry
         if (attempt < retries) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay * (attempt + 1)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelay * (attempt + 1)),
+          );
           continue;
         }
-        
+
         // Show toast on final failure if enabled
         if (showToast) {
-          toast.error(lastError.message || 'An unexpected error occurred');
+          toast.error(lastError.message || "An unexpected error occurred");
         }
-        
+
         // Return fallback value instead of throwing
         return fallbackValue;
       }
     }
-    
+
     // This should never be reached, but TypeScript needs it
     return fallbackValue;
   }) as T;
@@ -77,7 +79,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
 export function trySafe<T>(
   fn: () => T,
   fallbackValue: T,
-  context?: ErrorHandlerOptions['context']
+  context?: ErrorHandlerOptions["context"],
 ): T {
   try {
     return fn();
@@ -94,7 +96,7 @@ export function trySafe<T>(
 export async function tryAsync<T>(
   fn: () => Promise<T>,
   fallbackValue: T,
-  context?: ErrorHandlerOptions['context']
+  context?: ErrorHandlerOptions["context"],
 ): Promise<T> {
   try {
     return await fn();
@@ -111,7 +113,7 @@ export async function tryAsync<T>(
 export function makeSafe<T extends (...args: any[]) => any>(
   fn: T,
   fallbackValue: ReturnType<T>,
-  context?: ErrorHandlerOptions['context']
+  context?: ErrorHandlerOptions["context"],
 ): T {
   return ((...args: Parameters<T>) => {
     try {
@@ -137,11 +139,11 @@ export function makeSafe<T extends (...args: any[]) => any>(
  */
 export function ensureError(error: unknown): Error {
   if (error instanceof Error) return error;
-  if (typeof error === 'string') return new Error(error);
-  if (typeof error === 'object' && error !== null) {
+  if (typeof error === "string") return new Error(error);
+  if (typeof error === "object" && error !== null) {
     return new Error(JSON.stringify(error));
   }
-  return new Error('Unknown error');
+  return new Error("Unknown error");
 }
 
 /**
@@ -149,11 +151,11 @@ export function ensureError(error: unknown): Error {
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  if (typeof error === 'object' && error !== null && 'message' in error) {
+  if (typeof error === "string") return error;
+  if (typeof error === "object" && error !== null && "message" in error) {
     return String(error.message);
   }
-  return 'An unexpected error occurred';
+  return "An unexpected error occurred";
 }
 
 /**
@@ -161,21 +163,23 @@ export function getErrorMessage(error: unknown): string {
  */
 export function isNetworkError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  
+
   const networkErrorPatterns = [
-    'fetch failed',
-    'network error',
-    'networkerror',
-    'ERR_NETWORK',
-    'ERR_INTERNET_DISCONNECTED',
-    'ERR_NAME_NOT_RESOLVED',
-    'ENOTFOUND',
-    'ECONNREFUSED',
-    'ETIMEDOUT',
+    "fetch failed",
+    "network error",
+    "networkerror",
+    "ERR_NETWORK",
+    "ERR_INTERNET_DISCONNECTED",
+    "ERR_NAME_NOT_RESOLVED",
+    "ENOTFOUND",
+    "ECONNREFUSED",
+    "ETIMEDOUT",
   ];
-  
+
   const message = error.message.toLowerCase();
-  return networkErrorPatterns.some(pattern => message.includes(pattern.toLowerCase()));
+  return networkErrorPatterns.some((pattern) =>
+    message.includes(pattern.toLowerCase()),
+  );
 }
 
 /**
@@ -183,30 +187,81 @@ export function isNetworkError(error: unknown): boolean {
  */
 export function isAuthError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  
+
   const authErrorPatterns = [
-    'unauthorized',
-    'unauthenticated',
-    'auth',
-    '401',
-    'forbidden',
-    '403',
-    'token expired',
-    'invalid token',
+    "unauthorized",
+    "unauthenticated",
+    "auth",
+    "401",
+    "forbidden",
+    "403",
+    "token expired",
+    "invalid token",
   ];
-  
+
   const message = error.message.toLowerCase();
-  return authErrorPatterns.some(pattern => message.includes(pattern.toLowerCase()));
+  return authErrorPatterns.some((pattern) =>
+    message.includes(pattern.toLowerCase()),
+  );
 }
 
 /**
  * Create a timeout promise
  */
-export function timeout<T>(promise: Promise<T>, ms: number, message = 'Operation timed out'): Promise<T> {
+export function timeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message = "Operation timed out",
+): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error(message)), ms)
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms),
     ),
   ]);
+}
+
+/**
+ * Default timeout values for different API types
+ */
+export const API_TIMEOUTS = {
+  /** Google APIs - 30 seconds */
+  GOOGLE_API: 30000,
+  /** Internal APIs - 10 seconds */
+  INTERNAL_API: 10000,
+  /** AI/LLM APIs - 60 seconds (they can be slow) */
+  AI_API: 60000,
+  /** Quick operations - 5 seconds */
+  QUICK: 5000,
+} as const;
+
+/**
+ * Fetch with automatic timeout and AbortController support
+ * @param url - The URL to fetch
+ * @param options - Fetch options
+ * @param timeoutMs - Timeout in milliseconds (default: 30000)
+ * @returns Promise<Response>
+ */
+export async function fetchWithTimeout(
+  url: string | URL,
+  options: RequestInit = {},
+  timeoutMs: number = API_TIMEOUTS.GOOGLE_API,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url.toString(), {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

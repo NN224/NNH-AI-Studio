@@ -1,3 +1,4 @@
+import { gmbLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import { addToSyncQueue } from "@/server/actions/sync-queue";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
  * If a job is already processing for this account, returns 429 or joins existing job.
  */
 export async function POST(request: NextRequest) {
+  let accountId: string | undefined;
+  let userId: string | undefined;
   try {
     const supabase = await createClient();
     const {
@@ -24,9 +27,11 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+    userId = user.id;
 
     const body = await request.json();
-    const { accountId, syncType = "full" } = body;
+    const { accountId: requestAccountId, syncType = "full" } = body;
+    accountId = requestAccountId;
 
     if (!accountId) {
       return NextResponse.json(
@@ -46,15 +51,23 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (checkError) {
-      console.error("[Enqueue Sync] Error checking existing jobs:", checkError);
+      gmbLogger.error(
+        "Error checking existing jobs",
+        checkError instanceof Error
+          ? checkError
+          : new Error(String(checkError)),
+        { accountId, userId },
+      );
       // Continue anyway - better to allow sync than block it
     }
 
     if (existingJobs && existingJobs.length > 0) {
       const existingJob = existingJobs[0];
-      console.warn(
-        `[Enqueue Sync] Job already ${existingJob.status} for account ${accountId}`,
-      );
+      gmbLogger.warn("Sync job already queued for account", {
+        accountId,
+        status: existingJob.status,
+        jobId: existingJob.id,
+      });
 
       // Return 429 with info about existing job
       return NextResponse.json(
@@ -79,9 +92,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.warn(
-      `[Enqueue Sync] Successfully queued sync for account ${accountId}`,
-    );
+    gmbLogger.info("Queued sync job", {
+      accountId,
+      queueId: result.queueId,
+      syncType,
+      userId,
+    });
 
     return NextResponse.json({
       success: true,
@@ -89,7 +105,11 @@ export async function POST(request: NextRequest) {
       message: "Sync job queued successfully",
     });
   } catch (error) {
-    console.error("[Enqueue Sync] Unexpected error:", error);
+    gmbLogger.error(
+      "Unexpected error while enqueueing sync",
+      error instanceof Error ? error : new Error(String(error)),
+      { accountId, userId },
+    );
     return NextResponse.json(
       {
         error: "internal_error",

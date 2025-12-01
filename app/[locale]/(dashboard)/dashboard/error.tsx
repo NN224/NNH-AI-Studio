@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { apiLogger } from "@/lib/utils/logger";
 
 export default function DashboardError({
   error,
@@ -12,11 +13,14 @@ export default function DashboardError({
   const handleRetry = () => {
     try {
       reset();
-      window.dispatchEvent(new Event('dashboard:refresh'));
-      toast.success('Dashboard reloaded successfully!');
+      window.dispatchEvent(new Event("dashboard:refresh"));
+      toast.success("Dashboard reloaded successfully!");
     } catch (err) {
-      console.error('[DashboardError] Retry failed:', err);
-      toast.error('Failed to reload dashboard. Please try again.');
+      apiLogger.error(
+        "[DashboardError] Retry failed",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      toast.error("Failed to reload dashboard. Please try again.");
     }
   };
 
@@ -28,7 +32,7 @@ export default function DashboardError({
           Something went wrong!
         </h2>
         <p className="text-zinc-400 mb-6">
-          {error.message || 'Failed to load dashboard data'}
+          {error.message || "Failed to load dashboard data"}
         </p>
         <button
           onClick={handleRetry}

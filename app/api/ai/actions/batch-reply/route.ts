@@ -8,6 +8,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -85,7 +86,11 @@ async function handleBatchReply(
   const { data: reviews, error } = await query;
 
   if (error) {
-    console.error("[Batch Reply] Error fetching reviews:", error);
+    apiLogger.error(
+      "[Batch Reply] Error fetching reviews",
+      error instanceof Error ? error : new Error(String(error)),
+      { userId, locationId },
+    );
     return NextResponse.json(
       { error: "Failed to fetch reviews" },
       { status: 500 },
@@ -137,9 +142,10 @@ async function handleBatchReply(
         confidence: replyData.confidence,
       });
     } catch (err) {
-      console.error(
-        `[Batch Reply] Error generating reply for review ${review.id}:`,
-        err,
+      apiLogger.error(
+        "[Batch Reply] Error generating reply",
+        err instanceof Error ? err : new Error(String(err)),
+        { reviewId: review.id, userId },
       );
       // Continue with other reviews
     }

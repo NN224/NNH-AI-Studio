@@ -28,6 +28,9 @@
     "build-storybook": "storybook build",
     "db:update-docs": "bash scripts/update-schema-docs.sh",
     "admin:task": "npx tsx scripts/admin-tasks.ts",
+    "migrate-logger": "npx tsx scripts/replace-console-with-logger.ts",
+    "migrate-logger:apply": "npx tsx scripts/replace-console-with-logger.ts --apply",
+    "migrate-logger:rollback": "npx tsx scripts/replace-console-with-logger.ts --rollback",
     "prepare": "node -e \"try { require('child_process').execSync('husky', {stdio: 'ignore'}) } catch {}\""
   },
   "dependencies": {

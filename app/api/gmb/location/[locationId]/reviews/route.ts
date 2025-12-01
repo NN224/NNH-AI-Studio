@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,13 @@ export async function GET(
       .range(offset, offset + limit - 1);
 
     if (reviewsError) {
-      console.error("Reviews fetch error:", reviewsError);
+      gmbLogger.error(
+        "Reviews fetch error",
+        reviewsError instanceof Error
+          ? reviewsError
+          : new Error(String(reviewsError)),
+        { locationId, userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to fetch reviews" },
         { status: 500 },
@@ -74,7 +81,11 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Reviews API error:", error);
+    gmbLogger.error(
+      "Reviews API error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

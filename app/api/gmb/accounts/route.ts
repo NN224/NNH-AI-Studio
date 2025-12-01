@@ -1,6 +1,7 @@
 // GMB Accounts API - Returns list of connected GMB accounts for authenticated user
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,11 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (dbError) {
-      console.error("[GET /api/gmb/accounts] DB Error:", dbError);
+      gmbLogger.error(
+        "Failed to fetch accounts",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+        { userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to fetch accounts" },
         { status: 500 },
@@ -59,7 +64,10 @@ export async function GET(request: NextRequest) {
     // Return response with accounts key for consistency
     return NextResponse.json({ accounts: accountsWithLocationCount });
   } catch (error: any) {
-    console.error("[GET /api/gmb/accounts] Unexpected error:", error);
+    gmbLogger.error(
+      "Unexpected error in GMB accounts endpoint",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

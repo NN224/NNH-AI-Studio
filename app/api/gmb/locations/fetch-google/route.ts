@@ -12,6 +12,7 @@
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { decryptToken } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -85,17 +86,22 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
       .single();
 
     if (accountError || !gmbAccount) {
-      console.error(
-        "[Fetch Google Locations] Account not found:",
-        accountError,
+      gmbLogger.error(
+        "Account not found for fetch-google",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
+        { accountId, userId: user.id },
       );
       throw new ApiError(ErrorCode.NOT_FOUND, "GMB account not found", 404);
     }
 
     // Security check: Ensure the account belongs to the authenticated user
     if (gmbAccount.user_id !== user.id) {
-      console.error(
-        "[Fetch Google Locations] User mismatch - account belongs to different user",
+      gmbLogger.error(
+        "User mismatch for fetch-google",
+        new Error("Account belongs to different user"),
+        { accountId, userId: user.id, accountUserId: gmbAccount.user_id },
       );
       throw new ApiError(
         ErrorCode.FORBIDDEN,
@@ -112,9 +118,12 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
       .single();
 
     if (secretsError || !secrets?.access_token) {
-      console.error(
-        "[Fetch Google Locations] Failed to fetch secrets:",
-        secretsError,
+      gmbLogger.error(
+        "Failed to fetch secrets for fetch-google",
+        secretsError instanceof Error
+          ? secretsError
+          : new Error(String(secretsError)),
+        { accountId, userId: user.id },
       );
       throw new ApiError(
         ErrorCode.INTERNAL_ERROR,
@@ -132,9 +141,12 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
       }
       accessToken = decrypted;
     } catch (decryptError) {
-      console.error(
-        "[Fetch Google Locations] Failed to decrypt token:",
-        decryptError,
+      gmbLogger.error(
+        "Failed to decrypt token for fetch-google",
+        decryptError instanceof Error
+          ? decryptError
+          : new Error(String(decryptError)),
+        { accountId, userId: user.id },
       );
       throw new ApiError(
         ErrorCode.INTERNAL_ERROR,
@@ -154,9 +166,11 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
     );
     locationsUrl.searchParams.set("alt", "json");
 
-    console.warn(
-      `[Fetch Google Locations] Fetching locations for account ${googleAccountId}`,
-    );
+    gmbLogger.info("Fetching locations from Google", {
+      accountId,
+      googleAccountId,
+      userId: user.id,
+    });
 
     const locationsResponse = await fetch(locationsUrl.toString(), {
       headers: {
@@ -167,10 +181,16 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
 
     if (!locationsResponse.ok) {
       const errorText = await locationsResponse.text();
-      console.error("[Fetch Google Locations] Google API error:", {
-        status: locationsResponse.status,
-        body: errorText.substring(0, 500),
-      });
+      gmbLogger.error(
+        "Google API error while fetching locations",
+        new Error(`HTTP ${locationsResponse.status}`),
+        {
+          status: locationsResponse.status,
+          body: errorText.substring(0, 500),
+          accountId,
+          googleAccountId,
+        },
+      );
 
       // Handle specific error cases
       if (locationsResponse.status === 401) {
@@ -192,9 +212,12 @@ export const POST = withSecureApi<FetchGoogleLocationsBody>(
       await locationsResponse.json();
     const locations = locationsData.locations || [];
 
-    console.warn(
-      `[Fetch Google Locations] Found ${locations.length} locations from Google`,
-    );
+    gmbLogger.info("Fetched locations from Google", {
+      count: locations.length,
+      accountId,
+      googleAccountId,
+      userId: user.id,
+    });
 
     // Return the raw locations to the client
     return NextResponse.json({

@@ -5,6 +5,7 @@ import {
   validateWebhookPayload,
   verifyGoogleWebhookSignature,
 } from "@/lib/security/webhook-verification";
+import { gmbLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
@@ -66,7 +67,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimit.success) {
-      console.warn("[GMB Webhook] Rate limit exceeded for IP:", ip, {
+      gmbLogger.warn("[GMB Webhook] Rate limit exceeded for IP", {
+        ip,
         limit: rateLimit.limit,
         remaining: rateLimit.remaining,
         reset: rateLimit.reset,
@@ -95,8 +97,9 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.GOOGLE_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      console.error(
+      gmbLogger.error(
         "[GMB Webhook] GOOGLE_WEBHOOK_SECRET not configured in environment",
+        new Error("Webhook secret missing"),
       );
       return NextResponse.json(
         { error: "Webhook not configured" },
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
     const payload = await request.text();
 
     if (!payload) {
-      console.warn("[GMB Webhook] Empty payload received from IP:", ip);
+      gmbLogger.warn("[GMB Webhook] Empty payload received from IP", { ip });
       return NextResponse.json({ error: "Empty payload" }, { status: 400 });
     }
 
@@ -122,7 +125,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (!isValid) {
-      console.warn("[GMB Webhook] Invalid signature from IP:", ip, {
+      gmbLogger.warn("[GMB Webhook] Invalid signature from IP", {
+        ip,
         hasSignature: !!signature,
         payloadLength: payload.length,
       });
@@ -136,7 +140,11 @@ export async function POST(request: NextRequest) {
     try {
       data = JSON.parse(payload) as WebhookPayload;
     } catch (error) {
-      console.error("[GMB Webhook] Invalid JSON payload:", error);
+      gmbLogger.error(
+        "[GMB Webhook] Invalid JSON payload",
+        error instanceof Error ? error : new Error(String(error)),
+        { ip },
+      );
       return NextResponse.json(
         { error: "Invalid JSON payload" },
         { status: 400 },
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!validateWebhookPayload(data)) {
-      console.warn("[GMB Webhook] Invalid payload structure:", {
+      gmbLogger.warn("[GMB Webhook] Invalid payload structure", {
         name: data?.name,
         types: data?.notificationTypes,
       });
@@ -159,9 +167,11 @@ export async function POST(request: NextRequest) {
     const locationInfo = extractLocationInfo(data);
 
     if (!locationInfo) {
-      console.warn(
-        "[GMB Webhook] Could not extract location info from payload:",
-        data.name,
+      gmbLogger.warn(
+        "[GMB Webhook] Could not extract location info from payload",
+        {
+          name: data.name,
+        },
       );
       // Still process but log warning
     }
@@ -181,9 +191,10 @@ export async function POST(request: NextRequest) {
         );
         processedTypes.push(notificationType);
       } catch (error) {
-        console.error(
-          `[GMB Webhook] Error processing ${notificationType}:`,
-          error,
+        gmbLogger.error(
+          `[GMB Webhook] Error processing ${notificationType}`,
+          error instanceof Error ? error : new Error(String(error)),
+          { notificationType, ip },
         );
         errors.push(
           `${notificationType}: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -195,7 +206,15 @@ export async function POST(request: NextRequest) {
     const totalTime = Date.now() - startTime;
 
     if (errors.length > 0) {
-      console.error("[GMB Webhook] Processed with errors:", errors.join(", "));
+      gmbLogger.error(
+        "[GMB Webhook] Processed with errors",
+        new Error("Webhook processing errors"),
+        {
+          errors,
+          ip,
+          totalTime,
+        },
+      );
     }
 
     // Always return 200 OK to acknowledge receipt
@@ -209,7 +228,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const totalTime = Date.now() - startTime;
-    console.error("[GMB Webhook] Unexpected error:", error);
+    gmbLogger.error(
+      "[GMB Webhook] Unexpected error",
+      error instanceof Error ? error : new Error(String(error)),
+      { ip, totalTime },
+    );
 
     // Log error to monitoring system (e.g., Sentry)
     const globalWithSentry = global as typeof globalThis & {
@@ -251,7 +274,7 @@ export async function GET(request: NextRequest) {
   const expectedToken = process.env.GOOGLE_WEBHOOK_VERIFY_TOKEN;
 
   if (!expectedToken) {
-    console.warn("[GMB Webhook] GOOGLE_WEBHOOK_VERIFY_TOKEN not configured");
+    gmbLogger.warn("[GMB Webhook] GOOGLE_WEBHOOK_VERIFY_TOKEN not configured");
     return NextResponse.json(
       { error: "Verification not configured" },
       { status: 500 },
@@ -265,7 +288,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  console.warn("[GMB Webhook] Verification failed - invalid token");
+  gmbLogger.warn("[GMB Webhook] Verification failed - invalid token");
   return NextResponse.json({ error: "Invalid verify token" }, { status: 403 });
 }
 
@@ -325,10 +348,9 @@ async function processNotification(
       break;
 
     default:
-      console.warn(
-        "[GMB Webhook] Unknown notification type:",
+      gmbLogger.warn("[GMB Webhook] Unknown notification type", {
         notificationType,
-      );
+      });
   }
 }
 
@@ -376,7 +398,11 @@ async function processReviewNotification(
         notificationType,
       },
     }).catch((err) => {
-      console.error("[GMB Webhook] Failed to create review notification:", err);
+      gmbLogger.error(
+        "[GMB Webhook] Failed to create review notification",
+        err instanceof Error ? err : new Error(String(err)),
+        { locationId: location.id, userId: location.user_id },
+      );
     });
   }
 
@@ -395,7 +421,11 @@ async function processReviewNotification(
       locationId: location.id,
     }),
   }).catch((err) => {
-    console.error("[GMB Webhook] Failed to trigger review sync:", err);
+    gmbLogger.error(
+      "[GMB Webhook] Failed to trigger review sync",
+      err instanceof Error ? err : new Error(String(err)),
+      { locationId: location.id, userId: location.user_id },
+    );
   });
 }
 
@@ -445,7 +475,11 @@ async function processQuestionNotification(
       locationId: location.id,
     }),
   }).catch((err) => {
-    console.error("[GMB Webhook] Failed to trigger question sync:", err);
+    gmbLogger.error(
+      "[GMB Webhook] Failed to trigger question sync",
+      err instanceof Error ? err : new Error(String(err)),
+      { locationId: location.id, userId: location.user_id },
+    );
   });
 }
 
@@ -494,6 +528,13 @@ async function processVerificationNotification(
     );
 
   if (error) {
-    console.error("[GMB Webhook] Failed to update verification status:", error);
+    gmbLogger.error(
+      "[GMB Webhook] Failed to update verification status",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        accountId: locationInfo.accountId,
+        locationId: locationInfo.locationId,
+      },
+    );
   }
 }

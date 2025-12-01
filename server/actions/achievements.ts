@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 
 export interface UserProgress {
   id: string;
@@ -53,13 +54,19 @@ export async function getUserProgress(): Promise<UserProgress | null> {
       .maybeSingle();
 
     if (error) {
-      console.error("Error fetching user progress:", error);
+      logger.error(
+        "Error fetching user progress",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error("Error in getUserProgress:", error);
+    logger.error(
+      "Error in getUserProgress",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return null;
   }
 }
@@ -95,13 +102,19 @@ export async function getUserAchievements(
     const { data, error } = await query;
 
     if (error) {
-      console.error("Error fetching user achievements:", error);
+      logger.error(
+        "Error fetching user achievements",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error("Error in getUserAchievements:", error);
+    logger.error(
+      "Error in getUserAchievements",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return [];
   }
 }
@@ -125,13 +138,19 @@ export async function initializeUserProgress(): Promise<boolean> {
     });
 
     if (error) {
-      console.error("Error initializing user progress:", error);
+      logger.error(
+        "Error initializing user progress",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error("Error in initializeUserProgress:", error);
+    logger.error(
+      "Error in initializeUserProgress",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return false;
   }
 }
@@ -155,13 +174,19 @@ export async function updateUserAchievements(): Promise<number> {
     });
 
     if (error) {
-      console.error("Error updating user achievements:", error);
+      logger.error(
+        "Error updating user achievements",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return 0;
     }
 
     return data || 0;
   } catch (error) {
-    console.error("Error in updateUserAchievements:", error);
+    logger.error(
+      "Error in updateUserAchievements",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return 0;
   }
 }
@@ -188,7 +213,10 @@ export async function getAchievementsByCategory(): Promise<
 
     return grouped;
   } catch (error) {
-    console.error("Error in getAchievementsByCategory:", error);
+    logger.error(
+      "Error in getAchievementsByCategory",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {};
   }
 }
@@ -220,7 +248,10 @@ export async function getAchievementStats(): Promise<{
           : 0,
     };
   } catch (error) {
-    console.error("Error in getAchievementStats:", error);
+    logger.error(
+      "Error in getAchievementStats",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       total: 0,
       unlocked: 0,

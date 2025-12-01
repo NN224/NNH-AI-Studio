@@ -1,5 +1,6 @@
 // GMB Status API - Returns connection status for authenticated user
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -50,18 +51,26 @@ export async function GET(_request: NextRequest) {
 
         if (!updateError) {
           account = { ...inactiveAccount, is_active: true };
-          console.warn(
-            `[GET /api/gmb/status] Auto-activated account: ${inactiveAccount.id}`,
-          );
+          gmbLogger.warn("Auto-activated inactive account", {
+            accountId: inactiveAccount.id,
+            userId: user.id,
+          });
         } else {
-          console.error(
-            "[GET /api/gmb/status] Failed to auto-activate account:",
-            updateError,
+          gmbLogger.error(
+            "Failed to auto-activate account",
+            updateError instanceof Error
+              ? updateError
+              : new Error(String(updateError)),
+            { accountId: inactiveAccount.id, userId: user.id },
           );
         }
       }
     } else if (dbError && dbError.code !== "PGRST116") {
-      console.error("[GET /api/gmb/status] DB Error:", dbError);
+      gmbLogger.error(
+        "Failed to fetch GMB status",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+        { userId: user.id },
+      );
       return NextResponse.json(
         { error: "Failed to fetch status" },
         { status: 500 },
@@ -94,7 +103,10 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(status);
   } catch (error: unknown) {
-    console.error("[GET /api/gmb/status] Unexpected error:", error);
+    gmbLogger.error(
+      "Unexpected error in GMB status endpoint",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

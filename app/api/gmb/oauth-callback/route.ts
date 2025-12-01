@@ -14,6 +14,7 @@ import { logAction } from "@/lib/monitoring/audit";
 import { encryptToken, resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
+import { gmbLogger } from "@/lib/utils/logger";
 import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
@@ -28,7 +29,7 @@ const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
 
 export async function GET(request: NextRequest) {
-  console.warn("[OAuth Callback] Processing OAuth callback...");
+  gmbLogger.info("Processing OAuth callback");
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
 
     if (error) {
-      console.error("[OAuth Callback] OAuth error from provider:", error);
+      gmbLogger.error("OAuth error from provider", new Error(error));
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -56,7 +57,10 @@ export async function GET(request: NextRequest) {
 
     // Validate parameters
     if (!code || !state) {
-      console.error("[OAuth Callback] Missing code or state");
+      gmbLogger.error(
+        "Missing code or state in OAuth callback",
+        new Error("Missing parameters"),
+      );
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    console.warn("[OAuth Callback] State:", state);
+    gmbLogger.info("OAuth callback state received", { state });
 
     // Use admin client throughout to avoid reliance on browser session cookies.
     // OAuth callback can arrive without a valid Supabase session cookie due to
@@ -86,7 +90,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (stateError || !stateRecord) {
-      console.error("[OAuth Callback] Invalid state:", stateError);
+      gmbLogger.error(
+        "Invalid OAuth state",
+        stateError instanceof Error
+          ? stateError
+          : new Error(String(stateError)),
+      );
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -102,7 +111,7 @@ export async function GET(request: NextRequest) {
     // Check if state has expired (30 minute expiry)
     const expiresAt = new Date(stateRecord.expires_at);
     if (expiresAt < new Date()) {
-      console.error("[OAuth Callback] State has expired");
+      gmbLogger.error("OAuth state has expired", new Error("Expired state"));
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -122,7 +131,7 @@ export async function GET(request: NextRequest) {
       .eq("state", state);
 
     const userId = stateRecord.user_id;
-    console.warn("[OAuth Callback] User ID from state:", userId);
+    gmbLogger.info("User ID from OAuth state", { userId });
 
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -133,7 +142,10 @@ export async function GET(request: NextRequest) {
       process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/api/gmb/oauth-callback`;
 
     if (!clientId || !clientSecret) {
-      console.error("[OAuth Callback] Missing Google OAuth configuration");
+      gmbLogger.error(
+        "Missing Google OAuth configuration",
+        new Error("Missing credentials"),
+      );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -147,26 +159,23 @@ export async function GET(request: NextRequest) {
 
     // Ensure redirect_uri doesn't have trailing slash (must match create-auth-url)
     const cleanRedirectUri = redirectUri.replace(/\/$/, "");
-    console.warn("[OAuth Callback] Using redirect URI:", cleanRedirectUri);
+    gmbLogger.info("Using redirect URI", { redirectUri: cleanRedirectUri });
     // Optional diagnostics to help with www/non-www mismatch
     try {
       const baseHost = new URL(baseUrl).host;
       const redirectHost = new URL(cleanRedirectUri).host;
       const stripW = (h: string) => h.replace(/^www\./, "");
       if (stripW(baseHost) !== stripW(redirectHost)) {
-        console.warn(
-          "[OAuth Callback] WARNING: Host mismatch between base URL and redirect URI",
-          {
-            baseHost,
-            redirectHost,
-          },
-        );
+        gmbLogger.warn("Host mismatch between base URL and redirect URI", {
+          baseHost,
+          redirectHost,
+        });
       }
     } catch {
       // ignore URL parsing issues
     }
 
-    console.warn("[OAuth Callback] Exchanging code for tokens...");
+    gmbLogger.info("Exchanging code for tokens");
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
       method: "POST",
       headers: {
@@ -184,10 +193,14 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json();
 
     if (!tokenResponse.ok) {
-      console.error("[OAuth Callback] Token exchange failed:", {
-        status: tokenResponse.status,
-        error: tokenData,
-      });
+      gmbLogger.error(
+        "Token exchange failed",
+        new Error(`HTTP ${tokenResponse.status}`),
+        {
+          status: tokenResponse.status,
+          errorData: tokenData,
+        },
+      );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -200,10 +213,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    console.warn("[OAuth Callback] Tokens received successfully");
+    gmbLogger.info("Tokens received successfully");
 
     // Get user info from Google
-    console.warn("[OAuth Callback] Fetching user info...");
+    gmbLogger.info("Fetching user info from Google");
     const userInfoUrl = new URL(GOOGLE_USERINFO_URL);
     userInfoUrl.searchParams.set("alt", "json");
 
@@ -215,9 +228,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userInfoResponse.ok) {
-      console.error("[OAuth Callback] Failed to fetch user info", {
-        status: userInfoResponse.status,
-      });
+      gmbLogger.error(
+        "Failed to fetch user info",
+        new Error(`HTTP ${userInfoResponse.status}`),
+        {
+          status: userInfoResponse.status,
+        },
+      );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -231,14 +248,15 @@ export async function GET(request: NextRequest) {
     }
 
     const userInfo = await userInfoResponse.json();
-    console.warn("[OAuth Callback] User info:", {
+    gmbLogger.info("User info retrieved", {
       email: userInfo.email,
       id: userInfo.id,
     });
 
     if (!userInfo.email) {
-      console.error(
-        "[OAuth Callback] Google user info did not include an email address",
+      gmbLogger.error(
+        "Google user info did not include an email address",
+        new Error("Missing email"),
       );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -259,9 +277,11 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
     if (profileLookupError) {
-      console.error(
-        "[OAuth Callback] Failed to verify profile record:",
-        profileLookupError,
+      gmbLogger.error(
+        "Failed to verify profile record",
+        profileLookupError instanceof Error
+          ? profileLookupError
+          : new Error(String(profileLookupError)),
       );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -281,7 +301,7 @@ export async function GET(request: NextRequest) {
         userInfo.email.split("@")[0] ||
         "Google User";
 
-      console.warn("[OAuth Callback] Creating profile record for new user", {
+      gmbLogger.info("Creating profile record for new user", {
         userId,
         email: userInfo.email,
       });
@@ -300,9 +320,11 @@ export async function GET(request: NextRequest) {
         );
 
       if (createProfileError) {
-        console.error(
-          "[OAuth Callback] Failed to create profile record:",
-          createProfileError,
+        gmbLogger.error(
+          "Failed to create profile record",
+          createProfileError instanceof Error
+            ? createProfileError
+            : new Error(String(createProfileError)),
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -323,7 +345,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Fetch GMB accounts
-    console.warn("[OAuth Callback] Fetching GMB accounts...");
+    gmbLogger.info("Fetching GMB accounts from Google");
     const gmbAccountsUrl = new URL(GMB_ACCOUNTS_URL);
     gmbAccountsUrl.searchParams.set("alt", "json");
 
@@ -336,10 +358,14 @@ export async function GET(request: NextRequest) {
 
     if (!gmbAccountsResponse.ok) {
       const text = await gmbAccountsResponse.text();
-      console.error("[OAuth Callback] Failed to fetch GMB accounts:", {
-        status: gmbAccountsResponse.status,
-        body_snippet: text.substring(0, 500),
-      });
+      gmbLogger.error(
+        "Failed to fetch GMB accounts",
+        new Error(`HTTP ${gmbAccountsResponse.status}`),
+        {
+          status: gmbAccountsResponse.status,
+          body_snippet: text.substring(0, 500),
+        },
+      );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -355,10 +381,10 @@ export async function GET(request: NextRequest) {
     const gmbAccountsData = await gmbAccountsResponse.json();
     const gmbAccounts = gmbAccountsData.accounts || [];
 
-    console.warn(`[OAuth Callback] Found ${gmbAccounts.length} GMB accounts`);
+    gmbLogger.info(`Found ${gmbAccounts.length} GMB accounts`);
 
     if (gmbAccounts.length === 0) {
-      console.warn("[OAuth Callback] No GMB accounts found for user");
+      gmbLogger.warn("No GMB accounts found for user");
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -380,9 +406,7 @@ export async function GET(request: NextRequest) {
       const accountName = gmbAccount.accountName || gmbAccount.name;
       const accountId = gmbAccount.name; // e.g., "accounts/12345"
 
-      console.warn(
-        `[OAuth Callback] Processing GMB account: ${accountName} (${accountId})`,
-      );
+      gmbLogger.info(`Processing GMB account: ${accountName}`, { accountId });
 
       // Check if this account is already linked to another user
       const { data: existingAccount } = await adminClient
@@ -392,8 +416,14 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (existingAccount && existingAccount.user_id !== userId) {
-        console.error(
-          "[OAuth Callback] Security violation: GMB account already linked to different user",
+        gmbLogger.error(
+          "Security violation: GMB account already linked to different user",
+          new Error("Account conflict"),
+          {
+            accountId,
+            existingUserId: existingAccount.user_id,
+            requestedUserId: userId,
+          },
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -419,9 +449,9 @@ export async function GET(request: NextRequest) {
             },
           );
         } catch (error) {
-          console.warn(
-            "[OAuth Callback] Failed to decrypt existing refresh token, will use new token:",
-            error,
+          gmbLogger.warn(
+            "Failed to decrypt existing refresh token, will use new token",
+            { accountId, error },
           );
           // Continue with null - new refresh_token from OAuth will be used
         }
@@ -438,9 +468,12 @@ export async function GET(request: NextRequest) {
           ? encryptToken(refreshTokenToPersist)
           : null;
       } catch (encryptionError) {
-        console.error(
-          "[OAuth Callback] Failed to encrypt tokens:",
-          encryptionError,
+        gmbLogger.error(
+          "Failed to encrypt tokens",
+          encryptionError instanceof Error
+            ? encryptionError
+            : new Error(String(encryptionError)),
+          { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -454,9 +487,7 @@ export async function GET(request: NextRequest) {
       }
 
       // ✅ NEW: Determine user state BEFORE upsert to detect first-time vs re-auth
-      console.warn(
-        `[OAuth Callback] Checking user state for account ${accountId}`,
-      );
+      gmbLogger.info(`Checking user state for account`, { accountId });
 
       // Check if this account already exists for this user (re-auth scenario)
       const { data: existingAccountForReauth } = await adminClient
@@ -486,14 +517,15 @@ export async function GET(request: NextRequest) {
         userState = "FIRST_TIME";
       }
 
-      console.warn(`[OAuth Callback] User state: ${userState}`, {
+      gmbLogger.info(`User state: ${userState}`, {
+        accountId,
         isReAuth,
         hasOtherAccounts,
         otherAccountsCount: otherAccounts?.length || 0,
       });
 
       // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
-      console.warn(`[OAuth Callback] Upserting GMB account ${accountId}`);
+      gmbLogger.info(`Upserting GMB account`, { accountId });
 
       const upsertData = {
         user_id: userId,
@@ -515,13 +547,19 @@ export async function GET(request: NextRequest) {
         });
 
       if (upsertError) {
-        console.error("[OAuth Callback] UPSERT ERROR DETAILS:", {
-          message: upsertError.message,
-          code: upsertError.code,
-          details: upsertError.details,
-          hint: upsertError.hint,
-          upsertData,
-        });
+        gmbLogger.error(
+          "GMB account upsert error",
+          upsertError instanceof Error
+            ? upsertError
+            : new Error(String(upsertError)),
+          {
+            message: upsertError.message,
+            code: upsertError.code,
+            details: upsertError.details,
+            hint: upsertError.hint,
+            upsertData,
+          },
+        );
         handleApiError(
           upsertError,
           "[OAuth Callback] Failed to upsert GMB account",
@@ -545,9 +583,12 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (fetchError || !upsertedAccount) {
-        console.error(
-          "[OAuth Callback] Failed to fetch account after upsert:",
-          fetchError,
+        gmbLogger.error(
+          "Failed to fetch account after upsert",
+          fetchError instanceof Error
+            ? fetchError
+            : new Error(String(fetchError)),
+          { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -561,9 +602,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
-      console.warn(
-        `[OAuth Callback] Storing tokens in gmb_secrets for account ${upsertedAccount.id}`,
-      );
+      gmbLogger.info("Storing tokens in gmb_secrets", {
+        accountId: upsertedAccount.id,
+      });
       const { error: secretsError } = await adminClient
         .from("gmb_secrets")
         .upsert(
@@ -580,15 +621,21 @@ export async function GET(request: NextRequest) {
         );
 
       if (secretsError) {
-        console.error("[OAuth Callback] Failed to store tokens:", secretsError);
+        gmbLogger.error(
+          "Failed to store tokens",
+          secretsError instanceof Error
+            ? secretsError
+            : new Error(String(secretsError)),
+          { accountId: upsertedAccount.id },
+        );
         // Continue anyway - account is saved, user can re-authenticate if needed
       }
 
       savedAccountId = upsertedAccount.id;
       savedAccountIds.push(upsertedAccount.id);
-      console.warn(
-        `[OAuth Callback] Successfully upserted account ${upsertedAccount.id}`,
-      );
+      gmbLogger.info(`Successfully upserted account`, {
+        accountId: upsertedAccount.id,
+      });
 
       // NOTE: Locations are NOT fetched here anymore.
       // The user will select locations in the /select-account flow,
@@ -597,7 +644,7 @@ export async function GET(request: NextRequest) {
 
     // Redirect to GMB dashboard with success or error
     if (!savedAccountId) {
-      console.error("[OAuth Callback] No account was saved");
+      gmbLogger.error("No account was saved", new Error("No account saved"));
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
         `/${localeCookie}/settings`,
@@ -633,10 +680,7 @@ export async function GET(request: NextRequest) {
         accountCount: String(savedAccountIds.length),
       },
     );
-    console.warn(
-      "[OAuth Callback] Redirecting to select-account:",
-      selectAccountUrl,
-    );
+    gmbLogger.info("Redirecting to select-account", { url: selectAccountUrl });
 
     // Create redirect response and set gmb_connected cookie for middleware optimization
     const redirectResponse = NextResponse.redirect(selectAccountUrl);
@@ -650,7 +694,10 @@ export async function GET(request: NextRequest) {
 
     return redirectResponse;
   } catch (error: unknown) {
-    console.error("[OAuth Callback] Unexpected error:", error);
+    gmbLogger.error(
+      "Unexpected error in OAuth callback",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
     const errorRedirectUrl = buildSafeRedirectUrl(

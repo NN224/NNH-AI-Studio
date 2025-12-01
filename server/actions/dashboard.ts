@@ -6,6 +6,7 @@ import {
   setCacheValue,
 } from "@/lib/cache/cache-manager";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 
 // Import new dashboard services
 import { getDashboardData } from "@/app/[locale]/(dashboard)/dashboard/actions";
@@ -59,7 +60,10 @@ export async function getDashboardStats() {
 
     return legacyStats;
   } catch (error) {
-    console.error("[getDashboardStats] Error:", error);
+    logger.error(
+      "Error in getDashboardStats",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     // Fallback to original implementation if new service fails
     const supabase = await createClient();
     const {
@@ -369,7 +373,10 @@ export async function getCachedDashboardData(userId: string) {
 
     return { data: dashboardData, fromCache: false };
   } catch (error) {
-    console.error("[Dashboard] Error fetching data:", error);
+    logger.error(
+      "Error fetching dashboard data",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     throw error;
   }
 }

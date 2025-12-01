@@ -8,6 +8,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
@@ -124,7 +125,10 @@ Important: Write ONLY the response text, no additional commentary or explanation
       },
     });
   } catch (error: unknown) {
-    console.error("AI Generation Error:", error);
+    apiLogger.error(
+      "AI Generation Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     const err = error as { status?: number; message?: string };
 

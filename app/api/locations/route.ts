@@ -3,6 +3,7 @@ import { logAction } from "@/lib/monitoring/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { addCoordinatesToLocations } from "@/lib/utils/location-coordinates";
+import { apiLogger } from "@/lib/utils/logger";
 import { applySafeSearchFilter } from "@/lib/utils/secure-search";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       // Log DB errors for debugging
-      console.error("[Locations API] DB Error:", error.message);
+      apiLogger.error("DB Error fetching locations", new Error(String(error)));
 
       return NextResponse.json(
         {
@@ -201,7 +202,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Locations API] Unexpected error:", err.message);
+    apiLogger.error("Unexpected error in GET locations", err);
 
     return NextResponse.json(
       {
@@ -406,7 +407,10 @@ export async function POST(request: NextRequest) {
         status: "failed",
         reason: insertError.message,
       });
-      console.error("[Locations API] Insert error:", insertError.message);
+      apiLogger.error(
+        "Insert error creating location",
+        new Error(insertError.message),
+      );
 
       return NextResponse.json(
         {
@@ -449,7 +453,7 @@ export async function POST(request: NextRequest) {
       status: "failed",
       reason: err.message,
     });
-    console.error("[Locations API] Unexpected error:", err.message);
+    apiLogger.error("Unexpected error in POST location", err);
 
     return NextResponse.json(
       {
@@ -505,7 +509,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error("[Locations API] Update error:", updateError.message);
+      apiLogger.error("Update error", new Error(updateError.message));
       return NextResponse.json(
         { error: "Failed to update location" },
         { status: 500 },
@@ -522,7 +526,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ data: location });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Locations API] PUT error:", err.message);
+    apiLogger.error("PUT error", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -561,7 +565,7 @@ export async function DELETE(request: NextRequest) {
       .eq("user_id", user.id);
 
     if (deleteError) {
-      console.error("[Locations API] Delete error:", deleteError.message);
+      apiLogger.error("Delete error", new Error(deleteError.message));
       return NextResponse.json(
         { error: "Failed to delete location" },
         { status: 500 },
@@ -571,7 +575,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Locations API] DELETE error:", err.message);
+    apiLogger.error("DELETE error", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

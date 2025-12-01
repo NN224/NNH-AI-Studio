@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { handleApiError } from "@/lib/utils/api-error-handler";
+import { gmbLogger } from "@/lib/utils/logger";
 import { getBaseUrlDynamic } from "@/lib/utils/get-base-url-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -51,9 +52,12 @@ export async function POST(request: NextRequest) {
 
     if (profileError && profileError.code !== "PGRST116") {
       // PGRST116 = no rows returned, which is OK
-      console.error(
-        "[Create Auth URL] Profile check error:",
-        profileError.message,
+      gmbLogger.error(
+        "Profile check error during create auth URL",
+        profileError instanceof Error
+          ? profileError
+          : new Error(String(profileError)),
+        { userId: user.id },
       );
     }
 
@@ -119,7 +123,10 @@ export async function POST(request: NextRequest) {
 
     const authUrlString = authUrl.toString();
 
-    console.warn("[GMB Create Auth URL] Auth URL generated successfully");
+    gmbLogger.warn("Auth URL generated successfully", {
+      userId: user.id,
+      state,
+    });
     return NextResponse.json({
       authUrl: authUrlString,
       url: authUrlString, // For backward compatibility

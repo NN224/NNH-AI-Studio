@@ -12,6 +12,7 @@
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { resolveTokenValue } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -127,7 +128,15 @@ export const POST = withSecureApi<AvailableLocationsBody>(
 
     if (!googleResponse.ok) {
       const errorText = await googleResponse.text();
-      console.error("[Available Locations] Google API error:", errorText);
+      gmbLogger.error(
+        "[Available Locations] Google API error",
+        new Error(`HTTP ${googleResponse.status}`),
+        {
+          status: googleResponse.status,
+          body: errorText.substring(0, 500),
+          accountId,
+        },
+      );
       throw new ApiError(
         ErrorCode.EXTERNAL_SERVICE_ERROR,
         "Failed to fetch locations from Google",
@@ -153,9 +162,12 @@ export const POST = withSecureApi<AvailableLocationsBody>(
       (location) => !importedLocationIds.has(location.name),
     );
 
-    console.warn(
-      `[Available Locations] Found ${availableLocations.length} available (${allGoogleLocations.length} total, ${importedLocationIds.size} imported)`,
-    );
+    gmbLogger.info("[Available Locations] Computed available locations", {
+      available: availableLocations.length,
+      totalFromGoogle: allGoogleLocations.length,
+      alreadyImported: importedLocationIds.size,
+      accountId,
+    });
 
     return NextResponse.json({
       success: true,

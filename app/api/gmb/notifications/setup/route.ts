@@ -1,6 +1,7 @@
 import { getValidAccessToken } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, successResponse } from "@/utils/api-error";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -35,9 +36,12 @@ export async function GET(_request: NextRequest) {
       .maybeSingle();
 
     if (accountError) {
-      console.error(
-        "[Notifications Setup API] Failed to load GMB account:",
-        accountError.message,
+      gmbLogger.error(
+        "Failed to load GMB account for notifications",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
+        { userId: user.id },
       );
       return errorResponse(new ApiError("Failed to load GMB account", 500));
     }
@@ -67,10 +71,15 @@ export async function GET(_request: NextRequest) {
         errorData = { message: errorText };
       }
 
-      console.error("[Notifications Setup API] Error response:", {
-        status: response.status,
-        errorData,
-      });
+      gmbLogger.error(
+        "Notifications setup Google response error",
+        new Error(`HTTP ${response.status}`),
+        {
+          status: response.status,
+          errorData,
+          accountId: account.id,
+        },
+      );
 
       if (response.status === 401) {
         return errorResponse(
@@ -106,7 +115,7 @@ export async function GET(_request: NextRequest) {
     return successResponse(settings);
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Notifications Setup] Error:", err.message);
+    gmbLogger.error("Notifications setup GET error", err);
 
     return errorResponse(
       new ApiError(err.message || "Failed to fetch notification settings", 500),
@@ -151,9 +160,12 @@ export async function PATCH(request: NextRequest) {
       .maybeSingle();
 
     if (accountError) {
-      console.error(
-        "[Notifications Setup API] Failed to load GMB account:",
-        accountError,
+      gmbLogger.error(
+        "Failed to load GMB account for notifications update",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
+        { userId: user.id },
       );
       return errorResponse(new ApiError("Failed to load GMB account", 500));
     }
@@ -192,10 +204,15 @@ export async function PATCH(request: NextRequest) {
         errorData = { message: errorText };
       }
 
-      console.error("[Notifications Setup API] Error response:", {
-        status: response.status,
-        errorData,
-      });
+      gmbLogger.error(
+        "Notifications setup Google response error",
+        new Error(`HTTP ${response.status}`),
+        {
+          status: response.status,
+          errorData,
+          accountId: account.id,
+        },
+      );
 
       if (response.status === 401) {
         return errorResponse(
@@ -231,7 +248,7 @@ export async function PATCH(request: NextRequest) {
     return successResponse(settings);
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Notifications Setup] Error:", err.message);
+    gmbLogger.error("Notifications setup PATCH error", err);
 
     return errorResponse(
       new ApiError(

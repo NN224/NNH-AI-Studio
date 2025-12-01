@@ -19,6 +19,8 @@ import { logAction } from "@/lib/monitoring/audit";
 import { trackSyncResult } from "@/lib/monitoring/metrics";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { gmbLogger } from "@/lib/utils/logger";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 
@@ -59,14 +61,22 @@ class TokenManager {
 
   async getToken(): Promise<string> {
     if (Date.now() >= this.tokenExpiresAt) {
-      console.warn("[GMB Sync] Token expired or expiring soon, refreshing...");
+      gmbLogger.warn("Token expired or expiring soon, refreshing...", {
+        accountId: this.accountId,
+      });
       try {
         this.token = await getValidAccessToken(this.supabase, this.accountId);
         this.tokenExpiresAt =
           Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
-        console.warn("[GMB Sync] Token refreshed successfully");
+        gmbLogger.warn("Token refreshed successfully", {
+          accountId: this.accountId,
+        });
       } catch (error) {
-        console.error("[GMB Sync] Failed to refresh token:", error);
+        gmbLogger.error(
+          "Failed to refresh token",
+          error instanceof Error ? error : new Error(String(error)),
+          { accountId: this.accountId },
+        );
         throw new Error("Failed to refresh access token during sync");
       }
     }
@@ -369,12 +379,16 @@ export async function fetchLocationsDataForSync(
       url.searchParams.set("pageToken", nextPageToken);
     }
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
+    const response = await fetchWithTimeout(
+      url.toString(),
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
       },
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -439,11 +453,9 @@ export async function fetchLocationsDataForSync(
     nextPageToken = payload.nextPageToken;
   } while (nextPageToken);
 
-  console.warn(
-    "[GMB Sync v2] fetchLocations completed in",
-    Date.now() - locationsTimerStart,
-    "ms",
-  );
+  gmbLogger.info("fetchLocations completed", {
+    durationMs: Date.now() - locationsTimerStart,
+  });
   return locations;
 }
 
@@ -473,17 +485,21 @@ export async function fetchReviewsDataForSync(
       }
 
       try {
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: "application/json",
+        const response = await fetchWithTimeout(
+          url.toString(),
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
           },
-        });
+          API_TIMEOUTS.GOOGLE_API,
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.warn("[GMB Sync v2] Reviews fetch failed", {
-            location: location.location_id,
+          gmbLogger.warn("Reviews fetch failed", {
+            locationId: location.location_id,
             error: errorData,
           });
           break;
@@ -524,9 +540,10 @@ export async function fetchReviewsDataForSync(
 
         nextPageToken = payload.nextPageToken;
       } catch (error) {
-        console.error(
-          `[GMB Sync v2] Error fetching reviews for ${location.location_id}:`,
-          error,
+        gmbLogger.error(
+          "Error fetching reviews",
+          error instanceof Error ? error : new Error(String(error)),
+          { locationId: location.location_id },
         );
         break;
       }
@@ -541,11 +558,10 @@ export async function fetchReviewsDataForSync(
   );
   const allReviews = reviewsByLocation.flat();
 
-  console.warn(
-    "[GMB Sync v2] fetchReviews completed in",
-    Date.now() - reviewsTimerStart,
-    "ms (rate-limited parallel execution)",
-  );
+  gmbLogger.info("fetchReviews completed", {
+    durationMs: Date.now() - reviewsTimerStart,
+    count: allReviews.length,
+  });
   return allReviews;
 }
 
@@ -568,17 +584,21 @@ export async function fetchQuestionsDataForSync(
 
     try {
       const endpoint = `${QANDA_BASE}/${locationResource}/questions`;
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
         },
-      });
+        API_TIMEOUTS.GOOGLE_API,
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn("[GMB Sync v2] Questions fetch failed", {
-          location: location.location_id,
+        gmbLogger.warn("Questions fetch failed", {
+          locationId: location.location_id,
           error: errorData,
         });
         return [];
@@ -617,9 +637,10 @@ export async function fetchQuestionsDataForSync(
         });
       }
     } catch (error) {
-      console.error(
-        `[GMB Sync v2] Error fetching questions for ${location.location_id}:`,
-        error,
+      gmbLogger.error(
+        "Error fetching questions",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.location_id },
       );
     }
 
@@ -632,11 +653,10 @@ export async function fetchQuestionsDataForSync(
   );
   const allQuestions = questionsByLocation.flat();
 
-  console.warn(
-    "[GMB Sync v2] fetchQuestions completed in",
-    Date.now() - questionsTimerStart,
-    "ms (rate-limited parallel execution)",
-  );
+  gmbLogger.info("fetchQuestions completed", {
+    durationMs: Date.now() - questionsTimerStart,
+    count: allQuestions.length,
+  });
   return allQuestions;
 }
 
@@ -659,16 +679,20 @@ export async function fetchPostsDataForSync(
 
     try {
       const endpoint = `${POSTS_BASE}/${locationResource}/localPosts`;
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
         },
-      });
+        API_TIMEOUTS.GOOGLE_API,
+      );
 
       if (!response.ok) {
-        console.warn("[GMB Sync v2] Posts fetch failed", {
-          location: location.location_id,
+        gmbLogger.warn("Posts fetch failed", {
+          locationId: location.location_id,
           status: response.status,
         });
         return [];
@@ -710,9 +734,10 @@ export async function fetchPostsDataForSync(
         });
       }
     } catch (error) {
-      console.error(
-        `[GMB Sync v2] Error fetching posts for ${location.location_id}:`,
-        error,
+      gmbLogger.error(
+        "Error fetching posts",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.location_id },
       );
     }
 
@@ -725,11 +750,10 @@ export async function fetchPostsDataForSync(
   );
   const allPosts = postsByLocation.flat();
 
-  console.warn(
-    "[GMB Sync v2] fetchPosts completed in",
-    Date.now() - postsTimerStart,
-    "ms (rate-limited parallel execution)",
-  );
+  gmbLogger.info("fetchPosts completed", {
+    durationMs: Date.now() - postsTimerStart,
+    count: allPosts.length,
+  });
   return allPosts;
 }
 
@@ -752,16 +776,20 @@ export async function fetchMediaDataForSync(
 
     try {
       const endpoint = `${MEDIA_BASE}/${locationResource}/media`;
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
         },
-      });
+        API_TIMEOUTS.GOOGLE_API,
+      );
 
       if (!response.ok) {
-        console.warn("[GMB Sync v2] Media fetch failed", {
-          location: location.location_id,
+        gmbLogger.warn("Media fetch failed", {
+          locationId: location.location_id,
           status: response.status,
         });
         return [];
@@ -790,9 +818,10 @@ export async function fetchMediaDataForSync(
         });
       }
     } catch (error) {
-      console.error(
-        `[GMB Sync v2] Error fetching media for ${location.location_id}:`,
-        error,
+      gmbLogger.error(
+        "Error fetching media",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.location_id },
       );
     }
 
@@ -805,11 +834,10 @@ export async function fetchMediaDataForSync(
   );
   const allMedia = mediaByLocation.flat();
 
-  console.warn(
-    "[GMB Sync v2] fetchMedia completed in",
-    Date.now() - mediaTimerStart,
-    "ms (rate-limited parallel execution)",
-  );
+  gmbLogger.info("fetchMedia completed", {
+    durationMs: Date.now() - mediaTimerStart,
+    count: allMedia.length,
+  });
   return allMedia;
 }
 
@@ -898,13 +926,17 @@ export async function fetchInsightsDataForSync(
         url.searchParams.append("dailyMetrics", metric);
       });
 
-      const response = await fetch(url.toString(), {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+      const response = await fetchWithTimeout(
+        url.toString(),
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
         },
-      });
+        API_TIMEOUTS.GOOGLE_API,
+      );
 
       if (!response.ok) {
         return [];
@@ -958,9 +990,10 @@ export async function fetchInsightsDataForSync(
         },
       });
     } catch (error) {
-      console.error(
-        `[GMB Sync v2] Error fetching insights for ${location.location_id}:`,
-        error,
+      gmbLogger.error(
+        "Error fetching insights",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId: location.location_id },
       );
     }
 
@@ -1051,7 +1084,13 @@ export async function performTransactionalSync(
     .single();
 
   if (accountError || !account) {
-    console.error("[GMB Sync] Account lookup failed:", accountError);
+    gmbLogger.error(
+      "Account lookup failed",
+      accountError instanceof Error
+        ? accountError
+        : new Error(String(accountError)),
+      { accountId },
+    );
     throw new Error("GMB account not found");
   }
 

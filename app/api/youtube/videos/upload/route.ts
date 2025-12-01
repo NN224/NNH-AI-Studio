@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { logServerActivity } from "@/server/services/activity";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     if (!initResponse.ok) {
       const errorData = await initResponse.json();
-      console.error("[YouTube Upload] Init error:", errorData);
+      apiLogger.error("Init error", new Error(JSON.stringify(errorData)));
       return NextResponse.json(
         { error: errorData.error?.message || "Failed to initialize upload" },
         { status: initResponse.status },
@@ -212,10 +213,9 @@ export async function POST(request: NextRequest) {
         const errorData = await chunkResponse
           .text()
           .catch(() => "Unknown error");
-        console.error(
-          "[YouTube Upload] Chunk error:",
-          chunkResponse.status,
-          errorData,
+        apiLogger.error(
+          "Chunk error",
+          new Error(`Status: ${chunkResponse.status}, Data: ${errorData}`),
         );
         return NextResponse.json(
           { error: `Failed to upload video chunk: ${errorData}` },
@@ -253,12 +253,17 @@ export async function POST(request: NextRequest) {
           },
         );
         if (!thumbResponse.ok) {
-          console.warn(
-            "[YouTube Upload] Thumbnail upload failed, but video uploaded successfully",
+          apiLogger.warn(
+            "Thumbnail upload failed, but video uploaded successfully",
           );
         }
       } catch (thumbError) {
-        console.error("[YouTube Upload] Thumbnail upload error:", thumbError);
+        apiLogger.error(
+          "Thumbnail upload error",
+          thumbError instanceof Error
+            ? thumbError
+            : new Error(String(thumbError)),
+        );
         // Don't fail the whole upload if thumbnail fails
       }
     }
@@ -280,7 +285,10 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       });
     } catch (dbError: any) {
-      console.error("[YouTube Upload] Database save error:", dbError);
+      apiLogger.error(
+        "Database save error",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+      );
       // Don't fail if DB save fails, video is already on YouTube
     }
 
@@ -307,7 +315,7 @@ export async function POST(request: NextRequest) {
       videoUrl: `https://www.youtube.com/watch?v=${uploadedVideo.id}`,
     });
   } catch (e: any) {
-    console.error("[YouTube Upload] Error:", e);
+    apiLogger.error("Error", e instanceof Error ? e : new Error(String(e)));
     return NextResponse.json(
       { error: e?.message || "Failed to upload video" },
       { status: 500 },

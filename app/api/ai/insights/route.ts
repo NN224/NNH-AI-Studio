@@ -11,6 +11,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { AIInsight, AIInsightsResponse } from "@/lib/types/ai";
 import { NextResponse } from "next/server";
@@ -117,7 +118,10 @@ async function handleInsights(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("AI Insights API Error:", error);
+    apiLogger.error(
+      "AI Insights API Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",
@@ -286,7 +290,10 @@ function parseAIResponse(
       summary: parsed.summary || "No insights available at this time.",
     };
   } catch (error) {
-    console.error("Failed to parse AI response:", error);
+    apiLogger.error(
+      "Failed to parse AI response",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     // Return fallback insights
     return {

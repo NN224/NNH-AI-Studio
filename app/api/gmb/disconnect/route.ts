@@ -1,6 +1,7 @@
-import { disconnectGMBAccount } from "@/server/actions/gmb-account";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
+import { gmbLogger } from "@/lib/utils/logger";
+import { disconnectGMBAccount } from "@/server/actions/gmb-account";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
  * The server action provides better features (export, delete options) and is the single source of truth
  */
 export async function POST(request: NextRequest) {
-  console.warn("[GMB Disconnect API] Request received");
+  gmbLogger.warn("Disconnect request received");
 
   try {
     const supabase = await createClient();
@@ -20,11 +21,14 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("[GMB Disconnect API] Authentication failed:", authError);
+      gmbLogger.error(
+        "Authentication failed for disconnect",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
       return errorResponse("UNAUTHORIZED", "Authentication required", 401);
     }
 
-    console.warn("[GMB Disconnect API] User authenticated:", user.id);
+    gmbLogger.warn("User authenticated for disconnect", { userId: user.id });
 
     const body = await request.json().catch(() => ({}));
     const accountId = body.accountId;
@@ -38,15 +42,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.warn(
-      `[GMB Disconnect API] Disconnecting account ${accountId} with option: ${option}`,
-    );
+    gmbLogger.warn("Disconnecting account", {
+      accountId,
+      option,
+      userId: user.id,
+    });
 
     // ✅ Delegate to server action (single source of truth)
     const result = await disconnectGMBAccount(accountId, option);
 
     if (!result.success) {
-      console.error("[GMB Disconnect API] Server action failed:", result.error);
+      gmbLogger.error(
+        "Server action failed to disconnect account",
+        new Error(String(result.error)),
+        { accountId, userId: user.id },
+      );
       return errorResponse(
         "DISCONNECT_ERROR",
         result.error || "Failed to disconnect account",
@@ -54,7 +64,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.warn("[GMB Disconnect API] ✅ Account disconnected successfully");
+    gmbLogger.warn("Account disconnected successfully", {
+      accountId,
+      userId: user.id,
+    });
 
     return successResponse({
       success: true,
@@ -62,7 +75,10 @@ export async function POST(request: NextRequest) {
       exportData: result.exportData,
     });
   } catch (error: any) {
-    console.error("[GMB Disconnect API] Unexpected error:", error);
+    gmbLogger.error(
+      "Unexpected error disconnecting GMB account",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return errorResponse(
       "INTERNAL_ERROR",
       error?.message || "Failed to disconnect GMB account",

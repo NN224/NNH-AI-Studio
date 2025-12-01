@@ -1,55 +1,50 @@
 // app/api/reviews/sentiment/route.ts
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
-import { AIReviewService } from '@/lib/services/ai-review-service';
-import { mlSentimentService, MLSentimentService } from '@/lib/services/ml-sentiment-service';
+import { AIReviewService } from "@/lib/services/ai-review-service";
+import {
+  mlSentimentService,
+  MLSentimentService,
+} from "@/lib/services/ml-sentiment-service";
+import { reviewsLogger } from "@/lib/utils/logger";
 
-
-
-export const dynamic = 'force-dynamic';
-
-
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-
   try {
-
     const supabase = await createClient();
 
-    
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-
-      console.error('Auth error:', authError);
-
-      return NextResponse.json(
-
-        { error: 'Unauthorized', details: 'Please log in to view sentiment analysis' },
-
-        { status: 401 }
-
+      reviewsLogger.error(
+        "Auth error",
+        authError instanceof Error ? authError : new Error(String(authError)),
       );
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          details: "Please log in to view sentiment analysis",
+        },
 
+        { status: 401 },
+      );
     }
 
-
-
-    console.log('Fetching reviews for sentiment analysis for user:', user.id);
-
-
+    console.log("Fetching reviews for sentiment analysis for user:", user.id);
 
     const { data: reviews, error } = await supabase
 
-      .from('gmb_reviews')
+      .from("gmb_reviews")
 
-      .select(`
+      .select(
+        `
 
         *,
 
@@ -63,78 +58,65 @@ export async function GET(request: NextRequest) {
 
         )
 
-      `)
+      `,
+      )
 
-      .eq('gmb_locations.user_id', user.id)
+      .eq("gmb_locations.user_id", user.id)
 
-      .order('review_date', { ascending: false, nullsFirst: false });
-
-
+      .order("review_date", { ascending: false, nullsFirst: false });
 
     if (error) {
-
-      console.error('Database error:', error);
-
-      return NextResponse.json(
-
-        { error: 'Failed to fetch reviews', details: error.message },
-
-        { status: 500 }
-
+      reviewsLogger.error(
+        "Database error fetching reviews for sentiment",
+        error instanceof Error ? error : new Error(String(error)),
+        { userId: user.id },
       );
+      return NextResponse.json(
+        { error: "Failed to fetch reviews", details: error.message },
 
+        { status: 500 },
+      );
     }
-
-
 
     console.log(`Analyzing sentiment for ${reviews?.length || 0} reviews`);
 
-
-
     if (!reviews || reviews.length === 0) {
-
       return NextResponse.json({
-
         sentimentData: {
-
           positive: 0,
 
           neutral: 0,
 
           negative: 0,
 
-          total: 0
-
+          total: 0,
         },
 
-        hotTopics: []
-
+        hotTopics: [],
       });
-
     }
-
-
 
     // Use ML-based sentiment analysis
     let sentimentData;
     let hotTopics;
-    
+
     try {
       // Analyze sentiment for each review using ML
-      const reviewsForAnalysis = reviews.map(review => ({
+      const reviewsForAnalysis = reviews.map((review) => ({
         id: review.id,
-        text: review.review_text || review.comment || '',
-        rating: review.rating
+        text: review.review_text || review.comment || "",
+        rating: review.rating,
       }));
-      
-      const mlResults = await mlSentimentService.analyzeBatch(reviewsForAnalysis);
-      
+
+      const mlResults =
+        await mlSentimentService.analyzeBatch(reviewsForAnalysis);
+
       // Convert results to array for stats calculation
       const resultsArray = Array.from(mlResults.values());
-      
+
       // Calculate aggregate stats
       const stats = MLSentimentService.calculateStats(resultsArray);
-      
+
       sentimentData = {
         positive: stats.positive,
         neutral: stats.neutral,
@@ -144,75 +126,76 @@ export async function GET(request: NextRequest) {
         averageScore: stats.averageScore,
         topPositiveAspects: stats.topPositiveAspects,
         topNegativeAspects: stats.topNegativeAspects,
-        emotions: stats.emotionBreakdown
+        emotions: stats.emotionBreakdown,
       };
-      
+
       // Extract hot topics from ML analysis
       const allTopics = new Map<string, { count: number; sentiment: string }>();
-      resultsArray.forEach(result => {
-        result.topics.forEach(topic => {
+      resultsArray.forEach((result) => {
+        result.topics.forEach((topic) => {
           const existing = allTopics.get(topic.topic);
           if (existing) {
             existing.count++;
           } else {
-            allTopics.set(topic.topic, { count: 1, sentiment: topic.sentiment });
+            allTopics.set(topic.topic, {
+              count: 1,
+              sentiment: topic.sentiment,
+            });
           }
         });
       });
-      
+
       hotTopics = Array.from(allTopics.entries())
-        .map(([topic, data]) => ({ topic, count: data.count, sentiment: data.sentiment }))
+        .map(([topic, data]) => ({
+          topic,
+          count: data.count,
+          sentiment: data.sentiment,
+        }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
-        
+
       // Update reviews in database with ML sentiment
-      const updatePromises = Array.from(mlResults.entries()).map(([reviewId, result]) => 
-        supabase
-          .from('gmb_reviews')
-          .update({ 
-            ai_sentiment: result.sentiment,
-            ai_sentiment_score: result.score,
-            ai_sentiment_analysis: result // Store full analysis
-          })
-          .eq('id', reviewId)
+      const updatePromises = Array.from(mlResults.entries()).map(
+        ([reviewId, result]) =>
+          supabase
+            .from("gmb_reviews")
+            .update({
+              ai_sentiment: result.sentiment,
+              ai_sentiment_score: result.score,
+              ai_sentiment_analysis: result, // Store full analysis
+            })
+            .eq("id", reviewId),
       );
-      
+
       await Promise.all(updatePromises);
-      
     } catch (mlError) {
-      console.error('ML sentiment analysis failed, using fallback:', mlError);
-      
+      reviewsLogger.error(
+        "ML sentiment analysis failed, using fallback",
+        mlError instanceof Error ? mlError : new Error(String(mlError)),
+      );
+
       // Fall back to basic keyword analysis
       sentimentData = AIReviewService.calculateSentimentData(reviews);
       hotTopics = AIReviewService.extractKeywords(reviews);
     }
 
-
-
     return NextResponse.json({
-
       sentimentData,
 
       hotTopics,
 
-      total: reviews.length
-
+      total: reviews.length,
     });
-
-
-
   } catch (error) {
-
-    console.error('Unexpected error:', error);
-
-    return NextResponse.json(
-
-      { error: 'Internal server error', details: String(error) },
-
-      { status: 500 }
-
+    reviewsLogger.error(
+      "Unexpected error in sentiment API",
+      error instanceof Error ? error : new Error(String(error)),
     );
 
-  }
+    return NextResponse.json(
+      { error: "Internal server error", details: String(error) },
 
+      { status: 500 },
+    );
+  }
 }

@@ -8,6 +8,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -72,7 +73,10 @@ async function handleGenerate(
         break;
       }
     } catch (err) {
-      console.warn(`Failed with provider: ${provider.name}`, err);
+      apiLogger.warn("AI provider failed", {
+        provider: provider.name,
+        error: err instanceof Error ? err.message : String(err),
+      });
       continue;
     }
   }
@@ -102,7 +106,11 @@ async function handleGenerate(
     .single();
 
   if (dbError) {
-    console.error("Database error:", dbError.message);
+    apiLogger.error(
+      "AI generate DB error",
+      dbError instanceof Error ? dbError : new Error(String(dbError)),
+      { userId },
+    );
     return NextResponse.json(
       { error: "Failed to save content" },
       { status: 500 },

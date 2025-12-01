@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { apiLogger } from "@/lib/utils/logger";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +23,11 @@ export function ActiveLocationActions({ locationId }: { locationId: string }) {
         toast.error(result.message || "Failed to disconnect location");
       }
     } catch (error) {
-      console.error("[ActiveLocationActions] Disconnect failed:", error);
+      apiLogger.error(
+        "[ActiveLocationActions] Disconnect failed",
+        error instanceof Error ? error : new Error(String(error)),
+        { locationId },
+      );
       toast.error("An unexpected error occurred while disconnecting");
     } finally {
       setLoading(null);

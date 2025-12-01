@@ -6,6 +6,8 @@ import type { ReviewData } from "@/lib/gmb/sync-types";
 import { logAction } from "@/lib/monitoring/audit";
 import { trackApiResponse } from "@/lib/monitoring/metrics";
 import { createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { reviewsLogger } from "@/lib/utils/logger";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
@@ -66,16 +68,27 @@ async function collectReviewsFromGoogle(
       url.searchParams.set("pageToken", nextPageToken);
     }
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${context.accessToken}`,
-        Accept: "application/json",
+    const response = await fetchWithTimeout(
+      url.toString(),
+      {
+        headers: {
+          Authorization: `Bearer ${context.accessToken}`,
+          Accept: "application/json",
+        },
       },
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("[Reviews] Google API error:", errorData);
+      reviewsLogger.error(
+        "Google API error",
+        new Error("Failed to fetch reviews from Google"),
+        {
+          errorData,
+          googleLocationId: context.googleLocationId,
+        },
+      );
       throw new Error("Failed to fetch reviews from Google");
     }
 
@@ -235,10 +248,10 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
       // Validate for SQL injection attempts
       const validation = validateSearchQuery(validatedParams.searchQuery);
       if (!validation.valid) {
-        console.warn(
-          "[Reviews] Suspicious search query blocked:",
-          validation.reason,
-        );
+        reviewsLogger.warn("Suspicious search query blocked", {
+          reason: validation.reason,
+          query: validatedParams.searchQuery,
+        });
         return {
           success: false,
           error: "Invalid search query",
@@ -283,7 +296,10 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[Reviews] Fetch error:", error);
+      reviewsLogger.error(
+        "Fetch error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -298,7 +314,10 @@ export async function getReviews(params: z.infer<typeof FilterSchema>) {
       count: count || 0,
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Error:", error);
+    reviewsLogger.error(
+      "Error fetching reviews",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to fetch reviews"),
@@ -398,16 +417,20 @@ export async function replyToReview(reviewId: string, replyText: string) {
 
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}:reply`;
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      endpoint,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          comment: validatedData.replyText.trim(),
+        }),
       },
-      body: JSON.stringify({
-        comment: validatedData.replyText.trim(),
-      }),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -435,7 +458,13 @@ export async function replyToReview(reviewId: string, replyText: string) {
         };
       }
 
-      console.error("[Reviews] API error:", errorData);
+      reviewsLogger.error(
+        "API error",
+        new Error(`Failed to post reply (${response.status})`),
+        {
+          errorData,
+        },
+      );
       return {
         success: false,
         error:
@@ -470,7 +499,13 @@ export async function replyToReview(reviewId: string, replyText: string) {
       .eq("id", validatedData.reviewId);
 
     if (updateError) {
-      console.error("[Reviews] Database update error:", updateError);
+      reviewsLogger.error(
+        "Database update error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { reviewId: validatedData.reviewId },
+      );
     }
 
     // ✅ Invalidate all pages that show review data
@@ -494,7 +529,13 @@ export async function replyToReview(reviewId: string, replyText: string) {
       message: "Reply posted successfully!",
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Reply error:", error);
+    reviewsLogger.error(
+      "Reply error",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        reviewId,
+      },
+    );
     const durationMs = Date.now() - operationStart;
     const errorMessage = resolveErrorMessage(error, "Failed to post reply");
     await logAction("review_reply", "gmb_review", reviewId, {
@@ -609,16 +650,20 @@ export async function updateReply(reviewId: string, newReplyText: string) {
     // Call Google API to update reply
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`;
 
-    const response = await fetch(endpoint, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      endpoint,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          comment: validatedData.replyText.trim(),
+        }),
       },
-      body: JSON.stringify({
-        comment: validatedData.replyText.trim(),
-      }),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -647,7 +692,14 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       })
       .eq("id", validatedData.reviewId);
 
-    if (updateError) console.error("[Reviews] DB update error:", updateError);
+    if (updateError)
+      reviewsLogger.error(
+        "DB update error on reply update",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { reviewId: validatedData.reviewId },
+      );
 
     revalidatePath("/dashboard");
     revalidatePath("/reviews");
@@ -666,7 +718,11 @@ export async function updateReply(reviewId: string, newReplyText: string) {
       message: "Reply updated successfully!",
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Update reply error:", error);
+    reviewsLogger.error(
+      "Update reply error",
+      error instanceof Error ? error : new Error(String(error)),
+      { reviewId },
+    );
     const durationMs = Date.now() - operationStart;
     const errorMessage = resolveErrorMessage(error, "Failed to update reply");
     await logAction("review_reply", "gmb_review", reviewId, {
@@ -757,12 +813,16 @@ export async function deleteReply(reviewId: string) {
     // Call Google API to delete
     const endpoint = `${GMB_API_BASE}/accounts/${account.account_id}/locations/${location.location_id}/reviews/${review.external_review_id}/reply`;
 
-    const response = await fetch(endpoint, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await fetchWithTimeout(
+      endpoint,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     // 404 is OK - means already deleted
     if (!response.ok && response.status !== 404) {
@@ -792,7 +852,14 @@ export async function deleteReply(reviewId: string) {
       })
       .eq("id", reviewId);
 
-    if (updateError) console.error("[Reviews] DB update error:", updateError);
+    if (updateError)
+      reviewsLogger.error(
+        "DB update error on reply delete",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { reviewId },
+      );
 
     revalidatePath("/dashboard");
     revalidatePath("/reviews");
@@ -802,7 +869,11 @@ export async function deleteReply(reviewId: string) {
       message: "Reply deleted successfully!",
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Delete reply error:", error);
+    reviewsLogger.error(
+      "Delete reply error",
+      error instanceof Error ? error : new Error(String(error)),
+      { reviewId },
+    );
     const errorMessage = resolveErrorMessage(error, "Failed to delete reply");
     return {
       success: false,
@@ -861,7 +932,11 @@ export async function bulkReplyToReviews(
       message: `Replied to ${results.success.length} of ${reviewIds.length} reviews`,
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Bulk reply error:", error);
+    reviewsLogger.error(
+      "Bulk reply error",
+      error instanceof Error ? error : new Error(String(error)),
+      { count: reviewIds.length },
+    );
     const errorMessage = resolveErrorMessage(error, "Failed to bulk reply");
     return {
       success: false,
@@ -897,7 +972,13 @@ export async function flagReview(reviewId: string, reason: string) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Reviews] Flag error:", error);
+      reviewsLogger.error(
+        "Flag error",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          reviewId,
+        },
+      );
       return { success: false, error: error.message };
     }
 
@@ -1042,7 +1123,13 @@ export async function syncReviewsFromGoogle(locationId: string) {
       .select();
 
     if (upsertError) {
-      console.error("[Reviews] Batch upsert error:", upsertError);
+      reviewsLogger.error(
+        "Batch upsert error",
+        upsertError instanceof Error
+          ? upsertError
+          : new Error(String(upsertError)),
+        { count: reviewsPayload.length },
+      );
       return {
         success: false,
         error: "Failed to save reviews to database",
@@ -1060,11 +1147,19 @@ export async function syncReviewsFromGoogle(locationId: string) {
             const { processAutoReply } = await import("./auto-reply");
             // Process auto-reply in background (don't wait for it)
             processAutoReply(review.id).catch((error) => {
-              console.error("[Reviews] Auto-reply error:", error);
+              reviewsLogger.error(
+                "Auto-reply error",
+                error instanceof Error ? error : new Error(String(error)),
+                { reviewId: review.id },
+              );
               // Don't fail the sync if auto-reply fails
             });
           } catch (error) {
-            console.error("[Reviews] Failed to trigger auto-reply:", error);
+            reviewsLogger.error(
+              "Failed to trigger auto-reply",
+              error instanceof Error ? error : new Error(String(error)),
+              { reviewId: review.id },
+            );
             // Don't fail the sync if auto-reply fails
           }
         }
@@ -1086,7 +1181,10 @@ export async function syncReviewsFromGoogle(locationId: string) {
       data: { synced },
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Sync error:", error);
+    reviewsLogger.error(
+      "Sync error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to sync reviews"),
@@ -1134,7 +1232,10 @@ export async function getReviewStats(
     const { data, error } = await query;
 
     if (error) {
-      console.error("[Reviews] Stats error:", error);
+      reviewsLogger.error(
+        "Stats error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: error.message, data: null };
     }
 
@@ -1166,7 +1267,10 @@ export async function getReviewStats(
       data: stats,
     };
   } catch (error: unknown) {
-    console.error("[Reviews] Stats error:", error);
+    reviewsLogger.error(
+      "Stats error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: resolveErrorMessage(error, "Failed to get stats"),
@@ -1201,7 +1305,11 @@ export async function archiveReview(reviewId: string) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Reviews] Archive error:", error);
+      reviewsLogger.error(
+        "Archive error",
+        error instanceof Error ? error : new Error(String(error)),
+        { reviewId },
+      );
       return { success: false, error: error.message };
     }
 

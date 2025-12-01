@@ -10,6 +10,7 @@ import {
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,7 +72,10 @@ async function handleStreamChat(
             await streamOpenAI(openaiKey, prompt, controller, encoder);
           }
         } catch (error) {
-          console.error("Streaming error:", error);
+          apiLogger.error(
+            "Streaming error",
+            error instanceof Error ? error : new Error(String(error)),
+          );
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ error: "Streaming failed" })}\n\n`,
@@ -92,7 +96,10 @@ async function handleStreamChat(
       },
     });
   } catch (error) {
-    console.error("AI Chat Stream Error:", error);
+    apiLogger.error(
+      "AI Chat Stream Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Internal server error",

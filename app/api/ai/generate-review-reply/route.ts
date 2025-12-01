@@ -9,6 +9,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -34,9 +35,10 @@ async function handleGenerateReviewReply(
     // Get AI provider
     const aiProvider = await getAIProvider(userId);
     if (!aiProvider) {
-      console.error(
-        "[AI Generate Reply] No AI provider configured for user:",
-        userId,
+      apiLogger.error(
+        "No AI provider configured for user",
+        new Error("AI provider not configured"),
+        { userId },
       );
       return NextResponse.json(
         {
@@ -87,7 +89,11 @@ ${promptHeader}`;
     // إرجاع الرد
     return NextResponse.json({ success: true, reply: aiReplyText.trim() });
   } catch (error: unknown) {
-    console.error("[AI Generate Reply] Error:", error);
+    apiLogger.error(
+      "[AI Generate Reply] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { userId },
+    );
     const message =
       error instanceof Error
         ? error.message

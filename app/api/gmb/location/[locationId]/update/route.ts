@@ -1,27 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getValidAccessToken } from '@/lib/gmb/helpers';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { gmbLogger } from "@/lib/utils/logger";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const GBP_LOC_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const GBP_LOC_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { locationId: string } },
 ) {
   try {
     const supabase = await createClient();
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { locationId } = params;
     if (!locationId) {
-      return NextResponse.json({ error: 'Location ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Location ID required" },
+        { status: 400 },
+      );
     }
 
     // Get request body
@@ -30,21 +37,24 @@ export async function PATCH(
 
     if (!updateMask || !location) {
       return NextResponse.json(
-        { error: 'updateMask and location are required' },
-        { status: 400 }
+        { error: "updateMask and location are required" },
+        { status: 400 },
       );
     }
 
     // Get location from database
     const { data: dbLocation, error: locationError } = await supabase
-      .from('gmb_locations')
-      .select('*, gmb_accounts(id, account_id)')
-      .eq('id', locationId)
-      .eq('user_id', user.id)
+      .from("gmb_locations")
+      .select("*, gmb_accounts(id, account_id)")
+      .eq("id", locationId)
+      .eq("user_id", user.id)
       .single();
 
     if (locationError || !dbLocation) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 },
+      );
     }
 
     const accountId = dbLocation.gmb_account_id;
@@ -55,16 +65,16 @@ export async function PATCH(
 
     // Update location using Business Information API
     const url = new URL(`${GBP_LOC_BASE}/${locationResource}`);
-    url.searchParams.set('updateMask', updateMask);
+    url.searchParams.set("updateMask", updateMask);
     if (validateOnly) {
-      url.searchParams.set('validateOnly', 'true');
+      url.searchParams.set("validateOnly", "true");
     }
 
     const response = await fetch(url.toString(), {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(location),
     });
@@ -72,8 +82,8 @@ export async function PATCH(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Failed to update location', details: errorData },
-        { status: response.status }
+        { error: "Failed to update location", details: errorData },
+        { status: response.status },
       );
     }
 
@@ -81,37 +91,46 @@ export async function PATCH(
 
     // Update location in database with new metadata
     await supabase
-      .from('gmb_locations')
+      .from("gmb_locations")
       .update({
         location_name: updatedLocation.title || dbLocation.location_name,
         address: updatedLocation.storefrontAddress
-          ? `${(updatedLocation.storefrontAddress.addressLines || []).join(', ')}${
-              updatedLocation.storefrontAddress.locality ? `, ${updatedLocation.storefrontAddress.locality}` : ''
-            }${updatedLocation.storefrontAddress.administrativeArea ? `, ${updatedLocation.storefrontAddress.administrativeArea}` : ''}${
-              updatedLocation.storefrontAddress.postalCode ? ` ${updatedLocation.storefrontAddress.postalCode}` : ''
+          ? `${(updatedLocation.storefrontAddress.addressLines || []).join(", ")}${
+              updatedLocation.storefrontAddress.locality
+                ? `, ${updatedLocation.storefrontAddress.locality}`
+                : ""
+            }${updatedLocation.storefrontAddress.administrativeArea ? `, ${updatedLocation.storefrontAddress.administrativeArea}` : ""}${
+              updatedLocation.storefrontAddress.postalCode
+                ? ` ${updatedLocation.storefrontAddress.postalCode}`
+                : ""
             }`
           : dbLocation.address,
         phone: updatedLocation.phoneNumbers?.primaryPhone || dbLocation.phone,
         website: updatedLocation.websiteUri || dbLocation.website,
-        category: updatedLocation.categories?.primaryCategory?.displayName || dbLocation.category,
+        category:
+          updatedLocation.categories?.primaryCategory?.displayName ||
+          dbLocation.category,
         metadata: {
-          ...(dbLocation.metadata as any || {}),
+          ...((dbLocation.metadata as any) || {}),
           ...updatedLocation,
         },
         updated_at: new Date().toISOString(),
       })
-      .eq('id', locationId);
+      .eq("id", locationId);
 
     return NextResponse.json({
       success: true,
       location: updatedLocation,
     });
   } catch (error: any) {
-    console.error('[Location Update API] Error:', error);
+    gmbLogger.error(
+      "[Location Update API] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId: params.locationId },
+    );
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { error: "Internal server error", message: error.message },
+      { status: 500 },
     );
   }
 }
-

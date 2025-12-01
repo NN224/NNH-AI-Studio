@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 
 type PriorityLevel = "high" | "medium" | "low";
@@ -355,7 +356,12 @@ export async function generateWeeklyTasks(locationId?: string) {
       .select();
 
     if (insertError) {
-      console.error("[Weekly Tasks] Insert error:", insertError);
+      logger.error(
+        "Weekly tasks insert error",
+        insertError instanceof Error
+          ? insertError
+          : new Error(String(insertError)),
+      );
       return {
         success: false,
         error: "Failed to generate tasks",
@@ -370,7 +376,10 @@ export async function generateWeeklyTasks(locationId?: string) {
       data: data ?? [],
     };
   } catch (error: unknown) {
-    console.error("[Weekly Tasks] Error generating tasks:", error);
+    logger.error(
+      "Error generating weekly tasks",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -411,7 +420,11 @@ export async function toggleTask(taskId: string, completed: boolean) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Weekly Tasks] Toggle error:", error);
+      logger.error(
+        "Weekly task toggle error",
+        error instanceof Error ? error : new Error(String(error)),
+        { taskId },
+      );
       return {
         success: false,
         error: "Failed to update task",
@@ -424,7 +437,11 @@ export async function toggleTask(taskId: string, completed: boolean) {
       success: true,
     };
   } catch (error: unknown) {
-    console.error("[Weekly Tasks] Error toggling task:", error);
+    logger.error(
+      "Error toggling weekly task",
+      error instanceof Error ? error : new Error(String(error)),
+      { taskId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update task",
@@ -472,7 +489,10 @@ export async function getWeeklyTasks(_locationId?: string) {
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.error("[Weekly Tasks] Fetch error:", error);
+      logger.error(
+        "Weekly tasks fetch error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -488,7 +508,10 @@ export async function getWeeklyTasks(_locationId?: string) {
       })),
     };
   } catch (error: unknown) {
-    console.error("[Weekly Tasks] Error fetching tasks:", error);
+    logger.error(
+      "Error fetching weekly tasks",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -524,7 +547,11 @@ export async function deleteTask(taskId: string) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("[Weekly Tasks] Delete error:", error);
+      logger.error(
+        "Weekly task delete error",
+        error instanceof Error ? error : new Error(String(error)),
+        { taskId },
+      );
       return {
         success: false,
         error: "Failed to delete task",
@@ -537,7 +564,11 @@ export async function deleteTask(taskId: string) {
       success: true,
     };
   } catch (error: unknown) {
-    console.error("[Weekly Tasks] Error deleting task:", error);
+    logger.error(
+      "Error deleting weekly task",
+      error instanceof Error ? error : new Error(String(error)),
+      { taskId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete task",

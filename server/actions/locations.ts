@@ -7,6 +7,8 @@ import {
 } from "@/lib/config/google-categories";
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { gmbLogger } from "@/lib/utils/logger";
 import {
   LocationSchema,
   UpdateLocationSchema,
@@ -115,7 +117,10 @@ export async function getLocations() {
   if (authError || !user) {
     // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      gmbLogger.error(
+        "Authentication error",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
     }
     return { locations: [], error: "Not authenticated" };
   }
@@ -127,7 +132,10 @@ export async function getLocations() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Failed to fetch locations:", error);
+    gmbLogger.error(
+      "Failed to fetch locations",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { locations: [], error: error.message };
   }
 
@@ -391,7 +399,10 @@ export async function getLocationSyncStatus(locationId: string) {
 
   if (authError || !user) {
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      gmbLogger.error(
+        "Authentication error",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
     }
     return {
       success: false,
@@ -702,7 +713,11 @@ export async function getCompetitors({
   }
   url.searchParams.set("key", apiKey);
 
-  const response = await fetch(url.toString(), { cache: "no-store" });
+  const response = await fetchWithTimeout(
+    url.toString(),
+    { cache: "no-store" },
+    API_TIMEOUTS.GOOGLE_API,
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch competitor data");

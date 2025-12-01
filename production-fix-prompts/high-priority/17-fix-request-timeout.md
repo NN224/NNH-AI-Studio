@@ -1,6 +1,6 @@
-# 🟠 HIGH PRIORITY: Request Timeout مفقود
+# ✅ COMPLETED: Request Timeout مفقود
 
-> ⚠️ **قبل البدء:** اقرأ `AI_AGENT_START_HERE.md` أولاً! اقرأ الملف المستهدف كاملاً قبل أي تعديل.
+> ✅ **تم الإصلاح بتاريخ:** 2025-12-01
 
 > **الأولوية:** P1 - عالي
 > **الوقت المقدر:** 3 ساعات
@@ -13,6 +13,7 @@
 **Issue ID:** HIGH-017
 **Severity:** 🟠 HIGH - STABILITY
 **Impact:** Requests قد تعلق للأبد
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -103,11 +104,54 @@ const response = await fetchWithTimeout("https://api.example.com/data", {
 
 ## ✅ معايير القبول
 
-- [ ] جميع external API calls تستخدم timeout
-- [ ] Default timeout = 30 seconds
-- [ ] Retry logic للـ transient failures
-- [ ] Proper error handling للـ timeouts
+- [x] جميع external API calls تستخدم timeout
+- [x] Default timeout = 30 seconds
+- [x] Retry logic للـ transient failures
+- [x] Proper error handling للـ timeouts
 
 ---
 
-**Status:** 🔴 NOT STARTED
+## 🎉 تفاصيل الإصلاح
+
+### الملفات المُعدّلة:
+
+| الملف                                    | عدد fetch calls المُصلحة                    |
+| ---------------------------------------- | ------------------------------------------- |
+| `lib/utils/error-handling.ts`            | ✅ أضفت `fetchWithTimeout` و `API_TIMEOUTS` |
+| `server/actions/reviews-management.ts`   | 4                                           |
+| `server/actions/questions-management.ts` | 4                                           |
+| `server/actions/gmb-sync.ts`             | 6                                           |
+| `server/actions/reviews.ts`              | 1                                           |
+| `server/actions/posts-management.ts`     | 4                                           |
+| `server/actions/gmb-account.ts`          | 1                                           |
+| `server/actions/auto-reply.ts`           | 1                                           |
+| `server/actions/locations.ts`            | 1                                           |
+
+### الـ Utility Function الجديدة:
+
+```typescript
+// lib/utils/error-handling.ts
+export const API_TIMEOUTS = {
+  GOOGLE_API: 30000, // 30 seconds
+  INTERNAL_API: 10000, // 10 seconds
+  AI_API: 60000, // 60 seconds (AI can be slow)
+  QUICK: 5000, // 5 seconds
+};
+
+export async function fetchWithTimeout(
+  url: string | URL,
+  options: RequestInit = {},
+  timeoutMs: number = API_TIMEOUTS.GOOGLE_API,
+): Promise<Response>;
+```
+
+### النتيجة:
+
+- **22+ fetch calls** الآن لديها timeout
+- إذا Google API لم يرد خلال 30 ثانية → Error واضح
+- الموارد تتحرر تلقائياً
+- تجربة مستخدم أفضل
+
+---
+
+**Status:** ✅ COMPLETED (2025-12-01)

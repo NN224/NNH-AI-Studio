@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export interface SyncDiagnostics {
   syncQueue: {
@@ -79,9 +80,11 @@ export async function getGmbSyncDiagnostics(): Promise<{
       .select("id, user_id, account_name, is_active, last_sync, last_error");
 
     if (allAccountsError) {
-      console.error(
-        "[GMB Diagnostics] Error fetching all accounts:",
-        allAccountsError,
+      gmbLogger.error(
+        "Error fetching all accounts for diagnostics",
+        allAccountsError instanceof Error
+          ? allAccountsError
+          : new Error(String(allAccountsError)),
       );
     }
 
@@ -93,9 +96,11 @@ export async function getGmbSyncDiagnostics(): Promise<{
       .maybeSingle();
 
     if (gmbAccountError) {
-      console.error(
-        "[GMB Diagnostics] Error fetching user account:",
-        gmbAccountError,
+      gmbLogger.error(
+        "Error fetching user account for diagnostics",
+        gmbAccountError instanceof Error
+          ? gmbAccountError
+          : new Error(String(gmbAccountError)),
       );
     }
 
@@ -205,7 +210,10 @@ export async function getGmbSyncDiagnostics(): Promise<{
       },
     };
   } catch (error) {
-    console.error("[GMB Diagnostics] Error:", error);
+    gmbLogger.error(
+      "Error in GMB diagnostics",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

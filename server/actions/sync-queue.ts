@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { syncLogger } from "@/lib/utils/logger";
 
 export interface SyncQueueItem {
   id: string;
@@ -50,7 +51,11 @@ export async function addToSyncQueue(
         .single();
 
       if (error) {
-        console.error("[Sync Queue] Failed to add to queue (admin):", error);
+        syncLogger.error(
+          "Failed to add to queue (admin)",
+          error instanceof Error ? error : new Error(String(error)),
+          { accountId },
+        );
         return { success: false, error: error.message };
       }
 
@@ -80,13 +85,21 @@ export async function addToSyncQueue(
       .single();
 
     if (error) {
-      console.error("[Sync Queue] Failed to add to queue:", error);
+      syncLogger.error(
+        "Failed to add to queue",
+        error instanceof Error ? error : new Error(String(error)),
+        { accountId },
+      );
       return { success: false, error: error.message };
     }
 
     return { success: true, queueId: data.id };
   } catch (error) {
-    console.error("[Sync Queue] Unexpected error:", error);
+    syncLogger.error(
+      "Unexpected error in addToSyncQueue",
+      error instanceof Error ? error : new Error(String(error)),
+      { accountId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -113,13 +126,19 @@ export async function getPendingSyncJobs(
       .limit(limit);
 
     if (error) {
-      console.error("[Sync Queue] Failed to fetch pending jobs:", error);
+      syncLogger.error(
+        "Failed to fetch pending jobs",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return [];
     }
 
     return (data || []) as SyncQueueItem[];
   } catch (error) {
-    console.error("[Sync Queue] Unexpected error:", error);
+    syncLogger.error(
+      "Unexpected error in getPendingSyncJobs",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return [];
   }
 }
@@ -163,13 +182,21 @@ export async function updateSyncQueueStatus(
       .eq("id", queueId);
 
     if (error) {
-      console.error("[Sync Queue] Failed to update status:", error);
+      syncLogger.error(
+        "Failed to update status",
+        error instanceof Error ? error : new Error(String(error)),
+        { queueId, status },
+      );
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (error) {
-    console.error("[Sync Queue] Unexpected error:", error);
+    syncLogger.error(
+      "Unexpected error in updateSyncStatus",
+      error instanceof Error ? error : new Error(String(error)),
+      { queueId, status },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -220,7 +247,10 @@ export async function getUserQueueStatus(): Promise<{
 
     return counts;
   } catch (error) {
-    console.error("[Sync Queue] Unexpected error:", error);
+    syncLogger.error(
+      "Unexpected error in getSyncQueueStats",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { pending: 0, processing: 0, completed: 0, failed: 0 };
   }
 }

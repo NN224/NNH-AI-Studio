@@ -18,6 +18,7 @@
 
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -97,7 +98,13 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (accountsError) {
-      console.error("[Settings API] Failed to fetch accounts:", accountsError);
+      apiLogger.error(
+        "Failed to fetch accounts",
+        accountsError instanceof Error
+          ? accountsError
+          : new Error(String(accountsError)),
+        { userId: user.id },
+      );
       await logAction("settings_view", "settings", "global", {
         status: "failed",
         error: accountsError.message,
@@ -127,9 +134,12 @@ export async function GET(request: NextRequest) {
         profileError.code !== "PGRST116" &&
         profileError.code !== "PGRST205"
       ) {
-        console.error(
-          "[Settings API] Failed to fetch client profile:",
-          profileError,
+        apiLogger.error(
+          "Failed to fetch client profile",
+          profileError instanceof Error
+            ? profileError
+            : new Error(String(profileError)),
+          { userId: user.id },
         );
         await logAction("settings_view", "settings", "global", {
           status: "partial",
@@ -139,9 +149,9 @@ export async function GET(request: NextRequest) {
       } else {
         profile = data;
       }
-    } catch (error) {
+    } catch (_error) {
       // Table doesn't exist, skip it
-      console.log("[Settings API] Profiles table not available, skipping...");
+      apiLogger.info("Profiles table not available, skipping...");
     }
 
     // Combine all settings
@@ -200,7 +210,10 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({ settings: allSettings });
   } catch (error) {
-    console.error("[Settings API] Unexpected error:", error);
+    apiLogger.error(
+      "Unexpected error in GET settings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     await logAction("settings_view", "settings", "global", {
       status: "failed",
       error: error instanceof Error ? error.message : String(error),
@@ -272,7 +285,13 @@ export async function PUT(request: NextRequest) {
       .eq("is_active", true);
 
     if (accountsError) {
-      console.error("[Settings API] Failed to fetch accounts:", accountsError);
+      apiLogger.error(
+        "Failed to fetch accounts",
+        accountsError instanceof Error
+          ? accountsError
+          : new Error(String(accountsError)),
+        { userId: user.id },
+      );
       await logAction("settings_update", "settings", "global", {
         status: "failed",
         error: accountsError.message,
@@ -332,7 +351,13 @@ export async function PUT(request: NextRequest) {
         .eq("user_id", user.id);
 
       if (updateError) {
-        console.error("[Settings API] Failed to update account:", updateError);
+        apiLogger.error(
+          "Failed to update account",
+          updateError instanceof Error
+            ? updateError
+            : new Error(String(updateError)),
+          { userId: user.id },
+        );
         await logAction("settings_update", "settings", account.id, {
           status: "failed",
           error: updateError.message,
@@ -354,9 +379,12 @@ export async function PUT(request: NextRequest) {
 
       // Ignore PGRST116 error (no rows found) - this is expected for new users
       if (profileFetchError && profileFetchError.code !== "PGRST116") {
-        console.error(
-          "[Settings API] Failed to fetch existing profile:",
-          profileFetchError,
+        apiLogger.error(
+          "Failed to fetch existing profile",
+          profileFetchError instanceof Error
+            ? profileFetchError
+            : new Error(String(profileFetchError)),
+          { userId: user.id },
         );
       }
 
@@ -385,9 +413,12 @@ export async function PUT(request: NextRequest) {
             .eq("user_id", user.id);
 
           if (profileError) {
-            console.error(
-              "[Settings API] Failed to update profile:",
-              profileError,
+            apiLogger.error(
+              "Failed to update profile",
+              profileError instanceof Error
+                ? profileError
+                : new Error(String(profileError)),
+              { userId: user.id },
             );
             await logAction("settings_update", "settings", "branding", {
               status: "failed",
@@ -401,9 +432,12 @@ export async function PUT(request: NextRequest) {
             .insert([{ user_id: user.id, ...profileData }]);
 
           if (profileError) {
-            console.error(
-              "[Settings API] Failed to create profile:",
-              profileError,
+            apiLogger.error(
+              "Failed to create profile",
+              profileError instanceof Error
+                ? profileError
+                : new Error(String(profileError)),
+              { userId: user.id },
             );
             await logAction("settings_update", "settings", "branding", {
               status: "failed",
@@ -428,7 +462,10 @@ export async function PUT(request: NextRequest) {
       message: "Settings updated successfully",
     });
   } catch (error) {
-    console.error("[Settings API] Unexpected error:", error);
+    apiLogger.error(
+      "Unexpected error in PUT settings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     await logAction("settings_update", "settings", "global", {
       status: "failed",
       error: error instanceof Error ? error.message : String(error),

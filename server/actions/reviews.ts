@@ -2,6 +2,8 @@
 
 import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { reviewsLogger } from "@/lib/utils/logger";
 import {
   ReviewReplySchema,
   ReviewStatusSchema,
@@ -19,7 +21,10 @@ export async function getReviews(locationId?: string) {
   if (authError || !user) {
     // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      reviewsLogger.error(
+        "Authentication error",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
     }
     return { reviews: [], error: "Not authenticated" };
   }
@@ -37,7 +42,10 @@ export async function getReviews(locationId?: string) {
   const { data, error } = await query;
 
   if (error) {
-    console.error("Failed to fetch reviews:", error);
+    reviewsLogger.error(
+      "Failed to fetch reviews",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { reviews: [], error: error.message };
   }
 
@@ -54,7 +62,10 @@ export async function updateReviewStatus(reviewId: string, status: string) {
   if (authError || !user) {
     // Only log unexpected errors, not missing sessions (expected when user isn't logged in)
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      reviewsLogger.error(
+        "Authentication error",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
     }
     return { success: false, error: "Not authenticated" };
   }
@@ -70,7 +81,11 @@ export async function updateReviewStatus(reviewId: string, status: string) {
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("Failed to update review status:", error);
+      reviewsLogger.error(
+        "Failed to update review status",
+        error instanceof Error ? error : new Error(String(error)),
+        { reviewId },
+      );
       return { success: false, error: error.message };
     }
 
@@ -81,7 +96,11 @@ export async function updateReviewStatus(reviewId: string, status: string) {
       const errorMessage = error.errors.map((e) => e.message).join(", ");
       return { success: false, error: `Validation error: ${errorMessage}` };
     }
-    console.error("Unexpected error:", error);
+    reviewsLogger.error(
+      "Unexpected error updating review status",
+      error instanceof Error ? error : new Error(String(error)),
+      { reviewId },
+    );
     return { success: false, error: "Failed to update review status" };
   }
 }
@@ -95,7 +114,10 @@ export async function addReviewReply(reviewId: string, reply: string) {
 
   if (authError || !user) {
     if (authError && authError.name !== "AuthSessionMissingError") {
-      console.error("Authentication error:", authError);
+      reviewsLogger.error(
+        "Authentication error",
+        authError instanceof Error ? authError : new Error(String(authError)),
+      );
     }
     return { success: false, error: "Not authenticated" };
   }
@@ -129,7 +151,13 @@ export async function addReviewReply(reviewId: string, reply: string) {
       .single();
 
     if (reviewError || !review) {
-      console.error("Failed to fetch review:", reviewError);
+      reviewsLogger.error(
+        "Failed to fetch review",
+        reviewError instanceof Error
+          ? reviewError
+          : new Error(String(reviewError)),
+        { reviewId },
+      );
       return { success: false, error: "Review not found" };
     }
 
@@ -143,7 +171,13 @@ export async function addReviewReply(reviewId: string, reply: string) {
     try {
       accessToken = await getValidAccessToken(supabase, gmbAccountId);
     } catch (tokenError) {
-      console.error("Failed to get access token:", tokenError);
+      reviewsLogger.error(
+        "Failed to get access token",
+        tokenError instanceof Error
+          ? tokenError
+          : new Error(String(tokenError)),
+        { gmbAccountId },
+      );
       return { success: false, error: "Failed to authenticate with Google" };
     }
 
@@ -180,23 +214,32 @@ export async function addReviewReply(reviewId: string, reply: string) {
     // 4. Send reply to Google API (v4)
     const replyUrl = `${GMB_CONSTANTS.GMB_V4_BASE}/${googleReviewName}/reply`;
 
-    const googleResponse = await fetch(replyUrl, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const googleResponse = await fetchWithTimeout(
+      replyUrl,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          comment: validatedData.reply,
+        }),
       },
-      body: JSON.stringify({
-        comment: validatedData.reply,
-      }),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!googleResponse.ok) {
       const errorData = await googleResponse.json().catch(() => ({}));
-      console.error("Google API reply failed:", {
-        status: googleResponse.status,
-        error: errorData,
-      });
+      reviewsLogger.error(
+        "Google API reply failed",
+        new Error(`Google API error: ${googleResponse.status}`),
+        {
+          status: googleResponse.status,
+          errorData,
+          reviewId,
+        },
+      );
       return {
         success: false,
         error:
@@ -217,7 +260,13 @@ export async function addReviewReply(reviewId: string, reply: string) {
       .eq("user_id", user.id);
 
     if (updateError) {
-      console.error("Failed to update local review:", updateError);
+      reviewsLogger.error(
+        "Failed to update local review",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { reviewId },
+      );
       // Note: Reply was sent to Google but local DB update failed
       return {
         success: true,
@@ -232,7 +281,11 @@ export async function addReviewReply(reviewId: string, reply: string) {
       const errorMessage = error.errors.map((e) => e.message).join(", ");
       return { success: false, error: `Validation error: ${errorMessage}` };
     }
-    console.error("Unexpected error:", error);
+    reviewsLogger.error(
+      "Unexpected error adding review reply",
+      error instanceof Error ? error : new Error(String(error)),
+      { reviewId },
+    );
     return { success: false, error: "Failed to add review reply" };
   }
 }

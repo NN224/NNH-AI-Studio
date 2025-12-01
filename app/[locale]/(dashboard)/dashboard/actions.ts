@@ -2,6 +2,7 @@
 
 // New Dashboard Actions - Clean, Type-Safe, and Modular
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 
 // Import our new services
@@ -36,7 +37,10 @@ export async function getDashboardData(): Promise<DashboardDataResult> {
     const dashboardService = new DashboardService(supabase);
     return await dashboardService.getDashboardData(user.id);
   } catch (error) {
-    console.error("[getDashboardData] Error:", error);
+    apiLogger.error(
+      "Error fetching dashboard data",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     throw error instanceof DashboardServiceError
       ? error
       : new DashboardServiceError(
@@ -103,7 +107,11 @@ export async function refreshTokenAction(
       ).toISOString(),
     };
   } catch (error) {
-    console.error("[refreshTokenAction] Error:", error);
+    apiLogger.error(
+      "Error refreshing token",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId },
+    );
     return {
       success: false,
       message:
@@ -135,7 +143,11 @@ export async function getUserLocations(
     const locationService = new LocationService(supabase, adminClient);
     return await locationService.getUserLocations(user.id, page, pageSize);
   } catch (error) {
-    console.error("[getUserLocations] Error:", error);
+    apiLogger.error(
+      "Error fetching user locations",
+      error instanceof Error ? error : new Error(String(error)),
+      { page, pageSize },
+    );
     throw error instanceof DashboardServiceError
       ? error
       : new DashboardServiceError("Failed to fetch locations", "FETCH_ERROR");
@@ -174,7 +186,10 @@ export async function refreshAllExpiredTokens(): Promise<
 
     return results;
   } catch (error) {
-    console.error("[refreshAllExpiredTokens] Error:", error);
+    apiLogger.error(
+      "Error refreshing all expired tokens",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return [
       {
         success: false,
@@ -207,7 +222,10 @@ export async function checkTokenStatus(): Promise<{
     const oauthService = new OAuthService(supabase);
     return await oauthService.validateAllUserTokens(user.id);
   } catch (error) {
-    console.error("[checkTokenStatus] Error:", error);
+    apiLogger.error(
+      "[checkTokenStatus] Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { valid: 0, expired: 0, invalid: 0 };
   }
 }
@@ -259,7 +277,11 @@ export async function updateLocationMetadata(
       message: "Location metadata updated successfully",
     };
   } catch (error) {
-    console.error("[updateLocationMetadata] Error:", error);
+    apiLogger.error(
+      "[updateLocationMetadata] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId },
+    );
     return {
       success: false,
       message:
@@ -305,7 +327,11 @@ export async function disconnectLocation(
       message: "Location disconnected successfully",
     };
   } catch (error) {
-    console.error("[disconnectLocation] Error:", error);
+    apiLogger.error(
+      "[disconnectLocation] Error",
+      error instanceof Error ? error : new Error(String(error)),
+      { locationId },
+    );
     return {
       success: false,
       message:
@@ -333,7 +359,10 @@ export async function getBestTimeToPost(): Promise<{
       },
     };
   } catch (error) {
-    console.error("[getBestTimeToPost] Error:", error);
+    apiLogger.error(
+      "[getBestTimeToPost] Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       message:
@@ -372,7 +401,10 @@ export async function generateWeeklyTasks(
       message: "Weekly tasks generated successfully",
     };
   } catch (error) {
-    console.error("[generateWeeklyTasks] Error:", error);
+    apiLogger.error(
+      "[generateWeeklyTasks] Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       message:

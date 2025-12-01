@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
 import { getBaseUrl } from "@/lib/utils/get-base-url";
+import { reviewsLogger } from "@/lib/utils/logger";
 import { SaveAutoReplySettingsInputSchema } from "@/lib/validations/auto-reply";
 import { z } from "zod";
 
@@ -62,9 +64,11 @@ export async function saveAutoReplySettings(settings: unknown) {
       await existingQuery.maybeSingle();
 
     if (existingError && existingError.code !== "PGRST116") {
-      console.error(
-        "[AutoReply] Failed to fetch existing settings:",
-        existingError,
+      reviewsLogger.error(
+        "Failed to fetch existing auto-reply settings",
+        existingError instanceof Error
+          ? existingError
+          : new Error(String(existingError)),
       );
       return {
         success: false,
@@ -104,7 +108,12 @@ export async function saveAutoReplySettings(settings: unknown) {
         .eq("id", existingRow.id);
 
       if (updateError) {
-        console.error("[AutoReply] Failed to update settings:", updateError);
+        reviewsLogger.error(
+          "Failed to update auto-reply settings",
+          updateError instanceof Error
+            ? updateError
+            : new Error(String(updateError)),
+        );
         return {
           success: false,
           error: updateError.message,
@@ -119,7 +128,12 @@ export async function saveAutoReplySettings(settings: unknown) {
         });
 
       if (insertError) {
-        console.error("[AutoReply] Failed to insert settings:", insertError);
+        reviewsLogger.error(
+          "Failed to insert auto-reply settings",
+          insertError instanceof Error
+            ? insertError
+            : new Error(String(insertError)),
+        );
         return {
           success: false,
           error: insertError.message,
@@ -134,14 +148,19 @@ export async function saveAutoReplySettings(settings: unknown) {
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("[AutoReply] Validation error:", error.errors);
+      reviewsLogger.error("Auto-reply validation error", error, {
+        errors: error.errors,
+      });
       return {
         success: false,
         error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
       };
     }
 
-    console.error("Error in saveAutoReplySettings:", error);
+    reviewsLogger.error(
+      "Error in saveAutoReplySettings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: "An unexpected error occurred",
@@ -225,7 +244,12 @@ export async function getAutoReplySettings(locationId?: string) {
     const { data: row, error: fetchError } = await query.maybeSingle();
 
     if (fetchError && fetchError.code !== "PGRST116") {
-      console.error("[AutoReply] Failed to load settings:", fetchError);
+      reviewsLogger.error(
+        "Failed to load auto-reply settings",
+        fetchError instanceof Error
+          ? fetchError
+          : new Error(String(fetchError)),
+      );
       return {
         success: false,
         error: fetchError.message,
@@ -274,7 +298,10 @@ export async function getAutoReplySettings(locationId?: string) {
       },
     };
   } catch (error) {
-    console.error("Error in getAutoReplySettings:", error);
+    reviewsLogger.error(
+      "Error in getAutoReplySettings",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: "An unexpected error occurred",
@@ -434,9 +461,11 @@ async function generateReviewReply(
           // Check confidence threshold (default: 70%)
           const minConfidence = 70;
           if (result.confidence < minConfidence && attempt < maxRetries) {
-            console.warn(
-              `[AutoReply] Low confidence (${result.confidence}%), retrying... (attempt ${attempt}/${maxRetries})`,
-            );
+            reviewsLogger.warn("Low confidence auto-reply, retrying...", {
+              confidence: result.confidence,
+              attempt,
+              maxRetries,
+            });
             lastError = `Low confidence: ${result.confidence}%`;
             await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
             continue;
@@ -455,9 +484,11 @@ async function generateReviewReply(
           }
         }
       } catch (serviceError) {
-        console.warn(
-          "[AutoReply] Enhanced service failed, falling back to legacy:",
-          serviceError,
+        reviewsLogger.warn(
+          "Enhanced auto-reply service failed, falling back to legacy",
+          {
+            error: serviceError,
+          },
         );
         // Fall through to legacy method
       }
@@ -475,7 +506,7 @@ async function generateReviewReply(
         }
       }
 
-      const aiResponse = await fetch(
+      const aiResponse = await fetchWithTimeout(
         `${DEFAULT_APP_URL}/api/ai/generate-review-reply`,
         {
           method: "POST",
@@ -487,6 +518,7 @@ async function generateReviewReply(
             locationName,
           }),
         },
+        API_TIMEOUTS.AI_API,
       );
 
       if (!aiResponse.ok) {
@@ -524,9 +556,10 @@ async function generateReviewReply(
     } catch (error) {
       lastError =
         error instanceof Error ? error.message : "Failed to generate reply";
-      console.error(
-        `[AutoReply] Error generating reply (attempt ${attempt}/${maxRetries}):`,
-        error,
+      reviewsLogger.error(
+        "Error generating auto-reply",
+        error instanceof Error ? error : new Error(String(error)),
+        { attempt, maxRetries },
       );
 
       if (attempt < maxRetries) {
@@ -627,7 +660,10 @@ export async function processAutoReply(reviewId: string) {
           },
         );
       } catch (logError) {
-        console.error("[AutoReply] Failed to log rejection:", logError);
+        reviewsLogger.error(
+          "Failed to log auto-reply rejection",
+          logError instanceof Error ? logError : new Error(String(logError)),
+        );
       }
 
       return {
@@ -661,7 +697,10 @@ export async function processAutoReply(reviewId: string) {
           },
         );
       } catch (logError) {
-        console.error("[AutoReply] Failed to log failure:", logError);
+        reviewsLogger.error(
+          "Failed to log auto-reply failure",
+          logError instanceof Error ? logError : new Error(String(logError)),
+        );
       }
 
       return generationResult;
@@ -674,9 +713,10 @@ export async function processAutoReply(reviewId: string) {
       generationResult.confidence !== undefined &&
       generationResult.confidence < 70
     ) {
-      console.warn(
-        `[AutoReply] Low confidence reply (${generationResult.confidence}%) for review ${reviewId}`,
-      );
+      reviewsLogger.warn("Low confidence auto-reply generated", {
+        confidence: generationResult.confidence,
+        reviewId,
+      });
       // Still proceed, but log the warning
     }
 
@@ -713,7 +753,11 @@ export async function processAutoReply(reviewId: string) {
       error: replyResult.error || "Failed to send auto-reply",
     };
   } catch (error) {
-    console.error("Error in processAutoReply:", error);
+    reviewsLogger.error(
+      "Error in processAutoReply",
+      error instanceof Error ? error : new Error(String(error)),
+      { reviewId },
+    );
     return {
       success: false,
       error: "An unexpected error occurred",

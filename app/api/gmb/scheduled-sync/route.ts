@@ -1,5 +1,6 @@
 import { withCronAuth } from "@/lib/security/cron-auth";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -32,7 +33,12 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
       .eq("is_active", true);
 
     if (accountsError) {
-      console.error("[Scheduled Sync] Error fetching accounts:", accountsError);
+      gmbLogger.error(
+        "Error fetching accounts for scheduled sync",
+        accountsError instanceof Error
+          ? accountsError
+          : new Error(String(accountsError)),
+      );
       return NextResponse.json(
         { error: "Failed to fetch accounts", details: accountsError.message },
         { status: 500 },
@@ -157,9 +163,16 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
           .single();
 
         if (enqueueError) {
-          console.error(
-            `[Scheduled Sync] Failed to enqueue ${account.account_name}:`,
-            enqueueError,
+          gmbLogger.error(
+            "Failed to enqueue scheduled sync job",
+            enqueueError instanceof Error
+              ? enqueueError
+              : new Error(String(enqueueError)),
+            {
+              accountId,
+              accountName: account.account_name,
+              userId: account.user_id,
+            },
           );
           syncResults.push({
             accountId,
@@ -178,7 +191,11 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
         });
       } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error("[Scheduled Sync] Enqueue error:", err.message);
+        gmbLogger.error("Enqueue error during scheduled sync", err, {
+          accountId,
+          accountName: account.account_name || "Unknown",
+          userId: account.user_id,
+        });
         syncResults.push({
           accountId,
           accountName: account.account_name || "Unknown",
@@ -197,9 +214,11 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
         .lt("expires_at", oneHourAgo);
 
       if (cleanupError) {
-        console.error(
-          "[Scheduled Sync] OAuth cleanup failed:",
-          cleanupError.message,
+        gmbLogger.error(
+          "OAuth cleanup failed during scheduled sync",
+          cleanupError instanceof Error
+            ? cleanupError
+            : new Error(String(cleanupError)),
         );
       }
     } catch {
@@ -223,7 +242,7 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Scheduled Sync] Error:", err.message);
+    gmbLogger.error("Scheduled sync handler error", err);
     return NextResponse.json(
       { error: err.message || "Internal server error" },
       { status: 500 },
@@ -307,7 +326,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error("[Scheduled Sync] POST error:", err.message);
+    gmbLogger.error("Scheduled sync POST error", err);
     return NextResponse.json(
       { error: err.message || "Internal server error" },
       { status: 500 },

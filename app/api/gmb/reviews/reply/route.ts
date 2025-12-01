@@ -5,6 +5,7 @@ import { validateBody } from "@/middleware/validate-request";
 import { sanitizeHtml } from "@/lib/security/sanitize-html";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withAuth } from "@/lib/api/auth-middleware";
+import { gmbLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,11 @@ async function handler(request: Request, user: any) {
       data: result.data ?? null,
     });
   } catch (error: any) {
-    console.error("[GMB Reviews][Reply] Unexpected error", error);
+    gmbLogger.error(
+      "Unexpected error when replying to review",
+      error instanceof Error ? error : new Error(String(error)),
+      { userId: user?.id },
+    );
     return NextResponse.json(
       { error: error?.message || "Internal server error" },
       { status: 500 },

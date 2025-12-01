@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -97,7 +98,12 @@ export async function uploadMedia(
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
+      logger.error(
+        "Upload error",
+        uploadError instanceof Error
+          ? uploadError
+          : new Error(String(uploadError)),
+      );
       return { success: false, error: uploadError.message };
     }
 
@@ -134,7 +140,10 @@ export async function uploadMedia(
       .single();
 
     if (dbError) {
-      console.error("Database error:", dbError);
+      logger.error(
+        "Database error",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+      );
       // Try to clean up uploaded file
       await supabase.storage.from("gmb-media").remove([fileName]);
       return { success: false, error: "Failed to save media metadata" };
@@ -152,7 +161,10 @@ export async function uploadMedia(
       },
     };
   } catch (error: unknown) {
-    console.error("Upload media error:", error);
+    logger.error(
+      "Upload media error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Upload failed",
@@ -247,7 +259,13 @@ export async function deleteMedia(
         .remove([filePath]);
 
       if (storageError) {
-        console.error("Storage deletion error:", storageError);
+        logger.error(
+          "Storage deletion error",
+          storageError instanceof Error
+            ? storageError
+            : new Error(String(storageError)),
+          { mediaId },
+        );
       }
     }
 
@@ -259,7 +277,11 @@ export async function deleteMedia(
       .eq("user_id", user.id);
 
     if (dbError) {
-      console.error("Database deletion error:", dbError);
+      logger.error(
+        "Database deletion error",
+        dbError instanceof Error ? dbError : new Error(String(dbError)),
+        { mediaId },
+      );
       return { success: false, error: "Failed to delete media record" };
     }
 
@@ -267,7 +289,10 @@ export async function deleteMedia(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error("Delete media error:", error);
+    logger.error(
+      "Delete media error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Deletion failed",
@@ -335,7 +360,10 @@ export async function getMediaStats(): Promise<{
       .eq("user_id", user.id);
 
     if (error) {
-      console.error("Stats fetch error:", error);
+      logger.error(
+        "Stats fetch error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: "Failed to fetch media stats" };
     }
 
@@ -381,7 +409,10 @@ export async function getMediaStats(): Promise<{
       },
     };
   } catch (error: unknown) {
-    console.error("Get media stats error:", error);
+    logger.error(
+      "Get media stats error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to get stats",
@@ -414,7 +445,13 @@ export async function updateMediaMetadata(
       .eq("user_id", user.id);
 
     if (updateError) {
-      console.error("Metadata update error:", updateError);
+      logger.error(
+        "Metadata update error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { mediaId },
+      );
       return { success: false, error: "Failed to update metadata" };
     }
 
@@ -422,7 +459,10 @@ export async function updateMediaMetadata(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error("Update metadata error:", error);
+    logger.error(
+      "Update metadata error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Update failed",

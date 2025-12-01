@@ -4,6 +4,8 @@ import { CacheBucket, refreshCache } from "@/lib/cache/cache-manager";
 import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
 import type { QuestionData } from "@/lib/gmb/sync-types";
 import { createClient } from "@/lib/supabase/server";
+import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { questionsLogger } from "@/lib/utils/logger";
 import {
   buildIlikePattern,
   sanitizeSearchQuery,
@@ -26,12 +28,16 @@ async function collectQuestionsFromGoogle(
   context: QuestionFetchContext,
 ): Promise<QuestionData[]> {
   const endpoint = `${GMB_API_BASE}/${context.googleLocationId}/questions`;
-  const response = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${context.accessToken}`,
-      Accept: "application/json",
+  const response = await fetchWithTimeout(
+    endpoint,
+    {
+      headers: {
+        Authorization: `Bearer ${context.accessToken}`,
+        Accept: "application/json",
+      },
     },
-  });
+    API_TIMEOUTS.GOOGLE_API,
+  );
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -44,13 +50,16 @@ async function collectQuestionsFromGoogle(
     }
 
     const errorData = await response.json().catch(() => ({}));
-    console.error("[Questions] Google API error:", {
-      status: response.status,
-      error: errorData,
-    });
-    throw new Error(
-      errorData?.error?.message || "Failed to fetch questions from Google",
+    questionsLogger.error(
+      "Google API error",
+      new Error("Failed to fetch questions from Google"),
+      {
+        status: response.status,
+        errorData,
+        googleLocationId: context.googleLocationId,
+      },
     );
+    throw new Error("Failed to fetch questions from Google");
   }
 
   const data = await response.json();
@@ -193,10 +202,10 @@ export async function getQuestions(params: {
       // Validate for SQL injection attempts
       const validation = validateSearchQuery(params.searchQuery);
       if (!validation.valid) {
-        console.warn(
-          "[Questions] Suspicious search query blocked:",
-          validation.reason,
-        );
+        questionsLogger.warn("Suspicious search query blocked", {
+          reason: validation.reason,
+          query: params.searchQuery,
+        });
         return {
           success: false,
           error: "Invalid search query",
@@ -245,7 +254,10 @@ export async function getQuestions(params: {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[Questions] Get questions error:", error);
+      questionsLogger.error(
+        "Get questions error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -260,7 +272,10 @@ export async function getQuestions(params: {
       count: count || 0,
     };
   } catch (error: unknown) {
-    console.error("[Questions] Get questions error:", error);
+    questionsLogger.error(
+      "Get questions error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -375,16 +390,20 @@ export async function answerQuestion(questionId: string, answerText: string) {
     // Call Google My Business API
     const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers`;
 
-    const response = await fetch(gmbApiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      gmbApiUrl,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: answerText.trim(),
+        }),
       },
-      body: JSON.stringify({
-        text: answerText.trim(),
-      }),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -441,7 +460,13 @@ export async function answerQuestion(questionId: string, answerText: string) {
       .eq("id", questionId);
 
     if (updateError) {
-      console.error("[Questions] Database update error:", updateError);
+      questionsLogger.error(
+        "Database update error",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { questionId },
+      );
       // Don't fail if database update fails - answer was posted to Google
     }
 
@@ -456,7 +481,11 @@ export async function answerQuestion(questionId: string, answerText: string) {
       message: "Answer posted successfully!",
     };
   } catch (error: unknown) {
-    console.error("[Questions] Answer question error:", error);
+    questionsLogger.error(
+      "Answer question error",
+      error instanceof Error ? error : new Error(String(error)),
+      { questionId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to post answer",
@@ -564,16 +593,20 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
     // Call Google API
     const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
 
-    const response = await fetch(gmbApiUrl, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      gmbApiUrl,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: newAnswerText.trim(),
+        }),
       },
-      body: JSON.stringify({
-        text: newAnswerText.trim(),
-      }),
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -610,7 +643,13 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       .eq("id", questionId);
 
     if (updateError) {
-      console.error("[Questions] Database update error:", updateError);
+      questionsLogger.error(
+        "Database update error on answer update",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { questionId },
+      );
     }
 
     revalidatePath("/dashboard");
@@ -624,7 +663,11 @@ export async function updateAnswer(questionId: string, newAnswerText: string) {
       message: "Answer updated!",
     };
   } catch (error: unknown) {
-    console.error("[Questions] Update answer error:", error);
+    questionsLogger.error(
+      "Update answer error",
+      error instanceof Error ? error : new Error(String(error)),
+      { questionId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update answer",
@@ -716,12 +759,16 @@ export async function deleteAnswer(questionId: string) {
     // Call Google API
     const gmbApiUrl = `${GMB_API_BASE}/${location.location_id}/questions/${googleQuestionId}/answers/${question.answer_id}`;
 
-    const response = await fetch(gmbApiUrl, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await fetchWithTimeout(
+      gmbApiUrl,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+      API_TIMEOUTS.GOOGLE_API,
+    );
 
     if (!response.ok && response.status !== 404) {
       const errorData = await response.json().catch(() => ({}));
@@ -745,7 +792,13 @@ export async function deleteAnswer(questionId: string) {
       .eq("id", questionId);
 
     if (updateError) {
-      console.error("[Questions] Database update error:", updateError);
+      questionsLogger.error(
+        "Database update error on answer delete",
+        updateError instanceof Error
+          ? updateError
+          : new Error(String(updateError)),
+        { questionId },
+      );
     }
 
     revalidatePath("/dashboard");
@@ -758,7 +811,11 @@ export async function deleteAnswer(questionId: string) {
       message: "Answer deleted!",
     };
   } catch (error: unknown) {
-    console.error("[Questions] Delete answer error:", error);
+    questionsLogger.error(
+      "Delete answer error",
+      error instanceof Error ? error : new Error(String(error)),
+      { questionId },
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete answer",
@@ -815,7 +872,11 @@ export async function bulkAnswerQuestions(
       message: `Answered ${results.success.length} of ${questionIds.length} questions`,
     };
   } catch (error: unknown) {
-    console.error("[Questions] Bulk answer error:", error);
+    questionsLogger.error(
+      "Bulk answer error",
+      error instanceof Error ? error : new Error(String(error)),
+      { count: questionIds.length },
+    );
     return {
       success: false,
       error:
@@ -951,7 +1012,13 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       .select("id");
 
     if (upsertError) {
-      console.error("[Questions] Batch upsert error:", upsertError);
+      questionsLogger.error(
+        "Batch upsert error",
+        upsertError instanceof Error
+          ? upsertError
+          : new Error(String(upsertError)),
+        { count: questionDataset.length },
+      );
       return {
         success: false,
         error: `Failed to sync questions: ${upsertError.message}`,
@@ -984,7 +1051,10 @@ export async function syncQuestionsFromGoogle(locationId: string) {
       data: { synced },
     };
   } catch (error: unknown) {
-    console.error("[Questions] Sync questions error:", error);
+    questionsLogger.error(
+      "Sync questions error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -1037,7 +1107,10 @@ export async function getQuestionStats(
     const { data, error } = await query;
 
     if (error) {
-      console.error("[Questions] Stats error:", error);
+      questionsLogger.error(
+        "Stats error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -1069,7 +1142,10 @@ export async function getQuestionStats(
       data: stats,
     };
   } catch (error: unknown) {
-    console.error("[Questions] Get stats error:", error);
+    questionsLogger.error(
+      "Get stats error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error:
@@ -1110,7 +1186,10 @@ export async function saveAnswerTemplate(
     });
 
     if (error) {
-      console.error("[Questions] Save template error:", error);
+      questionsLogger.error(
+        "Save template error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -1122,7 +1201,10 @@ export async function saveAnswerTemplate(
       message: "Template saved!",
     };
   } catch (error: unknown) {
-    console.error("[Questions] Save template error:", error);
+    questionsLogger.error(
+      "Save template error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to save template",
@@ -1160,7 +1242,10 @@ export async function getAnswerTemplates(category?: string) {
     const { data, error } = await query;
 
     if (error) {
-      console.error("[Questions] Get templates error:", error);
+      questionsLogger.error(
+        "Get templates error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return {
         success: false,
         error: error.message,
@@ -1173,7 +1258,10 @@ export async function getAnswerTemplates(category?: string) {
       data: data || [],
     };
   } catch (error: unknown) {
-    console.error("[Questions] Get templates error:", error);
+    questionsLogger.error(
+      "Get templates error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to get templates",

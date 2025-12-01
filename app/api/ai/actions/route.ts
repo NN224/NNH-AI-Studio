@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 type AIActionResult = {
   success: boolean;
@@ -88,7 +89,10 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("AI Actions API Error:", error);
+    apiLogger.error(
+      "AI Actions API Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Failed to process action" },
       { status: 500 },

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 import { OnboardingDataSchema } from "@/lib/validations/onboarding";
 import { z } from "zod";
 
@@ -266,7 +267,10 @@ export async function completeOnboarding(
       .eq("id", user.id);
 
     if (error) {
-      console.error("[Onboarding] Failed to update profile:", error);
+      logger.error(
+        "Failed to update profile during onboarding",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return { success: false, error: "Failed to complete onboarding" };
     }
 
@@ -274,14 +278,19 @@ export async function completeOnboarding(
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("[Onboarding] Validation error:", error.errors);
+      logger.error("Onboarding validation error", error, {
+        errors: error.errors,
+      });
       return {
         success: false,
         error: `Validation failed: ${error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
       };
     }
 
-    console.error("[Onboarding] Error completing onboarding:", error);
+    logger.error(
+      "Error completing onboarding",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -334,7 +343,11 @@ export async function updateOnboardingTask(
         .eq("id", user.id);
 
       if (error) {
-        console.error("[Onboarding] Failed to update task:", error);
+        logger.error(
+          "Failed to update onboarding task",
+          error instanceof Error ? error : new Error(String(error)),
+          { taskId },
+        );
         return { success: false, error: "Failed to update task" };
       }
     }
@@ -343,14 +356,20 @@ export async function updateOnboardingTask(
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
-      console.error("[Onboarding] Validation error:", error.errors);
+      logger.error("Onboarding task validation error", error, {
+        errors: error.errors,
+      });
       return {
         success: false,
         error: `Validation failed: ${error.errors[0]?.message}`,
       };
     }
 
-    console.error("[Onboarding] Error updating task:", error);
+    logger.error(
+      "Error updating onboarding task",
+      error instanceof Error ? error : new Error(String(error)),
+      { taskId },
+    );
     return { success: false, error: "An unexpected error occurred" };
   }
 }

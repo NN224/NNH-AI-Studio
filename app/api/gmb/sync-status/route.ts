@@ -12,6 +12,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/utils/api-error";
+import { gmbLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +78,13 @@ export async function GET(request: NextRequest) {
     const { data: jobs, error: queryError } = await query;
 
     if (queryError) {
-      console.error("[Sync Status] Query error:", queryError);
+      gmbLogger.error(
+        "Failed to query sync status",
+        queryError instanceof Error
+          ? queryError
+          : new Error(String(queryError)),
+        { userId: user.id, jobId, accountId },
+      );
       return errorResponse(new ApiError("Failed to fetch job status", 500));
     }
 
@@ -138,7 +145,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[Sync Status] Exception:", error);
+    gmbLogger.error(
+      "Sync status endpoint failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
 
     return NextResponse.json(
       {

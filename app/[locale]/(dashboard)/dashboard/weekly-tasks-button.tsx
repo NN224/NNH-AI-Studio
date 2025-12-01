@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { apiLogger } from "@/lib/utils/logger";
 
 export function WeeklyTasksButton() {
   const handleGenerate = () => {
     try {
-      window.dispatchEvent(new Event('dashboard:refresh'));
+      window.dispatchEvent(new Event("dashboard:refresh"));
     } catch (error) {
-      console.error('[WeeklyTasksButton] Error during generation:', error);
+      apiLogger.error(
+        "[WeeklyTasksButton] Error during generation",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   };
 
   return (
-    <Button 
+    <Button
       className="bg-orange-600 hover:bg-orange-700 text-white"
       onClick={handleGenerate}
     >

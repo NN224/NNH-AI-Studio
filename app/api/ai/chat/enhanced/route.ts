@@ -12,6 +12,7 @@ import {
   withAIProtection,
   type AIProtectionContext,
 } from "@/lib/api/with-ai-protection";
+import { apiLogger } from "@/lib/utils/logger";
 import Anthropic from "@anthropic-ai/sdk";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
@@ -156,7 +157,11 @@ async function handleEnhancedChat(
           "I couldn't generate a response.";
       }
     } catch (aiError) {
-      console.error(`AI Provider (${provider}) Error:`, aiError);
+      apiLogger.error(
+        "AI provider error",
+        aiError instanceof Error ? aiError : new Error(String(aiError)),
+        { provider },
+      );
       responseContent = `I apologize, but I'm having trouble processing your request. Please try again or switch to a different AI provider.`;
     }
 
@@ -170,7 +175,10 @@ async function handleEnhancedChat(
       success: true,
     });
   } catch (error) {
-    console.error("Enhanced AI Chat API Error:", error);
+    apiLogger.error(
+      "Enhanced AI Chat API Error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
     return NextResponse.json(
       { error: "Failed to process chat message" },
       { status: 500 },

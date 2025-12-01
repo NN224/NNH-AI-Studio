@@ -1,20 +1,24 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { apiLogger } from "@/lib/utils/logger";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export function ProfileProtectionButton() {
   const router = useRouter();
 
   const handleManage = () => {
     try {
-      router.push('/settings');
-      toast.success('Navigated to Settings successfully!');
-      window.dispatchEvent(new Event('dashboard:refresh'));
+      router.push("/settings");
+      toast.success("Navigated to Settings successfully!");
+      window.dispatchEvent(new Event("dashboard:refresh"));
     } catch (error) {
-      console.error('[ProfileProtectionButton] Navigation error:', error);
-      toast.error('Failed to navigate to Settings. Please try again.');
+      apiLogger.error(
+        "[ProfileProtectionButton] Navigation error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error("Failed to navigate to Settings. Please try again.");
     }
   };
 
