@@ -12,6 +12,7 @@ import { getLocaleFromPathname } from "@/lib/utils/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { PasswordStrength } from "@/components/auth/password-strength";
 import { useTranslations } from "next-intl";
+import { authLogger } from "@/lib/utils/logger";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -66,7 +67,10 @@ export default function ResetPasswordPage() {
       toast.success(t("passwordReset"));
       router.push(`/${locale}/login`);
     } catch (err) {
-      console.error("Reset password error:", err);
+      authLogger.error(
+        "Reset password error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       const errorMessage =
         err instanceof Error ? err.message : "Failed to reset password";
 

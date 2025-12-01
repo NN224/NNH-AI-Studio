@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ClientProfile } from "@/lib/types/database";
+import { authLogger } from "@/lib/utils/logger";
 
 interface BrandProfileContextType {
   profile: ClientProfile | null;
@@ -31,7 +32,9 @@ export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
 
   const fetchProfile = async () => {
     if (!supabase) {
-      console.warn("Supabase client not initialized, skipping profile fetch");
+      authLogger.warn(
+        "Supabase client not initialized, skipping profile fetch",
+      );
       setLoading(false);
       return;
     }
@@ -59,14 +62,20 @@ export function BrandProfileProvider({ children }: BrandProfileProviderProps) {
           // No profile found, use defaults
           setProfile(null);
         } else {
-          console.error("Error fetching client profile:", error);
+          authLogger.error(
+            "Error fetching client profile",
+            error instanceof Error ? error : new Error(String(error)),
+          );
           setProfile(null);
         }
       } else {
         setProfile(data as any);
       }
     } catch (error) {
-      console.error("Error in fetchProfile:", error);
+      authLogger.error(
+        "Error in fetchProfile",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       setProfile(null);
     } finally {
       setLoading(false);

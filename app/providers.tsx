@@ -5,6 +5,7 @@ import { StoreProvider } from "@/components/providers/store-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
+import { logger } from "@/lib/utils/logger";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -32,7 +33,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
             retry: 1,
             // Show error for 5 seconds
             onError: (error) => {
-              console.error("[Mutation Error]:", error);
+              logger.error(
+                "[Mutation Error]",
+                error instanceof Error ? error : new Error(String(error)),
+              );
             },
           },
         },

@@ -1,22 +1,29 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Home, RefreshCw, AlertTriangle } from 'lucide-react'
-import Image from 'next/image'
+import { useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Home, RefreshCw, AlertTriangle } from "lucide-react";
+import Image from "next/image";
+import { logger } from "@/lib/utils/logger";
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Application error:', error)
-  }, [error])
+    logger.error("Application error", error);
+  }, [error]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -48,15 +55,23 @@ export default function Error({
           <CardContent className="space-y-4">
             {error.message && (
               <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
-                <p className="text-sm text-destructive font-medium">{error.message}</p>
+                <p className="text-sm text-destructive font-medium">
+                  {error.message}
+                </p>
                 {error.digest && (
-                  <p className="text-xs text-muted-foreground mt-1">Error ID: {error.digest}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Error ID: {error.digest}
+                  </p>
                 )}
               </div>
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={reset} size="lg" className="gap-2 gradient-orange">
+              <Button
+                onClick={reset}
+                size="lg"
+                className="gap-2 gradient-orange"
+              >
                 <RefreshCw className="w-5 h-5" />
                 Try Again
               </Button>
@@ -71,6 +86,5 @@ export default function Error({
         </Card>
       </div>
     </div>
-  )
+  );
 }
-

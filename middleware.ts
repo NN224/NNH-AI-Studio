@@ -20,6 +20,7 @@ import {
   SECURITY_HEADERS,
   generateCSP,
 } from "./lib/security/headers";
+import { logger } from "@/lib/utils/logger";
 
 // ============================================================================
 // CSRF Validation Helper
@@ -87,7 +88,7 @@ export async function middleware(request: NextRequest) {
   // 1. SECURITY: Block suspicious requests immediately
   // -------------------------------------------------------------------------
   if (isSuspiciousRequest(request)) {
-    console.warn("[Middleware] Blocked suspicious request:", {
+    logger.warn("[Middleware] Blocked suspicious request", {
       ip: getClientIP(request),
       path: pathname,
       userAgent: request.headers.get("user-agent"),
@@ -104,7 +105,7 @@ export async function middleware(request: NextRequest) {
   const rateLimitResponse = await applyEdgeRateLimit(request, rateLimitConfig);
 
   if (rateLimitResponse) {
-    console.warn("[Middleware] Rate limit exceeded:", {
+    logger.warn("[Middleware] Rate limit exceeded", {
       ip: getClientIP(request),
       path: pathname,
       timestamp: new Date().toISOString(),
@@ -134,7 +135,7 @@ export async function middleware(request: NextRequest) {
     const isValidCSRF = validateCSRFMiddleware(request);
 
     if (!isValidCSRF) {
-      console.warn("[SECURITY] CSRF validation failed:", {
+      logger.warn("[SECURITY] CSRF validation failed", {
         ip: getClientIP(request),
         path: pathname,
         method: request.method,
@@ -317,7 +318,7 @@ export async function middleware(request: NextRequest) {
     if (error || !user) {
       // Clear any stale session cookies on session expiry
       if (error?.code === "session_expired") {
-        console.warn(
+        logger.warn(
           "[Middleware] Session expired, clearing cookies and redirecting to login",
         );
       }
@@ -349,7 +350,7 @@ export async function middleware(request: NextRequest) {
         // User has GMB connection, allow access
       } else if (gmbConnectedCookie === "false") {
         // Cookie explicitly says not connected, redirect to home
-        console.warn(
+        logger.warn(
           "[Middleware] GMB not connected (cookie), redirecting to home",
         );
         const homeUrl = new URL(`/${locale}/home`, request.url);
@@ -381,7 +382,7 @@ export async function middleware(request: NextRequest) {
           );
 
           if (!hasGmbConnection) {
-            console.warn(
+            logger.warn(
               "[Middleware] GMB not connected (DB check), redirecting to home",
             );
             const homeUrl = new URL(`/${locale}/home`, request.url);
@@ -400,7 +401,10 @@ export async function middleware(request: NextRequest) {
           }
         } catch (dbError) {
           // On DB error, allow access but log warning
-          console.error("[Middleware] GMB check failed:", dbError);
+          logger.error(
+            "[Middleware] GMB check failed",
+            dbError instanceof Error ? dbError : new Error(String(dbError)),
+          );
         }
       }
     }

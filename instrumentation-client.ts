@@ -8,6 +8,7 @@ import {
   initSentryWithValidation,
   getRuntimeDSN,
 } from "@/lib/services/sentry-config";
+import { logger } from "@/lib/utils/logger";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -48,7 +49,9 @@ const detectReplayIntegration = (
   return false;
 };
 
-const existingClient = Sentry.getClient() as IntegrationLookupClient | undefined;
+const existingClient = Sentry.getClient() as
+  | IntegrationLookupClient
+  | undefined;
 
 if (existingClient && !globalState.__NNH_SENTRY_CLIENT_INITIALIZED__) {
   globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ = true;
@@ -66,8 +69,7 @@ const shouldInitializeClient =
   globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ !== true;
 const shouldAttachReplay = !globalState.__NNH_SENTRY_REPLAY_CONFIGURED__;
 
-let sentryInitialized =
-  globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ === true;
+let sentryInitialized = globalState.__NNH_SENTRY_CLIENT_INITIALIZED__ === true;
 
 if (shouldInitializeClient) {
   const customIntegrations = shouldAttachReplay
@@ -87,7 +89,7 @@ if (shouldInitializeClient) {
     }
   }
 } else if (shouldAttachReplay) {
-  console.warn(
+  logger.warn(
     "Sentry client already initialized; skipping additional Replay integration to avoid duplicate instances.",
   );
 }

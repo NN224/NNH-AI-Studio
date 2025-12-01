@@ -24,6 +24,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { gmbLogger } from "@/lib/utils/logger";
 
 // ============================================================================
 // Types
@@ -140,7 +141,10 @@ export default function SelectAccountPage() {
           setStep("select-locations");
         }
       } catch (err) {
-        console.error("Error loading accounts:", err);
+        gmbLogger.error(
+          "Error loading accounts",
+          err instanceof Error ? err : new Error(String(err)),
+        );
         setError("Failed to load accounts. Please try again.");
       } finally {
         setIsLoadingAccounts(false);
@@ -181,7 +185,11 @@ export default function SelectAccountPage() {
       // Auto-select all locations by default
       setSelectedLocationNames(new Set(fetchedLocations.map((l) => l.name)));
     } catch (err) {
-      console.error("Error fetching locations:", err);
+      gmbLogger.error(
+        "Error fetching locations",
+        err instanceof Error ? err : new Error(String(err)),
+        { accountId },
+      );
       setError(
         err instanceof Error ? err.message : "Failed to fetch locations",
       );
@@ -275,7 +283,14 @@ export default function SelectAccountPage() {
       // Redirect to dashboard
       router.push("/dashboard?newUser=true");
     } catch (err) {
-      console.error("Error importing locations:", err);
+      gmbLogger.error(
+        "Error importing locations",
+        err instanceof Error ? err : new Error(String(err)),
+        {
+          accountId: selectedAccount.id,
+          selectedCount: selectedLocationNames.size,
+        },
+      );
       setError(
         err instanceof Error ? err.message : "Failed to import locations",
       );

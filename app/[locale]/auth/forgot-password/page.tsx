@@ -11,6 +11,7 @@ import { getLocaleFromPathname } from "@/lib/utils/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+import { authLogger } from "@/lib/utils/logger";
 
 export default function ForgotPasswordPage() {
   const pathname = usePathname();
@@ -49,7 +50,10 @@ export default function ForgotPasswordPage() {
       setShowSuccess(true);
       toast.success(t("emailSent"));
     } catch (err) {
-      console.error("Forgot password error:", err);
+      authLogger.error(
+        "Forgot password error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       const errorMessage =
         err instanceof Error ? err.message : "Failed to send reset email";
       setError(errorMessage);

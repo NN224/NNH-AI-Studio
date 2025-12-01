@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getRedirectUrl } from "@/lib/utils/navigation";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { useTranslations, useLocale } from "next-intl";
+import { authLogger } from "@/lib/utils/logger";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -45,7 +46,11 @@ function LoginPageContent() {
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
-      console.error("Login error:", err);
+      authLogger.error(
+        "Login error",
+        err instanceof Error ? err : new Error(String(err)),
+        { email },
+      );
       const errorMessage =
         err instanceof Error ? err.message : "Failed to sign in";
 

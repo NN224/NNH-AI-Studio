@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, Phone, MessageSquare, Clock, Send } from "lucide-react";
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/utils/logger";
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +60,10 @@ export default function ContactPage() {
         (e.target as HTMLFormElement).reset();
       }, 3000);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      logger.error(
+        "Error submitting form",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       alert("Failed to submit form. Please try again.");
     } finally {
       setIsSubmitting(false);

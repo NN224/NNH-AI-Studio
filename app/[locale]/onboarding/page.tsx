@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { getDashboardUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
 import { usePathname } from "next/navigation";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface OnboardingStep {
   id: number;
@@ -124,7 +125,10 @@ export default function OnboardingPage() {
       toast.success("Setup complete! Welcome to NNH AI Studio 🎉");
       router.push(getDashboardUrl(locale));
     } catch (error) {
-      console.error("Error completing onboarding:", error);
+      gmbLogger.error(
+        "Error completing onboarding",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to complete setup. Please try again.");
     } finally {
       setIsLoading(false);
@@ -276,7 +280,10 @@ function ConnectGMBStep({
       // Trigger GMB OAuth flow
       window.location.href = "/api/gmb/oauth";
     } catch (error) {
-      console.error("GMB connection error:", error);
+      gmbLogger.error(
+        "GMB connection error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error("Failed to connect. Please try again.");
       setIsConnecting(false);
     }

@@ -10,6 +10,7 @@ import {
   AutomationStatsCard,
   AutomationTemplates,
 } from "./AutomationComponents";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface AutomationSummaryResponse {
   settings: AutomationSettingsSummary[];
@@ -46,7 +47,12 @@ export default function AutomationPage() {
         }
       } catch (fetchError) {
         if (!cancelled) {
-          console.error("[AutomationPage] Failed to load summary", fetchError);
+          gmbLogger.error(
+            "[AutomationPage] Failed to load summary",
+            fetchError instanceof Error
+              ? fetchError
+              : new Error(String(fetchError)),
+          );
           setError(
             fetchError instanceof Error
               ? fetchError.message

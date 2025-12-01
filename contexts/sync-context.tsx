@@ -12,6 +12,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { syncLogger } from "@/lib/utils/logger";
 
 // ============================================================================
 // Types
@@ -371,7 +372,9 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
         }
       };
     } catch (error) {
-      console.warn("[SyncContext] BroadcastChannel not supported:", error);
+      syncLogger.warn("[SyncContext] BroadcastChannel not supported", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return () => {
@@ -475,7 +478,9 @@ export function SyncProvider({ children, userId }: SyncProviderProps) {
           }
         }
       } catch (error) {
-        console.warn("[SyncContext] Polling error:", error);
+        syncLogger.warn("[SyncContext] Polling error", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }, 3000); // Poll every 3 seconds
 

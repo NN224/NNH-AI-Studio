@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { syncLogger } from "@/lib/utils/logger";
 
 /**
  * Sync Progress Page
@@ -66,7 +67,11 @@ export default function SyncProgressPage() {
         .eq("is_active", true);
 
       if (error) {
-        console.error("[SyncProgress] Error checking locations:", error);
+        syncLogger.error(
+          "[SyncProgress] Error checking locations",
+          error instanceof Error ? error : new Error(String(error)),
+          { userId: user.id },
+        );
         return false;
       }
 
@@ -75,7 +80,10 @@ export default function SyncProgressPage() {
 
       return locationCount >= MIN_LOCATIONS_REQUIRED;
     } catch (err) {
-      console.error("[SyncProgress] Error:", err);
+      syncLogger.error(
+        "[SyncProgress] Error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
       return false;
     }
   }, [supabase]);

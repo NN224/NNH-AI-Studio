@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { PasswordStrength } from "@/components/auth/password-strength";
 import { useTranslations, useLocale } from "next-intl";
+import { authLogger } from "@/lib/utils/logger";
 
 export default function SignupPage() {
   const locale = useLocale() as "en" | "ar";
@@ -77,7 +78,11 @@ export default function SignupPage() {
       setShowSuccess(true);
       toast.success(t("accountCreated"));
     } catch (err) {
-      console.error("Signup error:", err);
+      authLogger.error(
+        "Signup error",
+        err instanceof Error ? err : new Error(String(err)),
+        { email },
+      );
       const errorMessage =
         err instanceof Error ? err.message : "Failed to sign up";
 
@@ -109,7 +114,11 @@ export default function SignupPage() {
         });
       }, 1000);
     } catch (err) {
-      console.error("Resend error:", err);
+      authLogger.error(
+        "Resend error",
+        err instanceof Error ? err : new Error(String(err)),
+        { email: userEmail },
+      );
       toast.error("Failed to resend email");
       setResendCooldown(0);
     }

@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ProfileCompletenessCard } from "./ProfileCompletenessCard";
 import { BusinessInfoTab, FeaturesTab } from "./TabComponents";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface TabDefinition {
   readonly id: TabKey;
@@ -280,10 +281,16 @@ export default function BusinessProfilePage() {
                         id: loadingToast,
                       },
                     );
-                    console.error("[Import GMB] Error:", data);
+                    gmbLogger.error(
+                      "[Import GMB] Error",
+                      data instanceof Error ? data : new Error(String(data)),
+                    );
                   }
                 } catch (error) {
-                  console.error("[Import GMB] Exception:", error);
+                  gmbLogger.error(
+                    "[Import GMB] Exception",
+                    error instanceof Error ? error : new Error(String(error)),
+                  );
                   toast.error("Import failed - please check your connection", {
                     id: loadingToast,
                   });

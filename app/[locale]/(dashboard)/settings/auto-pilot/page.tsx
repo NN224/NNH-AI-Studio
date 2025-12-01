@@ -1,81 +1,96 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Bot, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertCircle, 
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Bot,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
   Clock,
   TrendingUp,
-  Star
-} from 'lucide-react'
-import { toast } from 'sonner'
-import type { AutoReplySettings } from '@/server/actions/auto-reply'
-import { ActivityStatsCard } from '@/components/settings/activity-stats-card'
-import { TestAutoReplySection } from '@/components/settings/test-auto-reply-section'
+  Star,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { AutoReplySettings } from "@/server/actions/auto-reply";
+import { ActivityStatsCard } from "@/components/settings/activity-stats-card";
+import { TestAutoReplySection } from "@/components/settings/test-auto-reply-section";
+import { reviewsLogger } from "@/lib/utils/logger";
 
 export default function AutoPilotPage() {
-  const [settings, setSettings] = useState<AutoReplySettings | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [settings, setSettings] = useState<AutoReplySettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Load settings
   useEffect(() => {
-    loadSettings()
-  }, [])
+    loadSettings();
+  }, []);
 
   async function loadSettings() {
     try {
-      setLoading(true)
-      const response = await fetch('/api/reviews/auto-reply')
-      const data = await response.json()
-      
+      setLoading(true);
+      const response = await fetch("/api/reviews/auto-reply");
+      const data = await response.json();
+
       if (data.settings) {
-        setSettings(data.settings)
+        setSettings(data.settings);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error)
-      toast.error('فشل تحميل الإعدادات')
+      reviewsLogger.error(
+        "Failed to load settings",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error("فشل تحميل الإعدادات");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function saveSettings() {
-    if (!settings) return
+    if (!settings) return;
 
     try {
-      setSaving(true)
-      
+      setSaving(true);
+
       // Use saveAutoReplySettings directly to save all settings including per-rating
-      const { saveAutoReplySettings } = await import('@/server/actions/auto-reply')
-      const result = await saveAutoReplySettings(settings)
+      const { saveAutoReplySettings } = await import(
+        "@/server/actions/auto-reply"
+      );
+      const result = await saveAutoReplySettings(settings);
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to save')
+        throw new Error(result.error || "Failed to save");
       }
 
-      toast.success('✅ تم الحفظ بنجاح')
+      toast.success("✅ تم الحفظ بنجاح");
     } catch (error) {
-      console.error('Failed to save settings:', error)
-      toast.error('فشل الحفظ')
+      reviewsLogger.error(
+        "Failed to save settings",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      toast.error("فشل الحفظ");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   function updateSetting<K extends keyof AutoReplySettings>(
     key: K,
-    value: AutoReplySettings[K]
+    value: AutoReplySettings[K],
   ) {
-    if (!settings) return
-    setSettings({ ...settings, [key]: value })
+    if (!settings) return;
+    setSettings({ ...settings, [key]: value });
   }
 
   if (loading) {
@@ -86,7 +101,7 @@ export default function AutoPilotPage() {
           <p className="text-zinc-400">جاري التحميل...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!settings) {
@@ -97,7 +112,7 @@ export default function AutoPilotPage() {
           <p className="text-zinc-400">فشل تحميل الإعدادات</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -113,10 +128,14 @@ export default function AutoPilotPage() {
             ردود تلقائية فورية على المراجعات والأسئلة
           </p>
         </div>
-        
-        <Badge 
+
+        <Badge
           variant={settings.enabled ? "default" : "outline"}
-          className={settings.enabled ? "bg-green-500/20 text-green-400 border-green-500/30" : ""}
+          className={
+            settings.enabled
+              ? "bg-green-500/20 text-green-400 border-green-500/30"
+              : ""
+          }
         >
           {settings.enabled ? "🟢 مُفعّل" : "⚪ معطّل"}
         </Badge>
@@ -130,8 +149,8 @@ export default function AutoPilotPage() {
             الرد التلقائي على المراجعات
           </CardTitle>
           <CardDescription>
-            {settings.requireApproval 
-              ? "⚠️ يتطلب الموافقة قبل الإرسال" 
+            {settings.requireApproval
+              ? "⚠️ يتطلب الموافقة قبل الإرسال"
               : "✅ رد فوري (خلال دقيقة واحدة)"}
           </CardDescription>
         </CardHeader>
@@ -145,7 +164,7 @@ export default function AutoPilotPage() {
             </div>
             <Switch
               checked={settings.enabled}
-              onCheckedChange={(checked) => updateSetting('enabled', checked)}
+              onCheckedChange={(checked) => updateSetting("enabled", checked)}
               className="data-[state=checked]:bg-orange-500"
             />
           </div>
@@ -155,7 +174,9 @@ export default function AutoPilotPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5" />
                 <div>
-                  <p className="text-green-300 font-medium">الوضع الفوري مُفعّل!</p>
+                  <p className="text-green-300 font-medium">
+                    الوضع الفوري مُفعّل!
+                  </p>
                   <p className="text-green-400/80 text-sm mt-1">
                     سيتم الرد على المراجعات خلال أقل من دقيقة
                   </p>
@@ -180,20 +201,44 @@ export default function AutoPilotPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { key: 'autoReply5Star' as const, label: '⭐⭐⭐⭐⭐ 5 نجوم', color: 'text-green-400' },
-              { key: 'autoReply4Star' as const, label: '⭐⭐⭐⭐ 4 نجوم', color: 'text-green-300' },
-              { key: 'autoReply3Star' as const, label: '⭐⭐⭐ 3 نجوم', color: 'text-yellow-400' },
-              { key: 'autoReply2Star' as const, label: '⭐⭐ 2 نجوم', color: 'text-orange-400' },
-              { key: 'autoReply1Star' as const, label: '⭐ 1 نجمة', color: 'text-red-400' },
+              {
+                key: "autoReply5Star" as const,
+                label: "⭐⭐⭐⭐⭐ 5 نجوم",
+                color: "text-green-400",
+              },
+              {
+                key: "autoReply4Star" as const,
+                label: "⭐⭐⭐⭐ 4 نجوم",
+                color: "text-green-300",
+              },
+              {
+                key: "autoReply3Star" as const,
+                label: "⭐⭐⭐ 3 نجوم",
+                color: "text-yellow-400",
+              },
+              {
+                key: "autoReply2Star" as const,
+                label: "⭐⭐ 2 نجوم",
+                color: "text-orange-400",
+              },
+              {
+                key: "autoReply1Star" as const,
+                label: "⭐ 1 نجمة",
+                color: "text-red-400",
+              },
             ].map((rating) => (
-              <div 
+              <div
                 key={rating.key}
                 className="flex items-center justify-between p-3 bg-zinc-950/50 rounded-lg border border-zinc-800"
               >
-                <Label className={`text-base ${rating.color}`}>{rating.label}</Label>
+                <Label className={`text-base ${rating.color}`}>
+                  {rating.label}
+                </Label>
                 <Switch
                   checked={settings[rating.key] ?? true}
-                  onCheckedChange={(checked) => updateSetting(rating.key, checked)}
+                  onCheckedChange={(checked) =>
+                    updateSetting(rating.key, checked)
+                  }
                   className="data-[state=checked]:bg-orange-500"
                 />
               </div>
@@ -214,18 +259,30 @@ export default function AutoPilotPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'friendly', label: '😊 ودود', desc: 'دافئ ومرحب' },
-                { value: 'professional', label: '💼 احترافي', desc: 'رسمي ومهني' },
-                { value: 'apologetic', label: '🙏 اعتذاري', desc: 'للردود السلبية' },
-                { value: 'marketing', label: '🎯 تسويقي', desc: 'ترويجي ومشجع' },
+                { value: "friendly", label: "😊 ودود", desc: "دافئ ومرحب" },
+                {
+                  value: "professional",
+                  label: "💼 احترافي",
+                  desc: "رسمي ومهني",
+                },
+                {
+                  value: "apologetic",
+                  label: "🙏 اعتذاري",
+                  desc: "للردود السلبية",
+                },
+                {
+                  value: "marketing",
+                  label: "🎯 تسويقي",
+                  desc: "ترويجي ومشجع",
+                },
               ].map((tone) => (
                 <button
                   key={tone.value}
-                  onClick={() => updateSetting('tone', tone.value as any)}
+                  onClick={() => updateSetting("tone", tone.value as any)}
                   className={`p-4 rounded-lg border-2 text-right transition-all ${
                     settings.tone === tone.value
-                      ? 'border-orange-500 bg-orange-950/30'
-                      : 'border-zinc-800 bg-zinc-950/30 hover:border-zinc-700'
+                      ? "border-orange-500 bg-orange-950/30"
+                      : "border-zinc-800 bg-zinc-950/30 hover:border-zinc-700"
                   }`}
                 >
                   <div className="font-medium text-white">{tone.label}</div>
@@ -250,9 +307,9 @@ export default function AutoPilotPage() {
           disabled={saving}
           className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
         >
-          {saving ? 'جاري الحفظ...' : '💾 حفظ الإعدادات'}
+          {saving ? "جاري الحفظ..." : "💾 حفظ الإعدادات"}
         </Button>
-        
+
         <Button
           onClick={loadSettings}
           variant="outline"
@@ -262,6 +319,5 @@ export default function AutoPilotPage() {
         </Button>
       </div>
     </div>
-  )
+  );
 }
-

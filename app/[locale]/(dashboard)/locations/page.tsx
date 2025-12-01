@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/card";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
 import { useRouter } from "next/navigation";
+import { gmbLogger } from "@/lib/utils/logger";
 
 const QuickActionButton = ({
   icon: Icon,
@@ -173,7 +174,10 @@ export default function LocationsPage() {
         "[LocationsPage] Locations exported, dashboard refresh triggered",
       );
     } catch (error) {
-      console.error("Export error:", error);
+      gmbLogger.error(
+        "Export error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error(
         error instanceof Error ? error.message : "Failed to export locations",
       );

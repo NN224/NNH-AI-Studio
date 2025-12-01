@@ -16,6 +16,7 @@ import {
   Globe,
 } from "lucide-react";
 import { useState } from "react";
+import { logger } from "@/lib/utils/logger";
 
 interface ServiceStatus {
   name: string;
@@ -106,7 +107,10 @@ export default function StatusPage() {
         setMaintenance(data.maintenance || []);
         setLastUpdated(new Date().toLocaleString());
       } catch (error) {
-        console.error("Failed to fetch status:", error);
+        logger.error(
+          "Failed to fetch status",
+          error instanceof Error ? error : new Error(String(error)),
+        );
         // Use fallback data
         setServices([
           {
@@ -485,7 +489,13 @@ export default function StatusPage() {
                             setEmail("");
                           }
                         } catch (error) {
-                          console.error("Failed to subscribe:", error);
+                          logger.error(
+                            "Failed to subscribe",
+                            error instanceof Error
+                              ? error
+                              : new Error(String(error)),
+                            { email },
+                          );
                         }
                       }}
                       className="flex gap-2 max-w-md mx-auto"

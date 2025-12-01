@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 import { ZodError } from "zod";
 import { errorResponse } from "@/lib/utils/api-response";
+import { logger } from "@/lib/utils/logger";
 
 type ValidationErrorResponse = {
   success: false;
@@ -29,7 +30,7 @@ function logValidationFailure(
   error: ZodError,
 ) {
   const url = new URL(request.url);
-  console.warn("[Validation] Request failed", {
+  logger.warn("[Validation] Request failed", {
     type,
     path: url.pathname,
     method: request.method,

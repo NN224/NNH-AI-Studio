@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
+import { gmbLogger } from "@/lib/utils/logger";
 
 interface Question {
   id: string;
@@ -275,7 +276,11 @@ export function QuestionCard({
         alert(error.error || "Failed to submit answer. Please try again.");
       }
     } catch (error) {
-      console.error("Error submitting answer:", error);
+      gmbLogger.error(
+        "Error submitting answer",
+        error instanceof Error ? error : new Error(String(error)),
+        { questionId: question.id, locationId: question.location_id },
+      );
       alert("Failed to submit answer. Please try again.");
     } finally {
       setLoading(false);

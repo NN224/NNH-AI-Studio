@@ -17,6 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { apiLogger } from "@/lib/utils/logger";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
@@ -84,17 +85,14 @@ export class ApiError extends Error {
 export function errorResponse(error: unknown): NextResponse {
   // Log full error internally
   if (error instanceof Error) {
-    console.error("[API Error]", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
+    apiLogger.error("[API Error]", error, {
       ...(error instanceof ApiError && {
         status: error.status,
         code: error.code,
       }),
     });
   } else {
-    console.error("[API Error]", error);
+    apiLogger.error("[API Error]", new Error(String(error)));
   }
 
   // Handle our ApiError class

@@ -125,6 +125,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 ChartJS.register(
   CategoryScale,
@@ -577,7 +578,10 @@ function YoutubeDashboardContent() {
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (e) {
-      console.error("Failed to fetch notifications:", e);
+      logger.error(
+        "Failed to fetch notifications",
+        e instanceof Error ? e : new Error(String(e)),
+      );
     } finally {
       setNotificationsLoading(false);
     }
@@ -600,7 +604,11 @@ function YoutubeDashboardContent() {
       });
       fetchNotifications();
     } catch (e) {
-      console.error("Failed to mark as read:", e);
+      logger.error(
+        "Failed to mark as read",
+        e instanceof Error ? e : new Error(String(e)),
+        { notificationId: id },
+      );
     }
   };
 
@@ -719,7 +727,12 @@ function YoutubeDashboardContent() {
               setActiveTab("manager");
             }, 1000);
           } catch (refreshError) {
-            console.error("Failed to refresh videos:", refreshError);
+            logger.error(
+              "Failed to refresh videos",
+              refreshError instanceof Error
+                ? refreshError
+                : new Error(String(refreshError)),
+            );
             // Still switch to manager even if refresh fails
             setTimeout(() => {
               setActiveTab("manager");
@@ -738,7 +751,10 @@ function YoutubeDashboardContent() {
       xhr.open("POST", "/api/youtube/videos/upload");
       xhr.send(formData);
     } catch (error: any) {
-      console.error("Upload error:", error);
+      logger.error(
+        "Upload error",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       toast.error(error.message || "Failed to upload video");
       setUploadStage("details");
       setUploadProgress(0);
