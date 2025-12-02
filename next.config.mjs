@@ -134,12 +134,14 @@ const nextConfig = {
         // Additional headers for API routes
         source: "/api/:path*",
         headers: [
-          // CORS headers for API (adjust origin as needed)
+          // CORS headers for API - uses environment variable for flexibility
           {
             key: "Access-Control-Allow-Origin",
             value:
               process.env.NODE_ENV === "production"
-                ? "https://nnh.ae"
+                ? process.env.NEXT_PUBLIC_APP_URL ||
+                  process.env.APP_URL ||
+                  "https://nnh.ae"
                 : "http://localhost:5050",
           },
           {
