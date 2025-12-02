@@ -61,10 +61,12 @@ const PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
 // Paths that should be excluded from CSRF protection
 // These have their own authentication mechanisms
 const EXCLUDED_PATHS = [
-  // OAuth callbacks (use state parameter for CSRF)
+  // OAuth flow (use state parameter for CSRF)
   "/api/auth/callback",
   "/api/gmb/oauth-callback",
+  "/api/gmb/create-auth-url",
   "/api/youtube/oauth-callback",
+  "/api/youtube/create-auth-url",
 
   // Webhooks (use signature verification)
   "/api/webhook",
