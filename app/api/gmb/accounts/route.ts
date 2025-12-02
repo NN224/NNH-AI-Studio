@@ -1,7 +1,7 @@
 // GMB Accounts API - Returns list of connected GMB accounts for authenticated user
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         account_name,
         email,
         is_active,
-        last_sync,
+        last_synced_at,
         created_at,
         token_expires_at,
         gmb_locations (
