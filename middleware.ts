@@ -378,16 +378,16 @@ export async function middleware(request: NextRequest) {
         homeUrl.searchParams.set("gmb_required", "true");
         return NextResponse.redirect(homeUrl);
       } else {
-        // No cookie - redirect to home to check GMB status
-        // IMPORTANT: Don't call DB from middleware (Edge Runtime limitations)
-        // The layout.tsx will check GMB status and set the cookie
+        // No cookie - allow access, let layout.tsx handle GMB check
+        // The dashboard layout will show GMBOnboardingView if not connected
+        // This avoids redirect loops and DB calls in middleware
         logger.info(
-          "[Middleware] No GMB cookie, redirecting to home for GMB check",
+          "[Middleware] No GMB cookie, allowing access - layout will handle",
         );
-        const homeUrl = new URL(`/${locale}/home`, request.url);
-        homeUrl.searchParams.set("check_gmb", "true");
-        homeUrl.searchParams.set("intended", pathname);
-        return NextResponse.redirect(homeUrl);
+        // Don't redirect - the layout.tsx will:
+        // 1. Check GMB status via useGMBStatus()
+        // 2. Set the cookie for future requests
+        // 3. Show GMBOnboardingView if not connected
       }
     }
   }
