@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest) {
     let { data: account, error: dbError } = await supabase
       .from("gmb_accounts")
       .select(
-        "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at",
+        "id, account_id, account_name, email, is_active, last_sync, created_at, token_expires_at",
       )
       .eq("user_id", user.id)
       .eq("is_active", true)
@@ -34,7 +34,7 @@ export async function GET(_request: NextRequest) {
       const { data: inactiveAccount } = await supabase
         .from("gmb_accounts")
         .select(
-          "id, account_id, account_name, email, is_active, last_synced_at, created_at, token_expires_at",
+          "id, account_id, account_name, email, is_active, last_sync, created_at, token_expires_at",
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -96,7 +96,7 @@ export async function GET(_request: NextRequest) {
             is_active: account.is_active,
           }
         : null,
-      lastSync: account?.last_synced_at || null,
+      lastSync: account?.last_sync || null,
       hasLocations: (locationsCount || 0) > 0,
       locationsCount: locationsCount || 0,
     };

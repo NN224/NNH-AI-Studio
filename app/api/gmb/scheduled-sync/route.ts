@@ -27,12 +27,9 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
     const isMonday = dayOfWeek === 1;
 
     // Fetch all active accounts with their sync schedules
-    // Note: Column might be 'last_sync' or 'last_synced_at' depending on DB version
     const { data: accounts, error: accountsError } = await supabase
       .from("gmb_accounts")
-      .select(
-        "id, user_id, account_name, settings, is_active, last_sync, last_synced_at",
-      )
+      .select("id, user_id, account_name, settings, is_active, last_sync")
       .eq("is_active", true);
 
     if (accountsError) {
@@ -96,10 +93,8 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
 
       if (shouldSync) {
         // Check if we already synced recently (within last 30 minutes for hourly, to prevent duplicate syncs)
-        // Handle both column names for compatibility
-        const lastSyncValue = account.last_sync || account.last_synced_at;
-        if (syncSchedule === "hourly" && lastSyncValue) {
-          const lastSyncTime = new Date(lastSyncValue);
+        if (syncSchedule === "hourly" && account.last_sync) {
+          const lastSyncTime = new Date(account.last_sync);
           const minutesSinceLastSync =
             (now.getTime() - lastSyncTime.getTime()) / 1000 / 60;
           if (minutesSinceLastSync < 30) {

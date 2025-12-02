@@ -36,7 +36,7 @@ export async function GET() {
     // Check GMB connection
     const { data: gmbAccounts } = await supabase
       .from("gmb_accounts")
-      .select("id, account_name, account_id, is_active, last_synced_at")
+      .select("id, account_name, account_id, is_active, last_sync")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1);
@@ -70,7 +70,7 @@ export async function GET() {
       hasYoutubeConnection,
       gmbAccount,
       youtubeChannelId,
-      lastGmbSync: gmbAccounts?.[0]?.last_synced_at || null,
+      lastGmbSync: gmbAccounts?.[0]?.last_sync || null,
       lastYoutubeSync: youtubeTokens?.[0]?.updated_at || null,
     });
   } catch (error) {

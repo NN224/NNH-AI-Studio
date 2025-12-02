@@ -28,7 +28,7 @@ export async function GET() {
     // ✅ Use regular client - RLS filters by user_id automatically
     const { data: gmbAccount, error: gmbAccountError } = await supabase
       .from("gmb_accounts")
-      .select("id, account_name, is_active, last_synced_at, last_error")
+      .select("id, account_name, is_active, last_sync, last_error")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -139,7 +139,7 @@ export async function GET() {
           id: gmbAccount.id,
           account_name: gmbAccount.account_name,
           is_active: gmbAccount.is_active,
-          last_sync: gmbAccount.last_synced_at,
+          last_sync: gmbAccount.last_sync,
           last_error: gmbAccount.last_error,
         },
       },
