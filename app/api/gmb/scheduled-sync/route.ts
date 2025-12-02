@@ -33,14 +33,14 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
       .eq("is_active", true);
 
     if (accountsError) {
+      const errorMessage =
+        accountsError.message || JSON.stringify(accountsError);
       gmbLogger.error(
         "Error fetching accounts for scheduled sync",
-        accountsError instanceof Error
-          ? accountsError
-          : new Error(String(accountsError)),
+        new Error(errorMessage),
       );
       return NextResponse.json(
-        { error: "Failed to fetch accounts", details: accountsError.message },
+        { error: "Failed to fetch accounts", details: errorMessage },
         { status: 500 },
       );
     }
@@ -163,11 +163,11 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
           .single();
 
         if (enqueueError) {
+          const enqueueErrorMsg =
+            enqueueError.message || JSON.stringify(enqueueError);
           gmbLogger.error(
             "Failed to enqueue scheduled sync job",
-            enqueueError instanceof Error
-              ? enqueueError
-              : new Error(String(enqueueError)),
+            new Error(enqueueErrorMsg),
             {
               accountId,
               accountName: account.account_name,
@@ -178,7 +178,7 @@ async function handleScheduledSync(_request: Request): Promise<Response> {
             accountId,
             accountName: account.account_name,
             status: "error",
-            error: enqueueError.message,
+            error: enqueueErrorMsg,
           });
           continue;
         }
