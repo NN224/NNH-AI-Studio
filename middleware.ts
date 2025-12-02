@@ -347,7 +347,12 @@ export async function middleware(request: NextRequest) {
 
   const isGmbRequiredRoute = gmbRequiredPaths.some((path) => pathname.includes(path))
 
-  if (isProtectedRoute) {
+  // Skip auth check for admin routes on admin subdomain (handled separately above)
+  const isAdminRoute = pathname.includes('/admin')
+  const skipAuthForAdmin =
+    isAdminRoute && (hostname.startsWith('admin.') || pathname.includes('/admin/auth'))
+
+  if (isProtectedRoute && !skipAuthForAdmin) {
     const {
       data: { user },
       error,
