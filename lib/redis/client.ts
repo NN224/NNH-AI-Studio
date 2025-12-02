@@ -1,69 +1,67 @@
-import { apiLogger } from "@/lib/utils/logger";
-import { Redis } from "@upstash/redis";
+import { apiLogger } from '@/lib/utils/logger'
+import { Redis } from '@upstash/redis'
 
-let redisClient: Redis | null = null;
-let redisUnavailable = false;
-let retryTimer: NodeJS.Timeout | null = null;
+let redisClient: Redis | null = null
+let redisUnavailable = false
+let retryTimer: NodeJS.Timeout | null = null
 
 function scheduleRetryWindow() {
   if (retryTimer) {
-    return;
+    return
   }
   retryTimer = setTimeout(() => {
-    redisUnavailable = false;
-    retryTimer = null;
-  }, 30_000);
-  retryTimer.unref?.();
+    redisUnavailable = false
+    retryTimer = null
+  }, 30_000)
+  retryTimer.unref?.()
 }
 
 export function getRedisClient(): Redis | null {
   if (redisUnavailable) {
-    return null;
+    return null
   }
 
   if (redisClient) {
-    return redisClient;
+    return redisClient
   }
 
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Support both old and new environment variable names
+  const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+  const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
 
   // Upstash Redis requires both URL and token
   if (!redisUrl || !redisToken) {
-    apiLogger.warn("Redis not configured - Falling back to in-memory locks");
-    redisUnavailable = true;
-    scheduleRetryWindow();
-    return null;
+    apiLogger.warn('Redis not configured - Falling back to in-memory locks')
+    redisUnavailable = true
+    scheduleRetryWindow()
+    return null
   }
 
   try {
     redisClient = new Redis({
       url: redisUrl,
       token: redisToken,
-    });
+    })
   } catch (error) {
     apiLogger.error(
-      "Failed to initialize Redis client",
+      'Failed to initialize Redis client',
       error instanceof Error ? error : new Error(String(error)),
-    );
-    redisUnavailable = true;
-    scheduleRetryWindow();
-    return null;
+    )
+    redisUnavailable = true
+    scheduleRetryWindow()
+    return null
   }
 
-  return redisClient;
+  return redisClient
 }
 
 export function markRedisAsUnavailable(reason?: unknown) {
   if (reason) {
-    apiLogger.warn(
-      "Marking Redis client as unavailable - Falling back to in-memory locks",
-      {
-        reason,
-      },
-    );
+    apiLogger.warn('Marking Redis client as unavailable - Falling back to in-memory locks', {
+      reason,
+    })
   }
-  redisUnavailable = true;
-  redisClient = null;
-  scheduleRetryWindow();
+  redisUnavailable = true
+  redisClient = null
+  scheduleRetryWindow()
 }

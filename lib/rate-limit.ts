@@ -10,98 +10,100 @@
  * Falls back to in-memory rate limiting if Upstash is not configured.
  */
 
+import { getClientIP } from '@/lib/security/edge-rate-limit'
+import { isKnownBot, getIPRateLimitKey } from '@/lib/utils/get-client-ip'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
 interface RateLimitResult {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
-  headers: Record<string, string>;
+  success: boolean
+  limit: number
+  remaining: number
+  reset: number
+  headers: Record<string, string>
 }
 
-type UpstashRateLimitModule = typeof import("@upstash/ratelimit");
-type UpstashRedisModule = typeof import("@upstash/redis");
+type UpstashRateLimitModule = typeof import('@upstash/ratelimit')
+type UpstashRedisModule = typeof import('@upstash/redis')
 
-type RedisConstructor = UpstashRedisModule["Redis"];
-type RedisInstance = InstanceType<RedisConstructor>;
+type RedisConstructor = UpstashRedisModule['Redis']
+type RedisInstance = InstanceType<RedisConstructor>
 
 type UpstashDeps = {
-  Ratelimit: UpstashRateLimitModule["Ratelimit"];
-  Redis: RedisConstructor;
-};
+  Ratelimit: UpstashRateLimitModule['Ratelimit']
+  Redis: RedisConstructor
+}
 
 type UpstashConfig = {
-  url: string;
-  token: string;
-};
+  url: string
+  token: string
+}
 
-type EdgeAwareGlobal = typeof globalThis & { EdgeRuntime?: string };
+type EdgeAwareGlobal = typeof globalThis & { EdgeRuntime?: string }
 
-const globalWithEdgeRuntime = globalThis as EdgeAwareGlobal;
-const isEdgeRuntime = typeof globalWithEdgeRuntime.EdgeRuntime === "string";
+const globalWithEdgeRuntime = globalThis as EdgeAwareGlobal
+const isEdgeRuntime = typeof globalWithEdgeRuntime.EdgeRuntime === 'string'
 
-let cachedUpstashConfig: UpstashConfig | null = null;
-let upstashDepsPromise: Promise<UpstashDeps> | null = null;
-let redisClient: RedisInstance | null = null;
-let upstashDisabledAfterFailure = false;
-let lastUpstashFailure = 0;
-const UPSTASH_RETRY_INTERVAL_MS = 60 * 1000; // Retry Upstash every 60 seconds after failure
-let edgeRuntimeWarningLogged = false;
+let cachedUpstashConfig: UpstashConfig | null = null
+let upstashDepsPromise: Promise<UpstashDeps> | null = null
+let redisClient: RedisInstance | null = null
+let upstashDisabledAfterFailure = false
+let lastUpstashFailure = 0
+const UPSTASH_RETRY_INTERVAL_MS = 60 * 1000 // Retry Upstash every 60 seconds after failure
+let edgeRuntimeWarningLogged = false
 
 function validateUpstashConfig(): UpstashConfig | null {
   if (cachedUpstashConfig) {
-    return cachedUpstashConfig;
+    return cachedUpstashConfig
   }
 
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim()
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
 
   if (!url || !token) {
-    return null;
+    return null
   }
 
   try {
-    const parsedUrl = new URL(url);
-    if (!parsedUrl.protocol.startsWith("http")) {
-      throw new Error("Only HTTP(S) URLs are supported");
+    const parsedUrl = new URL(url)
+    if (!parsedUrl.protocol.startsWith('http')) {
+      throw new Error('Only HTTP(S) URLs are supported')
     }
   } catch {
     // Invalid URL - this is expected in some environments, use in-memory fallback
-    return null;
+    return null
   }
 
-  cachedUpstashConfig = { url, token };
-  return cachedUpstashConfig;
+  cachedUpstashConfig = { url, token }
+  return cachedUpstashConfig
 }
 
 async function loadUpstashDeps(): Promise<UpstashDeps> {
   if (!upstashDepsPromise) {
-    upstashDepsPromise = Promise.all([
-      import("@upstash/ratelimit"),
-      import("@upstash/redis"),
-    ])
+    upstashDepsPromise = Promise.all([Ratelimit, Redis])
       .then(([ratelimitModule, redisModule]) => ({
-        Ratelimit: ratelimitModule.Ratelimit,
-        Redis: redisModule.Redis,
+        Ratelimit: ratelimitModule,
+        Redis: redisModule,
       }))
       .catch((error) => {
-        upstashDepsPromise = null;
-        throw error;
-      });
+        upstashDepsPromise = null
+        throw error
+      })
   }
 
-  return upstashDepsPromise;
+  return upstashDepsPromise
 }
 
 async function tryApplyUpstashRateLimit(
   identifier: string,
   { limit, windowMs, prefix }: ApplyRateLimitOptions,
 ): Promise<RateLimitResult | null> {
-  const now = Date.now();
+  const now = Date.now()
 
   // Circuit breaker: If Upstash failed, wait before retrying
   if (upstashDisabledAfterFailure) {
     if (now - lastUpstashFailure < UPSTASH_RETRY_INTERVAL_MS) {
-      return null; // Still in cooldown, use fallback
+      return null // Still in cooldown, use fallback
     }
     // Time to retry Upstash
 
@@ -111,24 +113,24 @@ async function tryApplyUpstashRateLimit(
   if (isEdgeRuntime) {
     if (!edgeRuntimeWarningLogged) {
       // Edge runtime doesn't support Upstash Redis - use in-memory fallback
-      edgeRuntimeWarningLogged = true;
+      edgeRuntimeWarningLogged = true
     }
-    return null;
+    return null
   }
 
-  const upstashConfig = validateUpstashConfig();
+  const upstashConfig = validateUpstashConfig()
   if (!upstashConfig) {
-    return null;
+    return null
   }
 
   try {
-    const { Ratelimit, Redis } = await loadUpstashDeps();
+    const { Ratelimit, Redis } = await loadUpstashDeps()
 
     if (!redisClient) {
       redisClient = new Redis({
         url: upstashConfig.url,
         token: upstashConfig.token,
-      });
+      })
     }
 
     const limiter = new Ratelimit({
@@ -136,13 +138,13 @@ async function tryApplyUpstashRateLimit(
       limiter: Ratelimit.slidingWindow(limit, `${windowMs}ms`),
       analytics: true,
       prefix,
-    });
+    })
 
-    const result = await limiter.limit(identifier);
+    const result = await limiter.limit(identifier)
 
     // If we were in fallback mode and Upstash is now working, reset flag
     if (upstashDisabledAfterFailure) {
-      upstashDisabledAfterFailure = false;
+      upstashDisabledAfterFailure = false
     }
 
     return {
@@ -151,121 +153,118 @@ async function tryApplyUpstashRateLimit(
       remaining: result.remaining,
       reset: result.reset,
       headers: {
-        "X-RateLimit-Limit": result.limit.toString(),
-        "X-RateLimit-Remaining": result.remaining.toString(),
-        "X-RateLimit-Reset": result.reset.toString(),
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': result.reset.toString(),
       },
-    };
+    }
   } catch (error: unknown) {
-    upstashDisabledAfterFailure = true;
-    lastUpstashFailure = Date.now();
+    upstashDisabledAfterFailure = true
+    lastUpstashFailure = Date.now()
     // Upstash rate limiting failed - falling back to in-memory
 
     // Report to Sentry for monitoring
-    if (typeof window === "undefined") {
+    if (typeof window === 'undefined') {
       // Server-side only
-      import("@sentry/nextjs")
+      import('@sentry/nextjs')
         .then((Sentry) => {
-          Sentry.captureMessage(
-            "Rate limiting using in-memory fallback - Upstash unavailable",
-            {
-              level: "warning",
-              tags: { component: "rate-limit" },
-              extra: {
-                identifier,
-                error: error instanceof Error ? error.message : String(error),
-              },
+          Sentry.captureMessage('Rate limiting using in-memory fallback - Upstash unavailable', {
+            level: 'warning',
+            tags: { component: 'rate-limit' },
+            extra: {
+              identifier,
+              error: error instanceof Error ? error.message : String(error),
             },
-          );
+          })
         })
         .catch(() => {
           // Sentry not available, ignore
-        });
+        })
     }
 
-    return null;
+    return null
   }
 }
 
 // In-memory rate limit store (fallback)
 class MemoryRateLimitStore {
-  private store: Map<string, { count: number; resetTime: number }> = new Map();
-  private cleanupInterval: NodeJS.Timeout;
+  private store: Map<string, { count: number; resetTime: number }> = new Map()
+  private cleanupInterval: NodeJS.Timeout
 
   constructor() {
     // Clean up expired entries every 5 minutes
     this.cleanupInterval = setInterval(
       () => {
-        const now = Date.now();
+        const now = Date.now()
         for (const [key, value] of this.store.entries()) {
           if (value.resetTime < now) {
-            this.store.delete(key);
+            this.store.delete(key)
           }
         }
       },
       5 * 60 * 1000,
-    );
+    )
   }
 
   get(key: string): { count: number; resetTime: number } | undefined {
-    return this.store.get(key);
+    return this.store.get(key)
   }
 
   set(key: string, count: number, resetTime: number): void {
-    this.store.set(key, { count, resetTime });
+    this.store.set(key, { count, resetTime })
   }
 
   increment(key: string, windowMs: number): number {
-    const now = Date.now();
-    const entry = this.store.get(key);
+    const now = Date.now()
+    const entry = this.store.get(key)
 
     if (!entry || entry.resetTime < now) {
       // New window
-      this.store.set(key, { count: 1, resetTime: now + windowMs });
-      return 1;
+      this.store.set(key, { count: 1, resetTime: now + windowMs })
+      return 1
     }
 
     // Increment existing window
-    entry.count++;
-    return entry.count;
+    entry.count++
+    return entry.count
   }
 
   destroy(): void {
-    clearInterval(this.cleanupInterval);
-    this.store.clear();
+    clearInterval(this.cleanupInterval)
+    this.store.clear()
   }
 }
 
-const memoryStore = new MemoryRateLimitStore();
+const memoryStore = new MemoryRateLimitStore()
 
 // Rate limit configuration
-const RATE_LIMIT_REQUESTS = 500; // Increased for development - multiple API calls on page load
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_REQUESTS = 500 // Increased for development - multiple API calls on page load
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 
 interface ApplyRateLimitOptions {
-  limit: number;
-  windowMs: number;
-  prefix: string;
+  limit: number
+  windowMs: number
+  prefix: string
 }
 
 async function applyRateLimit(
   identifier: string,
   options: ApplyRateLimitOptions,
 ): Promise<RateLimitResult> {
-  const upstashResult = await tryApplyUpstashRateLimit(identifier, options);
+  const upstashResult = await tryApplyUpstashRateLimit(identifier, options)
 
   if (upstashResult) {
-    return upstashResult;
+    return upstashResult
   }
 
-  const { limit, windowMs, prefix } = options;
-  const namespacedKey = `${prefix}:${identifier}`;
-  const count = memoryStore.increment(namespacedKey, windowMs);
-  const entry = memoryStore.get(namespacedKey);
-  const resetTime = entry?.resetTime || Date.now() + windowMs;
-  const remaining = Math.max(0, limit - count);
-  const success = count <= limit;
-  const reset = Math.floor(resetTime / 1000);
+  const { limit, windowMs, prefix } = options
+  const namespacedKey = `${prefix}:${identifier}`
+  const count = memoryStore.increment(namespacedKey, windowMs)
+  const entry = memoryStore.get(namespacedKey)
+  const resetTime = entry?.resetTime || Date.now() + windowMs
+  const remaining = Math.max(0, limit - count)
+  const success = count <= limit
+  const reset = Math.floor(resetTime / 1000)
 
   return {
     success,
@@ -273,11 +272,11 @@ async function applyRateLimit(
     remaining,
     reset,
     headers: {
-      "X-RateLimit-Limit": limit.toString(),
-      "X-RateLimit-Remaining": remaining.toString(),
-      "X-RateLimit-Reset": reset.toString(),
+      'X-RateLimit-Limit': limit.toString(),
+      'X-RateLimit-Remaining': remaining.toString(),
+      'X-RateLimit-Reset': reset.toString(),
     },
-  };
+  }
 }
 
 /**
@@ -288,8 +287,28 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
   return applyRateLimit(`user:${userId}`, {
     limit: RATE_LIMIT_REQUESTS,
     windowMs: RATE_LIMIT_WINDOW_MS,
-    prefix: "ratelimit:dashboard",
-  });
+    prefix: 'ratelimit:dashboard',
+  })
+}
+
+/**
+ * Check rate limit for IP-based limiting
+ */
+export async function checkIPRateLimit(
+  request: Request,
+  limit: number = 10,
+  window: number = 60000, // 1 minute
+): Promise<RateLimitResult> {
+  const ip = getClientIP(request)
+  const userAgent = request.headers.get('user-agent')
+
+  // Allow known bots with higher limits
+  if (isKnownBot(userAgent)) {
+    limit = limit * 2
+  }
+
+  const key = getIPRateLimitKey(ip)
+  return checkKeyRateLimit(key, limit, window)
 }
 
 /**
@@ -299,7 +318,7 @@ export async function checkKeyRateLimit(
   key: string,
   limit: number,
   windowMs: number,
-  prefix = "ratelimit:custom",
+  prefix = 'ratelimit:custom',
 ): Promise<RateLimitResult> {
-  return applyRateLimit(key, { limit, windowMs, prefix });
+  return applyRateLimit(key, { limit, windowMs, prefix })
 }
