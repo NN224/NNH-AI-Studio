@@ -9,10 +9,10 @@ import { BusinessProfileCard } from "@/components/home/business-profile-card";
 import { CompetitorsCard } from "@/components/home/competitors-card";
 import { DashboardCTAButtons } from "@/components/home/dashboard-cta-buttons";
 import { DashboardHero } from "@/components/home/dashboard-hero";
-import { EmptyState } from "@/components/home/empty-state";
 import { InteractiveStatsDashboard } from "@/components/home/interactive-stats-dashboard";
 import { KeywordsCard } from "@/components/home/keywords-card";
 import { ManagementQuickStats } from "@/components/home/management-quick-stats";
+import { NewUserWelcome } from "@/components/home/new-user-welcome";
 import { SimpleProgressTracker } from "@/components/home/progress-tracker-simple";
 import { QuickActions } from "@/components/home/quick-actions";
 import { SmartAISuggestions } from "@/components/home/smart-ai-suggestions";
@@ -22,7 +22,6 @@ import { logger } from "@/lib/utils/logger";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { WelcomeBack } from "@/components/onboarding/WelcomeBack";
 import { useHomeData } from "@/hooks/use-home-data";
-import { motion } from "framer-motion";
 import { Bot, Building2, MessageSquare, Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -275,15 +274,8 @@ export function HomePageContent({
       {/* Main Content */}
       <main className="relative container mx-auto px-4 py-4 sm:py-6 lg:py-8">
         {!hasAccounts ? (
-          /* Empty State for new users */
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="min-h-[calc(100vh-200px)] flex items-center justify-center"
-          >
-            <EmptyState />
-          </motion.div>
+          /* Welcome Screen for new users - Enhanced UX */
+          <NewUserWelcome />
         ) : (
           /* Full Dashboard Layout - OPTIMIZED */
           <div className="space-y-6">
