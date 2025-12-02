@@ -1,5 +1,5 @@
-import { gmbLogger } from "@/lib/utils/logger";
 import { createClient } from "@/lib/supabase/server";
+import { gmbLogger } from "@/lib/utils/logger";
 import { addToSyncQueue } from "@/server/actions/sync-queue";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ THROTTLING CHECK: Prevent duplicate sync jobs
+    // THROTTLING CHECK: Prevent duplicate sync jobs
     // Check if there's already a processing/pending job for this account
     const { data: existingJobs, error: checkError } = await supabase
       .from("sync_queue")
       .select("id, status, created_at")
-      .eq("gmb_account_id", accountId)
+      .eq("account_id", accountId)
       .in("status", ["pending", "processing"])
       .order("created_at", { ascending: false })
       .limit(1);
