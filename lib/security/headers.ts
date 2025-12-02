@@ -20,11 +20,18 @@ export const SECURITY_HEADERS = {
   // Referrer policy for privacy
   "Referrer-Policy": "strict-origin-when-cross-origin",
 
-  // Permissions policy (formerly Feature Policy) - restrict all sensitive APIs
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  // Permissions policy - restrict all sensitive APIs
+  "Permissions-Policy":
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
 
   // Remove server header for security
   "X-Powered-By": "",
+
+  // Prevent downloads of HTML files as attachments
+  "X-Download-Options": "noopen",
+
+  // Require user consent for cookies (EU GDPR)
+  "X-Permitted-Cross-Domain-Policies": "none",
 };
 
 /**
@@ -42,8 +49,8 @@ export function getCSPDirectives(): Record<string, string[]> {
     "default-src": ["'self'"],
     "script-src": [
       "'self'",
-      "'unsafe-inline'", // Required for Next.js
-      "'unsafe-eval'", // Required for some libraries
+      "'unsafe-inline'", // Required for Next.js - TODO: migrate to nonce-based
+      "'unsafe-eval'", // Required for some libraries - TODO: remove
       "https://*.googleapis.com",
       "https://*.gstatic.com",
       "https://*.google.com",

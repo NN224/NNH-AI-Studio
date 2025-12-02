@@ -96,16 +96,61 @@ export function generateCSRFToken(): string {
 /**
  * Get CSRF token from request (header or body)
  */
-export function getCSRFTokenFromRequest(request: NextRequest): string | null {
+export async function getCSRFTokenFromRequest(
+  request: NextRequest,
+): Promise<string | null> {
   // Check header first
   const headerToken = request.headers.get(CSRF_HEADER_NAME);
   if (headerToken) {
     return headerToken;
   }
 
-  // Check body for form submissions
-  // Note: This requires parsing the body which might have already been consumed
-  // In practice, you'd want to handle this more carefully
+  // Check URL params for GET requests with CSRF (rare but possible)
+  const url = new URL(request.url);
+  const urlToken = url.searchParams.get("csrfToken");
+  if (urlToken) {
+    return urlToken;
+  }
+
+  // Check body for form submissions (POST/PUT/PATCH)
+  if (["POST", "PUT", "PATCH"].includes(request.method)) {
+    try {
+      // Clone request to avoid consuming the body
+      const clonedRequest = request.clone();
+      const contentType = request.headers.get("content-type") || "";
+
+      // Handle JSON body
+      if (contentType.includes("application/json")) {
+        const body = await clonedRequest.json();
+        if (body.csrfToken) {
+          return body.csrfToken;
+        }
+      }
+
+      // Handle form data
+      if (contentType.includes("application/x-www-form-urlencoded")) {
+        const text = await clonedRequest.text();
+        const params = new URLSearchParams(text);
+        const formToken = params.get("csrfToken");
+        if (formToken) {
+          return formToken;
+        }
+      }
+
+      // Handle multipart form data
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await clonedRequest.formData();
+        const formToken = formData.get("csrfToken");
+        if (formToken && typeof formToken === "string") {
+          return formToken;
+        }
+      }
+    } catch (error) {
+      // Body parsing failed, continue without body token
+      apiLogger.debug("Failed to parse body for CSRF token", { error });
+    }
+  }
+
   return null;
 }
 
@@ -203,7 +248,7 @@ export async function validateCSRF(
 
   // Get tokens
   const cookieToken = await getCSRFTokenFromCookie();
-  const requestToken = getCSRFTokenFromRequest(request);
+  const requestToken = await getCSRFTokenFromRequest(request);
 
   // If no cookie token exists, generate one (but don't set it in middleware)
   // Cookie setting should happen in Route Handlers only

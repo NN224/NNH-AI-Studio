@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { z } from "zod";
-import { validateBody } from "@/middleware/validate-request";
-import { reviewReplySchema } from "@/lib/validations/schemas";
+import { withAuthorization } from "@/lib/api/with-authorization";
+import { withCSRF } from "@/lib/api/with-csrf";
+import { withRateLimit } from "@/lib/api/with-rate-limit";
 import { sanitizeHtml } from "@/lib/security/sanitize-html";
+import { createClient } from "@/lib/supabase/server";
 import { reviewsLogger } from "@/lib/utils/logger";
+import { reviewReplySchema } from "@/lib/validations/schemas";
+import { validateBody } from "@/middleware/validate-request";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -16,20 +19,12 @@ const replySchema = z.object({
   generate_ai_reply: z.boolean().optional(),
 });
 
-export async function POST(
+async function replyHandler(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params, user }: { params: { id: string }; user: Record<string, unknown> },
 ) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { id: reviewId } = params;
     const validation = await validateBody(request, replySchema);
@@ -50,8 +45,10 @@ export async function POST(
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
 
+    // Ownership check is now handled by the middleware
+    // Double-check for extra security
     if (review.gmb_locations?.user_id !== user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     let finalReplyText = reply_text
@@ -156,3 +153,14 @@ export async function POST(
     );
   }
 }
+
+// Apply CSRF protection, rate limiting, and ownership check
+export const POST = withCSRF(
+  withRateLimit(
+    withAuthorization(replyHandler, {
+      checkOwnership: true,
+      resourceType: "review",
+    }),
+    { limit: 50, window: 60 }, // 50 requests per minute
+  ),
+);

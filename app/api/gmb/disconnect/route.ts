@@ -1,3 +1,5 @@
+import { withCSRF } from "@/lib/api/with-csrf";
+import { withStrictRateLimit } from "@/lib/api/with-rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
 import { gmbLogger } from "@/lib/utils/logger";
@@ -10,7 +12,7 @@ export const dynamic = "force-dynamic";
  * ✅ UNIFIED: This API route now delegates to the server action for consistency
  * The server action provides better features (export, delete options) and is the single source of truth
  */
-export async function POST(request: NextRequest) {
+async function disconnectHandler(request: NextRequest) {
   gmbLogger.warn("Disconnect request received");
 
   try {
@@ -74,15 +76,20 @@ export async function POST(request: NextRequest) {
       message: result.message || "Account disconnected successfully",
       exportData: result.exportData,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "Unexpected error disconnecting GMB account",
       error instanceof Error ? error : new Error(String(error)),
     );
     return errorResponse(
       "INTERNAL_ERROR",
-      error?.message || "Failed to disconnect GMB account",
+      error instanceof Error
+        ? error.message
+        : "Failed to disconnect GMB account",
       500,
     );
   }
 }
+
+// Apply CSRF protection and strict rate limiting (10 requests per 5 minutes)
+export const POST = withCSRF(withStrictRateLimit(disconnectHandler, 10, 300));

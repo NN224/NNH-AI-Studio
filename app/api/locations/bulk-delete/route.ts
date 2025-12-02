@@ -1,8 +1,9 @@
 // Bulk Delete Locations API
 // Soft deletes multiple locations (sets is_active = false)
 
+import { withCSRF } from "@/lib/api/with-csrf";
+import { withStrictRateLimit } from "@/lib/api/with-rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
 import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Bulk Delete Handler
  * Soft deletes multiple locations after verifying ownership
  */
-export async function POST(request: NextRequest) {
+async function bulkDeleteHandler(request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -32,24 +33,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Rate limiting (stricter for bulk operations)
-    const { success, headers: rateLimitHeaders } = await checkRateLimit(
-      user.id,
-    );
-    if (!success) {
-      return NextResponse.json(
-        {
-          error: "Too many requests",
-          message: "Rate limit exceeded. Please try again later.",
-          code: "RATE_LIMIT_EXCEEDED",
-          retry_after: rateLimitHeaders["X-RateLimit-Reset"],
-        },
-        {
-          status: 429,
-          headers: rateLimitHeaders as HeadersInit,
-        },
-      );
-    }
+    // Rate limiting is now handled by the wrapper
+    // Additional checks can be added here if needed
 
     // Parse request body
     const body = await request.json().catch(() => {
@@ -227,3 +212,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Apply CSRF protection and strict rate limiting for bulk operations
+// 5 requests per 5 minutes for bulk delete
+export const POST = withCSRF(withStrictRateLimit(bulkDeleteHandler, 5, 300));
