@@ -377,21 +377,32 @@ export function isSuspiciousRequest(req: NextRequest): boolean {
 export function getDynamicRateLimit(req: NextRequest): RateLimitConfig {
   const path = new URL(req.url).pathname;
 
-  // Stricter limits for auth endpoints
+  // SKIP rate limiting for OAuth callbacks - they are already protected by state tokens
+  // and rate limiting them breaks the OAuth flow
   if (
-    path.includes("/auth/") ||
+    path.includes("/auth/callback") ||
+    path.includes("/oauth-callback") ||
+    path.includes("/api/gmb/oauth-callback") ||
+    path.includes("/api/youtube/oauth-callback")
+  ) {
+    return {
+      limit: 100,
+      windowSeconds: 60, // Very permissive for OAuth callbacks
+      identifier: getIPKey,
+    };
+  }
+
+  // Stricter limits for auth endpoints (login/signup only)
+  if (
     path.includes("/login") ||
-    path.includes("/signup")
+    path.includes("/signup") ||
+    path.includes("/auth/reset")
   ) {
     return AUTH_RATE_LIMIT;
   }
 
   // Stricter limits for sensitive operations
-  if (
-    path.includes("/admin") ||
-    path.includes("/delete") ||
-    path.includes("/oauth")
-  ) {
+  if (path.includes("/admin") || path.includes("/delete")) {
     return SENSITIVE_RATE_LIMIT;
   }
 
