@@ -28,6 +28,21 @@ const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
 
+/**
+ * Extract error message from various error types (Error, PostgrestError, unknown)
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 export async function GET(request: NextRequest) {
   gmbLogger.info("Processing OAuth callback");
 
@@ -92,13 +107,7 @@ export async function GET(request: NextRequest) {
     if (stateError || !stateRecord) {
       gmbLogger.error(
         "Invalid OAuth state",
-        stateError instanceof Error
-          ? stateError
-          : new Error(
-              stateError?.message ||
-                JSON.stringify(stateError, null, 2) ||
-                "Unknown error",
-            ),
+        new Error(getErrorMessage(stateError)),
       );
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
@@ -283,13 +292,7 @@ export async function GET(request: NextRequest) {
     if (profileLookupError) {
       gmbLogger.error(
         "Failed to verify profile record",
-        profileLookupError instanceof Error
-          ? profileLookupError
-          : new Error(
-              profileLookupError?.message ||
-                JSON.stringify(profileLookupError, null, 2) ||
-                "Unknown error",
-            ),
+        new Error(getErrorMessage(profileLookupError)),
       );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -330,13 +333,7 @@ export async function GET(request: NextRequest) {
       if (createProfileError) {
         gmbLogger.error(
           "Failed to create profile record",
-          createProfileError instanceof Error
-            ? createProfileError
-            : new Error(
-                createProfileError?.message ||
-                  JSON.stringify(createProfileError, null, 2) ||
-                  "Unknown error",
-              ),
+          new Error(getErrorMessage(createProfileError)),
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -463,7 +460,10 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           gmbLogger.warn(
             "Failed to decrypt existing refresh token, will use new token",
-            { accountId, error },
+            {
+              accountId,
+              error,
+            },
           );
           // Continue with null - new refresh_token from OAuth will be used
         }
@@ -563,20 +563,20 @@ export async function GET(request: NextRequest) {
         });
 
       if (upsertError) {
+        const upsertErrorObj = upsertError as {
+          message?: string;
+          code?: string;
+          details?: string;
+          hint?: string;
+        };
         gmbLogger.error(
           "GMB account upsert error",
-          upsertError instanceof Error
-            ? upsertError
-            : new Error(
-                upsertError.message ||
-                  JSON.stringify(upsertError, null, 2) ||
-                  "Unknown error",
-              ),
+          new Error(getErrorMessage(upsertError)),
           {
-            message: upsertError.message,
-            code: upsertError.code,
-            details: upsertError.details,
-            hint: upsertError.hint,
+            message: upsertErrorObj.message,
+            code: upsertErrorObj.code,
+            details: upsertErrorObj.details,
+            hint: upsertErrorObj.hint,
             upsertData,
           },
         );
@@ -588,7 +588,7 @@ export async function GET(request: NextRequest) {
           baseUrl,
           `/${localeCookie}/settings`,
           {
-            error: `Failed to save GMB account: ${upsertError.message}`,
+            error: `Failed to save GMB account: ${getErrorMessage(upsertError)}`,
             error_code: "gmb_account_upsert_failed",
           },
         );
@@ -605,13 +605,7 @@ export async function GET(request: NextRequest) {
       if (fetchError || !upsertedAccount) {
         gmbLogger.error(
           "Failed to fetch account after upsert",
-          fetchError instanceof Error
-            ? fetchError
-            : new Error(
-                fetchError?.message ||
-                  JSON.stringify(fetchError, null, 2) ||
-                  "Unknown error",
-              ),
+          new Error(getErrorMessage(fetchError)),
           { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
@@ -647,14 +641,10 @@ export async function GET(request: NextRequest) {
       if (secretsError) {
         gmbLogger.error(
           "Failed to store tokens",
-          secretsError instanceof Error
-            ? secretsError
-            : new Error(
-                secretsError?.message ||
-                  JSON.stringify(secretsError, null, 2) ||
-                  "Unknown error",
-              ),
-          { accountId: upsertedAccount.id },
+          new Error(getErrorMessage(secretsError)),
+          {
+            accountId: upsertedAccount.id,
+          },
         );
         // Continue anyway - account is saved, user can re-authenticate if needed
       }
