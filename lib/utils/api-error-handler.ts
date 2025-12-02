@@ -15,7 +15,11 @@ export function handleApiError(
   context: string,
   status: number = 500,
 ): NextResponse {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  // Properly serialize error message - handle Supabase PostgrestError and other non-Error objects
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : error?.message || JSON.stringify(error, null, 2) || "Unknown error";
   const errorDetails = error.details || error.hint || "No additional details.";
   const errorCode = error.code || "UNKNOWN_ERROR";
 
