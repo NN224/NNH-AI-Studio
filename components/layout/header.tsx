@@ -1,7 +1,7 @@
 "use client";
 
-import { useKeyboard } from "@/components/keyboard/keyboard-provider";
 import { RealtimeConnectionIndicator } from "@/components/dashboard/realtime-connection-indicator";
+import { useKeyboard } from "@/components/keyboard/keyboard-provider";
 import { GlobalSyncButton } from "@/components/sync/global-sync-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
 import { useNotifications } from "@/hooks/use-notifications";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { authLogger } from "@/lib/utils/logger";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -42,7 +43,6 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { authLogger } from "@/lib/utils/logger";
 
 interface UserProfileData {
   name: string | null;
@@ -191,9 +191,8 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Realtime Connection Indicator - Disabled temporarily
+          {/* Realtime Connection Indicator */}
           <RealtimeConnectionIndicator compact showDetails userId={userId} />
-          */}
 
           {/* Global Sync Button */}
           <GlobalSyncButton />
