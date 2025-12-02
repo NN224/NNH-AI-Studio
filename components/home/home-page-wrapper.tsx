@@ -1,5 +1,6 @@
 "use client";
 
+import { useGMBStatus } from "@/hooks/features/use-gmb";
 import { syncLogger } from "@/lib/utils/logger";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -22,6 +23,24 @@ function HomePageContent({ userId, homePageProps }: HomePageWrapperProps) {
   });
 
   const accountId = searchParams.get("accountId");
+
+  // ✅ Set GMB cookie for middleware (avoids DB calls in Edge Runtime)
+  // This runs on Home page so the cookie is set before user tries to access /dashboard
+  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
+  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
+
+  useEffect(() => {
+    if (!gmbLoading && gmbStatus !== undefined) {
+      const cookieValue = gmbConnected ? "true" : "false";
+      document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+
+      // If user came from a GMB-required route, redirect them back
+      const intended = searchParams.get("intended");
+      if (intended && gmbConnected) {
+        router.push(intended);
+      }
+    }
+  }, [gmbConnected, gmbLoading, gmbStatus, searchParams, router]);
 
   // ✅ IMPROVED: Smart handling for different OAuth states
   useEffect(() => {
