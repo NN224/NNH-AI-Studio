@@ -1,5 +1,6 @@
 import { withCSRF } from "@/lib/api/with-csrf";
 import { withRateLimit } from "@/lib/api/with-rate-limit";
+import { scanFile } from "@/lib/security/file-scanner";
 import { sanitizeFileName } from "@/lib/security/input-sanitizer";
 import { createClient } from "@/lib/supabase/server";
 import { apiLogger } from "@/lib/utils/logger";
@@ -210,6 +211,21 @@ async function processSingleUpload(file: File, context: UploadContext) {
       return {
         success: false as const,
         error: "File content does not match file type",
+        status: 400,
+      };
+    }
+
+    // Scan file for malware and threats
+    const scanResult = await scanFile(buffer, file.name, file.type);
+    if (!scanResult.safe) {
+      apiLogger.warn("File rejected by scanner", {
+        filename: file.name,
+        threats: scanResult.threats,
+        userId: context.userId,
+      });
+      return {
+        success: false as const,
+        error: "File failed security scan. Please try a different file.",
         status: 400,
       };
     }
