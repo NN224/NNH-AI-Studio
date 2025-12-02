@@ -94,7 +94,11 @@ export async function GET(request: NextRequest) {
         "Invalid OAuth state",
         stateError instanceof Error
           ? stateError
-          : new Error(String(stateError)),
+          : new Error(
+              stateError?.message ||
+                JSON.stringify(stateError, null, 2) ||
+                "Unknown error",
+            ),
       );
       const baseUrl = getSafeBaseUrl(request);
       const redirectUrl = buildSafeRedirectUrl(
@@ -281,7 +285,11 @@ export async function GET(request: NextRequest) {
         "Failed to verify profile record",
         profileLookupError instanceof Error
           ? profileLookupError
-          : new Error(String(profileLookupError)),
+          : new Error(
+              profileLookupError?.message ||
+                JSON.stringify(profileLookupError, null, 2) ||
+                "Unknown error",
+            ),
       );
       const redirectUrl = buildSafeRedirectUrl(
         baseUrl,
@@ -324,7 +332,11 @@ export async function GET(request: NextRequest) {
           "Failed to create profile record",
           createProfileError instanceof Error
             ? createProfileError
-            : new Error(String(createProfileError)),
+            : new Error(
+                createProfileError?.message ||
+                  JSON.stringify(createProfileError, null, 2) ||
+                  "Unknown error",
+              ),
         );
         const redirectUrl = buildSafeRedirectUrl(
           baseUrl,
@@ -472,7 +484,11 @@ export async function GET(request: NextRequest) {
           "Failed to encrypt tokens",
           encryptionError instanceof Error
             ? encryptionError
-            : new Error(String(encryptionError)),
+            : new Error(
+                (encryptionError as any)?.message ||
+                  JSON.stringify(encryptionError, null, 2) ||
+                  "Unknown error",
+              ),
           { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
@@ -534,7 +550,7 @@ export async function GET(request: NextRequest) {
         email: userInfo.email,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
-        last_synced_at: new Date().toISOString(),
+        last_sync: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -551,7 +567,11 @@ export async function GET(request: NextRequest) {
           "GMB account upsert error",
           upsertError instanceof Error
             ? upsertError
-            : new Error(String(upsertError)),
+            : new Error(
+                upsertError.message ||
+                  JSON.stringify(upsertError, null, 2) ||
+                  "Unknown error",
+              ),
           {
             message: upsertError.message,
             code: upsertError.code,
@@ -587,7 +607,11 @@ export async function GET(request: NextRequest) {
           "Failed to fetch account after upsert",
           fetchError instanceof Error
             ? fetchError
-            : new Error(String(fetchError)),
+            : new Error(
+                fetchError?.message ||
+                  JSON.stringify(fetchError, null, 2) ||
+                  "Unknown error",
+              ),
           { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
@@ -625,7 +649,11 @@ export async function GET(request: NextRequest) {
           "Failed to store tokens",
           secretsError instanceof Error
             ? secretsError
-            : new Error(String(secretsError)),
+            : new Error(
+                secretsError?.message ||
+                  JSON.stringify(secretsError, null, 2) ||
+                  "Unknown error",
+              ),
           { accountId: upsertedAccount.id },
         );
         // Continue anyway - account is saved, user can re-authenticate if needed
@@ -696,7 +724,13 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     gmbLogger.error(
       "Unexpected error in OAuth callback",
-      error instanceof Error ? error : new Error(String(error)),
+      error instanceof Error
+        ? error
+        : new Error(
+            (error as any)?.message ||
+              JSON.stringify(error, null, 2) ||
+              "Unknown error",
+          ),
     );
     const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
