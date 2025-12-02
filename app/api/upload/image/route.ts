@@ -1,3 +1,5 @@
+import { withCSRF } from "@/lib/api/with-csrf";
+import { withRateLimit } from "@/lib/api/with-rate-limit";
 import { sanitizeFileName } from "@/lib/security/input-sanitizer";
 import { createClient } from "@/lib/supabase/server";
 import { apiLogger } from "@/lib/utils/logger";

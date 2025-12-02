@@ -21,8 +21,10 @@ const replySchema = z.object({
 
 async function replyHandler(
   request: NextRequest,
-  { params, user }: { params: { id: string }; user: Record<string, unknown> },
+  context: { params?: Record<string, string>; user: any },
 ) {
+  const params = context.params as { id: string };
+  const user = context.user;
   try {
     const supabase = await createClient();
 
