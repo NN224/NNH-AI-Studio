@@ -135,16 +135,22 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   // 2. SECURITY: Edge-level rate limiting (DDoS protection) - DISTRIBUTED
   // -------------------------------------------------------------------------
-  const rateLimitConfig = getDynamicRateLimit(request)
-  const rateLimitResponse = await applyEdgeRateLimit(request, rateLimitConfig)
+  // Skip rate limiting for admin subdomain (already protected by 2FA)
+  const isAdminSubdomain = hostname.startsWith('admin.')
+  const isAdminPath = pathname.startsWith('/admin')
 
-  if (rateLimitResponse) {
-    logger.warn('[Middleware] Rate limit exceeded', {
-      ip: getClientIP(request),
-      path: pathname,
-      timestamp: new Date().toISOString(),
-    })
-    return rateLimitResponse
+  if (!isAdminSubdomain && !isAdminPath) {
+    const rateLimitConfig = getDynamicRateLimit(request)
+    const rateLimitResponse = await applyEdgeRateLimit(request, rateLimitConfig)
+
+    if (rateLimitResponse) {
+      logger.warn('[Middleware] Rate limit exceeded', {
+        ip: getClientIP(request),
+        path: pathname,
+        timestamp: new Date().toISOString(),
+      })
+      return rateLimitResponse
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -154,8 +160,13 @@ export async function middleware(request: NextRequest) {
   const isAuthEndpoint =
     pathname.includes('/auth/') || pathname.includes('/oauth') || pathname.includes('/callback')
 
-  if (pathname.startsWith('/api/') && !isAuthEndpoint) {
-    // Stricter rate limit for API endpoints (excluding auth)
+  if (
+    pathname.startsWith('/api/') &&
+    !isAuthEndpoint &&
+    !isAdminSubdomain &&
+    !pathname.startsWith('/api/admin')
+  ) {
+    // Stricter rate limit for API endpoints (excluding auth and admin)
     const ip = getClientIP(request)
     const apiResult = await checkEdgeRateLimit(`api:${ip}`, 200, 60) // 200 req/min for APIs
 
