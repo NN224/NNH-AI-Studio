@@ -136,6 +136,17 @@ export default function DashboardLayout({
   // Consider connected if has account OR has locations (data already synced)
   const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
 
+  // Set GMB cookie for middleware (avoids DB calls in Edge Runtime)
+  useEffect(() => {
+    if (!gmbLoading && gmbStatus !== undefined) {
+      const cookieValue = gmbConnected ? "true" : "false";
+      // Set cookie with 1 hour expiry
+      document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${
+        process.env.NODE_ENV === "production" ? "; Secure" : ""
+      }`;
+    }
+  }, [gmbConnected, gmbLoading, gmbStatus]);
+
   // Check if current route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     pathname?.includes(`/${route}`),

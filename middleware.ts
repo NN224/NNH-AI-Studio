@@ -378,55 +378,16 @@ export async function middleware(request: NextRequest) {
         homeUrl.searchParams.set("gmb_required", "true");
         return NextResponse.redirect(homeUrl);
       } else {
-        // No cookie - check DB once and set cookie for future requests
-        // This is slower but only happens once per session
-        try {
-          const { count, error: gmbError } = await supabase
-            .from("gmb_accounts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("is_active", true);
-
-          const hasGmbConnection = !gmbError && (count || 0) > 0;
-
-          // Set cookie for future requests (expires in 1 hour)
-          response.cookies.set(
-            "gmb_connected",
-            hasGmbConnection ? "true" : "false",
-            {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax",
-              maxAge: 3600, // 1 hour
-              path: "/",
-            },
-          );
-
-          if (!hasGmbConnection) {
-            logger.info(
-              "[Middleware] GMB not connected (DB check), redirecting to home",
-            );
-            const homeUrl = new URL(`/${locale}/home`, request.url);
-            homeUrl.searchParams.set("gmb_required", "true");
-
-            // Create redirect response with the cookie
-            const redirectResponse = NextResponse.redirect(homeUrl);
-            redirectResponse.cookies.set("gmb_connected", "false", {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax",
-              maxAge: 3600,
-              path: "/",
-            });
-            return redirectResponse;
-          }
-        } catch (dbError) {
-          // On DB error, allow access but log warning
-          logger.error(
-            "[Middleware] GMB check failed",
-            dbError instanceof Error ? dbError : new Error(String(dbError)),
-          );
-        }
+        // No cookie - redirect to home to check GMB status
+        // IMPORTANT: Don't call DB from middleware (Edge Runtime limitations)
+        // The layout.tsx will check GMB status and set the cookie
+        logger.info(
+          "[Middleware] No GMB cookie, redirecting to home for GMB check",
+        );
+        const homeUrl = new URL(`/${locale}/home`, request.url);
+        homeUrl.searchParams.set("check_gmb", "true");
+        homeUrl.searchParams.set("intended", pathname);
+        return NextResponse.redirect(homeUrl);
       }
     }
   }

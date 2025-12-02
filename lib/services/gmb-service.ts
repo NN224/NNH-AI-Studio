@@ -1,3 +1,19 @@
+/**
+ * GMB Service - Client-side only!
+ *
+ * ⚠️ WARNING: This service uses relative URLs and MUST only be used in:
+ * - Client Components ("use client")
+ * - React hooks (useQuery, useMutation)
+ * - Browser event handlers
+ *
+ * DO NOT use in:
+ * - Server Components
+ * - API Routes
+ * - Middleware
+ *
+ * For server-side GMB operations, use direct Supabase queries.
+ */
+
 export interface GMBAccount {
   id: string;
   name: string;
