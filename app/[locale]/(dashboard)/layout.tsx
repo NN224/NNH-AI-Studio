@@ -1,27 +1,27 @@
 // (dashboard)/layout.tsx
 
-"use client";
+'use client'
 
-import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
-import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
-import { CommandPalette } from "@/components/layout/command-palette";
-import { Header } from "@/components/layout/header";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { Sidebar } from "@/components/layout/sidebar";
+import { GMBOnboardingView } from '@/components/ai-command-center/onboarding/gmb-onboarding-view'
+import { KeyboardProvider } from '@/components/keyboard/keyboard-provider'
+import { CommandPalette } from '@/components/layout/command-palette'
+import { Header } from '@/components/layout/header'
+import { MobileNav } from '@/components/layout/mobile-nav'
+import { Sidebar } from '@/components/layout/sidebar'
 // Direct imports for better tree-shaking
-import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
-import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
-import { Button } from "@/components/ui/button";
-import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
+import { BackgroundSyncWrapper } from '@/components/sync/background-sync-wrapper'
+import { DynamicThemeProvider } from '@/components/theme/DynamicThemeProvider'
+import { Button } from '@/components/ui/button'
+import { BrandProfileProvider } from '@/contexts/BrandProfileContext'
 // Note: SyncProvider is now in app/providers.tsx for global state sharing
-import { useGMBStatus } from "@/hooks/features/use-gmb";
-import { createClient } from "@/lib/supabase/client";
-import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
-import * as Sentry from "@sentry/nextjs";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Loader2, RefreshCw } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useGMBStatus } from '@/hooks/features/use-gmb'
+import { createClient } from '@/lib/supabase/client'
+import { getAuthUrl, getLocaleFromPathname } from '@/lib/utils/navigation'
+import * as Sentry from '@sentry/nextjs'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Loader2, RefreshCw } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 // Create a client instance for React Query
 const queryClient = new QueryClient({
@@ -31,11 +31,11 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-});
+})
 
 interface UserProfile {
-  name: string | null;
-  avatarUrl: string | null;
+  name: string | null
+  avatarUrl: string | null
 }
 
 // Loading Screen Component
@@ -47,32 +47,25 @@ function DashboardLoadingScreen() {
         <p className="text-sm text-muted-foreground">Loading dashboard...</p>
       </div>
     </div>
-  );
+  )
 }
 
 // Routes that require GMB connection
 const PROTECTED_ROUTES = [
-  "reviews",
-  "questions",
-  "posts",
-  "media",
-  "analytics",
-  "automation",
-  "locations",
-  "products",
-  "features",
-];
+  'reviews',
+  'questions',
+  'posts',
+  'media',
+  'analytics',
+  'automation',
+  'locations',
+  'products',
+  'features',
+]
 
 // Error Fallback Component
-function ErrorFallback({
-  error,
-  resetError,
-}: {
-  error: unknown;
-  resetError: () => void;
-}) {
-  const errorMessage =
-    error instanceof Error ? error.message : "An unexpected error occurred";
+function ErrorFallback({ error, resetError }: { error: unknown; resetError: () => void }) {
+  const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
@@ -92,134 +85,123 @@ function ErrorFallback({
             />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-foreground">
-          Something went wrong
-        </h2>
+        <h2 className="text-2xl font-bold text-foreground">Something went wrong</h2>
         <p className="text-sm text-muted-foreground">{errorMessage}</p>
         <div className="flex gap-3 justify-center">
           <Button onClick={resetError} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Try Again
           </Button>
-          <Button
-            onClick={() => (window.location.href = "/")}
-            className="gap-2"
-          >
+          <Button onClick={() => (window.location.href = '/')} className="gap-2">
             Go Home
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const supabase = createClient();
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const supabase = createClient()
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "User",
+    name: 'User',
     avatarUrl: null,
-  });
-  const [userId, setUserId] = useState<string | null>(null);
+  })
+  const [userId, setUserId] = useState<string | null>(null)
 
-  // GMB Status - using new React Query hooks
-  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
+  // Skip GMB check for admin routes
+  const isAdminRoute = pathname?.includes('/admin')
+
+  // GMB Status - using new React Query hooks (skip for admin routes)
+  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus({ enabled: !isAdminRoute })
   // Consider connected if has account OR has locations (data already synced)
-  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
+  const gmbConnected = isAdminRoute || gmbStatus?.connected || gmbStatus?.hasLocations || false
 
   // Set GMB cookie for middleware (avoids DB calls in Edge Runtime)
   useEffect(() => {
     if (!gmbLoading && gmbStatus !== undefined) {
-      const cookieValue = gmbConnected ? "true" : "false";
+      const cookieValue = gmbConnected ? 'true' : 'false'
       // Set cookie with 1 hour expiry
       document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`;
+        process.env.NODE_ENV === 'production' ? '; Secure' : ''
+      }`
     }
-  }, [gmbConnected, gmbLoading, gmbStatus]);
+  }, [gmbConnected, gmbLoading, gmbStatus])
 
   // Check if current route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-    pathname?.includes(`/${route}`),
-  );
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname?.includes(`/${route}`))
 
   // Check authentication
   useEffect(() => {
     const checkAuth = async () => {
-      const currentPath = pathname || "/";
+      const currentPath = pathname || '/'
 
       if (!supabase) {
-        const locale = getLocaleFromPathname(currentPath);
-        router.push(getAuthUrl(locale, "login"));
-        return;
+        const locale = getLocaleFromPathname(currentPath)
+        router.push(getAuthUrl(locale, 'login'))
+        return
       }
 
       const {
         data: { user },
         error,
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser()
 
       if (error || !user) {
-        const locale = getLocaleFromPathname(currentPath);
-        const loginUrl = getAuthUrl(locale, "login");
-        router.push(`${loginUrl}?redirectedFrom=${currentPath}`);
-        return;
+        const locale = getLocaleFromPathname(currentPath)
+        const loginUrl = getAuthUrl(locale, 'login')
+        router.push(`${loginUrl}?redirectedFrom=${currentPath}`)
+        return
       }
 
       // Set user profile
-      const name =
-        user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-      const avatarUrl = user.user_metadata?.avatar_url || null;
+      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+      const avatarUrl = user.user_metadata?.avatar_url || null
 
-      setUserProfile({ name, avatarUrl });
-      setUserId(user.id);
-      setIsAuthenticated(true);
-    };
+      setUserProfile({ name, avatarUrl })
+      setUserId(user.id)
+      setIsAuthenticated(true)
+    }
 
-    checkAuth();
-  }, [router, pathname, supabase]);
+    checkAuth()
+  }, [router, pathname, supabase])
 
   // Handle responsive sidebar
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
+        setSidebarOpen(false)
       } else {
-        setSidebarOpen(true);
+        setSidebarOpen(true)
       }
-    };
+    }
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Show loading screen while checking auth
   if (isAuthenticated === null) {
-    return <DashboardLoadingScreen />;
+    return <DashboardLoadingScreen />
   }
 
   // Don't render anything if not authenticated (will redirect)
   if (!isAuthenticated) {
-    return null;
+    return null
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProfileProvider>
         <DynamicThemeProvider>
-          <KeyboardProvider
-            onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
-          >
+          <KeyboardProvider onCommandPaletteOpen={() => setCommandPaletteOpen(true)}>
             <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
               <div className="relative min-h-screen bg-background">
                 {/* Note: SyncBanner is now rendered globally in GlobalSyncProvider */}
@@ -261,10 +243,7 @@ export default function DashboardLayout({
 
                 <MobileNav />
 
-                <CommandPalette
-                  open={commandPaletteOpen}
-                  onOpenChange={setCommandPaletteOpen}
-                />
+                <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
 
                 {/* Note: SyncProgressOverlay is now rendered globally in GlobalSyncProvider */}
 
@@ -280,5 +259,5 @@ export default function DashboardLayout({
         </DynamicThemeProvider>
       </BrandProfileProvider>
     </QueryClientProvider>
-  );
+  )
 }
