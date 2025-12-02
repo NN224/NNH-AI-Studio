@@ -231,6 +231,8 @@ export default function MonitoringPage() {
   }
 
   const fetchMetrics = async () => {
+    if (!supabase) return
+
     // Fetch various metrics from database
     try {
       const { data: gmbAccounts } = await supabase.from('gmb_accounts').select('count')

@@ -10,8 +10,7 @@
  * Falls back to in-memory rate limiting if Upstash is not configured.
  */
 
-import { getClientIP } from '@/lib/security/edge-rate-limit'
-import { isKnownBot, getIPRateLimitKey } from '@/lib/utils/get-client-ip'
+import { getIPRateLimitKey, isKnownBot } from '@/lib/utils/get-client-ip'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
@@ -299,7 +298,13 @@ export async function checkIPRateLimit(
   limit: number = 10,
   window: number = 60000, // 1 minute
 ): Promise<RateLimitResult> {
-  const ip = getClientIP(request)
+  // Extract IP from headers directly since we have a generic Request
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  const ip =
+    forwardedFor?.split(',')[0]?.trim() ||
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-real-ip') ||
+    'unknown-ip'
   const userAgent = request.headers.get('user-agent')
 
   // Allow known bots with higher limits

@@ -56,6 +56,11 @@ export default function AdminDashboard() {
   }, [])
 
   const fetchDashboardStats = async () => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
 
     // Fetch various stats

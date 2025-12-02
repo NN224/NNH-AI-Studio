@@ -77,9 +77,15 @@ export default function UsersManagementPage() {
 
   useEffect(() => {
     fetchUsers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchUsers = async () => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
 
     try {

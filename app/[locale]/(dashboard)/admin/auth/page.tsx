@@ -23,6 +23,7 @@ export default function AdminAuthPage() {
 
   useEffect(() => {
     checkExistingSession()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkExistingSession = async () => {
@@ -100,8 +101,8 @@ export default function AdminAuthPage() {
         await send2FACode(data.user.email!)
         setStep('2fa')
       }
-    } catch (err: any) {
-      setError(err.message || 'Invalid credentials')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid credentials')
     } finally {
       setLoading(false)
     }
@@ -123,8 +124,7 @@ export default function AdminAuthPage() {
         body: JSON.stringify({ email, code }),
       })
     } catch {
-      // For demo, show code in console (remove in production!)
-      console.log('2FA Code:', code)
+      // Email service not available - code stored in session
     }
   }
 
@@ -208,7 +208,7 @@ export default function AdminAuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 to-slate-800">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">

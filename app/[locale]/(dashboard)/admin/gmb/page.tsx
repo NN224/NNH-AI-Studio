@@ -73,15 +73,21 @@ export default function GMBManagementPage() {
   })
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
-  const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
+  const [_selectedAccount, _setSelectedAccount] = useState<string | null>(null)
 
   const supabase = createClient()
 
   useEffect(() => {
     fetchGMBData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchGMBData = async () => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -131,8 +137,8 @@ export default function GMBManagementPage() {
           last_sync: accountsData[0]?.last_sync || '',
         })
       }
-    } catch (error: any) {
-      console.error('Error fetching GMB data:', error.message)
+    } catch {
+      // Error fetching GMB data
     } finally {
       setLoading(false)
     }
@@ -151,22 +157,23 @@ export default function GMBManagementPage() {
       if (response.ok) {
         await fetchGMBData()
       }
-    } catch (error: any) {
-      console.error('Sync error:', error.message)
+    } catch {
+      // Sync error
     } finally {
       setSyncing(null)
     }
   }
 
   const disconnectAccount = async (accountId: string) => {
+    if (!supabase) return
     if (!confirm('Are you sure you want to disconnect this GMB account?')) return
 
     try {
       await supabase.from('gmb_accounts').update({ is_active: false }).eq('id', accountId)
 
       await fetchGMBData()
-    } catch (error: any) {
-      console.error('Disconnect error:', error.message)
+    } catch {
+      // Disconnect error
     }
   }
 

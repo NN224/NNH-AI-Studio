@@ -22,7 +22,7 @@ interface ErrorLog {
   severity: 'info' | 'warning' | 'error' | 'critical'
   resolved: boolean
   created_at: string
-  context: any
+  context: Record<string, unknown>
 }
 
 export default function ErrorsPage() {
@@ -33,6 +33,11 @@ export default function ErrorsPage() {
   const supabase = createClient()
 
   const fetchErrors = async () => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     const { data, error } = await supabase
       .from('error_logs')
@@ -49,6 +54,8 @@ export default function ErrorsPage() {
   useEffect(() => {
     fetchErrors()
 
+    if (!supabase) return
+
     // Subscribe to real-time updates
     const channel = supabase
       .channel('error-logs')
@@ -64,6 +71,7 @@ export default function ErrorsPage() {
     return () => {
       supabase.removeChannel(channel)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const getSeverityIcon = (severity: string) => {
@@ -97,6 +105,8 @@ export default function ErrorsPage() {
   }
 
   const markAsResolved = async (errorId: string) => {
+    if (!supabase) return
+
     await supabase
       .from('error_logs')
       .update({
