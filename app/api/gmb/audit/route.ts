@@ -94,7 +94,7 @@ export async function GET() {
     // 4. INFO: Settings configuration audit
     const { data: accounts, error: err4 } = await supabase
       .from("gmb_accounts")
-      .select("id, account_name, is_active, settings, last_synced_at")
+      .select("id, account_name, is_active, settings, last_sync")
       .eq("user_id", user.id)
       .order("is_active", { ascending: false });
 
@@ -119,10 +119,10 @@ export async function GET() {
 
       // Check for stale data
       const staleAccounts = accounts.filter((a) => {
-        if (!a.is_active || !a.last_synced_at) return false;
-        const lastSync = new Date(a.last_synced_at);
+        if (!a.is_active || !a.last_sync) return false;
+        const lastSyncDate = new Date(a.last_sync);
         const daysSinceSync =
-          (Date.now() - lastSync.getTime()) / (1000 * 60 * 60 * 24);
+          (Date.now() - lastSyncDate.getTime()) / (1000 * 60 * 60 * 24);
         return daysSinceSync > 7;
       });
 
@@ -135,9 +135,9 @@ export async function GET() {
           details: staleAccounts.map((a) => ({
             id: a.id,
             name: a.account_name,
-            last_sync: a.last_synced_at,
+            last_sync: a.last_sync,
             days_ago: Math.floor(
-              (Date.now() - new Date(a.last_synced_at).getTime()) /
+              (Date.now() - new Date(a.last_sync!).getTime()) /
                 (1000 * 60 * 60 * 24),
             ),
           })),

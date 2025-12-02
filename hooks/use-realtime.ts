@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 // ============================================================================
@@ -82,58 +82,82 @@ export function useRealtime<T extends Record<string, unknown>>(
   });
 
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
 
-  // Handle payload based on event type
-  const handlePayload = useCallback(
-    (payload: PostgresPayload<T>) => {
-      const eventType = payload.eventType;
-      const newRecord = payload.new;
-      const oldRecord = payload.old;
+  // Store callbacks in refs to avoid re-subscription on callback changes
+  const onInsertRef = useRef(onInsert);
+  const onUpdateRef = useRef(onUpdate);
+  const onDeleteRef = useRef(onDelete);
+  const showToastsRef = useRef(showToasts);
+  const toastMessagesRef = useRef(toastMessages);
 
-      setState((prev) => ({
-        ...prev,
-        lastEvent: new Date(),
-        eventsReceived: prev.eventsReceived + 1,
-      }));
+  // Keep refs updated
+  useEffect(() => {
+    onInsertRef.current = onInsert;
+    onUpdateRef.current = onUpdate;
+    onDeleteRef.current = onDelete;
+    showToastsRef.current = showToasts;
+    toastMessagesRef.current = toastMessages;
+  });
 
-      switch (eventType) {
-        case "INSERT":
-          onInsert?.(newRecord);
-          if (showToasts) {
-            toast.success(
-              toastMessages?.insert || `New ${table} record added`,
-              {
-                duration: 4000,
-              },
-            );
-          }
-          break;
+  // Handle payload based on event type (stable reference)
+  const handlePayload = (payload: PostgresPayload<T>) => {
+    const eventType = payload.eventType;
+    const newRecord = payload.new;
+    const oldRecord = payload.old;
 
-        case "UPDATE":
-          onUpdate?.(newRecord, oldRecord);
-          if (showToasts) {
-            toast.info(toastMessages?.update || `${table} record updated`, {
+    setState((prev) => ({
+      ...prev,
+      lastEvent: new Date(),
+      eventsReceived: prev.eventsReceived + 1,
+    }));
+
+    switch (eventType) {
+      case "INSERT":
+        onInsertRef.current?.(newRecord);
+        if (showToastsRef.current) {
+          toast.success(
+            toastMessagesRef.current?.insert || `New ${table} record added`,
+            {
+              duration: 4000,
+            },
+          );
+        }
+        break;
+
+      case "UPDATE":
+        onUpdateRef.current?.(newRecord, oldRecord);
+        if (showToastsRef.current) {
+          toast.info(
+            toastMessagesRef.current?.update || `${table} record updated`,
+            {
               duration: 3000,
-            });
-          }
-          break;
+            },
+          );
+        }
+        break;
 
-        case "DELETE":
-          onDelete?.(oldRecord);
-          if (showToasts) {
-            toast.warning(toastMessages?.delete || `${table} record deleted`, {
+      case "DELETE":
+        onDeleteRef.current?.(oldRecord);
+        if (showToastsRef.current) {
+          toast.warning(
+            toastMessagesRef.current?.delete || `${table} record deleted`,
+            {
               duration: 3000,
-            });
-          }
-          break;
-      }
-    },
-    [table, onInsert, onUpdate, onDelete, showToasts, toastMessages],
-  );
+            },
+          );
+        }
+        break;
+    }
+  };
 
   useEffect(() => {
-    if (!enabled || !supabase) {
+    if (!enabled) {
+      return;
+    }
+
+    const supabase = supabaseRef.current;
+    if (!supabase) {
       return;
     }
 
@@ -167,7 +191,7 @@ export function useRealtime<T extends Record<string, unknown>>(
           isConnected: true,
           error: null,
         }));
-        console.log(`[Realtime] ✅ Subscribed to ${table}`);
+        // Debug logging removed for production
       } else if (status === "CHANNEL_ERROR") {
         setState((prev) => ({
           ...prev,
@@ -187,21 +211,21 @@ export function useRealtime<T extends Record<string, unknown>>(
           ...prev,
           isConnected: false,
         }));
-        console.log(`[Realtime] 🔌 Closed ${table}`);
       }
     });
 
     channelRef.current = channel;
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when subscription config changes
     return () => {
       if (channelRef.current) {
-        console.log(`[Realtime] 🔌 Unsubscribing from ${table}`);
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [enabled, supabase, table, schema, filter, events, handlePayload]);
+    // Only re-subscribe when these config values change, NOT when callbacks change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, table, schema, filter, JSON.stringify(events)]);
 
   return state;
 }
