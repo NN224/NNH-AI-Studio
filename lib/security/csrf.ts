@@ -86,6 +86,9 @@ const EXCLUDED_PATHS = [
 
   // Admin endpoints (have their own 2FA auth)
   '/api/admin/',
+  '/admin/auth',
+  '/en/admin/auth',
+  '/ar/admin/auth',
 ]
 
 /**
