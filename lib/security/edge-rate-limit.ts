@@ -220,8 +220,8 @@ export const AUTH_RATE_LIMIT: RateLimitConfig = {
 
 /** Standard API rate limit */
 export const API_RATE_LIMIT: RateLimitConfig = {
-  limit: 100,
-  windowSeconds: 60, // 100 requests per minute
+  limit: 300,
+  windowSeconds: 60, // 300 requests per minute (increased for SPA with many API calls)
   identifier: getIPKey,
 };
 
