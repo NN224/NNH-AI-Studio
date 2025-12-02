@@ -49,7 +49,18 @@ export async function checkRateLimit(
         "Rate limit check error",
         error instanceof Error ? error : new Error(String(error)),
       );
-      // Fail open - allow request if check fails
+      // SECURITY: Fail closed in production - block request if check fails
+      // This prevents abuse if the rate limit table is missing or DB is down
+      if (process.env.NODE_ENV === "production") {
+        return {
+          success: false,
+          limit: config.maxRequests,
+          remaining: 0,
+          reset: new Date(now.getTime() + config.windowMs),
+          message: "Rate limit check failed. Please try again later.",
+        };
+      }
+      // In development, fail open to avoid blocking during testing
       return {
         success: true,
         limit: config.maxRequests,
@@ -91,7 +102,17 @@ export async function checkRateLimit(
       "Rate limiter error",
       error instanceof Error ? error : new Error(String(error)),
     );
-    // Fail open
+    // SECURITY: Fail closed in production
+    if (process.env.NODE_ENV === "production") {
+      return {
+        success: false,
+        limit: config.maxRequests,
+        remaining: 0,
+        reset: new Date(Date.now() + config.windowMs),
+        message: "Rate limit service unavailable. Please try again later.",
+      };
+    }
+    // In development, fail open
     return {
       success: true,
       limit: config.maxRequests,

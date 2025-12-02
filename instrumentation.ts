@@ -36,6 +36,18 @@ function validateEnvironmentVariables() {
     );
   }
 
+  // Cache warming (optional but recommended)
+  if (
+    process.env.CACHE_WARMER_TOKEN &&
+    !process.env.INTERNAL_CACHE_BASE_URL &&
+    !process.env.APP_URL &&
+    !process.env.NEXT_PUBLIC_APP_URL
+  ) {
+    warnings.push(
+      "CACHE_WARMER_TOKEN is set but no base URL configured - cache warming will fail",
+    );
+  }
+
   // Log warnings
   if (warnings.length > 0) {
     console.warn("⚠️ Environment variable warnings:");
