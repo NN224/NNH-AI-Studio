@@ -90,32 +90,33 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(`https://${hostname}${pathname}`)
     }
 
+    // Check if on auth page (with or without locale prefix)
+    const isOnAuthPage = pathname.includes('/admin/auth') || pathname.endsWith('/auth')
+    const isApiRoute = pathname.startsWith('/api/')
+
     // Redirect to admin auth if not on auth page
-    if (!pathname.startsWith('/admin/auth') && !pathname.startsWith('/api/admin')) {
+    if (!isOnAuthPage && !isApiRoute) {
       // Check for valid admin session
       const adminSession = request.cookies.get('admin_2fa_verified')?.value
       const sessionTime = request.cookies.get('admin_2fa_time')?.value
 
       if (!adminSession || adminSession !== 'true' || !sessionTime) {
-        return NextResponse.redirect(new URL('/admin/auth', request.url))
+        return NextResponse.redirect(new URL('/en/admin/auth', request.url))
       }
 
       // Check session expiry (30 minutes)
       const timeDiff = Date.now() - parseInt(sessionTime)
       if (timeDiff > 30 * 60 * 1000) {
         // Clear expired session
-        const response = NextResponse.redirect(new URL('/admin/auth', request.url))
+        const response = NextResponse.redirect(new URL('/en/admin/auth', request.url))
         response.cookies.delete('admin_2fa_verified')
         response.cookies.delete('admin_2fa_time')
         return response
       }
     }
 
-    // Rewrite to /admin path
-    if (!pathname.startsWith('/admin')) {
-      const adminUrl = new URL(`/admin${pathname === '/' ? '' : pathname}`, request.url)
-      return NextResponse.rewrite(adminUrl)
-    }
+    // For admin subdomain, let the request continue to the admin pages
+    // The intl middleware will handle locale routing
   }
 
   // -------------------------------------------------------------------------
