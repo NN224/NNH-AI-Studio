@@ -1,6 +1,7 @@
 "use client";
 
 import { useKeyboard } from "@/components/keyboard/keyboard-provider";
+import { RealtimeConnectionIndicator } from "@/components/dashboard/realtime-connection-indicator";
 import { GlobalSyncButton } from "@/components/sync/global-sync-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -190,6 +191,9 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Realtime Connection Indicator */}
+          <RealtimeConnectionIndicator compact showDetails />
+
           {/* Global Sync Button */}
           <GlobalSyncButton />
 

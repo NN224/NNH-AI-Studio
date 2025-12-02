@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRealtimeReviews } from "@/hooks/use-realtime";
+import { createClient } from "@/lib/supabase/client";
 import { reviewsLogger } from "@/lib/utils/logger";
 import type { GMBReview } from "@/lib/types/database";
 
@@ -45,6 +47,8 @@ interface UseReviewsOptions {
   initialFilters?: ReviewFilters;
   pageSize?: number;
   infiniteScroll?: boolean;
+  /** Enable realtime updates */
+  enableRealtime?: boolean;
 }
 
 export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
@@ -52,6 +56,7 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
     initialFilters = {},
     pageSize = 20,
     infiniteScroll = false,
+    enableRealtime = true,
   } = options;
 
   const [reviews, setReviews] = useState<GMBReview[]>([]);
@@ -61,6 +66,67 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [filters, setFiltersState] = useState<ReviewFilters>(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get user ID for realtime subscription
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id);
+    });
+  }, []);
+
+  // Handle new review from realtime
+  const handleNewReview = useCallback(
+    (review: unknown) => {
+      const newReview = review as GMBReview;
+
+      // Check if review matches current filters
+      if (filters.locationId && newReview.location_id !== filters.locationId) {
+        return; // Skip if doesn't match location filter
+      }
+      if (filters.rating && newReview.rating !== filters.rating) {
+        return; // Skip if doesn't match rating filter
+      }
+
+      // Add to beginning of list (newest first)
+      setReviews((prev) => {
+        // Check if review already exists
+        const exists = prev.some((r) => r.id === newReview.id);
+        if (exists) {
+          // Update existing review
+          return prev.map((r) => (r.id === newReview.id ? newReview : r));
+        }
+        // Add new review at the beginning
+        return [newReview, ...prev];
+      });
+
+      // Update pagination total
+      setPagination((prev) =>
+        prev ? { ...prev, total: prev.total + 1 } : prev,
+      );
+    },
+    [filters],
+  );
+
+  // Handle review update from realtime
+  const handleReviewUpdate = useCallback((review: unknown) => {
+    const updatedReview = review as GMBReview;
+
+    setReviews((prev) =>
+      prev.map((r) => (r.id === updatedReview.id ? updatedReview : r)),
+    );
+  }, []);
+
+  // Subscribe to realtime updates
+  useRealtimeReviews(enableRealtime ? userId : undefined, {
+    onNewReview: handleNewReview,
+    onReviewUpdate: handleReviewUpdate,
+    showToasts: true,
+  });
 
   const fetchReviews = useCallback(
     async (page: number, append: boolean = false) => {
