@@ -1,7 +1,8 @@
+'use client'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { isCurrentUserAdmin } from '@/lib/auth/admin-check'
 import {
   Activity,
   BarChart3,
@@ -22,14 +23,8 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
-import { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-
-export const metadata: Metadata = {
-  title: 'Admin Panel | NNH AI Studio',
-  description: 'System administration and monitoring dashboard',
-}
+import { usePathname } from 'next/navigation'
 
 const sidebarItems = [
   {
@@ -83,12 +78,12 @@ const sidebarItems = [
   },
 ]
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Check if user is admin
-  const { isAdmin } = await isCurrentUserAdmin()
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
 
-  if (!isAdmin) {
-    redirect('/dashboard')
+  // Skip layout for auth page - show only children
+  if (pathname?.includes('/admin/auth')) {
+    return <>{children}</>
   }
 
   return (
