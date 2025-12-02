@@ -120,7 +120,7 @@ export function useServices(locationId: string) {
     }) => {
       if (!supabase) throw new Error("Supabase not initialized");
 
-      const dbUpdates: Record<string, any> = {
+      const dbUpdates: Record<string, unknown> = {
         ...updates,
         price: updates.price ? parseFloat(updates.price) : undefined,
         duration_minutes: updates.duration,

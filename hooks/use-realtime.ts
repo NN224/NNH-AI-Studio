@@ -177,8 +177,8 @@ export function useRealtime<T extends Record<string, unknown>>(
         table,
         filter,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (payload: any) => {
+
+      (payload: { new: Record<string, unknown> }) => {
         handlePayload(payload as PostgresPayload<T>);
       },
     );

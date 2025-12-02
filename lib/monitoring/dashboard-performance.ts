@@ -17,7 +17,7 @@ export interface PerformanceMetric {
   unit: "ms" | "bytes" | "count";
   timestamp: number;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DashboardPerformanceData {
@@ -256,9 +256,13 @@ export class PerformanceTimer {
   private startTime: number;
   private name: string;
   private userId?: string;
-  private metadata?: Record<string, any>;
+  private metadata?: Record<string, unknown>;
 
-  constructor(name: string, userId?: string, metadata?: Record<string, any>) {
+  constructor(
+    name: string,
+    userId?: string,
+    metadata?: Record<string, unknown>,
+  ) {
     this.name = name;
     this.userId = userId;
     this.metadata = metadata;
@@ -268,7 +272,7 @@ export class PerformanceTimer {
   /**
    * End the timer and record the metric
    */
-  end(additionalMetadata?: Record<string, any>) {
+  end(additionalMetadata?: Record<string, unknown>) {
     const duration = performance.now() - this.startTime;
 
     recordMetric({

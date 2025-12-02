@@ -1,8 +1,8 @@
-import { NextRequest } from "next/server";
+import { GMB_CONSTANTS, getValidAccessToken } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
-import { getValidAccessToken, GMB_CONSTANTS } from "@/lib/gmb/helpers";
 import { gmbLogger } from "@/lib/utils/logger";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       url.searchParams.set("pageToken", pageToken);
     }
 
-    console.log("[Attributes API] Fetching from:", url.toString());
+    gmbLogger.info("Fetching attributes from Google", { url: url.toString() });
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
-      let errorData: any = {};
+      let errorData: Record<string, unknown> = {};
       try {
         errorData = errorText ? JSON.parse(errorText) : {};
       } catch {
@@ -165,8 +165,9 @@ export async function GET(request: NextRequest) {
 
       return errorResponse(
         "GOOGLE_API_ERROR",
-        errorData.error?.message ||
-          errorData.message ||
+        (errorData as { error?: { message?: string }; message?: string }).error
+          ?.message ||
+          (errorData as { message?: string }).message ||
           "Failed to fetch attributes",
         response.status,
         errorData,
@@ -178,16 +179,16 @@ export async function GET(request: NextRequest) {
       ? data.attributeMetadata
       : [];
 
-    console.log(
-      `[Attributes API] Successfully fetched ${attributeMetadata.length} attributes`,
-    );
+    gmbLogger.info("Successfully fetched attributes", {
+      count: attributeMetadata.length,
+    });
 
     return successResponse({
       attributeMetadata,
       nextPageToken: data.nextPageToken || null,
       totalCount: attributeMetadata.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "Attributes API error",
       error instanceof Error ? error : new Error(String(error)),
@@ -195,7 +196,7 @@ export async function GET(request: NextRequest) {
 
     return errorResponse(
       "INTERNAL_ERROR",
-      error?.message || "Failed to fetch attributes",
+      error instanceof Error ? error.message : "Failed to fetch attributes",
       500,
     );
   }

@@ -116,7 +116,8 @@ export async function GET(request: NextRequest) {
     }
 
     const account = accounts?.[0];
-    const accountSettings = (account?.settings as Record<string, any>) || {};
+    const accountSettings =
+      (account?.settings as Record<string, unknown>) || {};
 
     // Get client profile (branding) - use profiles table instead
     let profile = null;
@@ -324,14 +325,14 @@ export async function PUT(request: NextRequest) {
 
     // Update gmb_accounts.settings (JSONB)
     const updatedAccountSettings = {
-      ...((accounts[0].settings as Record<string, any>) || {}),
+      ...((accounts[0].settings as Record<string, unknown>) || {}),
       ...accountSettings,
       updatedAt: new Date().toISOString(),
     };
 
     // Update all active accounts
     for (const account of accounts) {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         settings: updatedAccountSettings,
         updated_at: new Date().toISOString(),
       };
@@ -388,7 +389,7 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      const profileData: any = {};
+      const profileData: Record<string, unknown> = {};
       if (businessName !== undefined) {
         profileData.brand_name = businessName;
       }

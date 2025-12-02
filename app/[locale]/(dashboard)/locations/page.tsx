@@ -1,23 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { GMBConnectionBanner } from "@/components/locations/gmb-connection-banner";
+import { LocationFormDialog } from "@/components/locations/location-form-dialog";
+import { Location } from "@/components/locations/location-types";
 import { LocationsMapTab } from "@/components/locations/locations-map-tab";
 import { LocationsStatsCardsAPI } from "@/components/locations/locations-stats-cards-api";
 import { Button } from "@/components/ui/button";
-import {
-  Download,
-  Plus,
-  Loader2,
-  MessageSquare,
-  FilePlus2,
-  BarChart3,
-} from "lucide-react";
-import { toast } from "sonner";
-import { LocationFormDialog } from "@/components/locations/location-form-dialog";
-import { Location } from "@/components/locations/location-types";
-import { GMBConnectionBanner } from "@/components/locations/gmb-connection-banner";
-import { useGMBStatus } from "@/hooks/features/use-gmb";
 import {
   Card,
   CardContent,
@@ -25,9 +14,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useGMBStatus } from "@/hooks/features/use-gmb";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
-import { useRouter } from "next/navigation";
 import { gmbLogger } from "@/lib/utils/logger";
+import {
+  BarChart3,
+  Download,
+  FilePlus2,
+  Loader2,
+  MessageSquare,
+  Plus,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 const QuickActionButton = ({
   icon: Icon,
@@ -170,9 +170,6 @@ export default function LocationsPage() {
 
       toast.success("Locations exported successfully!");
       window.dispatchEvent(new Event("dashboard:refresh"));
-      console.log(
-        "[LocationsPage] Locations exported, dashboard refresh triggered",
-      );
     } catch (error) {
       gmbLogger.error(
         "Export error",
@@ -376,9 +373,6 @@ export default function LocationsPage() {
             setEditingLocationData(null);
             window.location.reload();
             window.dispatchEvent(new Event("dashboard:refresh"));
-            console.log(
-              "[LocationsPage] Location added, dashboard refresh triggered",
-            );
           }}
           locationId={editingLocationId}
           initialData={editingLocationData}

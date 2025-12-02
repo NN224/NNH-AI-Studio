@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "@/lib/navigation";
-import { useParams } from "next/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { BusinessInfoEditor } from "@/components/locations/business-info-editor";
+import { LocationDetailHeader } from "@/components/locations/location-detail-header";
+import { LocationMediaSection } from "@/components/locations/location-media-section";
+import { LocationMediaUpload } from "@/components/locations/location-media-upload";
+import { LocationMetricsSection } from "@/components/locations/location-metrics-section";
+import { LocationQASection } from "@/components/locations/location-qa-section";
+import { LocationReviewsSection } from "@/components/locations/location-reviews-section";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, AlertCircle } from "lucide-react";
 import { useLocationDetails } from "@/hooks/use-locations-cache";
-import { LocationDetailHeader } from "@/components/locations/location-detail-header";
-import { BusinessInfoEditor } from "@/components/locations/business-info-editor";
-import { LocationReviewsSection } from "@/components/locations/location-reviews-section";
-import { LocationMediaSection } from "@/components/locations/location-media-section";
-import { LocationMetricsSection } from "@/components/locations/location-metrics-section";
-import { LocationQASection } from "@/components/locations/location-qa-section";
-import { LocationMediaUpload } from "@/components/locations/location-media-upload";
+import { useRouter } from "@/lib/navigation";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function LocationDetailPage() {
   const params = useParams();
@@ -53,7 +53,6 @@ export default function LocationDetailPage() {
           onClick={() => {
             router.push("/locations");
             window.dispatchEvent(new Event("dashboard:refresh"));
-            console.log("[LocationDetailPage] Back to Locations triggered");
           }}
           className="mb-4"
         >
@@ -76,9 +75,6 @@ export default function LocationDetailPage() {
                   onClick={() => {
                     router.push("/locations");
                     window.dispatchEvent(new Event("dashboard:refresh"));
-                    console.log(
-                      "[LocationDetailPage] Back to Locations triggered",
-                    );
                   }}
                 >
                   Go Back to Locations
@@ -107,7 +103,6 @@ export default function LocationDetailPage() {
           onRefresh={() => {
             refetch();
             window.dispatchEvent(new Event("dashboard:refresh"));
-            console.log("[LocationDetailPage] Refetch triggered");
           }}
           gmbAccountId={gmbAccountId}
         />

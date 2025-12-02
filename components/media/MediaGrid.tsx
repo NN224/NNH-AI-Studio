@@ -5,7 +5,7 @@ import { MediaCard } from "./MediaCard";
 interface MediaItem {
   id: string;
   url: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface MediaGridProps {
@@ -27,7 +27,7 @@ export function MediaGrid({ media, onDelete }: MediaGridProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {media.map((item: any) => (
+      {media.map((item) => (
         <MediaCard key={item.id} mediaItem={item} onDelete={onDelete} />
       ))}
     </div>

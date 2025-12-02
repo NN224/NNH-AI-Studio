@@ -27,8 +27,9 @@ export interface LocationData {
   profile_completeness?: number | null;
   is_active: boolean;
   status?: LocationStatus;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   last_synced_at: string;
+  last_sync?: string; // Alternative column name for compatibility
 }
 
 export interface ReviewData {
@@ -87,7 +88,7 @@ export interface PostData {
   status: "draft" | "queued" | "published" | "failed";
   published_at?: string | null;
   scheduled_at?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -102,6 +103,6 @@ export interface MediaData {
   thumbnail_url?: string | null;
   description?: string | null;
   location_association?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
 }

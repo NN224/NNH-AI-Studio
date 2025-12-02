@@ -8,7 +8,7 @@ import { toast } from "sonner";
 interface MediaItem {
   id: string;
   url: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface MediaUploaderProps {

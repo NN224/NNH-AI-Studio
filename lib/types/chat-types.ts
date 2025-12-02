@@ -20,7 +20,7 @@ export interface Message {
   context?: {
     page?: string;
     action?: string;
-    data?: any;
+    data?: Record<string, unknown>;
   };
 }
 

@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
 import { gmbLogger } from "@/lib/utils/logger";
@@ -97,7 +96,7 @@ export async function GET() {
 
         // Return data with default values for missing columns
         return successResponse({
-          items: (fallbackData || []).map((post: any) => ({
+          items: (fallbackData || []).map((post) => ({
             ...post,
             post_type: "whats_new",
             metadata: null,
@@ -119,7 +118,7 @@ export async function GET() {
     }
 
     return successResponse({ items: data || [] });
-  } catch (e: any) {
+  } catch (e: unknown) {
     gmbLogger.error(
       "[GMB Posts API] Unexpected error",
       e instanceof Error ? e : new Error(String(e)),

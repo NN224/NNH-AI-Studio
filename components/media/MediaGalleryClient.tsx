@@ -15,7 +15,7 @@ interface MediaItem {
   id: string;
   url: string;
   location_id?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface MediaGalleryClientProps {
@@ -31,8 +31,7 @@ export function MediaGalleryClient({
   const [filters, setFilters] = useState({ locationId: "" });
 
   const filteredMedia = media.filter(
-    (item: any) =>
-      !filters.locationId || item.location_id === filters.locationId,
+    (item) => !filters.locationId || item.location_id === filters.locationId,
   );
 
   return (
@@ -56,7 +55,7 @@ export function MediaGalleryClient({
       <MediaGrid
         media={filteredMedia}
         onDelete={(id: string) => {
-          setMedia(media.filter((m: any) => m.id !== id));
+          setMedia(media.filter((m) => m.id !== id));
         }}
       />
     </div>

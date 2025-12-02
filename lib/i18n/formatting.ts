@@ -15,6 +15,8 @@ export function useI18nFormatter() {
 
   return {
     // Date formatting
+    // Using any here because next-intl has complex internal types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatDate: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
@@ -31,6 +33,7 @@ export function useI18nFormatter() {
     },
 
     // Time formatting
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatTime: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
@@ -46,6 +49,7 @@ export function useI18nFormatter() {
     },
 
     // DateTime formatting
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatDateTime: (date: Date | string | number, options?: any) => {
       const dateObj =
         typeof date === "string" || typeof date === "number"
@@ -73,6 +77,7 @@ export function useI18nFormatter() {
     },
 
     // Number formatting
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatNumber: (value: number, options?: any) => {
       return format.number(value, options);
     },
@@ -81,6 +86,7 @@ export function useI18nFormatter() {
     formatCurrency: (
       value: number,
       currency: string = "USD",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       options?: any,
     ) => {
       return format.number(value, {
@@ -91,6 +97,7 @@ export function useI18nFormatter() {
     },
 
     // Percentage formatting
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatPercent: (value: number, options?: any) => {
       return format.number(value / 100, {
         style: "percent",

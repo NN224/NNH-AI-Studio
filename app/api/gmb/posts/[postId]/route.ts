@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
-import { logServerActivity } from "@/server/services/activity";
 import { gmbLogger } from "@/lib/utils/logger";
+import { logServerActivity } from "@/server/services/activity";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +76,7 @@ export async function DELETE(
     return successResponse({
       message: "Post deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "[Posts API] Unexpected error deleting post",
       error instanceof Error ? error : new Error(String(error)),
@@ -128,7 +128,7 @@ export async function PATCH(
     }
 
     // Update the post
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
@@ -178,7 +178,7 @@ export async function PATCH(
       post: updatedPost,
       message: "Post updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "[Posts API] Unexpected error updating post",
       error instanceof Error ? error : new Error(String(error)),

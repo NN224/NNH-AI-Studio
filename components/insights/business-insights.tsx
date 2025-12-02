@@ -34,7 +34,7 @@ interface Insight {
 }
 
 interface BusinessInsightsProps {
-  filters?: any;
+  filters?: Record<string, unknown>;
 }
 
 export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
@@ -100,7 +100,7 @@ export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
         .in("gmb_account_id", accountIds);
 
       // Get reviews data
-      const locationIds = locations?.map((l: any) => l.id) || [];
+      const locationIds = locations?.map((l) => l.id) || [];
       const { data: reviews } =
         locationIds.length > 0
           ? await supabase
@@ -193,7 +193,7 @@ export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
       // Review sentiment insights
       if (reviews && reviews.length > 0) {
         const negativeReviews = reviews.filter(
-          (r: any) => r.rating && r.rating <= 2,
+          (r) => r.rating && r.rating <= 2,
         ).length;
         const negativePercent = (
           (negativeReviews / reviews.length) *
@@ -212,7 +212,7 @@ export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
         }
 
         // Recent activity
-        const recentReviews = reviews.filter((r: any) => {
+        const recentReviews = reviews.filter((r) => {
           if (!r.created_at) return false;
           const reviewDate = new Date(r.created_at);
           const daysDiff =
@@ -234,9 +234,8 @@ export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
 
       // Profile completeness
       const completeProfiles =
-        locations?.filter(
-          (l: any) => l.address && l.category && (l.rating || 0) > 0,
-        ).length || 0;
+        locations?.filter((l) => l.address && l.category && (l.rating || 0) > 0)
+          .length || 0;
       const completenessPercent = locations
         ? parseFloat(((completeProfiles / locations.length) * 100).toFixed(0))
         : 0;
@@ -272,12 +271,12 @@ export function BusinessInsights({ filters }: BusinessInsightsProps = {}) {
         const { start, end } = getDateRange(30);
         const { start: prevStart, end: prevEnd } = getDateRange(60);
 
-        const currentMetrics = performanceMetrics.filter((m: any) => {
+        const currentMetrics = performanceMetrics.filter((m) => {
           const date = new Date(m.metric_date);
           return date >= start && date <= end;
         });
 
-        const previousMetrics = performanceMetrics.filter((m: any) => {
+        const previousMetrics = performanceMetrics.filter((m) => {
           const date = new Date(m.metric_date);
           return date >= prevStart && date < start;
         });

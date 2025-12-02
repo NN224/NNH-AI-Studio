@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export async function GET(
     }
 
     const accountId = location.gmb_account_id;
-    const accountResource = `accounts/${location.gmb_accounts.account_id}`;
+    const _accountResource = `accounts/${location.gmb_accounts.account_id}`;
     const locationResource = location.location_id; // Already in format: locations/{id}
 
     // Get valid access token
@@ -78,10 +78,11 @@ export async function GET(
 
     // Extract attributes from location data (attributes are included in location object via readMask)
     // Note: In Google Business Profile API v1, attributes are part of the location object, not a separate endpoint
-    const attributes: any[] = locationData.attributes || [];
+    const attributes: Array<Record<string, unknown>> =
+      locationData.attributes || [];
 
     // Get Google-updated information if available
-    let googleUpdated: any = null;
+    let googleUpdated: Record<string, unknown> | null = null;
     try {
       const googleUpdatedUrl = new URL(
         `${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`,
@@ -114,14 +115,17 @@ export async function GET(
       googleUpdated,
       gmb_account_id: location.gmb_account_id, // Include accountId for sync operations
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "[Location Details API] Error",
       error instanceof Error ? error : new Error(String(error)),
       { locationId: params.locationId },
     );
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 },
     );
   }

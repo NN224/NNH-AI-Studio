@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getValidAccessToken } from "@/lib/gmb/helpers";
+import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +70,11 @@ export async function GET(
       gmbLogger.error(
         "Failed to fetch place action links",
         new Error("Google API error"),
-        { locationId, accountId, errorData },
+        {
+          locationId,
+          accountId,
+          errorData,
+        },
       );
 
       // 404 is normal - location may not have place action links
@@ -97,14 +101,19 @@ export async function GET(
       placeActionLinks: data.placeActionLinks || [],
       success: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     gmbLogger.error(
       "Place Actions API error",
       error instanceof Error ? error : new Error(String(error)),
       { locationId: params.locationId },
     );
     return NextResponse.json(
-      { error: error.message || "Failed to fetch place action links" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch place action links",
+      },
       { status: 500 },
     );
   }

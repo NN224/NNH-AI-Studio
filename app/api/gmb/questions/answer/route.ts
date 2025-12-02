@@ -1,7 +1,7 @@
 // app/api/gmb/questions/answer/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 // 💡 افتراض: استيراد الدوال المساعدة من ملفات الـ Helpers لديك
 import { getValidAccessToken } from "@/lib/gmb/helpers";
 import { questionsLogger } from "@/lib/utils/logger";
@@ -96,14 +96,15 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Answer posted successfully to Google.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     questionsLogger.error(
       "API Error during Q&A answer",
-      error instanceof Error ? error : new Error(String(error)),
+      error instanceof Error ? error : new Error(errorMessage),
       { userId: user?.id },
     );
     return NextResponse.json(
-      { error: error.message || "Failed to process Q&A answer" },
+      { error: errorMessage || "Failed to process Q&A answer" },
       { status: 500 },
     );
   }

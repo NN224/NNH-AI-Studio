@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse } from "@/lib/utils/api-response";
 import { gmbLogger } from "@/lib/utils/logger";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +63,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return successResponse({ message: "Post deleted successfully" });
-  } catch (e: any) {
+  } catch (e: unknown) {
     gmbLogger.error(
       "[GMB Posts Delete API] Unexpected error",
       e instanceof Error ? e : new Error(String(e)),
@@ -71,7 +71,7 @@ export async function DELETE(request: NextRequest) {
     );
     return errorResponse(
       "INTERNAL_ERROR",
-      e.message || "Failed to delete post",
+      e instanceof Error ? e.message : "Failed to delete post",
       500,
     );
   }

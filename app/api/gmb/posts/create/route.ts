@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createPostSchema } from "@/lib/validations/gmb-post";
 import { errorResponse, getErrorCode } from "@/lib/utils/api-response";
 import { gmbLogger } from "@/lib/utils/logger";
+import { createPostSchema } from "@/lib/validations/gmb-post";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build metadata for Event/Offer posts
-    const metadata: any = {};
+    const metadata: Record<string, unknown> = {};
     if (validated.postType === "event") {
       metadata.eventTitle = validated.eventTitle;
       metadata.eventStartDate = validated.eventStartDate;
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ post: data, success: true }, { status: 201 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     const errorCode = getErrorCode(e);
     gmbLogger.error(
       "[GMB Posts API] Error creating post",

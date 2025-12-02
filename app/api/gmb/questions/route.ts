@@ -276,7 +276,7 @@ export async function GET(request: NextRequest) {
     response.headers.set("X-Cache-Tag", QUESTIONS_CACHE_TAG);
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     questionsLogger.error(
       "Unexpected error fetching questions",
       error instanceof Error ? error : new Error(String(error)),
@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
       question,
       message: "Question created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     questionsLogger.error(
       "Unexpected error creating question",
       error instanceof Error ? error : new Error(String(error)),

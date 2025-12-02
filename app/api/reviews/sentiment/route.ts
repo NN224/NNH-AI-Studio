@@ -13,7 +13,7 @@ import { reviewsLogger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Fetching reviews for sentiment analysis for user:", user.id);
+    reviewsLogger.info("Fetching reviews for sentiment analysis", {
+      userId: user.id,
+    });
 
     const { data: reviews, error } = await supabase
 
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`Analyzing sentiment for ${reviews?.length || 0} reviews`);
+    reviewsLogger.info("Analyzing sentiment", { count: reviews?.length || 0 });
 
     if (!reviews || reviews.length === 0) {
       return NextResponse.json({

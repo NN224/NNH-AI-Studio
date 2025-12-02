@@ -37,6 +37,26 @@ const REQUEST_DELAY_MS = 200;
 // Token refresh configuration
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
+// Sync timeout configuration
+const SYNC_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max for entire sync
+
+// Create a timeout controller for sync operations
+function createSyncTimeout(ms: number = SYNC_TIMEOUT_MS) {
+  let timeoutId: NodeJS.Timeout | null = null;
+  const promise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Sync operation timed out after ${ms / 1000} seconds`));
+    }, ms);
+  });
+
+  return {
+    promise,
+    clear: () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    },
+  };
+}
+
 /**
  * Token manager to handle automatic refresh during long-running sync operations
  */
@@ -77,7 +97,31 @@ class TokenManager {
           error instanceof Error ? error : new Error(String(error)),
           { accountId: this.accountId },
         );
-        throw new Error("Failed to refresh access token during sync");
+        // Retry once before failing
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          const retryToken = await getValidAccessToken(
+            this.supabase,
+            this.accountId,
+          );
+          if (retryToken) {
+            this.token = retryToken;
+            this.tokenExpiresAt =
+              Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
+            return this.token;
+          }
+        } catch (retryError) {
+          gmbLogger.error(
+            "Token refresh retry failed",
+            retryError instanceof Error
+              ? retryError
+              : new Error(String(retryError)),
+            { accountId: this.accountId },
+          );
+        }
+        throw new Error(
+          "Failed to refresh access token during sync after retry",
+        );
       }
     }
     return this.token;
@@ -90,32 +134,39 @@ async function withConcurrencyLimit<T, R>(
   concurrency: number = MAX_CONCURRENT_REQUESTS,
 ): Promise<R[]> {
   const results: R[] = [];
+  const errors: Error[] = [];
   const executing: Promise<void>[] = [];
 
   for (const item of items) {
-    const promise = fn(item).then((result) => {
-      results.push(result);
-    });
+    const promise = fn(item)
+      .then((result) => {
+        results.push(result);
+      })
+      .catch((error: unknown) => {
+        const err = error instanceof Error ? error : new Error(String(error));
+        errors.push(err);
+        gmbLogger.warn("Concurrent task failed", { error: err.message });
+      });
 
     executing.push(promise);
 
     if (executing.length >= concurrency) {
       await Promise.race(executing);
-      const completed = executing.filter((p) => {
-        let resolved = false;
-        p.then(() => {
-          resolved = true;
-        }).catch(() => {
-          resolved = true;
-        });
-        return resolved;
-      });
-      executing.splice(0, completed.length);
+      // Clean up completed promises
+      executing.length = 0;
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
     }
   }
 
   await Promise.all(executing);
+
+  if (errors.length > 0) {
+    gmbLogger.warn("Some concurrent tasks failed", {
+      totalErrors: errors.length,
+      firstError: errors[0]?.message,
+    });
+  }
+
   return results;
 }
 
@@ -392,8 +443,18 @@ export async function fetchLocationsDataForSync(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      gmbLogger.error(
+        "Failed to fetch locations from Google",
+        new Error(`HTTP ${response.status}`),
+        {
+          status: response.status,
+          errorData,
+          accountId: gmbAccountId,
+        },
+      );
       throw new Error(
-        errorData?.error?.message || "Failed to fetch locations from Google",
+        (errorData as { error?: { message?: string } })?.error?.message ||
+          `Failed to fetch locations from Google: HTTP ${response.status}`,
       );
     }
 
@@ -447,6 +508,7 @@ export async function fetchLocationsDataForSync(
         status,
         metadata: rawLocation,
         last_synced_at: nowIso,
+        last_sync: nowIso, // Also set for compatibility
       });
     }
 
@@ -497,9 +559,15 @@ export async function fetchReviewsDataForSync(
         );
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          const errorData = await response.json().catch((e) => {
+            gmbLogger.debug("Failed to parse reviews error response", {
+              error: e,
+            });
+            return {};
+          });
           gmbLogger.warn("Reviews fetch failed", {
             locationId: location.location_id,
+            status: response.status,
             error: errorData,
           });
           break;
@@ -1057,7 +1125,7 @@ export async function performTransactionalSync(
     }
 
     if (accountLookupError || !accountData?.user_id) {
-      throw new Error("Account not found for internal call");
+      throw new Error("Account not found for internal GMB sync call");
     }
     userId = accountData.user_id;
   } else {
@@ -1067,7 +1135,7 @@ export async function performTransactionalSync(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      throw new Error("Not authenticated");
+      throw new Error("User not authenticated for GMB sync");
     }
     userId = user.id;
   }
@@ -1091,7 +1159,7 @@ export async function performTransactionalSync(
         : new Error(String(accountError)),
       { accountId },
     );
-    throw new Error("GMB account not found");
+    throw new Error(`GMB account not found: ${accountId}`);
   }
 
   const progressEmitter = createProgressEmitter({
@@ -1108,169 +1176,185 @@ export async function performTransactionalSync(
   });
 
   let currentStage: SyncStage = "init";
+  const syncTimeout = createSyncTimeout();
 
   try {
-    const initialToken = await getValidAccessToken(dbClient, accountId);
-    const tokenManager = new TokenManager(
-      initialToken,
-      3600,
-      dbClient,
-      accountId,
-    );
+    // Race between sync operation and timeout
+    const result = await Promise.race([
+      (async () => {
+        const initialToken = await getValidAccessToken(dbClient, accountId);
+        const tokenManager = new TokenManager(
+          initialToken,
+          3600,
+          dbClient,
+          accountId,
+        );
 
-    currentStage = "locations_fetch";
-    const locations = await fetchLocationsDataForSync(
-      account.account_id,
-      accountId,
-      userId,
-      await tokenManager.getToken(),
-    );
-    progressEmitter.emit("locations_fetch", "completed", {
-      counts: { locations: locations.length },
-      message: `Fetched ${locations.length} locations`,
-    });
+        currentStage = "locations_fetch";
+        const locations = await fetchLocationsDataForSync(
+          account.account_id,
+          accountId,
+          userId,
+          await tokenManager.getToken(),
+        );
+        progressEmitter.emit("locations_fetch", "completed", {
+          counts: { locations: locations.length },
+          message: `Fetched ${locations.length} locations`,
+        });
 
-    currentStage = "reviews_fetch";
-    const reviews = await fetchReviewsDataForSync(
-      locations,
-      account.account_id,
-      accountId,
-      userId,
-      await tokenManager.getToken(),
-    );
-    progressEmitter.emit("reviews_fetch", "completed", {
-      counts: { reviews: reviews.length },
-      message: `Fetched ${reviews.length} reviews`,
-    });
+        currentStage = "reviews_fetch";
+        const reviews = await fetchReviewsDataForSync(
+          locations,
+          account.account_id,
+          accountId,
+          userId,
+          await tokenManager.getToken(),
+        );
+        progressEmitter.emit("reviews_fetch", "completed", {
+          counts: { reviews: reviews.length },
+          message: `Fetched ${reviews.length} reviews`,
+        });
 
-    let questions: QuestionData[] = [];
-    if (includeQuestions) {
-      currentStage = "questions_fetch";
-      questions = await fetchQuestionsDataForSync(
-        locations,
-        account.account_id,
-        accountId,
-        userId,
-        await tokenManager.getToken(),
-      );
-      progressEmitter.emit("questions_fetch", "completed", {
-        counts: { questions: questions.length },
-        message: `Fetched ${questions.length} questions`,
-      });
-    }
+        let questions: QuestionData[] = [];
+        if (includeQuestions) {
+          currentStage = "questions_fetch";
+          questions = await fetchQuestionsDataForSync(
+            locations,
+            account.account_id,
+            accountId,
+            userId,
+            await tokenManager.getToken(),
+          );
+          progressEmitter.emit("questions_fetch", "completed", {
+            counts: { questions: questions.length },
+            message: `Fetched ${questions.length} questions`,
+          });
+        }
 
-    let posts: UnifiedPostData[] = [];
-    if (includePosts) {
-      currentStage = "posts_fetch";
-      posts = await fetchPostsDataForSync(
-        locations,
-        account.account_id,
-        accountId,
-        userId,
-        await tokenManager.getToken(),
-      );
-      progressEmitter.emit("posts_fetch", "completed", {
-        counts: { posts: posts.length },
-        message: `Fetched ${posts.length} posts`,
-      });
-    }
+        let posts: UnifiedPostData[] = [];
+        if (includePosts) {
+          currentStage = "posts_fetch";
+          posts = await fetchPostsDataForSync(
+            locations,
+            account.account_id,
+            accountId,
+            userId,
+            await tokenManager.getToken(),
+          );
+          progressEmitter.emit("posts_fetch", "completed", {
+            counts: { posts: posts.length },
+            message: `Fetched ${posts.length} posts`,
+          });
+        }
 
-    let media: UnifiedMediaData[] = [];
-    if (includeMedia) {
-      currentStage = "media_fetch";
-      media = await fetchMediaDataForSync(
-        locations,
-        account.account_id,
-        accountId,
-        userId,
-        await tokenManager.getToken(),
-      );
-      progressEmitter.emit("media_fetch", "completed", {
-        counts: { media: media.length },
-        message: `Fetched ${media.length} media items`,
-      });
-    }
+        let media: UnifiedMediaData[] = [];
+        if (includeMedia) {
+          currentStage = "media_fetch";
+          media = await fetchMediaDataForSync(
+            locations,
+            account.account_id,
+            accountId,
+            userId,
+            await tokenManager.getToken(),
+          );
+          progressEmitter.emit("media_fetch", "completed", {
+            counts: { media: media.length },
+            message: `Fetched ${media.length} media items`,
+          });
+        }
 
-    let insights: InsightsData[] = [];
-    if (includeInsights) {
-      currentStage = "insights_fetch";
-      insights = await fetchInsightsDataForSync(
-        locations,
-        account.account_id,
-        accountId,
-        userId,
-        await tokenManager.getToken(),
-      );
-      progressEmitter.emit("insights_fetch", "completed", {
-        counts: { insights: insights.length },
-        message: `Fetched ${insights.length} performance metrics`,
-      });
-    }
+        let insights: InsightsData[] = [];
+        if (includeInsights) {
+          currentStage = "insights_fetch";
+          insights = await fetchInsightsDataForSync(
+            locations,
+            account.account_id,
+            accountId,
+            userId,
+            await tokenManager.getToken(),
+          );
+          progressEmitter.emit("insights_fetch", "completed", {
+            counts: { insights: insights.length },
+            message: `Fetched ${insights.length} performance metrics`,
+          });
+        }
 
-    currentStage = "transaction";
-    progressEmitter.emit("transaction", "running", {
-      message: "Applying transactional sync",
-    });
+        currentStage = "transaction";
+        progressEmitter.emit("transaction", "running", {
+          message: "Applying transactional sync",
+        });
 
-    const transactionResult = await runSyncTransactionWithRetry(
-      dbClient,
-      {
-        accountId,
-        locations,
-        reviews,
-        questions,
-        posts: includePosts ? posts : undefined,
-        media: includeMedia ? media : undefined,
-        insights: includeInsights ? insights : undefined,
-      },
-      3,
-    );
-    progressEmitter.updateSyncId(transactionResult.sync_id);
-    progressEmitter.emit("transaction", "completed", {
-      counts: {
-        locations: transactionResult.locations_synced,
-        reviews: transactionResult.reviews_synced,
-        questions: transactionResult.questions_synced,
-        posts: transactionResult.posts_synced || 0,
-        media: transactionResult.media_synced || 0,
-        insights: transactionResult.insights_synced || 0,
-      },
-      message: "Database transaction committed",
-    });
+        const transactionResult = await runSyncTransactionWithRetry(
+          dbClient,
+          {
+            accountId,
+            locations,
+            reviews,
+            questions,
+            posts: includePosts ? posts : undefined,
+            media: includeMedia ? media : undefined,
+            insights: includeInsights ? insights : undefined,
+          },
+          3,
+        );
+        progressEmitter.updateSyncId(transactionResult.sync_id);
+        progressEmitter.emit("transaction", "completed", {
+          counts: {
+            locations: transactionResult.locations_synced,
+            reviews: transactionResult.reviews_synced,
+            questions: transactionResult.questions_synced,
+            posts: transactionResult.posts_synced || 0,
+            media: transactionResult.media_synced || 0,
+            insights: transactionResult.insights_synced || 0,
+          },
+          message: "Database transaction committed",
+        });
 
-    currentStage = "cache_refresh";
-    progressEmitter.emit("cache_refresh", "running", {
-      message: "Refreshing dashboard caches",
-    });
+        currentStage = "cache_refresh";
+        progressEmitter.emit("cache_refresh", "running", {
+          message: "Refreshing dashboard caches",
+        });
 
-    // ✅ Use centralized cache invalidation
-    await invalidateGMBCache(userId);
+        // ✅ Use centralized cache invalidation
+        await invalidateGMBCache(userId);
 
-    progressEmitter.emit("cache_refresh", "completed", {
-      message: "Cache refreshed",
-    });
+        progressEmitter.emit("cache_refresh", "completed", {
+          message: "Cache refreshed",
+        });
 
-    progressEmitter.emit("complete", "completed", {
-      message: "Sync completed successfully",
-    });
+        progressEmitter.emit("complete", "completed", {
+          message: "Sync completed successfully",
+        });
 
-    const durationMs = Date.now() - operationStart;
-    await logAction("sync", "gmb_account", accountId, {
-      status: "success",
-      took_ms: durationMs,
-      counts: {
-        locations: transactionResult.locations_synced,
-        reviews: transactionResult.reviews_synced,
-        questions: transactionResult.questions_synced,
-      },
-    });
-    await trackSyncResult(userId, true, durationMs);
+        const durationMs = Date.now() - operationStart;
+        await logAction("sync", "gmb_account", accountId, {
+          status: "success",
+          took_ms: durationMs,
+          counts: {
+            locations: transactionResult.locations_synced,
+            reviews: transactionResult.reviews_synced,
+            questions: transactionResult.questions_synced,
+          },
+        });
+        await trackSyncResult(userId, true, durationMs);
 
-    return {
-      ...transactionResult,
-    };
+        return {
+          ...transactionResult,
+        };
+      })(), // End of async function
+      syncTimeout.promise,
+    ]);
+
+    // Clear timeout if sync completed successfully
+    syncTimeout.clear();
+    return result;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Sync failed";
+    // Clear timeout on error
+    syncTimeout.clear();
+
+    // Standardize error messages
+    const message =
+      error instanceof Error ? error.message : "GMB sync failed: Unknown error";
     progressEmitter.emit(currentStage, "error", {
       message,
       error: message,
@@ -1280,11 +1364,17 @@ export async function performTransactionalSync(
       error: message,
     });
     const durationMs = Date.now() - operationStart;
+
+    // Log standardized error
     await logAction("sync", "gmb_account", accountId, {
       status: "failed",
       stage: currentStage,
       took_ms: durationMs,
       error: message,
+      error_type:
+        error instanceof Error && error.message.includes("timeout")
+          ? "timeout"
+          : "sync_error",
     });
     await trackSyncResult(userId ?? null, false, durationMs);
     throw error;

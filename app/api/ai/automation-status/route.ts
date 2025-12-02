@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       .limit(5);
 
     const upcomingActions = (activeSettings || []).map(
-      (setting: any, index: number) => {
+      (setting, index: number) => {
         const nextRun = new Date();
         nextRun.setHours(nextRun.getHours() + index + 1);
 
@@ -146,7 +146,10 @@ export async function GET(request: NextRequest) {
 /**
  * Get human-readable action description
  */
-function getActionDescription(actionType: string, details: any): string {
+function getActionDescription(
+  actionType: string,
+  details: Record<string, unknown>,
+): string {
   switch (actionType) {
     case "auto_reply":
       return `Auto-replied to ${details?.review_rating || "a"} star review`;

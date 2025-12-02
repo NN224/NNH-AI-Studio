@@ -13,7 +13,7 @@
  * @param params - Optional parameters (ignored in stub implementation)
  * @returns The translation key (temporary implementation)
  */
-export function t(key: string, params?: Record<string, any>): string {
+export function t(key: string, params?: Record<string, unknown>): string {
   return key;
 }
 
@@ -23,7 +23,7 @@ export function t(key: string, params?: Record<string, any>): string {
  * @returns Translation function for the namespace
  */
 export function useTranslations(namespace?: string) {
-  return (key: string, params?: Record<string, any>) => {
+  return (key: string, params?: Record<string, unknown>) => {
     return namespace ? `${namespace}.${key}` : key;
   };
 }

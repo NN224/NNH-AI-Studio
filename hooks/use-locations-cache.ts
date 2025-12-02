@@ -37,7 +37,7 @@ class LocationsCache {
   };
 
   // Cache key generators
-  private getKey(type: string, params?: Record<string, any>): string {
+  private getKey(type: string, params?: Record<string, unknown>): string {
     if (!params) return type;
     const sortedParams = Object.keys(params)
       .sort()

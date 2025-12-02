@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       success: [] as { id: string; name: string }[],
       failed: [] as { id: string; name: string; error: string }[],
       skipped: [] as { id: string; name: string; reason: string }[],
-      validationErrors: {} as Record<string, any>,
+      validationErrors: {} as Record<string, unknown>,
       backupId: null as string | null,
     };
 
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
           ...location,
           ...updates,
           metadata: {
-            ...((location.metadata as Record<string, any>) || {}),
+            ...((location.metadata as Record<string, unknown>) || {}),
             lastBulkUpdate: new Date().toISOString(),
             updatedBy: user.id,
           },
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update in database
-        const updateData: Record<string, any> = {
+        const updateData: Record<string, unknown> = {
           metadata: updatedLocation.metadata,
           updated_at: new Date().toISOString(),
         };
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         // Update attributes
         if (updates.features) {
           const currentAttributes =
-            (location.attributes as Record<string, any>) || {};
+            (location.attributes as Record<string, unknown>) || {};
           updateData.attributes = {
             ...currentAttributes,
             ...updates.features,

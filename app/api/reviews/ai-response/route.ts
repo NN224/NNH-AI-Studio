@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getAIProvider } from "@/lib/ai/provider";
 import { createClient } from "@/lib/supabase/server";
 import { reviewsLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const systemInstruction = `
       You are an expert social media manager specializing in Google Business Profile review responses.
       Your goal is to generate a personalized, professional response.
-      
+
       Instructions:
       1. Keep the response concise, typically under 500 characters.
       2. Use a professional and friendly tone.
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Generate AI response using unified provider system
-    console.log("[AI Response] Generating reply for review:", reviewId);
+    reviewsLogger.info("Generating AI reply for review", { reviewId });
 
     try {
       const aiProvider = await getAIProvider(user.id);
@@ -109,10 +109,9 @@ Generate a natural, professional, short reply (max 500 chars). Tone: friendly an
       }
 
       const usedModel = "auto-detected";
-      console.log(
-        "[AI Response] Successfully generated reply, tokens used:",
-        usage?.total_tokens,
-      );
+      reviewsLogger.info("Successfully generated AI reply", {
+        tokens: usage?.total_tokens,
+      });
 
       // Quality check and sentiment analysis
       const positiveWords = [
@@ -147,7 +146,7 @@ Generate a natural, professional, short reply (max 500 chars). Tone: friendly an
         ) || 70;
 
       // Save AI response to main reviews table
-      const { error: updateError } = await supabase
+      const { error: _updateError } = await supabase
         .from("gmb_reviews")
         .update({
           ai_generated_response: generatedResponse,
@@ -197,9 +196,10 @@ Generate a natural, professional, short reply (max 500 chars). Tone: friendly an
         created_at: new Date().toISOString(),
       });
 
-      console.log(
-        `[AI Response] Generated and logged successfully (model: ${usedModel}, sentiment: ${sentiment})`,
-      );
+      reviewsLogger.info("AI response logged successfully", {
+        model: usedModel,
+        sentiment,
+      });
 
       return NextResponse.json({
         response: generatedResponse,
@@ -208,7 +208,7 @@ Generate a natural, professional, short reply (max 500 chars). Tone: friendly an
         qualityScore: Math.round(qualityScore),
         logged: true,
       });
-    } catch (aiError: any) {
+    } catch (aiError: unknown) {
       reviewsLogger.error(
         "AI generation failed",
         aiError instanceof Error ? aiError : new Error(String(aiError)),
@@ -217,18 +217,21 @@ Generate a natural, professional, short reply (max 500 chars). Tone: friendly an
       return NextResponse.json(
         {
           error: "AI service failed to generate content",
-          details: aiError.message,
+          details: aiError instanceof Error ? aiError.message : String(aiError),
         },
         { status: 500 },
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     reviewsLogger.error(
       "AI response generation failed",
       error instanceof Error ? error : new Error(String(error)),
     );
     return NextResponse.json(
-      { error: "Failed to generate AI response", details: error.message },
+      {
+        error: "Failed to generate AI response",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
   }

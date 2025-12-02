@@ -33,7 +33,9 @@ export async function PATCH(
     const { is_active, api_key, priority } = body;
 
     // Build update object
-    const updates: any = { updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
     if (typeof is_active === "boolean") updates.is_active = is_active;
     if (api_key) updates.api_key = api_key;
     if (typeof priority === "number") updates.priority = priority;

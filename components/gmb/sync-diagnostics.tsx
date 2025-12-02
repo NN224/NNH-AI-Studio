@@ -26,7 +26,7 @@ interface SyncDiagnostics {
       phase: string;
       status: string;
       created_at: string;
-      counts?: any;
+      counts?: Record<string, number>;
       error?: string;
     }[];
   };

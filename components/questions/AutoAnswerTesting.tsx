@@ -1,28 +1,30 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-async function callAutoAnswerService(question: string): Promise<{ answer: string }> {
+async function callAutoAnswerService(
+  question: string,
+): Promise<{ answer: string }> {
   // Call the backend service to generate an answer
-  const response = await fetch('/api/questions/auto-answer', {
-    method: 'POST',
+  const response = await fetch("/api/questions/auto-answer", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ question }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch answer from backend.');
+    throw new Error("Failed to fetch answer from backend.");
   }
 
   return response.json();
 }
 
 export function AutoAnswerTesting() {
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +33,8 @@ export function AutoAnswerTesting() {
       const result = await callAutoAnswerService(question);
       setAnswer(result.answer);
       setError(null);
-    } catch (e: any) {
-      setError('Failed to generate answer. Please try again.');
+    } catch (e: unknown) {
+      setError("Failed to generate answer. Please try again.");
     }
   };
 

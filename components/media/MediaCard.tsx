@@ -11,7 +11,7 @@ interface MediaItem {
   url: string;
   metadata?: {
     originalName?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

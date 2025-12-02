@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { authLogger } from "@/lib/utils/logger";
+import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 // Generic auth wrapper compatible with Next.js App Router route handlers
 // Ensures the returned function matches (request: Request) => Promise<Response>
 export function withAuth(
-  handler: (request: Request, user: any) => Promise<Response>,
+  handler: (request: Request, user: User) => Promise<Response>,
 ) {
   return async (request: Request): Promise<Response> => {
     try {
@@ -55,13 +56,16 @@ export function withAuth(
 
       // Call the actual handler with the authenticated user
       return handler(request, user);
-    } catch (error: any) {
+    } catch (error: unknown) {
       authLogger.error(
         "Unexpected error in auth middleware",
         error instanceof Error ? error : new Error(String(error)),
       );
       return NextResponse.json(
-        { error: "Internal server error", message: error.message },
+        {
+          error: "Internal server error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
         { status: 500 },
       );
     }

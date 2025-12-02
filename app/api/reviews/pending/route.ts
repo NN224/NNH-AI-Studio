@@ -1,12 +1,12 @@
 // app/api/reviews/pending/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { reviewsLogger } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Fetching all reviews for user:", user.id);
+    reviewsLogger.info("Fetching all reviews", { userId: user.id });
 
     const { data: reviews, error } = await supabase
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`Found ${reviews?.length || 0} reviews`);
+    reviewsLogger.info("Found reviews", { count: reviews?.length || 0 });
 
     // Calculate stats
     const allReviews = reviews || [];

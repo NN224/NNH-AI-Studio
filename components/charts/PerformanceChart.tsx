@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   LineChart,
@@ -9,12 +9,12 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PerformanceChartProps {
-  data: any[];
+  data: Array<Record<string, unknown>>;
   dataKey: string;
   xAxisKey: string;
   title: string;
@@ -52,7 +52,9 @@ export function PerformanceChart({
           <div className="flex items-center justify-center h-[250px] text-muted-foreground">
             <div className="text-center">
               <p className="text-sm">No data available</p>
-              <p className="text-xs mt-1">Performance metrics will appear here once data is synced</p>
+              <p className="text-xs mt-1">
+                Performance metrics will appear here once data is synced
+              </p>
             </div>
           </div>
         </CardContent>
@@ -67,22 +69,22 @@ export function PerformanceChart({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey={xAxisKey} 
+            <XAxis
+              dataKey={xAxisKey}
               stroke="#6b7280"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: "12px" }}
             />
-            <YAxis 
-              stroke="#6b7280"
-              style={{ fontSize: '12px' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
+            <YAxis stroke="#6b7280" style={{ fontSize: "12px" }} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                border: "1px solid #e5e7eb",
+                borderRadius: "6px",
               }}
             />
             <Legend />
