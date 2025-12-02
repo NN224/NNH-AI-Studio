@@ -1,9 +1,14 @@
+import { checkKeyRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
 import { addToSyncQueue } from "@/server/actions/sync-queue";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
+// Stricter rate limit for sync initiation: 10 requests per 10 minutes
+const ENQUEUE_SYNC_RATE_LIMIT = 10;
+const ENQUEUE_SYNC_WINDOW_MS = 600000; // 10 minutes
 
 /**
  * Enqueue Sync API
@@ -28,6 +33,28 @@ export async function POST(request: NextRequest) {
       );
     }
     userId = user.id;
+
+    // Rate limiting for sync initiation
+    const rateLimitKey = `api:gmb-enqueue-sync:${user.id}`;
+    const rateLimitResult = await checkKeyRateLimit(
+      rateLimitKey,
+      ENQUEUE_SYNC_RATE_LIMIT,
+      ENQUEUE_SYNC_WINDOW_MS,
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded",
+          message: "Too many sync requests. Please wait before trying again.",
+          retryAfter: rateLimitResult.reset,
+        },
+        {
+          status: 429,
+          headers: rateLimitResult.headers,
+        },
+      );
+    }
 
     const body = await request.json();
     const { accountId: requestAccountId, syncType = "full" } = body;

@@ -10,12 +10,17 @@
  * ============================================================================
  */
 
+import { checkKeyRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { ApiError, errorResponse } from "@/utils/api-error";
 import { gmbLogger } from "@/lib/utils/logger";
+import { ApiError, errorResponse } from "@/utils/api-error";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
+// Permissive rate limit for polling endpoint: 100 requests per 60s
+const SYNC_STATUS_RATE_LIMIT = 100;
+const SYNC_STATUS_WINDOW_MS = 60000;
 
 interface SyncJobStatus {
   id: string;
@@ -47,6 +52,29 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) {
       return errorResponse(new ApiError("Authentication required", 401));
+    }
+
+    // -------------------------------------------------------------------------
+    // RATE LIMITING (permissive for polling)
+    // -------------------------------------------------------------------------
+    const rateLimitKey = `api:gmb-sync-status:${user.id}`;
+    const rateLimitResult = await checkKeyRateLimit(
+      rateLimitKey,
+      SYNC_STATUS_RATE_LIMIT,
+      SYNC_STATUS_WINDOW_MS,
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded",
+          retryAfter: rateLimitResult.reset,
+        },
+        {
+          status: 429,
+          headers: rateLimitResult.headers,
+        },
+      );
     }
 
     // -------------------------------------------------------------------------
