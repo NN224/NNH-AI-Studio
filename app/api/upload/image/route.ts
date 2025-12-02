@@ -1,3 +1,4 @@
+import { sanitizeFileName } from "@/lib/security/input-sanitizer";
 import { createClient } from "@/lib/supabase/server";
 import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -9,6 +10,9 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const THUMBNAIL_SIZE = 400;
 const MAX_IMAGE_DIMENSION = 2048;
 const STORAGE_BUCKET = "gmb-media";
+const MAX_FILES_PER_USER = 1000; // Maximum files per user
+const MAX_STORAGE_PER_USER = 1024 * 1024 * 1024; // 1GB per user
+
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -18,6 +22,15 @@ const ALLOWED_TYPES = new Set([
   "video/mp4",
   "video/webm",
 ]);
+
+// Magic bytes for file type verification
+const FILE_SIGNATURES = {
+  "image/jpeg": [0xff, 0xd8, 0xff],
+  "image/png": [0x89, 0x50, 0x4e, 0x47],
+  "image/gif": [0x47, 0x49, 0x46],
+  "image/webp": [0x52, 0x49, 0x46, 0x46],
+  "video/mp4": [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70],
+};
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -45,7 +58,59 @@ interface UploadPaths {
   isVideo: boolean;
 }
 
-export async function POST(request: NextRequest) {
+/**
+ * Verify file type by checking magic bytes
+ */
+function verifyFileSignature(buffer: Buffer, mimeType: string): boolean {
+  const signatures = FILE_SIGNATURES[mimeType as keyof typeof FILE_SIGNATURES];
+  if (!signatures) return false;
+
+  // Check if buffer starts with expected magic bytes
+  for (let i = 0; i < signatures.length; i++) {
+    if (buffer[i] !== signatures[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Check user storage quota
+ */
+async function checkUserQuota(
+  supabase: SupabaseServerClient,
+  userId: string,
+): Promise<{ allowed: boolean; error?: string }> {
+  try {
+    // Count existing files
+    const { count, error: countError } = await supabase
+      .from("gmb_media")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (countError) {
+      apiLogger.error("Error checking user quota", countError);
+      return { allowed: true }; // Fail open for now
+    }
+
+    if (count && count >= MAX_FILES_PER_USER) {
+      return {
+        allowed: false,
+        error: `Storage limit reached (${MAX_FILES_PER_USER} files maximum)`,
+      };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    apiLogger.error(
+      "Quota check error",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    return { allowed: true }; // Fail open
+  }
+}
+
+async function uploadHandler(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -81,14 +146,17 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(result.body);
-  } catch (error: any) {
+  } catch (error) {
     apiLogger.error(
       "Upload error",
       error instanceof Error ? error : new Error(String(error)),
-      { requestId: request.headers.get("x-request-id") || undefined },
+      {
+        requestId: request.headers.get("x-request-id") || undefined,
+      },
     );
+    // Don't expose internal error details
     return NextResponse.json(
-      { error: error?.message || "Upload failed" },
+      { error: "Upload failed. Please try again." },
       { status: 500 },
     );
   }
@@ -122,8 +190,28 @@ async function extractRequestPayload(formData: FormData): Promise<{
 
 async function processSingleUpload(file: File, context: UploadContext) {
   try {
+    // Check user quota first
+    const quotaCheck = await checkUserQuota(context.supabase, context.userId);
+    if (!quotaCheck.allowed) {
+      return {
+        success: false as const,
+        error: quotaCheck.error || "Storage quota exceeded",
+        status: 403,
+      };
+    }
+
     const paths = buildUploadPaths(file, context);
     let buffer: Buffer = Buffer.from(await file.arrayBuffer()) as Buffer;
+
+    // Verify file signature matches claimed type
+    if (!verifyFileSignature(buffer, file.type)) {
+      return {
+        success: false as const,
+        error: "File content does not match file type",
+        status: 400,
+      };
+    }
+
     let metadata = buildBaseMetadata(file);
     let thumbnailUrl: string | undefined;
 
@@ -193,9 +281,27 @@ async function processSingleUpload(file: File, context: UploadContext) {
 
 function buildUploadPaths(file: File, context: UploadContext): UploadPaths {
   const isVideo = file.type.startsWith("video/");
-  const inferredExtension = file.name.split(".").pop();
+
+  // Sanitize filename to prevent path traversal
+  const sanitizedName = sanitizeFileName(file.name);
+  const inferredExtension = sanitizedName.split(".").pop();
   const fallbackExtension = isVideo ? "mp4" : "jpg";
-  const ext = (inferredExtension || fallbackExtension).toLowerCase();
+
+  // Whitelist allowed extensions
+  const allowedExtensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "mp4",
+    "webm",
+  ];
+  let ext = (inferredExtension || fallbackExtension).toLowerCase();
+  if (!allowedExtensions.includes(ext)) {
+    ext = fallbackExtension;
+  }
+
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const basePath = context.locationId
     ? `${context.userId}/${context.locationId}`
@@ -391,3 +497,12 @@ async function persistMediaRecord(
     );
   }
 }
+
+// Apply CSRF protection and rate limiting
+export const POST = withCSRF(
+  withRateLimit(uploadHandler, {
+    limit: 20, // 20 uploads per minute
+    window: 60,
+    errorMessage: "Too many upload requests. Please wait before trying again.",
+  }),
+);

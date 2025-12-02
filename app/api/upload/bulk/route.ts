@@ -1,3 +1,6 @@
+import { withCSRF } from "@/lib/api/with-csrf";
+import { withRateLimit } from "@/lib/api/with-rate-limit";
+import { sanitizeFileName } from "@/lib/security/input-sanitizer";
 import { createClient } from "@/lib/supabase/server";
 import { apiLogger } from "@/lib/utils/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -62,7 +65,7 @@ interface UploadOutcome {
   error?: string;
 }
 
-export async function POST(request: NextRequest) {
+async function bulkUploadHandler(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -105,15 +108,16 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(buildSummary(results));
-  } catch (error: any) {
+  } catch (error) {
     apiLogger.error(
       "Bulk upload error",
       error instanceof Error ? error : new Error(String(error)),
       { requestId: request.headers.get("x-request-id") || undefined },
     );
+    // Don't expose internal error details
     return NextResponse.json(
       {
-        error: error?.message || "Bulk upload failed",
+        error: "Bulk upload failed. Please try again.",
       },
       { status: 500 },
     );
@@ -189,13 +193,16 @@ async function handleFileUpload(
       thumbnailUrl: effectiveThumbnail,
       metadata,
     };
-  } catch (error: any) {
+  } catch (error) {
     apiLogger.error(
       "Error uploading file",
       error instanceof Error ? error : new Error(String(error)),
       { fileName: file.name, locationId: context.locationId },
     );
-    return createFailureResult(file, error?.message || "Upload failed");
+    return createFailureResult(
+      file,
+      error instanceof Error ? error.message : "Upload failed",
+    );
   }
 }
 
@@ -213,9 +220,27 @@ function validateFile(file: File): string | null {
 
 function buildFilePaths(file: File, context: UploadContext): FilePaths {
   const isVideo = file.type.startsWith("video/");
-  const inferredExtension = file.name.split(".").pop();
+
+  // Sanitize filename to prevent path traversal
+  const sanitizedName = sanitizeFileName(file.name);
+  const inferredExtension = sanitizedName.split(".").pop();
   const fallbackExtension = isVideo ? "mp4" : "jpg";
-  const ext = (inferredExtension || fallbackExtension).toLowerCase();
+
+  // Whitelist allowed extensions
+  const allowedExtensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "mp4",
+    "webm",
+  ];
+  let ext = (inferredExtension || fallbackExtension).toLowerCase();
+  if (!allowedExtensions.includes(ext)) {
+    ext = fallbackExtension;
+  }
+
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const basePath = context.locationId
     ? `${context.userId}/${context.locationId}`
@@ -427,3 +452,13 @@ function createFailureResult(file: File, message: string): UploadResult {
     error: message,
   };
 }
+
+// Apply CSRF protection and strict rate limiting for bulk uploads
+export const POST = withCSRF(
+  withRateLimit(bulkUploadHandler, {
+    limit: 5, // Only 5 bulk uploads per minute
+    window: 60,
+    errorMessage:
+      "Too many bulk upload requests. Please wait before trying again.",
+  }),
+);

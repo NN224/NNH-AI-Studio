@@ -2,6 +2,7 @@
  * Pub/Sub message structure from Google
  */
 import { gmbLogger } from "@/lib/utils/logger";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 export interface PubSubMessage {
   message: {
@@ -76,29 +77,74 @@ export function verifyPubSubSignature(
   }
 }
 
+// Google's public keys for JWT verification
+const GOOGLE_PUBLIC_KEYS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+
+// Cache for Google's JWKS (JSON Web Key Set)
+let jwksCache: ReturnType<typeof createRemoteJWKSet> | null = null;
+
 /**
- * Verify Pub/Sub JWT token (alternative method)
+ * Get or create the JWKS cache for Google's public keys
+ */
+function getGoogleJWKS() {
+  if (!jwksCache) {
+    jwksCache = createRemoteJWKSet(new URL(GOOGLE_PUBLIC_KEYS_URL));
+  }
+  return jwksCache;
+}
+
+/**
+ * Verify Pub/Sub JWT token
  *
- * Google can also send a JWT token in the Authorization header
- * that can be verified instead of the signature.
+ * Google sends a JWT token in the Authorization header that must be verified
+ * against Google's public keys to ensure the request is authentic.
  *
  * @param token - The JWT token from the Authorization header
  * @returns true if the token is valid, false otherwise
  */
-export function verifyPubSubToken(token: string | null): boolean {
+export async function verifyPubSubToken(
+  token: string | null,
+): Promise<boolean> {
   if (!token) {
+    gmbLogger.warn("No JWT token provided for Pub/Sub verification");
     return false;
   }
 
   try {
     // Remove "Bearer " prefix if present
-    const _jwtToken = token.replace(/^Bearer\s+/i, "");
+    const jwtToken = token.replace(/^Bearer\s+/i, "");
 
-    // TODO: Implement JWT verification
-    // You can use a library like 'jsonwebtoken' or 'jose'
-    // to verify the token against Google's public keys
+    // Get Google's public keys
+    const JWKS = getGoogleJWKS();
 
-    // Token verification passed (basic check)
+    // Verify the JWT token with Google's public keys
+    const { payload } = await jwtVerify(jwtToken, JWKS, {
+      // Expected issuers for Google Pub/Sub
+      issuer: ["https://accounts.google.com", "accounts.google.com"],
+      // Allow some clock skew (5 minutes)
+      clockTolerance: 300,
+    });
+
+    // Additional validation for Pub/Sub specific claims
+    if (payload.email && typeof payload.email === "string") {
+      // Check if it's a Google service account
+      if (
+        !payload.email.endsWith(".iam.gserviceaccount.com") &&
+        !payload.email.endsWith("@accounts.google.com")
+      ) {
+        gmbLogger.warn("JWT token not from Google service account", {
+          email: payload.email,
+        });
+        return false;
+      }
+    }
+
+    gmbLogger.info("JWT token successfully verified", {
+      issuer: payload.iss,
+      subject: payload.sub,
+      email: payload.email,
+    });
+
     return true;
   } catch (error) {
     gmbLogger.error(
