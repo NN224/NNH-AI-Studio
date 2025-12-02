@@ -322,6 +322,21 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
+      // For API routes, return JSON error instead of redirect
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse(
+          JSON.stringify({
+            error: "Unauthorized",
+            message: "Authentication required",
+            code: "AUTH_REQUIRED",
+          }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       // Clear any stale session cookies on session expiry
       if (error?.code === "session_expired") {
         logger.warn(
