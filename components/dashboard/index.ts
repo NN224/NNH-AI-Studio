@@ -18,9 +18,5 @@ export { default as ActivityFeedItem } from "./ActivityFeedItem";
 export { default as BusinessHeader } from "./BusinessHeader";
 export { default as QuickActionButton } from "./QuickActionButton";
 
-// AI components - consider using lazy loading for heavy ones
-export { default as AIInsightsCards } from "./ai/AIInsightsCards";
-export { default as AutoReplyMonitoring } from "./ai/AutoReplyMonitoring";
-export { default as AutopilotStatus } from "./ai/AutopilotStatus";
-export { default as MiniChat } from "./ai/MiniChat";
-export { default as PerformancePredictor } from "./ai/PerformancePredictor";
+// AI components removed - files don't exist
+// If needed, import directly from @/components/ai/ or @/components/gmb/command-center/
