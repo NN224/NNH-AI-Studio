@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         account_name,
         email,
         is_active,
-        last_synced_at,
+        last_sync,
         created_at,
         token_expires_at,
         gmb_locations (
@@ -43,11 +43,15 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (dbError) {
-      gmbLogger.error(
-        "Failed to fetch accounts",
-        dbError instanceof Error ? dbError : new Error(String(dbError)),
-        { userId: user.id },
-      );
+      const errorMessage =
+        dbError instanceof Error
+          ? dbError.message
+          : (dbError as { message?: string })?.message ||
+            JSON.stringify(dbError);
+      gmbLogger.error("Failed to fetch accounts", new Error(errorMessage), {
+        userId: user.id,
+        code: (dbError as { code?: string })?.code,
+      });
       return NextResponse.json(
         { error: "Failed to fetch accounts" },
         { status: 500 },
@@ -63,10 +67,16 @@ export async function GET(request: NextRequest) {
 
     // Return response with accounts key for consistency
     return NextResponse.json({ accounts: accountsWithLocationCount });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: unknown }).message)
+          : JSON.stringify(error);
     gmbLogger.error(
       "Unexpected error in GMB accounts endpoint",
-      error instanceof Error ? error : new Error(String(error)),
+      new Error(errorMessage),
     );
     return NextResponse.json(
       { error: "Internal server error" },
