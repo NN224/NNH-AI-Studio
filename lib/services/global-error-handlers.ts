@@ -142,8 +142,34 @@ export function initGlobalErrorHandlers() {
             src?: string;
             href?: string;
           };
+          const resourceUrl = targetElement.src || targetElement.href || "";
+
+          // Check if this is a Next.js chunk loading error (stale deployment)
+          const isChunkError =
+            tagName === "script" &&
+            (resourceUrl.includes("/_next/static/chunks/") ||
+              resourceUrl.includes("dpl="));
+
+          if (isChunkError) {
+            // This is likely a stale deployment - auto-reload the page
+            logger.warn("Stale chunk detected, reloading page...", {
+              src: resourceUrl,
+            });
+
+            // Only reload once to prevent infinite loops
+            const reloadKey = "chunk_reload_attempted";
+            if (!sessionStorage.getItem(reloadKey)) {
+              sessionStorage.setItem(reloadKey, "true");
+              window.location.reload();
+              return;
+            } else {
+              // Already tried reloading, clear the flag for next time
+              sessionStorage.removeItem(reloadKey);
+            }
+          }
+
           const resourceError = new Error(
-            `Failed to load ${tagName}: ${targetElement.src || targetElement.href}`,
+            `Failed to load ${tagName}: ${resourceUrl}`,
           );
 
           errorLogger.logError(resourceError, {
@@ -152,7 +178,8 @@ export function initGlobalErrorHandlers() {
             metadata: {
               type: "resourceLoadError",
               tagName,
-              src: targetElement.src || targetElement.href,
+              src: resourceUrl,
+              isChunkError,
             },
           });
 
@@ -160,9 +187,10 @@ export function initGlobalErrorHandlers() {
             tags: {
               errorType: "resourceLoadError",
               resourceType: tagName,
+              isChunkError: isChunkError ? "true" : "false",
             },
             extra: {
-              src: targetElement.src || targetElement.href,
+              src: resourceUrl,
             },
           });
         }
