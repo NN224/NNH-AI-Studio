@@ -49,8 +49,8 @@ export function getCSPDirectives(): Record<string, string[]> {
     'default-src': ["'self'"],
     'script-src': [
       "'self'",
-      // "'unsafe-inline'", // REMOVED for security - use nonce-based CSP
-      // "'unsafe-eval'", // REMOVED for security - refactor code that needs eval
+      "'unsafe-inline'", // Required for Next.js inline scripts
+      "'unsafe-eval'", // Required for Next.js development and some features
       'https://*.googleapis.com',
       'https://*.gstatic.com',
       'https://*.google.com',
@@ -62,8 +62,7 @@ export function getCSPDirectives(): Record<string, string[]> {
     ],
     'style-src': [
       "'self'",
-      // Use nonce for inline styles instead of unsafe-inline
-      "'nonce-{STYLE_NONCE}'",
+      "'unsafe-inline'", // Required for Next.js and UI libraries
       'https://fonts.googleapis.com',
     ],
     'img-src': [
