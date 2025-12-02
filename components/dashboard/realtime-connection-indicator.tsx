@@ -1,11 +1,11 @@
 "use client";
 
 import { useRealtimeReviews, useRealtimeQuestions } from "@/hooks/use-realtime";
-import { useSupabase } from "@/lib/hooks/use-supabase";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radio, Wifi, WifiOff, Zap } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,15 +20,34 @@ interface RealtimeConnectionIndicatorProps {
   compact?: boolean;
   /** Callback when new data arrives */
   onNewData?: (type: "review" | "question", data: unknown) => void;
+  /** User ID (optional - will fetch if not provided) */
+  userId?: string;
 }
 
 export function RealtimeConnectionIndicator({
   showDetails = true,
   compact = false,
   onNewData,
+  userId: propUserId,
 }: RealtimeConnectionIndicatorProps) {
-  const { user } = useSupabase();
+  const [userId, setUserId] = useState<string | undefined>(propUserId);
   const [recentEvent, setRecentEvent] = useState<string | null>(null);
+
+  // Get user ID without redirect logic
+  useEffect(() => {
+    if (propUserId) {
+      setUserId(propUserId);
+      return;
+    }
+
+    const supabase = createClient();
+    if (!supabase) return;
+
+    // Just get user, don't redirect
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id);
+    });
+  }, [propUserId]);
 
   // Handle new review
   const handleNewReview = useCallback(
@@ -51,13 +70,13 @@ export function RealtimeConnectionIndicator({
   );
 
   // Subscribe to realtime updates
-  const reviewsStatus = useRealtimeReviews(user?.id, {
+  const reviewsStatus = useRealtimeReviews(userId, {
     onNewReview: handleNewReview,
     onReviewUpdate: handleNewReview,
     showToasts: true,
   });
 
-  const questionsStatus = useRealtimeQuestions(user?.id, {
+  const questionsStatus = useRealtimeQuestions(userId, {
     onNewQuestion: handleNewQuestion,
     onQuestionUpdate: handleNewQuestion,
     showToasts: true,

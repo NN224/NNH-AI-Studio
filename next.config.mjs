@@ -170,57 +170,79 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(withNextIntl(withBundleAnalyzer(nextConfig)), {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+// Disable Sentry in development to avoid Edge runtime eval() errors
+const isDev = process.env.NODE_ENV !== "production";
 
-  org: "nnh-ai-studio",
+// Skip Sentry wrapper entirely in development to avoid Edge runtime eval() errors
+const configuredNextConfig = withNextIntl(withBundleAnalyzer(nextConfig));
+export default isDev
+  ? configuredNextConfig
+  : withSentryConfig(configuredNextConfig, {
+      // For all available options, see:
+      // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  project: "javascript-nextjs",
+      org: "nnh-ai-studio",
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+      project: "javascript-nextjs",
 
-  // Skip source map uploading if auth token is not present
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  disable: !process.env.SENTRY_AUTH_TOKEN,
+      // Only print logs for uploading source maps in CI
+      silent: !process.env.CI,
 
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+      // Skip source map uploading if auth token is not present
+      // Also disable in development to avoid Edge runtime eval() errors
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      disable: !process.env.SENTRY_AUTH_TOKEN || isDev,
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+      // Disable auto-instrumentation to avoid Edge runtime eval() errors
+      autoInstrumentServerFunctions: false,
+      autoInstrumentMiddleware: false,
+      autoInstrumentAppDirectory: false,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring",
+      // For all available options, see:
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+      // Upload a larger set of source maps for prettier stack traces (increases build time)
+      widenClientFileUpload: true,
 
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
+      // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+      // This can increase your server load as well as your hosting bill.
+      // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+      // side errors will fail.
+      tunnelRoute: "/monitoring",
 
-  // Hide source map warnings for third-party libraries
-  hideSourceMaps: true,
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      disableLogger: true,
 
-  // Suppress source map upload errors for files without references
-  sourcemaps: {
-    ignore: ["node_modules/**/*"],
-    deleteSourcemapsAfterUpload: true,
-  },
+      // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+      // See the following for more information:
+      // https://docs.sentry.io/product/crons/
+      // https://vercel.com/docs/cron-jobs
+      automaticVercelMonitors: true,
 
-  // Suppress warnings for files that can't be mapped
-  errorHandler: (err, invokeErr, compilation) => {
-    // Ignore source map warnings
-    if (err.message?.includes("could not determine a source map reference")) {
-      return;
-    }
-    invokeErr();
-  },
-});
+      // Hide source map warnings for third-party libraries
+      hideSourceMaps: true,
+
+      // Suppress source map upload errors for files without references
+      sourcemaps: {
+        ignore: ["node_modules/**/*"],
+        deleteSourcemapsAfterUpload: true,
+      },
+
+      // Disable Edge instrumentation to avoid eval() errors in Edge runtime
+      // Edge runtime doesn't support eval() which Sentry uses for source maps
+      excludeServerRoutes: [],
+
+      // Suppress warnings for files that can't be mapped
+      errorHandler: (err, invokeErr) => {
+        // Ignore source map warnings
+        if (
+          err?.message?.includes("could not determine a source map reference")
+        ) {
+          return;
+        }
+        // Only call invokeErr if it's a function
+        if (typeof invokeErr === "function") {
+          invokeErr();
+        }
+      },
+    });

@@ -1,10 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import type {
-  RealtimeChannel,
-  RealtimePostgresChangesPayload,
-} from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -48,27 +45,18 @@ interface RealtimeState {
   error: string | null;
 }
 
+interface PostgresPayload<T> {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: T;
+  old: T;
+}
+
 // ============================================================================
 // Hook: useRealtime
 // ============================================================================
 
 /**
  * Hook for Supabase Realtime subscriptions
- *
- * @example
- * ```tsx
- * const { isConnected, lastEvent } = useRealtime<Review>({
- *   table: 'gmb_reviews',
- *   filter: `user_id=eq.${userId}`,
- *   onInsert: (review) => {
- *     setReviews(prev => [review, ...prev])
- *   },
- *   showToasts: true,
- *   toastMessages: {
- *     insert: '🆕 New review received!'
- *   }
- * })
- * ```
  */
 export function useRealtime<T extends Record<string, unknown>>(
   config: RealtimeConfig<T>,
@@ -98,10 +86,10 @@ export function useRealtime<T extends Record<string, unknown>>(
 
   // Handle payload based on event type
   const handlePayload = useCallback(
-    (payload: RealtimePostgresChangesPayload<T>) => {
+    (payload: PostgresPayload<T>) => {
       const eventType = payload.eventType;
-      const newRecord = payload.new as T;
-      const oldRecord = payload.old as T;
+      const newRecord = payload.new;
+      const oldRecord = payload.old;
 
       setState((prev) => ({
         ...prev,
@@ -152,62 +140,56 @@ export function useRealtime<T extends Record<string, unknown>>(
     // Create unique channel name
     const channelName = `realtime:${schema}:${table}:${filter || "all"}`;
 
-    // Build subscription config
-    const subscriptionConfig: {
-      event: PostgresChangeEvent;
-      schema: string;
-      table: string;
-      filter?: string;
-    } = {
-      event: events.length === 1 ? events[0] : "*",
-      schema,
-      table,
-    };
+    // Create channel with postgres_changes listener
+    const channel = supabase.channel(channelName);
 
-    if (filter) {
-      subscriptionConfig.filter = filter;
-    }
+    // Add listener for postgres changes
+    channel.on(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
+      {
+        event: events.length === 1 ? events[0] : "*",
+        schema,
+        table,
+        filter,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (payload: any) => {
+        handlePayload(payload as PostgresPayload<T>);
+      },
+    );
 
-    // Create channel and subscribe
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        subscriptionConfig,
-        handlePayload as (
-          payload: RealtimePostgresChangesPayload<{ [key: string]: unknown }>,
-        ) => void,
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          setState((prev) => ({
-            ...prev,
-            isConnected: true,
-            error: null,
-          }));
-          console.log(`[Realtime] ✅ Subscribed to ${table}`);
-        } else if (status === "CHANNEL_ERROR") {
-          setState((prev) => ({
-            ...prev,
-            isConnected: false,
-            error: "Channel error",
-          }));
-          console.error(`[Realtime] ❌ Channel error for ${table}`);
-        } else if (status === "TIMED_OUT") {
-          setState((prev) => ({
-            ...prev,
-            isConnected: false,
-            error: "Connection timed out",
-          }));
-          console.error(`[Realtime] ⏱️ Timeout for ${table}`);
-        } else if (status === "CLOSED") {
-          setState((prev) => ({
-            ...prev,
-            isConnected: false,
-          }));
-          console.log(`[Realtime] 🔌 Closed ${table}`);
-        }
-      });
+    // Subscribe to channel
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        setState((prev) => ({
+          ...prev,
+          isConnected: true,
+          error: null,
+        }));
+        console.log(`[Realtime] ✅ Subscribed to ${table}`);
+      } else if (status === "CHANNEL_ERROR") {
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+          error: "Channel error",
+        }));
+        console.error(`[Realtime] ❌ Channel error for ${table}`);
+      } else if (status === "TIMED_OUT") {
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+          error: "Connection timed out",
+        }));
+        console.error(`[Realtime] ⏱️ Timeout for ${table}`);
+      } else if (status === "CLOSED") {
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+        }));
+        console.log(`[Realtime] 🔌 Closed ${table}`);
+      }
+    });
 
     channelRef.current = channel;
 
@@ -293,7 +275,7 @@ export function useRealtimeNotifications(
     filter: userId ? `user_id=eq.${userId}` : undefined,
     events: ["INSERT"],
     onInsert: options.onNewNotification,
-    showToasts: options.showToasts ?? false, // Notifications have their own UI
+    showToasts: options.showToasts ?? false,
     enabled: !!userId,
   });
 }

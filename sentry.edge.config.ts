@@ -1,15 +1,7 @@
-// This file configures the initialization of Sentry for edge features (middleware, edge routes, and so on).
-// The config you add here will be used whenever one of the edge features is loaded.
-// Note that this config is unrelated to the Vercel Edge Runtime and is also required when running locally.
+// This file configures the initialization of Sentry for edge features.
+// Edge runtime doesn't support eval() which Sentry uses internally,
+// so we disable Sentry in Edge runtime to avoid errors.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import {
-  initSentryWithValidation,
-  getRuntimeDSN,
-} from "@/lib/services/sentry-config";
-
-// Initialize Sentry with validation
-initSentryWithValidation({
-  runtime: "edge",
-  dsn: getRuntimeDSN("edge"),
-});
+// No-op: Sentry is disabled for Edge runtime due to eval() restrictions
+console.log("⚠️ Sentry disabled for Edge runtime (eval not supported)");

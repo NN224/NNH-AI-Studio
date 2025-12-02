@@ -191,8 +191,9 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Realtime Connection Indicator */}
-          <RealtimeConnectionIndicator compact showDetails />
+          {/* Realtime Connection Indicator - Disabled temporarily
+          <RealtimeConnectionIndicator compact showDetails userId={userId} />
+          */}
 
           {/* Global Sync Button */}
           <GlobalSyncButton />

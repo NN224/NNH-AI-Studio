@@ -1,5 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
-
 /**
  * Validates required environment variables at startup.
  * Logs warnings for missing variables that could cause runtime issues.
@@ -36,9 +34,6 @@ function validateEnvironmentVariables() {
     );
   }
 
-  // Note: CACHE_WARMER_TOKEN is optional - only needed for proactive cache warming
-  // The system works fine without it using on-demand caching
-
   // Log warnings
   if (warnings.length > 0) {
     console.warn("⚠️ Environment variable warnings:");
@@ -58,13 +53,15 @@ export async function register() {
     validateEnvironmentVariables();
   }
 
+  // Only load Sentry in Node.js runtime (not Edge - causes eval errors)
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
   }
 
-  if (process.env.NEXT_RUNTIME === "edge") {
-    await import("./sentry.edge.config");
-  }
+  // Skip Sentry in Edge runtime to avoid eval errors
+  // Edge runtime doesn't support eval() which Sentry uses internally
 }
 
-export const onRequestError = Sentry.captureRequestError;
+// onRequestError handler - capture errors to Sentry
+// Using Sentry's exported handler directly for proper type compatibility
+export { captureRequestError as onRequestError } from "@sentry/nextjs";
