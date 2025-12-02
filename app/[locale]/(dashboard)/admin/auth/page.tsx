@@ -26,6 +26,8 @@ export default function AdminAuthPage() {
   }, [])
 
   const checkExistingSession = async () => {
+    if (!supabase) return
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -78,6 +80,12 @@ export default function AdminAuthPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (!supabase) {
+      setError('Connection error')
+      setLoading(false)
+      return
+    }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -164,6 +172,8 @@ export default function AdminAuthPage() {
   }
 
   const logAdminAccess = async () => {
+    if (!supabase) return
+
     try {
       await supabase.from('audit_logs').insert({
         user_id: (await supabase.auth.getUser()).data.user?.id,
