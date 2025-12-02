@@ -116,8 +116,14 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   // 3. Additional rate limiting for API routes - DISTRIBUTED
   // -------------------------------------------------------------------------
-  if (pathname.startsWith("/api/")) {
-    // Stricter rate limit for API endpoints
+  // Skip additional rate limiting for auth-related endpoints
+  const isAuthEndpoint =
+    pathname.includes("/auth/") ||
+    pathname.includes("/oauth") ||
+    pathname.includes("/callback");
+
+  if (pathname.startsWith("/api/") && !isAuthEndpoint) {
+    // Stricter rate limit for API endpoints (excluding auth)
     const ip = getClientIP(request);
     const apiResult = await checkEdgeRateLimit(`api:${ip}`, 200, 60); // 200 req/min for APIs
 
