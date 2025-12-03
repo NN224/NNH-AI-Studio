@@ -79,7 +79,11 @@ export interface AnalysisResult {
  * Extract topics and sentiment from review text using AI
  */
 async function analyzeReviewContent(reviews: any[]): Promise<{
-  topics: Array<{ topic: string; mentions: number; sentiment: string }>;
+  topics: Array<{
+    topic: string;
+    mentions: number;
+    sentiment: "positive" | "negative" | "neutral";
+  }>;
   strengths: string[];
   weaknesses: string[];
   sentimentScore: number;
@@ -94,7 +98,10 @@ async function analyzeReviewContent(reviews: any[]): Promise<{
   const neutralReviews = reviews.filter((r) => r.rating === 3);
 
   // Extract common words/phrases (simple analysis - can be enhanced with AI)
-  const extractTopics = (reviewList: any[], sentiment: string) => {
+  const extractTopics = (
+    reviewList: any[],
+    sentiment: "positive" | "negative" | "neutral",
+  ) => {
     const text = reviewList
       .map((r) => r.review_text || r.comment || "")
       .join(" ")
@@ -256,7 +263,7 @@ function extractSignaturePhrases(reviews: any[]): string[] {
     }
 
     // Check last sentence
-    const sentences = reply.split(/[.!?]/).filter((s) => s.trim());
+    const sentences = reply.split(/[.!?]/).filter((s: string) => s.trim());
     const lastSentence = sentences[sentences.length - 1]?.trim();
     if (lastSentence && lastSentence.length < 100) {
       phrases[lastSentence] = (phrases[lastSentence] || 0) + 1;

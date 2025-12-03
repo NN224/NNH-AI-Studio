@@ -114,12 +114,11 @@ async function processUserReviews(
   const settings: AutoReplySettings = {
     enabled: isAutopilotEnabled,
     tone: autoReplySettings?.tone || "friendly",
-    reply_to_positive: autoReplyPositive,
-    reply_to_neutral: autoReplyNeutral,
-    reply_to_negative: autoReplyNegative,
-    min_rating_for_auto: autoReplySettings?.min_rating_for_auto || 4,
-    include_signature: autoReplySettings?.include_signature ?? true,
-    signature_text: autoReplySettings?.signature_text || "",
+    replyToPositive: autoReplyPositive,
+    replyToNeutral: autoReplyNeutral,
+    replyToNegative: autoReplyNegative,
+    minRating: autoReplySettings?.min_rating_for_auto || 4,
+    requireApproval: true,
   };
 
   // Get or build Business DNA
