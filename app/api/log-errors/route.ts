@@ -24,15 +24,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid error data' }, { status: 400 })
     }
 
-    // Validate and sanitize error data
+    // Validate and sanitize error data - match error_logs table schema
     const sanitizedErrors = errors.slice(0, 100).map((error) => ({
-      // Don't pass id - let database generate UUID automatically with gen_random_uuid()
-      message: String(error.message || 'Unknown error').slice(0, 1000),
-      stack: error.stack ? String(error.stack).slice(0, 5000) : null,
-      level: ['error', 'warning', 'info'].includes(error.level) ? error.level : 'error',
-      timestamp: error.timestamp || new Date().toISOString(),
+      error_type: error.level || 'error',
+      error_message: String(error.message || 'Unknown error').slice(0, 1000),
+      error_stack: error.stack ? String(error.stack).slice(0, 5000) : null,
       user_id: user?.id || null,
-      context: sanitizeContext(error.context),
+      metadata: sanitizeContext(error.context) || {},
       user_agent: error.userAgent ? String(error.userAgent).slice(0, 500) : null,
       url: error.url ? String(error.url).slice(0, 500) : null,
     }))
