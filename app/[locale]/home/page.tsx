@@ -1,26 +1,14 @@
 /**
- * Home Page - CLEAN & SIMPLE VERSION ⚡
+ * 🏠 NEW HOME PAGE - AI-First Design
  *
- * 🎯 SINGLE SOURCE OF TRUTH:
- * This page is the ONLY place that checks if user needs onboarding.
- *
- * Flow:
- * 1. Check if user has GMB locations
- * 2. If NO locations → redirect to /onboarding
- * 3. If HAS locations → show dashboard
- *
- * NO cookies, NO hooks, NO multiple checks - just ONE database query!
+ * Clean, focused, AI-powered dashboard
  */
 
-import { HomePageWrapper } from "@/components/home/home-page-wrapper";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getUserAchievements,
-  getUserProgress,
-  initializeUserProgress,
-} from "@/server/actions/achievements";
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { AIHomeDashboard } from "@/components/home/ai-home-dashboard";
+import { buildBusinessDNA } from "@/lib/services/business-dna-service";
 
 export const metadata: Metadata = {
   title: "Home | NNH - AI Studio",
@@ -29,10 +17,8 @@ export const metadata: Metadata = {
 
 export default async function HomePage({
   params,
-  searchParams,
 }: {
   params: { locale: string };
-  searchParams: { demo?: string };
 }) {
   const supabase = await createClient();
   const {
@@ -43,397 +29,151 @@ export default async function HomePage({
   const locale =
     typeof params.locale === "string" ? params.locale : (await params).locale;
 
-  // Check if user is in demo mode
-  const isDemoMode = searchParams?.demo === "true";
-
   if (error || !user) {
     redirect(`/${locale}/auth/login`);
   }
 
-  const userId = user!.id;
+  const userId = user.id;
 
-  // ============================================================================
-  // 🎯 SINGLE SOURCE OF TRUTH: Onboarding Check
-  // ============================================================================
-  // This is the ONLY place in the entire app that checks if user needs onboarding
-  // All other pages trust that user came through here
+  // Check if user has locations (onboarding check)
+  const { count: locationsCount } = await supabase
+    .from("gmb_locations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_active", true);
 
-  if (!isDemoMode) {
-    const { count: locationsCount } = await supabase
-      .from("gmb_locations")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("is_active", true);
+  if (!locationsCount || locationsCount === 0) {
+    const { data: profileCheck } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", userId)
+      .maybeSingle();
 
-    // No locations? → Go to onboarding
-    if (!locationsCount || locationsCount === 0) {
-      // Check if user completed onboarding with "Demo Mode"
-      const { data: profileCheck } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!profileCheck?.onboarding_completed) {
-        redirect(`/${locale}/onboarding`);
-      }
+    if (!profileCheck?.onboarding_completed) {
+      redirect(`/${locale}/onboarding`);
     }
   }
-  // ============================================================================
 
-  // Stable last login string to avoid hydration mismatches
-  const lastLogin =
-    user.last_sign_in_at != null
-      ? new Date(user.last_sign_in_at).toISOString()
-      : null;
-
-  // Initialize achievements for new users
-  await initializeUserProgress();
-
-  // Fetch user profile and achievements
-  const [{ data: profile }, _userProgress, _userAchievements] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, email, avatar_url")
-        .eq("id", userId)
-        .maybeSingle(),
-      getUserProgress(),
-      getUserAchievements("all"),
-    ]);
-
-  // ⚡ OPTIMIZED: Using materialized view for cached stats
+  // Fetch essential data in parallel
   const [
-    { data: cachedStats },
-    { data: youtubeToken },
+    { data: profile },
     { data: primaryLocation },
-    { data: autopilotSettings },
-    { count: gmbAccountsCount },
+    { data: todayBriefing },
+    { count: reviewsCount },
+    { count: pendingQuestionsCount },
   ] = await Promise.all([
+    // User profile
     supabase
-      .from("user_home_stats")
-      .select("*")
-      .eq("user_id", userId)
+      .from("profiles")
+      .select("full_name, email, avatar_url")
+      .eq("id", userId)
       .maybeSingle(),
-    supabase
-      .from("oauth_tokens")
-      .select("metadata")
-      .eq("user_id", userId)
-      .eq("provider", "youtube")
-      .maybeSingle(),
+
+    // Primary location
     supabase
       .from("gmb_locations")
-      .select(
-        `
-        id, location_name, logo_url, cover_photo_url,
-        address, phone, category, website,
-        rating, review_count, response_rate, health_score,
-        profile_completeness, business_hours, is_verified,
-        menu_url, booking_url, order_url, appointment_url,
-        latitude, longitude
-      `,
-      )
+      .select("id, location_name, logo_url, rating, review_count")
       .eq("user_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+
+    // Today's briefing (if exists)
     supabase
-      .from("autopilot_settings")
-      .select("auto_reply_enabled")
+      .from("ai_daily_briefings")
+      .select("*")
       .eq("user_id", userId)
-      .eq("is_enabled", true)
-      .limit(1)
+      .eq("briefing_date", new Date().toISOString().split("T")[0])
       .maybeSingle(),
+
+    // Reviews count
     supabase
-      .from("gmb_accounts")
+      .from("gmb_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+
+    // Pending questions
+    supabase
+      .from("gmb_questions")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("is_active", true),
+      .eq("answer_status", "pending"),
   ]);
 
-  // Extract counts from cached stats
-  const locationsCount =
-    cachedStats?.total_locations || cachedStats?.locations_count || 0;
-  const reviewsCount = cachedStats?.reviews_count || 0;
-  const accountsCount = gmbAccountsCount || 0;
-  const repliedReviewsCount = cachedStats?.replied_reviews_count || 0;
-  const todayReviewsCount = cachedStats?.today_reviews_count || 0;
-  const thisWeekCount =
-    cachedStats?.this_week_reviews_count || cachedStats?.reviews_this_week || 0;
-  const lastWeekCount = cachedStats?.last_week_reviews_count || 0;
+  // Get or build Business DNA (async, don't block render)
+  const { data: businessDNA } = await supabase
+    .from("business_dna")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  // If no logo, try to get from gmb_media
-  let businessLogoUrl =
-    primaryLocation?.logo_url || primaryLocation?.cover_photo_url;
-  if (!businessLogoUrl && primaryLocation?.id) {
-    const { data: mediaLogo } = await supabase
-      .from("gmb_media")
-      .select("url")
-      .eq("location_id", primaryLocation.id)
-      .in("category", ["LOGO", "PROFILE", "COVER"])
-      .limit(1)
-      .maybeSingle();
+  // Get recent reviews for quick stats
+  const { data: recentReviews } = await supabase
+    .from("gmb_reviews")
+    .select("rating, review_date, has_reply")
+    .eq("user_id", userId)
+    .order("review_date", { ascending: false })
+    .limit(100);
 
-    if (mediaLogo?.url) {
-      businessLogoUrl = mediaLogo.url;
-    }
-  }
+  // Calculate stats
+  const avgRating =
+    recentReviews && recentReviews.length > 0
+      ? (
+          recentReviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+          recentReviews.length
+        ).toFixed(1)
+      : "0.0";
 
-  // Get response rate and average rating from cached stats
-  const responseRate = cachedStats?.response_rate || 0;
-  const averageRating = cachedStats?.average_rating?.toFixed(1) || "0.0";
-
-  // Calculate streak
-  let streak = 0;
-  if (reviewsCount > 0) {
-    const { data: recentActivityDates } = await supabase
-      .from("gmb_reviews")
-      .select("review_date, replied_at")
-      .eq("user_id", userId)
-      .order("review_date", { ascending: false })
-      .limit(50);
-
-    if (recentActivityDates && recentActivityDates.length > 0) {
-      const dates = new Set<string>();
-      recentActivityDates.forEach((item) => {
-        if (item.review_date)
-          dates.add(new Date(item.review_date).toDateString());
-        if (item.replied_at)
-          dates.add(new Date(item.replied_at).toDateString());
-      });
-
-      const sortedDates = Array.from(dates)
-        .map((d) => new Date(d))
-        .sort((a, b) => b.getTime() - a.getTime());
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const lastActivity = sortedDates[0];
-      if (lastActivity) {
-        const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays <= 1) {
-          streak = 1;
-          for (let i = 0; i < sortedDates.length - 1; i++) {
-            const current = sortedDates[i];
-            const next = sortedDates[i + 1];
-            const diff = Math.abs(current.getTime() - next.getTime());
-            const days = Math.round(diff / (1000 * 60 * 60 * 24));
-
-            if (days === 1) {
-              streak++;
-            } else {
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // YouTube stats
-  const youtubeStats = youtubeToken?.metadata as unknown as {
-    statistics?: { subscriberCount?: string | number };
-  } | null;
-  const _youtubeSubs = youtubeStats?.statistics?.subscriberCount
-    ? Number(youtubeStats.statistics.subscriberCount)
-    : 0;
-  const hasYouTube = !!youtubeToken;
-  const hasAccounts = accountsCount > 0 || hasYouTube;
-
-  // Calculate weekly growth
-  const weeklyGrowth =
-    lastWeekCount > 0
-      ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
+  const responseRate =
+    recentReviews && recentReviews.length > 0
+      ? Math.round(
+          (recentReviews.filter((r) => r.has_reply).length /
+            recentReviews.length) *
+            100,
+        )
       : 0;
 
-  // Calculate trend data for last 7 days
-  let _reviewsTrend: number[] = [0, 0, 0, 0, 0, 0, 0];
+  // Reviews this week
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const thisWeekReviews =
+    recentReviews?.filter((r) => new Date(r.review_date) > weekAgo).length || 0;
 
-  if (reviewsCount > 0) {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setUTCHours(0, 0, 0, 0);
-      date.setUTCDate(date.getUTCDate() - (6 - i));
-      return date;
-    });
+  // Pending replies
+  const pendingReplies = recentReviews?.filter((r) => !r.has_reply).length || 0;
 
-    const firstDay = last7Days[0];
-    const { data: reviewsForTrend } = await supabase
-      .from("gmb_reviews")
-      .select("review_date")
-      .eq("user_id", userId)
-      .gte("review_date", firstDay.toISOString())
-      .order("review_date", { ascending: true });
+  // User's first name for greeting
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
 
-    _reviewsTrend = last7Days.map((date) => {
-      const dateStr = date.toDateString();
-      return (
-        reviewsForTrend?.filter(
-          (r) => new Date(r.review_date).toDateString() === dateStr,
-        ).length || 0
-      );
-    });
-  }
-
-  // Build progress tracker items
-  const progressItems = [
-    {
-      id: "profile-complete",
-      label: "Complete your profile information",
-      completed: !!(profile?.full_name && profile?.avatar_url),
-      href: "/settings",
-    },
-    {
-      id: "connect-gmb",
-      label: "Connect Google My Business account",
-      completed: (accountsCount || 0) > 0,
-      href: "/settings",
-    },
-    {
-      id: "connect-youtube",
-      label: "Connect YouTube channel",
-      completed: hasYouTube,
-      href: "/youtube-dashboard",
-    },
-    {
-      id: "first-review",
-      label: "Respond to your first review",
-      completed: (reviewsCount || 0) > 0,
-      href: "/reviews",
-    },
-  ];
-
-  // Fetch recent activities
-  const { data: recentReviews } =
-    reviewsCount > 0
-      ? await supabase
-          .from("gmb_reviews")
-          .select("review_id, comment, rating, review_date, location_name")
-          .eq("user_id", userId)
-          .order("review_date", { ascending: false })
-          .limit(3)
-      : { data: null };
-
-  // Build activities array
-  const activities = [];
-
-  if (recentReviews) {
-    for (const review of recentReviews) {
-      activities.push({
-        id: review.review_id,
-        type: "review" as const,
-        title: `New ${review.rating}-star review`,
-        description: review.comment || "No comment provided",
-        timestamp: new Date(review.review_date),
-        metadata: {
-          rating: review.rating,
-          location: review.location_name,
-        },
-        actionUrl: "/reviews",
-      });
-    }
-  }
-
-  // Build AI Insights based on user data
-  const insights = [];
-
-  if (recentReviews && recentReviews.length > 0) {
-    const unansweredReviews = recentReviews.filter((r) => !r.comment);
-    if (unansweredReviews.length > 0) {
-      insights.push({
-        id: "pending-reviews",
-        type: "alert" as const,
-        title: `${unansweredReviews.length} reviews need your response`,
-        description:
-          "Responding to reviews quickly improves your business rating and customer trust.",
-        priority: "high" as const,
-        actionText: "Reply Now",
-        actionUrl: "/reviews",
-        impact: "+15% customer engagement",
-      });
-    }
-  }
-
-  if (reviewsCount && reviewsCount > 5) {
-    const avgRatingNum = parseFloat(averageRating);
-    if (avgRatingNum < 4.0) {
-      insights.push({
-        id: "low-rating",
-        type: "alert" as const,
-        title: "Your average rating needs attention",
-        description: `Current rating is ${averageRating}/5.0. Focus on addressing negative feedback to improve your score.`,
-        priority: "high" as const,
-        actionText: "View Insights",
-        actionUrl: "/analytics",
-        impact: "Potential +0.5 rating improvement",
-      });
-    } else if (avgRatingNum >= 4.5) {
-      insights.push({
-        id: "great-rating",
-        type: "success" as const,
-        title: "Excellent rating performance!",
-        description: `You're maintaining a strong ${averageRating}/5.0 rating. Keep up the great work!`,
-        priority: "low" as const,
-      });
-    }
-  }
-
-  if (locationsCount && locationsCount < 3) {
-    insights.push({
-      id: "add-locations",
-      type: "recommendation" as const,
-      title: "Expand your business presence",
-      description:
-        "Add more locations to reach a wider audience and increase your visibility.",
-      priority: "medium" as const,
-      actionText: "Add Location",
-      actionUrl: "/locations",
-      impact: "+30% reach potential",
-    });
-  }
-
-  if (!hasYouTube) {
-    insights.push({
-      id: "connect-youtube",
-      type: "tip" as const,
-      title: "Connect your YouTube channel",
-      description:
-        "Manage your videos, analytics, and comments all in one place with AI-powered tools.",
-      priority: "medium" as const,
-      actionText: "Connect Now",
-      actionUrl: "/youtube-dashboard",
-      impact: "Unified content management",
-    });
-  }
-
-  const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
+  // Time-based greeting
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <HomePageWrapper
-      userId={userId}
-      homePageProps={{
-        user: user!,
-        profile,
-        hasAccounts,
-        accountsCount,
-        reviewsCount,
-        averageRating,
-        todayReviewsCount,
-        weeklyGrowth,
-        progressItems,
-        responseRate,
-        streak,
-        lastLogin: lastLogin ?? undefined,
-        businessName: primaryLocation?.location_name,
-        businessLogo: businessLogoUrl,
-        primaryLocation,
-        pendingReviewsCount,
-        hasAutoReply: autopilotSettings?.auto_reply_enabled ?? false,
+    <AIHomeDashboard
+      user={{
+        id: userId,
+        firstName,
+        email: user.email || "",
+        avatarUrl: profile?.avatar_url,
       }}
+      business={{
+        name: primaryLocation?.location_name || "Your Business",
+        logoUrl: primaryLocation?.logo_url,
+        locationId: primaryLocation?.id,
+      }}
+      stats={{
+        rating: parseFloat(avgRating),
+        totalReviews: reviewsCount || 0,
+        responseRate,
+        thisWeekReviews,
+        pendingReplies,
+        pendingQuestions: pendingQuestionsCount || 0,
+      }}
+      briefing={todayBriefing}
+      businessDNA={businessDNA}
+      greeting={greeting}
     />
   );
 }
