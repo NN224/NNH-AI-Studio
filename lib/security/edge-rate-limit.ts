@@ -106,7 +106,7 @@ function getRateLimiter(limit: number, windowSeconds: number): Ratelimit | null 
 
 /**
  * Check rate limit for a given identifier (distributed via Upstash Redis)
- * SECURITY: FAILS CLOSED - denies requests if Redis unavailable
+ * CHANGED TO FAIL OPEN - allows requests if Redis unavailable to prevent blocking users
  */
 export async function checkEdgeRateLimit(
   identifier: string,
@@ -118,15 +118,12 @@ export async function checkEdgeRateLimit(
 
   const limiter = getRateLimiter(limit, windowSeconds)
 
-  // FAIL CLOSED: If Redis not available, DENY the request
+  // FAIL OPEN: If Redis not available, ALLOW the request
   if (!limiter) {
-    apiLogger.error('Rate limiter unavailable - denying request', new Error('Redis unavailable'), {
-      identifier,
-    })
     return {
-      success: false,
-      limit: 0,
-      remaining: 0,
+      success: true,
+      limit: limit,
+      remaining: limit,
       reset: Math.floor(resetTime / 1000),
     }
   }
@@ -140,15 +137,15 @@ export async function checkEdgeRateLimit(
       reset: Math.floor(result.reset / 1000),
     }
   } catch (error) {
-    apiLogger.error(
-      'Rate limit check failed',
-      error instanceof Error ? error : new Error(String(error)),
-    )
-    // FAIL CLOSED on error - deny the request
+    apiLogger.warn('Rate limit check failed - allowing request', {
+      identifier,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    // FAIL OPEN on error - allow the request
     return {
-      success: false,
-      limit: 0,
-      remaining: 0,
+      success: true,
+      limit: limit,
+      remaining: limit,
       reset: Math.floor(resetTime / 1000),
     }
   }

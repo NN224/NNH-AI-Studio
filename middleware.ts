@@ -4,14 +4,7 @@ import createIntlMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { locales } from './i18n'
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, shouldProtectRequest } from './lib/security/csrf'
-import {
-  applyEdgeRateLimit,
-  checkEdgeRateLimit,
-  createRateLimitResponse,
-  getClientIP,
-  getDynamicRateLimit,
-  isSuspiciousRequest,
-} from './lib/security/edge-rate-limit'
+import { getClientIP, isSuspiciousRequest } from './lib/security/edge-rate-limit'
 import { HSTS_HEADER, SECURITY_HEADERS, generateCSP } from './lib/security/headers'
 
 // ============================================================================
@@ -134,49 +127,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 2. SECURITY: Edge-level rate limiting (DDoS protection) - DISTRIBUTED
+  // 2. RATE LIMITING - DISABLED
   // -------------------------------------------------------------------------
-  // Skip rate limiting for admin subdomain (already protected by 2FA)
-  const isAdminSubdomain = hostname.startsWith('admin.')
-  const isAdminPath = pathname.startsWith('/admin')
-
-  if (!isAdminSubdomain && !isAdminPath) {
-    const rateLimitConfig = getDynamicRateLimit(request)
-    const rateLimitResponse = await applyEdgeRateLimit(request, rateLimitConfig)
-
-    if (rateLimitResponse) {
-      logger.warn('[Middleware] Rate limit exceeded', {
-        ip: getClientIP(request),
-        path: pathname,
-        timestamp: new Date().toISOString(),
-      })
-      return rateLimitResponse
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // 3. Additional rate limiting for API routes - DISTRIBUTED
-  // -------------------------------------------------------------------------
-  // Skip additional rate limiting for auth-related endpoints and GMB
-  const isAuthEndpoint =
-    pathname.includes('/auth/') || pathname.includes('/oauth') || pathname.includes('/callback')
-  const isGMBEndpoint = pathname.startsWith('/api/gmb')
-
-  if (
-    pathname.startsWith('/api/') &&
-    !isAuthEndpoint &&
-    !isGMBEndpoint &&
-    !isAdminSubdomain &&
-    !pathname.startsWith('/api/admin')
-  ) {
-    // Stricter rate limit for API endpoints (excluding auth and admin)
-    const ip = getClientIP(request)
-    const apiResult = await checkEdgeRateLimit(`api:${ip}`, 200, 60) // 200 req/min for APIs
-
-    if (!apiResult.success) {
-      return createRateLimitResponse(apiResult)
-    }
-  }
+  // Rate limiting removed - causing issues with Redis connectivity
+  // Will be re-implemented with proper fallback mechanism
+  const _isAdminSubdomain = hostname.startsWith('admin.')
+  const _isAdminPath = pathname.startsWith('/admin')
 
   // -------------------------------------------------------------------------
   // 4. CSRF PROTECTION for state-changing requests
