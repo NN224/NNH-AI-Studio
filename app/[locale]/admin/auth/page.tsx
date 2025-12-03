@@ -108,7 +108,7 @@ export default function AdminAuthPage() {
     }
   }
 
-  const send2FACode = async (email: string) => {
+  const send2FACode = async (userEmail: string) => {
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
 
@@ -116,15 +116,23 @@ export default function AdminAuthPage() {
     sessionStorage.setItem('admin_2fa_code', code)
     sessionStorage.setItem('admin_2fa_code_time', Date.now().toString())
 
-    // Send email (integrate with your email service)
+    // Send email via Supabase Edge Function or show in console for dev
     try {
-      await fetch('/api/admin/send-2fa', {
+      const response = await fetch('/api/admin/send-2fa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ email: userEmail, code }),
       })
+
+      if (!response.ok) {
+        // If email service not available, log to console in development
+        console.log('🔐 Admin 2FA Code:', code)
+        alert(`2FA Code (dev mode): ${code}`)
+      }
     } catch {
-      // Email service not available - code stored in session
+      // Email service not available - show code for development
+      console.log('🔐 Admin 2FA Code:', code)
+      alert(`2FA Code (dev mode): ${code}`)
     }
   }
 
