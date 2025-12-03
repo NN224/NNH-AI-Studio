@@ -95,6 +95,12 @@ const EXCLUDED_PATHS = [
   '/select-account',
   '/en/select-account',
   '/ar/select-account',
+
+  // Settings and other pages
+  '/settings',
+  '/en/settings',
+  '/ar/settings',
+  '/api/ai/',
 ]
 
 /**
