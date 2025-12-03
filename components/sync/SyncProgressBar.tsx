@@ -1,10 +1,10 @@
 'use client'
 
+import { useSyncContext } from '@/contexts/sync-context'
 import { cn } from '@/lib/utils'
-import { useSyncStatus } from './SyncProvider'
 
 export function SyncProgressBar() {
-  const { state } = useSyncStatus()
+  const { state } = useSyncContext()
 
   // Only show when syncing
   if (state.status !== 'syncing') return null
