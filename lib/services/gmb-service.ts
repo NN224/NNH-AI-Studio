@@ -49,14 +49,18 @@ export const GMBService = {
   getStatus: async (): Promise<GMBStatus> => {
     const response = await fetch("/api/gmb/status");
     if (!response.ok) throw new Error("Failed to fetch GMB status");
-    return response.json();
+    const json = await response.json();
+    // Handle wrapped response: { success: true, data: { connected: ... } }
+    return json.data || json;
   },
 
   // Get all accounts
   getAccounts: async (): Promise<GMBAccount[]> => {
     const response = await fetch("/api/gmb/accounts");
     if (!response.ok) throw new Error("Failed to fetch GMB accounts");
-    return response.json();
+    const json = await response.json();
+    // Handle wrapped response
+    return json.data || json;
   },
 
   // Connect/Auth URL
