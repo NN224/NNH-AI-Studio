@@ -89,6 +89,12 @@ const EXCLUDED_PATHS = [
   '/admin/auth',
   '/en/admin/auth',
   '/ar/admin/auth',
+
+  // GMB endpoints (OAuth protected)
+  '/api/gmb/',
+  '/select-account',
+  '/en/select-account',
+  '/ar/select-account',
 ]
 
 /**
