@@ -59,6 +59,9 @@ export function getCSPDirectives(): Record<string, string[]> {
       'https://apis.google.com',
       'https://www.gstatic.com',
       'https://ssl.gstatic.com',
+      'https://*.sentry.io',
+      'https://*.ingest.sentry.io',
+      'https://*.ingest.de.sentry.io',
     ],
     'style-src': [
       "'self'",

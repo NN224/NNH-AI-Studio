@@ -1,11 +1,51 @@
 'use client'
 
-import { useSyncStatus } from '@/components/sync'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 import { AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
+interface SyncState {
+  status: 'idle' | 'syncing' | 'success' | 'error'
+  lastSynced: Date | null
+  isConnected: boolean
+  message?: string
+  progress?: number
+}
 
 export default function SyncDiagnosticsPage() {
-  const { state, isConnected } = useSyncStatus()
+  const [state, setState] = useState<SyncState>({
+    status: 'idle',
+    lastSynced: null,
+    isConnected: false,
+  })
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const supabase = createClient()
+      if (!supabase) return
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: account } = await supabase
+        .from('gmb_accounts')
+        .select('id, last_sync')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single()
+
+      setState({
+        status: 'idle',
+        lastSynced: account?.last_sync ? new Date(account.last_sync) : null,
+        isConnected: !!account,
+      })
+    }
+
+    checkStatus()
+  }, [])
 
   return (
     <div className="min-h-screen p-6">
@@ -19,12 +59,12 @@ export default function SyncDiagnosticsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                {isConnected ? (
+                {state.isConnected ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
                   <AlertCircle className="h-5 w-5 text-red-500" />
                 )}
-                <span>{isConnected ? 'Connected' : 'Not Connected'}</span>
+                <span>{state.isConnected ? 'Connected' : 'Not Connected'}</span>
               </div>
             </CardContent>
           </Card>
