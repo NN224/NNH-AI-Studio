@@ -1,123 +1,82 @@
-"use client";
+'use client'
 
-import { useGMBStatus } from "@/hooks/features/use-gmb";
-import { syncLogger } from "@/lib/utils/logger";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { toast } from "sonner";
-import { FirstSyncOverlay } from "./first-sync-overlay";
-import { HomeWithSync } from "./home-with-sync";
+import { useGMBStatus } from '@/hooks/features/use-gmb'
+import { Loader2 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect } from 'react'
+import { toast } from 'sonner'
+import { HomePageContent } from './home-page-content'
 
 interface HomePageWrapperProps {
-  userId: string;
-  homePageProps: any; // Use the same type as HomeWithSync props
+  userId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  homePageProps: any
 }
 
-function HomePageContent({ userId, homePageProps }: HomePageWrapperProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [showOverlay, setShowOverlay] = useState(() => {
-    return (
-      searchParams.get("newUser") === "true" && !!searchParams.get("accountId")
-    );
-  });
+function HomePageInner({ homePageProps }: HomePageWrapperProps) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
-  const accountId = searchParams.get("accountId");
-
-  // ✅ Set GMB cookie for middleware (avoids DB calls in Edge Runtime)
-  // This runs on Home page so the cookie is set before user tries to access /dashboard
-  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
-  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
+  // Set GMB cookie for middleware
+  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus()
+  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false
 
   useEffect(() => {
     if (!gmbLoading && gmbStatus !== undefined) {
-      const cookieValue = gmbConnected ? "true" : "false";
-      document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
+      const cookieValue = gmbConnected ? 'true' : 'false'
+      document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
 
-      // If user came from a GMB-required route, redirect them back
-      const intended = searchParams.get("intended");
+      const intended = searchParams.get('intended')
       if (intended && gmbConnected) {
-        router.push(intended);
+        router.push(intended)
       }
     }
-  }, [gmbConnected, gmbLoading, gmbStatus, searchParams, router]);
+  }, [gmbConnected, gmbLoading, gmbStatus, searchParams, router])
 
-  // ✅ IMPROVED: Smart handling for different OAuth states
+  // Handle OAuth callback params
   useEffect(() => {
-    const params = searchParams;
+    const params = searchParams
 
-    // CASE 1: Legacy gmb_connected (fallback)
-    if (params.get("gmb_connected") === "true") {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("gmb_connected");
-      url.searchParams.delete("accountId");
-      router.replace(url.pathname + url.search);
-      router.refresh();
-    }
-
-    // CASE 2: Additional account added - show background sync notification
-    else if (params.get("accountAdded") === "true") {
-      toast.info("Syncing new account in background...", {
-        description:
-          "Your new GMB account is being synced. This may take a few moments.",
+    if (params.get('gmb_connected') === 'true') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('gmb_connected')
+      url.searchParams.delete('accountId')
+      router.replace(url.pathname + url.search)
+      router.refresh()
+    } else if (params.get('accountAdded') === 'true') {
+      toast.info('Syncing new account in background...', {
+        description: 'Your new GMB account is being synced.',
         duration: 5000,
-      });
-      const url = new URL(window.location.href);
-      url.searchParams.delete("accountAdded");
-      url.searchParams.delete("accountId");
-      router.replace(url.pathname + url.search);
-      router.refresh();
+      })
+      const url = new URL(window.location.href)
+      url.searchParams.delete('accountAdded')
+      url.searchParams.delete('accountId')
+      router.replace(url.pathname + url.search)
+      router.refresh()
+    } else if (params.get('reauth') === 'true') {
+      toast.success('Connection refreshed successfully')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('reauth')
+      router.replace(url.pathname + url.search)
+      router.refresh()
     }
+  }, [searchParams, router])
 
-    // CASE 3: Re-authentication completed
-    else if (params.get("reauth") === "true") {
-      toast.success("Connection refreshed successfully", {
-        description: "Your GMB connection has been updated.",
-        duration: 3000,
-      });
-      const url = new URL(window.location.href);
-      url.searchParams.delete("reauth");
-      router.replace(url.pathname + url.search);
-      router.refresh();
-    }
-  }, [searchParams, router]);
-
-  const handleSyncComplete = () => {
-    setShowOverlay(false);
-    // Refresh the page to load new data
-    router.refresh();
-  };
-
-  const handleSyncError = () => {
-    setShowOverlay(false);
-    // Optionally show an error message
-    syncLogger.warn("Sync failed, but continuing...");
-  };
-
-  return (
-    <>
-      {showOverlay && accountId && (
-        <FirstSyncOverlay
-          accountId={accountId}
-          userId={userId}
-          onComplete={handleSyncComplete}
-          onError={handleSyncError}
-        />
-      )}
-      <HomeWithSync userId={userId} homePageProps={homePageProps} />
-    </>
-  );
+  return <HomePageContent {...homePageProps} />
 }
 
-export function HomePageWrapper({
-  userId,
-  homePageProps,
-}: HomePageWrapperProps) {
+function LoadingFallback() {
   return (
-    <Suspense
-      fallback={<HomeWithSync userId={userId} homePageProps={homePageProps} />}
-    >
-      <HomePageContent userId={userId} homePageProps={homePageProps} />
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+export function HomePageWrapper({ userId, homePageProps }: HomePageWrapperProps) {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <HomePageInner userId={userId} homePageProps={homePageProps} />
     </Suspense>
-  );
+  )
 }
