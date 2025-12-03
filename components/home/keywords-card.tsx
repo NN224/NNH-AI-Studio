@@ -1,146 +1,158 @@
-"use client";
+'use client'
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { createClient } from "@/lib/supabase/client";
-import { logger } from "@/lib/utils/logger";
-import { motion } from "framer-motion";
-import { Minus, Search, TrendingDown, TrendingUp } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { createClient } from '@/lib/supabase/client'
+import { logger } from '@/lib/utils/logger'
+import { motion } from 'framer-motion'
+import { Minus, Search, TrendingDown, TrendingUp } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface Keyword {
-  id: string;
-  search_keyword: string;
-  impressions_count: number;
-  month_year: string;
-  previous_impressions?: number;
+  id: string
+  search_keyword: string
+  impressions_count: number
+  month_year: string
+  previous_impressions?: number
 }
 
 // Sample keywords for demo when no real data
 const SAMPLE_KEYWORDS = [
   {
-    id: "1",
-    search_keyword: "restaurant near me",
+    id: '1',
+    search_keyword: 'restaurant near me',
     impressions_count: 1250,
-    month_year: "2024-11",
+    month_year: '2024-11',
   },
   {
-    id: "2",
-    search_keyword: "best food delivery",
+    id: '2',
+    search_keyword: 'best food delivery',
     impressions_count: 890,
-    month_year: "2024-11",
+    month_year: '2024-11',
   },
   {
-    id: "3",
-    search_keyword: "local business",
+    id: '3',
+    search_keyword: 'local business',
     impressions_count: 650,
-    month_year: "2024-11",
+    month_year: '2024-11',
   },
   {
-    id: "4",
-    search_keyword: "open now",
+    id: '4',
+    search_keyword: 'open now',
     impressions_count: 420,
-    month_year: "2024-11",
+    month_year: '2024-11',
   },
   {
-    id: "5",
-    search_keyword: "reviews",
+    id: '5',
+    search_keyword: 'reviews',
     impressions_count: 380,
-    month_year: "2024-11",
+    month_year: '2024-11',
   },
-];
+]
 
 interface KeywordsCardProps {
-  locationId?: string;
-  limit?: number;
+  locationId?: string
+  limit?: number
 }
 
 export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
-  const [keywords, setKeywords] = useState<Keyword[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [usingSampleData, setUsingSampleData] = useState(false);
+  const [keywords, setKeywords] = useState<Keyword[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [usingSampleData, setUsingSampleData] = useState(false)
 
   const fetchKeywords = useCallback(async () => {
     try {
-      const supabase = createClient();
+      const supabase = createClient()
       if (!supabase) {
-        setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
-        setUsingSampleData(true);
-        setIsLoading(false);
-        return;
+        setKeywords(SAMPLE_KEYWORDS.slice(0, limit))
+        setUsingSampleData(true)
+        setIsLoading(false)
+        return
       }
 
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser()
       if (!user) {
-        setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
-        setUsingSampleData(true);
-        setIsLoading(false);
-        return;
+        setKeywords(SAMPLE_KEYWORDS.slice(0, limit))
+        setUsingSampleData(true)
+        setIsLoading(false)
+        return
       }
 
       let query = supabase
-        .from("gmb_search_keywords")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("impressions_count", { ascending: false })
-        .limit(limit);
+        .from('gmb_search_keywords')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('impressions_count', { ascending: false })
+        .limit(limit)
 
       if (locationId) {
-        query = query.eq("location_id", locationId);
+        query = query.eq('location_id', locationId)
       }
 
-      const { data, error: fetchError } = await query;
+      const { data, error: fetchError } = await query
 
       if (fetchError) {
-        logger.error(
-          "Error fetching keywords",
+        // Extract error message from Supabase PostgrestError
+        const errorMessage =
           fetchError instanceof Error
-            ? fetchError
-            : new Error(String(fetchError)),
-        );
+            ? fetchError.message
+            : typeof fetchError === 'object' && fetchError !== null && 'message' in fetchError
+              ? String((fetchError as { message: unknown }).message)
+              : 'Unknown database error'
+
+        // Only log if not a "table not found" error (expected during setup)
+        if (!errorMessage.includes('gmb_search_keywords') && !errorMessage.includes('404')) {
+          logger.error('Error fetching keywords', new Error(errorMessage))
+        }
         // Use sample data on error
-        setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
-        setUsingSampleData(true);
+        setKeywords(SAMPLE_KEYWORDS.slice(0, limit))
+        setUsingSampleData(true)
       } else if (!data || data.length === 0) {
         // Use sample data when empty
-        setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
-        setUsingSampleData(true);
+        setKeywords(SAMPLE_KEYWORDS.slice(0, limit))
+        setUsingSampleData(true)
       } else {
-        setKeywords(data);
-        setUsingSampleData(false);
+        setKeywords(data)
+        setUsingSampleData(false)
       }
     } catch (err) {
-      logger.error(
-        "Keywords fetch error",
-        err instanceof Error ? err : new Error(String(err)),
-      );
-      setKeywords(SAMPLE_KEYWORDS.slice(0, limit));
-      setUsingSampleData(true);
+      // Extract error message properly
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err !== null && 'message' in err
+            ? String((err as { message: unknown }).message)
+            : 'Unknown error'
+
+      // Only log if not expected table missing error
+      if (!errorMessage.includes('gmb_search_keywords')) {
+        logger.error('Keywords fetch error', new Error(errorMessage))
+      }
+      setKeywords(SAMPLE_KEYWORDS.slice(0, limit))
+      setUsingSampleData(true)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [locationId, limit]);
+  }, [locationId, limit])
 
   useEffect(() => {
-    fetchKeywords();
-  }, [fetchKeywords]);
+    fetchKeywords()
+  }, [fetchKeywords])
 
   const getTrendIcon = (current: number, previous?: number) => {
-    if (!previous) return <Minus className="h-3 w-3 text-muted-foreground" />;
-    if (current > previous)
-      return <TrendingUp className="h-3 w-3 text-green-500" />;
-    if (current < previous)
-      return <TrendingDown className="h-3 w-3 text-red-500" />;
-    return <Minus className="h-3 w-3 text-muted-foreground" />;
-  };
+    if (!previous) return <Minus className="h-3 w-3 text-muted-foreground" />
+    if (current > previous) return <TrendingUp className="h-3 w-3 text-green-500" />
+    if (current < previous) return <TrendingDown className="h-3 w-3 text-red-500" />
+    return <Minus className="h-3 w-3 text-muted-foreground" />
+  }
 
   const formatNumber = (num: number) => {
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-    return num.toString();
-  };
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
+    return num.toString()
+  }
 
   if (isLoading) {
     return (
@@ -157,7 +169,7 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
           ))}
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (keywords.length === 0) {
@@ -179,10 +191,10 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const maxImpressions = Math.max(...keywords.map((k) => k.impressions_count));
+  const maxImpressions = Math.max(...keywords.map((k) => k.impressions_count))
 
   return (
     <Card className="border-primary/20 bg-card/50 backdrop-blur">
@@ -191,10 +203,7 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
           <Search className="h-4 w-4 text-blue-500" />
           Top Keywords
           {usingSampleData && (
-            <Badge
-              variant="outline"
-              className="text-xs text-orange-500 border-orange-500/50"
-            >
+            <Badge variant="outline" className="text-xs text-orange-500 border-orange-500/50">
               Sample
             </Badge>
           )}
@@ -205,7 +214,7 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {keywords.map((keyword, index) => {
-          const percentage = (keyword.impressions_count / maxImpressions) * 100;
+          const percentage = (keyword.impressions_count / maxImpressions) * 100
 
           return (
             <motion.div
@@ -216,14 +225,9 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
               className="space-y-1"
             >
               <div className="flex items-center justify-between text-sm">
-                <span className="truncate max-w-[60%] font-medium">
-                  {keyword.search_keyword}
-                </span>
+                <span className="truncate max-w-[60%] font-medium">{keyword.search_keyword}</span>
                 <div className="flex items-center gap-2">
-                  {getTrendIcon(
-                    keyword.impressions_count,
-                    keyword.previous_impressions,
-                  )}
+                  {getTrendIcon(keyword.impressions_count, keyword.previous_impressions)}
                   <span className="text-muted-foreground">
                     {formatNumber(keyword.impressions_count)}
                   </span>
@@ -238,9 +242,9 @@ export function KeywordsCard({ locationId, limit = 5 }: KeywordsCardProps) {
                 />
               </div>
             </motion.div>
-          );
+          )
         })}
       </CardContent>
     </Card>
-  );
+  )
 }
