@@ -39,7 +39,7 @@
     "@flags-sdk/growthbook": "^0.2.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
-    "@modelcontextprotocol/sdk": "^1.21.1",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@popperjs/core": "^2.11.8",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
