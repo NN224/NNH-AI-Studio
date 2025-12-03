@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSyncContext } from '@/contexts/sync-context'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -71,25 +71,27 @@ export function SyncButton() {
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSync}
-          disabled={state.status === 'syncing'}
-          className="gap-2"
-        >
-          <RefreshCw className={cn('h-4 w-4', state.status === 'syncing' && 'animate-spin')} />
-          <span className="hidden sm:inline">
-            {state.status === 'syncing' ? 'Syncing...' : 'Sync'}
-          </span>
-          <span className={cn('h-2 w-2 rounded-full', statusColor)} />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{state.status === 'syncing' ? state.message : formatLastSynced()}</p>
-      </TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSync}
+            disabled={state.status === 'syncing'}
+            className="gap-2"
+          >
+            <RefreshCw className={cn('h-4 w-4', state.status === 'syncing' && 'animate-spin')} />
+            <span className="hidden sm:inline">
+              {state.status === 'syncing' ? 'Syncing...' : 'Sync'}
+            </span>
+            <span className={cn('h-2 w-2 rounded-full', statusColor)} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{state.status === 'syncing' ? state.message : formatLastSynced()}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
