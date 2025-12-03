@@ -541,6 +541,8 @@ export async function GET(request: NextRequest) {
       });
 
       // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
+      // IMPORTANT: Use .select('id').single() to get the ID in the same operation
+      // This avoids race conditions between upsert and secrets insertion
       gmbLogger.info(`Upserting GMB account`, { accountId });
 
       const upsertData = {
@@ -554,29 +556,31 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      // First try to upsert the account
-      const { error: upsertError } = await adminClient
+      // Upsert AND get ID in single operation
+      const { data: upsertedAccount, error: upsertError } = await adminClient
         .from("gmb_accounts")
         .upsert(upsertData, {
           onConflict: "account_id",
           ignoreDuplicates: false,
-        });
+        })
+        .select("id")
+        .single();
 
-      if (upsertError) {
-        const upsertErrorObj = upsertError as {
+      if (upsertError || !upsertedAccount) {
+        const errorObj = upsertError as {
           message?: string;
           code?: string;
           details?: string;
           hint?: string;
-        };
+        } | null;
         gmbLogger.error(
           "GMB account upsert error",
           new Error(getErrorMessage(upsertError)),
           {
-            message: upsertErrorObj.message,
-            code: upsertErrorObj.code,
-            details: upsertErrorObj.details,
-            hint: upsertErrorObj.hint,
+            message: errorObj?.message,
+            code: errorObj?.code,
+            details: errorObj?.details,
+            hint: errorObj?.hint,
             upsertData,
           },
         );
@@ -595,29 +599,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // Fetch the account to get its UUID
-      const { data: upsertedAccount, error: fetchError } = await adminClient
-        .from("gmb_accounts")
-        .select("id")
-        .eq("account_id", accountId)
-        .single();
-
-      if (fetchError || !upsertedAccount) {
-        gmbLogger.error(
-          "Failed to fetch account after upsert",
-          new Error(getErrorMessage(fetchError)),
-          { accountId },
-        );
-        const redirectUrl = buildSafeRedirectUrl(
-          baseUrl,
-          `/${localeCookie}/settings`,
-          {
-            error: "Failed to retrieve account after save",
-            error_code: "gmb_account_fetch_failed",
-          },
-        );
-        return NextResponse.redirect(redirectUrl);
-      }
+      gmbLogger.info("GMB account upserted successfully", {
+        accountId: upsertedAccount.id,
+        googleAccountId: accountId,
+      });
 
       // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
@@ -651,9 +636,6 @@ export async function GET(request: NextRequest) {
 
       savedAccountId = upsertedAccount.id;
       savedAccountIds.push(upsertedAccount.id);
-      gmbLogger.info(`Successfully upserted account`, {
-        accountId: upsertedAccount.id,
-      });
 
       // NOTE: Locations are NOT fetched here anymore.
       // The user will select locations in the /select-account flow,
