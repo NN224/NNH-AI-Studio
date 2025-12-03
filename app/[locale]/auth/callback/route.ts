@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
@@ -36,7 +36,8 @@ export async function GET(request: Request) {
     const supabase = await createClient();
 
     // Exchange code for session
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: sessionData, error } =
+      await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       const errorRedirectUrl = buildSafeRedirectUrl(
@@ -49,7 +50,47 @@ export async function GET(request: Request) {
       return NextResponse.redirect(errorRedirectUrl);
     }
 
-    // Redirect to home with success
+    // Check if user has any connected accounts
+    const userId = sessionData.user?.id;
+
+    if (userId) {
+      const adminClient = createAdminClient();
+
+      const [{ count: gmbCount }, { data: youtubeToken }, { data: profile }] =
+        await Promise.all([
+          adminClient
+            .from("gmb_accounts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .eq("is_active", true),
+          adminClient
+            .from("oauth_tokens")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("provider", "youtube")
+            .maybeSingle(),
+          adminClient
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("id", userId)
+            .maybeSingle(),
+        ]);
+
+      const hasGMB = (gmbCount || 0) > 0;
+      const hasYouTube = !!youtubeToken;
+      const onboardingCompleted = profile?.onboarding_completed || false;
+
+      // If user has no accounts and hasn't completed onboarding, redirect to onboarding
+      if (!hasGMB && !hasYouTube && !onboardingCompleted) {
+        const onboardingRedirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${locale}/onboarding`,
+        );
+        return NextResponse.redirect(onboardingRedirectUrl);
+      }
+    }
+
+    // User has accounts or completed onboarding, redirect to home
     const homeRedirectUrl = buildSafeRedirectUrl(baseUrl, `/${locale}/home`);
     return NextResponse.redirect(homeRedirectUrl);
   }

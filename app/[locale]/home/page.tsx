@@ -32,8 +32,10 @@ export const metadata: Metadata = {
 
 export default async function HomePage({
   params,
+  searchParams,
 }: {
   params: { locale: string };
+  searchParams: { demo?: string };
 }) {
   const supabase = await createClient();
   const {
@@ -44,12 +46,51 @@ export default async function HomePage({
   const locale =
     typeof params.locale === "string" ? params.locale : (await params).locale;
 
+  // Check if user is in demo mode
+  const isDemoMode = searchParams?.demo === "true";
+
   if (error || !user) {
     redirect(`/${locale}/auth/login`);
   }
 
   // Type assertion: user is guaranteed to be non-null after the redirect check
   const userId = user!.id;
+
+  // Quick check: Does user need onboarding?
+  // Skip this check if in demo mode
+  if (!isDemoMode) {
+    const [
+      { count: quickGmbCheck },
+      { data: quickYoutubeCheck },
+      { data: quickProfileCheck },
+    ] = await Promise.all([
+      supabase
+        .from("gmb_accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("is_active", true),
+      supabase
+        .from("oauth_tokens")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("provider", "youtube")
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
+
+    const needsOnboarding =
+      (quickGmbCheck || 0) === 0 &&
+      !quickYoutubeCheck &&
+      !quickProfileCheck?.onboarding_completed;
+
+    if (needsOnboarding) {
+      redirect(`/${locale}/onboarding`);
+    }
+  }
 
   // Stable last login string to avoid hydration mismatches
   const lastLogin =
