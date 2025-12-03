@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProgressStepper } from "@/components/ui/progress-stepper";
-import { GMB_KEYS } from "@/hooks/features/use-gmb";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -30,7 +29,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { gmbLogger } from "@/lib/utils/logger";
-import { useQueryClient } from "@tanstack/react-query";
 
 // ============================================================================
 // Types
@@ -113,7 +111,6 @@ function getStepIndex(step: WizardStep): number {
 export default function SelectAccountPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
 
   // URL params from OAuth callback
   const urlAccountId = searchParams.get("accountId");
@@ -393,24 +390,22 @@ export default function SelectAccountPage() {
       toast.success(
         `Successfully imported ${result.importedCount} location${result.importedCount !== 1 ? "s" : ""}! 🎉`,
         {
-          description: "Your data is now syncing in the background.",
-          duration: 5000,
+          description: "Now syncing your business data...",
+          duration: 3000,
         },
       );
 
-      // CRITICAL: Invalidate ALL GMB-related caches to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: GMB_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["user-locations"] });
-      queryClient.invalidateQueries({ queryKey: ["locations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      // Get business name from first selected location
+      const firstLocation = selectedLocations[0];
+      const businessName =
+        firstLocation?.title ||
+        selectedAccount?.account_name ||
+        "Your Business";
 
-      // Set GMB cookie for middleware
-      document.cookie = `gmb_connected=true; path=/; max-age=3600; SameSite=Lax${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`;
-
-      // Redirect to home
-      router.push("/home?newUser=true");
+      // Redirect to setup page for data sync with animations
+      router.push(
+        `/setup?accountId=${selectedAccount.id}&businessName=${encodeURIComponent(businessName)}`,
+      );
     } catch (err) {
       gmbLogger.error(
         "Error importing locations",

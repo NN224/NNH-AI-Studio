@@ -35,35 +35,32 @@ export default async function OnboardingPage({
 
   const userId = user.id;
 
-  // Check if user already has accounts connected
-  const [
-    { count: gmbAccountsCount },
-    { data: youtubeToken },
-    { data: profile },
-  ] = await Promise.all([
-    supabase
-      .from("gmb_accounts")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("is_active", true),
-    supabase
-      .from("oauth_tokens")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("provider", "youtube")
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("full_name, onboarding_completed")
-      .eq("id", userId)
-      .maybeSingle(),
-  ]);
+  // Check if user already has locations imported (completed full flow)
+  const [{ count: locationsCount }, { data: youtubeToken }, { data: profile }] =
+    await Promise.all([
+      supabase
+        .from("gmb_locations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("is_active", true),
+      supabase
+        .from("oauth_tokens")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("provider", "youtube")
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("full_name, onboarding_completed")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
 
-  const hasGMB = (gmbAccountsCount || 0) > 0;
+  const hasLocations = (locationsCount || 0) > 0;
   const hasYouTube = !!youtubeToken;
 
-  // If user already has accounts or completed onboarding, redirect to home
-  if (hasGMB || hasYouTube || profile?.onboarding_completed) {
+  // If user already has locations or completed onboarding, redirect to home
+  if (hasLocations || hasYouTube || profile?.onboarding_completed) {
     redirect(`/${locale}/home`);
   }
 

@@ -56,32 +56,36 @@ export async function GET(request: Request) {
     if (userId) {
       const adminClient = createAdminClient();
 
-      const [{ count: gmbCount }, { data: youtubeToken }, { data: profile }] =
-        await Promise.all([
-          adminClient
-            .from("gmb_accounts")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", userId)
-            .eq("is_active", true),
-          adminClient
-            .from("oauth_tokens")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("provider", "youtube")
-            .maybeSingle(),
-          adminClient
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("id", userId)
-            .maybeSingle(),
-        ]);
+      const [
+        { count: locationsCount },
+        { data: youtubeToken },
+        { data: profile },
+      ] = await Promise.all([
+        // Check for LOCATIONS (not accounts!) - means user completed full flow
+        adminClient
+          .from("gmb_locations")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("is_active", true),
+        adminClient
+          .from("oauth_tokens")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("provider", "youtube")
+          .maybeSingle(),
+        adminClient
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", userId)
+          .maybeSingle(),
+      ]);
 
-      const hasGMB = (gmbCount || 0) > 0;
+      const hasLocations = (locationsCount || 0) > 0;
       const hasYouTube = !!youtubeToken;
       const onboardingCompleted = profile?.onboarding_completed || false;
 
-      // If user has no accounts and hasn't completed onboarding, redirect to onboarding
-      if (!hasGMB && !hasYouTube && !onboardingCompleted) {
+      // If user has no locations and hasn't completed onboarding, redirect to onboarding
+      if (!hasLocations && !hasYouTube && !onboardingCompleted) {
         const onboardingRedirectUrl = buildSafeRedirectUrl(
           baseUrl,
           `/${locale}/onboarding`,

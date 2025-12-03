@@ -1,18 +1,15 @@
 /**
- * Home Page - OPTIMIZED VERSION ⚡
+ * Home Page - CLEAN & SIMPLE VERSION ⚡
  *
- * Performance Improvements:
- * - Before: 15+ database queries on every page load
- * - After: 4-7 queries (depending on user data)
- * - Expected speedup: 5x faster
+ * 🎯 SINGLE SOURCE OF TRUTH:
+ * This page is the ONLY place that checks if user needs onboarding.
  *
- * Optimization Strategy:
- * 1. Using materialized view (user_home_stats) for cached aggregations
- * 2. Conditional queries (only fetch if user has data)
- * 3. Removed redundant calculations (using cached stats instead)
+ * Flow:
+ * 1. Check if user has GMB locations
+ * 2. If NO locations → redirect to /onboarding
+ * 3. If HAS locations → show dashboard
  *
- * @see /supabase/migrations/1764177643_add_user_home_stats_view.sql
- * @see /lib/types/user-home-stats.types.ts
+ * NO cookies, NO hooks, NO multiple checks - just ONE database query!
  */
 
 import { HomePageWrapper } from "@/components/home/home-page-wrapper";
@@ -53,44 +50,36 @@ export default async function HomePage({
     redirect(`/${locale}/auth/login`);
   }
 
-  // Type assertion: user is guaranteed to be non-null after the redirect check
   const userId = user!.id;
 
-  // Quick check: Does user need onboarding?
-  // Skip this check if in demo mode
+  // ============================================================================
+  // 🎯 SINGLE SOURCE OF TRUTH: Onboarding Check
+  // ============================================================================
+  // This is the ONLY place in the entire app that checks if user needs onboarding
+  // All other pages trust that user came through here
+
   if (!isDemoMode) {
-    const [
-      { count: quickGmbCheck },
-      { data: quickYoutubeCheck },
-      { data: quickProfileCheck },
-    ] = await Promise.all([
-      supabase
-        .from("gmb_accounts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("is_active", true),
-      supabase
-        .from("oauth_tokens")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("provider", "youtube")
-        .maybeSingle(),
-      supabase
+    const { count: locationsCount } = await supabase
+      .from("gmb_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    // No locations? → Go to onboarding
+    if (!locationsCount || locationsCount === 0) {
+      // Check if user completed onboarding with "Demo Mode"
+      const { data: profileCheck } = await supabase
         .from("profiles")
         .select("onboarding_completed")
         .eq("id", userId)
-        .maybeSingle(),
-    ]);
+        .maybeSingle();
 
-    const needsOnboarding =
-      (quickGmbCheck || 0) === 0 &&
-      !quickYoutubeCheck &&
-      !quickProfileCheck?.onboarding_completed;
-
-    if (needsOnboarding) {
-      redirect(`/${locale}/onboarding`);
+      if (!profileCheck?.onboarding_completed) {
+        redirect(`/${locale}/onboarding`);
+      }
     }
   }
+  // ============================================================================
 
   // Stable last login string to avoid hydration mismatches
   const lastLogin =
@@ -113,7 +102,7 @@ export default async function HomePage({
       getUserAchievements("all"),
     ]);
 
-  // ⚡ OPTIMIZED: Using materialized view for cached stats (15+ queries → 5 queries)
+  // ⚡ OPTIMIZED: Using materialized view for cached stats
   const [
     { data: cachedStats },
     { data: youtubeToken },
@@ -121,20 +110,17 @@ export default async function HomePage({
     { data: autopilotSettings },
     { count: gmbAccountsCount },
   ] = await Promise.all([
-    // Query #1: Get cached stats from materialized view (replaces 8+ queries!)
     supabase
       .from("user_home_stats")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle(),
-    // Query #2: YouTube token
     supabase
       .from("oauth_tokens")
       .select("metadata")
       .eq("user_id", userId)
       .eq("provider", "youtube")
       .maybeSingle(),
-    // Query #3: Get primary location with full details
     supabase
       .from("gmb_locations")
       .select(
@@ -152,7 +138,6 @@ export default async function HomePage({
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    // Query #4: Check if auto-reply is enabled
     supabase
       .from("autopilot_settings")
       .select("auto_reply_enabled")
@@ -160,7 +145,6 @@ export default async function HomePage({
       .eq("is_enabled", true)
       .limit(1)
       .maybeSingle(),
-    // Query #5: Get GMB accounts count (view doesn't have this)
     supabase
       .from("gmb_accounts")
       .select("id", { count: "exact", head: true })
@@ -168,8 +152,7 @@ export default async function HomePage({
       .eq("is_active", true),
   ]);
 
-  // Extract counts from cached stats (with fallback to 0)
-  // Note: accountsCount comes from direct query since view doesn't have it
+  // Extract counts from cached stats
   const locationsCount =
     cachedStats?.total_locations || cachedStats?.locations_count || 0;
   const reviewsCount = cachedStats?.reviews_count || 0;
@@ -197,13 +180,11 @@ export default async function HomePage({
     }
   }
 
-  // ⚡ Get response rate from cached stats (already calculated in materialized view)
+  // Get response rate and average rating from cached stats
   const responseRate = cachedStats?.response_rate || 0;
-
-  // ⚡ Get average rating from cached stats (already calculated in materialized view)
   const averageRating = cachedStats?.average_rating?.toFixed(1) || "0.0";
 
-  // Calculate streak (fetch only recent activity dates if user has reviews)
+  // Calculate streak
   let streak = 0;
   if (reviewsCount > 0) {
     const { data: recentActivityDates } = await supabase
@@ -229,7 +210,6 @@ export default async function HomePage({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Check if there is activity today or yesterday to start the streak
       const lastActivity = sortedDates[0];
       if (lastActivity) {
         const diffTime = Math.abs(today.getTime() - lastActivity.getTime());
@@ -264,14 +244,13 @@ export default async function HomePage({
   const hasYouTube = !!youtubeToken;
   const hasAccounts = accountsCount > 0 || hasYouTube;
 
-  // ⚡ Calculate weekly growth from cached stats (no additional queries needed!)
+  // Calculate weekly growth
   const weeklyGrowth =
     lastWeekCount > 0
       ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
       : 0;
 
-  // Calculate trend data for last 7 days (for sparkline charts)
-  // ⚡ OPTIMIZED: Only fetch if user has reviews (conditional query)
+  // Calculate trend data for last 7 days
   let _reviewsTrend: number[] = [0, 0, 0, 0, 0, 0, 0];
 
   if (reviewsCount > 0) {
@@ -290,7 +269,6 @@ export default async function HomePage({
       .gte("review_date", firstDay.toISOString())
       .order("review_date", { ascending: true });
 
-    // Group reviews by day in JavaScript (much faster than 7 DB queries)
     _reviewsTrend = last7Days.map((date) => {
       const dateStr = date.toDateString();
       return (
@@ -329,7 +307,7 @@ export default async function HomePage({
     },
   ];
 
-  // ⚡ Fetch recent activities (only if user has reviews)
+  // Fetch recent activities
   const { data: recentReviews } =
     reviewsCount > 0
       ? await supabase
@@ -363,7 +341,6 @@ export default async function HomePage({
   // Build AI Insights based on user data
   const insights = [];
 
-  // Check for pending reviews
   if (recentReviews && recentReviews.length > 0) {
     const unansweredReviews = recentReviews.filter((r) => !r.comment);
     if (unansweredReviews.length > 0) {
@@ -381,7 +358,6 @@ export default async function HomePage({
     }
   }
 
-  // Rating analysis
   if (reviewsCount && reviewsCount > 5) {
     const avgRatingNum = parseFloat(averageRating);
     if (avgRatingNum < 4.0) {
@@ -406,7 +382,6 @@ export default async function HomePage({
     }
   }
 
-  // Growth opportunity
   if (locationsCount && locationsCount < 3) {
     insights.push({
       id: "add-locations",
@@ -421,7 +396,6 @@ export default async function HomePage({
     });
   }
 
-  // YouTube opportunity
   if (!hasYouTube) {
     insights.push({
       id: "connect-youtube",
@@ -436,7 +410,6 @@ export default async function HomePage({
     });
   }
 
-  // Calculate pending reviews (reviews without replies)
   const pendingReviewsCount = (reviewsCount || 0) - (repliedReviewsCount || 0);
 
   return (
