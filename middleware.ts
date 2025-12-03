@@ -157,13 +157,15 @@ export async function middleware(request: NextRequest) {
   // -------------------------------------------------------------------------
   // 3. Additional rate limiting for API routes - DISTRIBUTED
   // -------------------------------------------------------------------------
-  // Skip additional rate limiting for auth-related endpoints
+  // Skip additional rate limiting for auth-related endpoints and GMB
   const isAuthEndpoint =
     pathname.includes('/auth/') || pathname.includes('/oauth') || pathname.includes('/callback')
+  const isGMBEndpoint = pathname.startsWith('/api/gmb')
 
   if (
     pathname.startsWith('/api/') &&
     !isAuthEndpoint &&
+    !isGMBEndpoint &&
     !isAdminSubdomain &&
     !pathname.startsWith('/api/admin')
   ) {
