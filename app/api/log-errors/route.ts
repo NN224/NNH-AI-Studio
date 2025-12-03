@@ -28,11 +28,12 @@ export async function POST(request: NextRequest) {
     const sanitizedErrors = errors.slice(0, 100).map((error) => ({
       error_type: error.level || 'error',
       error_message: String(error.message || 'Unknown error').slice(0, 1000),
-      error_stack: error.stack ? String(error.stack).slice(0, 5000) : null,
+      stack_trace: error.stack ? String(error.stack).slice(0, 5000) : null,
       user_id: user?.id || null,
-      metadata: sanitizeContext(error.context) || {},
+      context: sanitizeContext(error.context) || {},
       user_agent: error.userAgent ? String(error.userAgent).slice(0, 500) : null,
       url: error.url ? String(error.url).slice(0, 500) : null,
+      severity: error.level || 'error',
     }))
 
     // Log errors in development
