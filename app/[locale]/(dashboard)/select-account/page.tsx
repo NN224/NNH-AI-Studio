@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProgressStepper } from "@/components/ui/progress-stepper";
+import { GMB_KEYS } from "@/hooks/features/use-gmb";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -29,6 +30,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { gmbLogger } from "@/lib/utils/logger";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ============================================================================
 // Types
@@ -111,6 +113,7 @@ function getStepIndex(step: WizardStep): number {
 export default function SelectAccountPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   // URL params from OAuth callback
   const urlAccountId = searchParams.get("accountId");
@@ -395,8 +398,19 @@ export default function SelectAccountPage() {
         },
       );
 
-      // Redirect to dashboard
-      router.push("/dashboard?newUser=true");
+      // CRITICAL: Invalidate ALL GMB-related caches to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: GMB_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["user-locations"] });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+      // Set GMB cookie for middleware
+      document.cookie = `gmb_connected=true; path=/; max-age=3600; SameSite=Lax${
+        process.env.NODE_ENV === "production" ? "; Secure" : ""
+      }`;
+
+      // Redirect to home
+      router.push("/home?newUser=true");
     } catch (err) {
       gmbLogger.error(
         "Error importing locations",
