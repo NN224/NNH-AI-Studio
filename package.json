@@ -36,6 +36,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@emotion/is-prop-valid": "latest",
+    "@flags-sdk/growthbook": "^0.2.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@modelcontextprotocol/sdk": "^1.21.1",
@@ -92,6 +93,7 @@
     "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "8.5.1",
+    "flags": "^4.0.2",
     "framer-motion": "^12.23.24",
     "groq-sdk": "^0.36.0",
     "html2canvas": "^1.4.1",

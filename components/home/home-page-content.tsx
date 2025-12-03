@@ -148,6 +148,28 @@ export function HomePageContent({
     ? parseInt(liveResponseRate.replace("%", ""))
     : responseRate;
 
+  // 🔍 DEBUG: Log conditions for troubleshooting
+  useEffect(() => {
+    console.log("🏠 HomePageContent Debug:", {
+      hasAccounts,
+      accountsCount,
+      lastLogin,
+      showWelcomeBack,
+      completedTasksCount,
+      progressItemsLength: progressItems.length,
+      hasGMB: (accountsCount || 0) > 0,
+      primaryLocation: !!primaryLocation,
+    });
+  }, [
+    hasAccounts,
+    accountsCount,
+    lastLogin,
+    showWelcomeBack,
+    completedTasksCount,
+    progressItems.length,
+    primaryLocation,
+  ]);
+
   // Calculate time of day based on user's local timezone (client-side only)
   useEffect(() => {
     const hour = new Date().getHours();
