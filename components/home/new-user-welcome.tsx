@@ -99,23 +99,39 @@ export function NewUserWelcome() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Connection failed (${response.status})`,
+        );
       }
 
       const data = await response.json();
 
       if (data.authUrl) {
+        // Show a toast before redirecting
+        toast.info("Redirecting to Google...", {
+          description: "Please authorize access to your Business Profile.",
+          duration: 3000,
+        });
+        // Small delay to show the toast
+        await new Promise((resolve) => setTimeout(resolve, 500));
         window.location.href = data.authUrl;
       } else {
-        toast.error("Failed to create authentication URL");
-        setIsConnecting(false);
+        throw new Error("Failed to create authentication URL");
       }
     } catch (error) {
       gmbLogger.error(
         "Error connecting GMB",
         error instanceof Error ? error : new Error(String(error)),
       );
-      toast.error("Failed to connect Google My Business");
+      toast.error("Failed to connect Google Business", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        action: {
+          label: "Retry",
+          onClick: () => handleConnectGMB(),
+        },
+      });
       setIsConnecting(false);
     }
   };

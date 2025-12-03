@@ -687,21 +687,73 @@ export async function GET(request: NextRequest) {
     // Invalidate Next.js cache so Settings page shows fresh data
     await invalidateGMBCache(userId);
 
-    // Always redirect to select-account page for location selection
-    // This applies to all user states (FIRST_TIME, ADDITIONAL_ACCOUNT, RE_AUTH)
-    const selectAccountUrl = buildSafeRedirectUrl(
-      baseUrl,
-      `/${localeCookie}/select-account`,
-      {
+    // ✅ SMART REDIRECT: Check if user already has locations
+    // If RE_AUTH and has locations, skip select-account and go to dashboard
+    let redirectUrl: string;
+
+    if (userState === "RE_AUTH") {
+      // Check if user has existing locations for this account
+      const { data: existingLocations } = await adminClient
+        .from("gmb_locations")
+        .select("id")
+        .eq("gmb_account_id", savedAccountId)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (existingLocations && existingLocations.length > 0) {
+        // User has locations, skip select-account
+        redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/dashboard`,
+          {
+            reconnected: "true",
+            accountId: savedAccountId,
+          },
+        );
+        gmbLogger.info(
+          "RE_AUTH with existing locations - redirecting to dashboard",
+          {
+            accountId: savedAccountId,
+            locationsCount: existingLocations.length,
+          },
+        );
+      } else {
+        // RE_AUTH but no locations - go to select-account
+        redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/select-account`,
+          {
+            accountId: savedAccountId,
+            userState: userState,
+            accountCount: String(savedAccountIds.length),
+          },
+        );
+        gmbLogger.info(
+          "RE_AUTH without locations - redirecting to select-account",
+          {
+            accountId: savedAccountId,
+          },
+        );
+      }
+    } else {
+      // FIRST_TIME or ADDITIONAL_ACCOUNT - always go to select-account
+      redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/select-account`,
+        {
+          accountId: savedAccountId,
+          userState: userState,
+          accountCount: String(savedAccountIds.length),
+        },
+      );
+      gmbLogger.info("Redirecting to select-account", {
+        userState,
         accountId: savedAccountId,
-        userState: userState,
-        accountCount: String(savedAccountIds.length),
-      },
-    );
-    gmbLogger.info("Redirecting to select-account", { url: selectAccountUrl });
+      });
+    }
 
     // Create redirect response and set gmb_connected cookie for middleware optimization
-    const redirectResponse = NextResponse.redirect(selectAccountUrl);
+    const redirectResponse = NextResponse.redirect(redirectUrl);
     redirectResponse.cookies.set("gmb_connected", "true", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ProgressStepper } from "@/components/ui/progress-stepper";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -16,9 +17,12 @@ import {
   Check,
   ChevronLeft,
   Globe,
+  Home,
   Loader2,
   MapPin,
   Phone,
+  RefreshCw,
+  SkipForward,
   Tag,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -62,6 +66,17 @@ interface GoogleLocation {
 type WizardStep = "select-account" | "select-locations" | "importing";
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const ONBOARDING_STEPS = [
+  { id: "connect", title: "Connect", description: "OAuth complete" },
+  { id: "account", title: "Account", description: "Select account" },
+  { id: "locations", title: "Locations", description: "Choose locations" },
+  { id: "done", title: "Done", description: "Start managing" },
+];
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -76,6 +91,19 @@ function formatAddress(address?: GoogleAddress): string | null {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
+function getStepIndex(step: WizardStep): number {
+  switch (step) {
+    case "select-account":
+      return 1;
+    case "select-locations":
+      return 2;
+    case "importing":
+      return 3;
+    default:
+      return 1;
+  }
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -86,9 +114,7 @@ export default function SelectAccountPage() {
 
   // URL params from OAuth callback
   const urlAccountId = searchParams.get("accountId");
-  // userState is passed from OAuth callback but not currently used
-  // Could be used for conditional UI (FIRST_TIME, ADDITIONAL_ACCOUNT, RE_AUTH)
-  const _userState = searchParams.get("userState");
+  const userState = searchParams.get("userState");
 
   // Wizard state
   const [step, setStep] = useState<WizardStep>("select-account");
@@ -108,6 +134,7 @@ export default function SelectAccountPage() {
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // -------------------------------------------------------------------------
   // Load accounts on mount
@@ -172,6 +199,14 @@ export default function SelectAccountPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle specific error cases
+        if (response.status === 401) {
+          throw new Error(
+            "Your Google session has expired. Please reconnect your account.",
+          );
+        }
+
         throw new Error(
           errorData.error?.message || "Failed to fetch locations",
         );
@@ -239,7 +274,28 @@ export default function SelectAccountPage() {
       setSelectedAccount(null);
       setLocations([]);
       setSelectedLocationNames(new Set());
+      setError(null);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
+    setError(null);
+    if (selectedAccount) {
+      fetchLocations(selectedAccount.id);
+    }
+  };
+
+  const handleReconnect = () => {
+    // Redirect to settings to reconnect Google account
+    router.push("/settings?reconnect=true");
+  };
+
+  const handleSkip = () => {
+    toast.info("You can add locations later from the Settings page.", {
+      duration: 4000,
+    });
+    router.push("/home");
   };
 
   // -------------------------------------------------------------------------
@@ -277,7 +333,11 @@ export default function SelectAccountPage() {
       const result = await response.json();
 
       toast.success(
-        `Successfully imported ${result.importedCount} location${result.importedCount !== 1 ? "s" : ""}!`,
+        `Successfully imported ${result.importedCount} location${result.importedCount !== 1 ? "s" : ""}! 🎉`,
+        {
+          description: "Your data is now syncing in the background.",
+          duration: 5000,
+        },
       );
 
       // Redirect to dashboard
@@ -320,26 +380,48 @@ export default function SelectAccountPage() {
   // -------------------------------------------------------------------------
   if (step === "importing") {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6 text-center"
-        >
-          <div className="relative">
-            <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-            <div className="relative p-6 rounded-full bg-primary/10 border border-primary/20">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="container max-w-4xl mx-auto py-12 px-4">
+        {/* Progress Stepper */}
+        <ProgressStepper
+          steps={ONBOARDING_STEPS}
+          currentStep={3}
+          className="mb-12"
+        />
+
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-6 text-center"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+              <div className="relative p-6 rounded-full bg-primary/10 border border-primary/20">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Importing & Syncing...</h2>
-            <p className="text-muted-foreground max-w-md">
-              We're importing your selected locations and starting the initial
-              sync. This may take a moment.
-            </p>
-          </div>
-        </motion.div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Importing & Syncing...</h2>
+              <p className="text-muted-foreground max-w-md">
+                We're importing your selected locations and starting the initial
+                sync. This may take a moment.
+              </p>
+            </div>
+
+            {/* Progress indicators */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span>Saving locations</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                <span>Starting sync</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -350,6 +432,13 @@ export default function SelectAccountPage() {
   if (step === "select-account") {
     return (
       <div className="container max-w-4xl mx-auto py-12 px-4">
+        {/* Progress Stepper */}
+        <ProgressStepper
+          steps={ONBOARDING_STEPS}
+          currentStep={1}
+          className="mb-12"
+        />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -372,10 +461,18 @@ export default function SelectAccountPage() {
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 text-destructive border border-destructive/20"
+            >
               <AlertCircle className="h-5 w-5 shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
+              <p className="text-sm flex-1">{error}</p>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            </motion.div>
           )}
 
           {/* Accounts Grid */}
@@ -411,8 +508,8 @@ export default function SelectAccountPage() {
             ))}
           </div>
 
-          {/* Help Text */}
-          <div className="text-center">
+          {/* Help Text & Skip */}
+          <div className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
               Don't see your account?{" "}
               <Button
@@ -423,6 +520,17 @@ export default function SelectAccountPage() {
                 Try connecting again
               </Button>
             </p>
+
+            {/* Skip Option */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkip}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <SkipForward className="h-4 w-4 mr-2" />
+              Skip for now
+            </Button>
           </div>
         </motion.div>
       </div>
@@ -434,6 +542,13 @@ export default function SelectAccountPage() {
   // -------------------------------------------------------------------------
   return (
     <div className="container max-w-4xl mx-auto py-12 px-4">
+      {/* Progress Stepper */}
+      <ProgressStepper
+        steps={ONBOARDING_STEPS}
+        currentStep={2}
+        className="mb-12"
+      />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -470,22 +585,48 @@ export default function SelectAccountPage() {
           </div>
         </div>
 
-        {/* Error */}
+        {/* Error with Recovery Options */}
         {error && (
-          <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p className="text-sm">{error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-              onClick={() =>
-                selectedAccount && fetchLocations(selectedAccount.id)
-              }
-            >
-              Retry
-            </Button>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-lg bg-destructive/10 border border-destructive/20"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <p className="font-medium text-destructive">
+                    Connection Issue
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleRetry}>
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Try Again
+                  </Button>
+
+                  {error.includes("expired") || error.includes("reconnect") ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReconnect}
+                    >
+                      <Building2 className="h-4 w-4 mr-1" />
+                      Reconnect Account
+                    </Button>
+                  ) : null}
+
+                  <Button variant="ghost" size="sm" onClick={handleSkip}>
+                    <Home className="h-4 w-4 mr-1" />
+                    Go to Home
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* Loading locations */}
@@ -514,12 +655,21 @@ export default function SelectAccountPage() {
                   Please add locations in Google Business Profile first.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => router.push("/settings")}
-              >
-                Go to Settings
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    window.open("https://business.google.com", "_blank")
+                  }
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Open Google Business
+                </Button>
+                <Button variant="ghost" onClick={handleSkip}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Go to Home
+                </Button>
+              </div>
             </div>
           </Card>
         )}
@@ -649,8 +799,8 @@ export default function SelectAccountPage() {
               })}
             </div>
 
-            {/* Import button */}
-            <div className="flex justify-center pt-4">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
               <Button
                 size="lg"
                 onClick={handleImport}
@@ -669,6 +819,17 @@ export default function SelectAccountPage() {
                     {selectedLocationNames.size !== 1 ? "s" : ""}
                   </>
                 )}
+              </Button>
+
+              {/* Skip Option */}
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={handleSkip}
+                className="text-muted-foreground"
+              >
+                <SkipForward className="h-4 w-4 mr-2" />
+                Skip for now
               </Button>
             </div>
           </>
