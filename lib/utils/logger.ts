@@ -1,17 +1,52 @@
 // lib/utils/logger.ts
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Log context interface for structured logging
  */
 export interface LogContext {
-  [key: string]: unknown;
+  [key: string]: unknown
+}
+
+/**
+ * Extract error message from various error types
+ * Handles: Error instances, Supabase PostgrestError, objects with message, strings
+ */
+export function extractErrorMessage(error: unknown): string {
+  // 1. Standard Error instance
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  // 2. Object with message property (e.g., Supabase PostgrestError)
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message: unknown }).message
+    return typeof message === 'string' ? message : String(message)
+  }
+
+  // 3. String error
+  if (typeof error === 'string') {
+    return error
+  }
+
+  // 4. Fallback
+  return 'Unknown error'
+}
+
+/**
+ * Create a proper Error object from any error type
+ */
+export function toError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error
+  }
+  return new Error(extractErrorMessage(error))
 }
 
 /**
  * Log levels supported by the logger
  */
-export type LogLevel = "debug" | "info" | "warn" | "error";
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 /**
  * Centralized logger that integrates with Sentry
@@ -35,24 +70,24 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
  * ```
  */
 class Logger {
-  private context: LogContext = {};
+  private context: LogContext = {}
 
   /**
    * Create a new logger with additional context
    * Context is merged with any existing context
    */
   withContext(context: LogContext): Logger {
-    const newLogger = new Logger();
-    newLogger.context = { ...this.context, ...context };
-    return newLogger;
+    const newLogger = new Logger()
+    newLogger.context = { ...this.context, ...context }
+    return newLogger
   }
 
   /**
    * Debug logging - only in development
    */
   debug(message: string, data?: LogContext): void {
-    if (process.env.NODE_ENV === "development") {
-      console.debug(`[DEBUG] ${message}`, { ...this.context, ...data });
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`[DEBUG] ${message}`, { ...this.context, ...data })
     }
   }
 
@@ -60,18 +95,15 @@ class Logger {
    * Info logging - adds breadcrumb to Sentry
    */
   info(message: string, data?: LogContext): void {
-    console.info(`[INFO] ${message}`, { ...this.context, ...data });
+    console.info(`[INFO] ${message}`, { ...this.context, ...data })
 
-    if (
-      typeof window !== "undefined" ||
-      process.env.NODE_ENV === "production"
-    ) {
+    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'production') {
       Sentry.addBreadcrumb({
-        category: "info",
+        category: 'info',
         message,
         data: { ...this.context, ...data },
-        level: "info",
-      });
+        level: 'info',
+      })
     }
   }
 
@@ -79,18 +111,15 @@ class Logger {
    * Warning logging - adds breadcrumb to Sentry
    */
   warn(message: string, data?: LogContext): void {
-    console.warn(`[WARN] ${message}`, { ...this.context, ...data });
+    console.warn(`[WARN] ${message}`, { ...this.context, ...data })
 
-    if (
-      typeof window !== "undefined" ||
-      process.env.NODE_ENV === "production"
-    ) {
+    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'production') {
       Sentry.addBreadcrumb({
-        category: "warning",
+        category: 'warning',
         message,
         data: { ...this.context, ...data },
-        level: "warning",
-      });
+        level: 'warning',
+      })
     }
   }
 
@@ -102,28 +131,26 @@ class Logger {
    * @param data - Additional context data (optional)
    */
   error(message: string, error?: Error | unknown, data?: LogContext): void {
-    const allContext = { ...this.context, ...data };
+    const allContext = { ...this.context, ...data }
+
+    // Convert to proper Error object using our helper
+    const errorObj = error ? toError(error) : null
 
     // Always log to console for development
-    console.error(`[ERROR] ${message}`, error, allContext);
+    console.error(`[ERROR] ${message}`, errorObj || '', allContext)
 
     // Capture in Sentry
-    if (error instanceof Error) {
-      Sentry.captureException(error, {
+    if (errorObj) {
+      Sentry.captureException(errorObj, {
         extra: { message, ...allContext },
         tags: this.extractTags(allContext),
-      });
-    } else if (error) {
-      Sentry.captureException(new Error(message), {
-        extra: { originalError: error, ...allContext },
-        tags: this.extractTags(allContext),
-      });
+      })
     } else {
       Sentry.captureMessage(message, {
-        level: "error",
+        level: 'error',
         extra: allContext,
         tags: this.extractTags(allContext),
-      });
+      })
     }
   }
 
@@ -131,34 +158,34 @@ class Logger {
    * Extract tags from context for better Sentry filtering
    */
   private extractTags(context: LogContext): Record<string, string> {
-    const tags: Record<string, string> = {};
+    const tags: Record<string, string> = {}
 
     // Common tags to extract
-    const tagKeys = ["module", "action", "userId", "locationId", "accountId"];
+    const tagKeys = ['module', 'action', 'userId', 'locationId', 'accountId']
 
     for (const key of tagKeys) {
-      if (context[key] && typeof context[key] === "string") {
-        tags[key] = context[key] as string;
+      if (context[key] && typeof context[key] === 'string') {
+        tags[key] = context[key] as string
       }
     }
 
-    return tags;
+    return tags
   }
 }
 
 /**
  * Default logger instance
  */
-export const logger = new Logger();
+export const logger = new Logger()
 
 /**
  * Pre-configured loggers for common modules
  */
-export const gmbLogger = logger.withContext({ module: "gmb" });
-export const authLogger = logger.withContext({ module: "auth" });
-export const apiLogger = logger.withContext({ module: "api" });
-export const syncLogger = logger.withContext({ module: "sync" });
-export const reviewsLogger = logger.withContext({ module: "reviews" });
-export const postsLogger = logger.withContext({ module: "posts" });
-export const questionsLogger = logger.withContext({ module: "questions" });
-export const aiLogger = logger.withContext({ module: "ai" });
+export const gmbLogger = logger.withContext({ module: 'gmb' })
+export const authLogger = logger.withContext({ module: 'auth' })
+export const apiLogger = logger.withContext({ module: 'api' })
+export const syncLogger = logger.withContext({ module: 'sync' })
+export const reviewsLogger = logger.withContext({ module: 'reviews' })
+export const postsLogger = logger.withContext({ module: 'posts' })
+export const questionsLogger = logger.withContext({ module: 'questions' })
+export const aiLogger = logger.withContext({ module: 'ai' })
