@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, MapPin, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface Location {
   id: string;
@@ -18,7 +19,17 @@ interface Location {
   rating?: number;
 }
 
-export function LocationSelector() {
+interface LocationSelectorProps {
+  variant?: "default" | "compact";
+  className?: string;
+  onLocationChange?: (location: Location) => void;
+}
+
+export function LocationSelector({
+  variant = "default",
+  className,
+  onLocationChange,
+}: LocationSelectorProps) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
@@ -29,6 +40,11 @@ export function LocationSelector() {
   useEffect(() => {
     const fetchLocations = async () => {
       const supabase = createClient();
+      if (!supabase) {
+        setIsLoading(false);
+        return;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -55,22 +71,45 @@ export function LocationSelector() {
     fetchLocations();
   }, []);
 
+  const handleLocationChange = (location: Location) => {
+    setSelectedLocation(location);
+    setIsOpen(false);
+    onLocationChange?.(location);
+  };
+
   if (isLoading) {
-    return <div className="h-10 bg-gray-800/50 rounded-lg animate-pulse" />;
+    return (
+      <div
+        className={cn(
+          "h-10 bg-zinc-800/50 rounded-lg animate-pulse",
+          className,
+        )}
+      />
+    );
   }
 
   if (locations.length === 0) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg">
-        <MapPin className="w-4 h-4 text-gray-500" />
-        <span className="text-sm text-gray-500">No locations</span>
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-lg",
+          className,
+        )}
+      >
+        <MapPin className="w-4 h-4 text-zinc-500" />
+        <span className="text-sm text-zinc-500">No locations</span>
       </div>
     );
   }
 
   if (locations.length === 1) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg">
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-lg",
+          className,
+        )}
+      >
         {selectedLocation?.logo_url ? (
           <Image
             src={selectedLocation.logo_url}
@@ -82,7 +121,7 @@ export function LocationSelector() {
         ) : (
           <MapPin className="w-4 h-4 text-orange-500" />
         )}
-        <span className="text-sm text-gray-200 truncate max-w-[150px]">
+        <span className="text-sm text-zinc-200 truncate max-w-[150px]">
           {selectedLocation?.location_name}
         </span>
       </div>
@@ -90,10 +129,10 @@ export function LocationSelector() {
   }
 
   return (
-    <div className="relative">
+    <div className={cn("relative", className)}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 w-full px-3 py-2 bg-gray-800/50 hover:bg-gray-800 rounded-lg transition-colors"
+        className="flex items-center justify-between gap-2 w-full px-3 py-2 bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors"
       >
         <div className="flex items-center gap-2 min-w-0">
           {selectedLocation?.logo_url ? (
@@ -107,41 +146,39 @@ export function LocationSelector() {
           ) : (
             <MapPin className="w-4 h-4 text-orange-500 flex-shrink-0" />
           )}
-          <span className="text-sm text-gray-200 truncate">
+          <span className="text-sm text-zinc-200 truncate">
             {selectedLocation?.location_name}
           </span>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={cn(
+            "w-4 h-4 text-zinc-400 transition-transform",
+            isOpen && "rotate-180",
+          )}
         />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
             <div
               className="fixed inset-0 z-40"
               onClick={() => setIsOpen(false)}
             />
-
-            {/* Dropdown */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden"
+              className="absolute top-full left-0 right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden"
             >
               {locations.map((location) => (
                 <button
                   key={location.id}
-                  onClick={() => {
-                    setSelectedLocation(location);
-                    setIsOpen(false);
-                  }}
-                  className={`flex items-center justify-between w-full px-3 py-2.5 hover:bg-gray-800 transition-colors ${
-                    selectedLocation?.id === location.id ? "bg-gray-800/50" : ""
-                  }`}
+                  onClick={() => handleLocationChange(location)}
+                  className={cn(
+                    "flex items-center justify-between w-full px-3 py-2.5 hover:bg-zinc-800 transition-colors",
+                    selectedLocation?.id === location.id && "bg-zinc-800/50",
+                  )}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {location.logo_url ? (
@@ -153,9 +190,9 @@ export function LocationSelector() {
                         className="rounded flex-shrink-0"
                       />
                     ) : (
-                      <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <MapPin className="w-4 h-4 text-zinc-500 flex-shrink-0" />
                     )}
-                    <span className="text-sm text-gray-200 truncate">
+                    <span className="text-sm text-zinc-200 truncate">
                       {location.location_name}
                     </span>
                   </div>

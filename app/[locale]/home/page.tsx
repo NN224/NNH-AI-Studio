@@ -1,18 +1,18 @@
 /**
- * 🏠 NEW HOME PAGE - AI-First Design
+ * 🏠 HOME PAGE - Chat-First AI Command Center
  *
- * Clean, focused, AI-powered dashboard
+ * الواجهة الرئيسية للتحكم بكل شي
+ * Chat-First Experience
  */
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { AIHomeDashboard } from "@/components/home/ai-home-dashboard";
-import { buildBusinessDNA } from "@/lib/services/business-dna-service";
+import { CommandCenterChat } from "@/components/command-center/command-center-chat";
 
 export const metadata: Metadata = {
-  title: "Home | NNH - AI Studio",
-  description: "Your AI-powered business management dashboard",
+  title: "Home | NNH AI Studio",
+  description: "Your AI-powered business command center",
 };
 
 export default async function HomePage({
@@ -35,7 +35,7 @@ export default async function HomePage({
 
   const userId = user.id;
 
-  // Check if user has locations (onboarding check)
+  // Check if user has locations
   const { count: locationsCount } = await supabase
     .from("gmb_locations")
     .select("id", { count: "exact", head: true })
@@ -54,126 +54,48 @@ export default async function HomePage({
     }
   }
 
-  // Fetch essential data in parallel
-  const [
-    { data: profile },
-    { data: primaryLocation },
-    { data: todayBriefing },
-    { count: reviewsCount },
-    { count: pendingQuestionsCount },
-  ] = await Promise.all([
-    // User profile
+  // Fetch user profile and primary location
+  const [{ data: profile }, { data: primaryLocation }] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, email, avatar_url")
       .eq("id", userId)
       .maybeSingle(),
 
-    // Primary location
     supabase
       .from("gmb_locations")
-      .select("id, location_name, logo_url, rating, review_count")
+      .select("id, location_name, logo_url")
       .eq("user_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-
-    // Today's briefing (if exists)
-    supabase
-      .from("ai_daily_briefings")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("briefing_date", new Date().toISOString().split("T")[0])
-      .maybeSingle(),
-
-    // Reviews count
-    supabase
-      .from("gmb_reviews")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
-
-    // Pending questions
-    supabase
-      .from("gmb_questions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("answer_status", "pending"),
   ]);
 
-  // Get or build Business DNA (async, don't block render)
-  const { data: businessDNA } = await supabase
-    .from("business_dna")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  // Get recent reviews for quick stats
-  const { data: recentReviews } = await supabase
-    .from("gmb_reviews")
-    .select("rating, review_date, has_reply")
-    .eq("user_id", userId)
-    .order("review_date", { ascending: false })
-    .limit(100);
-
-  // Calculate stats
-  const avgRating =
-    recentReviews && recentReviews.length > 0
-      ? (
-          recentReviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
-          recentReviews.length
-        ).toFixed(1)
-      : "0.0";
-
-  const responseRate =
-    recentReviews && recentReviews.length > 0
-      ? Math.round(
-          (recentReviews.filter((r) => r.has_reply).length /
-            recentReviews.length) *
-            100,
-        )
-      : 0;
-
-  // Reviews this week
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const thisWeekReviews =
-    recentReviews?.filter((r) => new Date(r.review_date) > weekAgo).length || 0;
-
-  // Pending replies
-  const pendingReplies = recentReviews?.filter((r) => !r.has_reply).length || 0;
-
-  // User's first name for greeting
-  const firstName = profile?.full_name?.split(" ")[0] || "there";
-
-  // Time-based greeting
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const userName = profile?.full_name?.split(" ")[0] || "there";
+  const businessName = primaryLocation?.location_name || "Your Business";
+  const businessLogo = primaryLocation?.logo_url;
+  const locationId = primaryLocation?.id;
 
   return (
-    <AIHomeDashboard
-      user={{
-        id: userId,
-        firstName,
-        email: user.email || "",
-        avatarUrl: profile?.avatar_url,
-      }}
-      business={{
-        name: primaryLocation?.location_name || "Your Business",
-        logoUrl: primaryLocation?.logo_url,
-        locationId: primaryLocation?.id,
-      }}
-      stats={{
-        rating: parseFloat(avgRating),
-        totalReviews: reviewsCount || 0,
-        responseRate,
-        thisWeekReviews,
-        pendingReplies,
-        pendingQuestions: pendingQuestionsCount || 0,
-      }}
-      briefing={todayBriefing}
-      businessDNA={businessDNA}
-      greeting={greeting}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
+      {/* Ambient Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-orange-500/3 to-transparent rounded-full blur-3xl" />
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10">
+        <CommandCenterChat
+          userId={userId}
+          locationId={locationId}
+          businessName={businessName}
+          businessLogo={businessLogo}
+          userName={userName}
+        />
+      </div>
+    </div>
   );
 }

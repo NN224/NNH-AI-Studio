@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton } from "@/components/auth/user-button";
-import { LocationSelector } from "@/components/home/location-selector";
+import { LocationSelector } from "@/components/location/location-selector";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
