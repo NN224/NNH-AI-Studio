@@ -186,7 +186,7 @@ export function HomePageContent({
     ratingChange: weeklyGrowth ? weeklyGrowth / 100 : undefined,
   };
   // Calculate completed tasks count
-  const completedTasksCount = progressItems.filter(
+  const completedTasksCount = (progressItems || []).filter(
     (item) => item.completed,
   ).length;
 
@@ -198,7 +198,7 @@ export function HomePageContent({
       lastLogin,
       showWelcomeBack,
       completedTasksCount,
-      progressItemsLength: progressItems.length,
+      progressItemsLength: (progressItems || []).length,
       hasGMB: (accountsCount || 0) > 0,
       primaryLocation: !!primaryLocation,
     });
@@ -208,7 +208,7 @@ export function HomePageContent({
     lastLogin,
     showWelcomeBack,
     completedTasksCount,
-    progressItems.length,
+    progressItems?.length,
     primaryLocation,
   ]);
 
@@ -353,7 +353,7 @@ export function HomePageContent({
                       responseRate: effectiveResponseRate,
                     }}
                     profileCompletion={
-                      (completedTasksCount / progressItems.length) * 100
+                      (completedTasksCount / (progressItems?.length || 1)) * 100
                     }
                     streak={streak}
                     achievements={[]}
