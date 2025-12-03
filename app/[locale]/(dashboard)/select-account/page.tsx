@@ -197,9 +197,10 @@ export default function SelectAccountPage() {
         body: JSON.stringify({ accountId }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
 
+      if (!response.ok) {
         // Handle specific error cases
         if (response.status === 401) {
           throw new Error(
@@ -207,9 +208,32 @@ export default function SelectAccountPage() {
           );
         }
 
+        // Handle non-JSON responses
+        if (!contentType?.includes("application/json")) {
+          const text = await response.text();
+          gmbLogger.error(
+            "Non-JSON error response",
+            new Error(text.slice(0, 500)),
+            {
+              status: response.status,
+              contentType,
+              accountId,
+            },
+          );
+          throw new Error(
+            `Server error (${response.status}). Please try again.`,
+          );
+        }
+
+        const errorData = await response.json();
         throw new Error(
           errorData.error?.message || "Failed to fetch locations",
         );
+      }
+
+      // Also check for JSON response on success
+      if (!contentType?.includes("application/json")) {
+        throw new Error("Invalid response from server. Please try again.");
       }
 
       const data = await response.json();
@@ -323,11 +347,42 @@ export default function SelectAccountPage() {
         }),
       });
 
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+
       if (!response.ok) {
+        // Handle non-JSON responses (e.g., HTML error pages)
+        if (!contentType?.includes("application/json")) {
+          const text = await response.text();
+          gmbLogger.error(
+            "Non-JSON error response",
+            new Error(text.slice(0, 500)),
+            {
+              status: response.status,
+              contentType,
+            },
+          );
+          throw new Error(
+            `Server error (${response.status}). Please try again.`,
+          );
+        }
+
         const errorData = await response.json();
         throw new Error(
-          errorData.error?.message || "Failed to import locations",
+          errorData.error?.message ||
+            errorData.message ||
+            "Failed to import locations",
         );
+      }
+
+      // Also check for JSON response on success
+      if (!contentType?.includes("application/json")) {
+        const text = await response.text();
+        gmbLogger.error(
+          "Non-JSON success response",
+          new Error(text.slice(0, 500)),
+        );
+        throw new Error("Invalid response from server. Please try again.");
       }
 
       const result = await response.json();
