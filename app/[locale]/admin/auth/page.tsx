@@ -167,16 +167,22 @@ export default function AdminAuthPage() {
       return
     }
 
-    // Success! Set admin session
+    // Success! Set admin session in both sessionStorage and cookies
+    const now = Date.now().toString()
     sessionStorage.setItem('admin_2fa_verified', 'true')
-    sessionStorage.setItem('admin_2fa_time', Date.now().toString())
+    sessionStorage.setItem('admin_2fa_time', now)
     sessionStorage.removeItem('admin_2fa_code')
     sessionStorage.removeItem('admin_2fa_code_time')
+
+    // Set cookies for middleware (30 min expiry)
+    document.cookie = `admin_2fa_verified=true; path=/; max-age=1800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+    document.cookie = `admin_2fa_time=${now}; path=/; max-age=1800; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
 
     // Log admin access
     await logAdminAccess()
 
-    router.push('/admin')
+    // Force navigation
+    window.location.href = '/admin'
   }
 
   const logAdminAccess = async () => {
