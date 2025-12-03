@@ -5,7 +5,7 @@
  *
  * Runs every hour to:
  * 1. Find new reviews without replies
- * 2. Generate AI replies for them
+ * 2. Generate AI replies using the real AI service
  * 3. Save as pending actions
  * 4. Auto-publish if autopilot is enabled (for positive reviews)
  */
@@ -20,6 +20,12 @@ import {
   createPendingAction,
   actionExistsForReference,
 } from "@/lib/services/pending-actions-service";
+import {
+  generateAIReviewReply,
+  logReplyGeneration,
+  type ReviewContext,
+} from "@/lib/services/ai-review-reply-service";
+import type { AutoReplySettings } from "@/server/actions/auto-reply";
 
 // Verify cron secret
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -78,7 +84,13 @@ export async function GET(request: NextRequest) {
 async function processUserReviews(
   supabase: ReturnType<typeof createAdminClient>,
   userId: string,
-  results: any,
+  results: {
+    usersProcessed: number;
+    reviewsProcessed: number;
+    actionsCreated: number;
+    autoPublished: number;
+    errors: string[];
+  },
 ) {
   // Get user's autopilot settings
   const { data: autopilotSettings } = await supabase
@@ -97,6 +109,18 @@ async function processUserReviews(
   const autoReplyPositive = autoReplySettings?.reply_to_positive ?? true;
   const autoReplyNeutral = autoReplySettings?.reply_to_neutral ?? false;
   const autoReplyNegative = autoReplySettings?.reply_to_negative ?? false;
+
+  // Build settings for AI service
+  const settings: AutoReplySettings = {
+    enabled: isAutopilotEnabled,
+    tone: autoReplySettings?.tone || "friendly",
+    reply_to_positive: autoReplyPositive,
+    reply_to_neutral: autoReplyNeutral,
+    reply_to_negative: autoReplyNegative,
+    min_rating_for_auto: autoReplySettings?.min_rating_for_auto || 4,
+    include_signature: autoReplySettings?.include_signature ?? true,
+    signature_text: autoReplySettings?.signature_text || "",
+  };
 
   // Get or build Business DNA
   let dna = await getBusinessDNA(userId);
@@ -130,14 +154,37 @@ async function processUserReviews(
       );
       if (exists) continue;
 
-      // Generate AI reply
-      const aiReply = await generateReviewReply(review, dna);
-      if (!aiReply) continue;
+      // Build review context for AI service
+      const reviewContext: ReviewContext = {
+        reviewText: review.review_text || review.comment || "",
+        rating: review.rating,
+        locationName: dna?.businessName,
+        businessCategory: dna?.businessCategory,
+        customerName: review.reviewer_name,
+      };
+
+      // Generate AI reply using the REAL AI service
+      const aiResult = await generateAIReviewReply(
+        reviewContext,
+        settings,
+        userId,
+      );
+
+      // Log the generation attempt
+      await logReplyGeneration(userId, review.id, aiResult, reviewContext);
+
+      if (!aiResult.success) {
+        console.error(
+          `AI reply failed for review ${review.id}:`,
+          aiResult.error,
+        );
+        continue;
+      }
 
       // Determine if this needs attention
       const isNegative = review.rating <= 2;
       const isPositive = review.rating >= 4;
-      const requiresAttention = isNegative;
+      const requiresAttention = isNegative || aiResult.confidence < 80;
 
       // Create pending action
       const action = await createPendingAction({
@@ -148,16 +195,22 @@ async function processUserReviews(
         referenceData: {
           reviewerName: review.reviewer_name,
           rating: review.rating,
-          reviewText: review.review_text,
+          reviewText: review.review_text || review.comment,
           reviewDate: review.review_date,
         },
-        aiGeneratedContent: aiReply.content,
-        aiConfidence: aiReply.confidence,
-        aiReasoning: aiReply.reasoning,
+        aiGeneratedContent: aiResult.reply,
+        aiConfidence: aiResult.confidence,
+        aiReasoning: isNegative
+          ? "مراجعة سلبية - يُنصح بمراجعة الرد قبل النشر"
+          : aiResult.confidence < 80
+            ? "ثقة AI منخفضة - يحتاج مراجعة"
+            : `تم التوليد بواسطة ${aiResult.provider} (${aiResult.latency}ms)`,
         requiresAttention,
         attentionReason: isNegative
           ? "مراجعة سلبية تحتاج لمسة شخصية"
-          : undefined,
+          : aiResult.confidence < 80
+            ? "ثقة AI منخفضة"
+            : undefined,
       });
 
       if (action) {
@@ -166,7 +219,8 @@ async function processUserReviews(
         // Auto-publish if conditions met
         if (
           isAutopilotEnabled &&
-          aiReply.confidence >= 85 &&
+          aiResult.confidence >= 85 &&
+          !requiresAttention &&
           ((isPositive && autoReplyPositive) ||
             (review.rating === 3 && autoReplyNeutral) ||
             (isNegative && autoReplyNegative))
@@ -180,78 +234,16 @@ async function processUserReviews(
             })
             .eq("id", action.id);
 
-          // TODO: Actually publish to Google
-          // await publishReplyToGoogle(review, aiReply.content);
+          // TODO: Actually publish to Google using gmb-service
+          // await publishReplyToGoogle(review, aiResult.reply);
 
           results.autoPublished++;
         }
       }
     } catch (error) {
       console.error(`Error processing review ${review.id}:`, error);
+      results.errors.push(`Review ${review.id}: ${error}`);
     }
-  }
-}
-
-async function generateReviewReply(
-  review: any,
-  dna: any,
-): Promise<{ content: string; confidence: number; reasoning: string } | null> {
-  try {
-    // Build prompt based on Business DNA
-    const isPositive = review.rating >= 4;
-    const isNegative = review.rating <= 2;
-
-    const tone = dna?.replyStyle?.tone || "professional";
-    const useEmoji = dna?.replyStyle?.emojiUsage || false;
-    const businessName = dna?.businessName || "our business";
-
-    // Simple template-based generation (replace with actual AI call)
-    let content = "";
-    let confidence = 85;
-    let reasoning = "";
-
-    if (isPositive) {
-      const greetings = [
-        `شكراً جزيلاً ${review.reviewer_name}!`,
-        `نشكرك ${review.reviewer_name} على تقييمك الرائع!`,
-        `ممتنين لك ${review.reviewer_name}!`,
-      ];
-      const bodies = [
-        "سعداء جداً إنك استمتعت بتجربتك معنا.",
-        "كلماتك تسعدنا وتشجعنا على الاستمرار.",
-        "نقدر وقتك لكتابة هذا التقييم.",
-      ];
-      const closings = [
-        "ننتظرك دائماً! 🙏",
-        "نتطلع لزيارتك القادمة!",
-        "أهلاً بك في أي وقت!",
-      ];
-
-      content = `${greetings[Math.floor(Math.random() * greetings.length)]} ${useEmoji ? "🙏 " : ""}${bodies[Math.floor(Math.random() * bodies.length)]} ${closings[Math.floor(Math.random() * closings.length)]}`;
-      confidence = 92;
-      reasoning = "مراجعة إيجابية - رد شكر قياسي";
-    } else if (isNegative) {
-      content = `${review.reviewer_name}، نعتذر بشدة عن تجربتك السيئة. هذا لا يمثل معاييرنا ونحن نأخذ ملاحظاتك بجدية. نود التواصل معك لتعويضك. يرجى التواصل معنا.`;
-      confidence = 70; // Lower confidence for negative reviews
-      reasoning = "مراجعة سلبية - يُنصح بمراجعة الرد قبل النشر";
-    } else {
-      content = `شكراً ${review.reviewer_name} على تقييمك وملاحظاتك. نقدر رأيك ونسعى دائماً للتحسين. نتمنى أن تكون تجربتك القادمة أفضل!`;
-      confidence = 80;
-      reasoning = "مراجعة محايدة";
-    }
-
-    // Apply signature phrases if available
-    if (dna?.signaturePhrases?.length > 0) {
-      const signature = dna.signaturePhrases[0];
-      if (!content.includes(signature)) {
-        content += ` ${signature}`;
-      }
-    }
-
-    return { content, confidence, reasoning };
-  } catch (error) {
-    console.error("Error generating reply:", error);
-    return null;
   }
 }
 
