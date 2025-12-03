@@ -2,7 +2,7 @@ import { withCSRF } from '@/lib/api/with-csrf'
 import { withStrictRateLimit } from '@/lib/api/with-rate-limit'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse, successResponse } from '@/lib/utils/api-response'
-import { gmbLogger, toError } from '@/lib/utils/logger'
+import { extractErrorMessage, gmbLogger, toError } from '@/lib/utils/logger'
 import { disconnectGMBAccount } from '@/server/actions/gmb-account'
 import { NextRequest } from 'next/server'
 
@@ -68,7 +68,7 @@ async function disconnectHandler(request: NextRequest) {
     gmbLogger.error('Unexpected error disconnecting GMB account', toError(error))
     return errorResponse(
       'INTERNAL_ERROR',
-      error instanceof Error ? error.message : 'Failed to disconnect GMB account',
+      extractErrorMessage(error) || 'Failed to disconnect GMB account',
       500,
     )
   }

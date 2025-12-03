@@ -1,11 +1,13 @@
 // GMB Status API - Returns connection status for authenticated user
+import { withRateLimit } from '@/lib/api/with-rate-limit'
 import { createClient } from '@/lib/supabase/server'
+import { errorResponse, successResponse } from '@/lib/utils/api-response'
 import { gmbLogger, toError } from '@/lib/utils/logger'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request: NextRequest) {
+async function statusHandler(_request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -16,7 +18,7 @@ export async function GET(_request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('UNAUTHORIZED', 'Authentication required', 401)
     }
 
     // First, try to fetch active GMB account
@@ -64,7 +66,7 @@ export async function GET(_request: NextRequest) {
       }
     } else if (dbError && dbError.code !== 'PGRST116') {
       gmbLogger.error('Failed to fetch GMB status', toError(dbError), { userId: user.id })
-      return NextResponse.json({ error: 'Failed to fetch status' }, { status: 500 })
+      return errorResponse('DATABASE_ERROR', 'Failed to fetch status', 500)
     }
 
     // Also check if user has locations (for better status reporting)
@@ -91,9 +93,12 @@ export async function GET(_request: NextRequest) {
       locationsCount: locationsCount || 0,
     }
 
-    return NextResponse.json(status)
+    return successResponse(status)
   } catch (error: unknown) {
     gmbLogger.error('Unexpected error in GMB status endpoint', toError(error))
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('INTERNAL_ERROR', 'Internal server error', 500)
   }
 }
+
+// Apply rate limiting (60 requests per minute for status checks)
+export const GET = withRateLimit(statusHandler, { limit: 60, window: 60 })
