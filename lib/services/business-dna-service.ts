@@ -67,6 +67,7 @@ export interface BusinessDNA {
   confidenceScore: number;
   dataCompleteness: number;
   lastAnalysisAt: string;
+  updatedAt: string;
 }
 
 export interface AnalysisResult {

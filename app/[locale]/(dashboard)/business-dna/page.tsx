@@ -38,8 +38,7 @@ export default async function BusinessDNAPage() {
     redirect("/auth/login");
   }
 
-  const dnaResult = await getBusinessDNA(user.id);
-  const dna = dnaResult.success ? dnaResult.data : null;
+  const dna = await getBusinessDNA(user.id);
 
   if (!dna) {
     return (
@@ -89,7 +88,7 @@ export default async function BusinessDNAPage() {
         <CardContent>
           <Progress value={dna.confidenceScore} className="h-3" />
           <p className="text-sm text-zinc-400 mt-2">
-            Based on {dna.totalReviewsAnalyzed} reviews analyzed
+            Based on {dna.totalReviews} reviews analyzed
           </p>
         </CardContent>
       </Card>
@@ -210,7 +209,7 @@ export default async function BusinessDNAPage() {
                   </div>
                 </div>
                 <Progress
-                  value={(topic.mentions / dna.totalReviewsAnalyzed) * 100}
+                  value={(topic.mentions / dna.totalReviews) * 100}
                   className="h-2"
                 />
               </div>
@@ -295,7 +294,7 @@ export default async function BusinessDNAPage() {
                 day: "numeric",
               })}
             </span>
-            <span>{dna.totalReviewsAnalyzed} reviews analyzed</span>
+            <span>{dna.totalReviews} reviews analyzed</span>
           </div>
         </CardContent>
       </Card>
