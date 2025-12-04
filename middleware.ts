@@ -281,39 +281,40 @@ export async function middleware(request: NextRequest) {
 
   // Routes that require authentication
   const protectedPaths = [
-    "/dashboard",
+    "/home",
+    "/approvals",
+    "/insights",
+    "/business-dna",
+    "/locations",
+    "/features",
+    "/products",
     "/reviews",
     "/questions",
     "/posts",
-    "/settings",
-    "/metrics",
     "/media",
-    "/locations",
-    "/youtube-dashboard",
-    "/home",
-    "/owner-diagnostics",
-    "/sync-diagnostics",
-    "/sync-progress",
     "/analytics",
     "/automation",
-    "/products",
-    "/features",
+    "/settings",
+    "/metrics",
+    "/youtube-dashboard",
+    "/sync-progress",
+    "/sync-diagnostics",
+    "/owner-diagnostics",
     "/admin", // Add admin routes to protected paths
   ];
 
   // Routes that REQUIRE GMB connection (subset of protected routes)
   // Users without GMB connection will be redirected to /home
   const gmbRequiredPaths = [
-    "/dashboard",
+    "/locations",
+    "/features",
+    "/products",
     "/reviews",
     "/questions",
     "/posts",
     "/media",
-    "/locations",
     "/analytics",
     "/automation",
-    "/products",
-    "/features",
   ];
 
   // Routes that are allowed WITHOUT GMB connection (for documentation)
