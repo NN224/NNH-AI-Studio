@@ -806,7 +806,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
   // ============================================
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-4xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto bg-zinc-950/50 rounded-xl border border-zinc-800/50 shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800">
         <div className="relative">

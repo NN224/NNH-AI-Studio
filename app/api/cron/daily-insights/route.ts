@@ -5,14 +5,14 @@
  *
  * Runs every day at 6 AM to:
  * 1. Analyze yesterday's data
- * 2. Detect patterns and problems
+ * 2. Detect patterns and problems using pattern-detection-service
  * 3. Generate proactive insights
- * 4. Save for Command Center display
+ * 4. Save to ai_proactive_insights table for Command Center display
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { detectPatterns } from "@/lib/services/ai-proactive-service";
+import { detectAllPatterns } from "@/lib/services/pattern-detection-service";
 import { buildBusinessDNA } from "@/lib/services/business-dna-service";
 
 // Verify cron secret
@@ -81,8 +81,8 @@ async function processUserInsights(
     results.dnaUpdated++;
   }
 
-  // 2. Detect patterns
-  const patterns = await detectPatterns(userId);
+  // 2. Detect patterns using new pattern detection service
+  const patterns = await detectAllPatterns(userId, undefined, "week");
 
   // 3. Create insights for significant patterns
   for (const pattern of patterns) {
@@ -114,56 +114,68 @@ function mapPatternToInsightType(patternType: string): string {
   const mapping: Record<string, string> = {
     complaint_cluster: "problem_detected",
     day_pattern: "problem_detected",
+    time_pattern: "problem_detected",
     topic_trend: "trend",
     rating_drop: "problem_detected",
     rating_rise: "positive_trend",
+    service_issue: "problem_detected",
+    product_issue: "problem_detected",
   };
   return mapping[patternType] || "suggestion";
 }
 
 function getPatternTitle(pattern: any): string {
-  switch (pattern.type) {
-    case "complaint_cluster":
-      return "🔴 شكاوى متكررة";
-    case "day_pattern":
-      return "📅 نمط يومي ملاحظ";
-    case "rating_drop":
-      return "📉 انخفاض بالتقييم";
-    case "rating_rise":
-      return "📈 تحسن بالتقييم";
-    default:
-      return "💡 ملاحظة";
-  }
+  // Use the pattern's own title which is already descriptive
+  return pattern.title || "💡 Insight";
 }
 
 function getSuggestedActions(pattern: any): any[] {
+  // Use pattern's suggested action if available
+  if (pattern.suggestedAction) {
+    return [
+      {
+        label: "🔍 View Details",
+        action: "view_details",
+        primary: true,
+      },
+      {
+        label: "📊 Analyze",
+        action: "analyze",
+      },
+    ];
+  }
+
+  // Fallback actions based on type
   switch (pattern.type) {
     case "complaint_cluster":
+    case "service_issue":
+    case "product_issue":
       return [
         {
-          label: "📊 حلل الشكاوى",
+          label: "📊 Analyze Issues",
           action: "analyze_complaints",
           primary: true,
         },
-        { label: "📝 خطة تحسين", action: "improvement_plan" },
+        { label: "📝 Create Action Plan", action: "improvement_plan" },
       ];
     case "day_pattern":
+    case "time_pattern":
       return [
-        { label: "🔍 شوف التفاصيل", action: "view_details", primary: true },
-        { label: "📋 راجع الجدول", action: "review_schedule" },
+        { label: "🔍 View Details", action: "view_details", primary: true },
+        { label: "📋 Review Schedule", action: "review_schedule" },
       ];
     case "rating_drop":
       return [
-        { label: "🔍 وريني المراجعات", action: "show_reviews", primary: true },
-        { label: "📝 اقترح حلول", action: "suggest_solutions" },
+        { label: "🔍 Show Reviews", action: "show_reviews", primary: true },
+        { label: "📝 Suggest Solutions", action: "suggest_solutions" },
       ];
     case "rating_rise":
       return [
-        { label: "✨ استغل الفرصة", action: "create_offer", primary: true },
-        { label: "📊 التفاصيل", action: "view_details" },
+        { label: "✨ Capitalize", action: "create_offer", primary: true },
+        { label: "📊 Details", action: "view_details" },
       ];
     default:
-      return [{ label: "👁️ عرض", action: "view", primary: true }];
+      return [{ label: "👁️ View", action: "view", primary: true }];
   }
 }
 
@@ -182,11 +194,13 @@ async function checkMilestones(
   if (!dna) return;
 
   const milestones = [
-    { reviews: 50, message: "وصلت لـ 50 مراجعة! 🎉" },
-    { reviews: 100, message: "مبروك! 100 مراجعة! 🏆" },
-    { reviews: 250, message: "250 مراجعة - إنجاز رائع! ⭐" },
-    { reviews: 500, message: "500 مراجعة! أنت نجم! 🌟" },
-    { rating: 4.5, message: "تقييمك وصل 4.5+! ممتاز! 🔥" },
+    { reviews: 50, message: "Reached 50 reviews! 🎉" },
+    { reviews: 100, message: "Congratulations! 100 reviews! 🏆" },
+    { reviews: 250, message: "250 reviews - Amazing achievement! ⭐" },
+    { reviews: 500, message: "500 reviews! You're a star! 🌟" },
+    { reviews: 1000, message: "1000 reviews! Incredible milestone! 🚀" },
+    { rating: 4.5, message: "Rating reached 4.5+! Excellent! 🔥" },
+    { rating: 4.7, message: "Rating 4.7+! Outstanding quality! 💎" },
   ];
 
   for (const milestone of milestones) {
@@ -197,17 +211,18 @@ async function checkMilestones(
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("insight_type", "milestone")
-        .ilike("message", `%${milestone.reviews} مراجعة%`);
+        .ilike("message", `%${milestone.reviews} reviews%`);
 
       if (count === 0) {
         await supabase.from("ai_proactive_insights").insert({
           user_id: userId,
           insight_type: "milestone",
           priority: "low",
-          title: "🏆 إنجاز جديد!",
+          title: "🏆 New Achievement!",
           message: milestone.message,
           suggested_actions: [
-            { label: "📢 شارك الإنجاز", action: "share", primary: true },
+            { label: "📢 Share Achievement", action: "share", primary: true },
+            { label: "👁️ View Stats", action: "view_stats" },
           ],
         });
         results.insightsGenerated++;
@@ -231,10 +246,11 @@ async function checkMilestones(
           user_id: userId,
           insight_type: "milestone",
           priority: "low",
-          title: "⭐ تقييم ممتاز!",
+          title: "⭐ Excellent Rating!",
           message: milestone.message,
           suggested_actions: [
-            { label: "📢 شارك", action: "share", primary: true },
+            { label: "📢 Share Success", action: "share", primary: true },
+            { label: "💡 Maintain Quality", action: "quality_tips" },
           ],
         });
         results.insightsGenerated++;
