@@ -9,7 +9,9 @@ import { Link, usePathname } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
+  Brain,
   ChartBar as BarChart3,
+  CheckSquare,
   FileText,
   Image as ImageIcon,
   Layers,
@@ -52,6 +54,21 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       name: "Home",
       href: "/home",
       icon: LayoutDashboard,
+    },
+    {
+      name: "Approvals",
+      href: "/approvals",
+      icon: CheckSquare,
+    },
+    {
+      name: "Insights",
+      href: "/insights",
+      icon: Brain,
+    },
+    {
+      name: "Business DNA",
+      href: "/business-dna",
+      icon: Sparkles,
     },
     {
       name: "Locations",
