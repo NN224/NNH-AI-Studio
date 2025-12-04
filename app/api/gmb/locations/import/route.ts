@@ -12,7 +12,7 @@
 import { ApiError, ErrorCode, withSecureApi } from "@/lib/api/secure-handler";
 import { createAdminClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
-import { addToSyncQueue } from "@/server/actions/sync-queue";
+import { enqueueSyncJob } from "@/server/actions/sync-queue";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -203,31 +203,46 @@ export const POST = withSecureApi<ImportLocationsBody>(
           userId: user.id,
         });
 
-        // Add to sync queue with high priority for initial sync
-        const syncResult = await addToSyncQueue(
-          accountId,
-          "full",
-          10, // High priority for initial sync
-          user.id,
-        );
+        // OLD: Direct sync queue with generic full sync
+        // const syncResult = await addToSyncQueue(
+        //   accountId,
+        //   "full",
+        //   10, // High priority for initial sync
+        //   user.id,
+        // );
+      }
+    }
 
-        if (syncResult.success && syncResult.queueId) {
-          syncQueueIds.push(syncResult.queueId);
-          gmbLogger.info("Added to sync queue", {
-            queueId: syncResult.queueId,
+    // NEW: Enqueue a single discovery_locations job that will fan out child jobs
+    // This uses the event-driven micro-jobs architecture for better reliability
+    if (importedLocationIds.length > 0) {
+      const syncResult = await enqueueSyncJob(
+        "discovery_locations",
+        {
+          userId: user.id,
+          accountId,
+          googleAccountId: gmbAccount.account_id,
+        },
+        10, // High priority for initial sync
+      );
+
+      if (syncResult.success && syncResult.queueId) {
+        syncQueueIds.push(syncResult.queueId);
+        gmbLogger.info("Enqueued discovery_locations job", {
+          queueId: syncResult.queueId,
+          accountId,
+          userId: user.id,
+          locationsCount: importedLocationIds.length,
+        });
+      } else {
+        gmbLogger.error(
+          "Failed to enqueue discovery_locations job",
+          new Error(String(syncResult.error)),
+          {
             accountId,
             userId: user.id,
-          });
-        } else {
-          gmbLogger.error(
-            "Failed to add to sync queue",
-            new Error(String(syncResult.error)),
-            {
-              accountId,
-              userId: user.id,
-            },
-          );
-        }
+          },
+        );
       }
     }
 

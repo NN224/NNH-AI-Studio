@@ -1,3 +1,45 @@
+// ============================================================================
+// Sync Job Types for Event-Driven Queue Architecture
+// ============================================================================
+
+/**
+ * Job types for the micro-jobs architecture.
+ * Each job type represents a discrete, idempotent sync operation.
+ */
+export type SyncJobType =
+  | "discovery_locations" // Fetch locations and fan out child jobs
+  | "sync_reviews" // Sync reviews for a specific location
+  | "sync_insights" // Sync insights/metrics for a specific location
+  | "sync_posts" // Sync posts for a specific location
+  | "sync_media"; // Sync media for a specific location
+
+/**
+ * Metadata for sync jobs stored in sync_queue.metadata
+ * Contains all context needed to process the job independently.
+ */
+export interface SyncJobMetadata {
+  /** The type of sync job - determines processing logic */
+  job_type: SyncJobType;
+  /** The user who owns this sync job */
+  userId: string;
+  /** The GMB account ID (UUID from gmb_accounts table) */
+  accountId: string;
+  /** The location database ID (UUID from gmb_locations table) - optional for discovery */
+  locationId?: string;
+  /** The Google location resource name (e.g., "accounts/xxx/locations/yyy") */
+  googleLocationId?: string;
+  /** The Google account resource name (e.g., "accounts/xxx") */
+  googleAccountId?: string;
+  /** Parent job ID for tracking job chains */
+  parentJobId?: string;
+  /** Additional context for the job */
+  context?: Record<string, unknown>;
+}
+
+// ============================================================================
+// Location Data Types
+// ============================================================================
+
 // Google OpenInfo status values: OPEN, CLOSED_PERMANENTLY, CLOSED_TEMPORARILY
 // Also legacy/metadata status: verified, pending, suspended
 export type LocationStatus =
