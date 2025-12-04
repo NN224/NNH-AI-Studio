@@ -10,6 +10,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { CommandCenterChat } from "@/components/command-center/command-center-chat";
+import { isPreviewMode } from "@/lib/services/preview-mode-service";
 
 export const metadata: Metadata = {
   title: "AI Command Center | NNH AI Studio",
@@ -17,7 +18,11 @@ export const metadata: Metadata = {
     "Your AI-powered business command center - Chat with your 10-year veteran AI assistant",
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const supabase = await createClient();
 
   // Get user (already authenticated by layout)
@@ -28,6 +33,12 @@ export default async function HomePage() {
   if (!user) return null; // Should never happen (layout handles this)
 
   const userId = user.id;
+
+  // Check if preview mode (demo data)
+  const urlSearchParams = new URLSearchParams(
+    searchParams as Record<string, string>,
+  );
+  const isPreview = isPreviewMode(urlSearchParams);
 
   // Fetch user profile and primary location
   const [{ data: profile }, { data: primaryLocation }] = await Promise.all([
@@ -48,9 +59,11 @@ export default async function HomePage() {
   ]);
 
   const userName = profile?.full_name?.split(" ")[0] || "there";
-  const businessName = primaryLocation?.location_name || "Your Business";
-  const businessLogo = primaryLocation?.logo_url;
-  const locationId = primaryLocation?.id;
+  const businessName = isPreview
+    ? "Demo Restaurant"
+    : primaryLocation?.location_name || "Your Business";
+  const businessLogo = isPreview ? undefined : primaryLocation?.logo_url;
+  const locationId = isPreview ? undefined : primaryLocation?.id;
 
   return (
     <div className="relative -mx-4 -my-6 lg:-mx-6 lg:-my-8">
@@ -68,6 +81,7 @@ export default async function HomePage() {
           businessName={businessName}
           businessLogo={businessLogo}
           userName={userName}
+          isPreviewMode={isPreview}
         />
       </div>
     </div>

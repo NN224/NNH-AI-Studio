@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { ApprovalCard, type PendingAction } from "./approval-card";
 import { StatsCard, type CommandCenterStats } from "./stats-card";
 import { QuickActionButton } from "./quick-action-button";
+import { PreviewModeBanner } from "./preview-mode-banner";
+import { getPreviewModeData } from "@/lib/services/preview-mode-service";
 
 // ============================================
 // TYPES
@@ -81,6 +83,7 @@ interface CommandCenterChatProps {
   businessName: string;
   businessLogo?: string;
   userName: string;
+  isPreviewMode?: boolean;
 }
 
 // ============================================
@@ -93,6 +96,7 @@ export function CommandCenterChat({
   businessName,
   businessLogo,
   userName,
+  isPreviewMode = false,
 }: CommandCenterChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -123,14 +127,37 @@ export function CommandCenterChat({
   const loadInitialData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/ai/command-center${locationId ? `?locationId=${locationId}` : ""}`,
-      );
-      const data = await response.json();
+      // Use preview data if in preview mode, otherwise fetch real data
+      let responseData;
 
-      if (data.success) {
+      if (isPreviewMode) {
+        // Load preview mode data
+        const previewData = getPreviewModeData();
+        responseData = {
+          success: true,
+          data: {
+            proactiveGreeting: previewData.proactiveGreeting,
+            pendingApprovals: {
+              totalCount: previewData.pendingApprovals.length,
+              reviewReplies: previewData.pendingApprovals.filter(
+                (a) => a.actionType === "review_reply",
+              ),
+              questionAnswers: [],
+            },
+            stats: previewData.stats,
+            autopilotStatus: previewData.autopilotStatus,
+          },
+        };
+      } else {
+        const response = await fetch(
+          `/api/ai/command-center${locationId ? `?locationId=${locationId}` : ""}`,
+        );
+        responseData = await response.json();
+      }
+
+      if (responseData.success) {
         const { proactiveGreeting, pendingApprovals, stats, autopilotStatus } =
-          data.data;
+          responseData.data;
 
         // Build initial messages
         const initialMessages: ChatMessage[] = [];
@@ -411,6 +438,14 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
 
   // Handle individual approval
   const handleApprove = async (actionId: string) => {
+    // Prevent approval in preview mode
+    if (isPreviewMode) {
+      addAssistantMessage(
+        "⚠️ Preview Mode: This is demo data. Connect your Google Business Profile to approve real reviews!",
+      );
+      return;
+    }
+
     setProcessingActions((prev) => new Set(prev).add(actionId));
 
     try {
@@ -566,6 +601,9 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto bg-zinc-950/50 rounded-xl border border-zinc-800/50 shadow-2xl overflow-hidden">
+      {/* Preview Mode Banner */}
+      {isPreviewMode && <PreviewModeBanner />}
+
       {/* Header */}
       <div className="flex items-center gap-4 p-4 border-b border-zinc-800">
         <div className="relative">
