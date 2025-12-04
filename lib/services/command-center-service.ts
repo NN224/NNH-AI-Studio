@@ -21,6 +21,10 @@ import {
   type PendingAction,
 } from "./pending-actions-service";
 import { getBusinessDNA, type BusinessDNA } from "./business-dna-service";
+import {
+  detectAllPatterns,
+  type DetectedPattern,
+} from "./pattern-detection-service";
 
 // ============================================
 // TYPES
@@ -83,6 +87,9 @@ export interface CommandCenterData {
 
   // Business DNA (for reference)
   businessDNA: BusinessDNA | null;
+
+  // Detected Patterns
+  detectedPatterns: DetectedPattern[];
 }
 
 // ============================================
@@ -286,6 +293,7 @@ export async function getCommandCenterData(
       autopilotStatus,
       competitorAlerts,
       businessDNA,
+      detectedPatterns,
     ] = await Promise.all([
       // Proactive greeting
       generateProactiveGreeting(userId, locationId).catch(
@@ -376,6 +384,9 @@ export async function getCommandCenterData(
 
       // Business DNA
       getBusinessDNA(userId, locationId).catch(() => null),
+
+      // Pattern Detection
+      detectAllPatterns(userId, locationId, "week").catch(() => []),
     ]);
 
     return {
@@ -394,6 +405,7 @@ export async function getCommandCenterData(
       stats,
       autopilotStatus,
       businessDNA,
+      detectedPatterns,
     };
   } catch (error) {
     console.error("Error in getCommandCenterData:", error);
@@ -461,6 +473,7 @@ export async function getCommandCenterData(
         },
       },
       businessDNA: null,
+      detectedPatterns: [],
     };
   }
 }

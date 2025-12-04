@@ -26,7 +26,10 @@ import { ApprovalCard, type PendingAction } from "./approval-card";
 import { StatsCard, type CommandCenterStats } from "./stats-card";
 import { QuickActionButton } from "./quick-action-button";
 import { PreviewModeBanner } from "./preview-mode-banner";
+import { BusinessDNACard } from "./business-dna-card";
+import { PatternAlertCard, type DetectedPattern } from "./pattern-alert-card";
 import { getPreviewModeData } from "@/lib/services/preview-mode-service";
+import type { BusinessDNA } from "@/lib/services/business-dna-service";
 
 // ============================================
 // TYPES
@@ -56,7 +59,9 @@ interface ChatMessage {
     | "approval_card"
     | "approval_list"
     | "stats"
-    | "insight";
+    | "insight"
+    | "business_dna"
+    | "pattern_alert";
   // For approval cards
   pendingAction?: PendingAction;
   pendingActions?: PendingAction[];
@@ -68,6 +73,10 @@ interface ChatMessage {
     pendingCount: number;
     responseRate: number;
   };
+  // For Business DNA
+  businessDNA?: BusinessDNA;
+  // For Pattern Detection
+  patterns?: DetectedPattern[];
   // Quick actions
   quickActions?: Array<{
     label: string;
@@ -709,6 +718,18 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
                       }}
                     />
                   )}
+
+                  {/* Business DNA Card */}
+                  {message.type === "business_dna" && message.businessDNA && (
+                    <BusinessDNACard dna={message.businessDNA} />
+                  )}
+
+                  {/* Pattern Alert Card */}
+                  {message.type === "pattern_alert" &&
+                    message.patterns &&
+                    message.patterns.length > 0 && (
+                      <PatternAlertCard patterns={message.patterns} />
+                    )}
 
                   {/* Approval Card */}
                   {message.type === "approval_card" &&
