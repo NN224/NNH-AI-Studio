@@ -232,22 +232,38 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
           </div>
         </motion.div>
 
-        {/* Demo Mode */}
+        {/* Demo Mode - Enhanced */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="text-center"
         >
-          <Button
-            onClick={handleDemoMode}
-            variant="ghost"
-            className="gap-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
-          >
-            <Eye className="h-4 w-4" />
-            Explore Demo Mode
-            <span className="text-xs text-zinc-500">(Limited features)</span>
-          </Button>
+          <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/30 hover:border-purple-500/50 transition-all">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-500/20 mb-3">
+                <Sparkles className="h-6 w-6 text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Try Live Demo First
+              </h3>
+              <p className="text-sm text-zinc-300 mb-4">
+                Experience the full AI Command Center with realistic demo data.
+                <br />
+                <span className="text-purple-400 font-medium">
+                  No account connection required!
+                </span>
+              </p>
+              <Button
+                onClick={handleDemoMode}
+                variant="outline"
+                className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 w-full sm:w-auto"
+              >
+                <Eye className="h-4 w-4" />
+                Launch Interactive Demo
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
         </motion.div>
 
         {/* Features Preview */}
