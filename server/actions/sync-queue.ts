@@ -1,9 +1,6 @@
 "use server";
 
-import type {
-  SyncJobMetadata,
-  SyncJobType,
-} from "@/lib/gmb/sync-types";
+import type { SyncJobMetadata, SyncJobType } from "@/lib/gmb/sync-types";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { syncLogger } from "@/lib/utils/logger";
 
@@ -509,11 +506,25 @@ export async function getPendingJobsForWorker(
 
     // Filter to only jobs with valid metadata.job_type
     const validJobs = (data || []).filter((job: SyncQueueItem) => {
-      const metadata = job.metadata as SyncJobMetadata | null;
-      return metadata?.job_type;
+      // Safely check if metadata has the required properties for SyncJobMetadata
+      const metadata = job.metadata;
+      return (
+        metadata &&
+        typeof metadata === "object" &&
+        "job_type" in metadata &&
+        "userId" in metadata &&
+        "accountId" in metadata
+      );
     });
 
-    return validJobs as (SyncQueueItem & { metadata: SyncJobMetadata })[];
+    // Map to ensure type safety
+    return validJobs.map((job) => {
+      // We've already verified the metadata has the required properties
+      return {
+        ...job,
+        metadata: job.metadata as unknown as SyncJobMetadata,
+      };
+    });
   } catch (error) {
     syncLogger.error(
       "Unexpected error in getPendingJobsForWorker",
