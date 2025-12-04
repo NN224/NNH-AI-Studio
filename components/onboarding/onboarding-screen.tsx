@@ -74,23 +74,12 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
 
   const handleDemoMode = async () => {
     try {
-      // Mark onboarding as completed in the database
-      const response = await fetch("/api/user/complete-onboarding", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to complete onboarding");
-      }
-
-      // Set a cookie/flag to indicate demo mode
-      document.cookie = `demo_mode=true; path=/; max-age=86400; SameSite=Lax`;
-
       toast.info("Welcome to Demo Mode! 👀", {
-        description: "You can explore the app with limited features.",
+        description: "Explore the AI Command Center with realistic demo data.",
       });
 
-      router.push(`/${locale}/home?demo=true`);
+      // Redirect to public preview page (no auth required)
+      router.push(`/${locale}/preview`);
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
     }

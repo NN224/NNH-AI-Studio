@@ -94,6 +94,7 @@ interface CommandCenterChatProps {
   businessLogo?: string;
   userName: string;
   isPreviewMode?: boolean;
+  previewData?: ReturnType<typeof getPreviewModeData>;
 }
 
 // ============================================
@@ -107,6 +108,7 @@ export function CommandCenterChat({
   businessLogo,
   userName,
   isPreviewMode = false,
+  previewData,
 }: CommandCenterChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -141,21 +143,21 @@ export function CommandCenterChat({
       let responseData;
 
       if (isPreviewMode) {
-        // Load preview mode data
-        const previewData = getPreviewModeData();
+        // Load preview mode data (use provided data or generate new)
+        const data = previewData || getPreviewModeData();
         responseData = {
           success: true,
           data: {
-            proactiveGreeting: previewData.proactiveGreeting,
+            proactiveGreeting: data.proactiveGreeting,
             pendingApprovals: {
-              totalCount: previewData.pendingApprovals.length,
-              reviewReplies: previewData.pendingApprovals.filter(
+              totalCount: data.pendingApprovals.length,
+              reviewReplies: data.pendingApprovals.filter(
                 (a) => a.actionType === "review_reply",
               ),
               questionAnswers: [],
             },
-            stats: previewData.stats,
-            autopilotStatus: previewData.autopilotStatus,
+            stats: data.stats,
+            autopilotStatus: data.autopilotStatus,
           },
         };
       } else {
