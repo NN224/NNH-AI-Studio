@@ -91,6 +91,17 @@ export async function POST(request: NextRequest) {
     // Save state to database using admin client to bypass RLS
     // (We've already authenticated the user above with getUser())
     const adminClient = createAdminClient();
+
+    // ✅ NEW: Check if user has existing active GMB accounts
+    const { data: existingAccounts } = await adminClient
+      .from("gmb_accounts")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1);
+
+    const hasExistingAccounts = existingAccounts && existingAccounts.length > 0;
+
     const { error: stateError } = await adminClient
       .from("oauth_states")
       .insert({
@@ -117,11 +128,24 @@ export async function POST(request: NextRequest) {
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("scope", SCOPES.join(" "));
     authUrl.searchParams.set("access_type", "offline");
-    // Use "consent" only for first-time connections or re-authorization
-    // "select_account" allows choosing account without forcing new consent
-    authUrl.searchParams.set("prompt", "select_account");
+
+    // ✅ NEW: Use "consent" for re-auth to ensure refresh_token is returned
+    // First-time: "select_account" (better UX)
+    // Re-auth: "consent" (forces Google to return refresh_token)
+    const promptValue = hasExistingAccounts ? "consent" : "select_account";
+    authUrl.searchParams.set("prompt", promptValue);
+
     authUrl.searchParams.set("include_granted_scopes", "true");
     authUrl.searchParams.set("state", state);
+
+    gmbLogger.info("OAuth prompt strategy", {
+      userId: user.id,
+      hasExistingAccounts,
+      promptUsed: promptValue,
+      reason: hasExistingAccounts
+        ? "Re-auth detected - forcing consent to get refresh_token"
+        : "First-time connection - using select_account for better UX",
+    });
 
     const authUrlString = authUrl.toString();
 
