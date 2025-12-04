@@ -161,18 +161,8 @@ export async function getSmartDefaults(
     // Advanced
     aiProvider: "openai",
     model: "gpt-4",
-    temperature:
-      preset.creativityLevel === "creative"
-        ? 0.8
-        : preset.creativityLevel === "conservative"
-          ? 0.5
-          : 0.7,
-    maxTokens:
-      preset.responseLength === "short"
-        ? 150
-        : preset.responseLength === "long"
-          ? 300
-          : 200,
+    temperature: preset.creativityLevel === "conservative" ? 0.5 : 0.7,
+    maxTokens: preset.responseLength === "short" ? 150 : 200,
     minConfidenceScore: 85,
   };
 

@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SettingsTierSection } from "./settings-tier-section";
 
 interface AIAutomationTabProps {
   aiResponseTone: string;
@@ -49,18 +50,15 @@ export function AIAutomationTab({
 }: AIAutomationTabProps) {
   return (
     <div className="space-y-6">
-      {/* AI Response Configuration */}
-      <Card className="bg-card border-primary/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            {t("responseGeneration.title")}
-          </CardTitle>
-          <CardDescription>
-            {t("responseGeneration.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      {/* Essential Settings - Always Visible */}
+      <SettingsTierSection
+        tier="essential"
+        title={t("responseGeneration.title")}
+        description={t("responseGeneration.description")}
+        icon={<Sparkles className="h-5 w-5" />}
+        tooltip="Core settings you'll use most often"
+      >
+        <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label htmlFor="auto-reply" className="flex items-center gap-2">
@@ -173,7 +171,19 @@ export function AIAutomationTab({
               </SelectContent>
             </Select>
           </div>
+        </div>
+      </SettingsTierSection>
 
+      {/* Common Settings - Collapsed by Default */}
+      <SettingsTierSection
+        tier="common"
+        title="Fine-Tuning Options"
+        description="Additional controls for response customization"
+        icon={<Brain className="h-5 w-5" />}
+        defaultExpanded={false}
+        tooltip="Adjust these settings for more control over AI responses"
+      >
+        <div className="space-y-6">
           <div className="space-y-3">
             <Label htmlFor="creativity">{t("creativityLevel")}</Label>
             <Select value={creativityLevel} onValueChange={setCreativityLevel}>
@@ -196,106 +206,103 @@ export function AIAutomationTab({
               {t("responseGeneration.creativityHint")}
             </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* AI Features Status */}
-      <Card className="bg-card border-primary/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            {t("features.title")}
-          </CardTitle>
-          <CardDescription>{t("features.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {t("features.smartReview")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("features.smartReviewDesc")}
-              </p>
+          {/* AI Features Status */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">
+              {t("features.title")}
+            </Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("features.description")}
+            </p>
+            <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t("features.smartReview")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("features.smartReviewDesc")}
+                </p>
+              </div>
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                {t("features.active")}
+              </Badge>
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-              {t("features.active")}
-            </Badge>
-          </div>
 
-          <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {t("features.sentimentAnalysis")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("features.sentimentAnalysisDesc")}
-              </p>
+            <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t("features.sentimentAnalysis")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("features.sentimentAnalysisDesc")}
+                </p>
+              </div>
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                {t("features.active")}
+              </Badge>
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-              {t("features.active")}
-            </Badge>
-          </div>
 
-          <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {t("features.contentOptimization")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("features.contentOptimizationDesc")}
-              </p>
+            <div className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t("features.contentOptimization")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("features.contentOptimizationDesc")}
+                </p>
+              </div>
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                {t("features.active")}
+              </Badge>
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-              {t("features.active")}
-            </Badge>
-          </div>
 
-          <div className="flex items-start gap-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
-            <Clock className="h-4 w-4 text-yellow-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {t("features.postScheduling")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("features.postSchedulingDesc")}
-              </p>
+            <div className="flex items-start gap-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+              <Clock className="h-4 w-4 text-yellow-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t("features.postScheduling")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("features.postSchedulingDesc")}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {t("features.comingSoon")}
+              </Badge>
             </div>
-            <Badge variant="outline" className="text-xs">
-              {t("features.comingSoon")}
-            </Badge>
-          </div>
 
-          <div className="flex items-start gap-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
-            <Clock className="h-4 w-4 text-yellow-500 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                {t("features.predictiveInsights")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("features.predictiveInsightsDesc")}
-              </p>
+            <div className="flex items-start gap-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+              <Clock className="h-4 w-4 text-yellow-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t("features.predictiveInsights")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("features.predictiveInsightsDesc")}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {t("features.comingSoon")}
+              </Badge>
             </div>
-            <Badge variant="outline" className="text-xs">
-              {t("features.comingSoon")}
-            </Badge>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsTierSection>
 
-      {/* AI Provider Configuration */}
-      <Card className="bg-card border-primary/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
-            {t("provider.title")}
-          </CardTitle>
-          <CardDescription>{t("provider.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      {/* Advanced Settings - Hidden by Default */}
+      <SettingsTierSection
+        tier="advanced"
+        title={t("provider.title")}
+        description={t("provider.description")}
+        icon={<Zap className="h-5 w-5" />}
+        defaultExpanded={false}
+        tooltip="Advanced configuration for AI providers and models"
+      >
+        <div className="space-y-3">
           <div className="space-y-2">
             <Label>{t("provider.activeProviders")}</Label>
             <div className="space-y-2">
@@ -348,8 +355,8 @@ export function AIAutomationTab({
               {t("provider.hint")}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsTierSection>
     </div>
   );
 }
