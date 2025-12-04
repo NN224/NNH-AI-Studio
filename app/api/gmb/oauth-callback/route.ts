@@ -469,16 +469,52 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // ✅ Determine if this is a re-auth (needed for logging context)
+      const { data: existingAccountCheck } = await adminClient
+        .from("gmb_accounts")
+        .select("id")
+        .eq("account_id", accountId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const isReAuth = !!existingAccountCheck;
+
       let encryptedAccessToken: string;
       let encryptedRefreshToken: string | null = null;
 
       try {
         encryptedAccessToken = encryptToken(tokenData.access_token);
+
+        // Prioritize new refresh_token, fallback to existing, allow NULL
         const refreshTokenToPersist =
           tokenData.refresh_token || existingRefreshToken || null;
+
         encryptedRefreshToken = refreshTokenToPersist
           ? encryptToken(refreshTokenToPersist)
           : null;
+
+        // ✅ NEW: Log warning if no refresh_token available
+        if (!encryptedRefreshToken) {
+          gmbLogger.warn(
+            "No refresh_token available - user will need to re-auth when access_token expires",
+            {
+              accountId,
+              userId,
+              isReAuth,
+              hadExistingRefreshToken: !!existingRefreshToken,
+              receivedNewRefreshToken: !!tokenData.refresh_token,
+              googleAccountId: accountId,
+            },
+          );
+        } else {
+          gmbLogger.info("Refresh token successfully encrypted", {
+            accountId,
+            userId,
+            source: tokenData.refresh_token
+              ? "new_from_google"
+              : "existing_from_db",
+          });
+        }
       } catch (encryptionError) {
         gmbLogger.error(
           "Failed to encrypt tokens",
@@ -502,18 +538,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // ✅ NEW: Determine user state BEFORE upsert to detect first-time vs re-auth
-      gmbLogger.info(`Checking user state for account`, { accountId });
-
-      // Check if this account already exists for this user (re-auth scenario)
-      const { data: existingAccountForReauth } = await adminClient
-        .from("gmb_accounts")
-        .select("id, account_id")
-        .eq("account_id", accountId)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      const isReAuth = !!existingAccountForReauth;
+      // ✅ Determine user state BEFORE upsert to detect first-time vs re-auth
+      gmbLogger.info(`Checking user state for account`, {
+        accountId,
+        isReAuth,
+      });
 
       // Check if user has any OTHER GMB accounts (to detect first-time vs additional)
       const { data: otherAccounts } = await adminClient
@@ -607,14 +636,16 @@ export async function GET(request: NextRequest) {
       // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
         accountId: upsertedAccount.id,
+        hasRefreshToken: !!encryptedRefreshToken,
       });
+
       const { error: secretsError } = await adminClient
         .from("gmb_secrets")
         .upsert(
           {
             account_id: upsertedAccount.id,
             access_token: encryptedAccessToken,
-            refresh_token: encryptedRefreshToken,
+            refresh_token: encryptedRefreshToken, // ✅ Can now be NULL
             updated_at: new Date().toISOString(),
           },
           {
@@ -624,15 +655,122 @@ export async function GET(request: NextRequest) {
         );
 
       if (secretsError) {
+        const errorObj = secretsError as {
+          message?: string;
+          code?: string;
+          details?: string;
+          hint?: string;
+        } | null;
+
         gmbLogger.error(
-          "Failed to store tokens",
+          "Failed to store tokens in gmb_secrets",
           new Error(getErrorMessage(secretsError)),
           {
             accountId: upsertedAccount.id,
+            errorCode: errorObj?.code,
+            errorDetails: errorObj?.details,
+            errorHint: errorObj?.hint,
+            googleAccountId: accountId,
           },
         );
-        // Continue anyway - account is saved, user can re-authenticate if needed
+
+        // ✅ NEW: Rollback account insert if secrets fail
+        gmbLogger.warn("Rolling back account insert due to secrets failure", {
+          accountId: upsertedAccount.id,
+        });
+
+        await adminClient
+          .from("gmb_accounts")
+          .delete()
+          .eq("id", upsertedAccount.id);
+
+        // Return error to user with clear message
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Failed to securely store your credentials. Please try reconnecting.",
+            error_code: "token_storage_failed",
+            details: errorObj?.message || "Unknown database error",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
       }
+
+      // ✅ NEW: Verify secrets were actually saved
+      gmbLogger.info("Verifying secrets were saved", {
+        accountId: upsertedAccount.id,
+      });
+
+      const { data: verifySecrets, error: verifyError } = await adminClient
+        .from("gmb_secrets")
+        .select("access_token, refresh_token")
+        .eq("account_id", upsertedAccount.id)
+        .single();
+
+      if (verifyError || !verifySecrets) {
+        gmbLogger.error(
+          "Secrets verification failed - secrets not found after insert",
+          new Error(getErrorMessage(verifyError)),
+          {
+            accountId: upsertedAccount.id,
+            googleAccountId: accountId,
+          },
+        );
+
+        // Rollback account
+        await adminClient
+          .from("gmb_accounts")
+          .delete()
+          .eq("id", upsertedAccount.id);
+
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Connection verification failed. Please try again or contact support if this persists.",
+            error_code: "secrets_verification_failed",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      // ✅ Verify access_token exists (critical)
+      if (!verifySecrets.access_token) {
+        gmbLogger.error(
+          "Access token missing after secrets insert",
+          new Error("Critical: access_token is null"),
+          {
+            accountId: upsertedAccount.id,
+            hasRefreshToken: !!verifySecrets.refresh_token,
+          },
+        );
+
+        // Rollback
+        await adminClient
+          .from("gmb_accounts")
+          .delete()
+          .eq("id", upsertedAccount.id);
+
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Critical security error: access token missing. Please try again.",
+            error_code: "access_token_missing",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      gmbLogger.info("Secrets verified successfully", {
+        accountId: upsertedAccount.id,
+        hasAccessToken: true,
+        hasRefreshToken: !!verifySecrets.refresh_token,
+      });
 
       savedAccountId = upsertedAccount.id;
       savedAccountIds.push(upsertedAccount.id);
