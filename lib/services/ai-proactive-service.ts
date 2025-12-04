@@ -117,31 +117,41 @@ async function getUserFirstName(userId: string): Promise<string> {
  * Get last visit timestamp
  */
 async function getLastVisit(userId: string): Promise<Date | null> {
-  const supabase = createAdminClient();
+  try {
+    const supabase = createAdminClient();
 
-  const { data } = await supabase
-    .from("user_activity_log")
-    .select("created_at")
-    .eq("user_id", userId)
-    .eq("activity_type", "command_center_visit")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    const { data } = await supabase
+      .from("user_activity_log")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("activity_type", "command_center_visit")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-  return data ? new Date(data.created_at) : null;
+    return data ? new Date(data.created_at) : null;
+  } catch (error) {
+    // Table might not exist, return null
+    return null;
+  }
 }
 
 /**
  * Log current visit
  */
 export async function logVisit(userId: string): Promise<void> {
-  const supabase = createAdminClient();
+  try {
+    const supabase = createAdminClient();
 
-  await supabase.from("user_activity_log").insert({
-    user_id: userId,
-    activity_type: "command_center_visit",
-    activity_data: { timestamp: new Date().toISOString() },
-  });
+    await supabase.from("user_activity_log").insert({
+      user_id: userId,
+      activity_type: "command_center_visit",
+      activity_data: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    // Silently fail - logging shouldn't break the main flow
+    console.error("Failed to log visit:", error);
+  }
 }
 
 // ============================================
@@ -381,17 +391,22 @@ export async function detectPatterns(
  * Get competitor alerts
  */
 async function getCompetitorAlerts(userId: string): Promise<any[]> {
-  const supabase = createAdminClient();
+  try {
+    const supabase = createAdminClient();
 
-  const { data } = await supabase
-    .from("competitor_alerts")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_read", false)
-    .order("created_at", { ascending: false })
-    .limit(5);
+    const { data } = await supabase
+      .from("competitor_alerts")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_read", false)
+      .order("created_at", { ascending: false })
+      .limit(5);
 
-  return data || [];
+    return data || [];
+  } catch (error) {
+    // Table might not exist, return empty
+    return [];
+  }
 }
 
 // ============================================
@@ -552,40 +567,78 @@ export async function generateProactiveGreeting(
   userId: string,
   locationId?: string,
 ): Promise<ProactiveGreeting> {
-  // Get user's name
-  const firstName = await getUserFirstName(userId);
+  try {
+    // Get user's name
+    const firstName = await getUserFirstName(userId);
 
-  // Get business DNA
-  const dna = await getBusinessDNA(userId, locationId);
+    // Get business DNA
+    const dna = await getBusinessDNA(userId, locationId);
 
-  // Analyze changes since last visit
-  const changes = await analyzeChangesSinceLastVisit(userId, locationId);
+    // Analyze changes since last visit
+    const changes = await analyzeChangesSinceLastVisit(userId, locationId);
 
-  // Detect patterns
-  const patterns = await detectPatterns(userId, locationId);
+    // Detect patterns
+    const patterns = await detectPatterns(userId, locationId);
 
-  // Get competitor alerts
-  const competitorAlerts = await getCompetitorAlerts(userId);
+    // Get competitor alerts
+    const competitorAlerts = await getCompetitorAlerts(userId);
 
-  // Prioritize and select insight
-  const insight = prioritizeInsight(changes, patterns, competitorAlerts, dna);
+    // Prioritize and select insight
+    const insight = prioritizeInsight(changes, patterns, competitorAlerts, dna);
 
-  // Build greeting
-  const timeGreeting = getTimeGreeting();
-  const greeting = `${timeGreeting.emoji} ${timeGreeting.text}، ${firstName}!`;
+    // Build greeting
+    const timeGreeting = getTimeGreeting();
+    const greeting = `${timeGreeting.emoji} ${timeGreeting.text}، ${firstName}!`;
 
-  // Log this visit
-  await logVisit(userId);
+    // Log this visit (don't await - fire and forget)
+    logVisit(userId).catch(() => {});
 
-  return {
-    greeting,
-    insight,
-    context: {
-      changes,
-      patterns,
-      dna,
-    },
-  };
+    return {
+      greeting,
+      insight,
+      context: {
+        changes,
+        patterns,
+        dna,
+      },
+    };
+  } catch (error) {
+    console.error("Error generating proactive greeting:", error);
+
+    // Return a simple fallback greeting
+    const timeGreeting = getTimeGreeting();
+    return {
+      greeting: `${timeGreeting.emoji} ${timeGreeting.text}!`,
+      insight: {
+        type: "all_good",
+        priority: "low",
+        title: "مرحباً! 👋",
+        message: "كيف أقدر أساعدك اليوم؟",
+        suggestedActions: [
+          { label: "📊 شوف التحليلات", action: "analytics" },
+          { label: "💬 اسألني شي", action: "chat", primary: true },
+        ],
+      },
+      context: {
+        changes: {
+          daysSinceLastVisit: 0,
+          newReviews: {
+            total: 0,
+            positive: 0,
+            neutral: 0,
+            negative: 0,
+            avgRating: 0,
+          },
+          ratingChange: 0,
+          pendingReplies: 0,
+          newQuestions: 0,
+          autoRepliedCount: 0,
+        },
+        patterns: [],
+        dna: null,
+      },
+    };
+  }
 }
 
 /**

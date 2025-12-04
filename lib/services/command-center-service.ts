@@ -273,75 +273,196 @@ export async function getCommandCenterData(
   userId: string,
   locationId?: string,
 ): Promise<CommandCenterData> {
-  // Fetch all data in parallel
-  const [
-    proactiveGreeting,
-    reviewReplies,
-    questionAnswers,
-    posts,
-    attentionActions,
-    counts,
-    stats,
-    autopilotStatus,
-    competitorAlerts,
-    businessDNA,
-  ] = await Promise.all([
-    // Proactive greeting
-    generateProactiveGreeting(userId, locationId),
-
-    // Pending actions by type
-    getPendingActions(userId, {
-      actionType: "review_reply",
-      status: "pending",
-      locationId,
-    }),
-    getPendingActions(userId, {
-      actionType: "question_answer",
-      status: "pending",
-      locationId,
-    }),
-    getPendingActions(userId, {
-      actionType: "post",
-      status: "pending",
-      locationId,
-    }),
-
-    // Actions requiring attention
-    getAttentionRequiredActions(userId, locationId),
-
-    // Counts
-    getPendingActionsCounts(userId, locationId),
-
-    // Stats
-    getStats(userId, locationId),
-
-    // Autopilot
-    getAutopilotStatus(userId, locationId),
-
-    // Competitor alerts
-    getCompetitorAlerts(userId, locationId),
-
-    // Business DNA
-    getBusinessDNA(userId, locationId),
-  ]);
-
-  return {
-    proactiveGreeting,
-    pendingApprovals: {
+  try {
+    // Fetch all data in parallel with error handling
+    const [
+      proactiveGreeting,
       reviewReplies,
       questionAnswers,
       posts,
-      totalCount: counts.total,
-    },
-    attentionRequired: {
-      negativeReviews: attentionActions,
+      attentionActions,
+      counts,
+      stats,
+      autopilotStatus,
       competitorAlerts,
-      totalCount: attentionActions.length + competitorAlerts.length,
-    },
-    stats,
-    autopilotStatus,
-    businessDNA,
-  };
+      businessDNA,
+    ] = await Promise.all([
+      // Proactive greeting
+      generateProactiveGreeting(userId, locationId).catch(
+        (): ProactiveGreeting => ({
+          greeting: "مرحباً! 👋",
+          insight: {
+            type: "all_good",
+            priority: "low",
+            title: "كيف أقدر أساعدك؟",
+            message: "",
+            suggestedActions: [],
+          },
+          context: {
+            changes: {
+              daysSinceLastVisit: 0,
+              newReviews: {
+                total: 0,
+                positive: 0,
+                neutral: 0,
+                negative: 0,
+                avgRating: 0,
+              },
+              ratingChange: 0,
+              pendingReplies: 0,
+              newQuestions: 0,
+              autoRepliedCount: 0,
+            },
+            patterns: [],
+            dna: null,
+          },
+        }),
+      ),
+
+      // Pending actions by type
+      getPendingActions(userId, {
+        actionType: "review_reply",
+        status: "pending",
+        locationId,
+      }).catch(() => []),
+      getPendingActions(userId, {
+        actionType: "question_answer",
+        status: "pending",
+        locationId,
+      }).catch(() => []),
+      getPendingActions(userId, {
+        actionType: "post",
+        status: "pending",
+        locationId,
+      }).catch(() => []),
+
+      // Actions requiring attention
+      getAttentionRequiredActions(userId, locationId).catch(() => []),
+
+      // Counts
+      getPendingActionsCounts(userId, locationId).catch(() => ({
+        total: 0,
+        reviewReplies: 0,
+        questionAnswers: 0,
+        posts: 0,
+        attentionRequired: 0,
+      })),
+
+      // Stats
+      getStats(userId, locationId).catch(() => ({
+        rating: 0,
+        ratingChange: 0,
+        totalReviews: 0,
+        newReviewsThisWeek: 0,
+        responseRate: 0,
+        growthPercentage: 0,
+      })),
+
+      // Autopilot
+      getAutopilotStatus(userId, locationId).catch(() => ({
+        enabled: false,
+        autoReplyEnabled: false,
+        autoRepliedThisWeek: 0,
+        settings: {
+          replyToPositive: true,
+          replyToNeutral: false,
+          replyToNegative: false,
+          requireApproval: true,
+        },
+      })),
+
+      // Competitor alerts
+      getCompetitorAlerts(userId, locationId).catch(() => []),
+
+      // Business DNA
+      getBusinessDNA(userId, locationId).catch(() => null),
+    ]);
+
+    return {
+      proactiveGreeting,
+      pendingApprovals: {
+        reviewReplies,
+        questionAnswers,
+        posts,
+        totalCount: counts.total,
+      },
+      attentionRequired: {
+        negativeReviews: attentionActions,
+        competitorAlerts,
+        totalCount: attentionActions.length + competitorAlerts.length,
+      },
+      stats,
+      autopilotStatus,
+      businessDNA,
+    };
+  } catch (error) {
+    console.error("Error in getCommandCenterData:", error);
+
+    // Return minimal fallback data
+    return {
+      proactiveGreeting: {
+        greeting: "مرحباً! 👋",
+        insight: {
+          type: "all_good",
+          priority: "low",
+          title: "كيف أقدر أساعدك؟",
+          message: "",
+          suggestedActions: [
+            { label: "💬 اسألني شي", action: "chat", primary: true },
+          ],
+        },
+        context: {
+          changes: {
+            daysSinceLastVisit: 0,
+            newReviews: {
+              total: 0,
+              positive: 0,
+              neutral: 0,
+              negative: 0,
+              avgRating: 0,
+            },
+            ratingChange: 0,
+            pendingReplies: 0,
+            newQuestions: 0,
+            autoRepliedCount: 0,
+          },
+          patterns: [],
+          dna: null,
+        },
+      },
+      pendingApprovals: {
+        reviewReplies: [],
+        questionAnswers: [],
+        posts: [],
+        totalCount: 0,
+      },
+      attentionRequired: {
+        negativeReviews: [],
+        competitorAlerts: [],
+        totalCount: 0,
+      },
+      stats: {
+        rating: 0,
+        ratingChange: 0,
+        totalReviews: 0,
+        newReviewsThisWeek: 0,
+        responseRate: 0,
+        growthPercentage: 0,
+      },
+      autopilotStatus: {
+        enabled: false,
+        autoReplyEnabled: false,
+        autoRepliedThisWeek: 0,
+        settings: {
+          replyToPositive: true,
+          replyToNeutral: false,
+          replyToNegative: false,
+          requireApproval: true,
+        },
+      },
+      businessDNA: null,
+    };
+  }
 }
 
 /**

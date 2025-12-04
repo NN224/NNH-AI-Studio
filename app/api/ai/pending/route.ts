@@ -6,6 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+
+// Force dynamic rendering (uses cookies for auth)
+export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import {
   getPendingActions,
