@@ -363,7 +363,7 @@ export default function SignupPage() {
         {/* Preview Mode CTA */}
         <p className="text-center text-sm text-gray-400 pt-4 border-t border-gray-800">
           <Link
-            href={`/${locale}/home?preview=true`}
+            href={`/${locale}/preview`}
             className="text-zinc-400 hover:text-zinc-100 transition-colors"
           >
             Not ready yet?{" "}
