@@ -4,58 +4,31 @@
  * 🎛️ COMMAND CENTER CHAT
  *
  * Chat-First AI Command Center
- * - AI يبادر بـ insights
- * - Approval cards داخل المحادثة
+ * - AI initiates with insights
+ * - Approval cards in conversation
  * - Quick actions
  * - Real AI backend
+ *
+ * Refactored to use separated components
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Bot,
-  User,
-  Send,
-  Loader2,
-  Star,
-  Check,
-  X,
-  Edit3,
-  RefreshCw,
-  Sparkles,
-  AlertTriangle,
-  TrendingUp,
-  MessageSquare,
-  ChevronRight,
-  Zap,
-  Clock,
-} from "lucide-react";
+import { Bot, User, Send, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Import separated components
+import { ApprovalCard, type PendingAction } from "./approval-card";
+import { StatsCard, type CommandCenterStats } from "./stats-card";
+import { QuickActionButton } from "./quick-action-button";
 
 // ============================================
 // TYPES
 // ============================================
-
-interface PendingAction {
-  id: string;
-  actionType: "review_reply" | "question_answer" | "post";
-  referenceData: {
-    reviewerName?: string;
-    rating?: number;
-    reviewText?: string;
-    questionText?: string;
-  };
-  aiGeneratedContent: string;
-  aiConfidence: number;
-  requiresAttention: boolean;
-  attentionReason?: string;
-}
 
 interface ProactiveInsight {
   type: string;
@@ -102,242 +75,12 @@ interface ChatMessage {
   }>;
 }
 
-interface CommandCenterStats {
-  rating: number;
-  ratingChange: number;
-  totalReviews: number;
-  responseRate: number;
-  pendingCount: number;
-  attentionCount: number;
-}
-
 interface CommandCenterChatProps {
   userId: string;
   locationId?: string;
   businessName: string;
   businessLogo?: string;
   userName: string;
-}
-
-// ============================================
-// SUB-COMPONENTS
-// ============================================
-
-// Rating Stars Component
-function RatingStars({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={cn(
-            "h-3.5 w-3.5",
-            star <= rating
-              ? "fill-yellow-400 text-yellow-400"
-              : "fill-zinc-600 text-zinc-600",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Approval Card Component (inline in chat)
-function ApprovalCard({
-  action,
-  onApprove,
-  onReject,
-  onEdit,
-  isProcessing,
-}: {
-  action: PendingAction;
-  onApprove: () => void;
-  onReject: () => void;
-  onEdit: () => void;
-  isProcessing: boolean;
-}) {
-  const isReview = action.actionType === "review_reply";
-  const isNegative = (action.referenceData.rating || 5) <= 2;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={cn(
-        "rounded-xl border p-4 space-y-3",
-        isNegative
-          ? "bg-red-500/10 border-red-500/30"
-          : "bg-zinc-800/50 border-zinc-700",
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {isReview && (
-            <RatingStars rating={action.referenceData.rating || 0} />
-          )}
-          <span className="text-sm font-medium text-zinc-200">
-            {action.referenceData.reviewerName || "Customer"}
-          </span>
-          {action.requiresAttention && (
-            <Badge variant="destructive" className="text-xs">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              يحتاج انتباهك
-            </Badge>
-          )}
-        </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "text-xs",
-            action.aiConfidence >= 85
-              ? "border-green-500/50 text-green-400"
-              : action.aiConfidence >= 70
-                ? "border-yellow-500/50 text-yellow-400"
-                : "border-red-500/50 text-red-400",
-          )}
-        >
-          {action.aiConfidence}% ثقة
-        </Badge>
-      </div>
-
-      {/* Original Review/Question */}
-      {action.referenceData.reviewText && (
-        <p className="text-sm text-zinc-400 bg-zinc-900/50 rounded-lg p-3 border-r-2 border-zinc-600">
-          "{action.referenceData.reviewText}"
-        </p>
-      )}
-
-      {/* AI Generated Reply */}
-      <div className="space-y-2">
-        <p className="text-xs text-zinc-500 flex items-center gap-1">
-          <Sparkles className="h-3 w-3" />
-          ردي المقترح:
-        </p>
-        <p className="text-sm text-zinc-200 bg-gradient-to-r from-orange-500/10 to-purple-500/10 rounded-lg p-3 border border-orange-500/20">
-          {action.aiGeneratedContent}
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 pt-2">
-        <Button
-          size="sm"
-          onClick={onApprove}
-          disabled={isProcessing}
-          className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
-        >
-          {isProcessing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Check className="h-3.5 w-3.5" />
-          )}
-          وافق
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onEdit}
-          disabled={isProcessing}
-          className="gap-1.5"
-        >
-          <Edit3 className="h-3.5 w-3.5" />
-          عدّل
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onReject}
-          disabled={isProcessing}
-          className="text-zinc-400 hover:text-red-400 gap-1.5"
-        >
-          <X className="h-3.5 w-3.5" />
-          ارفض
-        </Button>
-      </div>
-    </motion.div>
-  );
-}
-
-// Stats Card Component (inline in chat)
-function StatsCard({ stats }: { stats: CommandCenterStats }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="grid grid-cols-3 gap-3"
-    >
-      <div className="bg-zinc-800/50 rounded-xl p-3 border border-zinc-700 text-center">
-        <div className="flex items-center justify-center gap-1 text-yellow-400">
-          <Star className="h-4 w-4 fill-yellow-400" />
-          <span className="text-lg font-bold">{stats.rating.toFixed(1)}</span>
-        </div>
-        <p className="text-xs text-zinc-500 mt-1">التقييم</p>
-      </div>
-      <div className="bg-zinc-800/50 rounded-xl p-3 border border-zinc-700 text-center">
-        <div className="flex items-center justify-center gap-1 text-orange-400">
-          <Clock className="h-4 w-4" />
-          <span className="text-lg font-bold">{stats.pendingCount}</span>
-        </div>
-        <p className="text-xs text-zinc-500 mt-1">بانتظارك</p>
-      </div>
-      <div className="bg-zinc-800/50 rounded-xl p-3 border border-zinc-700 text-center">
-        <div className="flex items-center justify-center gap-1 text-green-400">
-          <TrendingUp className="h-4 w-4" />
-          <span className="text-lg font-bold">{stats.responseRate}%</span>
-        </div>
-        <p className="text-xs text-zinc-500 mt-1">معدل الرد</p>
-      </div>
-    </motion.div>
-  );
-}
-
-// Quick Action Buttons
-function QuickActionButton({
-  label,
-  icon,
-  primary,
-  onClick,
-}: {
-  label: string;
-  icon?: string;
-  primary?: boolean;
-  onClick: () => void;
-}) {
-  const getIcon = () => {
-    switch (icon) {
-      case "check":
-        return <Check className="h-3.5 w-3.5" />;
-      case "alert":
-        return <AlertTriangle className="h-3.5 w-3.5" />;
-      case "chart":
-        return <TrendingUp className="h-3.5 w-3.5" />;
-      case "sparkles":
-        return <Sparkles className="h-3.5 w-3.5" />;
-      case "message":
-        return <MessageSquare className="h-3.5 w-3.5" />;
-      case "zap":
-        return <Zap className="h-3.5 w-3.5" />;
-      default:
-        return <ChevronRight className="h-3.5 w-3.5" />;
-    }
-  };
-
-  return (
-    <Button
-      size="sm"
-      variant={primary ? "default" : "outline"}
-      onClick={onClick}
-      className={cn(
-        "gap-1.5 text-xs",
-        primary &&
-          "bg-gradient-to-r from-orange-500 to-purple-500 hover:from-orange-600 hover:to-purple-600",
-      )}
-    >
-      {getIcon()}
-      {label}
-    </Button>
-  );
 }
 
 // ============================================
@@ -440,26 +183,26 @@ export function CommandCenterChat({
           initialMessages.push({
             id: "pending-summary",
             role: "assistant",
-            content: `عندك ${pendingApprovals.totalCount} عمل بانتظار موافقتك:
-• ${pendingApprovals.reviewReplies.length} رد على مراجعات
-• ${pendingApprovals.questionAnswers.length} إجابة على أسئلة
-${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
+            content: `You have ${pendingApprovals.totalCount} pending actions:
+• ${pendingApprovals.reviewReplies.length} review replies
+• ${pendingApprovals.questionAnswers.length} question answers
+${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
             timestamp: new Date(),
             type: "text",
             quickActions: [
               {
-                label: "وافق على الكل ✓",
+                label: "Approve All ✓",
                 action: "approve_all",
                 primary: true,
                 icon: "check",
               },
               {
-                label: "وريني التفاصيل",
+                label: "Show Details",
                 action: "show_pending",
                 icon: "message",
               },
               {
-                label: "السلبية بس ⚠️",
+                label: "Negative Only ⚠️",
                 action: "show_negative",
                 icon: "alert",
               },
@@ -476,7 +219,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
         {
           id: "error-greeting",
           role: "assistant",
-          content: `مرحباً ${userName}! 👋\n\nصار خطأ بتحميل البيانات. جرب تحدث الصفحة.`,
+          content: `Hello ${userName}! 👋\n\nThere was an error loading data. Try refreshing the page.`,
           timestamp: new Date(),
           type: "text",
         },
@@ -499,13 +242,13 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
         await handleShowNegative();
         break;
       case "analyze_reviews":
-        setInput("حلل المراجعات السلبية");
+        setInput("Analyze negative reviews");
         break;
       case "chat":
         // Focus input
         break;
       case "dismiss":
-        addAssistantMessage("تمام! إذا احتجت شي أنا هون. 👍");
+        addAssistantMessage("Got it! I'm here if you need anything. 👍");
         break;
       default:
         setInput(action);
@@ -514,7 +257,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
 
   // Show pending approvals
   const handleShowPending = async () => {
-    addUserMessage("وريني التفاصيل");
+    addUserMessage("Show me the details");
 
     try {
       const response = await fetch(
@@ -542,22 +285,22 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
 
         if (data.data.actions.length > 3) {
           addAssistantMessage(
-            `وفي ${data.data.actions.length - 3} أعمال ثانية. تبي أوريك الباقي؟`,
-            [{ label: "أيوا، وريني", action: "show_more", primary: true }],
+            `There are ${data.data.actions.length - 3} more items. Want to see them?`,
+            [{ label: "Yes, show me", action: "show_more", primary: true }],
           );
         }
       } else {
-        addAssistantMessage("ما في شي بانتظار موافقتك حالياً! 🎉");
+        addAssistantMessage("No pending actions right now! 🎉");
       }
     } catch (error) {
       console.error("Error fetching pending:", error);
-      addAssistantMessage("صار خطأ. جرب مرة ثانية.");
+      addAssistantMessage("An error occurred. Please try again.");
     }
   };
 
   // Show negative reviews only
   const handleShowNegative = async () => {
-    addUserMessage("وريني السلبية بس");
+    addUserMessage("Show negative only");
 
     try {
       const response = await fetch(
@@ -567,7 +310,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
 
       if (data.success && data.data.actions.length > 0) {
         addAssistantMessage(
-          `عندك ${data.data.actions.length} مراجعات تحتاج انتباهك:`,
+          `You have ${data.data.actions.length} reviews that need attention:`,
         );
 
         for (const action of data.data.actions) {
@@ -584,17 +327,17 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
           ]);
         }
       } else {
-        addAssistantMessage("ما في مراجعات سلبية بانتظارك! 🎉");
+        addAssistantMessage("No negative reviews pending! 🎉");
       }
     } catch (error) {
       console.error("Error fetching negative:", error);
-      addAssistantMessage("صار خطأ. جرب مرة ثانية.");
+      addAssistantMessage("An error occurred. Please try again.");
     }
   };
 
   // Approve all pending
   const handleApproveAll = async () => {
-    addUserMessage("وافق على الكل");
+    addUserMessage("Approve all");
 
     try {
       // Get all pending actions first
@@ -604,7 +347,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
       const pendingData = await pendingResponse.json();
 
       if (!pendingData.success || pendingData.data.actions.length === 0) {
-        addAssistantMessage("ما في شي لأوافق عليه! ✨");
+        addAssistantMessage("Nothing to approve! ✨");
         return;
       }
 
@@ -615,8 +358,8 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
 
       if (highConfidenceActions.length === 0) {
         addAssistantMessage(
-          "كل الأعمال المعلقة تحتاج انتباهك الشخصي. خلني أوريك وحدة وحدة.",
-          [{ label: "وريني", action: "show_pending", primary: true }],
+          "All pending actions require your personal attention. Let me show you one by one.",
+          [{ label: "Show me", action: "show_pending", primary: true }],
         );
         return;
       }
@@ -632,15 +375,15 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
 
       if (approveData.success) {
         addAssistantMessage(
-          `تم! ✅ وافقت على ${approveData.processed} ردود ونشرتها.${
+          `Done! ✅ Approved and published ${approveData.processed} replies.${
             pendingData.data.actions.length - highConfidenceActions.length > 0
-              ? `\n\nباقي ${pendingData.data.actions.length - highConfidenceActions.length} تحتاج انتباهك.`
+              ? `\n\n${pendingData.data.actions.length - highConfidenceActions.length} remaining require attention.`
               : ""
           }`,
           pendingData.data.actions.length - highConfidenceActions.length > 0
             ? [
                 {
-                  label: "وريني الباقي",
+                  label: "Show remaining",
                   action: "show_negative",
                   primary: true,
                 },
@@ -648,11 +391,11 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
             : undefined,
         );
       } else {
-        addAssistantMessage("صار خطأ بالموافقة. جرب مرة ثانية.");
+        addAssistantMessage("Error approving. Please try again.");
       }
     } catch (error) {
       console.error("Error approving all:", error);
-      addAssistantMessage("صار خطأ. جرب مرة ثانية.");
+      addAssistantMessage("An error occurred. Please try again.");
     }
   };
 
@@ -671,13 +414,13 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
         setMessages((prev) =>
           prev.filter((m) => m.pendingAction?.id !== actionId),
         );
-        addAssistantMessage("تم! ✅ نشرت الرد.");
+        addAssistantMessage("Done! ✅ Reply published.");
       } else {
-        addAssistantMessage(`خطأ: ${data.error}`);
+        addAssistantMessage(`Error: ${data.error}`);
       }
     } catch (error) {
       console.error("Error approving:", error);
-      addAssistantMessage("صار خطأ. جرب مرة ثانية.");
+      addAssistantMessage("An error occurred. Please try again.");
     } finally {
       setProcessingActions((prev) => {
         const next = new Set(prev);
@@ -701,7 +444,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
         setMessages((prev) =>
           prev.filter((m) => m.pendingAction?.id !== actionId),
         );
-        addAssistantMessage("تم حذفه. 👍");
+        addAssistantMessage("Deleted. 👍");
       }
     } catch (error) {
       console.error("Error rejecting:", error);
@@ -717,7 +460,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
   // Handle edit (for now, just show the content for editing)
   const handleEdit = (actionId: string, content: string) => {
     setInput(content);
-    addAssistantMessage("عدّل الرد وارسله لما تخلص. 👆");
+    addAssistantMessage("Edit the reply and send when ready. 👆");
   };
 
   // Add user message
@@ -783,11 +526,11 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
           })),
         );
       } else {
-        addAssistantMessage("عذراً، صار خطأ. جرب مرة ثانية.");
+        addAssistantMessage("Sorry, an error occurred. Please try again.");
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      addAssistantMessage("عذراً، صار خطأ بالاتصال.");
+      addAssistantMessage("Sorry, connection error.");
     } finally {
       setIsSending(false);
     }
@@ -982,7 +725,7 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="اكتب رسالتك أو اختر أمر..."
+            placeholder="Type your message or choose a command..."
             disabled={isSending}
             className="flex-1 bg-zinc-800 border-zinc-700 focus:border-orange-500 h-12"
           />
@@ -1005,34 +748,34 @@ ${pendingApprovals.totalCount > 0 ? "\nشو تبي تسوي؟" : ""}`,
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setInput("شو الوضع اليوم؟")}
+            onClick={() => setInput("What's the status today?")}
             className="text-xs"
           >
-            📊 شو الوضع؟
+            📊 Status?
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setInput("حلل المراجعات السلبية")}
+            onClick={() => setInput("Analyze negative reviews")}
             className="text-xs"
           >
-            🔍 حلل السلبية
+            🔍 Analyze Negative
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setInput("اقترح منشور جديد")}
+            onClick={() => setInput("Suggest a new post")}
             className="text-xs"
           >
-            📝 منشور جديد
+            📝 New Post
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setInput("كيف أحسن التقييم؟")}
+            onClick={() => setInput("How to improve rating?")}
             className="text-xs"
           >
-            ⭐ حسّن التقييم
+            ⭐ Improve Rating
           </Button>
         </div>
       </div>
