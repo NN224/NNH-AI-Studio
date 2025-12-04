@@ -1,12 +1,15 @@
 /**
- * AI Command Center Page - Redirects to Home
+ * AI Command Center - Redirects to Home
  *
- * AI features have been integrated into the Home page
- * for a unified experience.
+ * The Chat-First AI Command Center is now the main Home page
  */
 
 import { redirect } from "next/navigation";
 
-export default function AICommandCenterPage() {
-  redirect("/home");
+export default function AICommandCenterPage({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  redirect(`/${params.locale}/home`);
 }

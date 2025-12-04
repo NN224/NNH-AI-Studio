@@ -117,7 +117,9 @@ export async function POST(request: NextRequest) {
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("scope", SCOPES.join(" "));
     authUrl.searchParams.set("access_type", "offline");
-    authUrl.searchParams.set("prompt", "consent");
+    // Use "consent" only for first-time connections or re-authorization
+    // "select_account" allows choosing account without forcing new consent
+    authUrl.searchParams.set("prompt", "select_account");
     authUrl.searchParams.set("include_granted_scopes", "true");
     authUrl.searchParams.set("state", state);
 

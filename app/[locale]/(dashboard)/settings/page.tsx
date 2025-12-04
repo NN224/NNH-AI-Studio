@@ -15,6 +15,8 @@ export default function SettingsPage() {
     // Check if user just connected GMB account
     const connected =
       searchParams?.get("connected") || searchParams?.get("gmb_connected");
+    const reconnect = searchParams?.get("reconnect");
+    const error = searchParams?.get("error");
 
     if (connected === "true") {
       // Clean up URL FIRST to prevent reload loop
@@ -39,6 +41,33 @@ export default function SettingsPage() {
 
       // Force refresh of all GMB-related data
       forceGmbRefresh();
+    }
+
+    // Handle reconnect request
+    if (reconnect === "true") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reconnect");
+      window.history.replaceState({}, "", url.toString());
+
+      toast.info("Please reconnect your Google Business account", {
+        description:
+          "Click the 'Connect' button below to refresh your connection.",
+        duration: 6000,
+      });
+    }
+
+    // Handle error from OAuth
+    if (error) {
+      const url = new URL(window.location.href);
+      const errorCode = searchParams?.get("error_code");
+      url.searchParams.delete("error");
+      url.searchParams.delete("error_code");
+      window.history.replaceState({}, "", url.toString());
+
+      toast.error("Connection Error", {
+        description: error,
+        duration: 8000,
+      });
     }
   }, [searchParams, t]);
 

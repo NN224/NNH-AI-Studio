@@ -1,20 +1,29 @@
-// (dashboard)/layout.tsx
+// (dashboard)/layout.tsx - RADICAL CLEAN VERSION
+//
+// ONE SOURCE OF TRUTH: gmb_locations table in database
+//
+// Logic:
+// - User has locations → Show Dashboard
+// - User has no locations → Redirect to Onboarding
+//
+// NO MORE:
+// - useGMBStatus() hook
+// - Cookie checks
+// - Multiple status checks
+// - PROTECTED_ROUTES array
+// - GMBOnboardingView component
 
 "use client";
 
-import { GMBOnboardingView } from "@/components/ai-command-center/onboarding/gmb-onboarding-view";
 import { KeyboardProvider } from "@/components/keyboard/keyboard-provider";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
-// Direct imports for better tree-shaking
-import { BackgroundSyncWrapper } from "@/components/sync/background-sync-wrapper";
+import { SyncProgressBar, SyncProvider } from "@/components/sync";
 import { DynamicThemeProvider } from "@/components/theme/DynamicThemeProvider";
 import { Button } from "@/components/ui/button";
 import { BrandProfileProvider } from "@/contexts/BrandProfileContext";
-// Note: SyncProvider is now in app/providers.tsx for global state sharing
-import { useGMBStatus } from "@/hooks/features/use-gmb";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthUrl, getLocaleFromPathname } from "@/lib/utils/navigation";
 import * as Sentry from "@sentry/nextjs";
@@ -27,7 +36,7 @@ import { useEffect, useState } from "react";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
+      staleTime: 60 * 1000,
       refetchOnWindowFocus: false,
     },
   },
@@ -38,32 +47,28 @@ interface UserProfile {
   avatarUrl: string | null;
 }
 
-// Loading Screen Component
+// Routes that are part of setup flow (skip location check)
+const SETUP_ROUTES = [
+  "select-account",
+  "setup",
+  "onboarding",
+  "settings",
+  "admin",
+];
+
+// Loading Screen
 function DashboardLoadingScreen() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
-// Routes that require GMB connection
-const PROTECTED_ROUTES = [
-  "reviews",
-  "questions",
-  "posts",
-  "media",
-  "analytics",
-  "automation",
-  "locations",
-  "products",
-  "features",
-];
-
-// Error Fallback Component
+// Error Fallback
 function ErrorFallback({
   error,
   resetError,
@@ -123,6 +128,7 @@ export default function DashboardLayout({
   const supabase = createClient();
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [hasLocations, setHasLocations] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -131,45 +137,31 @@ export default function DashboardLayout({
   });
   const [userId, setUserId] = useState<string | null>(null);
 
-  // GMB Status - using new React Query hooks
-  const { data: gmbStatus, isLoading: gmbLoading } = useGMBStatus();
-  // Consider connected if has account OR has locations (data already synced)
-  const gmbConnected = gmbStatus?.connected || gmbStatus?.hasLocations || false;
-
-  // Set GMB cookie for middleware (avoids DB calls in Edge Runtime)
-  useEffect(() => {
-    if (!gmbLoading && gmbStatus !== undefined) {
-      const cookieValue = gmbConnected ? "true" : "false";
-      // Set cookie with 1 hour expiry
-      document.cookie = `gmb_connected=${cookieValue}; path=/; max-age=3600; SameSite=Lax${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`;
-    }
-  }, [gmbConnected, gmbLoading, gmbStatus]);
-
-  // Check if current route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+  // Check if current route is part of setup flow
+  const isSetupRoute = SETUP_ROUTES.some((route) =>
     pathname?.includes(`/${route}`),
   );
 
-  // Check authentication
+  // Get locale from pathname
+  const locale = getLocaleFromPathname(pathname || "/");
+
+  // ONE CHECK: Auth + Locations
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndLocations = async () => {
       const currentPath = pathname || "/";
 
       if (!supabase) {
-        const locale = getLocaleFromPathname(currentPath);
         router.push(getAuthUrl(locale, "login"));
         return;
       }
 
+      // Check auth
       const {
         data: { user },
         error,
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        const locale = getLocaleFromPathname(currentPath);
         const loginUrl = getAuthUrl(locale, "login");
         router.push(`${loginUrl}?redirectedFrom=${currentPath}`);
         return;
@@ -179,23 +171,39 @@ export default function DashboardLayout({
       const name =
         user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
       const avatarUrl = user.user_metadata?.avatar_url || null;
-
       setUserProfile({ name, avatarUrl });
       setUserId(user.id);
       setIsAuthenticated(true);
+
+      // Skip location check for setup routes
+      if (isSetupRoute) {
+        setHasLocations(true); // Allow access
+        return;
+      }
+
+      // THE ONE AND ONLY CHECK: Does user have locations?
+      const { count } = await supabase
+        .from("gmb_locations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      const userHasLocations = (count || 0) > 0;
+      setHasLocations(userHasLocations);
+
+      // No locations? → Onboarding
+      if (!userHasLocations) {
+        router.push(`/${locale}/onboarding`);
+      }
     };
 
-    checkAuth();
-  }, [router, pathname, supabase]);
+    checkAuthAndLocations();
+  }, [router, pathname, supabase, locale, isSetupRoute]);
 
   // Handle responsive sidebar
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
+      setSidebarOpen(window.innerWidth >= 1024);
     };
 
     handleResize();
@@ -203,81 +211,62 @@ export default function DashboardLayout({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Show loading screen while checking auth
-  if (isAuthenticated === null) {
+  // Loading state
+  if (isAuthenticated === null || (!isSetupRoute && hasLocations === null)) {
     return <DashboardLoadingScreen />;
   }
 
-  // Don't render anything if not authenticated (will redirect)
+  // Not authenticated (will redirect)
   if (!isAuthenticated) {
     return null;
+  }
+
+  // No locations and not setup route (will redirect to onboarding)
+  if (!isSetupRoute && !hasLocations) {
+    return <DashboardLoadingScreen />;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProfileProvider>
-        <DynamicThemeProvider>
-          <KeyboardProvider
-            onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
-          >
-            <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
-              <div className="relative min-h-screen bg-background">
-                {/* Note: SyncBanner is now rendered globally in GlobalSyncProvider */}
-
-                <Sidebar
-                  isOpen={sidebarOpen}
-                  onClose={() => setSidebarOpen(false)}
-                  userProfile={userProfile}
-                />
-
-                <div className="lg:pl-[280px] pt-16">
-                  <Header
-                    onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-                    onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+        <SyncProvider>
+          <DynamicThemeProvider>
+            <KeyboardProvider
+              onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+            >
+              <Sentry.ErrorBoundary fallback={ErrorFallback} showDialog>
+                <SyncProgressBar />
+                <div className="relative min-h-screen bg-background">
+                  <Sidebar
+                    isOpen={sidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
                     userProfile={userProfile}
-                    userId={userId || undefined}
                   />
 
-                  <main className="min-h-[calc(100vh-6rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
-                    <div className="mx-auto max-w-7xl">
-                      {/* Route Protection Logic */}
-                      {isProtectedRoute && gmbLoading ? (
-                        <div className="flex items-center justify-center min-h-[60vh]">
-                          <div className="text-center space-y-3">
-                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                            <p className="text-sm text-muted-foreground">
-                              Checking GMB connection...
-                            </p>
-                          </div>
-                        </div>
-                      ) : isProtectedRoute && !gmbConnected ? (
-                        <GMBOnboardingView />
-                      ) : (
-                        children
-                      )}
-                    </div>
-                  </main>
+                  <div className="lg:pl-[280px] pt-16">
+                    <Header
+                      onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+                      onCommandPaletteOpen={() => setCommandPaletteOpen(true)}
+                      userProfile={userProfile}
+                      userId={userId || undefined}
+                    />
+
+                    <main className="min-h-[calc(100vh-6rem)] px-4 py-6 lg:px-6 lg:py-8 pb-20 lg:pb-8">
+                      <div className="mx-auto max-w-7xl">{children}</div>
+                    </main>
+                  </div>
+
+                  <MobileNav />
+
+                  <CommandPalette
+                    open={commandPaletteOpen}
+                    onOpenChange={setCommandPaletteOpen}
+                  />
                 </div>
-
-                <MobileNav />
-
-                <CommandPalette
-                  open={commandPaletteOpen}
-                  onOpenChange={setCommandPaletteOpen}
-                />
-
-                {/* Note: SyncProgressOverlay is now rendered globally in GlobalSyncProvider */}
-
-                {/* Background Auto-Sync */}
-                <BackgroundSyncWrapper
-                  enabled={true}
-                  intervalMinutes={30}
-                  showNotifications={false}
-                />
-              </div>
-            </Sentry.ErrorBoundary>
-          </KeyboardProvider>
-        </DynamicThemeProvider>
+              </Sentry.ErrorBoundary>
+            </KeyboardProvider>
+          </DynamicThemeProvider>
+        </SyncProvider>
       </BrandProfileProvider>
     </QueryClientProvider>
   );

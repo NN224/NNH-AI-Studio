@@ -541,6 +541,8 @@ export async function GET(request: NextRequest) {
       });
 
       // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
+      // IMPORTANT: Use .select('id').single() to get the ID in the same operation
+      // This avoids race conditions between upsert and secrets insertion
       gmbLogger.info(`Upserting GMB account`, { accountId });
 
       const upsertData = {
@@ -554,29 +556,31 @@ export async function GET(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      // First try to upsert the account
-      const { error: upsertError } = await adminClient
+      // Upsert AND get ID in single operation
+      const { data: upsertedAccount, error: upsertError } = await adminClient
         .from("gmb_accounts")
         .upsert(upsertData, {
           onConflict: "account_id",
           ignoreDuplicates: false,
-        });
+        })
+        .select("id")
+        .single();
 
-      if (upsertError) {
-        const upsertErrorObj = upsertError as {
+      if (upsertError || !upsertedAccount) {
+        const errorObj = upsertError as {
           message?: string;
           code?: string;
           details?: string;
           hint?: string;
-        };
+        } | null;
         gmbLogger.error(
           "GMB account upsert error",
           new Error(getErrorMessage(upsertError)),
           {
-            message: upsertErrorObj.message,
-            code: upsertErrorObj.code,
-            details: upsertErrorObj.details,
-            hint: upsertErrorObj.hint,
+            message: errorObj?.message,
+            code: errorObj?.code,
+            details: errorObj?.details,
+            hint: errorObj?.hint,
             upsertData,
           },
         );
@@ -595,29 +599,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // Fetch the account to get its UUID
-      const { data: upsertedAccount, error: fetchError } = await adminClient
-        .from("gmb_accounts")
-        .select("id")
-        .eq("account_id", accountId)
-        .single();
-
-      if (fetchError || !upsertedAccount) {
-        gmbLogger.error(
-          "Failed to fetch account after upsert",
-          new Error(getErrorMessage(fetchError)),
-          { accountId },
-        );
-        const redirectUrl = buildSafeRedirectUrl(
-          baseUrl,
-          `/${localeCookie}/settings`,
-          {
-            error: "Failed to retrieve account after save",
-            error_code: "gmb_account_fetch_failed",
-          },
-        );
-        return NextResponse.redirect(redirectUrl);
-      }
+      gmbLogger.info("GMB account upserted successfully", {
+        accountId: upsertedAccount.id,
+        googleAccountId: accountId,
+      });
 
       // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
@@ -651,9 +636,6 @@ export async function GET(request: NextRequest) {
 
       savedAccountId = upsertedAccount.id;
       savedAccountIds.push(upsertedAccount.id);
-      gmbLogger.info(`Successfully upserted account`, {
-        accountId: upsertedAccount.id,
-      });
 
       // NOTE: Locations are NOT fetched here anymore.
       // The user will select locations in the /select-account flow,
@@ -687,21 +669,73 @@ export async function GET(request: NextRequest) {
     // Invalidate Next.js cache so Settings page shows fresh data
     await invalidateGMBCache(userId);
 
-    // Always redirect to select-account page for location selection
-    // This applies to all user states (FIRST_TIME, ADDITIONAL_ACCOUNT, RE_AUTH)
-    const selectAccountUrl = buildSafeRedirectUrl(
-      baseUrl,
-      `/${localeCookie}/select-account`,
-      {
+    // ✅ SMART REDIRECT: Check if user already has locations
+    // If RE_AUTH and has locations, skip select-account and go to dashboard
+    let redirectUrl: string;
+
+    if (userState === "RE_AUTH") {
+      // Check if user has existing locations for this account
+      const { data: existingLocations } = await adminClient
+        .from("gmb_locations")
+        .select("id")
+        .eq("gmb_account_id", savedAccountId)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (existingLocations && existingLocations.length > 0) {
+        // User has locations, skip select-account
+        redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/dashboard`,
+          {
+            reconnected: "true",
+            accountId: savedAccountId,
+          },
+        );
+        gmbLogger.info(
+          "RE_AUTH with existing locations - redirecting to dashboard",
+          {
+            accountId: savedAccountId,
+            locationsCount: existingLocations.length,
+          },
+        );
+      } else {
+        // RE_AUTH but no locations - go to select-account
+        redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/select-account`,
+          {
+            accountId: savedAccountId,
+            userState: userState,
+            accountCount: String(savedAccountIds.length),
+          },
+        );
+        gmbLogger.info(
+          "RE_AUTH without locations - redirecting to select-account",
+          {
+            accountId: savedAccountId,
+          },
+        );
+      }
+    } else {
+      // FIRST_TIME or ADDITIONAL_ACCOUNT - always go to select-account
+      redirectUrl = buildSafeRedirectUrl(
+        baseUrl,
+        `/${localeCookie}/select-account`,
+        {
+          accountId: savedAccountId,
+          userState: userState,
+          accountCount: String(savedAccountIds.length),
+        },
+      );
+      gmbLogger.info("Redirecting to select-account", {
+        userState,
         accountId: savedAccountId,
-        userState: userState,
-        accountCount: String(savedAccountIds.length),
-      },
-    );
-    gmbLogger.info("Redirecting to select-account", { url: selectAccountUrl });
+      });
+    }
 
     // Create redirect response and set gmb_connected cookie for middleware optimization
-    const redirectResponse = NextResponse.redirect(selectAccountUrl);
+    const redirectResponse = NextResponse.redirect(redirectUrl);
     redirectResponse.cookies.set("gmb_connected", "true", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

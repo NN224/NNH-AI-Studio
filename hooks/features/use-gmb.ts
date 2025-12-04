@@ -9,16 +9,19 @@ export const GMB_KEYS = {
   accounts: () => [...GMB_KEYS.all, "accounts"] as const,
 };
 
-export function useGMBStatus() {
+export function useGMBStatus(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: GMB_KEYS.status(),
     queryFn: GMBService.getStatus,
-    // Keep data fresh for 30 seconds to ensure quick updates after OAuth
-    staleTime: 1000 * 30,
-    gcTime: 1000 * 60 * 10,
+    // CRITICAL: No caching! Always fetch fresh data to avoid stale GMB connection status
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
-    // Always refetch on mount to ensure fresh data after OAuth redirect
+    // Always refetch on mount and window focus
     refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    enabled: options?.enabled ?? true,
   });
 }
 

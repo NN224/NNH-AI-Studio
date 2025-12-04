@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/client';
-import type { Provider } from '@supabase/supabase-js';
+import { createClient } from "@/lib/supabase/client";
+import type { Provider } from "@supabase/supabase-js";
 
 export const authService = {
   async signUp(email: string, password: string, fullName?: string) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -15,9 +15,10 @@ export const authService = {
         data: {
           full_name: fullName,
         },
-        emailRedirectTo: typeof window !== 'undefined' 
-          ? `${window.location.origin}/auth/callback`
-          : '/auth/callback',
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback`
+            : "/auth/callback",
       },
     });
 
@@ -28,7 +29,7 @@ export const authService = {
   async signIn(email: string, password: string, rememberMe?: boolean) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -51,18 +52,22 @@ export const authService = {
   async signInWithOAuth(provider: Provider) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
-    const redirectTo = typeof window !== 'undefined' 
-      ? `${window.location.origin}/auth/callback`
-      : '/auth/callback';
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/callback`
+        : "/auth/callback";
 
+    // NOTE: We only request basic profile scopes here (email, profile, openid)
+    // GMB scopes are requested separately via /api/gmb/create-auth-url
+    // This keeps authentication separate from GMB authorization
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo,
-        scopes: provider === 'google' ? 'https://www.googleapis.com/auth/business.manage' : undefined,
+        // No extra scopes - just basic auth
       },
     });
 
@@ -73,7 +78,7 @@ export const authService = {
   async signOut() {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { error } = await supabase.auth.signOut();
@@ -83,12 +88,13 @@ export const authService = {
   async resetPassword(email: string) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
-    const redirectTo = typeof window !== 'undefined' 
-      ? `${window.location.origin}/auth/reset-password`
-      : '/auth/reset-password';
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/reset-password`
+        : "/auth/reset-password";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
@@ -100,7 +106,7 @@ export const authService = {
   async updatePassword(newPassword: string) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { error } = await supabase.auth.updateUser({
@@ -112,20 +118,20 @@ export const authService = {
 
   /**
    * @deprecated SECURITY WARNING: Using getSession() is insecure!
-   * 
+   *
    * This method reads session data directly from storage (cookies) without verifying
    * its authenticity with the Supabase Auth server. An attacker could modify cookies
    * to impersonate another user.
-   * 
+   *
    * Use getUser() instead, which validates the session by contacting the
    * Supabase Auth server and ensures the data is authentic.
-   * 
+   *
    * @see {@link https://supabase.com/docs/guides/auth/server-side/creating-a-client#creating-a-client}
    */
   async getSession() {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { data, error } = await supabase.auth.getSession();
@@ -139,7 +145,7 @@ export const authService = {
   async getUser() {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
     const { data, error } = await supabase.auth.getUser();
@@ -151,15 +157,16 @@ export const authService = {
   async resendVerificationEmail(email: string) {
     const supabase = createClient();
     if (!supabase) {
-      throw new Error('Failed to initialize Supabase client');
+      throw new Error("Failed to initialize Supabase client");
     }
 
-    const redirectTo = typeof window !== 'undefined' 
-      ? `${window.location.origin}/auth/callback`
-      : '/auth/callback';
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/callback`
+        : "/auth/callback";
 
     const { error } = await supabase.auth.resend({
-      type: 'signup',
+      type: "signup",
       email,
       options: {
         emailRedirectTo: redirectTo,
@@ -169,4 +176,3 @@ export const authService = {
     if (error) throw error;
   },
 };
-

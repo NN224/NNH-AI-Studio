@@ -172,13 +172,6 @@ async function bulkDeleteHandler(request: NextRequest) {
 
     // Convert headers object to Record<string, string>
     const responseHeaders: Record<string, string> = {};
-    if (rateLimitHeaders) {
-      Object.entries(rateLimitHeaders).forEach(([key, value]) => {
-        if (typeof value === "string") {
-          responseHeaders[key] = value;
-        }
-      });
-    }
 
     // Return success with details
     return NextResponse.json(

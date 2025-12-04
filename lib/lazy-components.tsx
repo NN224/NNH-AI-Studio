@@ -202,43 +202,25 @@ export const LazyBusinessInfoEditor = dynamic(
 );
 
 // ============================================================================
-// Heavy Home Components (Lazy Loaded)
+// Heavy Command Center Components (Lazy Loaded)
 // ============================================================================
 
-/** Lazy-loaded achievement system - 33KB */
-export const LazyAchievementSystem = dynamic(
+/** Lazy-loaded command center chat - Main chat interface */
+export const LazyCommandCenterChat = dynamic(
   () =>
-    import("@/components/home/achievement-system").then((mod) => ({
-      default: mod.AchievementSystem,
+    import("@/components/command-center/command-center-chat").then((mod) => ({
+      default: mod.CommandCenterChat,
     })),
-  { loading: CardSkeleton, ssr: false },
-);
-
-/** Lazy-loaded progress tracker - 26KB */
-export const LazyProgressTracker = dynamic(
-  () =>
-    import("@/components/home/progress-tracker").then((mod) => ({
-      default: mod.ProgressTracker,
-    })),
-  { loading: CardSkeleton, ssr: false },
-);
-
-/** Lazy-loaded AI insights charts - 17KB */
-export const LazyAIInsightsCharts = dynamic(
-  () =>
-    import("@/components/home/ai-insights-charts").then((mod) => ({
-      default: mod.AIInsightBarChart,
-    })),
-  { loading: ChartSkeleton, ssr: false },
-);
-
-/** Lazy-loaded smart notifications - 20KB */
-export const LazySmartNotifications = dynamic(
-  () =>
-    import("@/components/home/smart-notifications").then((mod) => ({
-      default: mod.SmartNotifications,
-    })),
-  { loading: CardSkeleton, ssr: false },
+  {
+    loading: () => (
+      <Card className="h-[600px]">
+        <CardContent className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    ),
+    ssr: false,
+  },
 );
 
 // ============================================================================
@@ -262,24 +244,6 @@ export const LazyAIAssistant = dynamic(
               <Skeleton className="h-3 w-[150px]" />
             </div>
           </div>
-        </CardContent>
-      </Card>
-    ),
-    ssr: false,
-  },
-);
-
-/** Lazy-loaded AI hero chat - 17KB */
-export const LazyAIHeroChat = dynamic(
-  () =>
-    import("@/components/ai-command-center/ai/ai-hero-chat").then((mod) => ({
-      default: mod.AIHeroChat,
-    })),
-  {
-    loading: () => (
-      <Card className="h-[400px]">
-        <CardContent className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     ),

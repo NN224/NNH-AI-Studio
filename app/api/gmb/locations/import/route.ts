@@ -170,14 +170,28 @@ export const POST = withSecureApi<ImportLocationsBody>(
         .single();
 
       if (upsertError) {
+        // Log the full error details
+        const errorDetails = {
+          message: upsertError.message,
+          code: upsertError.code,
+          details: upsertError.details,
+          hint: upsertError.hint,
+          full: JSON.stringify(upsertError, null, 2),
+        };
         gmbLogger.error(
           "Error upserting location",
-          upsertError instanceof Error
-            ? upsertError
-            : new Error(String(upsertError)),
-          { locationName: location.name, accountId, userId: user.id },
+          new Error(JSON.stringify(errorDetails)),
+          {
+            locationName: location.name,
+            accountId,
+            userId: user.id,
+            errorCode: upsertError.code,
+            errorMessage: upsertError.message,
+          },
         );
-        errors.push(`Failed to import ${location.title || location.name}`);
+        errors.push(
+          `Failed to import ${location.title || location.name}: ${upsertError.message || "Unknown error"}`,
+        );
         continue;
       }
 

@@ -1,27 +1,30 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
-      return Response.json({
-        success: false,
-        error: 'Unauthorized - No user session',
-      }, { status: 401 });
+      return Response.json(
+        {
+          success: false,
+          error: 'Unauthorized - No user session',
+        },
+        { status: 401 },
+      )
     }
 
-    const startTime = Date.now();
+    const startTime = Date.now()
 
-    // Test database connectivity
-    const { data: testQuery, error: dbError } = await supabase
+    // Test database connectivity with a simple count query
+    const { error: dbError } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single();
+      .select('*', { count: 'exact', head: true })
 
-    const dbResponseTime = Date.now() - startTime;
+    const dbResponseTime = Date.now() - startTime
 
     return Response.json({
       success: !dbError,
@@ -34,15 +37,18 @@ export async function GET() {
         environment: process.env.NODE_ENV || 'unknown',
         supabase_url_configured: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       },
-    });
+    })
   } catch (error) {
-    return Response.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: {
-        status: 'error',
-        timestamp: new Date().toISOString(),
+    return Response.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: {
+          status: 'error',
+          timestamp: new Date().toISOString(),
+        },
       },
-    }, { status: 500 });
+      { status: 500 },
+    )
   }
 }

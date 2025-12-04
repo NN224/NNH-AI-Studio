@@ -1,11 +1,10 @@
-"use client";
+'use client'
 
-import { GlobalSyncProvider } from "@/components/providers/global-sync-provider";
-import { StoreProvider } from "@/components/providers/store-provider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
-import { logger } from "@/lib/utils/logger";
+import { StoreProvider } from '@/components/providers/store-provider'
+import { logger } from '@/lib/utils/logger'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { useState } from 'react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -19,10 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             gcTime: 10 * 60 * 1000,
             // Retry failed requests 3 times with exponential backoff
             retry: 3,
-            retryDelay: (attemptIndex) =>
-              Math.min(1000 * 2 ** attemptIndex, 30000),
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
             // Refetch on window focus in production only
-            refetchOnWindowFocus: process.env.NODE_ENV === "production",
+            refetchOnWindowFocus: process.env.NODE_ENV === 'production',
             // Don't refetch on mount if data is fresh
             refetchOnMount: false,
             // Enable background refetching
@@ -34,23 +32,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
             // Show error for 5 seconds
             onError: (error) => {
               logger.error(
-                "[Mutation Error]",
+                '[Mutation Error]',
                 error instanceof Error ? error : new Error(String(error)),
-              );
+              )
             },
           },
         },
       }),
-  );
+  )
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StoreProvider>
-        <GlobalSyncProvider>{children}</GlobalSyncProvider>
-      </StoreProvider>
-      {process.env.NODE_ENV === "development" && (
+      <StoreProvider>{children}</StoreProvider>
+      {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} position="bottom" />
       )}
     </QueryClientProvider>
-  );
+  )
 }

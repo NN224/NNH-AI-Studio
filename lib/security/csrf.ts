@@ -1,6 +1,6 @@
-import { apiLogger } from "@/lib/utils/logger";
-import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { apiLogger } from '@/lib/utils/logger'
+import { cookies } from 'next/headers'
+import { NextRequest } from 'next/server'
 
 /**
  * Generates a cryptographically secure random token for CSRF protection.
@@ -15,143 +15,158 @@ import { NextRequest } from "next/server";
 const getRandomToken = (): string => {
   // Server-side: use global.crypto (available in Node.js 19+ and Edge Runtime)
   if (
-    typeof window === "undefined" &&
-    typeof global !== "undefined" &&
+    typeof window === 'undefined' &&
+    typeof global !== 'undefined' &&
     global.crypto?.getRandomValues
   ) {
-    const buffer = new Uint8Array(32);
-    global.crypto.getRandomValues(buffer);
-    return Array.from(buffer, (b) => b.toString(16).padStart(2, "0")).join("");
+    const buffer = new Uint8Array(32)
+    global.crypto.getRandomValues(buffer)
+    return Array.from(buffer, (b) => b.toString(16).padStart(2, '0')).join('')
   }
 
   // Client-side: use window.crypto (Web Crypto API)
-  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
-    const buffer = new Uint8Array(32);
-    window.crypto.getRandomValues(buffer);
-    return Array.from(buffer, (b) => b.toString(16).padStart(2, "0")).join("");
+  if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+    const buffer = new Uint8Array(32)
+    window.crypto.getRandomValues(buffer)
+    return Array.from(buffer, (b) => b.toString(16).padStart(2, '0')).join('')
   }
 
   // Check for crypto.randomUUID as alternative
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     // randomUUID returns a UUID v4 (122 bits of randomness)
     // Combine two UUIDs for extra entropy
-    return (
-      crypto.randomUUID().replace(/-/g, "") +
-      crypto.randomUUID().replace(/-/g, "")
-    );
+    return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
   }
 
   // FAIL SECURELY - Never use weak randomness for security tokens
   throw new Error(
-    "CSRF Protection Error: Cryptographically secure random number generation is not available. " +
-      "This is required for security. Please ensure your environment supports Web Crypto API " +
-      "(Node.js 19+, modern browsers, or Edge Runtime).",
-  );
-};
+    'CSRF Protection Error: Cryptographically secure random number generation is not available. ' +
+      'This is required for security. Please ensure your environment supports Web Crypto API ' +
+      '(Node.js 19+, modern browsers, or Edge Runtime).',
+  )
+}
 
 // CSRF token configuration
-const _CSRF_TOKEN_LENGTH = 32; // Reserved for future use
-export const CSRF_COOKIE_NAME = "csrf-token";
-export const CSRF_HEADER_NAME = "x-csrf-token";
-const _CSRF_FORM_FIELD = "csrfToken"; // Reserved for form-based CSRF
+const _CSRF_TOKEN_LENGTH = 32 // Reserved for future use
+export const CSRF_COOKIE_NAME = 'csrf-token'
+export const CSRF_HEADER_NAME = 'x-csrf-token'
+const _CSRF_FORM_FIELD = 'csrfToken' // Reserved for form-based CSRF
 
 // Methods that should be protected
-const PROTECTED_METHODS = ["POST", "PUT", "DELETE", "PATCH"];
+const PROTECTED_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH']
 
 // Paths that should be excluded from CSRF protection
 // These have their own authentication mechanisms
 const EXCLUDED_PATHS = [
   // OAuth flow (use state parameter for CSRF)
-  "/api/auth/callback",
-  "/api/gmb/oauth-callback",
-  "/api/gmb/create-auth-url",
-  "/api/youtube/oauth-callback",
-  "/api/youtube/create-auth-url",
+  '/api/auth/callback',
+  '/api/gmb/oauth-callback',
+  '/api/gmb/create-auth-url',
+  '/api/youtube/oauth-callback',
+  '/api/youtube/create-auth-url',
 
   // Webhooks (use signature verification)
-  "/api/webhook",
-  "/api/webhooks/",
+  '/api/webhook',
+  '/api/webhooks/',
 
   // Cron jobs (use CRON_SECRET)
-  "/api/cron/",
-  "/api/gmb/scheduled-sync",
+  '/api/cron/',
+  '/api/gmb/scheduled-sync',
 
   // CSRF token endpoint itself
-  "/api/csrf-token",
+  '/api/csrf-token',
 
   // Health checks
-  "/api/health",
+  '/api/health',
 
-  // Sentry tunnel
-  "/api/sentry",
-];
+  // Sentry tunnel and monitoring
+  '/api/sentry',
+  '/api/log-errors',
+  '/monitoring',
+
+  // Admin endpoints (have their own 2FA auth)
+  '/api/admin/',
+  '/admin/auth',
+  '/en/admin/auth',
+  '/ar/admin/auth',
+
+  // GMB endpoints (OAuth protected)
+  '/api/gmb/',
+  '/select-account',
+  '/en/select-account',
+  '/ar/select-account',
+
+  // Settings and other pages
+  '/settings',
+  '/en/settings',
+  '/ar/settings',
+  '/api/ai/',
+]
 
 /**
  * Generate a cryptographically secure CSRF token
  */
 export function generateCSRFToken(): string {
-  return getRandomToken();
+  return getRandomToken()
 }
 
 /**
  * Get CSRF token from request (header or body)
  */
-export async function getCSRFTokenFromRequest(
-  request: NextRequest,
-): Promise<string | null> {
+export async function getCSRFTokenFromRequest(request: NextRequest): Promise<string | null> {
   // Check header first
-  const headerToken = request.headers.get(CSRF_HEADER_NAME);
+  const headerToken = request.headers.get(CSRF_HEADER_NAME)
   if (headerToken) {
-    return headerToken;
+    return headerToken
   }
 
   // Check URL params for GET requests with CSRF (rare but possible)
-  const url = new URL(request.url);
-  const urlToken = url.searchParams.get("csrfToken");
+  const url = new URL(request.url)
+  const urlToken = url.searchParams.get('csrfToken')
   if (urlToken) {
-    return urlToken;
+    return urlToken
   }
 
   // Check body for form submissions (POST/PUT/PATCH)
-  if (["POST", "PUT", "PATCH"].includes(request.method)) {
+  if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
     try {
       // Clone request to avoid consuming the body
-      const clonedRequest = request.clone();
-      const contentType = request.headers.get("content-type") || "";
+      const clonedRequest = request.clone()
+      const contentType = request.headers.get('content-type') || ''
 
       // Handle JSON body
-      if (contentType.includes("application/json")) {
-        const body = await clonedRequest.json();
+      if (contentType.includes('application/json')) {
+        const body = await clonedRequest.json()
         if (body.csrfToken) {
-          return body.csrfToken;
+          return body.csrfToken
         }
       }
 
       // Handle form data
-      if (contentType.includes("application/x-www-form-urlencoded")) {
-        const text = await clonedRequest.text();
-        const params = new URLSearchParams(text);
-        const formToken = params.get("csrfToken");
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        const text = await clonedRequest.text()
+        const params = new URLSearchParams(text)
+        const formToken = params.get('csrfToken')
         if (formToken) {
-          return formToken;
+          return formToken
         }
       }
 
       // Handle multipart form data
-      if (contentType.includes("multipart/form-data")) {
-        const formData = await clonedRequest.formData();
-        const formToken = formData.get("csrfToken");
-        if (formToken && typeof formToken === "string") {
-          return formToken;
+      if (contentType.includes('multipart/form-data')) {
+        const formData = await clonedRequest.formData()
+        const formToken = formData.get('csrfToken')
+        if (formToken && typeof formToken === 'string') {
+          return formToken
         }
       }
     } catch (error) {
       // Body parsing failed, continue without body token
-      apiLogger.debug("Failed to parse body for CSRF token", { error });
+      apiLogger.debug('Failed to parse body for CSRF token', { error })
     }
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -159,15 +174,15 @@ export async function getCSRFTokenFromRequest(
  */
 export async function getCSRFTokenFromCookie(): Promise<string | null> {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get(CSRF_COOKIE_NAME);
-    return token?.value || null;
+    const cookieStore = cookies()
+    const token = cookieStore.get(CSRF_COOKIE_NAME)
+    return token?.value || null
   } catch (error) {
     apiLogger.error(
-      "Error reading CSRF cookie",
+      'Error reading CSRF cookie',
       error instanceof Error ? error : new Error(String(error)),
-    );
-    return null;
+    )
+    return null
   }
 }
 
@@ -176,19 +191,19 @@ export async function getCSRFTokenFromCookie(): Promise<string | null> {
  */
 export async function setCSRFTokenCookie(token: string): Promise<void> {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = await cookies()
     cookieStore.set(CSRF_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
-    });
+    })
   } catch (error) {
     apiLogger.error(
-      "Error setting CSRF cookie",
+      'Error setting CSRF cookie',
       error instanceof Error ? error : new Error(String(error)),
-    );
+    )
     // Silently fail - cookie setting may not be available in all contexts
   }
 }
@@ -196,25 +211,22 @@ export async function setCSRFTokenCookie(token: string): Promise<void> {
 /**
  * Verify CSRF token
  */
-export function verifyCSRFToken(
-  requestToken: string | null,
-  cookieToken: string | null,
-): boolean {
+export function verifyCSRFToken(requestToken: string | null, cookieToken: string | null): boolean {
   if (!requestToken || !cookieToken) {
-    return false;
+    return false
   }
 
   // Constant-time comparison to prevent timing attacks
   if (requestToken.length !== cookieToken.length) {
-    return false;
+    return false
   }
 
-  let result = 0;
+  let result = 0
   for (let i = 0; i < requestToken.length; i++) {
-    result |= requestToken.charCodeAt(i) ^ cookieToken.charCodeAt(i);
+    result |= requestToken.charCodeAt(i) ^ cookieToken.charCodeAt(i)
   }
 
-  return result === 0;
+  return result === 0
 }
 
 /**
@@ -223,16 +235,16 @@ export function verifyCSRFToken(
 export function shouldProtectRequest(request: NextRequest): boolean {
   // Only protect state-changing methods
   if (!PROTECTED_METHODS.includes(request.method)) {
-    return false;
+    return false
   }
 
   // Check if path is excluded
-  const pathname = new URL(request.url).pathname;
+  const pathname = new URL(request.url).pathname
   if (EXCLUDED_PATHS.some((path) => pathname.startsWith(path))) {
-    return false;
+    return false
   }
 
-  return true;
+  return true
 }
 
 /**
@@ -243,24 +255,24 @@ export async function validateCSRF(
 ): Promise<{ valid: boolean; token?: string }> {
   // Skip CSRF check for non-protected requests
   if (!shouldProtectRequest(request)) {
-    return { valid: true };
+    return { valid: true }
   }
 
   // Get tokens
-  const cookieToken = await getCSRFTokenFromCookie();
-  const requestToken = await getCSRFTokenFromRequest(request);
+  const cookieToken = await getCSRFTokenFromCookie()
+  const requestToken = await getCSRFTokenFromRequest(request)
 
   // If no cookie token exists, generate one (but don't set it in middleware)
   // Cookie setting should happen in Route Handlers only
   if (!cookieToken) {
-    const newToken = generateCSRFToken();
+    const newToken = generateCSRFToken()
     // Don't set cookie in middleware - return token for Route Handler to set
-    return { valid: false, token: newToken };
+    return { valid: false, token: newToken }
   }
 
   // Verify tokens match
-  const valid = verifyCSRFToken(requestToken, cookieToken);
-  return { valid, token: cookieToken };
+  const valid = verifyCSRFToken(requestToken, cookieToken)
+  return { valid, token: cookieToken }
 }
 
 /**
@@ -269,14 +281,14 @@ export async function validateCSRF(
  */
 export async function getCSRFToken(): Promise<string> {
   try {
-    const response = await fetch("/api/csrf-token");
-    const data = await response.json();
-    return data.token || "";
+    const response = await fetch('/api/csrf-token')
+    const data = await response.json()
+    return data.token || ''
   } catch (error) {
     apiLogger.error(
-      "Failed to get CSRF token",
+      'Failed to get CSRF token',
       error instanceof Error ? error : new Error(String(error)),
-    );
-    return "";
+    )
+    return ''
   }
 }
