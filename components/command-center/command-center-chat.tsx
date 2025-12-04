@@ -374,13 +374,21 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
       const approveData = await approveResponse.json();
 
       if (approveData.success) {
+        const { processed, failed } = approveData;
+        const successMsg =
+          failed === 0
+            ? `✅ Approved and published ${processed} ${processed === 1 ? "reply" : "replies"} to Google Business Profile! 🎉`
+            : `⚠️ Published ${processed} ${processed === 1 ? "reply" : "replies"}, but ${failed} failed to publish.`;
+
+        const remainingCount =
+          pendingData.data.actions.length - highConfidenceActions.length;
+
         addAssistantMessage(
-          `Done! ✅ Approved and published ${approveData.processed} replies.${
-            pendingData.data.actions.length - highConfidenceActions.length > 0
-              ? `\n\n${pendingData.data.actions.length - highConfidenceActions.length} remaining require attention.`
-              : ""
-          }`,
-          pendingData.data.actions.length - highConfidenceActions.length > 0
+          successMsg +
+            (remainingCount > 0
+              ? `\n\n${remainingCount} ${remainingCount === 1 ? "action" : "actions"} remaining require your attention.`
+              : ""),
+          remainingCount > 0
             ? [
                 {
                   label: "Show remaining",
@@ -391,7 +399,9 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
             : undefined,
         );
       } else {
-        addAssistantMessage("Error approving. Please try again.");
+        addAssistantMessage(
+          "❌ Error approving actions. Please try again or approve individually.",
+        );
       }
     } catch (error) {
       console.error("Error approving all:", error);
@@ -414,9 +424,15 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
         setMessages((prev) =>
           prev.filter((m) => m.pendingAction?.id !== actionId),
         );
-        addAssistantMessage("Done! ✅ Reply published.");
+        addAssistantMessage(
+          "Done! ✅ Reply published to Google Business Profile.",
+        );
       } else {
-        addAssistantMessage(`Error: ${data.error}`);
+        // Show error with more context
+        const errorMsg = data.error || "Unknown error occurred";
+        addAssistantMessage(
+          `❌ Publishing failed: ${errorMsg}\n\nThe action has been marked as failed. You can retry later or edit the response.`,
+        );
       }
     } catch (error) {
       console.error("Error approving:", error);

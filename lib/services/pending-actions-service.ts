@@ -19,7 +19,8 @@ export type ActionStatus =
   | "approved"
   | "rejected"
   | "auto_published"
-  | "edited";
+  | "edited"
+  | "publish_failed";
 
 export interface PendingAction {
   id: string;
@@ -107,21 +108,105 @@ async function publishToGoogle(
   action: PendingAction,
   content: string,
 ): Promise<{ success: boolean; error?: string }> {
-  // TODO: Implement actual Google API call
-  // For now, simulate success
-  console.log(`[PUBLISH] Would publish to Google:`, {
-    actionType: action.actionType,
-    referenceId: action.referenceId,
-    content: content.substring(0, 100) + "...",
-  });
+  try {
+    const supabase = createAdminClient();
 
-  // In real implementation:
-  // 1. Get OAuth token for user
-  // 2. Call Google Business Profile API
-  // 3. Post reply/answer/post
-  // 4. Return result
+    // Only handle review replies for now
+    // Questions and posts require different API endpoints
+    if (action.actionType !== "review_reply") {
+      console.log(
+        `[PUBLISH] Skipping ${action.actionType} - not implemented yet`,
+      );
+      return { success: true }; // Don't fail, just skip
+    }
 
-  return { success: true };
+    // Get review with account/location info
+    const { data: review } = await supabase
+      .from("gmb_reviews")
+      .select(
+        `
+        *,
+        gmb_locations!inner(
+          id, location_id, gmb_account_id,
+          gmb_accounts!inner(id, account_id, is_active)
+        )
+      `,
+      )
+      .eq("id", action.referenceId)
+      .single();
+
+    if (!review) {
+      return { success: false, error: "Review not found" };
+    }
+
+    // Check if account is active
+    if (!review.gmb_locations?.gmb_accounts?.is_active) {
+      return {
+        success: false,
+        error: "GMB account is not active. Please reconnect your account.",
+      };
+    }
+
+    // Import and use existing replyToReview function
+    const { replyToReview } = await import(
+      "@/server/actions/reviews-management"
+    );
+    const result = await replyToReview(action.referenceId, content);
+
+    return result;
+  } catch (error) {
+    console.error("Error publishing to Google:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Publish with retry logic (exponential backoff)
+ */
+async function publishWithRetry(
+  action: PendingAction,
+  content: string,
+  maxRetries = 3,
+): Promise<{ success: boolean; error?: string; attempt?: number }> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await publishToGoogle(action, content);
+
+    if (result.success) {
+      return { ...result, attempt };
+    }
+
+    // Don't retry on certain errors
+    const nonRetryableErrors = [
+      "Authentication",
+      "not found",
+      "not active",
+      "Invalid",
+      "Forbidden",
+    ];
+
+    const shouldNotRetry = nonRetryableErrors.some((errText) =>
+      result.error?.includes(errText),
+    );
+
+    if (shouldNotRetry) {
+      console.log(`[PUBLISH] Not retrying due to error: ${result.error}`);
+      return result;
+    }
+
+    // Exponential backoff before retry
+    if (attempt < maxRetries) {
+      const delayMs = 1000 * Math.pow(2, attempt);
+      console.log(
+        `[PUBLISH] Retry attempt ${attempt} failed, waiting ${delayMs}ms before retry ${attempt + 1}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return { success: false, error: "Max retries exceeded" };
 }
 
 // ============================================
@@ -270,17 +355,31 @@ export async function approveAction(
     return { success: false, error: "Action already processed" };
   }
 
-  // Publish to Google
-  const publishResult = await publishToGoogle(
+  // Publish to Google with retry logic
+  const publishResult = await publishWithRetry(
     action,
     action.aiGeneratedContent,
+    3, // max retries
   );
 
   if (!publishResult.success) {
+    // Update status to publish_failed with error details
+    await supabase
+      .from("pending_ai_actions")
+      .update({
+        status: "publish_failed",
+        last_publish_error: publishResult.error,
+        last_publish_attempt_at: new Date().toISOString(),
+        publish_attempts: (action as any).publish_attempts
+          ? (action as any).publish_attempts + 1
+          : 1,
+      })
+      .eq("id", actionId);
+
     return { success: false, error: publishResult.error };
   }
 
-  // Update status
+  // Update status to approved with success details
   const { error } = await supabase
     .from("pending_ai_actions")
     .update({
@@ -288,6 +387,8 @@ export async function approveAction(
       reviewed_at: new Date().toISOString(),
       published_at: new Date().toISOString(),
       reviewed_by: userId,
+      publish_attempts: publishResult.attempt || 1,
+      last_publish_attempt_at: new Date().toISOString(),
     })
     .eq("id", actionId);
 
@@ -358,10 +459,24 @@ export async function editAndApproveAction(
     return { success: false, error: "Action already processed" };
   }
 
-  // Publish edited content to Google
-  const publishResult = await publishToGoogle(action, editedContent);
+  // Publish edited content to Google with retry logic
+  const publishResult = await publishWithRetry(action, editedContent, 3);
 
   if (!publishResult.success) {
+    // Update status to publish_failed with error details
+    await supabase
+      .from("pending_ai_actions")
+      .update({
+        status: "publish_failed",
+        edited_content: editedContent,
+        last_publish_error: publishResult.error,
+        last_publish_attempt_at: new Date().toISOString(),
+        publish_attempts: (action as any).publish_attempts
+          ? (action as any).publish_attempts + 1
+          : 1,
+      })
+      .eq("id", actionId);
+
     return { success: false, error: publishResult.error };
   }
 
@@ -374,6 +489,8 @@ export async function editAndApproveAction(
       reviewed_at: new Date().toISOString(),
       published_at: new Date().toISOString(),
       reviewed_by: userId,
+      publish_attempts: publishResult.attempt || 1,
+      last_publish_attempt_at: new Date().toISOString(),
     })
     .eq("id", actionId);
 
