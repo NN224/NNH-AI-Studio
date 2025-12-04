@@ -196,6 +196,16 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
+            <Link href="/en/home?preview=true">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-10 py-7 text-lg font-bold transition-all"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                Try Live Demo
+              </Button>
+            </Link>
             <a href="#demo">
               <Button
                 size="lg"

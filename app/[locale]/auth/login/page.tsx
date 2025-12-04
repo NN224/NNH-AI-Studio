@@ -196,6 +196,19 @@ function LoginPageContent() {
             {t("signUp")}
           </Link>
         </p>
+
+        {/* Preview Mode CTA */}
+        <p className="text-center text-sm text-gray-400 pt-4 border-t border-gray-800">
+          <Link
+            href={`/${locale}/home?preview=true`}
+            className="text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            Not ready yet?{" "}
+            <span className="text-orange-400 hover:text-orange-300 font-medium">
+              Try the demo →
+            </span>
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   );
