@@ -565,14 +565,29 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
     setIsSending(true);
 
     try {
+      // Build request body - only include defined values
+      const requestBody: {
+        message: string;
+        conversationId?: string;
+        locationId?: string;
+      } = {
+        message: userInput,
+      };
+
+      // Only add conversationId if it's a valid string
+      if (conversationId && typeof conversationId === "string") {
+        requestBody.conversationId = conversationId;
+      }
+
+      // Only add locationId if it's a valid string
+      if (locationId && typeof locationId === "string") {
+        requestBody.locationId = locationId;
+      }
+
       const response = await fetch("/api/ai/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userInput,
-          conversationId,
-          locationId,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const data = await response.json();
 
@@ -586,11 +601,27 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
           })),
         );
       } else {
-        addAssistantMessage("Sorry, an error occurred. Please try again.");
+        // Show detailed error message from API
+        const errorMessage =
+          response.status === 400
+            ? "❌ Invalid request. Please check your input and try again."
+            : response.status === 401
+              ? "🔒 Please log in to continue."
+              : data.error || "Sorry, an error occurred. Please try again.";
+
+        console.error("[Chat] API Error:", {
+          status: response.status,
+          error: data.error,
+          details: data.details,
+        });
+
+        addAssistantMessage(errorMessage);
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      addAssistantMessage("Sorry, connection error.");
+      addAssistantMessage(
+        "❌ Connection error. Please check your internet and try again.",
+      );
     } finally {
       setIsSending(false);
     }
