@@ -420,121 +420,104 @@ export function BusinessSetupScreen({
       await new Promise((resolve) => setTimeout(resolve, 500));
       updateStep("locations", { status: "done", count: 1 });
 
-      // Step 2: Sync Reviews
+      // Step 2: Start Full Sync (single API call for all data types)
+      // This avoids rate limiting by using a single sync job
       updateStep("reviews", { status: "syncing", count: 0, total: 100 });
-
-      try {
-        const reviewsResponse = await fetch("/api/gmb/enqueue-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId, syncType: "reviews" }),
-        });
-
-        if (reviewsResponse.ok) {
-          // Simulate progress while sync happens in background
-          for (let i = 0; i <= 100; i += 10) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            updateStep("reviews", { count: i });
-          }
-
-          // Get actual count from database
-          const countResponse = await fetch(
-            `/api/gmb/sync-status?accountId=${accountId}`,
-          );
-          const countData = await countResponse.json();
-          updateStep("reviews", {
-            status: "done",
-            count: countData.reviewsCount || 0,
-          });
-        } else {
-          throw new Error("Failed to sync reviews");
-        }
-      } catch (error) {
-        gmbLogger.error(
-          "Reviews sync error",
-          error instanceof Error ? error : new Error(String(error)),
-        );
-        updateStep("reviews", { status: "done", count: 0 }); // Continue anyway
-      }
-
-      // Step 3: Sync Posts
       updateStep("posts", { status: "syncing", count: 0, total: 50 });
-
-      try {
-        const postsResponse = await fetch("/api/gmb/enqueue-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId, syncType: "posts" }),
-        });
-
-        if (postsResponse.ok) {
-          for (let i = 0; i <= 50; i += 10) {
-            await new Promise((resolve) => setTimeout(resolve, 150));
-            updateStep("posts", { count: i });
-          }
-          updateStep("posts", { status: "done", count: 0 });
-        } else {
-          throw new Error("Failed to sync posts");
-        }
-      } catch (error) {
-        gmbLogger.error(
-          "Posts sync error",
-          error instanceof Error ? error : new Error(String(error)),
-        );
-        updateStep("posts", { status: "done", count: 0 });
-      }
-
-      // Step 4: Sync Questions
       updateStep("questions", { status: "syncing", count: 0, total: 30 });
-
-      try {
-        const questionsResponse = await fetch("/api/gmb/enqueue-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId, syncType: "questions" }),
-        });
-
-        if (questionsResponse.ok) {
-          for (let i = 0; i <= 30; i += 5) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            updateStep("questions", { count: i });
-          }
-          updateStep("questions", { status: "done", count: 0 });
-        } else {
-          throw new Error("Failed to sync questions");
-        }
-      } catch (error) {
-        gmbLogger.error(
-          "Questions sync error",
-          error instanceof Error ? error : new Error(String(error)),
-        );
-        updateStep("questions", { status: "done", count: 0 });
-      }
-
-      // Step 5: Sync Media
       updateStep("media", { status: "syncing", count: 0, total: 20 });
 
       try {
-        const mediaResponse = await fetch("/api/gmb/enqueue-sync", {
+        const syncResponse = await fetch("/api/gmb/enqueue-sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId, syncType: "media" }),
+          body: JSON.stringify({ accountId, syncType: "full" }),
         });
 
-        if (mediaResponse.ok) {
-          for (let i = 0; i <= 20; i += 5) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            updateStep("media", { count: i });
+        if (!syncResponse.ok) {
+          const errorData = await syncResponse.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || `Sync failed: ${syncResponse.status}`,
+          );
+        }
+
+        const syncData = await syncResponse.json();
+        gmbLogger.info("Full sync queued", {
+          queueId: syncData.queueId,
+          accountId,
+        });
+
+        // Simulate progress while sync happens in background
+        // Reviews progress (40% of total animation)
+        for (let i = 0; i <= 100; i += 10) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          updateStep("reviews", { count: i });
+        }
+        updateStep("reviews", { status: "done", count: 0 });
+
+        // Posts progress (25% of total animation)
+        for (let i = 0; i <= 50; i += 10) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          updateStep("posts", { count: i });
+        }
+        updateStep("posts", { status: "done", count: 0 });
+
+        // Questions progress (20% of total animation)
+        for (let i = 0; i <= 30; i += 5) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          updateStep("questions", { count: i });
+        }
+        updateStep("questions", { status: "done", count: 0 });
+
+        // Media progress (15% of total animation)
+        for (let i = 0; i <= 20; i += 5) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          updateStep("media", { count: i });
+        }
+        updateStep("media", { status: "done", count: 0 });
+
+        // Get actual counts from database after sync completes
+        try {
+          const countResponse = await fetch(
+            `/api/gmb/sync-status?accountId=${accountId}`,
+          );
+          if (countResponse.ok) {
+            const countData = await countResponse.json();
+            updateStep("reviews", {
+              status: "done",
+              count: countData.reviewsCount || 0,
+            });
+            updateStep("posts", {
+              status: "done",
+              count: countData.postsCount || 0,
+            });
+            updateStep("questions", {
+              status: "done",
+              count: countData.questionsCount || 0,
+            });
+            updateStep("media", {
+              status: "done",
+              count: countData.mediaCount || 0,
+            });
           }
-          updateStep("media", { status: "done", count: 0 });
-        } else {
-          throw new Error("Failed to sync media");
+        } catch (countError) {
+          // Non-critical - just log it
+          gmbLogger.warn("Failed to fetch sync counts", {
+            error:
+              countError instanceof Error
+                ? countError.message
+                : String(countError),
+          });
         }
       } catch (error) {
         gmbLogger.error(
-          "Media sync error",
+          "Full sync error",
           error instanceof Error ? error : new Error(String(error)),
         );
+        // Mark all as done to allow user to continue
+        updateStep("reviews", { status: "done", count: 0 });
+        updateStep("posts", { status: "done", count: 0 });
+        updateStep("questions", { status: "done", count: 0 });
         updateStep("media", { status: "done", count: 0 });
       }
 
