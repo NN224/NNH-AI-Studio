@@ -30,6 +30,7 @@ import { BusinessDNACard } from "./business-dna-card";
 import { PatternAlertCard, type DetectedPattern } from "./pattern-alert-card";
 import { getPreviewModeData } from "@/lib/services/preview-mode-service";
 import type { BusinessDNA } from "@/lib/services/business-dna-service";
+import { fetchWithCSRF } from "@/lib/utils/fetch-with-csrf";
 
 // ============================================
 // TYPES
@@ -402,11 +403,14 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
 
       // Batch approve
       const actionIds = highConfidenceActions.map((a: any) => a.id);
-      const approveResponse = await fetch("/api/ai/pending/batch/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actionIds }),
-      });
+      const approveResponse = await fetchWithCSRF(
+        "/api/ai/pending/batch/approve",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ actionIds }),
+        },
+      );
       const approveData = await approveResponse.json();
 
       if (approveData.success) {
@@ -458,9 +462,12 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
     setProcessingActions((prev) => new Set(prev).add(actionId));
 
     try {
-      const response = await fetch(`/api/ai/pending/${actionId}/approve`, {
-        method: "POST",
-      });
+      const response = await fetchWithCSRF(
+        `/api/ai/pending/${actionId}/approve`,
+        {
+          method: "POST",
+        },
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -495,9 +502,12 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
     setProcessingActions((prev) => new Set(prev).add(actionId));
 
     try {
-      const response = await fetch(`/api/ai/pending/${actionId}/reject`, {
-        method: "POST",
-      });
+      const response = await fetchWithCSRF(
+        `/api/ai/pending/${actionId}/reject`,
+        {
+          method: "POST",
+        },
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -584,7 +594,7 @@ ${pendingApprovals.totalCount > 0 ? "\nWhat would you like to do?" : ""}`,
         requestBody.locationId = locationId;
       }
 
-      const response = await fetch("/api/ai/assistant/chat", {
+      const response = await fetchWithCSRF("/api/ai/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
