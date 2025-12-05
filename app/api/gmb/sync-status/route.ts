@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("id", jobId);
     } else if (accountId) {
       query = query
-        .eq("gmb_account_id", accountId)
+        .eq("account_id", accountId)
         .order("created_at", { ascending: false })
         .limit(1);
     }
