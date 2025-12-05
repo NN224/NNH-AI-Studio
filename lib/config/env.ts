@@ -12,9 +12,9 @@ import { logger } from "../utils/logger";
  * Environment variables schema
  */
 const envSchema = z.object({
-  // Database
-  SUPABASE_URL: z.string().url("Invalid Supabase URL"),
-  SUPABASE_ANON_KEY: z.string().min(1, "Missing Supabase anon key"),
+  // Database - using NEXT_PUBLIC_ prefix to match actual env vars
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url("Invalid Supabase URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "Missing Supabase anon key"),
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
     .min(1, "Missing Supabase service role key"),
@@ -38,14 +38,18 @@ const envSchema = z.object({
     .min(32, "CSRF secret must be at least 32 characters")
     .regex(/^[a-zA-Z0-9+/=]+$/, "CSRF secret must be base64 encoded")
     .optional(),
+  // ENCRYPTION_KEY is REQUIRED - app must fail if not present to prevent silent failures
+  // This key is used to encrypt sensitive data like OAuth tokens
   ENCRYPTION_KEY: z
-    .string()
+    .string({
+      required_error:
+        "ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
+    })
     .length(
       64,
       "Encryption key must be exactly 64 characters (32 bytes hex encoded)",
     )
-    .regex(/^[a-fA-F0-9]+$/, "Encryption key must be hex encoded")
-    .optional(),
+    .regex(/^[a-fA-F0-9]+$/, "Encryption key must be hex encoded"),
 
   // Redis (optional for rate limiting)
   UPSTASH_REDIS_REST_URL: z.string().url("Invalid Redis URL").optional(),
@@ -99,9 +103,12 @@ function validateEnv(): z.infer<typeof envSchema> {
     // For production, create a fallback schema with all fields optional
     // This is a safer approach that avoids type errors while still providing validation
     const fallbackSchema = z.object({
-      // Create identical schema but with all fields optional
-      SUPABASE_URL: z.string().url("Invalid Supabase URL").optional(),
-      SUPABASE_ANON_KEY: z.string().min(1).optional(),
+      // Create identical schema but with all fields optional (except ENCRYPTION_KEY)
+      NEXT_PUBLIC_SUPABASE_URL: z
+        .string()
+        .url("Invalid Supabase URL")
+        .optional(),
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
       SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
       GOOGLE_CLIENT_ID: z.string().min(1).optional(),
       GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
@@ -120,11 +127,14 @@ function validateEnv(): z.infer<typeof envSchema> {
         .min(32)
         .regex(/^[a-zA-Z0-9+/=]+$/)
         .optional(),
+      // ENCRYPTION_KEY remains REQUIRED even in fallback - security critical
       ENCRYPTION_KEY: z
-        .string()
+        .string({
+          required_error:
+            "ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
+        })
         .length(64)
-        .regex(/^[a-fA-F0-9]+$/)
-        .optional(),
+        .regex(/^[a-fA-F0-9]+$/),
       UPSTASH_REDIS_REST_URL: z.string().url("Invalid Redis URL").optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
       NEXT_PUBLIC_APP_URL: z.string().url("Invalid app URL").optional(),

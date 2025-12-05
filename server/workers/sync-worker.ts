@@ -41,6 +41,78 @@ import {
 } from "@/server/actions/sync-queue";
 
 /**
+ * Sync event types for database logging
+ */
+type SyncEventType = "start" | "complete" | "error";
+
+/**
+ * Log sync events to the database for monitoring and debugging.
+ * Uses sync_status table to track sync operations.
+ */
+async function logSyncEvent(
+  accountId: string,
+  userId: string,
+  eventType: SyncEventType,
+  details: {
+    jobId: string;
+    jobType: SyncJobType;
+    itemsProcessed?: number;
+    error?: string;
+    durationMs?: number;
+  },
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const syncId = `sync_${details.jobId}`;
+
+    const record = {
+      user_id: userId,
+      account_id: accountId,
+      sync_id: syncId,
+      stage: details.jobType,
+      status:
+        eventType === "start"
+          ? "running"
+          : eventType === "complete"
+            ? "completed"
+            : "error",
+      progress: eventType === "complete" ? 100 : eventType === "start" ? 0 : 0,
+      message:
+        eventType === "start"
+          ? `Starting ${details.jobType}`
+          : eventType === "complete"
+            ? `Completed ${details.jobType}: ${details.itemsProcessed || 0} items`
+            : `Failed: ${details.error}`,
+      error: eventType === "error" ? details.error : null,
+      counts:
+        eventType === "complete"
+          ? { items_processed: details.itemsProcessed || 0 }
+          : {},
+      metadata: {
+        job_id: details.jobId,
+        job_type: details.jobType,
+        duration_ms: details.durationMs,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    await admin.from("sync_status").insert(record);
+
+    syncLogger.debug("Sync event logged to database", {
+      eventType,
+      jobId: details.jobId,
+      jobType: details.jobType,
+    });
+  } catch (logError) {
+    // Don't fail the sync if logging fails - just warn
+    syncLogger.warn("Failed to log sync event to database", {
+      error: logError instanceof Error ? logError.message : String(logError),
+      jobId: details.jobId,
+    });
+  }
+}
+
+/**
  * Process result from a sync job
  */
 export interface ProcessJobResult {
@@ -63,6 +135,7 @@ export async function processSyncJob(
 ): Promise<ProcessJobResult> {
   const { id: jobId, metadata } = job;
   const { job_type: jobType } = metadata;
+  const startTime = Date.now();
 
   syncLogger.info("Processing sync job", {
     jobId,
@@ -71,33 +144,57 @@ export async function processSyncJob(
     locationId: metadata.locationId,
   });
 
+  // Log sync start to database
+  await logSyncEvent(metadata.accountId, metadata.userId, "start", {
+    jobId,
+    jobType,
+  });
+
   try {
     // Get access token for API calls
     const accessToken = await getValidAccessToken(null, metadata.accountId);
 
     // Route to appropriate handler
+    let result: ProcessJobResult;
+
     switch (jobType) {
       case "discovery_locations":
-        return await processDiscoveryLocations(job, accessToken);
+        result = await processDiscoveryLocations(job, accessToken);
+        break;
 
       case "sync_reviews":
-        return await processSyncReviews(job, accessToken);
+        result = await processSyncReviews(job, accessToken);
+        break;
 
       case "sync_insights":
-        return await processSyncInsights(job, accessToken);
+        result = await processSyncInsights(job, accessToken);
+        break;
 
       case "sync_posts":
-        return await processSyncPosts(job, accessToken);
+        result = await processSyncPosts(job, accessToken);
+        break;
 
       case "sync_media":
-        return await processSyncMedia(job, accessToken);
+        result = await processSyncMedia(job, accessToken);
+        break;
 
       default:
         throw new Error(`Unknown job type: ${jobType}`);
     }
+
+    // Log successful completion to database
+    await logSyncEvent(metadata.accountId, metadata.userId, "complete", {
+      jobId,
+      jobType,
+      itemsProcessed: result.itemsProcessed,
+      durationMs: Date.now() - startTime,
+    });
+
+    return result;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
+    const durationMs = Date.now() - startTime;
 
     syncLogger.error(
       "Sync job failed",
@@ -107,8 +204,17 @@ export async function processSyncJob(
         jobType,
         accountId: metadata.accountId,
         locationId: metadata.locationId,
+        durationMs,
       },
     );
+
+    // Log error to database
+    await logSyncEvent(metadata.accountId, metadata.userId, "error", {
+      jobId,
+      jobType,
+      error: errorMessage,
+      durationMs,
+    });
 
     // FAIL-SAFE: Update job to failed status instead of crashing
     await updateJobStatus(jobId, "failed", errorMessage);

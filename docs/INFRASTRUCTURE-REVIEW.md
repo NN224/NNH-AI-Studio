@@ -112,14 +112,14 @@ CREATE POLICY "service_manage_queue" ON sync_queue
 
 ---
 
-### 3. التحقق من المتغيرات (env.ts) ✅
+### 3. التحقق من المتغيرات (env.ts) ✅ (تم الإصلاح)
 
 ```typescript
-// lib/config/env.ts
+// lib/config/env.ts - بعد الإصلاح
 const envSchema = z.object({
-  // Database - مطلوبة
-  SUPABASE_URL: z.string().url("Invalid Supabase URL"),
-  SUPABASE_ANON_KEY: z.string().min(1, "Missing Supabase anon key"),
+  // Database - using NEXT_PUBLIC_ prefix to match actual env vars ✅
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url("Invalid Supabase URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "Missing Supabase anon key"),
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
     .min(1, "Missing Supabase service role key"),
@@ -134,12 +134,14 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
 
-  // Security - اختيارية (⚠️ مشكلة!)
+  // Security - ENCRYPTION_KEY is now REQUIRED ✅
   ENCRYPTION_KEY: z
-    .string()
-    .length(64)
-    .regex(/^[a-fA-F0-9]+$/)
-    .optional(),
+    .string({
+      required_error:
+        "ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
+    })
+    .length(64, "Encryption key must be exactly 64 characters")
+    .regex(/^[a-fA-F0-9]+$/, "Encryption key must be hex encoded"),
 });
 ```
 
@@ -147,68 +149,44 @@ const envSchema = z.object({
 
 ## ⚠️ ما هو مفقود أو خطر (Missing/Risky)
 
-### 1. 🔴 CRITICAL: `ENCRYPTION_KEY` اختياري لكنه مطلوب فعلياً
+### 1. ✅ FIXED: `ENCRYPTION_KEY` أصبح مطلوباً
 
-**الموقع**: `lib/config/env.ts:41-48`
-
-```typescript
-// ❌ المشكلة: المتغير اختياري
-ENCRYPTION_KEY: z.string().length(64).regex(/^[a-fA-F0-9]+$/).optional(),
-```
-
-**لكن في `lib/security/encryption.ts`:**
+**الموقع**: `lib/config/env.ts:41-52`
 
 ```typescript
-function getKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) {
-    throw new EncryptionError("ENCRYPTION_KEY is not configured"); // ❌ ينهار هنا
-  }
-  return decodeKey(key);
-}
-```
-
-**الخطر**:
-
-- التطبيق يبدأ بنجاح ✅
-- ينهار عند أول محاولة OAuth ❌ (Silent Failure)
-
-**الحل المقترح**:
-
-```typescript
-// جعل ENCRYPTION_KEY مطلوباً
-ENCRYPTION_KEY: z.string()
-  .length(64, "Encryption key must be exactly 64 characters (32 bytes hex encoded)")
+// ✅ تم الإصلاح: المتغير مطلوب الآن
+ENCRYPTION_KEY: z
+  .string({
+    required_error: "ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
+  })
+  .length(64, "Encryption key must be exactly 64 characters")
   .regex(/^[a-fA-F0-9]+$/, "Encryption key must be hex encoded"),
 ```
 
+**النتيجة**:
+
+- التطبيق يفشل عند البدء إذا لم يكن المفتاح موجوداً ✅
+- رسالة خطأ واضحة مع تعليمات التوليد ✅
+- لا مزيد من Silent Failures ✅
+
 ---
 
-### 2. 🔴 CRITICAL: عدم تطابق أسماء المتغيرات
+### 2. ✅ FIXED: تم توحيد أسماء المتغيرات
 
-| في `env.ts`         | في `server.ts`                  | في `.env.example`               |
-| ------------------- | ------------------------------- | ------------------------------- |
-| `SUPABASE_URL`      | `NEXT_PUBLIC_SUPABASE_URL`      | `NEXT_PUBLIC_SUPABASE_URL`      |
-| `SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| في `env.ts` (بعد الإصلاح)          | في `server.ts`                  | في `.env.example`               |
+| ---------------------------------- | ------------------------------- | ------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL` ✅      | `NEXT_PUBLIC_SUPABASE_URL`      | `NEXT_PUBLIC_SUPABASE_URL`      |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` ✅ | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 
 **الموقع**:
 
-- `lib/config/env.ts:16-17`
+- `lib/config/env.ts:15-17`
 - `lib/supabase/server.ts:19-20`
 
-**المشكلة**:
+**النتيجة**:
 
-- `env.ts` يتحقق من `SUPABASE_URL`
-- الكود الفعلي يستخدم `NEXT_PUBLIC_SUPABASE_URL`
-- التحقق يمر لكن الكود ينهار!
-
-**الحل المقترح**:
-
-```typescript
-// في env.ts - استخدام الأسماء الصحيحة
-NEXT_PUBLIC_SUPABASE_URL: z.string().url("Invalid Supabase URL"),
-NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "Missing Supabase anon key"),
-```
+- التحقق يستخدم نفس الأسماء المستخدمة في الكود ✅
+- لا مزيد من التضارب ✅
 
 ---
 
@@ -254,14 +232,14 @@ GOOGLE_REDIRECT_URI="https://yourdomain.com/api/gmb/oauth-callback"
 
 ### أولوية عالية (يجب إصلاحها قبل Production):
 
-- [ ] **1. جعل `ENCRYPTION_KEY` مطلوباً في `env.ts`**
-- [ ] **2. توحيد أسماء متغيرات Supabase** (`NEXT_PUBLIC_*`)
+- [x] **1. جعل `ENCRYPTION_KEY` مطلوباً في `env.ts`** ✅ تم الإصلاح
+- [x] **2. توحيد أسماء متغيرات Supabase** (`NEXT_PUBLIC_*`) ✅ تم الإصلاح
 - [ ] **3. إضافة `GOOGLE_REDIRECT_URI` لملفات `.env.example`**
 
 ### أولوية متوسطة:
 
 - [ ] **4. إضافة `CSRF_SECRET` لملفات المثال**
-- [ ] **5. توثيق كيفية توليد `ENCRYPTION_KEY`**:
+- [x] **5. توثيق كيفية توليد `ENCRYPTION_KEY`** ✅ مضاف في رسالة الخطأ:
   ```bash
   # توليد مفتاح تشفير آمن
   openssl rand -hex 32
@@ -276,10 +254,10 @@ GOOGLE_REDIRECT_URI="https://yourdomain.com/api/gmb/oauth-callback"
 | جداول GMB           | ✅ سليمة          | 100%   |
 | سياسات RLS          | ✅ مفعلة وآمنة    | 100%   |
 | Service Role Access | ✅ معرف بشكل صحيح | 100%   |
-| التحقق من المتغيرات | ⚠️ يحتاج تعديل    | 70%    |
+| التحقق من المتغيرات | ✅ تم الإصلاح     | 95%    |
 | ملفات المثال        | ⚠️ ناقصة          | 80%    |
 
-**التقييم العام**: البنية التحتية **صلبة بنسبة 85%**، تحتاج إصلاحات بسيطة في ملف `env.ts` وملفات المثال.
+**التقييم العام**: البنية التحتية **صلبة بنسبة 95%** بعد إصلاح `env.ts`. ✅
 
 ---
 

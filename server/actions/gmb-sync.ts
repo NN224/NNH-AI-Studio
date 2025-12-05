@@ -34,8 +34,109 @@ const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const MAX_CONCURRENT_REQUESTS = 5;
 const REQUEST_DELAY_MS = 200;
 
+// Retry configuration for 429 errors
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000; // 1 second
+
 // Token refresh configuration
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
+/**
+ * Fetch with exponential backoff retry for rate limiting (429) errors.
+ * This prevents the sync from failing immediately when Google rate limits us.
+ *
+ * Retry strategy:
+ * - 1st retry: wait 1 second
+ * - 2nd retry: wait 2 seconds
+ * - 3rd retry: wait 4 seconds
+ * - After 3 failures: throw error gracefully
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+  context?: { accountId?: string; locationId?: string; operation?: string },
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, options, timeoutMs);
+
+      // Success - return response
+      if (response.ok) {
+        return response;
+      }
+
+      // Handle rate limiting (429)
+      if (response.status === 429) {
+        const retryAfterHeader = response.headers.get("Retry-After");
+        const waitMs = retryAfterHeader
+          ? parseInt(retryAfterHeader) * 1000
+          : INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt); // Exponential backoff
+
+        gmbLogger.warn("Rate limited by Google API (429), retrying...", {
+          attempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          waitMs,
+          retryAfter: retryAfterHeader,
+          ...context,
+        });
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      // Handle server errors (5xx) with retry
+      if (response.status >= 500) {
+        const waitMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+        gmbLogger.warn("Google API server error (5xx), retrying...", {
+          status: response.status,
+          attempt: attempt + 1,
+          maxRetries: MAX_RETRIES,
+          waitMs,
+          ...context,
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      // Other client errors (4xx except 429) - don't retry, return response
+      return response;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Network errors - retry with backoff
+      const waitMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+      gmbLogger.warn("Network error during Google API call, retrying...", {
+        error: lastError.message,
+        attempt: attempt + 1,
+        maxRetries: MAX_RETRIES,
+        waitMs,
+        ...context,
+      });
+
+      if (attempt < MAX_RETRIES - 1) {
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
+    }
+  }
+
+  // All retries exhausted
+  const finalError = new Error(
+    `Google API request failed after ${MAX_RETRIES} retries: ${lastError?.message || "Unknown error"}`,
+  );
+
+  gmbLogger.error("Google API request failed after all retries", finalError, {
+    maxRetries: MAX_RETRIES,
+    lastError: lastError?.message,
+    ...context,
+  });
+
+  throw finalError;
+}
 
 // Sync timeout configuration
 const SYNC_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max for entire sync
@@ -430,7 +531,7 @@ export async function fetchLocationsDataForSync(
       url.searchParams.set("pageToken", nextPageToken);
     }
 
-    const response = await fetchWithTimeout(
+    const response = await fetchWithRetry(
       url.toString(),
       {
         headers: {
@@ -439,6 +540,7 @@ export async function fetchLocationsDataForSync(
         },
       },
       API_TIMEOUTS.GOOGLE_API,
+      { accountId: gmbAccountId, operation: "fetchLocations" },
     );
 
     if (!response.ok) {
@@ -547,7 +649,7 @@ export async function fetchReviewsDataForSync(
       }
 
       try {
-        const response = await fetchWithTimeout(
+        const response = await fetchWithRetry(
           url.toString(),
           {
             headers: {
@@ -556,12 +658,17 @@ export async function fetchReviewsDataForSync(
             },
           },
           API_TIMEOUTS.GOOGLE_API,
+          {
+            accountId: gmbAccountId,
+            locationId: location.location_id,
+            operation: "fetchReviews",
+          },
         );
 
         if (!response.ok) {
-          const errorData = await response.json().catch((e) => {
+          const errorData = await response.json().catch((e: unknown) => {
             gmbLogger.debug("Failed to parse reviews error response", {
-              error: e,
+              error: e instanceof Error ? e.message : String(e),
             });
             return {};
           });
@@ -652,7 +759,7 @@ export async function fetchQuestionsDataForSync(
 
     try {
       const endpoint = `${QANDA_BASE}/${locationResource}/questions`;
-      const response = await fetchWithTimeout(
+      const response = await fetchWithRetry(
         endpoint,
         {
           headers: {
@@ -661,6 +768,11 @@ export async function fetchQuestionsDataForSync(
           },
         },
         API_TIMEOUTS.GOOGLE_API,
+        {
+          accountId: gmbAccountId,
+          locationId: location.location_id,
+          operation: "fetchQuestions",
+        },
       );
 
       if (!response.ok) {
@@ -747,7 +859,7 @@ export async function fetchPostsDataForSync(
 
     try {
       const endpoint = `${POSTS_BASE}/${locationResource}/localPosts`;
-      const response = await fetchWithTimeout(
+      const response = await fetchWithRetry(
         endpoint,
         {
           headers: {
@@ -756,6 +868,11 @@ export async function fetchPostsDataForSync(
           },
         },
         API_TIMEOUTS.GOOGLE_API,
+        {
+          accountId: gmbAccountId,
+          locationId: location.location_id,
+          operation: "fetchPosts",
+        },
       );
 
       if (!response.ok) {
@@ -844,7 +961,7 @@ export async function fetchMediaDataForSync(
 
     try {
       const endpoint = `${MEDIA_BASE}/${locationResource}/media`;
-      const response = await fetchWithTimeout(
+      const response = await fetchWithRetry(
         endpoint,
         {
           headers: {
@@ -853,6 +970,11 @@ export async function fetchMediaDataForSync(
           },
         },
         API_TIMEOUTS.GOOGLE_API,
+        {
+          accountId: gmbAccountId,
+          locationId: location.location_id,
+          operation: "fetchMedia",
+        },
       );
 
       if (!response.ok) {
@@ -994,7 +1116,7 @@ export async function fetchInsightsDataForSync(
         url.searchParams.append("dailyMetrics", metric);
       });
 
-      const response = await fetchWithTimeout(
+      const response = await fetchWithRetry(
         url.toString(),
         {
           method: "GET",
@@ -1004,6 +1126,11 @@ export async function fetchInsightsDataForSync(
           },
         },
         API_TIMEOUTS.GOOGLE_API,
+        {
+          accountId: gmbAccountId,
+          locationId: location.location_id,
+          operation: "fetchInsights",
+        },
       );
 
       if (!response.ok) {
