@@ -1,4 +1,3 @@
-import DOMPurify from "dompurify";
 import { Metadata } from "next";
 
 export const landingMetadata: Metadata = {
@@ -111,17 +110,17 @@ export function LandingJsonLd() {
     },
   };
 
-  // Safely sanitize the JSON string
-  const sanitizedJson = DOMPurify.sanitize(JSON.stringify(jsonLd), {
-    // For JSON-LD, we only need to allow text content
-    ALLOWED_TAGS: [], // No HTML tags allowed in JSON
-    ALLOWED_ATTR: [],
-  });
+  // JSON-LD is pure JSON data - no HTML sanitization needed
+  // JSON.stringify already escapes special characters safely
+  // We just need to ensure no script injection via closing tags
+  const jsonString = JSON.stringify(jsonLd)
+    // Escape any potential script closing tags in the JSON
+    .replace(/<\/script/gi, "<\\/script");
 
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: sanitizedJson }}
+      dangerouslySetInnerHTML={{ __html: jsonString }}
     />
   );
 }

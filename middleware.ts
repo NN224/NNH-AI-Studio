@@ -57,15 +57,18 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     }
   });
 
-  // Apply HSTS in production
+  // Apply HSTS in production only
   if (process.env.NODE_ENV === "production") {
     Object.entries(HSTS_HEADER).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
   }
 
-  // Apply CSP
-  response.headers.set("Content-Security-Policy", generateCSP());
+  // Apply CSP only in production (generateCSP returns null in dev/test)
+  const csp = generateCSP();
+  if (csp) {
+    response.headers.set("Content-Security-Policy", csp);
+  }
 
   return response;
 }

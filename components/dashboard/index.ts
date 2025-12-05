@@ -20,3 +20,9 @@ export { default as QuickActionButton } from "./QuickActionButton";
 
 // AI components removed - files don't exist
 // If needed, import directly from @/components/ai/ or @/components/gmb/command-center/
+
+// Dashboard Layout Components (Client)
+export { AuthGuard, type UserProfile } from "./AuthGuard";
+export { DashboardClient } from "./DashboardClient";
+export { DashboardProviders } from "./DashboardProviders";
+export { DashboardShell } from "./DashboardShell";
