@@ -40,7 +40,7 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 - **Dashboard** - Unified view of YouTube performance
 
 ### AI Capabilities
-- **Multi-Provider Support** - OpenAI, Anthropic (Claude), Groq, DeepSeek, Together AI
+- **Multi-Provider Support** - OpenAI, Anthropic (Claude), Google Gemini, Groq, DeepSeek, Together AI
 - **Business DNA** - AI learns your business personality for consistent responses
 - **Bilingual Support** - English-first with Arabic language detection
 - **Content Generation** - AI-assisted posts, replies, and recommendations
@@ -62,7 +62,7 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 | **Styling** | Tailwind CSS 4, Framer Motion, shadcn/ui (Radix UI) |
 | **Database** | Supabase (PostgreSQL) with Row Level Security |
 | **Authentication** | Supabase Auth, Google OAuth |
-| **AI/ML** | OpenAI, Anthropic Claude, Groq, DeepSeek, Together AI |
+| **AI/ML** | OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, Together AI |
 | **State Management** | Zustand, React Query (TanStack Query) |
 | **Forms** | React Hook Form, Zod validation |
 | **Charts** | Recharts, Chart.js |
@@ -135,6 +135,7 @@ GOOGLE_REDIRECT_URI=
 YT_CLIENT_ID=
 
 # Additional AI Providers
+GOOGLE_GEMINI_API_KEY=
 GROQ_API_KEY=
 DEEPSEEK_API_KEY=
 TOGETHER_API_KEY=
@@ -275,22 +276,47 @@ The app is optimized for Vercel deployment:
 
 ### Cron Jobs (Vercel)
 
-Add to `vercel.json`:
+The following cron jobs are configured in `vercel.json`:
 
 ```json
 {
   "crons": [
     {
+      "path": "/api/cron/process-queue",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/prepare-actions",
-      "schedule": "0 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/daily-insights",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/process-questions",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-expiring-tokens",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
 ```
+
+| Cron Job | Schedule | Description |
+|----------|----------|-------------|
+| `process-queue` | Every minute | Process background job queue |
+| `prepare-actions` | Every 30 min | Generate AI-prepared review/Q&A responses |
+| `daily-insights` | Daily 6 AM | Pattern detection and insights generation |
+| `process-questions` | Every 15 min | Auto-answer GMB questions |
+| `cleanup` | Daily 2 AM | Database cleanup and maintenance |
+| `refresh-expiring-tokens` | Every 6 hours | Refresh OAuth tokens before expiry |
 
 ### Other Platforms
 
@@ -338,4 +364,4 @@ All rights reserved. This is proprietary software owned by NNH AI Studio.
 
 ---
 
-*Last Updated: December 2024*
+*Last Updated: December 2025*
