@@ -8,10 +8,7 @@ import {
   CSRF_HEADER_NAME,
   shouldProtectRequest,
 } from "./lib/security/csrf";
-import {
-  getClientIP,
-  isSuspiciousRequest,
-} from "./lib/security/edge-rate-limit";
+import { getClientIP } from "./lib/security/edge-rate-limit";
 import {
   HSTS_HEADER,
   SECURITY_HEADERS,
@@ -91,7 +88,13 @@ export async function middleware(request: NextRequest) {
       process.env.NODE_ENV === "production" &&
       request.headers.get("x-forwarded-proto") !== "https"
     ) {
-      return NextResponse.redirect(`https://${hostname}${pathname}`);
+      // Validate HTTPS redirect URL
+      const secureUrl = new URL(`https://${hostname}${pathname}`);
+      if (secureUrl.hostname === hostname) {
+        return NextResponse.redirect(secureUrl);
+      }
+      // Fallback to homepage if validation fails
+      return NextResponse.redirect("https://" + hostname);
     }
 
     // Check if on auth page (with or without locale prefix)
@@ -261,9 +264,11 @@ export async function middleware(request: NextRequest) {
     ? potentialLocale
     : "en";
 
-  // Check if this is the root page (/ or /[locale])
+  // Check if this is the root page (/ or /[locale]) or /dashboard
   const isRootPage =
     pathname === "/" ||
+    pathname === "/dashboard" ||
+    pathname.endsWith("/dashboard") ||
     (pathSegments.length === 2 &&
       (locales as readonly string[]).includes(potentialLocale));
 
@@ -274,8 +279,13 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (user) {
+      // Validate home redirect URL
       const homeUrl = new URL(`/${locale}/home`, request.url);
-      return NextResponse.redirect(homeUrl);
+      if (homeUrl.origin === request.nextUrl.origin) {
+        return NextResponse.redirect(homeUrl);
+      }
+      // Fallback to safe redirect
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
@@ -402,9 +412,14 @@ export async function middleware(request: NextRequest) {
         logger.warn(
           "[Middleware] GMB not connected (cookie), redirecting to home",
         );
+        // Validate GMB redirect URL
         const homeUrl = new URL(`/${locale}/home`, request.url);
-        homeUrl.searchParams.set("gmb_required", "true");
-        return NextResponse.redirect(homeUrl);
+        if (homeUrl.origin === request.nextUrl.origin) {
+          homeUrl.searchParams.set("gmb_required", "true");
+          return NextResponse.redirect(homeUrl);
+        }
+        // Fallback to safe redirect
+        return NextResponse.redirect(new URL("/", request.url));
       } else {
         // No cookie - allow access, let layout.tsx handle GMB check
         // The dashboard layout will show GMBOnboardingView if not connected
