@@ -12,25 +12,25 @@
  * Refactored to use separated components
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, User, Send, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bot, Loader2, Send, Sparkles, User } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Import separated components
+import type { BusinessDNA } from "@/lib/services/business-dna-service";
+import { getPreviewModeData } from "@/lib/services/preview-mode-service";
+import { fetchWithCSRF } from "@/lib/utils/fetch-with-csrf";
 import { ApprovalCard, type PendingAction } from "./approval-card";
-import { StatsCard, type CommandCenterStats } from "./stats-card";
-import { QuickActionButton } from "./quick-action-button";
-import { PreviewModeBanner } from "./preview-mode-banner";
 import { BusinessDNACard } from "./business-dna-card";
 import { PatternAlertCard, type DetectedPattern } from "./pattern-alert-card";
-import { getPreviewModeData } from "@/lib/services/preview-mode-service";
-import type { BusinessDNA } from "@/lib/services/business-dna-service";
-import { fetchWithCSRF } from "@/lib/utils/fetch-with-csrf";
+import { PreviewModeBanner } from "./preview-mode-banner";
+import { QuickActionButton } from "./quick-action-button";
+import { StatsCard } from "./stats-card";
 
 // ============================================
 // TYPES
