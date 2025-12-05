@@ -69,11 +69,12 @@ export function LocationsStatsCardsAPI({
     async function fetchStats() {
       // Use snapshot only if it has all required nested properties
       if (isValidSnapshotForStats(snapshot)) {
+        const s = snapshot;
         setStats({
-          totalLocations: snapshot.locationSummary.totalLocations ?? 0,
-          avgRating: snapshot.reviewStats.averageRating ?? 0,
-          totalReviews: snapshot.reviewStats.totals.total ?? 0,
-          avgHealthScore: snapshot.kpis.healthScore ?? 0,
+          totalLocations: s.locationSummary.totalLocations ?? 0,
+          avgRating: s.reviewStats.averageRating ?? 0,
+          totalReviews: s.reviewStats.totals.total ?? 0,
+          avgHealthScore: s.kpis.healthScore ?? 0,
         });
         setError(null);
         setLoading(false);
