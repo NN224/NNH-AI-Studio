@@ -1,11 +1,11 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { CheckCircle2, Loader2, Sparkles, AlertCircle } from "lucide-react";
-import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import { gmbLogger } from "@/lib/utils/logger";
+import confetti from "canvas-confetti";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // ============================================================================
 // Types
@@ -363,6 +363,52 @@ export function BusinessSetupScreen({
   ]);
   const [currentQuote, setCurrentQuote] = useState(0);
 
+  const pollSyncStatus = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await fetch(
+        `/api/gmb/sync-status?accountId=${accountId}`,
+      );
+      if (!response.ok) return false;
+
+      const data = await response.json();
+
+      if (data.job?.status === "completed") {
+        return true;
+      } else if (data.job?.status === "failed") {
+        throw new Error(data.job?.error || "Sync failed");
+      }
+
+      return false;
+    } catch (error) {
+      gmbLogger.error(
+        "Error polling sync status",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      return false;
+    }
+  }, [accountId]);
+
+  const fetchActualCounts = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/gmb/sync-counts?accountId=${accountId}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          locations: data.locationsCount || 0,
+          reviews: data.reviewsCount || 0,
+          posts: data.postsCount || 0,
+          questions: data.questionsCount || 0,
+          media: data.mediaCount || 0,
+        };
+      }
+    } catch (error) {
+      gmbLogger.warn("Failed to fetch actual counts", { error });
+    }
+    return null;
+  }, [accountId]);
+
   // Rotate quotes
   useEffect(() => {
     const interval = setInterval(() => {
@@ -409,99 +455,61 @@ export function BusinessSetupScreen({
     setProgress(calculateProgress());
   }, [steps, calculateProgress]);
 
-  // Display sync progress animation
-  // Note: The actual sync job was already enqueued by the import endpoint
-  // This function just provides visual feedback to the user
   const startSync = useCallback(async () => {
     if (syncStarted.current) return;
     syncStarted.current = true;
 
     try {
-      // Step 1: Locations (already imported, just mark as done)
+      // Step 1: Mark locations as syncing (they're already imported)
       updateStep("locations", { status: "syncing", count: 0, total: 1 });
       await new Promise((resolve) => setTimeout(resolve, 500));
       updateStep("locations", { status: "done", count: 1 });
 
-      gmbLogger.info("Starting sync progress animation", {
-        accountId,
-        note: "Sync job already enqueued by import endpoint",
-      });
+      // Step 2: Show syncing state for other items
+      updateStep("reviews", { status: "syncing" });
+      updateStep("posts", { status: "syncing" });
+      updateStep("questions", { status: "syncing" });
+      updateStep("media", { status: "syncing" });
 
-      // Step 2: Show progress animations for all data types
-      // The actual sync is happening in the background via the discovery_locations job
-      updateStep("reviews", { status: "syncing", count: 0, total: 100 });
-      updateStep("posts", { status: "syncing", count: 0, total: 50 });
-      updateStep("questions", { status: "syncing", count: 0, total: 30 });
-      updateStep("media", { status: "syncing", count: 0, total: 20 });
+      // Step 3: Poll for actual sync completion (max 2 minutes)
+      const maxPolls = 24; // 24 * 5 seconds = 2 minutes
+      let pollCount = 0;
+      let syncComplete = false;
 
-      // Simulate progress while sync happens in background
-      // Reviews progress (40% of total animation)
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        updateStep("reviews", { count: i });
-      }
-      updateStep("reviews", { status: "done", count: 0 });
+      while (pollCount < maxPolls && !syncComplete) {
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+        syncComplete = await pollSyncStatus();
+        pollCount++;
 
-      // Posts progress (25% of total animation)
-      for (let i = 0; i <= 50; i += 10) {
-        await new Promise((resolve) => setTimeout(resolve, 150));
-        updateStep("posts", { count: i });
-      }
-      updateStep("posts", { status: "done", count: 0 });
-
-      // Questions progress (20% of total animation)
-      for (let i = 0; i <= 30; i += 5) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        updateStep("questions", { count: i });
-      }
-      updateStep("questions", { status: "done", count: 0 });
-
-      // Media progress (15% of total animation)
-      for (let i = 0; i <= 20; i += 5) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        updateStep("media", { count: i });
-      }
-      updateStep("media", { status: "done", count: 0 });
-
-      // Get actual counts from database after animation completes
-      try {
-        const countResponse = await fetch(
-          `/api/gmb/sync-status?accountId=${accountId}`,
+        // Update progress based on poll count
+        const progressPercent = Math.min(
+          90,
+          Math.round((pollCount / maxPolls) * 90),
         );
-        if (countResponse.ok) {
-          const countData = await countResponse.json();
-          updateStep("reviews", {
-            status: "done",
-            count: countData.reviewsCount || 0,
-          });
-          updateStep("posts", {
-            status: "done",
-            count: countData.postsCount || 0,
-          });
-          updateStep("questions", {
-            status: "done",
-            count: countData.questionsCount || 0,
-          });
-          updateStep("media", {
-            status: "done",
-            count: countData.mediaCount || 0,
-          });
-        }
-      } catch (countError) {
-        // Non-critical - just log it
-        gmbLogger.warn("Failed to fetch sync counts", {
-          error:
-            countError instanceof Error
-              ? countError.message
-              : String(countError),
-        });
+        setProgress(progressPercent);
       }
 
-      // Complete!
+      // Step 4: Fetch actual counts
+      const counts = await fetchActualCounts();
+
+      if (counts) {
+        updateStep("reviews", { status: "done", count: counts.reviews });
+        updateStep("posts", { status: "done", count: counts.posts });
+        updateStep("questions", { status: "done", count: counts.questions });
+        updateStep("media", { status: "done", count: counts.media });
+      } else {
+        // If we couldn't get counts, just mark as done
+        updateStep("reviews", { status: "done", count: 0 });
+        updateStep("posts", { status: "done", count: 0 });
+        updateStep("questions", { status: "done", count: 0 });
+        updateStep("media", { status: "done", count: 0 });
+      }
+
+      // Step 5: Complete!
       setProgress(100);
       setIsComplete(true);
 
-      // Celebration! 🎉
+      // Celebration!
       confetti({
         particleCount: 100,
         spread: 70,
@@ -509,16 +517,16 @@ export function BusinessSetupScreen({
         colors: ["#f97316", "#a855f7", "#22c55e"],
       });
 
-      // Wait a bit then redirect
+      // Wait then redirect
       setTimeout(onComplete, 2500);
     } catch (error) {
       gmbLogger.error(
-        "Sync animation failed",
+        "Sync failed",
         error instanceof Error ? error : new Error(String(error)),
       );
       setHasError(true);
     }
-  }, [accountId, onComplete, updateStep]);
+  }, [accountId, onComplete, updateStep, pollSyncStatus, fetchActualCounts]);
 
   useEffect(() => {
     startSync();

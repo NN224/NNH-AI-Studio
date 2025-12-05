@@ -1,7 +1,7 @@
 import { checkKeyRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
-import { addToSyncQueue } from "@/server/actions/sync-queue";
+import { enqueueSyncJob } from "@/server/actions/sync-queue";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -144,8 +144,37 @@ export async function POST(request: NextRequest) {
     }
 
     // No existing job - create new one
+    // First, get the Google account ID needed for the sync
+    const { data: gmbAccount, error: gmbError } = await supabase
+      .from("gmb_accounts")
+      .select("account_id")
+      .eq("id", accountId)
+      .single();
+
+    if (gmbError || !gmbAccount) {
+      gmbLogger.error(
+        "Failed to fetch GMB account for sync",
+        gmbError instanceof Error ? gmbError : new Error(String(gmbError)),
+        { accountId, userId },
+      );
+      return NextResponse.json(
+        { error: "Failed to fetch account details" },
+        { status: 500 },
+      );
+    }
+
     const priority = syncType === "full" ? 7 : 5;
-    const result = await addToSyncQueue(accountId, syncType, priority, user.id);
+
+    // Use enqueueSyncJob instead of addToSyncQueue to include proper metadata
+    const result = await enqueueSyncJob(
+      "discovery_locations",
+      {
+        userId: user.id,
+        accountId,
+        googleAccountId: gmbAccount.account_id,
+      },
+      priority,
+    );
 
     if (!result.success) {
       return NextResponse.json(
