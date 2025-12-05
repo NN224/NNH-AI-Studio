@@ -1,4 +1,5 @@
 import { QuestionsClientPage } from "@/components/questions/QuestionsClientPage";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUrl } from "@/lib/utils/navigation";
 import { getQuestions } from "@/server/actions/questions-management";
@@ -98,18 +99,20 @@ export default async function QuestionsPage({
   }
 
   return (
-    <QuestionsClientPage
-      initialQuestions={questionsResult.data || []}
-      totalCount={questionsResult.count}
-      locations={locationsResult.data || []}
-      currentFilters={{
-        locationId,
-        status,
-        priority,
-        searchQuery,
-        page,
-        sortBy,
-      }}
-    />
+    <ErrorBoundary>
+      <QuestionsClientPage
+        initialQuestions={questionsResult.data || []}
+        totalCount={questionsResult.count}
+        locations={locationsResult.data || []}
+        currentFilters={{
+          locationId,
+          status,
+          priority,
+          searchQuery,
+          page,
+          sortBy,
+        }}
+      />
+    </ErrorBoundary>
   );
 }
