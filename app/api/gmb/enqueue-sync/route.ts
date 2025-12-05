@@ -67,37 +67,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if GMB service exists and is active
-    const { data: service, error: serviceError } = await supabase
-      .from("gmb_services")
+    // Check if GMB account exists and is active
+    const { data: account, error: accountError } = await supabase
+      .from("gmb_accounts")
       .select("id, is_active")
-      .eq("account_id", accountId)
+      .eq("id", accountId)
       .single();
 
-    if (serviceError || !service) {
+    if (accountError || !account) {
       gmbLogger.error(
-        "GMB service not found or error checking service",
-        serviceError instanceof Error
-          ? serviceError
-          : new Error(String(serviceError)),
+        "GMB account not found or error checking account",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
         { accountId, userId },
       );
       return NextResponse.json(
         {
-          error: "gmb_service_not_found",
-          message:
-            "GMB service configuration not found. Please reconnect your account.",
+          error: "gmb_account_not_found",
+          message: "GMB account not found. Please reconnect your account.",
         },
         { status: 400 },
       );
     }
 
-    if (!service.is_active) {
-      gmbLogger.warn("GMB service is not active", { accountId, userId });
+    if (!account.is_active) {
+      gmbLogger.warn("GMB account is not active", { accountId, userId });
       return NextResponse.json(
         {
-          error: "gmb_service_inactive",
-          message: "GMB service is not active. Please reconnect your account.",
+          error: "gmb_account_inactive",
+          message: "GMB account is not active. Please reconnect your account.",
         },
         { status: 400 },
       );
