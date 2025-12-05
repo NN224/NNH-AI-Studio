@@ -135,15 +135,30 @@ async function processDiscoveryLocations(
   const { id: jobId, metadata } = job;
   const admin = createAdminClient();
 
-  // Get the account details
+  // Get the account details - only process active accounts
   const { data: account, error: accountError } = await admin
     .from("gmb_accounts")
-    .select("account_id, user_id")
+    .select("account_id, user_id, is_active")
     .eq("id", metadata.accountId)
     .single();
 
   if (accountError || !account) {
     throw new Error(`Account not found: ${metadata.accountId}`);
+  }
+
+  // Skip inactive accounts gracefully
+  if (!account.is_active) {
+    syncLogger.warn("Skipping sync for inactive account", {
+      jobId,
+      accountId: metadata.accountId,
+    });
+    await updateJobStatus(jobId, "completed", "Account is inactive - skipped");
+    return {
+      success: true,
+      jobId,
+      jobType: "discovery_locations",
+      itemsProcessed: 0,
+    };
   }
 
   // Fetch locations from Google API

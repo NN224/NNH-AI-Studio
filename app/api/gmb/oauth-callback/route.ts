@@ -19,7 +19,6 @@ import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
 } from "@/lib/utils/safe-redirect";
-import error from "next/error";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +28,8 @@ const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
 
-const SCOPES = [
-  "https://www.googleapis.com/auth/business.manage",
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/userinfo.profile",
-  "openid", // Added for ID token and better security
-];
+// NOTE: SCOPES are defined in create-auth-url/route.ts
+// This file only handles the callback and token exchange
 
 /**
  * Extract error message from various error types (Error, PostgrestError, unknown)
@@ -528,11 +523,7 @@ export async function GET(request: NextRequest) {
           "Failed to encrypt tokens",
           encryptionError instanceof Error
             ? encryptionError
-            : new Error(
-                (encryptionError as any)?.message ||
-                  JSON.stringify(encryptionError, null, 2) ||
-                  "Unknown error",
-              ),
+            : new Error(getErrorMessage(encryptionError)),
           { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
@@ -642,60 +633,11 @@ export async function GET(request: NextRequest) {
         googleAccountId: accountId,
       });
 
-      // Create or update GMB service record
-      gmbLogger.info("Creating GMB service record", {
-        accountId: upsertedAccount.id,
-      });
+      // NOTE: gmb_services table is for business services (products/offerings),
+      // NOT for OAuth tokens. Tokens are stored ONLY in gmb_secrets for security.
+      // The gmb_services table has a different schema (user_id, location_id, name, price, etc.)
 
-      const { error: serviceError } = await adminClient
-        .from("gmb_services")
-        .upsert(
-          {
-            account_id: upsertedAccount.id,
-            service_type: "google_my_business",
-            access_token: encryptedAccessToken,
-            refresh_token: encryptedRefreshToken,
-            token_expires_at: tokenExpiresAt.toISOString(),
-            scopes: SCOPES.join(" "),
-            google_account_id: accountId,
-            is_active: true,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: "account_id",
-            ignoreDuplicates: false,
-          },
-        );
-
-      if (serviceError) {
-        gmbLogger.error(
-          "Failed to create GMB service record",
-          new Error(getErrorMessage(serviceError)),
-          {
-            accountId: upsertedAccount.id,
-            googleAccountId: accountId,
-          },
-        );
-
-        // Rollback account insert
-        await adminClient
-          .from("gmb_accounts")
-          .delete()
-          .eq("id", upsertedAccount.id);
-
-        const redirectUrl = buildSafeRedirectUrl(
-          baseUrl,
-          `/${localeCookie}/settings`,
-          {
-            error:
-              "Failed to create service configuration. Please try reconnecting.",
-            error_code: "service_creation_failed",
-          },
-        );
-        return NextResponse.redirect(redirectUrl);
-      }
-
-      // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
+      // Store tokens in gmb_secrets table (isolated token storage for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
         accountId: upsertedAccount.id,
         hasRefreshToken: !!encryptedRefreshToken,
@@ -948,13 +890,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     gmbLogger.error(
       "Unexpected error in OAuth callback",
-      error instanceof Error
-        ? error
-        : new Error(
-            (error as any)?.message ||
-              JSON.stringify(error, null, 2) ||
-              "Unknown error",
-          ),
+      error instanceof Error ? error : new Error(getErrorMessage(error)),
     );
     const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";
