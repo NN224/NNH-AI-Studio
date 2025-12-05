@@ -355,7 +355,7 @@ export function ReviewsPageClient({
     return Math.round((bulkProgress.completed / bulkProgress.total) * 100);
   }, [bulkProgress]);
 
-  const reviewTrendPct = dashboardSnapshot?.kpis.reviewTrendPct ?? 0;
+  const reviewTrendPct = dashboardSnapshot?.kpis?.reviewTrendPct ?? 0;
   const autoReplySuccessRate =
     dashboardSnapshot?.automationStats?.successRatePct ?? null;
 
