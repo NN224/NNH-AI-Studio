@@ -1,41 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDashboardStats } from "@/server/actions/dashboard";
 import { createClient } from "@/lib/supabase/server";
-import { apiLogger } from "@/lib/utils/logger";
+import {
+  handleApiAuth,
+  safeApiHandler,
+} from "@/lib/utils/api-response-handler";
+import { DashboardData, safeDashboardData } from "@/lib/utils/data-guards";
+import { getDashboardStats } from "@/server/actions/dashboard";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Dashboard Stats API
- * Returns basic dashboard statistics
+ * Returns basic dashboard statistics with safe fallbacks
  */
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+export async function GET(_request: NextRequest) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    // Get dashboard stats
-    const stats = await getDashboardStats();
-
-    return NextResponse.json(stats);
-  } catch (error) {
-    apiLogger.error(
-      "Dashboard stats error",
-      error instanceof Error ? error : new Error(String(error)),
-    );
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+  // التحقق من المصادقة
+  const authResult = handleApiAuth(user);
+  if (!authResult.isAuthorized) {
+    return authResult.response;
   }
+
+  // استخدام معالج API الآمن
+  return safeApiHandler<DashboardData>(
+    async () => {
+      const stats = await getDashboardStats();
+      return safeDashboardData(stats);
+    },
+    // القيم الافتراضية في حالة الفشل
+    safeDashboardData({}),
+    {
+      apiName: "dashboard/stats",
+      userId: authResult.user.id, // نستخدم user من authResult لأنه مؤكد أنه موجود
+      isDashboard: true,
+    },
+  );
 }

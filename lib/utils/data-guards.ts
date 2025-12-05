@@ -4,6 +4,177 @@
  */
 
 /**
+ * واجهة البيانات الرئيسية للوحة المعلومات
+ */
+export interface DashboardData {
+  kpis: {
+    totalLocations: number;
+    reviewTrendPct: number;
+    responseRate: number;
+    healthScore: number;
+    ratingTrendPct: number;
+    totalReviews: number;
+    unansweredQuestions: number;
+    pendingReviews: number;
+    automationActiveCount: number;
+  };
+  stats: {
+    total: number;
+    pending: number;
+    completed: number;
+    averageRating: number;
+    responseRate: number;
+    reviewsCount: number;
+  };
+  reviewStats: {
+    totals: {
+      total: number;
+      pending: number;
+      replied: number;
+      flagged: number;
+    };
+    byRating: Record<string, number>;
+    bySentiment: {
+      positive: number;
+      neutral: number;
+      negative: number;
+    };
+    averageRating: number;
+    responseRate: number;
+  };
+}
+
+/**
+ * واجهة بيانات مركز القيادة
+ */
+export interface SafeCommandCenterStats {
+  rating: number;
+  ratingChange: number;
+  totalReviews: number;
+  pendingCount: number;
+  responseRate: number;
+  attentionCount: number;
+}
+
+/**
+ * دالة حماية بيانات مركز القيادة
+ */
+export function safeCommandCenterStats(stats: unknown): SafeCommandCenterStats {
+  const defaultStats = {
+    rating: 0,
+    ratingChange: 0,
+    totalReviews: 0,
+    pendingCount: 0,
+    responseRate: 0,
+    attentionCount: 0,
+  };
+
+  if (!stats || typeof stats !== "object") return defaultStats;
+
+  const input = stats as Partial<{
+    rating: number;
+    ratingChange: number;
+    totalReviews: number;
+    pendingCount: number;
+    responseRate: number;
+    attentionCount: number;
+  }>;
+
+  return {
+    rating: safeValue(input.rating, 0),
+    ratingChange: safeValue(input.ratingChange, 0),
+    totalReviews: safeValue(input.totalReviews, 0),
+    pendingCount: safeValue(input.pendingCount, 0),
+    responseRate: safeValue(input.responseRate, 0),
+    attentionCount: safeValue(input.attentionCount, 0),
+  };
+}
+
+/**
+ * دالة حماية البيانات الرئيسية للوحة المعلومات
+ */
+export function safeDashboardData(data: unknown): DashboardData {
+  const defaultData: DashboardData = {
+    kpis: {
+      totalLocations: 0,
+      reviewTrendPct: 0,
+      responseRate: 0,
+      healthScore: 0,
+      ratingTrendPct: 0,
+      totalReviews: 0,
+      unansweredQuestions: 0,
+      pendingReviews: 0,
+      automationActiveCount: 0,
+    },
+    stats: {
+      total: 0,
+      pending: 0,
+      completed: 0,
+      averageRating: 0,
+      responseRate: 0,
+      reviewsCount: 0,
+    },
+    reviewStats: {
+      totals: {
+        total: 0,
+        pending: 0,
+        replied: 0,
+        flagged: 0,
+      },
+      byRating: {},
+      bySentiment: {
+        positive: 0,
+        neutral: 0,
+        negative: 0,
+      },
+      averageRating: 0,
+      responseRate: 0,
+    },
+  };
+
+  if (!data || typeof data !== "object") return defaultData;
+  const input = data as Partial<DashboardData>;
+
+  return {
+    kpis: {
+      totalLocations: safeValue(input.kpis?.totalLocations, 0),
+      reviewTrendPct: safeValue(input.kpis?.reviewTrendPct, 0),
+      responseRate: safeValue(input.kpis?.responseRate, 0),
+      healthScore: safeValue(input.kpis?.healthScore, 0),
+      ratingTrendPct: safeValue(input.kpis?.ratingTrendPct, 0),
+      totalReviews: safeValue(input.kpis?.totalReviews, 0),
+      unansweredQuestions: safeValue(input.kpis?.unansweredQuestions, 0),
+      pendingReviews: safeValue(input.kpis?.pendingReviews, 0),
+      automationActiveCount: safeValue(input.kpis?.automationActiveCount, 0),
+    },
+    stats: {
+      total: safeValue(input.stats?.total, 0),
+      pending: safeValue(input.stats?.pending, 0),
+      completed: safeValue(input.stats?.completed, 0),
+      averageRating: safeValue(input.stats?.averageRating, 0),
+      responseRate: safeValue(input.stats?.responseRate, 0),
+      reviewsCount: safeValue(input.stats?.reviewsCount, 0),
+    },
+    reviewStats: {
+      totals: {
+        total: safeValue(input.reviewStats?.totals?.total, 0),
+        pending: safeValue(input.reviewStats?.totals?.pending, 0),
+        replied: safeValue(input.reviewStats?.totals?.replied, 0),
+        flagged: safeValue(input.reviewStats?.totals?.flagged, 0),
+      },
+      byRating: safeValue(input.reviewStats?.byRating, {}),
+      bySentiment: {
+        positive: safeValue(input.reviewStats?.bySentiment?.positive, 0),
+        neutral: safeValue(input.reviewStats?.bySentiment?.neutral, 0),
+        negative: safeValue(input.reviewStats?.bySentiment?.negative, 0),
+      },
+      averageRating: safeValue(input.reviewStats?.averageRating, 0),
+      responseRate: safeValue(input.reviewStats?.responseRate, 0),
+    },
+  };
+}
+
+/**
  * التحقق من وجود قيمة وإرجاع قيمة افتراضية إذا كانت القيمة غير محددة
  */
 export function safeValue<T>(value: unknown, defaultValue: T): T {
@@ -50,8 +221,38 @@ export function safeStats(data: unknown): SafeStats {
 }
 
 /**
- * التحقق من صحة بيانات المراجعات وتوفير قيم افتراضية
+ * واجهة إحصائيات المراجعات الآمنة
  */
+export interface SafeReviewStats {
+  total: number;
+  pending: number;
+  averageRating: number;
+  responseRate: number;
+}
+
+/**
+ * دالة حماية إحصائيات المراجعات
+ */
+export function safeReviewStats(stats: unknown): SafeReviewStats {
+  const defaultStats: SafeReviewStats = {
+    total: 0,
+    pending: 0,
+    averageRating: 0,
+    responseRate: 0,
+  };
+
+  if (!stats || typeof stats !== "object") return defaultStats;
+
+  const input = stats as Partial<SafeReviewStats>;
+
+  return {
+    total: safeValue(input.total, 0),
+    pending: safeValue(input.pending, 0),
+    averageRating: safeValue(input.averageRating, 0),
+    responseRate: safeValue(input.responseRate, 0),
+  };
+}
+
 export interface SafeReviewsData {
   totalReviews: number;
   pendingReviews: number;
@@ -79,42 +280,6 @@ export function safeReviewsData(data: unknown): SafeReviewsData {
     responseRate: safeValue(reviews.responseRate, 0),
     avgRating: safeValue(reviews.avgRating, 0),
     ratingTrend: safeValue(reviews.ratingTrend, 0),
-  };
-}
-
-/**
- * التحقق من صحة بيانات مركز القيادة وتوفير قيم افتراضية
- */
-export interface SafeCommandCenterStats {
-  rating: number;
-  ratingChange: number;
-  totalReviews: number;
-  pendingCount: number;
-  responseRate: number;
-  attentionCount: number;
-}
-
-export function safeCommandCenterStats(data: unknown): SafeCommandCenterStats {
-  const fallback: SafeCommandCenterStats = {
-    rating: 0,
-    ratingChange: 0,
-    totalReviews: 0,
-    pendingCount: 0,
-    responseRate: 0,
-    attentionCount: 0,
-  };
-
-  if (!data || typeof data !== "object") return fallback;
-
-  const stats = data as Partial<SafeCommandCenterStats>;
-
-  return {
-    rating: safeValue(stats.rating, 0),
-    ratingChange: safeValue(stats.ratingChange, 0),
-    totalReviews: safeValue(stats.totalReviews, 0),
-    pendingCount: safeValue(stats.pendingCount, 0),
-    responseRate: safeValue(stats.responseRate, 0),
-    attentionCount: safeValue(stats.attentionCount, 0),
   };
 }
 

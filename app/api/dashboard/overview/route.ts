@@ -1,41 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCachedDashboardData } from "@/server/actions/dashboard";
 import { createClient } from "@/lib/supabase/server";
-import { apiLogger } from "@/lib/utils/logger";
+import {
+  handleApiAuth,
+  safeApiHandler,
+} from "@/lib/utils/api-response-handler";
+import { DashboardData, safeDashboardData } from "@/lib/utils/data-guards";
+import { getCachedDashboardData } from "@/server/actions/dashboard";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Dashboard Overview API
- * Returns comprehensive dashboard snapshot data
+ * Returns comprehensive dashboard snapshot data with safe fallbacks
  */
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+export async function GET(_request: NextRequest) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    // Get cached dashboard data
-    const result = await getCachedDashboardData(user.id);
-
-    return NextResponse.json(result.data);
-  } catch (error) {
-    apiLogger.error(
-      "Dashboard overview error",
-      error instanceof Error ? error : new Error(String(error)),
-    );
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+  // التحقق من المصادقة
+  const authResult = handleApiAuth(user);
+  if (!authResult.isAuthorized) {
+    return authResult.response;
   }
+
+  // استخدام معالج API الآمن
+  return safeApiHandler<DashboardData>(
+    async () => {
+      const result = await getCachedDashboardData(authResult.user.id);
+      return safeDashboardData(result.data);
+    },
+    // القيم الافتراضية في حالة الفشل
+    safeDashboardData({}),
+    {
+      apiName: "dashboard/overview",
+      userId: authResult.user.id,
+      isDashboard: true,
+    },
+  );
 }

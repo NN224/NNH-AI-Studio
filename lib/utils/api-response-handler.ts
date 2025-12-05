@@ -3,8 +3,24 @@
  * يوفر طبقة حماية ضد الأخطاء غير المتوقعة ويضمن استجابة منظمة
  */
 
+import { safeDashboardData } from "@/lib/utils/data-guards";
 import { apiLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
+
+/**
+ * أنواع الاستجابات المدعومة
+ */
+export type ApiResponse<T> =
+  | {
+      data: T;
+      error?: never;
+      status: "success";
+    }
+  | {
+      data?: never;
+      error: string;
+      status: "error";
+    };
 
 /**
  * دالة لمعالجة استجابات واجهات برمجة التطبيقات بشكل آمن
@@ -18,11 +34,22 @@ export async function safeApiHandler<T>(
   context: {
     apiName: string;
     userId?: string;
+    isDashboard?: boolean;
   },
-): Promise<NextResponse<T | { error: string }>> {
+): Promise<NextResponse> {
   try {
     const result = await handler();
-    return NextResponse.json(result || fallbackData);
+    const safeResult =
+      context.isDashboard && !result
+        ? (safeDashboardData({}) as T)
+        : result || fallbackData;
+
+    const response: ApiResponse<T> = {
+      data: safeResult,
+      status: "success",
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     // تسجيل الخطأ بالتفاصيل
     apiLogger.error(
@@ -33,12 +60,17 @@ export async function safeApiHandler<T>(
 
     // إرجاع بيانات افتراضية في بيئة الإنتاج، تفاصيل الخطأ في بيئة التطوير
     if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(fallbackData);
+      const safeResponse: ApiResponse<T> = {
+        data: context.isDashboard ? (safeDashboardData({}) as T) : fallbackData,
+        status: "success",
+      };
+      return NextResponse.json(safeResponse);
     } else {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : String(error) },
-        { status: 500 },
-      );
+      const errorResponse: ApiResponse<T> = {
+        error: error instanceof Error ? error.message : String(error),
+        status: "error",
+      };
+      return NextResponse.json(errorResponse, { status: 500 });
     }
   }
 }

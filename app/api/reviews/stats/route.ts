@@ -1,25 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
-import { safeApiHandler } from "@/lib/utils/api-response-handler";
+import {
+  handleApiAuth,
+  safeApiHandler,
+} from "@/lib/utils/api-response-handler";
 import { safeValue } from "@/lib/utils/data-guards";
 import { reviewsLogger } from "@/lib/utils/logger";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+export interface ReviewStats {
+  total: number;
+  pending: number;
+  responded: number;
+  responseRate: number;
+  avgRating: number;
+  totalTrend: number;
+  responseRateTrend: number;
+  ratingTrend: number;
+  totalTrendLabel: string;
+  ratingTrendLabel: string;
+}
+
 export async function GET(_request: NextRequest) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
-  // استخدام معالج واجهة البرمجة الآمن
-  return safeApiHandler(
+  // التحقق من المصادقة
+  const authResult = handleApiAuth(user);
+  if (!authResult.isAuthorized) {
+    return authResult.response;
+  }
+
+  // استخدام معالج API الآمن
+  return safeApiHandler<ReviewStats>(
     async () => {
-      // التحقق من المستخدم
-      if (!user) {
-        throw new Error("Unauthorized");
-      }
-
       // جلب المراجعات من قاعدة البيانات
       const { data: reviews, error } = await supabase
         .from("gmb_reviews")
@@ -33,15 +49,15 @@ export async function GET(_request: NextRequest) {
           review_reply,
           review_date,
           gmb_locations!inner (user_id)
-        `,
+          `,
         )
-        .eq("gmb_locations.user_id", user.id);
+        .eq("gmb_locations.user_id", authResult.user.id);
 
       if (error) {
         reviewsLogger.error(
           "Database error fetching review stats",
           error instanceof Error ? error : new Error(String(error)),
-          { userId: user.id },
+          { userId: authResult.user.id },
         );
         throw error;
       }
