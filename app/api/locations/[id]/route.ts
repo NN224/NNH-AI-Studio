@@ -59,7 +59,7 @@ export async function GET(
     // Type check the location
     const typedLocation = location as unknown as LocationWithAccount;
     const accountId = typedLocation.gmb_account_id;
-    const accountResource = `accounts/${typedLocation.gmb_accounts.account_id}`;
+    // const accountResource = `accounts/${typedLocation.gmb_accounts.account_id}`; // Unused for now
     const locationResource = typedLocation.location_id; // Already in format: locations/{id}
 
     // Get valid access token
@@ -120,14 +120,14 @@ export async function GET(
       );
     }
 
-    const response: LocationDetailResponse = {
+    const locationResponse: LocationDetailResponse = {
       location: locationData,
       attributes,
       googleUpdated,
       gmb_account_id: typedLocation.gmb_account_id,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(locationResponse);
   } catch (error: unknown) {
     apiLogger.error(
       "[Location Details API] Error",

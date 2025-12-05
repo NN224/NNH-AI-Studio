@@ -132,9 +132,9 @@ export type LocationWithAccount = z.infer<typeof LocationWithAccountSchema>;
 export const LocationUpdateRequestSchema = z.object({
   name: z.string().optional(),
   address: z.string().optional(),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-  category: z.string().optional(),
+  phone: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
 });
 
 export type LocationUpdateRequest = z.infer<typeof LocationUpdateRequestSchema>;
