@@ -16,6 +16,16 @@ We've improved type safety in the codebase by eliminating `any` types and replac
    - Added proper type definitions for location data
    - Improved type safety in data transformations
 
+3. **`app/api/locations/export/route.ts`**
+   - Replaced 5 instances of `any` with proper types
+   - Added type-safe CSV processing
+   - Used proper validation for request parameters
+
+4. **`app/api/locations/[id]/route.ts`**
+   - Replaced 5 instances of `any` with proper types
+   - Added Google API response type definitions
+   - Improved error handling with type guards
+
 ## 📚 New Type Definition Files
 
 1. **`lib/validations/profile.ts`**
@@ -32,6 +42,16 @@ We've improved type safety in the codebase by eliminating `any` types and replac
    - Added comprehensive types for location API
    - Created schemas for raw and transformed data
    - Improved type safety for nested data structures
+
+4. **`lib/types/export-api.ts`**
+   - Added types for location export data
+   - Created schemas for CSV processing
+   - Improved error handling for export operations
+
+5. **`lib/types/location-detail-api.ts`**
+   - Added comprehensive types for Google API responses
+   - Created schemas for location attributes
+   - Added types for location update requests
 
 ## 🛠️ Refactoring Approach
 
@@ -57,7 +77,9 @@ We've improved type safety in the codebase by eliminating `any` types and replac
 | ---------------------------------------------- | ------ | ----- | ----------- |
 | app/api/features/profile/[locationId]/route.ts | 17 any | 0 any | -17         |
 | app/api/locations/optimized/route.ts           | 6 any  | 0 any | -6          |
-| **Total**                                      | **23** | **0** | **-23**     |
+| app/api/locations/export/route.ts              | 5 any  | 0 any | -5          |
+| app/api/locations/[id]/route.ts                | 5 any  | 0 any | -5          |
+| **Total**                                      | **33** | **0** | **-33**     |
 
 ## 🔑 Key Benefits
 
@@ -70,6 +92,6 @@ We've improved type safety in the codebase by eliminating `any` types and replac
 ## 🔄 Next Steps
 
 1. Continue applying these patterns to other files with `any` types
-2. Focus on export/route.ts (5 any types) and [id]/route.ts (5 any types) next
+2. Focus on daily-insights/route.ts (5 any types) and settings/route.ts (4 any types) next
 3. Create more shared type definitions for reuse across the codebase
 4. Add comprehensive input validation with Zod for all API endpoints

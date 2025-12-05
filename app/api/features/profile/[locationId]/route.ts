@@ -4,6 +4,7 @@ import {
 } from "@/lib/features/feature-definitions";
 import { extractFeatureKeysFromGMBAttributes } from "@/lib/features/gmb-attribute-mapper";
 import { createClient } from "@/lib/supabase/server";
+import { GMBLocation } from "@/lib/types/database";
 import { apiLogger } from "@/lib/utils/logger";
 import {
   buildSocialLinks,
@@ -27,7 +28,6 @@ import type {
   FeatureCategoryKey,
   FeatureSelection,
 } from "@/types/features";
-import { GMBLocation } from "@/lib/types/database";
 import { NextRequest, NextResponse } from "next/server";
 
 const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = [
@@ -39,7 +39,12 @@ const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = [
 
 function computeCompleteness(profile: BusinessProfile): {
   score: number;
-  breakdown: Record<string, boolean>;
+  breakdown: {
+    basicsFilled: boolean;
+    categoriesSet: boolean;
+    featuresAdded: boolean;
+    linksAdded: boolean;
+  };
 } {
   const basicsFilled = Boolean(
     profile.locationName.trim() &&
@@ -68,7 +73,10 @@ function computeCompleteness(profile: BusinessProfile): {
   const completed = Object.values(breakdown).filter(Boolean).length;
   const score = Math.round((completed / totalChecks) * 100);
 
-  return { score, breakdown };
+  return {
+    score,
+    breakdown,
+  };
 }
 
 function normalizeBusinessProfile(
@@ -210,9 +218,11 @@ function normalizeBusinessProfile(
         );
 
         if (process.env.NODE_ENV !== "production") {
-          console.log(
+          apiLogger.info(
             "[normalizeBusinessProfile] Extracted feature keys from GMB attributes:",
-            featureKeysFromGMB.length,
+            {
+              count: featureKeysFromGMB.length,
+            },
           );
         }
       }
@@ -238,10 +248,16 @@ function normalizeBusinessProfile(
 
       // If we have structured features from metadata, use them
       const hasMetadataFeatures = FEATURE_CATEGORY_KEYS.some(
-        (cat) => featuresFromMetadata[cat].length > 0,
+        (category) => featuresFromMetadata[category].length > 0,
       );
       if (hasMetadataFeatures) {
-        return featuresFromMetadata;
+        // Convert readonly arrays to mutable arrays
+        return {
+          amenities: [...featuresFromMetadata.amenities],
+          payment_methods: [...featuresFromMetadata.payment_methods],
+          services: [...featuresFromMetadata.services],
+          atmosphere: [...featuresFromMetadata.atmosphere],
+        };
       }
 
       // Otherwise, build feature selection from extracted keys
@@ -271,12 +287,15 @@ function normalizeBusinessProfile(
         });
 
         if (process.env.NODE_ENV !== "production") {
-          console.log("[normalizeBusinessProfile] Built feature selection:", {
-            amenities: selection.amenities.length,
-            payment_methods: selection.payment_methods.length,
-            services: selection.services.length,
-            atmosphere: selection.atmosphere.length,
-          });
+          apiLogger.info(
+            "[normalizeBusinessProfile] Built feature selection:",
+            {
+              amenities: selection.amenities.length,
+              payment_methods: selection.payment_methods.length,
+              services: selection.services.length,
+              atmosphere: selection.atmosphere.length,
+            },
+          );
         }
 
         return selection;
@@ -357,35 +376,32 @@ function normalizeBusinessProfile(
       const hours =
         metadata.regularHours || row.business_hours || row.regularhours;
       if (process.env.NODE_ENV !== "production" && hours) {
-        console.log(
-          "[normalizeBusinessProfile] regularHours found:",
-          typeof hours,
-          Object.keys(hours || {}),
-        );
+        apiLogger.info("[normalizeBusinessProfile] regularHours found:", {
+          type: typeof hours,
+          keys: Object.keys(hours || {}),
+        });
       }
-      return hours;
+      return hours as Record<string, unknown> | undefined;
     })(),
     moreHours: (() => {
       const hours = metadata.moreHours;
       if (process.env.NODE_ENV !== "production" && hours) {
-        console.log(
-          "[normalizeBusinessProfile] moreHours found:",
-          Array.isArray(hours),
+        apiLogger.info("[normalizeBusinessProfile] moreHours found:", {
+          isArray: Array.isArray(hours),
           hours,
-        );
+        });
       }
-      return hours;
+      return hours as Record<string, unknown> | undefined;
     })(),
     serviceItems: (() => {
       const items = metadata.serviceItems;
       if (process.env.NODE_ENV !== "production" && items) {
-        console.log(
-          "[normalizeBusinessProfile] serviceItems found:",
-          Array.isArray(items),
-          items?.length,
-        );
+        apiLogger.info("[normalizeBusinessProfile] serviceItems found:", {
+          isArray: Array.isArray(items),
+          count: Array.isArray(items) ? items.length : 0,
+        });
       }
-      return items;
+      return items as unknown[] | undefined;
     })(),
     profileCompleteness:
       Number(row.profile_completeness ?? metadata.profileCompleteness ?? 0) ||
@@ -404,7 +420,15 @@ function normalizeBusinessProfile(
 function mergeMetadata(
   original: Record<string, unknown>,
   profile: BusinessProfilePayload,
-  completeness: { score: number; breakdown: Record<string, boolean> },
+  completeness: {
+    score: number;
+    breakdown: {
+      basicsFilled: boolean;
+      categoriesSet: boolean;
+      featuresAdded: boolean;
+      linksAdded: boolean;
+    };
+  },
 ): Record<string, unknown> {
   const current = parseRecord(original);
   return {
@@ -472,13 +496,17 @@ export async function GET(
       );
     }
 
-    const row = await getAuthorizedLocation(supabase, user.id, locationId);
+    const row = (await getAuthorizedLocation(
+      supabase,
+      user.id,
+      locationId,
+    )) as unknown as Record<string, unknown>;
 
     // Debug logging in development
     if (process.env.NODE_ENV !== "production") {
       const metadata = parseRecord(row.metadata);
       const profileMetadata = parseRecord(metadata.profile ?? metadata);
-      console.log("[GET /api/features/profile] Row data:", {
+      apiLogger.info("[GET /api/features/profile] Row data:", {
         id: row.id,
         location_name: row.location_name,
         description: row.description || "EMPTY",
@@ -512,7 +540,7 @@ export async function GET(
 
     // Debug logging in development
     if (process.env.NODE_ENV !== "production") {
-      console.log("[GET /api/features/profile] Normalized profile:", {
+      apiLogger.info("[GET /api/features/profile] Normalized profile:", {
         locationName: profile.locationName,
         description: profile.description?.substring(0, 100),
         additionalCategories: profile.additionalCategories,
@@ -624,9 +652,11 @@ export async function PUT(
       phone: sanitizePhone(payload.phone),
       website: sanitizeWebsite(payload.website),
       primaryCategory: payload.primaryCategory.trim(),
-      additionalCategories: Array.from(
-        new Set(additionalCategoriesPayload.map((item) => item.trim())),
-      ),
+      additionalCategories: [
+        ...Array.from(
+          new Set(additionalCategoriesPayload.map((item) => item.trim())),
+        ),
+      ],
       features: normalizedFeatureSelection,
       specialLinks: {
         menu: specialLinksPayload.menu
@@ -643,9 +673,9 @@ export async function PUT(
           : null,
       },
       socialLinks: payload.socialLinks ?? {},
-      fromTheBusiness: Array.from(
-        new Set(fromBusinessPayload.map((item) => item.trim())),
-      ),
+      fromTheBusiness: [
+        ...Array.from(new Set(fromBusinessPayload.map((item) => item.trim()))),
+      ],
       openingDate: payload.openingDate ?? null,
       serviceAreaEnabled: payload.serviceAreaEnabled,
       profileCompleteness: payload.profileCompleteness,
@@ -653,9 +683,35 @@ export async function PUT(
 
     const completeness = computeCompleteness(normalizedProfile);
     const currentMetadata = parseRecord(currentRow.metadata);
+    // Convert normalizedProfile to BusinessProfilePayload
+    const profilePayload: BusinessProfilePayload = {
+      id: normalizedProfile.id,
+      locationResourceId: normalizedProfile.locationResourceId,
+      locationName: normalizedProfile.locationName,
+      description: normalizedProfile.description,
+      shortDescription: normalizedProfile.shortDescription,
+      phone: normalizedProfile.phone,
+      website: normalizedProfile.website,
+      primaryCategory: normalizedProfile.primaryCategory,
+      additionalCategories: [...normalizedProfile.additionalCategories],
+      features: {
+        amenities: [...normalizedProfile.features.amenities],
+        payment_methods: [...normalizedProfile.features.payment_methods],
+        services: [...normalizedProfile.features.services],
+        atmosphere: [...normalizedProfile.features.atmosphere],
+      },
+      specialLinks: normalizedProfile.specialLinks,
+      socialLinks: normalizedProfile.socialLinks,
+      fromTheBusiness: [...normalizedProfile.fromTheBusiness],
+      openingDate: normalizedProfile.openingDate,
+      serviceAreaEnabled: normalizedProfile.serviceAreaEnabled,
+      profileCompleteness: completeness.score,
+      profileCompletenessBreakdown: completeness.breakdown,
+    };
+
     const updatedMetadata = mergeMetadata(
       currentMetadata,
-      { ...normalizedProfile, profileCompleteness: completeness.score },
+      profilePayload,
       completeness,
     );
 
@@ -710,11 +766,11 @@ export async function PUT(
       );
     }
 
-    const updatedRow = await getAuthorizedLocation(
+    const updatedRow = (await getAuthorizedLocation(
       supabaseClient,
       user.id,
       locationId,
-    );
+    )) as unknown as Record<string, unknown>;
     const profileResponse = normalizeBusinessProfile(updatedRow);
 
     return NextResponse.json(profileResponse);
