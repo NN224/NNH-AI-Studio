@@ -19,6 +19,7 @@ import {
   buildSafeRedirectUrl,
   getSafeBaseUrl,
 } from "@/lib/utils/safe-redirect";
+import error from "next/error";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,13 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
+
+const SCOPES = [
+  "https://www.googleapis.com/auth/business.manage",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "openid", // Added for ID token and better security
+];
 
 /**
  * Extract error message from various error types (Error, PostgrestError, unknown)
@@ -569,9 +577,7 @@ export async function GET(request: NextRequest) {
         otherAccountsCount: otherAccounts?.length || 0,
       });
 
-      // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
-      // IMPORTANT: Use .select('id').single() to get the ID in the same operation
-      // This avoids race conditions between upsert and secrets insertion
+      // Use UPSERT to insert or update the account with all required data
       gmbLogger.info(`Upserting GMB account`, { accountId });
 
       const upsertData = {
@@ -579,6 +585,9 @@ export async function GET(request: NextRequest) {
         account_id: accountId,
         account_name: accountName,
         email: userInfo.email,
+        google_account_id: accountId,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
         last_sync: new Date().toISOString(),
@@ -633,6 +642,59 @@ export async function GET(request: NextRequest) {
         googleAccountId: accountId,
       });
 
+      // Create or update GMB service record
+      gmbLogger.info("Creating GMB service record", {
+        accountId: upsertedAccount.id,
+      });
+
+      const { error: serviceError } = await adminClient
+        .from("gmb_services")
+        .upsert(
+          {
+            account_id: upsertedAccount.id,
+            service_type: "google_my_business",
+            access_token: encryptedAccessToken,
+            refresh_token: encryptedRefreshToken,
+            token_expires_at: tokenExpiresAt.toISOString(),
+            scopes: SCOPES.join(" "),
+            google_account_id: accountId,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "account_id",
+            ignoreDuplicates: false,
+          },
+        );
+
+      if (serviceError) {
+        gmbLogger.error(
+          "Failed to create GMB service record",
+          new Error(getErrorMessage(serviceError)),
+          {
+            accountId: upsertedAccount.id,
+            googleAccountId: accountId,
+          },
+        );
+
+        // Rollback account insert
+        await adminClient
+          .from("gmb_accounts")
+          .delete()
+          .eq("id", upsertedAccount.id);
+
+        const redirectUrl = buildSafeRedirectUrl(
+          baseUrl,
+          `/${localeCookie}/settings`,
+          {
+            error:
+              "Failed to create service configuration. Please try reconnecting.",
+            error_code: "service_creation_failed",
+          },
+        );
+        return NextResponse.redirect(redirectUrl);
+      }
+
       // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
         accountId: upsertedAccount.id,
@@ -645,7 +707,7 @@ export async function GET(request: NextRequest) {
           {
             account_id: upsertedAccount.id,
             access_token: encryptedAccessToken,
-            refresh_token: encryptedRefreshToken, // ✅ Can now be NULL
+            refresh_token: encryptedRefreshToken,
             updated_at: new Date().toISOString(),
           },
           {

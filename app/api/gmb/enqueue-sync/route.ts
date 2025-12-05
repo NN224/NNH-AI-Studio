@@ -67,6 +67,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if GMB service exists and is active
+    const { data: service, error: serviceError } = await supabase
+      .from("gmb_services")
+      .select("id, is_active")
+      .eq("account_id", accountId)
+      .single();
+
+    if (serviceError || !service) {
+      gmbLogger.error(
+        "GMB service not found or error checking service",
+        serviceError instanceof Error
+          ? serviceError
+          : new Error(String(serviceError)),
+        { accountId, userId },
+      );
+      return NextResponse.json(
+        {
+          error: "gmb_service_not_found",
+          message:
+            "GMB service configuration not found. Please reconnect your account.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!service.is_active) {
+      gmbLogger.warn("GMB service is not active", { accountId, userId });
+      return NextResponse.json(
+        {
+          error: "gmb_service_inactive",
+          message: "GMB service is not active. Please reconnect your account.",
+        },
+        { status: 400 },
+      );
+    }
+
     // THROTTLING CHECK: Prevent duplicate sync jobs
     // Check if there's already a processing/pending job for this account
     const { data: existingJobs, error: checkError } = await supabase

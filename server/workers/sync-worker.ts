@@ -17,6 +17,15 @@
  * @security Uses createAdminClient for all operations (service_role)
  */
 
+import { getValidAccessToken } from "@/lib/gmb/helpers";
+import type {
+  LocationData,
+  ReviewData,
+  SyncJobMetadata,
+  SyncJobType,
+} from "@/lib/gmb/sync-types";
+import { createAdminClient } from "@/lib/supabase/server";
+import { syncLogger } from "@/lib/utils/logger";
 import {
   fetchInsightsDataForSync,
   fetchLocationsDataForSync,
@@ -27,18 +36,9 @@ import {
 } from "@/server/actions/gmb-sync";
 import {
   fanOutLocationJobs,
-  type SyncQueueItem,
   updateJobStatus,
+  type SyncQueueItem,
 } from "@/server/actions/sync-queue";
-import type {
-  LocationData,
-  ReviewData,
-  SyncJobMetadata,
-  SyncJobType,
-} from "@/lib/gmb/sync-types";
-import { getValidAccessToken } from "@/lib/gmb/helpers";
-import { createAdminClient } from "@/lib/supabase/server";
-import { syncLogger } from "@/lib/utils/logger";
 
 /**
  * Process result from a sync job
@@ -193,6 +193,10 @@ async function processDiscoveryLocations(
     longitude: loc.longitude,
     profile_completeness: loc.profile_completeness,
     is_active: loc.is_active,
+    // Only set is_archived to true if the location is permanently closed
+    is_archived: loc.status === "CLOSED_PERMANENTLY",
+    archived_at:
+      loc.status === "CLOSED_PERMANENTLY" ? new Date().toISOString() : null,
     status: loc.status,
     metadata: loc.metadata,
     last_synced_at: loc.last_synced_at,
@@ -261,7 +265,9 @@ async function processSyncReviews(
   const admin = createAdminClient();
 
   if (!metadata.googleLocationId || !metadata.googleAccountId) {
-    throw new Error("Missing googleLocationId or googleAccountId for sync_reviews");
+    throw new Error(
+      "Missing googleLocationId or googleAccountId for sync_reviews",
+    );
   }
 
   // Build minimal location data for the fetch function
@@ -269,7 +275,10 @@ async function processSyncReviews(
     gmb_account_id: metadata.accountId,
     user_id: metadata.userId,
     location_id: metadata.googleLocationId,
-    normalized_location_id: metadata.googleLocationId.replace(/[^a-zA-Z0-9]/g, "_"),
+    normalized_location_id: metadata.googleLocationId.replace(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    ),
     location_name: "",
     is_active: true,
     last_synced_at: new Date().toISOString(),
@@ -365,7 +374,9 @@ async function processSyncInsights(
   const admin = createAdminClient();
 
   if (!metadata.googleLocationId || !metadata.googleAccountId) {
-    throw new Error("Missing googleLocationId or googleAccountId for sync_insights");
+    throw new Error(
+      "Missing googleLocationId or googleAccountId for sync_insights",
+    );
   }
 
   // Build minimal location data for the fetch function
@@ -373,7 +384,10 @@ async function processSyncInsights(
     gmb_account_id: metadata.accountId,
     user_id: metadata.userId,
     location_id: metadata.googleLocationId,
-    normalized_location_id: metadata.googleLocationId.replace(/[^a-zA-Z0-9]/g, "_"),
+    normalized_location_id: metadata.googleLocationId.replace(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    ),
     location_name: "",
     is_active: true,
     last_synced_at: new Date().toISOString(),
@@ -459,7 +473,9 @@ async function processSyncPosts(
   const admin = createAdminClient();
 
   if (!metadata.googleLocationId || !metadata.googleAccountId) {
-    throw new Error("Missing googleLocationId or googleAccountId for sync_posts");
+    throw new Error(
+      "Missing googleLocationId or googleAccountId for sync_posts",
+    );
   }
 
   // Build minimal location data for the fetch function
@@ -467,7 +483,10 @@ async function processSyncPosts(
     gmb_account_id: metadata.accountId,
     user_id: metadata.userId,
     location_id: metadata.googleLocationId,
-    normalized_location_id: metadata.googleLocationId.replace(/[^a-zA-Z0-9]/g, "_"),
+    normalized_location_id: metadata.googleLocationId.replace(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    ),
     location_name: "",
     is_active: true,
     last_synced_at: new Date().toISOString(),
@@ -556,7 +575,9 @@ async function processSyncMedia(
   const admin = createAdminClient();
 
   if (!metadata.googleLocationId || !metadata.googleAccountId) {
-    throw new Error("Missing googleLocationId or googleAccountId for sync_media");
+    throw new Error(
+      "Missing googleLocationId or googleAccountId for sync_media",
+    );
   }
 
   // Build minimal location data for the fetch function
@@ -564,7 +585,10 @@ async function processSyncMedia(
     gmb_account_id: metadata.accountId,
     user_id: metadata.userId,
     location_id: metadata.googleLocationId,
-    normalized_location_id: metadata.googleLocationId.replace(/[^a-zA-Z0-9]/g, "_"),
+    normalized_location_id: metadata.googleLocationId.replace(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    ),
     location_name: "",
     is_active: true,
     last_synced_at: new Date().toISOString(),
