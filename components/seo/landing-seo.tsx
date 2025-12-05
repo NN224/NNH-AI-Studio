@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { Metadata } from "next";
 
 export const landingMetadata: Metadata = {
@@ -110,10 +111,17 @@ export function LandingJsonLd() {
     },
   };
 
+  // Safely sanitize the JSON string
+  const sanitizedJson = DOMPurify.sanitize(JSON.stringify(jsonLd), {
+    // For JSON-LD, we only need to allow text content
+    ALLOWED_TAGS: [], // No HTML tags allowed in JSON
+    ALLOWED_ATTR: [],
+  });
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: sanitizedJson }}
     />
   );
 }
