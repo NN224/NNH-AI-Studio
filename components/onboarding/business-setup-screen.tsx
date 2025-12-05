@@ -409,7 +409,9 @@ export function BusinessSetupScreen({
     setProgress(calculateProgress());
   }, [steps, calculateProgress]);
 
-  // Real sync function
+  // Display sync progress animation
+  // Note: The actual sync job was already enqueued by the import endpoint
+  // This function just provides visual feedback to the user
   const startSync = useCallback(async () => {
     if (syncStarted.current) return;
     syncStarted.current = true;
@@ -420,105 +422,79 @@ export function BusinessSetupScreen({
       await new Promise((resolve) => setTimeout(resolve, 500));
       updateStep("locations", { status: "done", count: 1 });
 
-      // Step 2: Start Full Sync (single API call for all data types)
-      // This avoids rate limiting by using a single sync job
+      gmbLogger.info("Starting sync progress animation", {
+        accountId,
+        note: "Sync job already enqueued by import endpoint",
+      });
+
+      // Step 2: Show progress animations for all data types
+      // The actual sync is happening in the background via the discovery_locations job
       updateStep("reviews", { status: "syncing", count: 0, total: 100 });
       updateStep("posts", { status: "syncing", count: 0, total: 50 });
       updateStep("questions", { status: "syncing", count: 0, total: 30 });
       updateStep("media", { status: "syncing", count: 0, total: 20 });
 
+      // Simulate progress while sync happens in background
+      // Reviews progress (40% of total animation)
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        updateStep("reviews", { count: i });
+      }
+      updateStep("reviews", { status: "done", count: 0 });
+
+      // Posts progress (25% of total animation)
+      for (let i = 0; i <= 50; i += 10) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        updateStep("posts", { count: i });
+      }
+      updateStep("posts", { status: "done", count: 0 });
+
+      // Questions progress (20% of total animation)
+      for (let i = 0; i <= 30; i += 5) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        updateStep("questions", { count: i });
+      }
+      updateStep("questions", { status: "done", count: 0 });
+
+      // Media progress (15% of total animation)
+      for (let i = 0; i <= 20; i += 5) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        updateStep("media", { count: i });
+      }
+      updateStep("media", { status: "done", count: 0 });
+
+      // Get actual counts from database after animation completes
       try {
-        const syncResponse = await fetch("/api/gmb/enqueue-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accountId, syncType: "full" }),
-        });
-
-        if (!syncResponse.ok) {
-          const errorData = await syncResponse.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || `Sync failed: ${syncResponse.status}`,
-          );
-        }
-
-        const syncData = await syncResponse.json();
-        gmbLogger.info("Full sync queued", {
-          queueId: syncData.queueId,
-          accountId,
-        });
-
-        // Simulate progress while sync happens in background
-        // Reviews progress (40% of total animation)
-        for (let i = 0; i <= 100; i += 10) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
-          updateStep("reviews", { count: i });
-        }
-        updateStep("reviews", { status: "done", count: 0 });
-
-        // Posts progress (25% of total animation)
-        for (let i = 0; i <= 50; i += 10) {
-          await new Promise((resolve) => setTimeout(resolve, 150));
-          updateStep("posts", { count: i });
-        }
-        updateStep("posts", { status: "done", count: 0 });
-
-        // Questions progress (20% of total animation)
-        for (let i = 0; i <= 30; i += 5) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          updateStep("questions", { count: i });
-        }
-        updateStep("questions", { status: "done", count: 0 });
-
-        // Media progress (15% of total animation)
-        for (let i = 0; i <= 20; i += 5) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          updateStep("media", { count: i });
-        }
-        updateStep("media", { status: "done", count: 0 });
-
-        // Get actual counts from database after sync completes
-        try {
-          const countResponse = await fetch(
-            `/api/gmb/sync-status?accountId=${accountId}`,
-          );
-          if (countResponse.ok) {
-            const countData = await countResponse.json();
-            updateStep("reviews", {
-              status: "done",
-              count: countData.reviewsCount || 0,
-            });
-            updateStep("posts", {
-              status: "done",
-              count: countData.postsCount || 0,
-            });
-            updateStep("questions", {
-              status: "done",
-              count: countData.questionsCount || 0,
-            });
-            updateStep("media", {
-              status: "done",
-              count: countData.mediaCount || 0,
-            });
-          }
-        } catch (countError) {
-          // Non-critical - just log it
-          gmbLogger.warn("Failed to fetch sync counts", {
-            error:
-              countError instanceof Error
-                ? countError.message
-                : String(countError),
+        const countResponse = await fetch(
+          `/api/gmb/sync-status?accountId=${accountId}`,
+        );
+        if (countResponse.ok) {
+          const countData = await countResponse.json();
+          updateStep("reviews", {
+            status: "done",
+            count: countData.reviewsCount || 0,
+          });
+          updateStep("posts", {
+            status: "done",
+            count: countData.postsCount || 0,
+          });
+          updateStep("questions", {
+            status: "done",
+            count: countData.questionsCount || 0,
+          });
+          updateStep("media", {
+            status: "done",
+            count: countData.mediaCount || 0,
           });
         }
-      } catch (error) {
-        gmbLogger.error(
-          "Full sync error",
-          error instanceof Error ? error : new Error(String(error)),
-        );
-        // Mark all as done to allow user to continue
-        updateStep("reviews", { status: "done", count: 0 });
-        updateStep("posts", { status: "done", count: 0 });
-        updateStep("questions", { status: "done", count: 0 });
-        updateStep("media", { status: "done", count: 0 });
+      } catch (countError) {
+        // Non-critical - just log it
+        gmbLogger.warn("Failed to fetch sync counts", {
+          error:
+            countError instanceof Error
+              ? countError.message
+              : String(countError),
+        });
       }
 
       // Complete!
@@ -537,7 +513,7 @@ export function BusinessSetupScreen({
       setTimeout(onComplete, 2500);
     } catch (error) {
       gmbLogger.error(
-        "Sync failed",
+        "Sync animation failed",
         error instanceof Error ? error : new Error(String(error)),
       );
       setHasError(true);
