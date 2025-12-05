@@ -6,12 +6,47 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Star, Eye, TrendingUp } from 'lucide-react';
 import { formatLargeNumber } from '@/components/locations/location-types';
 import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
+import type { DashboardSnapshot } from '@/types/dashboard';
 
 interface StatsData {
   totalLocations: number;
   avgRating: number;
   totalReviews: number;
   avgHealthScore: number;
+}
+
+/**
+ * Validates that a snapshot has all required nested properties for location stats.
+ * This prevents errors from accessing properties on undefined nested objects.
+ */
+function isValidSnapshotForStats(snapshot: DashboardSnapshot | null | undefined): boolean {
+  if (!snapshot) {
+    return false;
+  }
+
+  // Check for required nested objects
+  if (!snapshot.locationSummary || typeof snapshot.locationSummary !== 'object') {
+    return false;
+  }
+
+  if (!snapshot.reviewStats || typeof snapshot.reviewStats !== 'object') {
+    return false;
+  }
+
+  if (!snapshot.reviewStats.totals || typeof snapshot.reviewStats.totals !== 'object') {
+    return false;
+  }
+
+  if (!snapshot.kpis || typeof snapshot.kpis !== 'object') {
+    return false;
+  }
+
+  // Check for required properties
+  if (typeof snapshot.locationSummary.totalLocations !== 'number') {
+    return false;
+  }
+
+  return true;
 }
 
 export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } = {}) {
@@ -22,7 +57,8 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
 
   useEffect(() => {
     async function fetchStats() {
-      if (snapshot) {
+      // Use snapshot only if it has all required nested properties
+      if (isValidSnapshotForStats(snapshot)) {
         setStats({
           totalLocations: snapshot.locationSummary.totalLocations ?? 0,
           avgRating: snapshot.reviewStats.averageRating ?? 0,
