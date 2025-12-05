@@ -1,4 +1,5 @@
 import { ReviewsPageClient } from "@/components/reviews/ReviewsPageClient";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUrl } from "@/lib/utils/navigation";
 import { getTranslations } from "next-intl/server";
@@ -81,10 +82,13 @@ export default async function ReviewsPage({
     search: searchParams.search,
   };
 
+  // تطبيق ErrorBoundary لمنع انهيار الصفحة بالكامل عند حدوث خطأ
   return (
-    <ReviewsPageClient
-      locations={locations || []}
-      initialFilters={initialFilters}
-    />
+    <ErrorBoundary>
+      <ReviewsPageClient
+        locations={locations || []}
+        initialFilters={initialFilters}
+      />
+    </ErrorBoundary>
   );
 }
