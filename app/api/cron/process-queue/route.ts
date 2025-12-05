@@ -17,12 +17,12 @@
  */
 
 import { withCronAuth } from "@/lib/security/cron-auth";
+import { syncLogger } from "@/lib/utils/logger";
 import {
   getPendingJobsForWorker,
   updateJobStatus,
 } from "@/server/actions/sync-queue";
 import { processSyncJob } from "@/server/workers/sync-worker";
-import { syncLogger } from "@/lib/utils/logger";
 import { NextResponse } from "next/server";
 
 // Vercel function configuration
@@ -42,9 +42,36 @@ async function handleProcessQueue(_request: Request): Promise<Response> {
     syncLogger.info("Process queue cron started");
 
     // Step 1: Fetch pending jobs
-    const pendingJobs = await getPendingJobsForWorker(MAX_JOBS_PER_RUN);
+    let pendingJobs;
+    try {
+      pendingJobs = await getPendingJobsForWorker(MAX_JOBS_PER_RUN);
+      syncLogger.info("Fetched jobs from queue", {
+        count: pendingJobs.length,
+        jobIds: pendingJobs.map((j) => j.id),
+      });
+    } catch (fetchError) {
+      syncLogger.error(
+        "Failed to fetch pending jobs",
+        fetchError instanceof Error
+          ? fetchError
+          : new Error(String(fetchError)),
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to fetch pending jobs",
+          details:
+            fetchError instanceof Error
+              ? fetchError.message
+              : String(fetchError),
+          duration_ms: Date.now() - startTime,
+        },
+        { status: 500 },
+      );
+    }
 
     if (pendingJobs.length === 0) {
+      syncLogger.info("No pending jobs found in queue");
       return NextResponse.json({
         success: true,
         message: "No pending jobs to process",

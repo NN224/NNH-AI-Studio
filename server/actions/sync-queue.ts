@@ -487,6 +487,8 @@ export async function getPendingJobsForWorker(
   try {
     const admin = createAdminClient();
 
+    syncLogger.info("Fetching pending jobs from sync_queue", { limit });
+
     const { data, error } = await admin
       .from("sync_queue")
       .select("*")
@@ -495,6 +497,12 @@ export async function getPendingJobsForWorker(
       .order("priority", { ascending: false })
       .order("created_at", { ascending: true })
       .limit(limit);
+
+    syncLogger.info("Query result", {
+      dataCount: data?.length || 0,
+      error: error?.message,
+      firstJob: data?.[0]?.id,
+    });
 
     if (error) {
       syncLogger.error(
@@ -508,13 +516,26 @@ export async function getPendingJobsForWorker(
     const validJobs = (data || []).filter((job: SyncQueueItem) => {
       // Safely check if metadata has the required properties for SyncJobMetadata
       const metadata = job.metadata;
-      return (
+      const isValid =
         metadata &&
         typeof metadata === "object" &&
         "job_type" in metadata &&
         "userId" in metadata &&
-        "accountId" in metadata
-      );
+        "accountId" in metadata;
+
+      if (!isValid && metadata) {
+        syncLogger.warn("Job filtered out - invalid metadata", {
+          jobId: job.id,
+          metadata: JSON.stringify(metadata),
+        });
+      }
+
+      return isValid;
+    });
+
+    syncLogger.info("Valid jobs after filtering", {
+      total: data?.length || 0,
+      valid: validJobs.length,
     });
 
     // Map to ensure type safety
