@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS gmb_locations (
   order_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  
+
   CONSTRAINT gmb_locations_location_id_unique UNIQUE (location_id)
 );
 
@@ -65,6 +65,13 @@ CREATE INDEX IF NOT EXISTS idx_gmb_locations_location_id ON gmb_locations(locati
 CREATE INDEX IF NOT EXISTS idx_gmb_locations_is_active ON gmb_locations(is_active);
 
 ALTER TABLE gmb_locations ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own locations" ON gmb_locations;
+DROP POLICY IF EXISTS "Users can insert their own locations" ON gmb_locations;
+DROP POLICY IF EXISTS "Users can update their own locations" ON gmb_locations;
+DROP POLICY IF EXISTS "Users can delete their own locations" ON gmb_locations;
+DROP POLICY IF EXISTS "Service role has full access to gmb_locations" ON gmb_locations;
 
 CREATE POLICY "Users can view their own locations" ON gmb_locations FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own locations" ON gmb_locations FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -92,7 +99,7 @@ CREATE TABLE IF NOT EXISTS user_progress (
   posts_created INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  
+
   CONSTRAINT user_progress_user_id_unique UNIQUE (user_id)
 );
 
@@ -100,6 +107,12 @@ CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_progress_level ON user_progress(level);
 
 ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own progress" ON user_progress;
+DROP POLICY IF EXISTS "Users can insert their own progress" ON user_progress;
+DROP POLICY IF EXISTS "Users can update their own progress" ON user_progress;
+DROP POLICY IF EXISTS "Service role has full access to user_progress" ON user_progress;
 
 CREATE POLICY "Users can view their own progress" ON user_progress FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own progress" ON user_progress FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -126,7 +139,7 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   reward_value TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  
+
   CONSTRAINT user_achievements_unique UNIQUE (user_id, achievement_id)
 );
 
@@ -135,6 +148,12 @@ CREATE INDEX IF NOT EXISTS idx_user_achievements_category ON user_achievements(c
 CREATE INDEX IF NOT EXISTS idx_user_achievements_unlocked ON user_achievements(unlocked);
 
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Users can insert their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Users can update their own achievements" ON user_achievements;
+DROP POLICY IF EXISTS "Service role has full access to user_achievements" ON user_achievements;
 
 CREATE POLICY "Users can view their own achievements" ON user_achievements FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own achievements" ON user_achievements FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -156,14 +175,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 -- 5. UPDATE TRIGGERS
 -- ============================================================================
+DROP TRIGGER IF EXISTS update_gmb_locations_updated_at ON gmb_locations;
 CREATE TRIGGER update_gmb_locations_updated_at
   BEFORE UPDATE ON gmb_locations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_progress_updated_at ON user_progress;
 CREATE TRIGGER update_user_progress_updated_at
   BEFORE UPDATE ON user_progress
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_achievements_updated_at ON user_achievements;
 CREATE TRIGGER update_user_achievements_updated_at
   BEFORE UPDATE ON user_achievements
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

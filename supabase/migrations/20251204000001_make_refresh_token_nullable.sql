@@ -31,6 +31,9 @@ ALTER COLUMN refresh_token DROP NOT NULL;
 
 -- Step 2: Add check constraint to ensure at least one token exists
 ALTER TABLE gmb_secrets
+DROP CONSTRAINT IF EXISTS check_has_token;
+
+ALTER TABLE gmb_secrets
 ADD CONSTRAINT check_has_token CHECK (
   access_token IS NOT NULL OR refresh_token IS NOT NULL
 );
