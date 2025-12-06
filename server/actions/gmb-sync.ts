@@ -19,7 +19,9 @@ import { logAction } from "@/lib/monitoring/audit";
 import { trackSyncResult } from "@/lib/monitoring/metrics";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { runSyncTransactionWithRetry } from "@/lib/supabase/transactions";
+import { createGMBSyncCircuitBreaker } from "@/lib/utils/circuit-breaker";
 import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
+import { getGoogleAPIRateLimiter } from "@/lib/utils/google-api-rate-limiter";
 import { gmbLogger } from "@/lib/utils/logger";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
@@ -31,7 +33,9 @@ const POSTS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 
 // Rate limiting configuration
-const MAX_CONCURRENT_REQUESTS = 5;
+// Note: Global rate limiting is handled by GoogleAPIRateLimiter
+// These are for concurrency control only
+const MAX_CONCURRENT_REQUESTS = 3; // Reduced from 5 to prevent quota exhaustion
 const REQUEST_DELAY_MS = 200;
 
 // Retry configuration for 429 errors
@@ -58,9 +62,19 @@ async function fetchWithRetry(
   context?: { accountId?: string; locationId?: string; operation?: string },
 ): Promise<Response> {
   let lastError: Error | null = null;
+  const rateLimiter = getGoogleAPIRateLimiter();
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
+      // Wait for rate limit slot before making request
+      const slotAvailable = await rateLimiter.waitForSlot(30000); // 30 second max wait
+      if (!slotAvailable) {
+        gmbLogger.warn("Rate limiter timeout - proceeding anyway", {
+          attempt: attempt + 1,
+          ...context,
+        });
+      }
+
       const response = await fetchWithTimeout(url, options, timeoutMs);
 
       // Success - return response
@@ -1289,6 +1303,21 @@ export async function performTransactionalSync(
     throw new Error(`GMB account not found: ${accountId}`);
   }
 
+  // Initialize circuit breaker
+  const circuitBreaker = createGMBSyncCircuitBreaker(accountId);
+
+  // Check if circuit breaker is open (blocking requests)
+  const isCircuitOpen = await circuitBreaker.isOpen();
+  if (isCircuitOpen) {
+    const state = await circuitBreaker.getState();
+    const errorMessage = `Circuit breaker is ${state} - sync blocked due to repeated failures. Please wait before retrying.`;
+    gmbLogger.warn("Sync blocked by circuit breaker", {
+      accountId,
+      state,
+    });
+    throw new Error(errorMessage);
+  }
+
   const progressEmitter = createProgressEmitter({
     userId,
     accountId,
@@ -1465,6 +1494,9 @@ export async function performTransactionalSync(
         });
         await trackSyncResult(userId, true, durationMs);
 
+        // Record success in circuit breaker
+        await circuitBreaker.recordSuccess();
+
         return {
           ...transactionResult,
         };
@@ -1478,6 +1510,10 @@ export async function performTransactionalSync(
   } catch (error) {
     // Clear timeout on error
     syncTimeout.clear();
+
+    // Record failure in circuit breaker
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await circuitBreaker.recordFailure(errorObj);
 
     // Standardize error messages
     const message =
