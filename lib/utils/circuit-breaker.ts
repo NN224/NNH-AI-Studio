@@ -62,8 +62,11 @@ export class CircuitBreaker {
         return false; // CLOSED - no failures recorded
       }
 
-      const failureCount = parseInt(failures);
-      const lastFailureTime = parseInt(lastFailure);
+      const failureCount = parseInt(failures ? String(failures) : "0", 10);
+      const lastFailureTime = parseInt(
+        lastFailure ? String(lastFailure) : "0",
+        10,
+      );
       const currentState = state?.toString() || "CLOSED";
 
       // If we have enough failures, check if we should open
