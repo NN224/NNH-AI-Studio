@@ -699,15 +699,15 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
               >
                 <div className="flex items-center gap-1">
                   <Shield className="h-4 w-4 text-green-500" />
-                  <span>آمن ومشفر</span>
+                  <span>Secure & Encrypted</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Zap className="h-4 w-4 text-orange-500" />
-                  <span>سريع وفوري</span>
+                  <span>Fast & Instant</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                  <span>سهل الاستخدام</span>
+                  <span>Easy to Use</span>
                 </div>
               </motion.div>
             </motion.div>
