@@ -64,9 +64,11 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
 
   const handleConnectGMB = async () => {
     setIsConnectingGMB(true);
+    setLoadingStep(0);
+    
     try {
-      toast.info("Redirecting to Google...", {
-        description: "Please authorize access to your business profile.",
+      toast.info("جاري التوجيه إلى Google...", {
+        description: "سيُطلب منك السماح بالوصول لحسابك التجاري.",
       });
 
       const response = await fetch("/api/gmb/create-auth-url", {
@@ -81,15 +83,20 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
 
       const data = await response.json();
       if (data.authUrl) {
-        window.location.href = data.authUrl;
+        // Show success animation
+        setShowConfetti(true);
+        setTimeout(() => {
+          window.location.href = data.authUrl;
+        }, 500);
       }
     } catch (error) {
       gmbLogger.error(
         "Error connecting GMB",
         error instanceof Error ? error : new Error(String(error)),
       );
-      toast.error("Failed to connect. Please try again.");
+      toast.error("فشل الاتصال. يرجى المحاولة مرة أخرى.");
       setIsConnectingGMB(false);
+      setLoadingStep(0);
     }
   };
 
