@@ -396,21 +396,21 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                       <Building2 className="h-7 w-7 text-orange-500" />
                     </motion.div>
                     
-                    <div className="flex-1 text-right">
+                    <div className="flex-1 text-left">
                       <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-orange-400 transition-colors">
-                        ربط Google Business
+                        Connect Google Business
                       </h3>
                       <p className="text-sm text-zinc-400">
-                        إدارة التقييمات والمنشورات والإحصائيات بمساعدة الذكاء الاصطناعي
+                        Manage reviews, posts, and analytics with AI assistance
                       </p>
                       
                       {/* Features badges */}
-                      <div className="flex gap-2 mt-2 justify-end">
+                      <div className="flex gap-2 mt-2">
                         <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                          ردود تلقائية
+                          Auto-replies
                         </span>
                         <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                          تحليلات ذكية
+                          Smart Analytics
                         </span>
                       </div>
                     </div>
