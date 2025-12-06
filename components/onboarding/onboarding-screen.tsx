@@ -32,6 +32,35 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
   const locale = params?.locale || "en";
   const [isConnectingGMB, setIsConnectingGMB] = useState(false);
   const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Loading steps للعرض أثناء الانتظار
+  const loadingSteps = [
+    { text: "جاري التحقق من الحساب...", icon: Shield },
+    { text: "تجهيز البيانات...", icon: TrendingUp },
+    { text: "تفعيل الميزات الذكية...", icon: Zap },
+    { text: "جاهز تقريباً...", icon: CheckCircle2 },
+  ];
+
+  // Animate loading steps
+  useEffect(() => {
+    if (!isConnectingGMB && !isConnectingYouTube) {
+      setLoadingStep(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setLoadingStep((prev) => {
+        if (prev < loadingSteps.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isConnectingGMB, isConnectingYouTube]);
 
   const handleConnectGMB = async () => {
     setIsConnectingGMB(true);
