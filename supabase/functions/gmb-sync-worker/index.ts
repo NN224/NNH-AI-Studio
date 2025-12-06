@@ -38,14 +38,16 @@ const corsHeaders = {
 // ============================================================================
 
 const CONFIG = {
-  WORKER_TIMEOUT_MS: 55000,
-  JOB_TIMEOUT_MS: 45000,
-  TIMEOUT_MARGIN_MS: 5000,
+  // ✅ تحديث: استخدام timeouts موحدة لتجنب timeout mismatch
+  WORKER_TIMEOUT_MS: 10 * 60 * 1000,  // 10 دقائق (الأطول)
+  JOB_TIMEOUT_MS: 7 * 60 * 1000,       // 7 دقائق (أقل من TOTAL_SYNC)
+  TIMEOUT_MARGIN_MS: 30000,            // 30 ثانية هامش أمان
   MAX_JOBS_PER_RUN: 10,
   DEFAULT_MAX_ATTEMPTS: 3,
   RETRY_DELAY_BASE_MS: 60000,
   STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000,
-  CIRCUIT_BREAKER_THRESHOLD: 5,
+  CIRCUIT_BREAKER_THRESHOLD: 10,      // ✅ تحديث: 10 فشل متتالي (يتطابق مع DB)
+  CIRCUIT_BREAKER_RETRY_MINUTES: 10,  // ✅ جديد: إعادة المحاولة بعد 10 دقائق
 };
 
 // ============================================================================
