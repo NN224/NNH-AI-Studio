@@ -480,11 +480,11 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                       {isConnectingYouTube ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          جاري الربط...
+                          Connecting...
                         </>
                       ) : (
                         <>
-                          ربط الآن
+                          Connect
                           <ArrowRight className="h-4 w-4" />
                         </>
                       )}
