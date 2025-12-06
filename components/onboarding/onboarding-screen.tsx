@@ -35,12 +35,12 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
   const [loadingStep, setLoadingStep] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Loading steps للعرض أثناء الانتظار
+  // Loading steps to show during waiting
   const loadingSteps = [
-    { text: "جاري التحقق من الحساب...", icon: Shield },
-    { text: "تجهيز البيانات...", icon: TrendingUp },
-    { text: "تفعيل الميزات الذكية...", icon: Zap },
-    { text: "جاهز تقريباً...", icon: CheckCircle2 },
+    { text: "Verifying your account...", icon: Shield },
+    { text: "Preparing your data...", icon: TrendingUp },
+    { text: "Activating smart features...", icon: Zap },
+    { text: "Almost ready...", icon: CheckCircle2 },
   ];
 
   // Animate loading steps
