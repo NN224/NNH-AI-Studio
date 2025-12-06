@@ -67,8 +67,8 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
     setLoadingStep(0);
     
     try {
-      toast.info("جاري التوجيه إلى Google...", {
-        description: "سيُطلب منك السماح بالوصول لحسابك التجاري.",
+      toast.info("Redirecting to Google...", {
+        description: "Please authorize access to your business profile.",
       });
 
       const response = await fetch("/api/gmb/create-auth-url", {
