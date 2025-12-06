@@ -414,6 +414,46 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
     throw error;
   }
 
+  // ✅ جديد: فحص Circuit Breaker قبل معالجة أي jobs
+  try {
+    const { data: circuitStatus, error: circuitError } = await admin.rpc(
+      "check_circuit_breaker",
+    );
+
+    if (circuitError) {
+      console.error("Failed to check circuit breaker:", circuitError);
+    } else if (circuitStatus && circuitStatus.length > 0) {
+      const status = circuitStatus[0];
+      
+      if (status.is_open && !status.can_retry) {
+        const minutesSince = Math.floor(
+          (Date.now() - new Date(status.opened_at).getTime()) / 60000
+        );
+        
+        console.warn(
+          `⚠️ Circuit breaker is OPEN (${minutesSince} minutes ago): ${status.reason}`
+        );
+        console.warn(
+          `   Skipping job processing. Will retry after ${CONFIG.CIRCUIT_BREAKER_RETRY_MINUTES} minutes`
+        );
+        
+        await updateWorkerRun(admin, run_id, {
+          ...stats,
+          status: "completed",
+          notes: `Circuit breaker OPEN: ${status.reason}`,
+        });
+        
+        return stats;
+      } else if (status.is_open && status.can_retry) {
+        console.log("✅ Circuit breaker auto-closed after retry period");
+        // سيتم إغلاقه تلقائياً بواسطة check_circuit_breaker()
+      }
+    }
+  } catch (error) {
+    console.error("Circuit breaker check error:", getErrorMessage(error));
+    // نستمر في المعالجة إذا فشل فحص circuit breaker
+  }
+
   try {
     const jobs = await pickJobsForProcessing(admin, CONFIG.MAX_JOBS_PER_RUN);
     stats.jobs_picked = jobs.length;
