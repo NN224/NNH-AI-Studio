@@ -579,15 +579,15 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                   </motion.div>
                   
                   <h3 className="text-xl font-bold text-white mb-2">
-                    جرّب النسخة التجريبية أولاً
+                    Try Live Demo First
                   </h3>
                   
                   <p className="text-sm text-zinc-300 mb-4">
-                    اختبر مركز القيادة الذكي الكامل ببيانات تجريبية واقعية
+                    Experience the full AI Command Center with realistic demo data
                     <br />
                     <span className="text-purple-400 font-semibold inline-flex items-center gap-1 mt-1">
                       <Zap className="h-4 w-4" />
-                      لا حاجة لربط أي حساب!
+                      No account connection required!
                     </span>
                   </p>
                   
