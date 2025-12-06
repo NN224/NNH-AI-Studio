@@ -37,8 +37,10 @@ const corsHeaders = {
   "X-Content-Type-Options": "nosniff",
 };
 
-// Timeout for sync operations (50 seconds to stay under Edge Function limits)
-const SYNC_TIMEOUT_MS = 50000;
+// ✅ Timeout configuration - موحد لتجنب timeout mismatch
+// Edge Functions يمكن أن تعمل حتى 10 دقائق
+// لكن نستخدم 9 دقائق للأمان (أقل من WORKER_TIMEOUT)
+const SYNC_TIMEOUT_MS = 9 * 60 * 1000; // 9 دقائق (540 ثانية)
 
 interface SyncRequest {
   accountId?: string;
