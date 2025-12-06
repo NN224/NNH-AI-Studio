@@ -35,11 +35,11 @@ const MEDIA_BASE = GMB_CONSTANTS.GMB_V4_BASE;
 const MAX_CONCURRENT_REQUESTS = 5;
 const REQUEST_DELAY_MS = 200;
 
-// Token refresh configuration
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+// Token refresh configuration - استخدام القيمة الموحدة
+const TOKEN_REFRESH_BUFFER_MS = SYNC_TIMEOUTS.TOKEN_REFRESH_BUFFER;
 
-// Sync timeout configuration
-const SYNC_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max for entire sync
+// Sync timeout configuration - استخدام القيمة الموحدة
+const SYNC_TIMEOUT_MS = SYNC_TIMEOUTS.TOTAL_SYNC;
 
 // Create a timeout controller for sync operations
 function createSyncTimeout(ms: number = SYNC_TIMEOUT_MS) {
