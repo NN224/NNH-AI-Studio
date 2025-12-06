@@ -201,7 +201,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 </motion.div>
 
                 <h2 className="text-2xl font-bold text-white mb-3">
-                  جاري الإعداد...
+                  Setting things up...
                 </h2>
 
                 {/* Progress Steps */}
