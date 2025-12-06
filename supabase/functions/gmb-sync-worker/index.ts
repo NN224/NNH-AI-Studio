@@ -1,5 +1,5 @@
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 /**
  * ============================================================================
@@ -39,15 +39,15 @@ const corsHeaders = {
 
 const CONFIG = {
   // ✅ تحديث: استخدام timeouts موحدة لتجنب timeout mismatch
-  WORKER_TIMEOUT_MS: 10 * 60 * 1000,  // 10 دقائق (الأطول)
-  JOB_TIMEOUT_MS: 7 * 60 * 1000,       // 7 دقائق (أقل من TOTAL_SYNC)
-  TIMEOUT_MARGIN_MS: 30000,            // 30 ثانية هامش أمان
+  WORKER_TIMEOUT_MS: 10 * 60 * 1000, // 10 دقائق (الأطول)
+  JOB_TIMEOUT_MS: 7 * 60 * 1000, // 7 دقائق (أقل من TOTAL_SYNC)
+  TIMEOUT_MARGIN_MS: 30000, // 30 ثانية هامش أمان
   MAX_JOBS_PER_RUN: 10,
   DEFAULT_MAX_ATTEMPTS: 3,
   RETRY_DELAY_BASE_MS: 60000,
   STALE_JOB_THRESHOLD_MS: 10 * 60 * 1000,
-  CIRCUIT_BREAKER_THRESHOLD: 10,      // ✅ تحديث: 10 فشل متتالي (يتطابق مع DB)
-  CIRCUIT_BREAKER_RETRY_MINUTES: 10,  // ✅ جديد: إعادة المحاولة بعد 10 دقائق
+  CIRCUIT_BREAKER_THRESHOLD: 10, // ✅ تحديث: 10 فشل متتالي (يتطابق مع DB)
+  CIRCUIT_BREAKER_RETRY_MINUTES: 10, // ✅ جديد: إعادة المحاولة بعد 10 دقائق
 };
 
 // ============================================================================
@@ -241,7 +241,8 @@ async function processJob(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Internal-Run": triggerSecret,
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "X-Trigger-Secret": triggerSecret,
       },
       body: JSON.stringify({
         accountId: job.account_id,
@@ -424,25 +425,25 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       console.error("Failed to check circuit breaker:", circuitError);
     } else if (circuitStatus && circuitStatus.length > 0) {
       const status = circuitStatus[0];
-      
+
       if (status.is_open && !status.can_retry) {
         const minutesSince = Math.floor(
-          (Date.now() - new Date(status.opened_at).getTime()) / 60000
+          (Date.now() - new Date(status.opened_at).getTime()) / 60000,
         );
-        
+
         console.warn(
-          `⚠️ Circuit breaker is OPEN (${minutesSince} minutes ago): ${status.reason}`
+          `⚠️ Circuit breaker is OPEN (${minutesSince} minutes ago): ${status.reason}`,
         );
         console.warn(
-          `   Skipping job processing. Will retry after ${CONFIG.CIRCUIT_BREAKER_RETRY_MINUTES} minutes`
+          `   Skipping job processing. Will retry after ${CONFIG.CIRCUIT_BREAKER_RETRY_MINUTES} minutes`,
         );
-        
+
         await updateWorkerRun(admin, run_id, {
           ...stats,
           status: "completed",
           notes: `Circuit breaker OPEN: ${status.reason}`,
         });
-        
+
         return stats;
       } else if (status.is_open && status.can_retry) {
         console.log("✅ Circuit breaker auto-closed after retry period");
@@ -496,12 +497,15 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       if (result.success) {
         stats.jobs_succeeded++;
         consecutiveFailures = 0;
-        
+
         // ✅ جديد: تسجيل نجاح في circuit breaker
         try {
           await admin.rpc("record_sync_success");
         } catch (error) {
-          console.error("Failed to record sync success:", getErrorMessage(error));
+          console.error(
+            "Failed to record sync success:",
+            getErrorMessage(error),
+          );
         }
       } else {
         stats.jobs_failed++;
@@ -512,29 +516,30 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
           const { data: failureCount, error: recordError } = await admin.rpc(
             "record_sync_failure",
           );
-          
+
           if (recordError) {
             console.error("Failed to record sync failure:", recordError);
           } else if (failureCount) {
             console.warn(`⚠️ Consecutive failures: ${failureCount}`);
           }
         } catch (error) {
-          console.error("Circuit breaker update error:", getErrorMessage(error));
+          console.error(
+            "Circuit breaker update error:",
+            getErrorMessage(error),
+          );
         }
 
         if (consecutiveFailures >= CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
           console.error(
-            `🔴 Circuit breaker threshold reached (${consecutiveFailures} consecutive failures)`
+            `🔴 Circuit breaker threshold reached (${consecutiveFailures} consecutive failures)`,
           );
-          console.error(
-            `   Stopping worker to prevent resource exhaustion`
-          );
-          
+          console.error(`   Stopping worker to prevent resource exhaustion`);
+
           // إعادة الـ jobs المتبقية إلى pending
           for (let j = i + 1; j < jobs.length; j++) {
             unprocessedJobIds.push(jobs[j].id);
           }
-          
+
           await updateJobStatus(admin, job, result);
           break;
         }
