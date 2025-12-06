@@ -360,7 +360,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 transition={{ delay: 0.3 }}
                 className="text-3xl md:text-4xl font-bold text-white mb-3"
               >
-                أهلاً {displayName}! 🎉
+                Welcome, {displayName}! 🎉
               </motion.h1>
 
               <motion.p
@@ -369,7 +369,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 transition={{ delay: 0.4 }}
                 className="text-zinc-400 text-lg max-w-md mx-auto"
               >
-                لنبدأ الإعداد. قم بربط حساب واحد على الأقل لفتح جميع الميزات القوية.
+                Let's get you set up. Connect at least one account to unlock all the powerful features.
               </motion.p>
             </div>
 
