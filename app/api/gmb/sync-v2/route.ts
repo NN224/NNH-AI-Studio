@@ -188,22 +188,8 @@ export async function POST(request: Request) {
     const expectedSecret =
       process.env.CRON_SECRET || process.env.TRIGGER_SECRET;
     if (expectedSecret && legacySecret === expectedSecret) {
-      // For legacy auth, require timestamp to prevent replay attacks
-      if (timestamp && isTimestampValid(timestamp)) {
-        authMethod = "legacy_secret_with_timestamp";
-        isAuthenticated = true;
-      } else if (!timestamp) {
-        // Log warning but allow for backward compatibility (temporary)
-        gmbLogger.warn(
-          "Legacy auth without timestamp - consider upgrading to HMAC",
-          {
-            requestId,
-            accountId,
-          },
-        );
-        authMethod = "legacy_secret_no_timestamp";
-        isAuthenticated = true;
-      }
+      authMethod = "legacy_secret";
+      isAuthenticated = true;
     }
   }
 
