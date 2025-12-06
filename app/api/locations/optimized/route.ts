@@ -1,5 +1,11 @@
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import {
+  RawLocation,
+  RecentReview,
+  TransformedLocation,
+  TransformedRecentReview,
+} from "@/lib/types/location-api";
 import { apiLogger } from "@/lib/utils/logger";
 import { applySafeSearchFilter } from "@/lib/utils/secure-search";
 import { NextRequest, NextResponse } from "next/server";
@@ -166,21 +172,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform the data to include aggregated counts
-    const transformedLocations =
-      locations?.map((location) => {
+    const transformedLocations: TransformedLocation[] =
+      locations?.map((location: RawLocation) => {
         const reviewCount = location.review_stats?.[0]?.count || 0;
         const pendingReviewCount = location.pending_reviews?.length || 0;
         const questionCount = location.question_stats?.[0]?.count || 0;
         const pendingQuestionCount = location.pending_questions?.length || 0;
-        const recentReviews = location.recent_reviews || [];
+        const recentReviews = (location.recent_reviews || []) as RecentReview[];
 
         // Calculate average recent rating
         const recentRatings = recentReviews
-          .map((r: any) => r.rating)
-          .filter((r: any) => r != null);
+          .map((r) => r.rating)
+          .filter((r): r is number => r != null);
         const avgRecentRating =
           recentRatings.length > 0
-            ? recentRatings.reduce((sum: any, r: any) => sum + r, 0) /
+            ? recentRatings.reduce((sum, r) => sum + r, 0) /
               recentRatings.length
             : null;
 
@@ -194,30 +200,35 @@ export async function GET(request: NextRequest) {
           ...cleanLocation
         } = location;
 
+        // Create transformed reviews
+        const transformedReviews: TransformedRecentReview[] = recentReviews
+          .slice(0, 3)
+          .map((r) => ({
+            id: r.id,
+            rating: r.rating,
+            text:
+              (r.review_text?.substring(0, 100) || "") +
+              (r.review_text && r.review_text.length > 100 ? "..." : ""),
+            reviewer: r.reviewer_name,
+            date: r.review_date,
+            hasReply: r.has_reply,
+          }));
+
         return {
           ...cleanLocation,
           // Add computed stats
           stats: {
-            totalReviews: reviewCount,
-            pendingReviews: pendingReviewCount,
-            totalQuestions: questionCount,
-            pendingQuestions: pendingQuestionCount,
+            totalReviews: reviewCount || 0,
+            pendingReviews: pendingReviewCount || 0,
+            totalQuestions: questionCount || 0,
+            pendingQuestions: pendingQuestionCount || 0,
             recentReviewsCount: recentReviews.length,
             avgRecentRating: avgRecentRating,
             lastReviewDate: recentReviews[0]?.review_date || null,
           },
           // Include a few recent reviews for preview
-          recentReviews: recentReviews.slice(0, 3).map((r: any) => ({
-            id: r.id,
-            rating: r.rating,
-            text:
-              r.review_text?.substring(0, 100) +
-              (r.review_text?.length > 100 ? "..." : ""),
-            reviewer: r.reviewer_name,
-            date: r.review_date,
-            hasReply: r.has_reply,
-          })),
-        };
+          recentReviews: transformedReviews,
+        } as TransformedLocation;
       }) || [];
 
     const totalCount = count || 0;
@@ -266,7 +277,9 @@ export async function GET(request: NextRequest) {
 /**
  * Helper function to get category counts
  */
-function getCategoryCounts(locations: any[]) {
+function getCategoryCounts(
+  locations: TransformedLocation[],
+): Record<string, number> {
   const counts: Record<string, number> = {};
   locations.forEach((loc) => {
     if (loc.category) {

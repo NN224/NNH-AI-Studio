@@ -183,12 +183,39 @@ export async function addReviewReply(reviewId: string, reply: string) {
 
     // 3. Build the review resource name for Google API
     // Format: accounts/{accountId}/locations/{locationId}/reviews/{reviewId}
-    const gmbAccount = review.gmb_accounts as unknown as {
-      account_id: string;
-    } | null;
-    const gmbLocation = review.gmb_locations as unknown as {
-      location_id: string;
-    } | null;
+
+    // Define proper types with Zod for account and location objects
+    const AccountSchema = z.object({
+      account_id: z.string(),
+    });
+
+    const LocationSchema = z.object({
+      location_id: z.string(),
+    });
+
+    // Safely validate the nested objects
+    const gmbAccountResult = AccountSchema.safeParse(review.gmb_accounts);
+    const gmbLocationResult = LocationSchema.safeParse(review.gmb_locations);
+
+    const gmbAccount = gmbAccountResult.success ? gmbAccountResult.data : null;
+    const gmbLocation = gmbLocationResult.success
+      ? gmbLocationResult.data
+      : null;
+
+    // Log validation failures for debugging
+    if (!gmbAccountResult.success) {
+      reviewsLogger.warn("Invalid GMB account structure", {
+        error: gmbAccountResult.error,
+        reviewId: validatedData.reviewId,
+      });
+    }
+
+    if (!gmbLocationResult.success) {
+      reviewsLogger.warn("Invalid GMB location structure", {
+        error: gmbLocationResult.error,
+        reviewId: validatedData.reviewId,
+      });
+    }
 
     let googleReviewName = review.google_name;
 

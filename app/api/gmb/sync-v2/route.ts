@@ -5,17 +5,16 @@
  *
  * ⚠️ INTERNAL USE ONLY - NOT FOR PUBLIC ACCESS
  *
- * This endpoint is called by Supabase Edge Functions (gmb-process) to execute
- * the actual sync logic. It requires internal authentication via:
- * 1. Supabase Service Role Key (preferred for Edge Functions)
+ * This endpoint executes the actual GMB sync logic. It requires internal
+ * authentication via:
+ * 1. Supabase Service Role Key (preferred)
  * 2. HMAC-signed timestamp for replay attack prevention
- * 3. Fallback to shared secret with timestamp validation
  *
  * ARCHITECTURE:
- * 1. Job queued to sync_queue table (via scheduled-sync or webhooks)
- * 2. gmb-sync-worker picks job, calls gmb-process Edge Function
- * 3. gmb-process calls THIS endpoint with internal auth
- * 4. This endpoint executes performTransactionalSync with database transactions
+ * 1. Job queued to sync_queue table (via enqueue-sync API)
+ * 2. Vercel Cron (/api/cron/process-queue) picks job every minute
+ * 3. sync-worker.ts calls performTransactionalSync directly
+ * 4. This endpoint is a fallback for direct internal calls
  *
  * SECURITY:
  * - Validates Supabase Service Role Key OR HMAC signature
@@ -197,7 +196,10 @@ export async function POST(request: Request) {
         // Log warning but allow for backward compatibility (temporary)
         gmbLogger.warn(
           "Legacy auth without timestamp - consider upgrading to HMAC",
-          { requestId, accountId },
+          {
+            requestId,
+            accountId,
+          },
         );
         authMethod = "legacy_secret_no_timestamp";
         isAuthenticated = true;
@@ -279,7 +281,10 @@ export async function POST(request: Request) {
     gmbLogger.error(
       "Sync failed",
       error instanceof Error ? error : new Error(String(error)),
-      { requestId, accountId },
+      {
+        requestId,
+        accountId,
+      },
     );
 
     return NextResponse.json(

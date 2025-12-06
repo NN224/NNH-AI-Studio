@@ -3,8 +3,8 @@
   "buildCommand": "npm run build",
   "crons": [
     {
-      "path": "/api/gmb/scheduled-sync",
-      "schedule": "0 * * * *"
+      "path": "/api/cron/process-queue",
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/prepare-actions",
@@ -16,7 +16,7 @@
     },
     {
       "path": "/api/cron/process-questions",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/cleanup",
@@ -25,6 +25,10 @@
     {
       "path": "/api/cron/refresh-expiring-tokens",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-sync-queue",
+      "schedule": "0 3 * * *"
     }
   ]
 }

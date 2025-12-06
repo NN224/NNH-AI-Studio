@@ -110,10 +110,17 @@ export function LandingJsonLd() {
     },
   };
 
+  // JSON-LD is pure JSON data - no HTML sanitization needed
+  // JSON.stringify already escapes special characters safely
+  // We just need to ensure no script injection via closing tags
+  const jsonString = JSON.stringify(jsonLd)
+    // Escape any potential script closing tags in the JSON
+    .replace(/<\/script/gi, "<\\/script");
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: jsonString }}
     />
   );
 }

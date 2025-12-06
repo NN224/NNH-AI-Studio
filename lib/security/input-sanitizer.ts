@@ -1,91 +1,91 @@
-import { logger } from '@/lib/utils/logger'
+import { logger } from "@/lib/utils/logger";
 
 /**
  * Sanitize HTML input to prevent XSS attacks
  * Allows basic formatting tags only
  */
 export function sanitizeHtml(dirty: string): string {
-  if (!dirty) return ''
+  if (!dirty) return "";
 
   // Remove script tags and event handlers first
   let clean = dirty
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/on\w+\s*=\s*[^\s>]+/gi, '') // Handle unquoted event handlers
-    .replace(/javascript:/gi, '')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/on\w+\s*=\s*[^\s>]+/gi, "") // Handle unquoted event handlers
+    .replace(/javascript:/gi, "")
     .replace(/href\s*=\s*["'][^"']*alert[^"']*["']/gi, 'href=""') // Remove alert in href
-    .replace(/href\s*=\s*["'][^"']*eval[^"']*["']/gi, 'href=""') // Remove eval in href
+    .replace(/href\s*=\s*["'][^"']*eval[^"']*["']/gi, 'href=""'); // Remove eval in href
 
   // Only allow specific tags
-  const allowedTags = ['b', 'i', 'em', 'strong', 'a', 'p', 'br']
-  const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi
+  const allowedTags = ["b", "i", "em", "strong", "a", "p", "br"];
+  const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
 
   clean = clean.replace(tagRegex, (match, tag) => {
-    return allowedTags.includes(tag.toLowerCase()) ? match : ''
-  })
+    return allowedTags.includes(tag.toLowerCase()) ? match : "";
+  });
 
-  return clean.trim()
+  return clean.trim();
 }
 
 /**
  * Sanitize text input (strip all HTML)
  */
 export function sanitizeText(input: string): string {
-  if (!input) return ''
+  if (!input) return "";
 
   return input
-    .replace(/<[^>]*>/g, '')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+    .replace(/<[^>]*>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
-    .replace(/&#x2F;/g, '/')
-    .trim()
+    .replace(/&#x2F;/g, "/")
+    .trim();
 }
 
 /**
  * Sanitize URL to prevent javascript: and data: URIs
  */
 export function sanitizeUrl(url: string): string {
-  const sanitized = url.trim()
+  const sanitized = url.trim();
 
   // Block dangerous protocols
-  const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:']
-  const lowerUrl = sanitized.toLowerCase()
+  const dangerousProtocols = ["javascript:", "data:", "vbscript:", "file:"];
+  const lowerUrl = sanitized.toLowerCase();
 
   for (const protocol of dangerousProtocols) {
     if (lowerUrl.startsWith(protocol)) {
-      return ''
+      return "";
     }
   }
 
   // Only allow http, https, mailto, tel
   if (
-    !lowerUrl.startsWith('http://') &&
-    !lowerUrl.startsWith('https://') &&
-    !lowerUrl.startsWith('mailto:') &&
-    !lowerUrl.startsWith('tel:') &&
-    !lowerUrl.startsWith('/')
+    !lowerUrl.startsWith("http://") &&
+    !lowerUrl.startsWith("https://") &&
+    !lowerUrl.startsWith("mailto:") &&
+    !lowerUrl.startsWith("tel:") &&
+    !lowerUrl.startsWith("/")
   ) {
-    return ''
+    return "";
   }
 
-  return sanitized
+  return sanitized;
 }
 
 /**
  * Sanitize email address
  */
 export function sanitizeEmail(email: string): string {
-  const sanitized = email.trim().toLowerCase()
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const sanitized = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!emailRegex.test(sanitized)) {
-    return ''
+    return "";
   }
 
-  return sanitized
+  return sanitized;
 }
 
 /**
@@ -93,11 +93,11 @@ export function sanitizeEmail(email: string): string {
  */
 export function sanitizePhone(phone: string): string {
   // Check if starts with +
-  const hasPlus = phone.trim().startsWith('+')
+  const hasPlus = phone.trim().startsWith("+");
   // Remove all non-digit characters
-  const digits = phone.replace(/\D/g, '')
+  const digits = phone.replace(/\D/g, "");
   // Add back the + if it was there
-  return hasPlus ? '+' + digits : digits
+  return hasPlus ? "+" + digits : digits;
 }
 
 /**
@@ -117,25 +117,25 @@ export function sanitizePhone(phone: string): string {
  * ```
  */
 export function sanitizeSql(input: string): string {
-  console.warn(' sanitizeSql() is deprecated. Use parameterized queries!')
+  console.warn(" sanitizeSql() is deprecated. Use parameterized queries!");
 
   // This is NOT sufficient for SQL injection prevention!
   // Only use for display purposes, never for actual queries
   return input
-    .replace(/['"]/g, '')
-    .replace(/;/g, '')
-    .replace(/--/g, '')
-    .replace(/\/\*/g, '')
-    .replace(/\*\//g, '')
-    .replace(/xp_/gi, '')
-    .replace(/sp_/gi, '')
-    .replace(/exec/gi, '')
-    .replace(/union/gi, '')
-    .replace(/select/gi, '')
-    .replace(/insert/gi, '')
-    .replace(/update/gi, '')
-    .replace(/delete/gi, '')
-    .replace(/drop/gi, '')
+    .replace(/['"]/g, "")
+    .replace(/;/g, "")
+    .replace(/--/g, "")
+    .replace(/\/\*/g, "")
+    .replace(/\*\//g, "")
+    .replace(/xp_/gi, "")
+    .replace(/sp_/gi, "")
+    .replace(/exec/gi, "")
+    .replace(/union/gi, "")
+    .replace(/select/gi, "")
+    .replace(/insert/gi, "")
+    .replace(/update/gi, "")
+    .replace(/delete/gi, "")
+    .replace(/drop/gi, "");
 }
 
 /**
@@ -143,19 +143,19 @@ export function sanitizeSql(input: string): string {
  */
 export function sanitizeFileName(fileName: string): string {
   // Remove path traversal attempts
-  let sanitized = fileName.replace(/\.\./g, '')
+  let sanitized = fileName.replace(/\.\./g, "");
 
   // Remove special characters
-  sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_')
+  sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, "_");
 
   // Limit length
   if (sanitized.length > 255) {
-    const ext = sanitized.split('.').pop()
-    const name = sanitized.substring(0, 250 - (ext?.length || 0))
-    sanitized = ext ? `${name}.${ext}` : name
+    const ext = sanitized.split(".").pop();
+    const name = sanitized.substring(0, 250 - (ext?.length || 0));
+    sanitized = ext ? `${name}.${ext}` : name;
   }
 
-  return sanitized
+  return sanitized;
 }
 
 /**
@@ -163,36 +163,36 @@ export function sanitizeFileName(fileName: string): string {
  */
 export function sanitizeJson<T = any>(input: string): T | null {
   try {
-    const parsed = JSON.parse(input)
+    const parsed = JSON.parse(input);
 
     // Recursively sanitize string values
     const sanitizeObject = (obj: any): any => {
-      if (typeof obj === 'string') {
-        return sanitizeText(obj)
+      if (typeof obj === "string") {
+        return sanitizeText(obj);
       }
 
       if (Array.isArray(obj)) {
-        return obj.map(sanitizeObject)
+        return obj.map(sanitizeObject);
       }
 
-      if (obj !== null && typeof obj === 'object') {
-        const sanitized: any = {}
+      if (obj !== null && typeof obj === "object") {
+        const sanitized: any = {};
         for (const [key, value] of Object.entries(obj)) {
-          sanitized[sanitizeText(key)] = sanitizeObject(value)
+          sanitized[sanitizeText(key)] = sanitizeObject(value);
         }
-        return sanitized
+        return sanitized;
       }
 
-      return obj
-    }
+      return obj;
+    };
 
-    return sanitizeObject(parsed)
+    return sanitizeObject(parsed);
   } catch (error) {
     logger.error(
-      'JSON sanitization error',
+      "JSON sanitization error",
       error instanceof Error ? error : new Error(String(error)),
-    )
-    return null
+    );
+    return null;
   }
 }
 
@@ -201,25 +201,25 @@ export function sanitizeJson<T = any>(input: string): T | null {
  */
 export function sanitizeInput(
   input: string,
-  type: 'html' | 'text' | 'url' | 'email' | 'phone' | 'sql' | 'filename',
+  type: "html" | "text" | "url" | "email" | "phone" | "sql" | "filename",
 ): string {
   switch (type) {
-    case 'html':
-      return sanitizeHtml(input)
-    case 'text':
-      return sanitizeText(input)
-    case 'url':
-      return sanitizeUrl(input)
-    case 'email':
-      return sanitizeEmail(input)
-    case 'phone':
-      return sanitizePhone(input)
-    case 'sql':
-      return sanitizeSql(input)
-    case 'filename':
-      return sanitizeFileName(input)
+    case "html":
+      return sanitizeHtml(input);
+    case "text":
+      return sanitizeText(input);
+    case "url":
+      return sanitizeUrl(input);
+    case "email":
+      return sanitizeEmail(input);
+    case "phone":
+      return sanitizePhone(input);
+    case "sql":
+      return sanitizeSql(input);
+    case "filename":
+      return sanitizeFileName(input);
     default:
-      return sanitizeText(input)
+      return sanitizeText(input);
   }
 }
 
@@ -235,17 +235,17 @@ export function validateLength(
     return {
       valid: false,
       message: `Input must be at least ${min} characters`,
-    }
+    };
   }
 
   if (input.length > max) {
     return {
       valid: false,
       message: `Input must be at most ${max} characters`,
-    }
+    };
   }
 
-  return { valid: true }
+  return { valid: true };
 }
 
 /**
@@ -259,11 +259,11 @@ export function validatePattern(
   if (!pattern.test(input)) {
     return {
       valid: false,
-      message: message || 'Input does not match required pattern',
-    }
+      message: message || "Input does not match required pattern",
+    };
   }
 
-  return { valid: true }
+  return { valid: true };
 }
 
 /**
@@ -279,26 +279,29 @@ export const VALIDATION_PATTERNS = {
   USERNAME: /^[a-zA-Z0-9_-]{3,20}$/,
   // Strong password: min 12 chars, uppercase, lowercase, number, special char
   PASSWORD:
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\-])[A-Za-z\d@$!%*?&#^()_+=\-]{12,}$/,
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=-])[A-Za-z\d@$!%*?&#^()_+=-]{12,}$/,
   // Very strong password: min 16 chars with additional requirements
   STRONG_PASSWORD:
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d{2,})(?=.*[@$!%*?&#^()_+=\-]{2,})[A-Za-z\d@$!%*?&#^()_+=\-]{16,}$/,
-} as const
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d{2,})(?=.*[@$!%*?&#^()_+=-]{2,})[A-Za-z\d@$!%*?&#^()_+=-]{16,}$/,
+} as const;
 
 /**
  * Sanitize object with multiple fields
  */
 export function sanitizeObject<T extends Record<string, any>>(
   obj: T,
-  schema: Record<keyof T, 'html' | 'text' | 'url' | 'email' | 'phone' | 'sql' | 'filename'>,
+  schema: Record<
+    keyof T,
+    "html" | "text" | "url" | "email" | "phone" | "sql" | "filename"
+  >,
 ): T {
-  const sanitized = { ...obj } as Record<string, any>
+  const sanitized = { ...obj } as Record<string, any>;
 
   for (const [key, type] of Object.entries(schema)) {
-    if (typeof sanitized[key] === 'string') {
-      sanitized[key] = sanitizeInput(sanitized[key], type as any)
+    if (typeof sanitized[key] === "string") {
+      sanitized[key] = sanitizeInput(sanitized[key], type as any);
     }
   }
 
-  return sanitized as T
+  return sanitized as T;
 }

@@ -1,29 +1,7 @@
 "use client";
 
-import { t } from "@/lib/i18n/stub";
-import type { ComponentType } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useInView } from "react-intersection-observer";
-import { toast } from "sonner";
-import {
-  RefreshCw,
-  Search,
-  Bot,
-  Loader2,
-  CheckSquare,
-  Square,
-  ArrowUpRight,
-  Sparkles,
-  ShieldCheck,
-  Clock3,
-  Star,
-  Pause,
-  XCircle,
-  Download,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -31,16 +9,38 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ReviewCard } from "./review-card";
-import { ReplyDialog } from "./reply-dialog";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import { useReviews } from "@/hooks/use-reviews";
+import { t } from "@/lib/i18n/stub";
+import type { GMBReview } from "@/lib/types/database";
+import { safeReviewStats } from "@/lib/utils/data-guards";
+import { reviewsLogger } from "@/lib/utils/logger";
+import {
+  ArrowUpRight,
+  Bot,
+  CheckSquare,
+  Clock3,
+  Download,
+  Loader2,
+  Pause,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Square,
+  Star,
+  XCircle,
+} from "lucide-react";
+import type { ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useInView } from "react-intersection-observer";
+import { toast } from "sonner";
 import { ReviewAISettings } from "./ReviewAISettings";
 import { AIAssistantSidebar } from "./ai-assistant-sidebar";
-import { BulkActionBar } from "./bulk-action-bar";
 import { AutoReplySettingsPanel } from "./auto-reply-settings-panel";
-import { useReviews } from "@/hooks/use-reviews";
-import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
-import type { GMBReview } from "@/lib/types/database";
-import { reviewsLogger } from "@/lib/utils/logger";
+import { BulkActionBar } from "./bulk-action-bar";
+import { ReplyDialog } from "./reply-dialog";
+import { ReviewCard } from "./review-card";
 
 interface ReviewStats {
   total: number;
@@ -355,7 +355,7 @@ export function ReviewsPageClient({
     return Math.round((bulkProgress.completed / bulkProgress.total) * 100);
   }, [bulkProgress]);
 
-  const reviewTrendPct = dashboardSnapshot?.kpis.reviewTrendPct ?? 0;
+  const reviewTrendPct = dashboardSnapshot?.kpis?.reviewTrendPct ?? 0;
   const autoReplySuccessRate =
     dashboardSnapshot?.automationStats?.successRatePct ?? null;
 
@@ -510,7 +510,9 @@ export function ReviewsPageClient({
 }
 
 interface ReviewsOverviewHeaderProps {
-  stats: ReviewStats | null;
+  stats: unknown;
+  loading?: boolean;
+  error?: string;
   selectionMode: boolean;
   onToggleSelectionMode: () => void;
   onSelectAll: () => void;
@@ -522,6 +524,8 @@ interface ReviewsOverviewHeaderProps {
 
 function ReviewsOverviewHeader({
   stats,
+  loading,
+  error,
   selectionMode,
   onToggleSelectionMode,
   onSelectAll,
@@ -530,6 +534,20 @@ function ReviewsOverviewHeader({
   onOpenAiSidebar,
   onOpenAISettings,
 }: ReviewsOverviewHeaderProps) {
+  // استخدام دالة الحماية للإحصائيات
+  const safeStats = safeReviewStats(stats);
+
+  // إذا كان هناك خطأ، نعرض رسالة الخطأ
+  if (error) {
+    return (
+      <section className="border-b border-zinc-800 px-6 py-6">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm">
+          {error}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="border-b border-zinc-800 px-6 py-6 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -599,28 +617,51 @@ function ReviewsOverviewHeader({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          icon={Star}
-          label="Total Reviews"
-          value={stats?.total ?? 0}
-          accent="text-orange-400"
-        />
-        <MetricCard
-          icon={Sparkles}
-          label="Pending Reply"
-          value={stats?.pending ?? 0}
-          accent="text-yellow-400"
-        />
-        <MetricCard
-          icon={ShieldCheck}
-          label="Avg Rating"
-          value={stats?.averageRating ? stats.averageRating.toFixed(1) : "—"}
-        />
-        <MetricCard
-          icon={Clock3}
-          label="Response Rate"
-          value={`${stats?.responseRate?.toFixed(1) ?? "0"}%`}
-        />
+        {loading ? (
+          // حالة التحميل
+          <div className="animate-pulse grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card
+                key={i}
+                className="bg-zinc-900/60 border border-orange-500/10"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="h-4 bg-zinc-800 rounded w-24" />
+                  <div className="h-4 w-4 bg-zinc-800 rounded" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-8 bg-zinc-800 rounded w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // البيانات
+          <>
+            <MetricCard
+              icon={Star}
+              label="Total Reviews"
+              value={safeStats.total}
+              accent="text-orange-400"
+            />
+            <MetricCard
+              icon={Sparkles}
+              label="Pending Reply"
+              value={safeStats.pending}
+              accent="text-yellow-400"
+            />
+            <MetricCard
+              icon={ShieldCheck}
+              label="Avg Rating"
+              value={safeStats.averageRating.toFixed(1)}
+            />
+            <MetricCard
+              icon={Clock3}
+              label="Response Rate"
+              value={`${safeStats.responseRate.toFixed(1)}%`}
+            />
+          </>
+        )}
       </div>
     </section>
   );
@@ -852,7 +893,7 @@ function ReviewsFeedSection({
   const hasReviews = reviews.length > 0;
 
   return (
-    <section className="min-h-[32rem] rounded-2xl border border-zinc-800 bg-zinc-950/60">
+    <section className="min-h-128 rounded-2xl border border-zinc-800 bg-zinc-950/60">
       <header className="flex flex-col gap-2 border-b border-zinc-900 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Reviews Feed</h2>
@@ -1375,48 +1416,6 @@ function AIAnalyticsCard({
   );
 }
 
-function AutoReplySettingsCard() {
-  const router = useRouter();
-
-  const handleConfigureRules = () => {
-    router.push("/settings?tab=ai");
-  };
-
-  const handleTemplates = () => {
-    router.push("/settings?tab=ai&section=templates");
-  };
-
-  const handleTrainingHistory = () => {
-    router.push("/automation");
-  };
-
-  const handleExportLogs = () => {
-    router.push("/automation?view=logs");
-  };
-
-  return (
-    <Card className="border border-zinc-800 bg-zinc-900/40">
-      <CardHeader>
-        <CardTitle className="text-lg text-white">
-          Auto-Reply Settings
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
-        <SettingsButton
-          label="Configure Rules"
-          onClick={handleConfigureRules}
-        />
-        <SettingsButton label="Templates" onClick={handleTemplates} />
-        <SettingsButton
-          label="Training History"
-          onClick={handleTrainingHistory}
-        />
-        <SettingsButton label="Export Logs" onClick={handleExportLogs} />
-      </CardContent>
-    </Card>
-  );
-}
-
 function AnalyticsRow({
   label,
   value,
@@ -1440,23 +1439,5 @@ function AnalyticsRow({
         ) : null}
       </span>
     </div>
-  );
-}
-
-function SettingsButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      variant="outline"
-      className="justify-start border-zinc-700 text-zinc-200 hover:bg-zinc-800"
-      onClick={onClick}
-    >
-      {label}
-    </Button>
   );
 }

@@ -1,5 +1,6 @@
 import { GMB_CONSTANTS, buildLocationResourceName } from "@/lib/gmb/helpers";
 import { createClient } from "@/lib/supabase/server";
+import { safeTry } from "@/lib/utils/error-handler";
 
 /**
  * GMB API Connectivity Test
@@ -119,27 +120,39 @@ export async function GET() {
     };
 
     // Test 1: Accounts API
-    try {
-      const startTime = Date.now();
-      const response = await fetch(
-        `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/accounts`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
+    await safeTry(
+      async () => {
+        const startTime = Date.now();
+        const response = await fetch(
+          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/accounts`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
-      apiTests.accounts.response_time_ms = Date.now() - startTime;
-      apiTests.accounts.success = response.ok;
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        apiTests.accounts.error =
-          errorData.error?.message || `HTTP ${response.status}`;
-      }
-    } catch (error) {
-      apiTests.accounts.error =
-        error instanceof Error ? error.message : "Unknown error";
+        );
+        apiTests.accounts.response_time_ms = Date.now() - startTime;
+        apiTests.accounts.success = response.ok;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          apiTests.accounts.error =
+            errorData.error?.message || `HTTP ${response.status}`;
+        }
+      },
+      {
+        context: { test: "accounts_api", account_id: account.id },
+        service: "gmb-api-diagnostics",
+        operation: "test_accounts_endpoint",
+        logLevel: "warn",
+        fallback: undefined,
+        rethrow: false,
+      },
+    );
+
+    // If we got an error from the try-catch, reflect it in the test result
+    if (!apiTests.accounts.error) {
+      apiTests.accounts.error = "Failed to test accounts endpoint";
     }
 
     // Only test location-specific endpoints if we have a location
@@ -151,28 +164,35 @@ export async function GET() {
       );
 
       // Test 2: Locations API (Requires readMask)
-      try {
-        const startTime = Date.now();
-        const response = await fetch(
-          `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}?readMask=name,title,storefrontAddress`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
+      await safeTry(
+        async () => {
+          const startTime = Date.now();
+          const response = await fetch(
+            `${GMB_CONSTANTS.BUSINESS_INFORMATION_BASE}/${locationName}?readMask=name,title,storefrontAddress`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
             },
-          },
-        );
-        apiTests.locations.response_time_ms = Date.now() - startTime;
-        apiTests.locations.success = response.ok;
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          apiTests.locations.error =
-            errorData.error?.message || `HTTP ${response.status}`;
-        }
-      } catch (error) {
-        apiTests.locations.error =
-          error instanceof Error ? error.message : "Unknown error";
-      }
+          );
+          apiTests.locations.response_time_ms = Date.now() - startTime;
+          apiTests.locations.success = response.ok;
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            apiTests.locations.error =
+              errorData.error?.message || `HTTP ${response.status}`;
+          }
+        },
+        {
+          context: { test: "locations_api", location_id: location.location_id },
+          service: "gmb-api-diagnostics",
+          operation: "test_locations_endpoint",
+          logLevel: "warn",
+          fallback: undefined,
+          rethrow: false,
+        },
+      );
 
       // Test 3: Reviews API (Uses v4 API)
       try {

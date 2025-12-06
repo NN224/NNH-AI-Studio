@@ -175,15 +175,18 @@ export function useReviews(options: UseReviewsOptions = {}): UseReviewsReturn {
 
         const data = await response.json();
 
+        // Unwrap the nested response structure: { success: true, data: { reviews, pagination } }
+        const responseData = data.data || data;
+
         if (append && infiniteScroll) {
           // Append new reviews for infinite scroll
-          setReviews((prev) => [...prev, ...data.reviews]);
+          setReviews((prev) => [...prev, ...(responseData.reviews || [])]);
         } else {
           // Replace reviews for normal pagination
-          setReviews(data.reviews);
+          setReviews(responseData.reviews || []);
         }
 
-        setPagination(data.pagination);
+        setPagination(responseData.pagination);
         setCurrentPage(page);
       } catch (err) {
         reviewsLogger.error(

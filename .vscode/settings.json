@@ -120,7 +120,7 @@
   },
   "nxConsole.nxWorkspacePath": "",
   "aikido.showIgnoredProblems": true,
-  "i18n-ally.localesPaths": ["i18n", "messages", "lib/i18n"]
+  "i18n-ally.localesPaths": ["i18n", "messages", "lib/i18n", "i18n/locales"]
 
   // ═══════════════════════════════════════════════════════════
   // 🤖 AI Agent Instructions

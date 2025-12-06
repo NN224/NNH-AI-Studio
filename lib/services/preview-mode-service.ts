@@ -10,8 +10,8 @@
  * - Demonstrate value immediately
  */
 
+import type { SafeCommandCenterStats } from "@/lib/utils/data-guards";
 import type { PendingAction } from "./pending-actions-service";
-import type { CommandCenterStats } from "@/components/command-center/stats-card";
 
 // ============================================
 // TYPES
@@ -27,7 +27,7 @@ export interface PreviewModeData {
     };
   };
   pendingApprovals: PendingAction[];
-  stats: CommandCenterStats;
+  stats: SafeCommandCenterStats;
   autopilotStatus: {
     enabled: boolean;
     actionsToday: number;

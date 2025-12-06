@@ -1,7 +1,7 @@
 import { checkKeyRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { gmbLogger } from "@/lib/utils/logger";
-import { addToSyncQueue } from "@/server/actions/sync-queue";
+import { enqueueSyncJob } from "@/server/actions/sync-queue";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +67,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if GMB account exists and is active
+    const { data: account, error: accountError } = await supabase
+      .from("gmb_accounts")
+      .select("id, is_active")
+      .eq("id", accountId)
+      .single();
+
+    if (accountError || !account) {
+      gmbLogger.error(
+        "GMB account not found or error checking account",
+        accountError instanceof Error
+          ? accountError
+          : new Error(String(accountError)),
+        { accountId, userId },
+      );
+      return NextResponse.json(
+        {
+          error: "gmb_account_not_found",
+          message: "GMB account not found. Please reconnect your account.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!account.is_active) {
+      gmbLogger.warn("GMB account is not active", { accountId, userId });
+      return NextResponse.json(
+        {
+          error: "gmb_account_inactive",
+          message: "GMB account is not active. Please reconnect your account.",
+        },
+        { status: 400 },
+      );
+    }
+
     // THROTTLING CHECK: Prevent duplicate sync jobs
     // Check if there's already a processing/pending job for this account
     const { data: existingJobs, error: checkError } = await supabase
@@ -109,8 +144,37 @@ export async function POST(request: NextRequest) {
     }
 
     // No existing job - create new one
+    // First, get the Google account ID needed for the sync
+    const { data: gmbAccount, error: gmbError } = await supabase
+      .from("gmb_accounts")
+      .select("account_id")
+      .eq("id", accountId)
+      .single();
+
+    if (gmbError || !gmbAccount) {
+      gmbLogger.error(
+        "Failed to fetch GMB account for sync",
+        gmbError instanceof Error ? gmbError : new Error(String(gmbError)),
+        { accountId, userId },
+      );
+      return NextResponse.json(
+        { error: "Failed to fetch account details" },
+        { status: 500 },
+      );
+    }
+
     const priority = syncType === "full" ? 7 : 5;
-    const result = await addToSyncQueue(accountId, syncType, priority, user.id);
+
+    // Use enqueueSyncJob instead of addToSyncQueue to include proper metadata
+    const result = await enqueueSyncJob(
+      "discovery_locations",
+      {
+        userId: user.id,
+        accountId,
+        googleAccountId: gmbAccount.account_id,
+      },
+      priority,
+    );
 
     if (!result.success) {
       return NextResponse.json(

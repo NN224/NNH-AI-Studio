@@ -24,8 +24,8 @@ const SYNC_STATUS_WINDOW_MS = 60000;
 
 interface SyncJobStatus {
   id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  gmb_account_id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  account_id: string; // Fixed: was gmb_account_id
   user_id: string;
   sync_type: string;
   priority: number;
@@ -92,18 +92,44 @@ export async function GET(request: NextRequest) {
     // -------------------------------------------------------------------------
     // FETCH JOB STATUS
     // -------------------------------------------------------------------------
-    let query = supabase.from("sync_queue").select("*").eq("user_id", user.id);
+    let jobs = null;
+    let queryError = null;
 
     if (jobId) {
-      query = query.eq("id", jobId);
+      const result = await supabase
+        .from("sync_queue")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("id", jobId);
+      jobs = result.data;
+      queryError = result.error;
     } else if (accountId) {
-      query = query
-        .eq("gmb_account_id", accountId)
+      // First try to find an active (pending/processing) job
+      const activeResult = await supabase
+        .from("sync_queue")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("account_id", accountId)
+        .in("status", ["pending", "processing"])
         .order("created_at", { ascending: false })
         .limit(1);
-    }
 
-    const { data: jobs, error: queryError } = await query;
+      if (activeResult.data && activeResult.data.length > 0) {
+        jobs = activeResult.data;
+        queryError = activeResult.error;
+      } else {
+        // Fallback to most recent job of any status
+        const recentResult = await supabase
+          .from("sync_queue")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("account_id", accountId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        jobs = recentResult.data;
+        queryError = recentResult.error;
+      }
+    }
 
     if (queryError) {
       gmbLogger.error(
@@ -137,7 +163,7 @@ export async function GET(request: NextRequest) {
       case "pending":
         progress = 0;
         break;
-      case "running":
+      case "processing": // Fixed: was "running"
         progress = 50;
         break;
       case "completed":
@@ -156,7 +182,7 @@ export async function GET(request: NextRequest) {
       job: {
         id: job.id,
         status: job.status,
-        account_id: job.gmb_account_id,
+        account_id: job.account_id, // Fixed: was job.gmb_account_id
         sync_type: job.sync_type,
         priority: job.priority,
         progress,

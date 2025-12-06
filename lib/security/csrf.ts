@@ -74,7 +74,6 @@ const EXCLUDED_PATHS = [
 
   // Cron jobs (use CRON_SECRET)
   "/api/cron/",
-  "/api/gmb/scheduled-sync",
 
   // CSRF token endpoint itself
   "/api/csrf-token",

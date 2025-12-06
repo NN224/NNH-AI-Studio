@@ -1,6 +1,13 @@
 import { getValidAccessToken } from "@/lib/gmb/helpers";
 import { logAction } from "@/lib/monitoring/audit";
 import { createClient } from "@/lib/supabase/server";
+import {
+  GoogleLocation,
+  LocationAttribute,
+  LocationDetailResponse,
+  LocationUpdateRequest,
+  LocationWithAccount,
+} from "@/lib/types/location-detail-api";
 import { apiLogger } from "@/lib/utils/logger";
 import { locationUpdateSchema } from "@/lib/validations/schemas";
 import { validateBody } from "@/middleware/validate-request";
@@ -49,9 +56,11 @@ export async function GET(
       );
     }
 
-    const accountId = location.gmb_account_id;
-    const accountResource = `accounts/${location.gmb_accounts.account_id}`;
-    const locationResource = location.location_id; // Already in format: locations/{id}
+    // Type check the location
+    const typedLocation = location as unknown as LocationWithAccount;
+    const accountId = typedLocation.gmb_account_id;
+    // const accountResource = `accounts/${typedLocation.gmb_accounts.account_id}`; // Unused for now
+    const locationResource = typedLocation.location_id; // Already in format: locations/{id}
 
     // Get valid access token
     const accessToken = await getValidAccessToken(supabase, accountId);
@@ -77,14 +86,14 @@ export async function GET(
       );
     }
 
-    const locationData = await response.json();
+    const locationData = (await response.json()) as GoogleLocation;
 
     // Extract attributes from location data (attributes are included in location object via readMask)
     // Note: In Google Business Profile API v1, attributes are part of the location object, not a separate endpoint
-    const attributes: any[] = locationData.attributes || [];
+    const attributes: LocationAttribute[] = locationData.attributes || [];
 
     // Get Google-updated information if available
-    let googleUpdated: any = null;
+    let googleUpdated: GoogleLocation | null = null;
     try {
       const googleUpdatedUrl = new URL(
         `${GBP_LOC_BASE}/${locationResource}:getGoogleUpdated`,
@@ -99,7 +108,7 @@ export async function GET(
 
       if (googleUpdatedResponse.ok) {
         const googleUpdatedData = await googleUpdatedResponse.json();
-        googleUpdated = googleUpdatedData;
+        googleUpdated = googleUpdatedData as GoogleLocation;
       }
     } catch (error) {
       apiLogger.warn(
@@ -111,20 +120,25 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    const locationResponse: LocationDetailResponse = {
       location: locationData,
       attributes,
       googleUpdated,
-      gmb_account_id: location.gmb_account_id, // Include accountId for sync operations
-    });
-  } catch (error: any) {
+      gmb_account_id: typedLocation.gmb_account_id,
+    };
+
+    return NextResponse.json(locationResponse);
+  } catch (error: unknown) {
     apiLogger.error(
       "[Location Details API] Error",
       error instanceof Error ? error : new Error(String(error)),
       { locationId: params.locationId },
     );
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
   }
@@ -154,7 +168,10 @@ export async function PUT(
       );
     }
 
-    const bodyResult = await validateBody(request, locationUpdateSchema);
+    const bodyResult = await validateBody<LocationUpdateRequest>(
+      request,
+      locationUpdateSchema,
+    );
     if (!bodyResult.success) {
       return bodyResult.response;
     }
@@ -230,7 +247,7 @@ export async function PUT(
       data,
       message: "Location updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     apiLogger.error(
       "[PUT /api/locations/:id] Unexpected error",
       error instanceof Error ? error : new Error(String(error)),
@@ -242,7 +259,7 @@ export async function PUT(
       params.locationId || null,
       {
         status: "failed",
-        reason: error.message,
+        reason: error instanceof Error ? error.message : String(error),
       },
     );
     return NextResponse.json(
@@ -309,7 +326,7 @@ export async function DELETE(
       success: true,
       message: "Location deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     apiLogger.error(
       "[DELETE /api/locations/:id] Unexpected error",
       error instanceof Error ? error : new Error(String(error)),
@@ -321,7 +338,7 @@ export async function DELETE(
       params.locationId || null,
       {
         status: "failed",
-        reason: error.message,
+        reason: error instanceof Error ? error.message : String(error),
       },
     );
     return NextResponse.json(

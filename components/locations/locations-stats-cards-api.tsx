@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { MapPin, Star, Eye, TrendingUp } from 'lucide-react';
-import { formatLargeNumber } from '@/components/locations/location-types';
-import { useDashboardSnapshot } from '@/hooks/use-dashboard-cache';
+import { formatLargeNumber } from "@/components/locations/location-types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDashboardSnapshot } from "@/hooks/use-dashboard-cache";
+import type { DashboardSnapshot } from "@/types/dashboard";
+import { Eye, MapPin, Star, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface StatsData {
   totalLocations: number;
@@ -14,7 +15,51 @@ interface StatsData {
   avgHealthScore: number;
 }
 
-export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } = {}) {
+/**
+ * Validates that a snapshot has all required nested properties for location stats.
+ * This prevents errors from accessing properties on undefined nested objects.
+ */
+function isValidSnapshotForStats(
+  snapshot: DashboardSnapshot | null | undefined,
+): snapshot is DashboardSnapshot {
+  if (!snapshot) {
+    return false;
+  }
+
+  // Check for required nested objects
+  if (
+    !snapshot.locationSummary ||
+    typeof snapshot.locationSummary !== "object"
+  ) {
+    return false;
+  }
+
+  if (!snapshot.reviewStats || typeof snapshot.reviewStats !== "object") {
+    return false;
+  }
+
+  if (
+    !snapshot.reviewStats.totals ||
+    typeof snapshot.reviewStats.totals !== "object"
+  ) {
+    return false;
+  }
+
+  if (!snapshot.kpis || typeof snapshot.kpis !== "object") {
+    return false;
+  }
+
+  // Check for required properties
+  if (typeof snapshot.locationSummary.totalLocations !== "number") {
+    return false;
+  }
+
+  return true;
+}
+
+export function LocationsStatsCardsAPI({
+  refreshKey,
+}: { refreshKey?: number } = {}) {
   const { data: snapshot, loading: snapshotLoading } = useDashboardSnapshot();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,12 +67,14 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
 
   useEffect(() => {
     async function fetchStats() {
-      if (snapshot) {
+      // Use snapshot only if it has all required nested properties
+      if (isValidSnapshotForStats(snapshot)) {
+        const s = snapshot;
         setStats({
-          totalLocations: snapshot.locationSummary.totalLocations ?? 0,
-          avgRating: snapshot.reviewStats.averageRating ?? 0,
-          totalReviews: snapshot.reviewStats.totals.total ?? 0,
-          avgHealthScore: snapshot.kpis.healthScore ?? 0,
+          totalLocations: s.locationSummary.totalLocations ?? 0,
+          avgRating: s.reviewStats.averageRating ?? 0,
+          totalReviews: s.reviewStats.totals.total ?? 0,
+          avgHealthScore: s.kpis.healthScore ?? 0,
         });
         setError(null);
         setLoading(false);
@@ -37,15 +84,17 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/locations/stats', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/locations/stats", {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Failed to fetch stats: ${response.status} ${response.statusText} - ${errorText}`);
+          throw new Error(
+            `Failed to fetch stats: ${response.status} ${response.statusText} - ${errorText}`,
+          );
         }
 
         const data = await response.json();
@@ -56,7 +105,7 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
           avgHealthScore: data.avgHealthScore ?? 0,
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load stats');
+        setError(err instanceof Error ? err.message : "Failed to load stats");
         setStats(null);
       } finally {
         setLoading(false);
@@ -70,12 +119,16 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
   const monthlyComparison = snapshot?.monthlyComparison ?? null;
   const locationsCurrent = stats?.totalLocations ?? 0;
   const locationsPrevious = locationsCurrent; // No historical data yet
-  const reviewsCurrent = monthlyComparison?.current?.reviews ?? stats?.totalReviews ?? 0;
-  const reviewsPrevious = monthlyComparison?.previous?.reviews ?? reviewsCurrent;
-  const ratingCurrent = monthlyComparison?.current?.rating ?? stats?.avgRating ?? 0;
+  const reviewsCurrent =
+    monthlyComparison?.current?.reviews ?? stats?.totalReviews ?? 0;
+  const reviewsPrevious =
+    monthlyComparison?.previous?.reviews ?? reviewsCurrent;
+  const ratingCurrent =
+    monthlyComparison?.current?.rating ?? stats?.avgRating ?? 0;
   const ratingPrevious = monthlyComparison?.previous?.rating ?? ratingCurrent;
   const healthScoreValue = stats?.avgHealthScore ?? 0;
-  const healthPrevious = snapshot?.locationSummary?.profileCompletenessAverage ?? healthScoreValue;
+  const healthPrevious =
+    snapshot?.locationSummary?.profileCompletenessAverage ?? healthScoreValue;
   const locationTrendPct = calculateTrend(locationsCurrent, locationsPrevious);
   const reviewTrendPct = calculateTrend(reviewsCurrent, reviewsPrevious);
   const ratingTrendPct = calculateTrend(ratingCurrent, ratingPrevious);
@@ -84,41 +137,44 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
 
   const statsConfig = [
     {
-      label: 'Total Locations',
+      label: "Total Locations",
       value: stats?.totalLocations ?? 0,
       icon: MapPin,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
       trendPct: locationTrendPct,
-      borderClass: 'border border-primary/20',
+      borderClass: "border border-primary/20",
     },
     {
-      label: 'Average Rating',
-      value: stats?.avgRating && stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '—',
+      label: "Average Rating",
+      value:
+        stats?.avgRating && stats.avgRating > 0
+          ? stats.avgRating.toFixed(1)
+          : "—",
       icon: Star,
-      color: 'text-yellow-500',
-      bgColor: 'bg-yellow-500/10',
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-500/10",
       trendPct: ratingTrendPct,
-      borderClass: 'border border-primary/20',
+      borderClass: "border border-primary/20",
     },
     {
-      label: 'Total Reviews',
+      label: "Total Reviews",
       value: formatLargeNumber(stats?.totalReviews ?? 0),
       icon: TrendingUp,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
       trendPct: reviewTrendPct,
-      borderClass: 'border border-primary/20',
+      borderClass: "border border-primary/20",
     },
     {
-      label: 'Avg Health Score',
+      label: "Avg Health Score",
       value:
         stats?.avgHealthScore != null && Number.isFinite(stats.avgHealthScore)
           ? `${Math.round(stats.avgHealthScore)}%`
-          : '—',
+          : "—",
       icon: Eye,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
       trendPct: healthTrendPct,
       borderClass: `border ${healthBorderClass}`,
     },
@@ -146,7 +202,9 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="mb-1 text-sm font-semibold text-destructive">Failed to load stats</h3>
+                <h3 className="mb-1 text-sm font-semibold text-destructive">
+                  Failed to load stats
+                </h3>
                 <p className="text-xs text-muted-foreground">{error}</p>
               </div>
               <Button
@@ -178,7 +236,9 @@ export function LocationsStatsCardsAPI({ refreshKey }: { refreshKey?: number } =
         return (
           <Card key={index} className={stat.borderClass}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </CardTitle>
               <div className={`rounded-lg p-2 ${stat.bgColor}`}>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </div>
@@ -214,9 +274,9 @@ function renderTrend(trendPct: number | null) {
 }
 
 function getHealthBorderClass(score: number) {
-  if (score >= 80) return 'border-green-500/30';
-  if (score >= 60) return 'border-yellow-500/30';
-  return 'border-red-500/30';
+  if (score >= 80) return "border-green-500/30";
+  if (score >= 60) return "border-yellow-500/30";
+  return "border-red-500/30";
 }
 
 function calculateTrend(current: number, previous: number) {
@@ -231,4 +291,3 @@ function calculateTrend(current: number, previous: number) {
   const delta = current - previous;
   return (delta / Math.abs(previous)) * 100;
 }
-

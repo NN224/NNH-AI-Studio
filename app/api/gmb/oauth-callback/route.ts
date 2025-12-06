@@ -28,6 +28,9 @@ const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GMB_ACCOUNTS_URL =
   "https://mybusinessaccountmanagement.googleapis.com/v1/accounts";
 
+// NOTE: SCOPES are defined in create-auth-url/route.ts
+// This file only handles the callback and token exchange
+
 /**
  * Extract error message from various error types (Error, PostgrestError, unknown)
  */
@@ -520,11 +523,7 @@ export async function GET(request: NextRequest) {
           "Failed to encrypt tokens",
           encryptionError instanceof Error
             ? encryptionError
-            : new Error(
-                (encryptionError as any)?.message ||
-                  JSON.stringify(encryptionError, null, 2) ||
-                  "Unknown error",
-              ),
+            : new Error(getErrorMessage(encryptionError)),
           { accountId },
         );
         const redirectUrl = buildSafeRedirectUrl(
@@ -569,9 +568,7 @@ export async function GET(request: NextRequest) {
         otherAccountsCount: otherAccounts?.length || 0,
       });
 
-      // Use UPSERT to insert or update the account (tokens stored separately in gmb_secrets)
-      // IMPORTANT: Use .select('id').single() to get the ID in the same operation
-      // This avoids race conditions between upsert and secrets insertion
+      // Use UPSERT to insert or update the account with all required data
       gmbLogger.info(`Upserting GMB account`, { accountId });
 
       const upsertData = {
@@ -579,6 +576,9 @@ export async function GET(request: NextRequest) {
         account_id: accountId,
         account_name: accountName,
         email: userInfo.email,
+        google_account_id: accountId,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         token_expires_at: tokenExpiresAt.toISOString(),
         is_active: true,
         last_sync: new Date().toISOString(),
@@ -633,7 +633,11 @@ export async function GET(request: NextRequest) {
         googleAccountId: accountId,
       });
 
-      // Store tokens in gmb_secrets table (separate from gmb_accounts for security)
+      // NOTE: gmb_services table is for business services (products/offerings),
+      // NOT for OAuth tokens. Tokens are stored ONLY in gmb_secrets for security.
+      // The gmb_services table has a different schema (user_id, location_id, name, price, etc.)
+
+      // Store tokens in gmb_secrets table (isolated token storage for security)
       gmbLogger.info("Storing tokens in gmb_secrets", {
         accountId: upsertedAccount.id,
         hasRefreshToken: !!encryptedRefreshToken,
@@ -645,7 +649,7 @@ export async function GET(request: NextRequest) {
           {
             account_id: upsertedAccount.id,
             access_token: encryptedAccessToken,
-            refresh_token: encryptedRefreshToken, // ✅ Can now be NULL
+            refresh_token: encryptedRefreshToken,
             updated_at: new Date().toISOString(),
           },
           {
@@ -886,13 +890,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     gmbLogger.error(
       "Unexpected error in OAuth callback",
-      error instanceof Error
-        ? error
-        : new Error(
-            (error as any)?.message ||
-              JSON.stringify(error, null, 2) ||
-              "Unknown error",
-          ),
+      error instanceof Error ? error : new Error(getErrorMessage(error)),
     );
     const baseUrl = getSafeBaseUrl(request);
     const localeCookie = request.cookies.get("NEXT_LOCALE")?.value || "en";

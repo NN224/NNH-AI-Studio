@@ -4,6 +4,12 @@
 import { withAuth } from "@/lib/api/auth-middleware";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import {
+  AuthUser,
+  LocationExportRaw,
+  LocationMetadata,
+  ProcessedLocation,
+} from "@/lib/types/export-api";
 import { apiLogger } from "@/lib/utils/logger";
 import { applySafeSearchFilter } from "@/lib/utils/secure-search";
 import { NextResponse } from "next/server";
@@ -14,7 +20,7 @@ export const dynamic = "force-dynamic";
  * CSV Export Handler
  * Exports locations to CSV format with support for filters
  */
-async function handler(request: Request, user: any): Promise<Response> {
+async function handler(request: Request, user: AuthUser): Promise<Response> {
   try {
     const supabase = await createClient();
 
@@ -163,30 +169,32 @@ async function handler(request: Request, user: any): Promise<Response> {
     }
 
     // Process locations data
-    const processedLocations = (locationsData || []).map((loc: any) => {
-      const metadata = (loc.metadata as Record<string, any> | null) || {};
-      const lastSync =
-        metadata.last_sync ||
-        metadata.lastSync ||
-        loc.updated_at ||
-        loc.created_at;
+    const processedLocations: ProcessedLocation[] = (locationsData || []).map(
+      (loc: LocationExportRaw) => {
+        const metadata = (loc.metadata as LocationMetadata | null) || {};
+        const lastSync =
+          metadata.last_sync ||
+          metadata.lastSync ||
+          loc.updated_at ||
+          loc.created_at;
 
-      return {
-        id: loc.id || "",
-        name: loc.location_name || "Untitled Location",
-        address: loc.address || "N/A",
-        phone: loc.phone || "N/A",
-        website: loc.website || "",
-        rating: Number(loc.rating) || 0,
-        reviewCount: Number(loc.review_count) || 0,
-        status: loc.status || "pending",
-        category: loc.category || "General",
-        created_at: loc.created_at
-          ? new Date(loc.created_at).toISOString()
-          : "",
-        last_synced: lastSync ? new Date(lastSync).toISOString() : "",
-      };
-    });
+        return {
+          id: loc.id || "",
+          name: loc.location_name || "Untitled Location",
+          address: loc.address || "N/A",
+          phone: loc.phone || "N/A",
+          website: loc.website || "",
+          rating: Number(loc.rating) || 0,
+          reviewCount: Number(loc.review_count) || 0,
+          status: loc.status || "pending",
+          category: loc.category || "General",
+          created_at: loc.created_at
+            ? new Date(loc.created_at).toISOString()
+            : "",
+          last_synced: lastSync ? new Date(String(lastSync)).toISOString() : "",
+        };
+      },
+    );
 
     // Generate CSV
     if (format === "csv") {
@@ -206,7 +214,7 @@ async function handler(request: Request, user: any): Promise<Response> {
       ];
 
       // Escape CSV value (handle commas, quotes, newlines)
-      const escapeCSV = (value: any): string => {
+      const escapeCSV = (value: string | number): string => {
         if (value === null || value === undefined) return "";
         const str = String(value);
         // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
@@ -270,7 +278,7 @@ async function handler(request: Request, user: any): Promise<Response> {
       },
       { status: 400 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     apiLogger.error(
       "[GET /api/locations/export] Unexpected error",
       error instanceof Error ? error : new Error(String(error)),

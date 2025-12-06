@@ -4,14 +4,29 @@ import {
 } from "@/lib/features/feature-definitions";
 import { extractFeatureKeysFromGMBAttributes } from "@/lib/features/gmb-attribute-mapper";
 import { createClient } from "@/lib/supabase/server";
+import { GMBLocation } from "@/lib/types/database";
 import { apiLogger } from "@/lib/utils/logger";
+import {
+  buildSocialLinks,
+  buildSpecialLinks,
+  ensureStringArray,
+  extractAttributeStrings,
+  normalizeBoolean,
+  normalizeFeatureSelection,
+  parseRecord,
+  sanitizePhone,
+  sanitizeWebsite,
+} from "@/lib/utils/profile-utils";
+import {
+  BusinessProfileMetadata,
+  BusinessProfilePayload,
+  BusinessProfileSchema,
+  GmbAttribute,
+} from "@/lib/validations/profile";
 import type {
   BusinessProfile,
-  BusinessProfilePayload,
   FeatureCategoryKey,
   FeatureSelection,
-  SocialLinks,
-  SpecialLinks,
 } from "@/types/features";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -22,142 +37,15 @@ const FEATURE_CATEGORY_KEYS: readonly FeatureCategoryKey[] = [
   "atmosphere",
 ];
 
-function parseRecord(value: unknown): Record<string, any> {
-  if (!value) return {};
-  if (typeof value === "object") return { ...(value as Record<string, any>) };
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object") {
-        return parsed as Record<string, any>;
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV !== "production") {
-        apiLogger.warn("[features/profile] Failed to parse string metadata", {
-          error: String(error),
-        });
-      }
-    }
-  }
-  return {};
-}
-
-function ensureStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) =>
-        (typeof item === "string" ? item : String(item ?? "")).trim(),
-      )
-      .filter((item) => item.length > 0);
-  }
-
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  }
-
-  return [];
-}
-
-function normalizeBoolean(value: unknown, fallback = false): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value !== 0;
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (["true", "1", "yes", "y"].includes(normalized)) return true;
-    if (["false", "0", "no", "n"].includes(normalized)) return false;
-  }
-  return fallback;
-}
-
-function normalizeFeatureSelection(raw: Record<string, any>): FeatureSelection {
-  const selection: FeatureSelection = {
-    amenities: [],
-    payment_methods: [],
-    services: [],
-    atmosphere: [],
+function computeCompleteness(profile: BusinessProfile): {
+  score: number;
+  breakdown: {
+    basicsFilled: boolean;
+    categoriesSet: boolean;
+    featuresAdded: boolean;
+    linksAdded: boolean;
   };
-
-  FEATURE_CATEGORY_KEYS.forEach((category) => {
-    const rawValue = raw?.[category];
-    const values = ensureStringArray(rawValue).filter((key) =>
-      ALL_FEATURE_KEYS.has(key),
-    );
-    selection[category] = Array.from(new Set(values));
-  });
-
-  // Fall back to attribute arrays if provided as flat list
-  if (selection.amenities.length === 0 && Array.isArray(raw?.attributes)) {
-    const attributes = ensureStringArray(raw.attributes);
-    const index = new Map<string, FeatureCategoryKey>();
-    FEATURE_CATEGORY_KEYS.forEach((category) => {
-      FEATURE_CATALOG[category].forEach((definition) => {
-        index.set(definition.key, category);
-      });
-    });
-
-    attributes.forEach((attribute) => {
-      const category = index.get(attribute);
-      if (!category) return;
-      selection[category] = Array.from(
-        new Set([...selection[category], attribute]),
-      );
-    });
-  }
-
-  return selection;
-}
-
-// Extract attribute strings from GMB Attributes API response
-// Attributes API returns: [{ name: "attr_id", values: ["val1"], uriValues: [{uri: "..."}] }]
-function extractAttributeStrings(attributesArray: unknown[]): string[] {
-  const result: string[] = [];
-
-  for (const attr of attributesArray) {
-    if (!attr || typeof attr !== "object") continue;
-
-    const attrObj = attr as Record<string, any>;
-
-    // Add attribute name/id if present (for backward compatibility)
-    if (attrObj.name && typeof attrObj.name === "string") {
-      result.push(attrObj.name);
-    }
-
-    // Add string values if present
-    if (Array.isArray(attrObj.values)) {
-      attrObj.values.forEach((val: any) => {
-        if (typeof val === "string" && val.trim()) {
-          result.push(val.trim());
-        } else if (val && typeof val === "object" && val.displayName) {
-          result.push(String(val.displayName).trim());
-        }
-      });
-    }
-
-    // Add URI values if present
-    if (Array.isArray(attrObj.uriValues)) {
-      attrObj.uriValues.forEach((uriVal: any) => {
-        if (uriVal && typeof uriVal === "object" && uriVal.uri) {
-          // Don't add URIs to features, skip
-        }
-      });
-    }
-  }
-
-  return result.filter((s) => s.length > 0);
-}
-
-function sanitizeWebsite(value: string): string {
-  return value.trim();
-}
-
-function sanitizePhone(value: string): string {
-  return value.trim();
-}
-
-function computeCompleteness(profile: BusinessProfile) {
+} {
   const basicsFilled = Boolean(
     profile.locationName.trim() &&
       profile.description.trim() &&
@@ -185,116 +73,21 @@ function computeCompleteness(profile: BusinessProfile) {
   const completed = Object.values(breakdown).filter(Boolean).length;
   const score = Math.round((completed / totalChecks) * 100);
 
-  return { score, breakdown };
-}
-
-function buildSpecialLinks(
-  raw: Record<string, any>,
-  row: Record<string, any>,
-): SpecialLinks {
-  const linksMetadata = parseRecord(raw.specialLinks ?? raw.links);
-
-  // Extract place action links from placeActionLinks array (from Place Actions API)
-  const placeActionLinks = Array.isArray(raw.placeActionLinks)
-    ? raw.placeActionLinks
-    : [];
-  const placeActions: Record<string, string> = {};
-  placeActionLinks.forEach((link: any) => {
-    if (link.placeActionType && link.uri) {
-      const type = link.placeActionType.toLowerCase();
-      if (type.includes("order")) placeActions.order = link.uri;
-      else if (type.includes("menu") || type.includes("food_menu"))
-        placeActions.menu = link.uri;
-      else if (type.includes("book") || type.includes("appointment"))
-        placeActions.booking = link.uri;
-    }
-  });
-
-  // Check multiple sources for special links (prioritize Place Actions API)
   return {
-    menu:
-      placeActions.menu ??
-      linksMetadata.menu ??
-      raw.menu_url ??
-      raw.menu ??
-      row.menu_url ??
-      row.menu ??
-      null,
-    booking:
-      placeActions.booking ??
-      linksMetadata.booking ??
-      raw.booking_url ??
-      raw.booking ??
-      raw.reservationUri ??
-      row.booking_url ??
-      row.booking ??
-      row.reservation_uri ??
-      null,
-    order:
-      placeActions.order ??
-      linksMetadata.order ??
-      raw.order_url ??
-      raw.order ??
-      row.order_url ??
-      row.order ??
-      null,
-    appointment:
-      placeActions.booking ?? // booking and appointment are the same in GMB
-      linksMetadata.appointment ??
-      raw.appointment_url ??
-      raw.appointment ??
-      row.appointment_url ??
-      row.appointment ??
-      null,
+    score,
+    breakdown,
   };
 }
 
-function buildSocialLinks(raw: Record<string, any>): SocialLinks {
-  // Extract social media links from GMB attributes
-  const attributes = Array.isArray(raw.attributes) ? raw.attributes : [];
-  const links: Record<string, string | null | undefined> = {};
-
-  attributes.forEach((attr: any) => {
-    if (!attr || !attr.name) return;
-
-    const attrName = attr.name;
-
-    // Social links are stored in uriValues, not values!
-    let value: string | null = null;
-
-    // Check uriValues first (for URL type attributes)
-    if (Array.isArray(attr.uriValues) && attr.uriValues.length > 0) {
-      value = attr.uriValues[0]?.uri || null;
-    }
-    // Fallback to values (for backward compatibility)
-    else if (attr.values) {
-      value = Array.isArray(attr.values) ? attr.values[0] : attr.values;
-    }
-
-    // Skip if value is null or empty
-    if (!value || typeof value !== "string") return;
-
-    // Map GMB attribute names to social link fields
-    if (attrName === "attributes/url_facebook") links.facebook = value;
-    else if (attrName === "attributes/url_instagram") links.instagram = value;
-    else if (attrName === "attributes/url_twitter") links.twitter = value;
-    else if (attrName === "attributes/url_whatsapp") links.whatsapp = value;
-    else if (attrName === "attributes/url_youtube") links.youtube = value;
-    else if (attrName === "attributes/url_linkedin") links.linkedin = value;
-    else if (attrName === "attributes/url_tiktok") links.tiktok = value;
-    else if (attrName === "attributes/url_pinterest") links.pinterest = value;
-  });
-
-  return links as SocialLinks;
-}
-
 function normalizeBusinessProfile(
-  row: Record<string, any>,
+  row: Record<string, unknown>,
 ): BusinessProfilePayload {
-  const metadata = parseRecord(row.metadata);
+  const metadata = parseRecord(row.metadata) as BusinessProfileMetadata;
   // enhancedMetadata contains the full location object, so profile is at metadata.profile
   // But also check if metadata itself is the profile object (legacy format)
-  const profileMetadata = parseRecord(metadata.profile ?? metadata);
+  const profileMetadata = parseRecord(
+    metadata.profile ?? metadata,
+  ) as BusinessProfileMetadata;
 
   const baseProfile: BusinessProfilePayload = {
     id: String(row.id ?? row.location_id ?? ""),
@@ -303,7 +96,7 @@ function normalizeBusinessProfile(
         ? row.location_id
         : (metadata.location_id ?? null),
     locationName:
-      row.location_name ??
+      (row.location_name as string) ??
       profileMetadata.locationName ??
       metadata.name ??
       profileMetadata.title ??
@@ -319,10 +112,11 @@ function normalizeBusinessProfile(
         typeof directProfile === "object" &&
         !Array.isArray(directProfile)
       ) {
-        if (directProfile.description)
-          return String(directProfile.description).trim();
-        if (directProfile.merchantDescription)
-          return String(directProfile.merchantDescription).trim();
+        const profileObj = directProfile as Record<string, unknown>;
+        if (profileObj.description)
+          return String(profileObj.description).trim();
+        if (profileObj.merchantDescription)
+          return String(profileObj.merchantDescription).trim();
       }
 
       // Priority 3: Metadata profile.description (from parseRecord)
@@ -348,19 +142,19 @@ function normalizeBusinessProfile(
       return "";
     })(),
     shortDescription:
-      row.short_description ??
+      (row.short_description as string) ??
       profileMetadata.shortDescription ??
       profileMetadata.merchantDescription ??
       metadata.shortDescription ??
       "",
     phone: sanitizePhone(
-      row.phone ?? metadata.phone ?? profileMetadata.phone ?? "",
+      (row.phone as string) ?? metadata.phone ?? profileMetadata.phone ?? "",
     ),
     website: sanitizeWebsite(
-      row.website ?? metadata.website ?? metadata.websiteUri ?? "",
+      (row.website as string) ?? metadata.website ?? metadata.websiteUri ?? "",
     ),
     primaryCategory:
-      row.category ??
+      (row.category as string) ??
       metadata.primary_category ??
       metadata.primaryCategory ??
       metadata.categories?.primary ??
@@ -387,13 +181,16 @@ function normalizeBusinessProfile(
           ? metadata.categories.additionalCategories
           : [];
         const processed = cats
-          .map((cat: any) => {
+          .map((cat) => {
             if (typeof cat === "string") return cat;
-            if (cat?.displayName) return cat.displayName;
-            if (cat?.name) return cat.name;
+            if (cat && typeof cat === "object") {
+              const catObj = cat as Record<string, unknown>;
+              if (catObj.displayName) return String(catObj.displayName);
+              if (catObj.name) return String(catObj.name);
+            }
             return String(cat || "").trim();
           })
-          .filter((cat: string) => cat.length > 0);
+          .filter((cat) => cat.length > 0);
         if (processed.length > 0) return processed;
       }
       // Priority 5: Check if stored in metadata.profile (parsed)
@@ -408,6 +205,8 @@ function normalizeBusinessProfile(
       // Priority 1: If metadata.features is already structured
       const featuresFromMetadata = normalizeFeatureSelection(
         metadata.features ?? {},
+        ALL_FEATURE_KEYS,
+        FEATURE_CATEGORY_KEYS,
       );
 
       // Priority 2: Extract from attributes array (from Attributes API)
@@ -415,13 +214,15 @@ function normalizeBusinessProfile(
       let featureKeysFromGMB: string[] = [];
       if (Array.isArray(metadata.attributes)) {
         featureKeysFromGMB = extractFeatureKeysFromGMBAttributes(
-          metadata.attributes,
+          metadata.attributes as GmbAttribute[],
         );
 
         if (process.env.NODE_ENV !== "production") {
-          console.log(
+          apiLogger.info(
             "[normalizeBusinessProfile] Extracted feature keys from GMB attributes:",
-            featureKeysFromGMB.length,
+            {
+              count: featureKeysFromGMB.length,
+            },
           );
         }
       }
@@ -447,10 +248,16 @@ function normalizeBusinessProfile(
 
       // If we have structured features from metadata, use them
       const hasMetadataFeatures = FEATURE_CATEGORY_KEYS.some(
-        (cat) => featuresFromMetadata[cat].length > 0,
+        (category) => featuresFromMetadata[category].length > 0,
       );
       if (hasMetadataFeatures) {
-        return featuresFromMetadata;
+        // Convert readonly arrays to mutable arrays
+        return {
+          amenities: [...featuresFromMetadata.amenities],
+          payment_methods: [...featuresFromMetadata.payment_methods],
+          services: [...featuresFromMetadata.services],
+          atmosphere: [...featuresFromMetadata.atmosphere],
+        };
       }
 
       // Otherwise, build feature selection from extracted keys
@@ -480,12 +287,15 @@ function normalizeBusinessProfile(
         });
 
         if (process.env.NODE_ENV !== "production") {
-          console.log("[normalizeBusinessProfile] Built feature selection:", {
-            amenities: selection.amenities.length,
-            payment_methods: selection.payment_methods.length,
-            services: selection.services.length,
-            atmosphere: selection.atmosphere.length,
-          });
+          apiLogger.info(
+            "[normalizeBusinessProfile] Built feature selection:",
+            {
+              amenities: selection.amenities.length,
+              payment_methods: selection.payment_methods.length,
+              services: selection.services.length,
+              atmosphere: selection.atmosphere.length,
+            },
+          );
         }
 
         return selection;
@@ -505,8 +315,8 @@ function normalizeBusinessProfile(
         return ensureStringArray(metadata.from_the_business);
       }
       // Priority 3: Metadata fromBusiness
-      if (metadata.fromBusiness) {
-        return ensureStringArray(metadata.fromBusiness);
+      if (metadata.fromTheBusiness) {
+        return ensureStringArray(metadata.fromTheBusiness);
       }
       // Priority 4: Metadata profile.fromTheBusiness
       if (profileMetadata.fromTheBusiness) {
@@ -514,14 +324,16 @@ function normalizeBusinessProfile(
       }
       // Priority 5: Extract from attributes array (from Attributes API)
       if (Array.isArray(metadata.attributes)) {
-        return extractAttributeStrings(metadata.attributes);
+        return extractAttributeStrings(metadata.attributes as GmbAttribute[]);
       }
       // Priority 6: Metadata profile.attributes (if it's an array)
       if (
         profileMetadata.attributes &&
         Array.isArray(profileMetadata.attributes)
       ) {
-        return extractAttributeStrings(profileMetadata.attributes);
+        return extractAttributeStrings(
+          profileMetadata.attributes as GmbAttribute[],
+        );
       }
       return [];
     })(),
@@ -564,35 +376,32 @@ function normalizeBusinessProfile(
       const hours =
         metadata.regularHours || row.business_hours || row.regularhours;
       if (process.env.NODE_ENV !== "production" && hours) {
-        console.log(
-          "[normalizeBusinessProfile] regularHours found:",
-          typeof hours,
-          Object.keys(hours || {}),
-        );
+        apiLogger.info("[normalizeBusinessProfile] regularHours found:", {
+          type: typeof hours,
+          keys: Object.keys(hours || {}),
+        });
       }
-      return hours || undefined;
+      return hours as Record<string, unknown> | undefined;
     })(),
     moreHours: (() => {
       const hours = metadata.moreHours;
       if (process.env.NODE_ENV !== "production" && hours) {
-        console.log(
-          "[normalizeBusinessProfile] moreHours found:",
-          Array.isArray(hours),
+        apiLogger.info("[normalizeBusinessProfile] moreHours found:", {
+          isArray: Array.isArray(hours),
           hours,
-        );
+        });
       }
-      return hours || undefined;
+      return hours as Record<string, unknown> | undefined;
     })(),
     serviceItems: (() => {
       const items = metadata.serviceItems;
       if (process.env.NODE_ENV !== "production" && items) {
-        console.log(
-          "[normalizeBusinessProfile] serviceItems found:",
-          Array.isArray(items),
-          items?.length,
-        );
+        apiLogger.info("[normalizeBusinessProfile] serviceItems found:", {
+          isArray: Array.isArray(items),
+          count: Array.isArray(items) ? items.length : 0,
+        });
       }
-      return items || undefined;
+      return items as unknown[] | undefined;
     })(),
     profileCompleteness:
       Number(row.profile_completeness ?? metadata.profileCompleteness ?? 0) ||
@@ -609,10 +418,18 @@ function normalizeBusinessProfile(
 }
 
 function mergeMetadata(
-  original: Record<string, any>,
+  original: Record<string, unknown>,
   profile: BusinessProfilePayload,
-  completeness: { score: number; breakdown: Record<string, boolean> },
-): Record<string, any> {
+  completeness: {
+    score: number;
+    breakdown: {
+      basicsFilled: boolean;
+      categoriesSet: boolean;
+      featuresAdded: boolean;
+      linksAdded: boolean;
+    };
+  },
+): Record<string, unknown> {
   const current = parseRecord(original);
   return {
     ...current,
@@ -637,7 +454,7 @@ async function getAuthorizedLocation(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   locationId: string,
-): Promise<Record<string, unknown>> {
+): Promise<GMBLocation> {
   const { data, error } = await supabase
     .from("gmb_locations")
     .select("*")
@@ -653,7 +470,7 @@ async function getAuthorizedLocation(
     throw new Error("Location not found");
   }
 
-  return data;
+  return data as GMBLocation;
 }
 
 export async function GET(
@@ -679,13 +496,17 @@ export async function GET(
       );
     }
 
-    const row = await getAuthorizedLocation(supabase, user.id, locationId);
+    const row = (await getAuthorizedLocation(
+      supabase,
+      user.id,
+      locationId,
+    )) as unknown as Record<string, unknown>;
 
     // Debug logging in development
     if (process.env.NODE_ENV !== "production") {
       const metadata = parseRecord(row.metadata);
       const profileMetadata = parseRecord(metadata.profile ?? metadata);
-      console.log("[GET /api/features/profile] Row data:", {
+      apiLogger.info("[GET /api/features/profile] Row data:", {
         id: row.id,
         location_name: row.location_name,
         description: row.description || "EMPTY",
@@ -719,7 +540,7 @@ export async function GET(
 
     // Debug logging in development
     if (process.env.NODE_ENV !== "production") {
-      console.log("[GET /api/features/profile] Normalized profile:", {
+      apiLogger.info("[GET /api/features/profile] Normalized profile:", {
         locationName: profile.locationName,
         description: profile.description?.substring(0, 100),
         additionalCategories: profile.additionalCategories,
@@ -778,15 +599,21 @@ export async function PUT(
       );
     }
 
-    let payload: BusinessProfilePayload;
-    try {
-      payload = await request.json();
-    } catch (error) {
+    // Validate request body with Zod
+    const requestData = await request.json();
+    const parseResult = BusinessProfileSchema.safeParse(requestData);
+
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Invalid JSON payload" },
+        {
+          error: "Invalid request body",
+          details: parseResult.error.errors,
+        },
         { status: 400 },
       );
     }
+
+    const payload = parseResult.data;
 
     const supabaseClient = await supabase;
     const currentRow = await getAuthorizedLocation(
@@ -825,9 +652,11 @@ export async function PUT(
       phone: sanitizePhone(payload.phone),
       website: sanitizeWebsite(payload.website),
       primaryCategory: payload.primaryCategory.trim(),
-      additionalCategories: Array.from(
-        new Set(additionalCategoriesPayload.map((item) => item.trim())),
-      ),
+      additionalCategories: [
+        ...Array.from(
+          new Set(additionalCategoriesPayload.map((item) => item.trim())),
+        ),
+      ],
       features: normalizedFeatureSelection,
       specialLinks: {
         menu: specialLinksPayload.menu
@@ -844,9 +673,9 @@ export async function PUT(
           : null,
       },
       socialLinks: payload.socialLinks ?? {},
-      fromTheBusiness: Array.from(
-        new Set(fromBusinessPayload.map((item) => item.trim())),
-      ),
+      fromTheBusiness: [
+        ...Array.from(new Set(fromBusinessPayload.map((item) => item.trim()))),
+      ],
       openingDate: payload.openingDate ?? null,
       serviceAreaEnabled: payload.serviceAreaEnabled,
       profileCompleteness: payload.profileCompleteness,
@@ -854,18 +683,45 @@ export async function PUT(
 
     const completeness = computeCompleteness(normalizedProfile);
     const currentMetadata = parseRecord(currentRow.metadata);
+    // Convert normalizedProfile to BusinessProfilePayload
+    const profilePayload: BusinessProfilePayload = {
+      id: normalizedProfile.id,
+      locationResourceId: normalizedProfile.locationResourceId,
+      locationName: normalizedProfile.locationName,
+      description: normalizedProfile.description,
+      shortDescription: normalizedProfile.shortDescription,
+      phone: normalizedProfile.phone,
+      website: normalizedProfile.website,
+      primaryCategory: normalizedProfile.primaryCategory,
+      additionalCategories: [...normalizedProfile.additionalCategories],
+      features: {
+        amenities: [...normalizedProfile.features.amenities],
+        payment_methods: [...normalizedProfile.features.payment_methods],
+        services: [...normalizedProfile.features.services],
+        atmosphere: [...normalizedProfile.features.atmosphere],
+      },
+      specialLinks: normalizedProfile.specialLinks,
+      socialLinks: normalizedProfile.socialLinks,
+      fromTheBusiness: [...normalizedProfile.fromTheBusiness],
+      openingDate: normalizedProfile.openingDate,
+      serviceAreaEnabled: normalizedProfile.serviceAreaEnabled,
+      profileCompleteness: completeness.score,
+      profileCompletenessBreakdown: completeness.breakdown,
+    };
+
     const updatedMetadata = mergeMetadata(
       currentMetadata,
-      { ...normalizedProfile, profileCompleteness: completeness.score },
+      profilePayload,
       completeness,
     );
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Record<string, unknown> = {
       metadata: updatedMetadata,
       updated_at: new Date().toISOString(),
       profile_completeness: completeness.score,
     };
 
+    // Only include fields that exist on the current row
     if ("location_name" in currentRow)
       updatePayload.location_name = normalizedProfile.locationName;
     if ("description" in currentRow)
@@ -910,11 +766,11 @@ export async function PUT(
       );
     }
 
-    const updatedRow = await getAuthorizedLocation(
+    const updatedRow = (await getAuthorizedLocation(
       supabaseClient,
       user.id,
       locationId,
-    );
+    )) as unknown as Record<string, unknown>;
     const profileResponse = normalizeBusinessProfile(updatedRow);
 
     return NextResponse.json(profileResponse);
