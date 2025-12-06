@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Building2,
@@ -10,9 +10,15 @@ import {
   Rocket,
   Sparkles,
   Youtube,
+  CheckCircle2,
+  Loader2,
+  Zap,
+  TrendingUp,
+  Shield,
+  MessageSquare,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { gmbLogger } from "@/lib/utils/logger";
 
