@@ -303,7 +303,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                     />
                   </div>
                   <p className="text-xs text-zinc-500 mt-2">
-                    {Math.round(((loadingStep + 1) / loadingSteps.length) * 100)}% مكتمل
+                    {Math.round(((loadingStep + 1) / loadingSteps.length) * 100)}% complete
                   </p>
                 </div>
               </div>
