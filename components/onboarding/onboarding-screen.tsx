@@ -617,7 +617,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                     className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-400 w-full sm:w-auto shadow-lg hover:shadow-purple-500/30 transition-all"
                   >
                     <Eye className="h-4 w-4" />
-                    تشغيل النسخة التجريبية
+                    Launch Interactive Demo
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
