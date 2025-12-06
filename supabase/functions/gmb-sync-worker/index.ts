@@ -241,7 +241,8 @@ async function processJob(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Internal-Run": triggerSecret,
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "X-Trigger-Secret": triggerSecret,
       },
       body: JSON.stringify({
         accountId: job.account_id,
