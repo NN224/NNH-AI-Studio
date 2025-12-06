@@ -282,9 +282,9 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 >
                   <div className="flex items-start gap-3">
                     <Sparkles className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-right">
+                    <div className="text-left">
                       <p className="text-sm text-zinc-300">
-                        💡 <span className="font-semibold text-blue-400">نصيحة:</span> بعد الاتصال، يمكنك استخدام الذكاء الاصطناعي للرد التلقائي على التقييمات والأسئلة!
+                        💡 <span className="font-semibold text-blue-400">Tip:</span> After connecting, you can use AI to automatically reply to reviews and questions!
                       </p>
                     </div>
                   </div>
