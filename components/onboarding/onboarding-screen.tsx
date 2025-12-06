@@ -494,56 +494,135 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
               </motion.div>
             </div>
 
-        {/* Divider */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="relative mb-8"
-        >
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-800" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="px-4 bg-gradient-to-br from-black via-zinc-900 to-black text-zinc-500 text-sm">
-              or
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Demo Mode - Enhanced */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/30 hover:border-purple-500/50 transition-all">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-500/20 mb-3">
-                <Sparkles className="h-6 w-6 text-purple-400" />
+            {/* Divider */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="relative mb-8"
+            >
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-800" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Try Live Demo First
-              </h3>
-              <p className="text-sm text-zinc-300 mb-4">
-                Experience the full AI Command Center with realistic demo data.
-                <br />
-                <span className="text-purple-400 font-medium">
-                  No account connection required!
+              <div className="relative flex justify-center">
+                <span className="px-4 bg-gradient-to-br from-black via-zinc-900 to-black text-zinc-500 text-sm">
+                  أو
                 </span>
-              </p>
-              <Button
-                onClick={handleDemoMode}
-                variant="outline"
-                className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 w-full sm:w-auto"
-              >
-                <Eye className="h-4 w-4" />
-                Launch Interactive Demo
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Demo Mode - Super Enhanced */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/30 hover:border-purple-500/50 transition-all relative overflow-hidden group">
+                {/* Animated gradient background */}
+                <motion.div
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%"],
+                  }}
+                  transition={{
+                    duration: 5,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  }}
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: "radial-gradient(circle at center, rgba(168, 85, 247, 0.1), transparent)",
+                    backgroundSize: "200% 200%",
+                  }}
+                />
+                
+                <div className="text-center relative z-10">
+                  <motion.div
+                    animate={{
+                      rotate: [0, 360],
+                      scale: [1, 1.1, 1],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 mb-4 relative"
+                  >
+                    <Sparkles className="h-8 w-8 text-purple-400" />
+                    
+                    {/* Orbiting stars */}
+                    {[0, 1, 2, 3].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{
+                          rotate: 360,
+                        }}
+                        transition={{
+                          duration: 2 + i * 0.5,
+                          repeat: Infinity,
+                          ease: "linear",
+                          delay: i * 0.2,
+                        }}
+                        className="absolute inset-0"
+                      >
+                        <div
+                          className="absolute w-1 h-1 bg-purple-400 rounded-full"
+                          style={{
+                            top: "50%",
+                            left: "50%",
+                            transform: `translate(-50%, -50%) translateY(-${30 + i * 5}px)`,
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                  
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    جرّب النسخة التجريبية أولاً
+                  </h3>
+                  
+                  <p className="text-sm text-zinc-300 mb-4">
+                    اختبر مركز القيادة الذكي الكامل ببيانات تجريبية واقعية
+                    <br />
+                    <span className="text-purple-400 font-semibold inline-flex items-center gap-1 mt-1">
+                      <Zap className="h-4 w-4" />
+                      لا حاجة لربط أي حساب!
+                    </span>
+                  </p>
+                  
+                  {/* Features preview */}
+                  <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+                    {[
+                      { icon: MessageSquare, text: "ردود AI" },
+                      { icon: TrendingUp, text: "تحليلات" },
+                      { icon: Zap, text: "منشورات" },
+                    ].map((feature, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1 + i * 0.1 }}
+                        className="flex items-center gap-1 text-xs text-purple-300 bg-purple-500/10 px-2 py-1 rounded-full"
+                      >
+                        <feature.icon className="h-3 w-3" />
+                        {feature.text}
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    onClick={handleDemoMode}
+                    variant="outline"
+                    className="gap-2 border-purple-500/50 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-400 w-full sm:w-auto shadow-lg hover:shadow-purple-500/30 transition-all"
+                  >
+                    <Eye className="h-4 w-4" />
+                    تشغيل النسخة التجريبية
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
 
         {/* Features Preview */}
         <motion.div
