@@ -423,11 +423,11 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                       {isConnectingGMB ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          جاري الربط...
+                          Connecting...
                         </>
                       ) : (
                         <>
-                          ربط الآن
+                          Connect
                           <ArrowRight className="h-4 w-4" />
                         </>
                       )}
