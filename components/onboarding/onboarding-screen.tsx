@@ -373,44 +373,68 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
               </motion.p>
             </div>
 
-        {/* Connection Options */}
-        <div className="space-y-4 mb-8">
-          {/* Google Business Option */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <Card className="p-6 bg-zinc-900/50 border-zinc-800 hover:border-orange-500/50 transition-all cursor-pointer group">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center group-hover:from-orange-500/30 group-hover:to-orange-600/30 transition-all">
-                  <Building2 className="h-7 w-7 text-orange-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">
-                    Connect Google Business
-                  </h3>
-                  <p className="text-sm text-zinc-400">
-                    Manage reviews, posts, and analytics with AI assistance
-                  </p>
-                </div>
-                <Button
-                  onClick={handleConnectGMB}
-                  disabled={isConnectingGMB}
-                  className="gap-2 bg-orange-500 hover:bg-orange-600"
-                >
-                  {isConnectingGMB ? (
-                    "Connecting..."
-                  ) : (
-                    <>
-                      Connect
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
+            {/* Connection Options */}
+            <div className="space-y-4 mb-8">
+              {/* Google Business Option - Enhanced */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Card className="p-6 bg-zinc-900/50 backdrop-blur-sm border-zinc-800 hover:border-orange-500/50 hover:bg-zinc-900/70 transition-all cursor-pointer group relative overflow-hidden">
+                  {/* Gradient overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-orange-500/0 group-hover:from-orange-500/5 group-hover:to-transparent transition-all" />
+                  
+                  <div className="flex items-center gap-4 relative z-10">
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, -10, 0] }}
+                      transition={{ duration: 0.5 }}
+                      className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center group-hover:from-orange-500/30 group-hover:to-orange-600/30 transition-all shadow-lg group-hover:shadow-orange-500/20"
+                    >
+                      <Building2 className="h-7 w-7 text-orange-500" />
+                    </motion.div>
+                    
+                    <div className="flex-1 text-right">
+                      <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-orange-400 transition-colors">
+                        ربط Google Business
+                      </h3>
+                      <p className="text-sm text-zinc-400">
+                        إدارة التقييمات والمنشورات والإحصائيات بمساعدة الذكاء الاصطناعي
+                      </p>
+                      
+                      {/* Features badges */}
+                      <div className="flex gap-2 mt-2 justify-end">
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                          ردود تلقائية
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                          تحليلات ذكية
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={handleConnectGMB}
+                      disabled={isConnectingGMB}
+                      className="gap-2 bg-orange-500 hover:bg-orange-600 shadow-lg hover:shadow-orange-500/30 transition-all"
+                    >
+                      {isConnectingGMB ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          جاري الربط...
+                        </>
+                      ) : (
+                        <>
+                          ربط الآن
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
 
           {/* YouTube Option */}
           <motion.div
