@@ -624,33 +624,96 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
               </Card>
             </motion.div>
 
-        {/* Features Preview */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="mt-12 pt-8 border-t border-zinc-800"
-        >
-          <div className="flex items-center justify-center gap-2 text-zinc-500 text-sm mb-4">
-            <Sparkles className="h-4 w-4" />
-            What you'll unlock
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center text-xs text-zinc-400">
-            <div className="p-3 rounded-lg bg-zinc-900/30">
-              <div className="text-2xl mb-1">🤖</div>
-              AI Auto-Replies
-            </div>
-            <div className="p-3 rounded-lg bg-zinc-900/30">
-              <div className="text-2xl mb-1">📊</div>
-              Smart Analytics
-            </div>
-            <div className="p-3 rounded-lg bg-zinc-900/30">
-              <div className="text-2xl mb-1">⚡</div>
-              One-Click Posts
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
+            {/* Features Preview - Enhanced */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9 }}
+              className="mt-12 pt-8 border-t border-zinc-800"
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1 }}
+                className="flex items-center justify-center gap-2 text-zinc-400 text-sm mb-6"
+              >
+                <Sparkles className="h-5 w-5 text-orange-500" />
+                <span className="font-semibold">الميزات التي ستحصل عليها</span>
+              </motion.div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  {
+                    icon: "🤖",
+                    title: "ردود AI تلقائية",
+                    desc: "ردود ذكية فورية",
+                    color: "from-orange-500/10 to-orange-600/10",
+                    delay: 1.1,
+                  },
+                  {
+                    icon: "📊",
+                    title: "تحليلات ذكية",
+                    desc: "رؤى وإحصائيات",
+                    color: "from-blue-500/10 to-blue-600/10",
+                    delay: 1.2,
+                  },
+                  {
+                    icon: "⚡",
+                    title: "منشورات سريعة",
+                    desc: "نشر بنقرة واحدة",
+                    color: "from-purple-500/10 to-purple-600/10",
+                    delay: 1.3,
+                  },
+                ].map((feature, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: feature.delay }}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} border border-zinc-800 hover:border-zinc-700 transition-all cursor-default group`}
+                  >
+                    <motion.div
+                      whileHover={{ rotate: [0, -10, 10, -10, 0] }}
+                      transition={{ duration: 0.5 }}
+                      className="text-3xl mb-2"
+                    >
+                      {feature.icon}
+                    </motion.div>
+                    <div className="text-sm font-semibold text-white mb-1 group-hover:text-orange-400 transition-colors">
+                      {feature.title}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {feature.desc}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Trust indicators */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+                className="mt-8 flex items-center justify-center gap-6 text-xs text-zinc-500"
+              >
+                <div className="flex items-center gap-1">
+                  <Shield className="h-4 w-4 text-green-500" />
+                  <span>آمن ومشفر</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="h-4 w-4 text-orange-500" />
+                  <span>سريع وفوري</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                  <span>سهل الاستخدام</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
