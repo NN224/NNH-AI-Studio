@@ -638,7 +638,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 className="flex items-center justify-center gap-2 text-zinc-400 text-sm mb-6"
               >
                 <Sparkles className="h-5 w-5 text-orange-500" />
-                <span className="font-semibold">الميزات التي ستحصل عليها</span>
+                <span className="font-semibold">What you'll unlock</span>
               </motion.div>
               
               <div className="grid grid-cols-3 gap-4">
