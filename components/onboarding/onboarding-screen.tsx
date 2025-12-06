@@ -645,22 +645,22 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                 {[
                   {
                     icon: "🤖",
-                    title: "ردود AI تلقائية",
-                    desc: "ردود ذكية فورية",
+                    title: "AI Auto-Replies",
+                    desc: "Instant smart responses",
                     color: "from-orange-500/10 to-orange-600/10",
                     delay: 1.1,
                   },
                   {
                     icon: "📊",
-                    title: "تحليلات ذكية",
-                    desc: "رؤى وإحصائيات",
+                    title: "Smart Analytics",
+                    desc: "Insights & metrics",
                     color: "from-blue-500/10 to-blue-600/10",
                     delay: 1.2,
                   },
                   {
                     icon: "⚡",
-                    title: "منشورات سريعة",
-                    desc: "نشر بنقرة واحدة",
+                    title: "One-Click Posts",
+                    desc: "Publish instantly",
                     color: "from-purple-500/10 to-purple-600/10",
                     delay: 1.3,
                   },
