@@ -496,15 +496,45 @@ async function runWorker(admin: SupabaseClient): Promise<WorkerRunStats> {
       if (result.success) {
         stats.jobs_succeeded++;
         consecutiveFailures = 0;
+        
+        // ✅ جديد: تسجيل نجاح في circuit breaker
+        try {
+          await admin.rpc("record_sync_success");
+        } catch (error) {
+          console.error("Failed to record sync success:", getErrorMessage(error));
+        }
       } else {
         stats.jobs_failed++;
         consecutiveFailures++;
 
+        // ✅ جديد: تسجيل فشل في circuit breaker
+        try {
+          const { data: failureCount, error: recordError } = await admin.rpc(
+            "record_sync_failure",
+          );
+          
+          if (recordError) {
+            console.error("Failed to record sync failure:", recordError);
+          } else if (failureCount) {
+            console.warn(`⚠️ Consecutive failures: ${failureCount}`);
+          }
+        } catch (error) {
+          console.error("Circuit breaker update error:", getErrorMessage(error));
+        }
+
         if (consecutiveFailures >= CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
-          console.error(`🔴 Circuit breaker triggered`);
+          console.error(
+            `🔴 Circuit breaker threshold reached (${consecutiveFailures} consecutive failures)`
+          );
+          console.error(
+            `   Stopping worker to prevent resource exhaustion`
+          );
+          
+          // إعادة الـ jobs المتبقية إلى pending
           for (let j = i + 1; j < jobs.length; j++) {
             unprocessedJobIds.push(jobs[j].id);
           }
+          
           await updateJobStatus(admin, job, result);
           break;
         }
