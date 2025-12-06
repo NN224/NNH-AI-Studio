@@ -127,7 +127,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
     }
   };
 
-  const displayName = userName?.split(" ")[0] || "صديقي";
+  const displayName = userName?.split(" ")[0] || "there";
   const isConnecting = isConnectingGMB || isConnectingYouTube;
 
   return (
