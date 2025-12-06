@@ -594,9 +594,9 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                   {/* Features preview */}
                   <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
                     {[
-                      { icon: MessageSquare, text: "ردود AI" },
-                      { icon: TrendingUp, text: "تحليلات" },
-                      { icon: Zap, text: "منشورات" },
+                      { icon: MessageSquare, text: "AI Replies" },
+                      { icon: TrendingUp, text: "Analytics" },
+                      { icon: Zap, text: "Posts" },
                     ].map((feature, i) => (
                       <motion.div
                         key={i}
