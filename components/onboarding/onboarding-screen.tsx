@@ -506,7 +506,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
               </div>
               <div className="relative flex justify-center">
                 <span className="px-4 bg-gradient-to-br from-black via-zinc-900 to-black text-zinc-500 text-sm">
-                  أو
+                  or
                 </span>
               </div>
             </motion.div>
