@@ -9,9 +9,15 @@ import { NextRequest, NextResponse } from "next/server";
  * for accounts that have auto-sync enabled in their settings.
  *
  * @security Uses withCronAuth wrapper - FAILS CLOSED if CRON_SECRET not set
+ * 
+ * ✅ Timeout Configuration:
+ * - Vercel Pro plan max: 60 seconds
+ * - Using 60s to allow sufficient time for enqueuing multiple accounts
+ * - Actual sync happens in Edge Functions (10 minute timeout)
  */
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60; // ✅ Vercel Pro plan maximum
 
 async function handleScheduledSync(_request: Request): Promise<Response> {
   try {
