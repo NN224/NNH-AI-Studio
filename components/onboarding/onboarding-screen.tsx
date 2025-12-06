@@ -94,7 +94,7 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
         "Error connecting GMB",
         error instanceof Error ? error : new Error(String(error)),
       );
-      toast.error("فشل الاتصال. يرجى المحاولة مرة أخرى.");
+      toast.error("Failed to connect. Please try again.");
       setIsConnectingGMB(false);
       setLoadingStep(0);
     }
