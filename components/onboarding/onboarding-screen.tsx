@@ -456,17 +456,17 @@ export function OnboardingScreen({ userName }: OnboardingScreenProps) {
                       <Youtube className="h-7 w-7 text-red-500" />
                     </motion.div>
                     
-                    <div className="flex-1 text-right">
+                    <div className="flex-1 text-left">
                       <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-red-400 transition-colors">
-                        ربط قناة YouTube
+                        Connect YouTube Channel
                       </h3>
                       <p className="text-sm text-zinc-400">
-                        إدارة الفيديوهات والتعليقات وزيادة جمهورك
+                        Manage videos, comments, and grow your audience
                       </p>
                       
-                      <div className="flex gap-2 mt-2 justify-end">
+                      <div className="flex gap-2 mt-2">
                         <span className="text-xs px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                          قريباً
+                          Coming Soon
                         </span>
                       </div>
                     </div>
