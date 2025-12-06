@@ -180,7 +180,6 @@ Deno.serve(async (req) => {
         headers: {
           "Content-Type": "application/json",
           "X-Internal-Run": TRIGGER_SECRET,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
           accountId,
