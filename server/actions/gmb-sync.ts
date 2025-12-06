@@ -23,6 +23,7 @@ import { API_TIMEOUTS, fetchWithTimeout } from "@/lib/utils/error-handling";
 import { gmbLogger } from "@/lib/utils/logger";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
+import { SYNC_TIMEOUTS } from "@/lib/config/timeouts";
 
 const GBP_LOC_BASE = GMB_CONSTANTS.GBP_LOC_BASE;
 const REVIEWS_BASE = GMB_CONSTANTS.GMB_V4_BASE;
