@@ -46,7 +46,7 @@ export function useAutoAnswerSettings(locationId?: string) {
   useEffect(() => {
     async function fetchSettings() {
       if (!userId) return;
-      
+
       // Don't fetch if locationId is undefined - wait for a location to be selected
       if (locationId === undefined) {
         setIsLoading(false);
@@ -59,19 +59,19 @@ export function useAutoAnswerSettings(locationId?: string) {
         if (!supabase) {
           throw new Error("Failed to initialize Supabase client");
         }
-        
+
         let query = supabase
           .from("question_auto_answer_settings")
           .select("*")
           .eq("user_id", userId);
-        
+
         // Handle null vs undefined: null means global settings, undefined means no location selected yet
         if (locationId === null) {
           query = query.is("location_id", null);
         } else {
           query = query.eq("location_id", locationId);
         }
-        
+
         const { data, error } = await query.maybeSingle();
 
         // maybeSingle() returns null if no rows found, which is not an error
@@ -89,7 +89,7 @@ export function useAutoAnswerSettings(locationId?: string) {
         } else if (error instanceof Error) {
           errorMessage = error.message;
         }
-        
+
         questionsLogger.error(
           "Failed to fetch settings",
           new Error(errorMessage),
@@ -107,12 +107,15 @@ export function useAutoAnswerSettings(locationId?: string) {
 
   const updateSettings = async (updates: Partial<AutoAnswerSettings>) => {
     if (!userId) return;
-    
+
     // Don't update if locationId is undefined
     if (locationId === undefined) {
-      questionsLogger.warn("Cannot update settings without a location selected", {
-        userId,
-      });
+      questionsLogger.warn(
+        "Cannot update settings without a location selected",
+        {
+          userId,
+        },
+      );
       return;
     }
 
@@ -122,14 +125,14 @@ export function useAutoAnswerSettings(locationId?: string) {
       if (!supabase) {
         throw new Error("Failed to initialize Supabase client");
       }
-      
+
       // Use upsert to handle both insert and update cases
       const settingsData = {
         user_id: userId,
         location_id: locationId,
         ...updates,
       };
-      
+
       const { error } = await supabase
         .from("question_auto_answer_settings")
         .upsert(settingsData, {
@@ -147,7 +150,7 @@ export function useAutoAnswerSettings(locationId?: string) {
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       questionsLogger.error(
         "Failed to update settings",
         new Error(errorMessage),

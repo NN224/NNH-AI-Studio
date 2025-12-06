@@ -174,6 +174,10 @@ function createSyncTimeout(ms: number = SYNC_TIMEOUT_MS) {
 
 /**
  * Token manager to handle automatic refresh during long-running sync operations
+ * ✅ تحسينات:
+ * - Exponential backoff (1s, 2s, 4s, 8s, 16s)
+ * - 5 محاولات بدلاً من 2
+ * - Proactive refresh قبل 10 دقائق من الانتهاء
  */
 class TokenManager {
   private token: string;
@@ -199,47 +203,72 @@ class TokenManager {
       gmbLogger.warn("Token expired or expiring soon, refreshing...", {
         accountId: this.accountId,
       });
-      try {
-        this.token = await getValidAccessToken(this.supabase, this.accountId);
-        this.tokenExpiresAt =
-          Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
-        gmbLogger.warn("Token refreshed successfully", {
-          accountId: this.accountId,
-        });
-      } catch (error) {
-        gmbLogger.error(
-          "Failed to refresh token",
-          error instanceof Error ? error : new Error(String(error)),
-          { accountId: this.accountId },
-        );
-        // Retry once before failing
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        try {
-          const retryToken = await getValidAccessToken(
-            this.supabase,
-            this.accountId,
-          );
-          if (retryToken) {
-            this.token = retryToken;
-            this.tokenExpiresAt =
-              Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
-            return this.token;
-          }
-        } catch (retryError) {
-          gmbLogger.error(
-            "Token refresh retry failed",
-            retryError instanceof Error
-              ? retryError
-              : new Error(String(retryError)),
-            { accountId: this.accountId },
-          );
-        }
-        throw new Error(
-          "Failed to refresh access token during sync after retry",
-        );
-      }
+
+      // ✅ استخدام exponential backoff retry
+      this.token = await this.refreshTokenWithRetry();
+      this.tokenExpiresAt = Date.now() + 3600 * 1000 - TOKEN_REFRESH_BUFFER_MS;
+
+      gmbLogger.info("Token refreshed successfully", {
+        accountId: this.accountId,
+      });
     }
     return this.token;
+  }
+
+  /**
+   * ✅ جديد: Refresh token مع exponential backoff
+   */
+  private async refreshTokenWithRetry(
+    maxAttempts: number = 5,
+  ): Promise<string> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const newToken = await getValidAccessToken(
+          this.supabase,
+          this.accountId,
+        );
+
+        if (newToken) {
+          gmbLogger.info("Token refresh successful", {
+            accountId: this.accountId,
+            attempt: attempt + 1,
+          });
+          return newToken;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // حساب exponential backoff delay: 1s, 2s, 4s, 8s, 16s (max 30s)
+        const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+
+        gmbLogger.warn(
+          `Token refresh failed (attempt ${attempt + 1}/${maxAttempts})`,
+          {
+            accountId: this.accountId,
+            nextRetryIn: `${delay}ms`,
+            error: lastError.message,
+          },
+        );
+
+        // لا ننتظر في المحاولة الأخيرة
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // فشلت جميع المحاولات
+    gmbLogger.error(
+      "Token refresh failed after all retry attempts",
+      lastError || new Error("Unknown error"),
+      { accountId: this.accountId, attempts: maxAttempts },
+    );
+
+    throw new Error(
+      `Failed to refresh access token after ${maxAttempts} attempts: ${lastError?.message}`,
+    );
   }
 }
 

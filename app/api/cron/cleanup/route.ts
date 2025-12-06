@@ -9,6 +9,9 @@ import { apiLogger } from "@/lib/utils/logger";
  *
  * @security Uses withCronAuth wrapper - FAILS CLOSED if CRON_SECRET not set
  */
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60; // ✅ 60 seconds - sufficient for cleanup operations
 async function handleCleanup(_request: Request): Promise<Response> {
   const supabase = await createClient();
 

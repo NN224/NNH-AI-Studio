@@ -20,6 +20,7 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 ## Key Features
 
 ### AI Command Center
+
 - **Proactive Pattern Detection** - Automatically identifies complaint clusters, day/time patterns, rating trends, and service issues
 - **Smart Reply Generation** - AI-generated responses for reviews and Q&A using Claude (Anthropic)
 - **Autopilot Mode** - Auto-publish high-confidence responses
@@ -27,6 +28,7 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 - **24/7 Background Processing** - Hourly action preparation and daily insights
 
 ### Google Business Profile (GMB) Management
+
 - **Location Management** - Multi-location support with unified dashboard
 - **Review Management** - View, reply, and analyze customer reviews
 - **Q&A Management** - Respond to customer questions
@@ -35,17 +37,20 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 - **Analytics Dashboard** - Performance metrics and insights
 
 ### YouTube Integration
+
 - **Channel Analytics** - Video performance and audience metrics
 - **Content Workflows** - Streamlined content creation process
 - **Dashboard** - Unified view of YouTube performance
 
 ### AI Capabilities
+
 - **Multi-Provider Support** - OpenAI, Anthropic (Claude), Google Gemini, Groq, DeepSeek, Together AI
 - **Business DNA** - AI learns your business personality for consistent responses
 - **Bilingual Support** - English-first with Arabic language detection
 - **Content Generation** - AI-assisted posts, replies, and recommendations
 
 ### Platform Features
+
 - **Internationalization (i18n)** - Multi-language support via next-intl
 - **Dark/Light Theme** - Full theme customization
 - **Responsive Design** - Mobile-first, works on all devices
@@ -56,19 +61,19 @@ NNH AI Studio is a comprehensive Next.js 14 application designed to help busines
 
 ## Tech Stack
 
-| Category | Technologies |
-|----------|--------------|
-| **Framework** | Next.js 14 (App Router), React 18, TypeScript 5.9 |
-| **Styling** | Tailwind CSS 4, Framer Motion, shadcn/ui (Radix UI) |
-| **Database** | Supabase (PostgreSQL) with Row Level Security |
-| **Authentication** | Supabase Auth, Google OAuth |
-| **AI/ML** | OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, Together AI |
-| **State Management** | Zustand, React Query (TanStack Query) |
-| **Forms** | React Hook Form, Zod validation |
-| **Charts** | Recharts, Chart.js |
-| **Testing** | Jest, Playwright, Storybook |
-| **Monitoring** | Sentry, Vercel Analytics |
-| **Email** | SendGrid, Nodemailer |
+| Category             | Technologies                                                         |
+| -------------------- | -------------------------------------------------------------------- |
+| **Framework**        | Next.js 14 (App Router), React 18, TypeScript 5.9                    |
+| **Styling**          | Tailwind CSS 4, Framer Motion, shadcn/ui (Radix UI)                  |
+| **Database**         | Supabase (PostgreSQL) with Row Level Security                        |
+| **Authentication**   | Supabase Auth, Google OAuth                                          |
+| **AI/ML**            | OpenAI, Anthropic Claude, Google Gemini, Groq, DeepSeek, Together AI |
+| **State Management** | Zustand, React Query (TanStack Query)                                |
+| **Forms**            | React Hook Form, Zod validation                                      |
+| **Charts**           | Recharts, Chart.js                                                   |
+| **Testing**          | Jest, Playwright, Storybook                                          |
+| **Monitoring**       | Sentry, Vercel Analytics                                             |
+| **Email**            | SendGrid, Nodemailer                                                 |
 
 ---
 
@@ -163,21 +168,21 @@ UPTIME_ROBOT_API_KEY=
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server (port 5050) |
-| `npm run build` | Production build with CSS optimization |
-| `npm start` | Start production server (port 5000) |
-| `npm run lint` | Run ESLint |
-| `npm run test` | Run Jest unit tests |
-| `npm run test:coverage` | Run tests with coverage report |
-| `npm run test:e2e` | Run Playwright E2E tests |
-| `npm run test:e2e:install` | Install Playwright browsers |
-| `npm run storybook` | Start Storybook (port 6006) |
-| `npm run build-storybook` | Build static Storybook |
-| `npm run db:update-docs` | Update database schema documentation |
-| `npm run clean` | Clean build cache |
-| `npm run rebuild` | Clean and rebuild |
+| Command                    | Description                            |
+| -------------------------- | -------------------------------------- |
+| `npm run dev`              | Start development server (port 5050)   |
+| `npm run build`            | Production build with CSS optimization |
+| `npm start`                | Start production server (port 5000)    |
+| `npm run lint`             | Run ESLint                             |
+| `npm run test`             | Run Jest unit tests                    |
+| `npm run test:coverage`    | Run tests with coverage report         |
+| `npm run test:e2e`         | Run Playwright E2E tests               |
+| `npm run test:e2e:install` | Install Playwright browsers            |
+| `npm run storybook`        | Start Storybook (port 6006)            |
+| `npm run build-storybook`  | Build static Storybook                 |
+| `npm run db:update-docs`   | Update database schema documentation   |
+| `npm run clean`            | Clean build cache                      |
+| `npm run rebuild`          | Clean and rebuild                      |
 
 ---
 
@@ -216,14 +221,14 @@ NNH-AI-Studio/
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
+| Document                                                            | Description                  |
+| ------------------------------------------------------------------- | ---------------------------- |
 | [AI Command Center Architecture](AI-COMMAND-CENTER-ARCHITECTURE.md) | Complete system architecture |
-| [AI Command Center Summary](AI-COMMAND-CENTER-SUMMARY.md) | Implementation details |
-| [Database Schema](google-api-docs/DATABASE_SCHEMA.md) | Full database documentation |
-| [Supabase Migrations](supabase/migrations/README.md) | Migration guide |
-| [OAuth Flow Guide](docs/OAUTH-QUICK-SUMMARY.md) | OAuth implementation |
-| [Production Checklist](PRODUCTION_CHECKLIST.md) | Deployment checklist |
+| [AI Command Center Summary](AI-COMMAND-CENTER-SUMMARY.md)           | Implementation details       |
+| [Database Schema](google-api-docs/DATABASE_SCHEMA.md)               | Full database documentation  |
+| [Supabase Migrations](supabase/migrations/README.md)                | Migration guide              |
+| [OAuth Flow Guide](docs/OAUTH-QUICK-SUMMARY.md)                     | OAuth implementation         |
+| [Production Checklist](PRODUCTION_CHECKLIST.md)                     | Deployment checklist         |
 
 ---
 
@@ -309,18 +314,19 @@ The following cron jobs are configured in `vercel.json`:
 }
 ```
 
-| Cron Job | Schedule | Description |
-|----------|----------|-------------|
-| `process-queue` | Every minute | Process background job queue |
-| `prepare-actions` | Every 30 min | Generate AI-prepared review/Q&A responses |
-| `daily-insights` | Daily 6 AM | Pattern detection and insights generation |
-| `process-questions` | Every 15 min | Auto-answer GMB questions |
-| `cleanup` | Daily 2 AM | Database cleanup and maintenance |
-| `refresh-expiring-tokens` | Every 6 hours | Refresh OAuth tokens before expiry |
+| Cron Job                  | Schedule      | Description                               |
+| ------------------------- | ------------- | ----------------------------------------- |
+| `process-queue`           | Every minute  | Process background job queue              |
+| `prepare-actions`         | Every 30 min  | Generate AI-prepared review/Q&A responses |
+| `daily-insights`          | Daily 6 AM    | Pattern detection and insights generation |
+| `process-questions`       | Every 15 min  | Auto-answer GMB questions                 |
+| `cleanup`                 | Daily 2 AM    | Database cleanup and maintenance          |
+| `refresh-expiring-tokens` | Every 6 hours | Refresh OAuth tokens before expiry        |
 
 ### Other Platforms
 
 Works on any Node.js host supporting Next.js 14. Ensure:
+
 - Runtime environment variables are configured
 - Database connections are allowed from host IP
 - Cron jobs are configured via external scheduler if needed
@@ -364,4 +370,4 @@ All rights reserved. This is proprietary software owned by NNH AI Studio.
 
 ---
 
-*Last Updated: December 2025*
+_Last Updated: December 2025_
